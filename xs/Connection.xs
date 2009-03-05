@@ -19,3 +19,19 @@ _build_xs (self)
 		perl_mongo_attach_ptr_to_instance (self, (void *)conn);
 	CLEANUP:
 		SvREFCNT_dec (attr);
+
+void
+mongo::DBClientConnection::_connect ()
+	PREINIT:
+		SV *attr;
+		char *server;
+		string error;
+	INIT:
+		attr = perl_mongo_call_reader (ST (0), "_server");
+		server = SvPV_nolen (attr);
+	CODE:
+		if (!THIS->connect(server, error)) {
+			croak ("%s", error.c_str());
+		}
+	CLEANUP:
+		SvREFCNT_dec(attr);
