@@ -93,3 +93,75 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr)
 
     return ret;
 }
+
+static SV *bson_to_av (mongo::BSONObj obj);
+
+static SV *
+elem_to_sv (mongo::BSONElement elem)
+{
+    switch (elem.type()) {
+        case mongo::Undefined:
+        case mongo::jstNULL:
+            return &PL_sv_undef;
+            break;
+        case mongo::NumberInt:
+            return newSViv (elem.number());
+            break;
+        case mongo::NumberDouble:
+            return newSVnv (elem.number());
+            break;
+        case mongo::Bool:
+            return elem.boolean() ? &PL_sv_yes : &PL_sv_no;
+            break;
+        case mongo::String:
+            return newSVpv (elem.valuestr(), 0);
+            break;
+        case mongo::Array:
+            return bson_to_av (elem.embeddedObject());
+            break;
+        case mongo::Object:
+            return perl_mongo_bson_to_sv (elem.embeddedObject());
+            break;
+        case mongo::EOO:
+            return NULL;
+            break;
+        default:
+            croak ("type unhandled");
+    }
+}
+
+static SV *
+bson_to_av (mongo::BSONObj obj)
+{
+    AV *ret = newAV ();
+    mongo::BSONObjIterator it = mongo::BSONObjIterator(obj);
+    while (it.more()) {
+        SV *sv;
+        mongo::BSONElement elem = it.next();
+        if ((sv = elem_to_sv (elem))) {
+            av_push (ret, sv);
+        }
+    }
+
+    return newRV_noinc ((SV *)ret);
+}
+
+SV *
+perl_mongo_bson_to_sv (mongo::BSONObj obj)
+{
+    HV *ret = newHV ();
+
+    mongo::BSONObjIterator it = mongo::BSONObjIterator(obj);
+    while (it.more()) {
+        SV *sv;
+        mongo::BSONElement elem = it.next();
+        if ((sv = elem_to_sv (elem))) {
+            const char *key = elem.fieldName();
+            if (!hv_store (ret, key, strlen (key), sv, 0)) {
+                croak ("failed storing value in hash");
+            }
+        }
+    }
+
+    return newRV_noinc ((SV *)ret);
+}
