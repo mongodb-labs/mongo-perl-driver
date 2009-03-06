@@ -39,7 +39,7 @@ mongo::DBClientConnection::_connect ()
 SV *
 mongo::DBClientConnection::_query (ns, query, limit, skip)
         const char *ns
-        const char *query
+        HV *query
         int limit
         int skip
     PREINIT:
@@ -47,7 +47,7 @@ mongo::DBClientConnection::_query (ns, query, limit, skip)
         mongo::Query *q;
         SV *attr;
     INIT:
-        q = new mongo::Query(query);
+        q = new mongo::Query(perl_mongo_hv_to_bson (query));
         attr = perl_mongo_call_reader (ST (0), "_cursor_class");
     CODE:
         cursor = THIS->query(ns, *q, limit, skip);
