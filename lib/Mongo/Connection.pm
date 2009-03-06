@@ -81,6 +81,14 @@ sub database_names {
     return map { $_->{name} } @{ $ret->{databases} };
 }
 
+sub get_database {
+    my ($self, $database_name) = @_;
+    return $self->_database_class->new(
+        _connection => $self,
+        name        => $database_name,
+    );
+}
+
 no Mouse;
 __PACKAGE__->meta->make_immutable;
 
