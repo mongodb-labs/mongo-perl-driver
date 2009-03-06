@@ -1,8 +1,12 @@
 TYPEMAP
 
 mongo::DBClientConnection *  T_DB_CLIENT_CONNECTION
+mongo::DBClientCursor *      T_DB_CLIENT_CURSOR
 
 INPUT
 
 T_DB_CLIENT_CONNECTION
 	$var = static_cast<mongo::DBClientConnection *>(perl_mongo_get_ptr_from_instance ($arg));
+
+T_DB_CLIENT_CURSOR
+	$var = static_cast<mongo::DBClientCursor *>(perl_mongo_get_ptr_from_instance ($arg));
