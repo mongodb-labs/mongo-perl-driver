@@ -165,3 +165,73 @@ perl_mongo_bson_to_sv (mongo::BSONObj obj)
 
     return newRV_noinc ((SV *)ret);
 }
+
+static void append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv);
+
+static void
+hv_to_bson (mongo::BSONObjBuilder *builder, HV *hv)
+{
+    HE *he;
+    (void)hv_iterinit (hv);
+    while ((he = hv_iternext (hv))) {
+        STRLEN len;
+        const char *key = HePV (he, len);
+        append_sv (builder, key, HeVAL (he));
+    }
+}
+
+static void
+av_to_bson (mongo::BSONObjBuilder *builder, AV *av)
+{
+    I32 i;
+    for (i = 0; i <= av_len (av); i++) {
+        SV **sv;
+        SV *key = newSViv (i);
+        if (!(sv = av_fetch (av, i, 0))) {
+            croak ("failed to fetch array value");
+        }
+        append_sv (builder, SvPV_nolen(key), *sv);
+        SvREFCNT_dec (key);
+    }
+}
+
+static void
+append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv)
+{
+    switch (SvTYPE (sv)) {
+        case SVt_IV:
+            builder->append(key, (int)SvIV (sv));
+            break;
+        case SVt_PV:
+            builder->append(key, (char *)SvPV_nolen (sv));
+            break;
+        case SVt_RV: {
+            mongo::BSONObjBuilder *subobj = new mongo::BSONObjBuilder();
+            switch (SvTYPE (SvRV (sv))) {
+                case SVt_PVHV:
+                    hv_to_bson (subobj, (HV *)SvRV (sv));
+                    break;
+                case SVt_PVAV:
+                    av_to_bson (subobj, (AV *)SvRV (sv));
+                    break;
+                default:
+                    croak ("type unhandled");
+            }
+            builder->append(key, subobj->done());
+            break;
+        }
+        default:
+            croak ("type unhandled");
+    }
+}
+
+mongo::BSONObj
+perl_mongo_hv_to_bson (HV *hv)
+{
+    mongo::BSONObjBuilder *builder = new mongo::BSONObjBuilder();
+
+    hv_to_bson (builder, hv);
+
+    mongo::BSONObj obj = builder->done();
+    return obj;
+}

@@ -17,6 +17,7 @@ void perl_mongo_attach_ptr_to_instance (SV *self, void *ptr);
 void *perl_mongo_get_ptr_from_instance (SV *self);
 SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr);
 SV *perl_mongo_bson_to_sv (mongo::BSONObj obj);
+mongo::BSONObj perl_mongo_hv_to_bson (HV *sv);
 
 }
 
