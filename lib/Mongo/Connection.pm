@@ -37,6 +37,20 @@ has auto_connect => (
     default  => 1,
 );
 
+has _database_class => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => 'Mongo::Database',
+);
+
+has _cursor_class => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => 'Mongo::Cursor',
+);
+
 sub _build__server {
     my ($self) = @_;
     my ($host, $port) = map { $self->$_ } qw/host port/;
@@ -45,6 +59,8 @@ sub _build__server {
 
 sub BUILD {
     my ($self) = @_;
+    eval "use ${_}"
+        for map { $self->$_ } qw/_database_class _cursor_class/;
     $self->_build_xs;
     $self->connect if $self->auto_connect;
 }
