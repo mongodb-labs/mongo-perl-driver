@@ -59,7 +59,7 @@ sub _build__server {
 
 sub BUILD {
     my ($self) = @_;
-    eval "use ${_}"
+    eval "use ${_}" # no Mouse::load_class becase the namespaces already have symbols from the xs bootstrap
         for map { $self->$_ } qw/_database_class _cursor_class/;
     $self->_build_xs;
     $self->connect if $self->auto_connect;
