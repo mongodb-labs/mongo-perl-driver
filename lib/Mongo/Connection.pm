@@ -70,6 +70,17 @@ sub connect {
     $self->_connect;
 }
 
+sub find_one {
+    my ($self, @args) = @_;
+    $self->_find_one(@args);
+}
+
+sub database_names {
+    my ($self) = @_;
+    my $ret = $self->find_one('admin.$cmd' => { listDatabases => 1 });
+    return map { $_->{name} } @{ $ret->{databases} };
+}
+
 no Mouse;
 __PACKAGE__->meta->make_immutable;
 
