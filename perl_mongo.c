@@ -19,8 +19,8 @@ perl_mongo_call_reader (SV *self, const char *reader)
     ENTER;
     SAVETMPS;
 
-    PUSHMARK(SP);
-    XPUSHs(self);
+    PUSHMARK (SP);
+    XPUSHs (self);
     PUTBACK;
 
     count = call_method (reader, G_SCALAR);
@@ -58,4 +58,38 @@ perl_mongo_get_ptr_from_instance (SV *self)
     }
 
     return mg->mg_ptr;
+}
+
+SV *
+perl_mongo_construct_instance_with_magic (const char *klass, void *ptr)
+{
+    dSP;
+    SV *ret;
+    I32 count;
+
+    ENTER;
+    SAVETMPS;
+
+    PUSHMARK (SP);
+    mXPUSHp (klass, strlen (klass));
+    PUTBACK;
+
+    count = call_method ("new", G_SCALAR);
+
+    SPAGAIN;
+
+    if (count != 1) {
+        croak ("constructor didn't return an instance");
+    }
+
+    ret = POPs;
+    SvREFCNT_inc (ret);
+
+    PUTBACK;
+    FREETMPS;
+    LEAVE;
+
+    perl_mongo_attach_ptr_to_instance (ret, ptr);
+
+    return ret;
 }

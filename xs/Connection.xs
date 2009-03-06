@@ -34,4 +34,25 @@ mongo::DBClientConnection::_connect ()
 			croak ("%s", error.c_str());
 		}
 	CLEANUP:
-		SvREFCNT_dec(attr);
+		SvREFCNT_dec (attr);
+
+SV *
+mongo::DBClientConnection::_query (ns, query, limit, skip)
+        const char *ns
+        const char *query
+        int limit
+        int skip
+    PREINIT:
+        std::auto_ptr<mongo::DBClientCursor> cursor;
+        mongo::Query *q;
+        SV *attr;
+    INIT:
+        q = new mongo::Query(query);
+        attr = perl_mongo_call_reader (ST (0), "_cursor_class");
+    CODE:
+        cursor = THIS->query(ns, *q, limit, skip);
+        RETVAL = perl_mongo_construct_instance_with_magic (SvPV_nolen (attr), cursor.get());
+    OUTPUT:
+        RETVAL
+    CLEANUP:
+        SvREFCNT_dec (attr);
