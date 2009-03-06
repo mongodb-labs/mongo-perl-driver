@@ -56,3 +56,18 @@ mongo::DBClientConnection::_query (ns, query, limit, skip)
         RETVAL
     CLEANUP:
         SvREFCNT_dec (attr);
+
+SV *
+mongo::DBClientConnection::_find_one (ns, query)
+        const char *ns
+        HV *query
+    PREINIT:
+        mongo::Query *q;
+        mongo::BSONObj ret;
+    INIT:
+        q = new mongo::Query(perl_mongo_hv_to_bson (query));
+    CODE:
+        ret = THIS->findOne(ns, *q);
+        RETVAL = perl_mongo_bson_to_sv (ret);
+    OUTPUT:
+        RETVAL
