@@ -129,7 +129,7 @@ static SV *
 oid_to_sv (const char *oid_class, mongo::OID id)
 {
     std::string str = id.str();
-    return perl_mongo_construct_instance (oid_class, "value", newSVpv (str.c_str(), str.length()));
+    return perl_mongo_construct_instance (oid_class, "value", newSVpv (str.c_str(), str.length()), NULL);
 }
 
 static SV *
