@@ -97,6 +97,13 @@ sub insert {
     return $self->_insert(@args);
 }
 
+sub update {
+    my ($self, $ns, $query, $object, $upsert) = @_;
+    $upsert = 0 unless defined $upsert;
+    $self->_update($ns, $query, $object, $upsert);
+    return;
+}
+
 sub database_names {
     my ($self) = @_;
     my $ret = $self->get_database('admin')->run_command({ listDatabases => 1 });
