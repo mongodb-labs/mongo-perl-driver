@@ -47,9 +47,9 @@ mongo::DBClientConnection::_query (ns, query, limit, skip)
         mongo::Query *q;
         SV *cursor_class, *oid_class;
     INIT:
-        q = new mongo::Query(perl_mongo_hv_to_bson (query));
         cursor_class = perl_mongo_call_reader (ST (0), "_cursor_class");
         oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
+        q = new mongo::Query(perl_mongo_hv_to_bson (query, SvPV_nolen (oid_class)));
     CODE:
         cursor = THIS->query(ns, *q, limit, skip);
         RETVAL = perl_mongo_construct_instance_with_magic (SvPV_nolen (cursor_class), cursor.release(), "_oid_class", oid_class, NULL);
@@ -69,7 +69,7 @@ mongo::DBClientConnection::_find_one (ns, query)
         mongo::BSONObj ret;
     INIT:
         attr = perl_mongo_call_reader (ST (0), "_oid_class");
-        q = new mongo::Query(perl_mongo_hv_to_bson (query));
+        q = new mongo::Query(perl_mongo_hv_to_bson (query, SvPV_nolen (attr)));
     CODE:
         ret = THIS->findOne(ns, *q);
         RETVAL = perl_mongo_bson_to_sv (SvPV_nolen (attr), ret);
