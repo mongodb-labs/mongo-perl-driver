@@ -77,3 +77,10 @@ mongo::DBClientConnection::_find_one (ns, query)
         RETVAL
     CLEANUP:
         SvREFCNT_dec (attr);
+
+void
+mongo::DBClientConnection::_insert (ns, object)
+        const char *ns
+        HV *object
+    CODE:
+        THIS->insert(ns, perl_mongo_hv_to_bson (object));
