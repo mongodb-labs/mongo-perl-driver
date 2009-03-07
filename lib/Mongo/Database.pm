@@ -26,6 +26,13 @@ sub _query_ns {
     return qq{${name}.${ns}};
 }
 
+sub run_command {
+    my ($self, $command) = @_;
+    my $obj = $self->find_one('$cmd', $command);
+    return $obj if $obj->{ok};
+    confess $obj->{errmsg};
+}
+
 no Mouse;
 __PACKAGE__->meta->make_immutable;
 
