@@ -108,6 +108,12 @@ sub update {
     return;
 }
 
+sub remove {
+    my ($self, $ns, $query) = @_;
+    $self->_remove($ns, $query, 0);
+    return;
+}
+
 sub database_names {
     my ($self) = @_;
     my $ret = $self->get_database('admin')->run_command({ listDatabases => 1 });

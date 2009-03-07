@@ -6,7 +6,7 @@ has _connection => (
     is       => 'ro',
     isa      => 'Mongo::Connection',
     required => 1,
-    handles  => [qw/query find_one insert update/],
+    handles  => [qw/query find_one insert update remove/],
 );
 
 has name => (
@@ -27,7 +27,7 @@ sub BUILD {
     Mouse::load_class($self->_collection_class);
 }
 
-around qw/query find_one insert update/ => sub {
+around qw/query find_one insert update remove/ => sub {
     my ($next, $self, $ns, @args) = @_;
     return $self->$next($self->_query_ns($ns), @args);
 };
