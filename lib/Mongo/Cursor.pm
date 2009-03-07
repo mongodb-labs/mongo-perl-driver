@@ -15,6 +15,17 @@ sub next {
     return $self->_next;
 }
 
+sub all {
+    my ($self) = @_;
+    my @ret;
+
+    while (my $entry = $self->next) {
+        push @ret, $entry;
+    }
+
+    return @ret;
+}
+
 no Mouse;
 __PACKAGE__->meta->make_immutable;
 
