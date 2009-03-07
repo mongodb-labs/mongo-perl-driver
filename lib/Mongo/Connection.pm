@@ -79,8 +79,22 @@ sub connect {
 }
 
 sub find_one {
+    my ($self, $ns, $query) = @_;
+    $query ||= {};
+    return $self->_find_one($ns, $query);
+}
+
+sub query {
+    my ($self, $ns, $query, $limit, $skip) = @_;
+    $query ||= {};
+    $limit ||= 0;
+    $skip  ||= 0;
+    return $self->_query($ns, $query, $limit, $skip);
+}
+
+sub insert {
     my ($self, @args) = @_;
-    $self->_find_one(@args);
+    return $self->_insert(@args);
 }
 
 sub database_names {
