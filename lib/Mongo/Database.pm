@@ -26,6 +26,14 @@ sub _query_ns {
     return qq{${name}.${ns}};
 }
 
+sub collection_names {
+    my ($self) = @_;
+    my $it = $self->query('system.namespaces', {}, 0, 0);
+    return map {
+        substr($_, length($self->name) + 1)
+    } map { $_->{name} } $it->all;
+}
+
 sub run_command {
     my ($self, $command) = @_;
     my $obj = $self->find_one('$cmd', $command);
