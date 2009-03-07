@@ -26,8 +26,12 @@ sub _query_ns {
 }
 
 sub count {
-    my ($self) = @_;
-    my $obj = $self->_database->run_command({ count => $self->name });
+    my ($self, $query) = @_;
+    $query ||= {};
+    my $obj = $self->_database->run_command({
+        count => $self->name,
+        query => $query,
+    });
     return $obj->{n};
 }
 
