@@ -31,6 +31,12 @@ sub count {
     return $obj->{n};
 }
 
+sub validate {
+    my ($self, $scan_data) = @_;
+    $scan_data = 0 unless defined $scan_data;
+    my $obj = $self->_database->run_command({ validate => $self->name });
+}
+
 no Mouse;
 __PACKAGE__->meta->make_immutable;
 
