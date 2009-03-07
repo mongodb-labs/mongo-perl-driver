@@ -51,6 +51,13 @@ has _cursor_class => (
     default  => 'Mongo::Cursor',
 );
 
+has _oid_class => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => 'Mongo::OID',
+);
+
 sub _build__server {
     my ($self) = @_;
     my ($host, $port) = map { $self->$_ } qw/host port/;
@@ -60,7 +67,7 @@ sub _build__server {
 sub BUILD {
     my ($self) = @_;
     eval "use ${_}" # no Mouse::load_class becase the namespaces already have symbols from the xs bootstrap
-        for map { $self->$_ } qw/_database_class _cursor_class/;
+        for map { $self->$_ } qw/_database_class _cursor_class _oid_class/;
     $self->_build_xs;
     $self->connect if $self->auto_connect;
 }

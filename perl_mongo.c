@@ -61,17 +61,33 @@ perl_mongo_get_ptr_from_instance (SV *self)
 }
 
 SV *
-perl_mongo_construct_instance_with_magic (const char *klass, void *ptr)
+perl_mongo_construct_instance (const char *klass, ...)
+{
+    SV *ret;
+    va_list ap;
+    va_start (ap, klass);
+    ret = perl_mongo_construct_instance_va (klass, ap);
+    va_end(ap);
+    return ret;
+}
+
+SV *
+perl_mongo_construct_instance_va (const char *klass, va_list ap)
 {
     dSP;
     SV *ret;
     I32 count;
+    char *init_arg;
 
     ENTER;
     SAVETMPS;
 
     PUSHMARK (SP);
     mXPUSHp (klass, strlen (klass));
+    while ((init_arg = va_arg (ap, char *))) {
+        mXPUSHp (init_arg, strlen (init_arg));
+        XPUSHs (va_arg (ap, SV *));
+    }
     PUTBACK;
 
     count = call_method ("new", G_SCALAR);
@@ -89,15 +105,35 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr)
     FREETMPS;
     LEAVE;
 
+    return ret;
+}
+
+SV *
+perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...)
+{
+    SV *ret;
+    va_list ap;
+
+    va_start (ap, ptr);
+    ret = perl_mongo_construct_instance_va (klass, ap);
+    va_end (ap);
+
     perl_mongo_attach_ptr_to_instance (ret, ptr);
 
     return ret;
 }
 
-static SV *bson_to_av (mongo::BSONObj obj);
+static SV *bson_to_av (const char *oid_class, mongo::BSONObj obj);
 
 static SV *
-elem_to_sv (mongo::BSONElement elem)
+oid_to_sv (const char *oid_class, mongo::OID id)
+{
+    std::string str = id.str();
+    return perl_mongo_construct_instance (oid_class, "value", newSVpv (str.c_str(), str.length()));
+}
+
+static SV *
+elem_to_sv (const char *oid_class, mongo::BSONElement elem)
 {
     switch (elem.type()) {
         case mongo::Undefined:
@@ -117,10 +153,13 @@ elem_to_sv (mongo::BSONElement elem)
             return newSVpv (elem.valuestr(), 0);
             break;
         case mongo::Array:
-            return bson_to_av (elem.embeddedObject());
+            return bson_to_av (oid_class, elem.embeddedObject());
             break;
         case mongo::Object:
-            return perl_mongo_bson_to_sv (elem.embeddedObject());
+            return perl_mongo_bson_to_sv (oid_class, elem.embeddedObject());
+            break;
+        case mongo::jstOID:
+            return oid_to_sv (oid_class, elem.__oid());
             break;
         case mongo::EOO:
             return NULL;
@@ -131,14 +170,14 @@ elem_to_sv (mongo::BSONElement elem)
 }
 
 static SV *
-bson_to_av (mongo::BSONObj obj)
+bson_to_av (const char *oid_class, mongo::BSONObj obj)
 {
     AV *ret = newAV ();
     mongo::BSONObjIterator it = mongo::BSONObjIterator(obj);
     while (it.more()) {
         SV *sv;
         mongo::BSONElement elem = it.next();
-        if ((sv = elem_to_sv (elem))) {
+        if ((sv = elem_to_sv (oid_class, elem))) {
             av_push (ret, sv);
         }
     }
@@ -147,7 +186,7 @@ bson_to_av (mongo::BSONObj obj)
 }
 
 SV *
-perl_mongo_bson_to_sv (mongo::BSONObj obj)
+perl_mongo_bson_to_sv (const char *oid_class, mongo::BSONObj obj)
 {
     HV *ret = newHV ();
 
@@ -155,7 +194,7 @@ perl_mongo_bson_to_sv (mongo::BSONObj obj)
     while (it.more()) {
         SV *sv;
         mongo::BSONElement elem = it.next();
-        if ((sv = elem_to_sv (elem))) {
+        if ((sv = elem_to_sv (oid_class, elem))) {
             const char *key = elem.fieldName();
             if (!hv_store (ret, key, strlen (key), sv, 0)) {
                 croak ("failed storing value in hash");
