@@ -82,5 +82,42 @@ void
 mongo::DBClientConnection::_insert (ns, object)
         const char *ns
         HV *object
+    PREINIT:
+        SV *oid_class;
+    INIT:
+        oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
     CODE:
-        THIS->insert(ns, perl_mongo_hv_to_bson (object));
+        THIS->insert(ns, perl_mongo_hv_to_bson (object, SvPV_nolen (oid_class)));
+    CLEANUP:
+        SvREFCNT_dec (oid_class);
+
+void
+mongo::DBClientConnection::_remove (ns, query, just_one)
+        const char *ns
+        HV *query
+        bool just_one
+    PREINIT:
+        SV *oid_class;
+        mongo::Query *q;
+    INIT:
+        oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
+        q = new mongo::Query(perl_mongo_hv_to_bson (query, SvPV_nolen (oid_class)));
+    CODE:
+        THIS->remove(ns, *q, just_one);
+    CLEANUP:
+        SvREFCNT_dec (oid_class);
+
+void
+mongo::DBClientConnection::_update (ns, query, object, upsert)
+        const char *ns
+        HV *query
+        HV *object
+        bool upsert
+    PREINIT:
+        SV *oid_class;
+        mongo::Query *q;
+    INIT:
+        oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
+        q = new mongo::Query(perl_mongo_hv_to_bson (query, SvPV_nolen (oid_class)));
+    CODE:
+        THIS->update(ns, *q, perl_mongo_hv_to_bson (object, SvPV_nolen (oid_class)), upsert);
