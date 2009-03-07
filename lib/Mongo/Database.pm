@@ -15,6 +15,18 @@ has name => (
     required => 1,
 );
 
+has _collection_class => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+    default  => 'Mongo::Collection',
+);
+
+sub BUILD {
+    my ($self) = @_;
+    Mouse::load_class($self->_collection_class);
+}
+
 around qw/query find_one insert/ => sub {
     my ($next, $self, $ns, @args) = @_;
     return $self->$next($self->_query_ns($ns), @args);
@@ -32,6 +44,14 @@ sub collection_names {
     return map {
         substr($_, length($self->name) + 1)
     } map { $_->{name} } $it->all;
+}
+
+sub get_collection {
+    my ($self, $collection_name) = @_;
+    return $self->_collection_class->new(
+        _database => $self,
+        name      => $collection_name,
+    );
 }
 
 sub run_command {
