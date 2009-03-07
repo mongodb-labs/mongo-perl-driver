@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 7;
+use Test::More tests => 9;
 use Test::Exception;
 
 use Mongo;
@@ -19,6 +19,9 @@ is($coll->count, 1);
 
 $coll->update({ _id => $id }, { just => 'another', mongo => 'hacker' });
 is($coll->count, 1);
+
+is($coll->count({ mongo => 'programmer' }), 0);
+is($coll->count({ mongo => 'hacker'     }), 1);
 
 my $obj = $coll->find_one;
 is($obj->{mongo} => 'hacker');
