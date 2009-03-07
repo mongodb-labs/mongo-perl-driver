@@ -75,6 +75,7 @@ sub BUILD {
 sub connect {
     my ($self) = @_;
     $self->_connect;
+    return;
 }
 
 sub find_one {
