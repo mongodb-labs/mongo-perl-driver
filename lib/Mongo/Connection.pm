@@ -99,7 +99,7 @@ sub insert {
 
 sub database_names {
     my ($self) = @_;
-    my $ret = $self->find_one('admin.$cmd' => { listDatabases => 1 });
+    my $ret = $self->get_database('admin')->run_command({ listDatabases => 1 });
     return map { $_->{name} } @{ $ret->{databases} };
 }
 
