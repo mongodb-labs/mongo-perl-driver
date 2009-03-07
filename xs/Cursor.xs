@@ -18,3 +18,6 @@ mongo::DBClientCursor::_next ()
         RETVAL = perl_mongo_bson_to_sv (obj);
     OUTPUT:
         RETVAL
+
+void
+mongo::DBClientCursor::DESTROY ()

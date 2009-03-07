@@ -51,7 +51,7 @@ mongo::DBClientConnection::_query (ns, query, limit, skip)
         attr = perl_mongo_call_reader (ST (0), "_cursor_class");
     CODE:
         cursor = THIS->query(ns, *q, limit, skip);
-        RETVAL = perl_mongo_construct_instance_with_magic (SvPV_nolen (attr), cursor.get());
+        RETVAL = perl_mongo_construct_instance_with_magic (SvPV_nolen (attr), cursor.release());
     OUTPUT:
         RETVAL
     CLEANUP:
