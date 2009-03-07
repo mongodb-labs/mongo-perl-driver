@@ -54,6 +54,11 @@ sub get_collection {
     );
 }
 
+sub drop {
+    my ($self) = @_;
+    return $self->run_command({ dropDatabase => 1 });
+}
+
 sub run_command {
     my ($self, $command) = @_;
     my $obj = $self->find_one('$cmd', $command);
