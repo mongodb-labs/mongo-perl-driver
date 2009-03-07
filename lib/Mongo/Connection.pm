@@ -93,8 +93,12 @@ sub query {
 }
 
 sub insert {
-    my ($self, @args) = @_;
-    return $self->_insert(@args);
+    my ($self, $ns, $object) = @_;
+    confess 'not a hash reference' unless ref $object eq 'HASH';
+    my %copy = %{ $object }; # a shallow copy is good enough. we won't modify anything deep down in the structure.
+    $copy{_id} = $self->_oid_class->new unless exists $copy{id};
+    $self->_insert($ns, \%copy);
+    return $copy{_id};
 }
 
 sub update {
