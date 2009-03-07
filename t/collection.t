@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::Exception;
 
 use Mongo;
@@ -23,6 +23,9 @@ is($coll->count, 1);
 my $obj = $coll->find_one;
 is($obj->{mongo} => 'hacker');
 ok(!exists $obj->{perl});
+
+$coll->remove($obj);
+is($coll->count, 0);
 
 END {
     $db->drop;
