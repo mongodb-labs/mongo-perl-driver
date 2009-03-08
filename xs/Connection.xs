@@ -56,6 +56,7 @@ mongo::DBClientConnection::_query (ns, query, limit, skip)
     OUTPUT:
         RETVAL
     CLEANUP:
+        delete q;
         SvREFCNT_dec (cursor_class);
         SvREFCNT_dec (oid_class);
 
@@ -76,6 +77,7 @@ mongo::DBClientConnection::_find_one (ns, query)
     OUTPUT:
         RETVAL
     CLEANUP:
+        delete q;
         SvREFCNT_dec (attr);
 
 void
@@ -105,6 +107,7 @@ mongo::DBClientConnection::_remove (ns, query, just_one)
     CODE:
         THIS->remove(ns, *q, just_one);
     CLEANUP:
+        delete q;
         SvREFCNT_dec (oid_class);
 
 void
@@ -122,6 +125,7 @@ mongo::DBClientConnection::_update (ns, query, object, upsert)
     CODE:
         THIS->update(ns, *q, perl_mongo_sv_to_bson (object, SvPV_nolen (oid_class)), upsert);
     CLEANUP:
+        delete q;
         SvREFCNT_dec (oid_class);
 
 void
