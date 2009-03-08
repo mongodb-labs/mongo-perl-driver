@@ -123,3 +123,6 @@ mongo::DBClientConnection::_update (ns, query, object, upsert)
         THIS->update(ns, *q, perl_mongo_sv_to_bson (object, SvPV_nolen (oid_class)), upsert);
     CLEANUP:
         SvREFCNT_dec (oid_class);
+
+void
+mongo::DBClientConnection::DESTROY ()
