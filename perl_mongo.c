@@ -276,11 +276,38 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
 }
 
 mongo::BSONObj
-perl_mongo_hv_to_bson (HV *hv, const char *oid_class)
+perl_mongo_sv_to_bson (SV *sv, const char *oid_class)
 {
     mongo::BSONObjBuilder *builder = new mongo::BSONObjBuilder();
 
-    hv_to_bson (builder, hv, oid_class);
+    if (!SvROK (sv)) {
+        croak ("not a reference");
+    }
+
+    switch (SvTYPE (SvRV (sv))) {
+        case SVt_PVHV:
+            hv_to_bson (builder, (HV *)SvRV (sv), oid_class);
+            break;
+        case SVt_PVAV: {
+            I32 i;
+            AV *av = (AV *)SvRV (sv);
+            if ((av_len (av) % 2) == 0) {
+                croak ("odd number of elements in structure");
+            }
+
+            for (i = 0; i <= av_len (av); i += 2) {
+                SV **key, **val;
+                if ( !((key = av_fetch (av, i, 0)) && (val = av_fetch (av, i + 1, 0))) ) {
+                    croak ("failed to fetch array element");
+                }
+                append_sv (builder, SvPV_nolen (*key), *val, oid_class);
+            }
+
+            break;
+        }
+        default:
+            croak ("type unhandled");
+    }
 
     mongo::BSONObj obj = builder->done();
     return obj;

@@ -19,7 +19,7 @@ SV *perl_mongo_construct_instance (const char *klass, ...);
 SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...);
 SV *perl_mongo_bson_to_sv (const char *oid_class, mongo::BSONObj obj);
-mongo::BSONObj perl_mongo_hv_to_bson (HV *sv, const char *oid_class);
+mongo::BSONObj perl_mongo_sv_to_bson (SV *sv, const char *oid_class);
 
 }
 
