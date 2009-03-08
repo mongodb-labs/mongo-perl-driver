@@ -121,3 +121,5 @@ mongo::DBClientConnection::_update (ns, query, object, upsert)
         q = new mongo::Query(perl_mongo_hv_to_bson (query, SvPV_nolen (oid_class)));
     CODE:
         THIS->update(ns, *q, perl_mongo_hv_to_bson (object, SvPV_nolen (oid_class)), upsert);
+    CLEANUP:
+        SvREFCNT_dec (oid_class);
