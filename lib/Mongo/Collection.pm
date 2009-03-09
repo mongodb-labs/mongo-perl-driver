@@ -75,6 +75,13 @@ sub get_indexes {
     })->all;
 }
 
+sub drop {
+    my ($self) = @_;
+    $self->drop_indexes;
+    $self->_database->run_command({ drop => $self->name });
+    return;
+}
+
 no Mouse;
 __PACKAGE__->meta->make_immutable;
 
