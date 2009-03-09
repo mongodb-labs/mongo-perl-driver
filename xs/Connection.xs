@@ -129,4 +129,20 @@ mongo::DBClientConnection::_update (ns, query, object, upsert)
         SvREFCNT_dec (oid_class);
 
 void
+mongo::DBClientConnection::_ensure_index (ns, keys, name=NULL)
+        const char *ns
+        SV *keys
+        const char *name
+    PREINIT:
+        SV *oid_class;
+        mongo::BSONObj obj;
+    INIT:
+        oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
+        obj = perl_mongo_sv_to_bson (keys, SvPV_nolen (oid_class));
+    CODE:
+        THIS->ensureIndex(ns, obj, name);
+    CLEANUP:
+        SvREFCNT_dec (oid_class);
+
+void
 mongo::DBClientConnection::DESTROY ()
