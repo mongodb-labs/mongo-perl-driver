@@ -1,6 +1,23 @@
 package Mongo::Connection;
+# ABSTRACT: A Mongo Driver for Perl
 
 use Any::Moose;
+
+=head1 SYNOPSIS
+
+    use Mongo;
+
+    my $connection = Mongo::Connection->new(host => 'localhost, port => 27017);
+    my $database   = $connection->get_database('foo');
+    my $collection = $database->get_collection('bar');
+    my $id         = $collection->insert({ some => 'data' });
+    my $data       = $collection->find_one({ _id => $id });
+
+=attr host
+
+Hostname to connect to. Defaults to C<loalhost>.
+
+=cut
 
 has host => (
     is       => 'ro',
@@ -8,6 +25,12 @@ has host => (
     required => 1,
     default  => 'localhost',
 );
+
+=attr port
+
+Port to use when connecting. Defaults to C<27017>.
+
+=cut
 
 has port => (
     is       => 'ro',
@@ -23,12 +46,26 @@ has _server => (
     builder  => '_build__server',
 );
 
+=attr auto_reconnect
+
+Boolean indicating whether or not to reconnect if the connection is
+interrupted. Defaults to C<0>.
+
+=cut
+
 has auto_reconnect => (
     is       => 'ro',
     isa      => 'Bool',
     required => 1,
     default  => 0,
 );
+
+=attr auto_connect
+
+Boolean indication whether or not to connect automatically on object
+construction. Defaults to C<1>.
+
+=cut
 
 has auto_connect => (
     is       => 'ro',
@@ -71,6 +108,15 @@ sub BUILD {
     $self->_build_xs;
     $self->connect if $self->auto_connect;
 }
+
+=method connect
+
+    $connection->connect;
+
+Connects to the mongo server. Called automatically on object construction if
+C<auto_connect> is true.
+
+=cut
 
 sub connect {
     my ($self) = @_;
@@ -145,11 +191,27 @@ sub remove {
     }
 }
 
+=method database_names
+
+    my @dbs = $connection->database_names;
+
+Lists all databases on the mongo server.
+
+=cut
+
 sub database_names {
     my ($self) = @_;
     my $ret = $self->get_database('admin')->run_command({ listDatabases => 1 });
     return map { $_->{name} } @{ $ret->{databases} };
 }
+
+=method get_database ($name)
+
+    my $database = $connection->get_database('foo');
+
+Returns a C<Mongo::Database> instance for database with the given C<$name>.
+
+=cut
 
 sub get_database {
     my ($self, $database_name) = @_;
@@ -158,6 +220,17 @@ sub get_database {
         name        => $database_name,
     );
 }
+
+=method authenticate ($dbname, $username, $password, $is_digest?)
+
+    $connection->authenticate('foo', 'username', 'secret');
+
+Attempts to authenticate for use of the C<$dbname> database with C<$username>
+and C<$password>. Passwords are expected to be cleartext and will be
+automatically hashed before sending over the wire, unless C<$is_digest> is
+true, which will assume you already did the hashing on yourself.
+
+=cut
 
 sub authenticate {
     my ($self, @args) = @_;

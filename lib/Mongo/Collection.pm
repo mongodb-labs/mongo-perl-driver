@@ -1,4 +1,5 @@
 package Mongo::Collection;
+# ABSTRACT: A Mongo Collection
 
 use Any::Moose;
 
@@ -9,11 +10,24 @@ has _database => (
     handles  => [qw/query find_one insert update remove ensure_index/],
 );
 
+=attr name
+
+The name of the collection.
+
+=cut
+
 has name => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
 );
+
+=attr full_name
+
+The full_name of the collection, including the namespace of the database it's
+in.
+
+=cut
 
 has full_name => (
     is      => 'ro',

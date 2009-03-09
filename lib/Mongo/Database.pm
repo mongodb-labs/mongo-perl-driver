@@ -1,4 +1,5 @@
 package Mongo::Database;
+# ABSTRACT: A Mongo Database
 
 use Any::Moose;
 
@@ -8,6 +9,12 @@ has _connection => (
     required => 1,
     handles  => [qw/query find_one insert update remove ensure_index/],
 );
+
+=attr name
+
+The name of the database.
+
+=cut
 
 has name => (
     is       => 'ro',
@@ -38,6 +45,14 @@ sub _query_ns {
     return qq{${name}.${ns}};
 }
 
+=method collection_names
+
+    my @collections = $database->collection_names;
+
+Returns the list of collections in this database.
+
+=cut
+
 sub collection_names {
     my ($self) = @_;
     my $it = $self->query('system.namespaces', {}, 0, 0);
@@ -45,6 +60,15 @@ sub collection_names {
         substr($_, length($self->name) + 1)
     } map { $_->{name} } $it->all;
 }
+
+=method get_collection ($name)
+
+    my $collection = $database->get_collection('foo');
+
+Returns a C<Mongo::Collection> for the collection called C<$name> within this
+database.
+
+=cut
 
 sub get_collection {
     my ($self, $collection_name) = @_;
@@ -54,10 +78,28 @@ sub get_collection {
     );
 }
 
+=method drop
+
+    $database->drop;
+
+Deletes the database.
+
+=cut
+
 sub drop {
     my ($self) = @_;
     return $self->run_command({ dropDatabase => 1 });
 }
+
+=method run_command ($command)
+
+    my $result = $database->run_command({ some_command => 1 });
+
+Runs a command for this database on the mongo server. Throws an exception with
+an error message if the command fails. Returns the result of the command on
+success.
+
+=cut
 
 sub run_command {
     my ($self, $command) = @_;
