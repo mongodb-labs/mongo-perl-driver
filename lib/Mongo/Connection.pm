@@ -159,6 +159,11 @@ sub get_database {
     );
 }
 
+sub authenticate {
+    my ($self, @args) = @_;
+    return $self->_authenticate(@args);
+}
+
 no Mouse;
 __PACKAGE__->meta->make_immutable;
 

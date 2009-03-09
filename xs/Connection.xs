@@ -144,5 +144,27 @@ mongo::DBClientConnection::_ensure_index (ns, keys, name=NULL)
     CLEANUP:
         SvREFCNT_dec (oid_class);
 
+NO_OUTPUT bool
+mongo::DBClientConnection::_authenticate (dbname, username, password, is_digest=false)
+        const char *dbname
+        const char *username
+        const char *password
+        bool is_digest
+    PREINIT:
+        std::string error_message;
+        std::string digest_password;
+    INIT:
+        if (is_digest) {
+            digest_password = password;
+        } else {
+            digest_password = THIS->createPasswordDigest(username, password);
+        }
+    CODE:
+        RETVAL = THIS->auth(dbname, username, password, error_message, true);
+    POSTCALL:
+        if (!RETVAL) {
+            croak ("%s", error_message.c_str());
+        }
+
 void
 mongo::DBClientConnection::DESTROY ()
