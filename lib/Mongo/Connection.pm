@@ -1,6 +1,6 @@
 package Mongo::Connection;
 
-use Mouse;
+use Any::Moose;
 
 has host => (
     is       => 'ro',
@@ -66,7 +66,7 @@ sub _build__server {
 
 sub BUILD {
     my ($self) = @_;
-    eval "use ${_}" # no Mouse::load_class becase the namespaces already have symbols from the xs bootstrap
+    eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
         for map { $self->$_ } qw/_database_class _cursor_class _oid_class/;
     $self->_build_xs;
     $self->connect if $self->auto_connect;
@@ -164,7 +164,7 @@ sub authenticate {
     return $self->_authenticate(@args);
 }
 
-no Mouse;
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;

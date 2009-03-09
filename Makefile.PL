@@ -6,6 +6,8 @@ use inc::Module::Install;
 name 'Mongo';
 all_from 'lib/Mongo.pm';
 
+requires 'Any::Moose';
+
 mongo($ENV{MONGO_SDK});
 
 no_index directory => 'ext';

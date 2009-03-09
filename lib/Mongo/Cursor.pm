@@ -1,6 +1,6 @@
 package Mongo::Cursor;
 
-use Mouse;
+use Any::Moose;
 
 has _oid_class => (
     is       => 'ro',
@@ -26,7 +26,7 @@ sub all {
     return @ret;
 }
 
-no Mouse;
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;

@@ -1,6 +1,6 @@
 package Mongo::OID;
 
-use Mouse;
+use Any::Moose;
 
 has value => (
     is      => 'ro',
@@ -9,7 +9,7 @@ has value => (
     builder => '_build_value',
 );
 
-no Mouse;
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;

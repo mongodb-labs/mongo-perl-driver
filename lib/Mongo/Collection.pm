@@ -1,6 +1,6 @@
 package Mongo::Collection;
 
-use Mouse;
+use Any::Moose;
 
 has _database => (
     is       => 'ro',
@@ -82,7 +82,7 @@ sub drop {
     return;
 }
 
-no Mouse;
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;

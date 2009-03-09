@@ -1,6 +1,6 @@
 package Mongo::Database;
 
-use Mouse;
+use Any::Moose;
 
 has _connection => (
     is       => 'ro',
@@ -24,7 +24,7 @@ has _collection_class => (
 
 sub BUILD {
     my ($self) = @_;
-    Mouse::load_class($self->_collection_class);
+    Any::Moose::load_class($self->_collection_class);
 }
 
 around qw/query find_one insert update remove ensure_index/ => sub {
@@ -66,7 +66,7 @@ sub run_command {
     confess $obj->{errmsg};
 }
 
-no Mouse;
+no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;
