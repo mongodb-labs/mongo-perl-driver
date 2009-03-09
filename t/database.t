@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::Exception;
 
 use Mongo;
@@ -21,6 +21,10 @@ ok((grep { $_ eq 'test' } $db->collection_names), 'collection_names');
 is($coll->count, 1, 'count');
 is($coll->find_one->{perl}, 'hacker', 'find_one');
 is($coll->find_one->{_id}->value, $id->value, 'insert id');
+
+throws_ok {
+    $db->run_command({ foo => 'bar' });
+} qr/no such cmd/;
 
 END {
     $db->drop;
