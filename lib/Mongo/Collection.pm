@@ -6,7 +6,7 @@ has _database => (
     is       => 'ro',
     isa      => 'Mongo::Database',
     required => 1,
-    handles  => [qw/query find_one insert update remove/],
+    handles  => [qw/query find_one insert update remove ensure_index/],
 );
 
 has name => (
@@ -15,7 +15,7 @@ has name => (
     required => 1,
 );
 
-around qw/query find_one insert update remove/ => sub {
+around qw/query find_one insert update remove ensure_index/ => sub {
     my ($next, $self, @args) = @_;
     return $self->$next($self->_query_ns, @args);
 };

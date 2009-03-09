@@ -114,6 +114,37 @@ sub remove {
     return;
 }
 
+{
+    my %direction_map = (
+        ascending  => 1,
+        descending => -1,
+    );
+
+    sub ensure_index {
+        my ($self, $ns, $keys, $direction) = @_;
+        $direction ||= 'ascending';
+
+        my %keys;
+        if (ref $keys eq 'ARRAY') {
+            %keys = map { ($_ => $direction) } @{ $keys };
+        }
+        elsif (ref $keys eq 'HASH') {
+            %keys = %{ $keys };
+        }
+        else {
+            confess 'expected hash or array reference for keys';
+        }
+
+        $self->_ensure_index($ns, { map {
+            my $dir = $keys{$_};
+            confess "unknown direction '${dir}'"
+                unless exists $direction_map{$dir};
+            ($_ => $direction_map{$dir})
+        } keys %keys });
+        return;
+    }
+}
+
 sub database_names {
     my ($self) = @_;
     my $ret = $self->get_database('admin')->run_command({ listDatabases => 1 });
