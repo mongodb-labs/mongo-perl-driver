@@ -43,6 +43,45 @@ sub _build_full_name {
     return "${db_name}.${name}";
 }
 
+=method query ($query)
+
+    my $cursor = $collection->query({ i => { '$gt' => 42 } });
+
+Executes the given C<$query> and returns a C<Mongo::Cursor> with the results.
+
+=method find_one ($query)
+
+    my $object = $collection->find_one({ name => 'Resi' });
+
+Executes the given C<$query> and returns the first object matching it.
+
+=method insert ($object)
+
+    my $id = $collection->insert({ name => 'mongo', type => 'database' });
+
+Inserts the given C<$object> into the database and returns its C<Mongo::OID>.
+
+=method update ($update, $upsert?)
+
+    $collection->update($object);
+
+Updates an existing C<$object> in the database.
+
+=method remove ($query)
+
+    $collection->remove({ answer => { '$ne' => 42 } });
+
+Removes all objects matching the given C<$query> from the database.
+
+=method ensure_index (\@keys, $direction?)
+
+    $collection->ensure_index([qw/foo bar/]);
+
+Makes sure the given C<@keys> of this collection are indexed. The optional
+index direction defaults to C<ascending>.
+
+=cut
+
 around qw/query find_one insert update remove ensure_index/ => sub {
     my ($next, $self, @args) = @_;
     return $self->$next($self->_query_ns, @args);
@@ -52,6 +91,14 @@ sub _query_ns {
     my ($self) = @_;
     return $self->name;
 }
+
+=method count ($query)
+
+    my $n_objects = $collection->count({ name => 'Bob' });
+
+Counts the number of objects in this collection that match the given C<$query>.
+
+=cut
 
 sub count {
     my ($self, $query) = @_;
@@ -63,16 +110,40 @@ sub count {
     return $obj->{n};
 }
 
+=method validate
+
+    $collection->validate;
+
+Asks the server to validate this collection.
+
+=cut
+
 sub validate {
     my ($self, $scan_data) = @_;
     $scan_data = 0 unless defined $scan_data;
     my $obj = $self->_database->run_command({ validate => $self->name });
 }
 
+=method drop_indexes
+
+    $collection->drop_indexes;
+
+Removes all indexes from this collection.
+
+=cut
+
 sub drop_indexes {
     my ($self) = @_;
     return $self->drop_index('*');
 }
+
+=method drop_index ($index_name)
+
+    $collection->drop_index('foo');
+
+Removes an index called C<$index_name> from this collection.
+
+=cut
 
 sub drop_index {
     my ($self, $index_name) = @_;
@@ -82,12 +153,28 @@ sub drop_index {
     ]);
 }
 
+=method get_indexes
+
+    my @indexes = $collection->get_indexes;
+
+Returns a list of all indexes of this collection.
+
+=cut
+
 sub get_indexes {
     my ($self) = @_;
     return $self->_database->get_collection('system.indexes')->query({
         ns => $self->full_name,
     })->all;
 }
+
+=method drop
+
+    $collection->drop;
+
+Deletes a collection as well as all of its indexes.
+
+=cut
 
 sub drop {
     my ($self) = @_;
