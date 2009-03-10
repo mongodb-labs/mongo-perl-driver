@@ -1,0 +1,7 @@
+Install Instruction
+-------------------
+
+  MONGO_SDK=/path/to/mongodb-full-../ perl Makefile.PL
+  make
+  make test
+  make install
