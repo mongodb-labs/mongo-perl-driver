@@ -5,6 +5,8 @@
 
 extern "C" {
 
+#define PERL_GCC_BRACE_GROUPS_FORBIDDEN
+
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
