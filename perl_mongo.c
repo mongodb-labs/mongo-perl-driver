@@ -4,7 +4,7 @@ void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark)
 {
 	dSP;
-	PUSHMARK (SP);
+	PUSHMARK (mark);
 	(*subaddr) (aTHX_ cv);
 	PUTBACK;
 }
