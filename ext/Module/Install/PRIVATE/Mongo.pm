@@ -75,6 +75,8 @@ sub xs_files {
         XS     => \%XS,
     );
 
+    $self->postamble('$(OBJECT) : perl_mongo.h');
+
     return;
 }
 
