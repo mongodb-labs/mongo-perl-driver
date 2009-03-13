@@ -1,6 +1,6 @@
 #include "perl_mongo.h"
 
-MODULE = Mongo::Connection  PACKAGE = Mongo::Connection
+MODULE = MongoDB::Connection  PACKAGE = MongoDB::Connection
 
 PROTOTYPES: DISABLE
 

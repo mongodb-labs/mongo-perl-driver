@@ -3,8 +3,8 @@ use warnings;
 use lib 'ext';
 use inc::Module::Install;
 
-name 'Mongo';
-all_from 'lib/Mongo.pm';
+name 'MongoDB';
+all_from 'lib/MongoDB.pm';
 
 requires 'Any::Moose';
 

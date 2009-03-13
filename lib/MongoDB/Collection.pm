@@ -1,11 +1,11 @@
-package Mongo::Collection;
+package MongoDB::Collection;
 # ABSTRACT: A Mongo Collection
 
 use Any::Moose;
 
 has _database => (
     is       => 'ro',
-    isa      => 'Mongo::Database',
+    isa      => 'MongoDB::Database',
     required => 1,
     handles  => [qw/query find_one insert update remove ensure_index/],
 );
@@ -47,7 +47,7 @@ sub _build_full_name {
 
     my $cursor = $collection->query({ i => { '$gt' => 42 } });
 
-Executes the given C<$query> and returns a C<Mongo::Cursor> with the results.
+Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
 
 =method find_one ($query)
 
@@ -59,7 +59,7 @@ Executes the given C<$query> and returns the first object matching it.
 
     my $id = $collection->insert({ name => 'mongo', type => 'database' });
 
-Inserts the given C<$object> into the database and returns its C<Mongo::OID>.
+Inserts the given C<$object> into the database and returns its C<MongoDB::OID>.
 
 =method update ($update, $upsert?)
 

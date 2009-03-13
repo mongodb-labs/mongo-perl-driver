@@ -1,14 +1,14 @@
 use strict;
 use warnings;
 
-package Mongo;
+package MongoDB;
 # ABSTRACT: A Mongo Driver for Perl
 
 =head1 SYNOPSIS
 
-    use Mongo;
+    use MongoDB;
 
-    my $connection = Mongo::Connection->new(host => 'localhost, port => 27017);
+    my $connection = MongoDB::Connection->new(host => 'localhost, port => 27017);
     my $database   = $connection->get_database('foo');
     my $collection = $database->get_collection('bar');
     my $id         = $collection->insert({ some => 'data' });
@@ -19,7 +19,7 @@ package Mongo;
 our $VERSION = '0.01';
 
 use XSLoader;
-use Mongo::Connection;
+use MongoDB::Connection;
 
 XSLoader::load(__PACKAGE__, $VERSION);
 

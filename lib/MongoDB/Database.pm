@@ -1,11 +1,11 @@
-package Mongo::Database;
+package MongoDB::Database;
 # ABSTRACT: A Mongo Database
 
 use Any::Moose;
 
 has _connection => (
     is       => 'ro',
-    isa      => 'Mongo::Connection',
+    isa      => 'MongoDB::Connection',
     required => 1,
     handles  => [qw/query find_one insert update remove ensure_index/],
 );
@@ -26,7 +26,7 @@ has _collection_class => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
-    default  => 'Mongo::Collection',
+    default  => 'MongoDB::Collection',
 );
 
 sub BUILD {
@@ -65,7 +65,7 @@ sub collection_names {
 
     my $collection = $database->get_collection('foo');
 
-Returns a C<Mongo::Collection> for the collection called C<$name> within this
+Returns a C<MongoDB::Collection> for the collection called C<$name> within this
 database.
 
 =cut

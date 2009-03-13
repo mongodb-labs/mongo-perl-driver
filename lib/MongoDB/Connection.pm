@@ -1,4 +1,4 @@
-package Mongo::Connection;
+package MongoDB::Connection;
 # ABSTRACT: A connection to a Mongo server
 
 use Any::Moose;
@@ -68,21 +68,21 @@ has _database_class => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
-    default  => 'Mongo::Database',
+    default  => 'MongoDB::Database',
 );
 
 has _cursor_class => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
-    default  => 'Mongo::Cursor',
+    default  => 'MongoDB::Cursor',
 );
 
 has _oid_class => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
-    default  => 'Mongo::OID',
+    default  => 'MongoDB::OID',
 );
 
 sub _build__server {
@@ -199,7 +199,7 @@ sub database_names {
 
     my $database = $connection->get_database('foo');
 
-Returns a C<Mongo::Database> instance for database with the given C<$name>.
+Returns a C<MongoDB::Database> instance for database with the given C<$name>.
 
 =cut
 

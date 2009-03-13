@@ -1,4 +1,4 @@
-package Mongo::OID;
+package MongoDB::OID;
 # ABSTRACT: A Mongo Object ID
 
 use Any::Moose;

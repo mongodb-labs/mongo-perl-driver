@@ -3,12 +3,12 @@ use warnings;
 use Test::More tests => 17;
 use Test::Exception;
 
-use Mongo;
+use MongoDB;
 
-my $conn = Mongo::Connection->new;
+my $conn = MongoDB::Connection->new;
 my $db   = $conn->get_database('test_database');
 my $coll = $db->get_collection('test_collection');
-isa_ok($coll, 'Mongo::Collection');
+isa_ok($coll, 'MongoDB::Collection');
 
 is($coll->name, 'test_collection', 'get name');
 

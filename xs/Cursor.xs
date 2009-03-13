@@ -1,6 +1,6 @@
 #include "perl_mongo.h"
 
-MODULE = Mongo::Cursor  PACKAGE = Mongo::Cursor
+MODULE = MongoDB::Cursor  PACKAGE = MongoDB::Cursor
 
 PROTOTYPES: DISABLE
 

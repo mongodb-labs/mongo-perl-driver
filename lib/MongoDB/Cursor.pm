@@ -1,4 +1,4 @@
-package Mongo::Cursor;
+package MongoDB::Cursor;
 # ABSTRACT: A cursor/iterator for Mongo query results
 
 use Any::Moose;
@@ -17,7 +17,7 @@ has _oid_class => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
-    default  => 'Mongo::OID',
+    default  => 'MongoDB::OID',
 );
 
 =method next

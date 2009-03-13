@@ -3,13 +3,13 @@ use warnings;
 use Test::More tests => 7;
 use Test::Exception;
 
-use Mongo;
+use MongoDB;
 
-my $conn = Mongo::Connection->new;
-isa_ok($conn, 'Mongo::Connection');
+my $conn = MongoDB::Connection->new;
+isa_ok($conn, 'MongoDB::Connection');
 
 my $db = $conn->get_database('test_database');
-isa_ok($db, 'Mongo::Database');
+isa_ok($db, 'MongoDB::Database');
 
 $db->drop;
 

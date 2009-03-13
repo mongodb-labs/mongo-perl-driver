@@ -1,6 +1,6 @@
 #include "perl_mongo.h"
 
-MODULE = Mongo::OID  PACKAGE = Mongo::OID
+MODULE = MongoDB::OID  PACKAGE = MongoDB::OID
 
 PROTOTYPES: DISABLE
 
