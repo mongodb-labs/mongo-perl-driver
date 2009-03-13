@@ -3,10 +3,10 @@
 void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark)
 {
-	dSP;
-	PUSHMARK (mark);
-	(*subaddr) (aTHX_ cv);
-	PUTBACK;
+    dSP;
+    PUSHMARK (mark);
+    (*subaddr) (aTHX_ cv);
+    PUTBACK;
 }
 
 SV *
@@ -32,7 +32,7 @@ perl_mongo_call_reader (SV *self, const char *reader)
     }
 
     ret = POPs;
-	SvREFCNT_inc (ret);
+    SvREFCNT_inc (ret);
 
     PUTBACK;
     FREETMPS;
