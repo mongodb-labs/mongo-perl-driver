@@ -132,7 +132,7 @@ sub insert {
     my ($self, $ns, $object) = @_;
     confess 'not a hash reference' unless ref $object eq 'HASH';
     my %copy = %{ $object }; # a shallow copy is good enough. we won't modify anything deep down in the structure.
-    $copy{_id} = $self->_oid_class->new unless exists $copy{id};
+    $copy{_id} = $self->_oid_class->new unless exists $copy{_id};
     $self->_insert($ns, \%copy);
     return $copy{_id};
 }
