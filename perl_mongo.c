@@ -268,6 +268,8 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
                 builder->append(key, (int)SvIV (sv));
                 break;
             case SVt_PV:
+            case SVt_PVIV:
+            case SVt_PVMG:
                 builder->append(key, (char *)SvPV_nolen (sv));
                 break;
             default:
