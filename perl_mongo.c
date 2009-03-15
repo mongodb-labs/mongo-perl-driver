@@ -237,41 +237,41 @@ av_to_bson (mongo::BSONObjBuilder *builder, AV *av, const char *oid_class)
 static void
 append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *oid_class)
 {
-    switch (SvTYPE (sv)) {
-        case SVt_IV:
-            builder->append(key, (int)SvIV (sv));
-            break;
-        case SVt_PV:
-            builder->append(key, (char *)SvPV_nolen (sv));
-            break;
-        case SVt_RV: {
-            mongo::BSONObjBuilder *subobj = new mongo::BSONObjBuilder();
-            if (sv_isobject (sv)) {
-                if (sv_derived_from (sv, oid_class)) {
-                    SV *attr = perl_mongo_call_reader (sv, "value");
-                    std::string *str = new string(SvPV_nolen (attr));
-                    mongo::OID *id = new mongo::OID();
-                    id->init(*str);
-                    builder->appendOID(key, id);
-                    SvREFCNT_dec (attr);
-                }
-            } else {
-                switch (SvTYPE (SvRV (sv))) {
-                    case SVt_PVHV:
-                        hv_to_bson (subobj, (HV *)SvRV (sv), oid_class);
-                        break;
-                    case SVt_PVAV:
-                        av_to_bson (subobj, (AV *)SvRV (sv), oid_class);
-                        break;
-                    default:
-                        croak ("type unhandled");
-                }
-                builder->append(key, subobj->done());
+    if (SvROK (sv)) {
+        mongo::BSONObjBuilder *subobj = new mongo::BSONObjBuilder();
+        if (sv_isobject (sv)) {
+            if (sv_derived_from (sv, oid_class)) {
+                SV *attr = perl_mongo_call_reader (sv, "value");
+                std::string *str = new string(SvPV_nolen (attr));
+                mongo::OID *id = new mongo::OID();
+                id->init(*str);
+                builder->appendOID(key, id);
+                SvREFCNT_dec (attr);
             }
-            break;
+        } else {
+            switch (SvTYPE (SvRV (sv))) {
+                case SVt_PVHV:
+                    hv_to_bson (subobj, (HV *)SvRV (sv), oid_class);
+                    break;
+                case SVt_PVAV:
+                    av_to_bson (subobj, (AV *)SvRV (sv), oid_class);
+                    break;
+                default:
+                    croak ("type unhandled");
+            }
+            builder->append(key, subobj->done());
         }
-        default:
-            croak ("type unhandled");
+    } else {
+        switch (SvTYPE (sv)) {
+            case SVt_IV:
+                builder->append(key, (int)SvIV (sv));
+                break;
+            case SVt_PV:
+                builder->append(key, (char *)SvPV_nolen (sv));
+                break;
+            default:
+                croak ("type unhandled");
+        }
     }
 }
 
