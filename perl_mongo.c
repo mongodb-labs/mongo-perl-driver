@@ -259,6 +259,7 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
                     builder->appendArray(key, subobj->done());
                     break;
                 default:
+                    sv_dump(SvRV(sv));
                     croak ("type unhandled");
             }
         }
@@ -273,6 +274,7 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
                 builder->append(key, (char *)SvPV_nolen (sv));
                 break;
             default:
+                sv_dump(sv);
                 croak ("type unhandled");
         }
     }
@@ -309,6 +311,7 @@ perl_mongo_sv_to_bson (SV *sv, const char *oid_class)
             break;
         }
         default:
+            sv_dump(sv);
             croak ("type unhandled");
     }
 
