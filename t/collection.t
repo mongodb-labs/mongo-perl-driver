@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 17;
+use Test::More tests => 22;
 use Test::Exception;
 
 use MongoDB;
@@ -17,14 +17,24 @@ $db->drop;
 my $id = $coll->insert({ just => 'another', perl => 'hacker' });
 is($coll->count, 1);
 
-$coll->update({ _id => $id }, { just => 'another', mongo => 'hacker' });
+$coll->update({ _id => $id }, {
+    just => 'another',
+    mongo => 'hacker',
+    with => { a => 'reference' },
+    and => [qw/an array reference/],
+});
 is($coll->count, 1);
 
 is($coll->count({ mongo => 'programmer' }), 0);
 is($coll->count({ mongo => 'hacker'     }), 1);
+is($coll->count({ 'with.a' => 'reference' }), 1);
 
 my $obj = $coll->find_one;
 is($obj->{mongo} => 'hacker');
+is(ref $obj->{with}, 'HASH');
+is($obj->{with}->{a}, 'reference');
+is(ref $obj->{and}, 'ARRAY');
+is_deeply($obj->{and}, [qw/an array reference/]);
 ok(!exists $obj->{perl});
 
 lives_ok {
