@@ -252,14 +252,15 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
             switch (SvTYPE (SvRV (sv))) {
                 case SVt_PVHV:
                     hv_to_bson (subobj, (HV *)SvRV (sv), oid_class);
+                    builder->append(key, subobj->done());
                     break;
                 case SVt_PVAV:
                     av_to_bson (subobj, (AV *)SvRV (sv), oid_class);
+                    builder->appendArray(key, subobj->done());
                     break;
                 default:
                     croak ("type unhandled");
             }
-            builder->append(key, subobj->done());
         }
     } else {
         switch (SvTYPE (sv)) {
