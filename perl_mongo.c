@@ -164,6 +164,16 @@ elem_to_sv (const char *oid_class, mongo::BSONElement elem)
         case mongo::EOO:
             return NULL;
             break;
+        case mongo::BinData: {
+            const char *data;
+            int len;
+            if (elem.binDataType() != mongo::ByteArray) {
+                croak ("bindata type unhandled");
+            }
+            data = elem.binData(len);
+            return newSVpv (data, len);
+            break;
+        }
         default:
             croak ("type unhandled");
     }
@@ -271,7 +281,14 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
             case SVt_PV:
             case SVt_PVIV:
             case SVt_PVMG:
-                builder->append(key, (char *)SvPV_nolen (sv));
+                if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
+                    STRLEN len;
+                    const char *bytes = SvPVbyte (sv, len);
+                    builder->appendBinData(key, len, mongo::ByteArray, bytes);
+                }
+                else {
+                    builder->append(key, (char *)SvPV_nolen (sv));
+                }
                 break;
             default:
                 sv_dump(sv);
