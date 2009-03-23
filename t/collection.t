@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 22;
+use Test::More tests => 23;
 use Test::Exception;
 
 use MongoDB;
@@ -18,7 +18,7 @@ my $id = $coll->insert({ just => 'another', perl => 'hacker' });
 is($coll->count, 1);
 
 $coll->update({ _id => $id }, {
-    just => 'another',
+    just => "an\xE4oth\0er",
     mongo => 'hacker',
     with => { a => 'reference' },
     and => [qw/an array reference/],
@@ -36,6 +36,7 @@ is($obj->{with}->{a}, 'reference');
 is(ref $obj->{and}, 'ARRAY');
 is_deeply($obj->{and}, [qw/an array reference/]);
 ok(!exists $obj->{perl});
+is($obj->{just}, "an\xE4oth\0er");
 
 lives_ok {
     $coll->validate;
