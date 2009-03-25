@@ -7,6 +7,11 @@ name 'MongoDB';
 all_from 'lib/MongoDB.pm';
 
 requires 'Any::Moose';
+# C::M::Modifiers isn't always needed. It'll be used only if Any::Moose decides
+# to use Mouse instead of Moose. We depend on it anyway to make sure it's there
+# when it's needed.
+requires 'Class::Method::Modifiers';
+test_requires 'Test::Exception';
 
 mongo($ENV{MONGO_SDK});
 
