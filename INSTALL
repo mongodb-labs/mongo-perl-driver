@@ -1,6 +1,13 @@
 Install Instruction
 -------------------
 
+If they aren't already installed, you will need the following modules:
+  sudo cpan Module::Install
+  sudo cpan Test::Exception
+  sudo cpan Any::Moose
+  sudo cpan Class::Method::Modifiers::Fast
+
+Then do:
   MONGO_SDK=/path/to/mongodb-full-../ perl Makefile.PL
   make
   make test
