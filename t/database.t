@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 10;
+use Test::More tests => 11;
 use Test::Exception;
 
 use MongoDB;
@@ -17,8 +17,7 @@ is(scalar $db->collection_names, 0, 'no collections');
 my $coll = $db->get_collection('test');
 is($coll->count, 0, 'collection is empty');
 
-# TODO enable once fixed
-# is($coll->find_one, undef, 'nothing for find_one');
+is($coll->find_one, undef, 'nothing for find_one');
 
 my $id = $coll->insert({ just => 'another', perl => 'hacker' });
 
