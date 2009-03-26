@@ -44,9 +44,7 @@ sub mongo {
     $self->makemaker_args( CC    => $cc );
     $self->makemaker_args( XSOPT => ' -C++' );
     $self->cc_lib_paths(catdir($mongo_sdk, 'lib'));
-    $self->cc_lib_links(qw/mongoclient boost_thread boost_filesystem
-                           boost_program_options boost_thread-mt
-                           boost_filesystem-mt boost_program_options-mt/);
+    $self->cc_lib_links(qw/mongoclient boost_thread-mt boost_filesystem-mt boost_program_options-mt/);
 
     return;
 }
