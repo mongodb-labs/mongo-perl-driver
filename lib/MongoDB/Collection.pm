@@ -103,21 +103,23 @@ Counts the number of objects in this collection that match the given C<$query>.
 sub count {
     my ($self, $query) = @_;
     $query ||= {};
-    my $result;
+
+    my $obj;
     eval {
-      my $obj = $self->_database->run_command({
-                                               count => $self->name,
-                                               query => $query,
-                                              });
-      $result = $obj->{n};
+        $obj = $self->_database->run_command({
+            count => $self->name,
+            query => $query,
+        });
     };
-    if ($@) {
-      if ($@ =~ m/^ns missing/) {
-        return 0;
-      }
-      die $@
+
+    if (my $error = $@) {
+        if ($error =~ m/^ns missing/) {
+            return 0;
+        }
+        die $error;
     }
-    return $result;
+
+    return $obj->{n};
 }
 
 =method validate
