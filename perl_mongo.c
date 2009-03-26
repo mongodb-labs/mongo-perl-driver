@@ -198,8 +198,13 @@ bson_to_av (const char *oid_class, mongo::BSONObj obj)
 SV *
 perl_mongo_bson_to_sv (const char *oid_class, mongo::BSONObj obj)
 {
-    HV *ret = newHV ();
+    HV *ret;
 
+    if (obj.isEmpty()) {
+        return &PL_sv_undef;
+    }
+
+    ret  = newHV ();
     mongo::BSONObjIterator it = mongo::BSONObjIterator(obj);
     while (it.more()) {
         SV *sv;
