@@ -16,6 +16,15 @@ BEGIN {
 sub mongo {
     my ($self, $mongo_sdk) = @_;
 
+    unless ($mongo_sdk) {
+        print STDERR <<'ERR';
+The MONGO_SDK environment variable wasn't set. Can't continue.
+
+Please MONGO_SDK to point to your MongoDB build and re-run Makefile.PL.
+ERR
+        exit 0;
+    }
+
     my $cc;
     if ($ENV{CC}) {
         $cc = $ENV{CC};
