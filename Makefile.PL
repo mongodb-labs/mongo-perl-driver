@@ -17,6 +17,9 @@ mongo($ENV{MONGO_SDK});
 
 no_index directory => 'ext';
 
+license 'apache';
+repository 'git://github.com/mongodb/mongo-perl-driver.git';
+
 WriteAll;
 
 package MY;
