@@ -13,5 +13,5 @@ MANIFEST*
 !MANIFEST.SKIP
 Debian*
 README
-Mongo-*
+MongoDB-*
 *.bs
