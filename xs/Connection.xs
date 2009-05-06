@@ -129,7 +129,7 @@ mongo::DBClientConnection::_update (ns, query, object, upsert)
         SvREFCNT_dec (oid_class);
 
 void
-mongo::DBClientConnection::_ensure_index (ns, keys, name=NULL)
+mongo::DBClientConnection::_ensure_index (ns, keys, name="")
         const char *ns
         SV *keys
         const char *name
