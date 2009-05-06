@@ -52,21 +52,21 @@ $coll->ensure_index([qw/foo bar baz/]);
 $coll->ensure_index([qw/foo bar/]);
 
 my @indexes = $coll->get_indexes;
-is(scalar @indexes, 2, 'two indexes');
+is(scalar @indexes, 3, 'two custom indexes and the default _id_ index');
 is_deeply(
-    [sort keys %{ $indexes[0]->{key} }],
+    [sort keys %{ $indexes[1]->{key} }],
     [sort qw/foo bar baz/],
 );
 is_deeply(
-    [sort keys %{ $indexes[1]->{key} }],
+    [sort keys %{ $indexes[2]->{key} }],
     [sort qw/foo bar/],
 );
 
-$coll->drop_index($indexes[0]->{name});
+$coll->drop_index($indexes[1]->{name});
 @indexes = $coll->get_indexes;
-is(scalar @indexes, 1);
+is(scalar @indexes, 2);
 is_deeply(
-    [sort keys %{ $indexes[0]->{key} }],
+    [sort keys %{ $indexes[1]->{key} }],
     [sort qw/foo bar/],
 );
 

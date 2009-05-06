@@ -21,7 +21,7 @@ is($coll->find_one, undef, 'nothing for find_one');
 
 my $id = $coll->insert({ just => 'another', perl => 'hacker' });
 
-is(scalar $db->collection_names, 1, 'one collection');
+is(scalar $db->collection_names, 3, 'test, system.indexes, and test.$_id_');
 ok((grep { $_ eq 'test' } $db->collection_names), 'collection_names');
 is($coll->count, 1, 'count');
 is($coll->find_one->{perl}, 'hacker', 'find_one');
