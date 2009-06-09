@@ -61,7 +61,7 @@ Executes the given C<$query> and returns the first object matching it.
 
 Inserts the given C<$object> into the database and returns its C<MongoDB::OID>.
 
-=method update ($update, $upsert?)
+=method update ($update, $object, $upsert?)
 
     $collection->update($object);
 
