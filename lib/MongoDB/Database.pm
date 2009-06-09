@@ -55,7 +55,7 @@ Returns the list of collections in this database.
 
 sub collection_names {
     my ($self) = @_;
-    my $it = $self->query('system.namespaces', {}, 0, 0);
+    my $it = $self->query('system.namespaces', {});
     return map {
         substr($_, length($self->name) + 1)
     } map { $_->{name} } $it->all;

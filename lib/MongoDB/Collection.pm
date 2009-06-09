@@ -43,11 +43,37 @@ sub _build_full_name {
     return "${db_name}.${name}";
 }
 
-=method query ($query)
+=method query ($query, \%attrs?)
 
     my $cursor = $collection->query({ i => { '$gt' => 42 } });
 
+    my $cursor = $collection->query({ }, { limit => 10, skip => 10 });
+
+    my $cursor = $collection->query(
+        { location => "Vancouver" },
+        { sort_by  => { age => 1 } },
+    );
+
 Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
+A hash reference of attributes may be passed as the second argument.
+
+Valid query attributes are:
+
+=over 4
+
+=item limit
+
+Limit the number of results.
+
+=item skip
+
+Skip a number of results.
+
+=item sort_by
+
+Order results.
+
+=back
 
 =method find_one ($query)
 
