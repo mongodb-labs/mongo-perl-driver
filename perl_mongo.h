@@ -1,6 +1,7 @@
 #ifndef PERL_MONGO
 #define PERL_MONGO
 
+#undef VERSION
 #include <client/dbclient.h>
 
 extern "C" {
