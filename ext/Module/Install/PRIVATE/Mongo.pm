@@ -50,7 +50,7 @@ ERR
     $self->requires_external_bin($cc);;
     $self->xs_files;
 
-    $self->makemaker_args( INC   => '-I. -I/usr/include/boost -I' . catdir($mongo_sdk, 'include') );
+    $self->makemaker_args( INC   => '-I. -I/usr/include/boost -I' . catdir($mongo_sdk, 'include', 'mongo') );
     $self->makemaker_args( CC    => $cc );
     $self->makemaker_args( XSOPT => ' -C++' );
     $self->cc_lib_paths(catdir($mongo_sdk, 'lib'));

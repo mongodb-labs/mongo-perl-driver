@@ -1,7 +1,7 @@
 #ifndef PERL_MONGO
 #define PERL_MONGO
 
-#include <mongo/client/dbclient.h>
+#include <client/dbclient.h>
 
 extern "C" {
 
