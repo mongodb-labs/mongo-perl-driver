@@ -159,8 +159,9 @@ sub remove {
     );
 
     sub ensure_index {
-        my ($self, $ns, $keys, $direction) = @_;
+        my ($self, $ns, $keys, $direction, $unique) = @_;
         $direction ||= 'ascending';
+        $unique = 0 unless defined $unique;
 
         my %keys;
         if (ref $keys eq 'ARRAY') {
@@ -178,7 +179,7 @@ sub remove {
             confess "unknown direction '${dir}'"
                 unless exists $direction_map{$dir};
             ($_ => $direction_map{$dir})
-        } keys %keys });
+        } keys %keys }, $unique);
         return;
     }
 }

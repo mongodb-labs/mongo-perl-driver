@@ -99,7 +99,7 @@ Updates an existing C<$object> in the database.
 
 Removes all objects matching the given C<$query> from the database.
 
-=method ensure_index (\@keys, $direction?)
+=method ensure_index (\@keys, $direction?, $unique?)
 
     $collection->ensure_index([qw/foo bar/]);
 

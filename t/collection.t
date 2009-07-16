@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 23;
+use Test::More tests => 25;
 use Test::Exception;
 
 use MongoDB;
@@ -42,7 +42,8 @@ lives_ok {
     $coll->validate;
 } 'validate';
 
-$coll->remove($obj);
+# temp fix until server-146 is fixed
+$coll->remove({_id => $obj->{_id}});
 is($coll->count, 0);
 
 $coll->drop;
@@ -50,9 +51,17 @@ ok(!$coll->get_indexes, 'no indexes yet');
 
 $coll->ensure_index([qw/foo bar baz/]);
 $coll->ensure_index([qw/foo bar/]);
+$coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
+$coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
+is($coll->count, 2);
+
+$coll->ensure_index([qw/boo/], "ascending", 1);
+$coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
+
+is($coll->count, 2);
 
 my @indexes = $coll->get_indexes;
-is(scalar @indexes, 3, 'two custom indexes and the default _id_ index');
+is(scalar @indexes, 4, 'three custom indexes and the default _id_ index');
 is_deeply(
     [sort keys %{ $indexes[1]->{key} }],
     [sort qw/foo bar baz/],
@@ -64,7 +73,7 @@ is_deeply(
 
 $coll->drop_index($indexes[1]->{name});
 @indexes = $coll->get_indexes;
-is(scalar @indexes, 2);
+is(scalar @indexes, 3);
 is_deeply(
     [sort keys %{ $indexes[1]->{key} }],
     [sort qw/foo bar/],
