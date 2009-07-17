@@ -42,8 +42,7 @@ lives_ok {
     $coll->validate;
 } 'validate';
 
-# temp fix until server-146 is fixed
-$coll->remove({_id => $obj->{_id}});
+$coll->remove($obj);
 is($coll->count, 0);
 
 $coll->drop;
