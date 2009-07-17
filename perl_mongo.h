@@ -4,6 +4,14 @@
 #undef VERSION
 #include <client/dbclient.h>
 
+// dbclient.h redefines assert, so we'll redefine it back again.
+#define assert(what) PERL_DEB(                                       \
+        ((what) ? ((void) 0) :                                       \
+         (Perl_croak(aTHX_ "Assertion %s failed: file \"" __FILE__   \
+                     "\", line %d", STRINGIFY(what), __LINE__),      \
+          PerlProc_exit(1),                                          \
+          (void) 0)))
+
 extern "C" {
 
 #define PERL_GCC_BRACE_GROUPS_FORBIDDEN

@@ -19,7 +19,7 @@ sub mongo {
     unless (defined $mongo_sdk && -d $mongo_sdk) {
         print STDERR <<'ERR';
 The MONGO_SDK environment variable isn't set or it doesn't point to a
-mongodb build. Can't continue.
+mongodb build. Cannot continue.
 
 Please MONGO_SDK to point to your MongoDB build and re-run Makefile.PL.
 ERR
@@ -44,6 +44,10 @@ ERR
             $cc = 'CC';
         }
     } else {
+        if ($Config{osname} eq 'darwin') {
+            $self->makemaker_args( CCFLAGS => ' -arch i386 -g -pipe -fno-common -DPERL_DARWIN -no-cpp-precomp -fno-strict-aliasing -Wdeclaration-after-statement -I/usr/local/include');
+            $self->makemaker_args( LDDLFLAGS => ' -arch i386 -bundle -undefined dynamic_lookup -L/usr/local/lib');
+        }
         $cc = 'g++';
     }
 
@@ -54,7 +58,7 @@ ERR
     $self->makemaker_args( CC    => $cc );
     $self->makemaker_args( XSOPT => ' -C++' );
     $self->cc_lib_paths(catdir($mongo_sdk, 'lib'));
-    $self->cc_lib_links(qw/mongoclient boost_thread-mt boost_filesystem-mt boost_program_options-mt/);
+    $self->cc_lib_links(qw/mongoclient boost_thread-mt boost_filesystem-mt boost_program_options-mt boost_system-mt stdc++/);
 
     return;
 }
