@@ -252,6 +252,10 @@ av_to_bson (mongo::BSONObjBuilder *builder, AV *av, const char *oid_class)
 static void
 append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *oid_class)
 {
+    if (!SvOK(sv)) {
+        builder->appendNull(key);
+        return;
+    }
     if (SvROK (sv)) {
         mongo::BSONObjBuilder *subobj = new mongo::BSONObjBuilder();
         if (sv_isobject (sv)) {

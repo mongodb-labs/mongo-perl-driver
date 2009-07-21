@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 28;
+use Test::More tests => 32;
 use Test::Exception;
 
 use MongoDB;
@@ -79,14 +79,21 @@ is_deeply(
     [sort qw/foo bar/],
 );
 
+$coll->drop;
+ok(!$coll->get_indexes, 'no indexes after dropping');
+
+# test doubles
 my $pi = 3.14159265;
 ok($id = $coll->insert({ data => 'pi', pi => $pi }), "inserting float number value");
 ok($obj = $coll->find_one({ data => 'pi' }));
 is($obj->{pi}, $pi);
 
+# test undefined values
+ok($id  = $coll->insert({ data => 'null', none => undef }), 'inserting undefined data');
+ok($obj = $coll->find_one({ data => 'null' }), 'finding undefined row');
+ok(exists $obj->{none}, 'got null field');
+ok(!defined $obj->{none}, 'null field is undefined');
 
-$coll->drop;
-ok(!$coll->get_indexes, 'no indexes after dropping');
 
 END {
     $db->drop;
