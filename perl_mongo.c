@@ -279,7 +279,7 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
                     break;
                 default:
                     sv_dump(SvRV(sv));
-                    croak ("type unhandled");
+                    croak ("type (ref) unhandled");
             }
         }
     } else {
@@ -291,6 +291,8 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
             case SVt_NV:
             case SVt_PVIV:
             case SVt_PVMG:
+            case SVt_PVNV:
+                /* Do we need SVt_PVLV here, too? */
                 if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
                     STRLEN len;
                     const char *bytes = SvPVbyte (sv, len);
@@ -302,7 +304,7 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
                 break;
             default:
                 sv_dump(sv);
-                croak ("type unhandled");
+                croak ("type (sv) unhandled");
         }
     }
 }
