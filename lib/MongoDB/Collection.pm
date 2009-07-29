@@ -85,7 +85,8 @@ Executes the given C<$query> and returns the first object matching it.
 
     my $id = $collection->insert({ name => 'mongo', type => 'database' });
 
-Inserts the given C<$object> into the database and returns its C<MongoDB::OID>.
+Inserts the given C<$object> into the database and returns it's id
+value. The id is the C<_id> value specified in the data or a C<MongoDB::OID>.
 
 =method update ($update, $object, $upsert?)
 
