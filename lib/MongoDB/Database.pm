@@ -105,7 +105,7 @@ sub run_command {
     my ($self, $command) = @_;
     my $obj = $self->find_one('$cmd', $command);
     return $obj if $obj->{ok};
-    confess $obj->{errmsg};
+    $obj->{'$err'};
 }
 
 no Any::Moose;

@@ -217,7 +217,6 @@ Deletes a collection as well as all of its indexes.
 
 sub drop {
     my ($self) = @_;
-    $self->drop_indexes;
     $self->_database->run_command({ drop => $self->name });
     return;
 }
