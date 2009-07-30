@@ -16,6 +16,14 @@ has value => (
     builder => '_build_value',
 );
 
+
+sub to_string {
+    my ($self) = @_;
+    $self->_build_value;
+}
+
+use overload '""' => \&to_string;
+
 no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
