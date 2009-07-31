@@ -139,11 +139,8 @@ sub count {
         });
     };
 
-    if (my $error = $@) {
-        if ($error =~ m/^ns missing/) {
-            return 0;
-        }
-        die $error;
+    if ($obj =~ m/^ns missing/) {
+        return 0;
     }
 
     return $obj->{n};
