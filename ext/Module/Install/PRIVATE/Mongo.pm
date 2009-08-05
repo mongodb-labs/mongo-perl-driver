@@ -14,17 +14,20 @@ BEGIN {
 }
 
 sub mongo {
-    my ($self, $mongo_sdk) = @_;
+    my ($self, @mongo_vars) = @_;
 
-    unless (defined $mongo_sdk && -d $mongo_sdk) {
-        print STDERR <<'ERR';
-The MONGO_SDK environment variable isn't set or it doesn't point to a
-mongodb build. Cannot continue.
-
-Please MONGO_SDK to point to your MongoDB build and re-run Makefile.PL.
-ERR
-        exit 0;
+    my $mongo_inc;
+    my $mongo_lib;
+    if (@mongo_vars == 1) {
+        $mongo_inc =  catdir($mongo_vars[0], 'include', 'mongo');
+        $mongo_lib = catdir($mongo_vars[0], 'lib');
     }
+    else {
+        $mongo_inc =  catdir($mongo_vars[0], 'mongo');
+        $mongo_lib = catdir($mongo_vars[1]);
+    }
+
+    print "\n$mongo_inc, $mongo_lib\n\n";
 
     my $cc;
     if ($ENV{CC}) {
@@ -54,10 +57,10 @@ ERR
     $self->requires_external_bin($cc);;
     $self->xs_files;
 
-    $self->makemaker_args( INC   => '-I. -I/usr/include/boost -I' . catdir($mongo_sdk, 'include', 'mongo') );
+    $self->makemaker_args( INC   => '-I. -I/usr/include/boost -I' . $mongo_inc );
     $self->makemaker_args( CC    => $cc );
     $self->makemaker_args( XSOPT => ' -C++' );
-    $self->cc_lib_paths(catdir($mongo_sdk, 'lib'));
+    $self->cc_lib_paths($mongo_lib);
     $self->cc_lib_links(qw/mongoclient boost_thread-mt boost_filesystem-mt boost_program_options-mt boost_system-mt stdc++/);
 
     return;
