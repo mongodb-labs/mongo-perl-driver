@@ -45,6 +45,10 @@ sub SearchFor {
 if (exists $ENV{MONGO_SDK} && -d $ENV{MONGO_SDK}) {
     mongo($ENV{MONGO_SDK});
 }
+elsif (exists $ENV{MONGO_INC} && -d $ENV{MONGO_INC} &&
+         exists $ENV{MONGO_LIB} && -d $ENV{MONGO_LIB}) {
+    mongo($ENV{MONGO_INC}, $ENV{MONGO_LIB});
+}
 else {
     my $includeDir = SearchFor('include', File::Spec->catdir('mongo', 'targetver.h'));
     my $libDir = SearchFor('lib', 'libmongoclient.a');

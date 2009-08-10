@@ -27,8 +27,6 @@ sub mongo {
         $mongo_lib = catdir($mongo_vars[1]);
     }
 
-    print "\n$mongo_inc, $mongo_lib\n\n";
-
     my $cc;
     if ($ENV{CC}) {
         $cc = $ENV{CC};
