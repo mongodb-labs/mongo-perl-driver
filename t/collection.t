@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 33;
+use Test::More tests => 34;
 use Test::Exception;
 
 use MongoDB;
@@ -98,7 +98,12 @@ $coll->drop;
 # ord("\x9F") is 159
 $coll->insert({foo => "\x9F" });
 my $utfblah = $coll->find_one;
-is(ord($utfblah->{'foo'}), 194, 'translate non-utf-8 to utf-8 char');
+is(ord($utfblah->{'foo'}), 194, 'translate non-utf8 to utf8 char');
+
+$coll->drop;
+$coll->insert({"\x9F" => "hi"});
+$utfblah = $coll->find_one;
+is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
 
 END {
     $db->drop;

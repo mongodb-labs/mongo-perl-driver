@@ -334,7 +334,7 @@ perl_mongo_sv_to_bson (SV *sv, const char *oid_class)
                 if ( !((key = av_fetch (av, i, 0)) && (val = av_fetch (av, i + 1, 0))) ) {
                     croak ("failed to fetch array element");
                 }
-                append_sv (builder, SvPV_nolen (*key), *val, oid_class);
+                append_sv (builder, SvPVutf8_nolen (*key), *val, oid_class);
             }
 
             break;
