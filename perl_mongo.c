@@ -299,7 +299,7 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
                     builder->appendBinData(key, len, mongo::ByteArray, bytes);
                 }
                 else {
-                    builder->append(key, (char *)SvPV_nolen (sv));
+                    builder->append(key, (char *)SvPVutf8_nolen (sv));
                 }
                 break;
             default:

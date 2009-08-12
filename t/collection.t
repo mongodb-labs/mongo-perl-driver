@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 32;
+use Test::More tests => 33;
 use Test::Exception;
 
 use MongoDB;
@@ -93,6 +93,12 @@ ok($obj = $coll->find_one({ data => 'null' }), 'finding undefined row');
 ok(exists $obj->{none}, 'got null field');
 ok(!defined $obj->{none}, 'null field is undefined');
 
+$coll->drop;
+
+# ord("\x9F") is 159
+$coll->insert({foo => "\x9F" });
+my $utfblah = $coll->find_one;
+is(ord($utfblah->{'foo'}), 194, 'translate non-utf-8 to utf-8 char');
 
 END {
     $db->drop;
