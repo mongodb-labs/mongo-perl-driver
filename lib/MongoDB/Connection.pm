@@ -123,10 +123,8 @@ sub find_one {
 sub query {
     my ($self, $ns, $query, $attrs) = @_;
     my ($limit, $skip, $sort_by) = @{ $attrs || {} }{qw/limit skip sort_by/};
-    $query ||= {};
     $limit   ||= 0;
     $skip    ||= 0;
-    $sort_by ||= {};
     return $self->_query($ns, $query, $limit, $skip, $sort_by);
 }
 

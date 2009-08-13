@@ -20,6 +20,16 @@ has _oid_class => (
     default  => 'MongoDB::OID',
 );
 
+
+has _queried => (
+    is       => 'rw',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
+
+
 =method next
 
     while (my $object = $cursor->next) {
@@ -29,13 +39,6 @@ has _oid_class => (
 Returns the next object in the cursor. Will automatically fetch more data from
 the server if necessary. Returns undef if no more data is available.
 
-=cut
-
-sub next {
-    my ($self) = @_;
-    return unless $self->_more;
-    return $self->_next;
-}
 
 =method all
 

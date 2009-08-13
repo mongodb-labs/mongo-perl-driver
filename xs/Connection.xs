@@ -37,30 +37,51 @@ mongo::DBClientConnection::_connect ()
 		SvREFCNT_dec (attr);
 
 SV *
-mongo::DBClientConnection::_query (ns, query, limit, skip, sort_by)
+mongo::DBClientConnection::_query (ns, query=0, limit=0, skip=0, sort=0)
         const char *ns
         SV *query
         int limit
         int skip
-        SV *sort_by
+        SV *sort
     PREINIT:
-        std::auto_ptr<mongo::DBClientCursor> cursor;
-        mongo::Query *q;
-        SV *cursor_class, *oid_class;
-    INIT:
-        cursor_class = perl_mongo_call_reader (ST (0), "_cursor_class");
-        oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
-        q = new mongo::Query(perl_mongo_sv_to_bson (query, SvPV_nolen (oid_class)));
-        q->sort(perl_mongo_sv_to_bson (sort_by, SvPV_nolen (oid_class)));
+        HV *this_hash, *stash, *rcursor, *full_query;
     CODE:
-        cursor = THIS->query(ns, *q, limit, skip);
-        RETVAL = perl_mongo_construct_instance_with_magic (SvPV_nolen (cursor_class), cursor.release(), "_oid_class", oid_class, NULL);
+        // create a new MongoDB::Cursor
+        stash = gv_stashpv("MongoDB::Cursor", 0);
+        rcursor = newHV();
+        RETVAL = sv_bless(newRV_noinc((SV *)rcursor), stash);
+
+        this_hash = SvSTASH(SvRV(RETVAL));
+
+        // set the connection
+        SvREFCNT_inc(ST(0));
+        hv_store(this_hash, "connection", strlen("connection"), ST(0), 0);
+
+        // set the namespace
+        hv_store(this_hash, "ns", strlen("ns"), newSVpv(ns, strlen(ns)), 0);
+
+        // create the query
+        full_query = newHV();
+        hv_store(this_hash, "query", strlen("query"), newRV_noinc((SV*)full_query), 0);
+
+        // add the query to the... query
+        if (!query || !SvOK(query)) {
+          query = newRV_noinc((SV*)newHV());
+        }
+        hv_store(full_query, "query", strlen("query"), SvREFCNT_inc(query), 0);
+
+        // add sort to the query
+        if (sort && SvOK(sort)) {
+          hv_store(full_query, "orderby", strlen("orderby"), SvREFCNT_inc(sort), 0);
+        }
+
+        // add limit/skip
+        hv_store(this_hash, "limit", strlen("limit"), newSViv(limit), 0);
+        hv_store(this_hash, "skip", strlen("skip"), newSViv(skip), 0);
+
     OUTPUT:
         RETVAL
-    CLEANUP:
-        delete q;
-        SvREFCNT_dec (cursor_class);
-        SvREFCNT_dec (oid_class);
+
 
 SV *
 mongo::DBClientConnection::_find_one (ns, query)

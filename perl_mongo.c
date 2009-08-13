@@ -41,6 +41,40 @@ perl_mongo_call_reader (SV *self, const char *reader)
     return ret;
 }
 
+SV *
+perl_mongo_call_writer (SV *self, const char *reader, SV *value)
+{
+    dSP;
+    SV *ret;
+    I32 count;
+
+    ENTER;
+    SAVETMPS;
+
+    PUSHMARK (SP);
+    XPUSHs (self);
+    XPUSHs (value);
+    PUTBACK;
+
+    count = call_method (reader, G_SCALAR);
+
+    SPAGAIN;
+
+    if (count != 1) {
+        croak ("reader didn't return a value");
+    }
+
+    ret = POPs;
+    SvREFCNT_inc (ret);
+
+    PUTBACK;
+    FREETMPS;
+    LEAVE;
+
+    return ret;
+}
+
+
 void
 perl_mongo_attach_ptr_to_instance (SV *self, void *ptr)
 {

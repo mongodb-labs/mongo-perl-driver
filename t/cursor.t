@@ -58,7 +58,7 @@ $db->drop;
 
 $coll = $db->get_collection('test_collection');
 
-is($coll->query->next, undef);
+is($coll->query->next, undef, 'test undef');
 is_deeply([$coll->query->all], []);
 
 my $id1 = $coll->insert({x => 1});
