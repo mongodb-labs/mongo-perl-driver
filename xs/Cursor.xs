@@ -90,5 +90,59 @@ next (self)
         RETVAL
 
 
+SV *
+snapshot (self)
+        SV *self
+    PREINIT:
+        HV *this_hash;
+        SV **query;
+    CODE:
+        if (already_queried(self)) {
+          croak("cannot set snapshot() after query");
+          return;
+        }
+
+        this_hash = SvSTASH(SvRV(self));
+        query = hv_fetch(this_hash, "query", strlen("query"), 0);
+
+        if (query && SvROK(*query) && SvTYPE(SvRV(*query)) == SVt_PVHV) {
+          // store $snapshot
+          SV **ret = hv_store((HV*)SvRV(*query), "$snapshot", strlen("$snapshot"), newSViv(1), 0);
+        }
+        // increment this
+        SvREFCNT_inc(self);
+
+
+SV *
+sort (self, sort)
+        SV *self
+        SV *sort
+     PREINIT:
+        HV *this_hash;
+        SV **query;
+     CODE:
+        if (already_queried(self)) {
+          croak("cannot set sort() after query");
+          return;
+        }
+
+        this_hash = SvSTASH(SvRV(self));
+        query = hv_fetch(this_hash, "query", strlen("query"), 0);
+
+        if (query && SvROK(*query) && SvTYPE(SvRV(*query)) == SVt_PVHV) {
+          // store sort and increase refcount
+          SV **ret = hv_store((HV*)SvRV(*query), "orderby", strlen("orderby"), SvREFCNT_inc(sort), 0);
+
+          // if the hash update failed, decrement the refcount
+          if (!ret) {
+            SvREFCNT_dec(sort);
+            // should we croak here?
+          }
+        }
+        // increment this
+        SvREFCNT_inc(self);
+
+
+
 void
 mongo::DBClientCursor::DESTROY ()

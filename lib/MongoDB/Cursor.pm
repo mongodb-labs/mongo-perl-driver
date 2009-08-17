@@ -29,6 +29,37 @@ has _queried => (
 );
 
 
+=method sort
+
+    # sort by name, descending
+    my $sort = {"name" => -1};
+    $cursor = $coll->find->sort($sort);
+
+Adds a sort to the query.
+Returns this cursor for chaining operations.
+
+
+=method snapshot
+
+    my $cursor = $coll->find->snapshot;
+
+Uses snapshot mode for the query.  Snapshot mode assures no 
+duplicates are returned, or objects missed, which were present 
+at both the start and end of the query's execution (if an object 
+is new during the query, or deleted during the query, it may or 
+may not be returned, even with snapshot mode).  Note that short 
+query responses (less than 1MB) are always effectively 
+snapshotted.  Currently, snapshot mode may not be used with 
+sorting or explicit hints.
+
+=method has_next
+
+    while ($cursor->has_next) {
+        ...
+    }
+
+Checks if there is another result to fetch.
+
 
 =method next
 

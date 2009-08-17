@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 29;
+use Test::More tests => 37;
 use Test::Exception;
 
 use MongoDB;
@@ -74,3 +74,21 @@ my $cursor2 = $coll->query({x => 5});
 is_deeply([$cursor2->all], [{_id => $id2, x => 5}]);
 
 is_deeply([$coll->query->all], [{_id => $id1, x => 1}, {_id => $id2, x => 5}]);
+
+my $cursor_sort = $coll->query->sort({'x' => -1});
+is($cursor_sort->has_next, 1);
+is($cursor_sort->next->{'x'}, 5, 'Cursor->sort');
+is($cursor_sort->next->{'x'}, 1);
+
+$cursor_sort = $coll->query->sort({'x' => 1});
+is($cursor_sort->next->{'x'}, 1);
+is($cursor_sort->next->{'x'}, 5);
+
+my $cursor3 = $coll->query->snapshot;
+is($cursor3->has_next, 1, 'check has_next');
+$cursor3->next;
+is($cursor3->has_next, 1);
+$cursor3->next;
+is(int $cursor3->has_next, 0, 'check has_next is false');
+
+
