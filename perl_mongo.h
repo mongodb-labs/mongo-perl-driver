@@ -2,6 +2,36 @@
 #define PERL_MONGO
 
 #undef VERSION
+
+#define INT_32 4
+#define INT_64 8
+#define DOUBLE_64 8
+#define BYTE_8 1
+#define OID_SIZE 12
+
+#define BSON_DOUBLE 1
+#define BSON_STRING 2
+#define BSON_OBJECT 3
+#define BSON_ARRAY 4
+#define BSON_BINARY 5
+#define BSON_UNDEF 6
+#define BSON_OID 7
+#define BSON_BOOL 8
+#define BSON_DATE 9
+#define BSON_NULL 10
+#define BSON_REGEX 11
+#define BSON_DBREF 12
+#define BSON_CODE__D 13
+#define BSON_CODE 15
+#define BSON_INT 16
+#define BSON_TIMESTAMP 17
+#define BSON_LONG 18
+#define BSON_MINKEY -1
+#define BSON_MAXKEY 127
+
+#define GROW_SLOWLY 1048576
+
+
 #include <client/dbclient.h>
 
 // dbclient.h redefines assert, so we'll redefine it back again.

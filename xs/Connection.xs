@@ -1,40 +1,41 @@
 #include "perl_mongo.h"
+#include "mongo_link.h"
 
 MODULE = MongoDB::Connection  PACKAGE = MongoDB::Connection
 
 PROTOTYPES: DISABLE
 
-void
-_build_xs (self)
-		SV *self
-	PREINIT:
-		mongo::DBClientConnection *conn;
-		SV *attr;
-		bool auto_reconnect;
-	INIT:
-		attr = perl_mongo_call_reader (self, "auto_reconnect");
-		auto_reconnect = SvTRUE (attr);
-	CODE:
-		conn = new mongo::DBClientConnection (auto_reconnect);
-		perl_mongo_attach_ptr_to_instance (self, (void *)conn);
-	CLEANUP:
-		SvREFCNT_dec (attr);
+
 
 void
-mongo::DBClientConnection::_connect ()
+connect (self)
+                SV *self
 	PREINIT:
-		SV *attr;
-		char *server;
-		string error;
+                SV *host_sv, *port_sv;
+		char *host;
+                int port;
+                int socket;
 	INIT:
-		attr = perl_mongo_call_reader (ST (0), "_server");
-		server = SvPV_nolen (attr);
+		host_sv = perl_mongo_call_reader (ST (0), "host");
+		port_sv = perl_mongo_call_reader (ST (0), "port");
+		host = SvPV_nolen(host_sv);
+		port = SvIV(port_sv);
 	CODE:
-		if (!THIS->connect(server, error)) {
-			croak ("%s", error.c_str());
+                // TODO: pairing
+                // this will be be server1, server2 
+		if (!(socket = mongo_connect(host, port))) {
+                  croak ("could not connect");
+                  return;
 		}
+
+                this_hash = SvSTASH(SvRV(ST(0)));
+
+                // set the socket
+                hv_store(this_hash, "socket", strlen("socket"), newSViv(socket), 0);
+
 	CLEANUP:
-		SvREFCNT_dec (attr);
+		SvREFCNT_dec (host_sv);
+		SvREFCNT_dec (port_sv);
 
 SV *
 mongo::DBClientConnection::_query (ns, query=0, limit=0, skip=0, sort=0)
@@ -190,4 +191,7 @@ mongo::DBClientConnection::_authenticate (dbname, username, password, is_digest=
         }
 
 void
-mongo::DBClientConnection::DESTROY ()
+connection_DESTROY (self)
+          SV *self
+     CODE:
+         printf("in destroy\n");

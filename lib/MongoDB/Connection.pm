@@ -95,7 +95,6 @@ sub BUILD {
     my ($self) = @_;
     eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
         for map { $self->$_ } qw/_database_class _cursor_class _oid_class/;
-    $self->_build_xs;
     $self->connect if $self->auto_connect;
 }
 
@@ -107,12 +106,6 @@ Connects to the mongo server. Called automatically on object construction if
 C<auto_connect> is true.
 
 =cut
-
-sub connect {
-    my ($self) = @_;
-    $self->_connect;
-    return;
-}
 
 sub find_one {
     my ($self, $ns, $query) = @_;
