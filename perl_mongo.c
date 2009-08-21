@@ -163,98 +163,226 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...)
     return ret;
 }
 
-static SV *bson_to_av (const char *oid_class, mongo::BSONObj obj);
+static SV *bson_to_av (const char *oid_class, buffer *buf);
 
 static SV *
-oid_to_sv (const char *oid_class, mongo::OID id)
+oid_to_sv (const char *oid_class, buffer *buf)
 {
-    std::string str = id.str();
-    return perl_mongo_construct_instance (oid_class, "value", newSVpv (str.c_str(), str.length()), NULL);
+    return perl_mongo_construct_instance (oid_class, "value", newSVpv (buf->pos, OID_SIZE), NULL);
 }
 
 static SV *
-elem_to_sv (const char *oid_class, mongo::BSONElement elem)
+elem_to_sv (const char *oid_class, int type, buffer *buf)
 {
-    switch (elem.type()) {
-        case mongo::Undefined:
-        case mongo::jstNULL:
-            return &PL_sv_undef;
-            break;
-        case mongo::NumberInt:
-            return newSViv (elem.number());
-            break;
-        case mongo::NumberDouble:
-            return newSVnv (elem.number());
-            break;
-        case mongo::Bool:
-            return elem.boolean() ? &PL_sv_yes : &PL_sv_no;
-            break;
-        case mongo::String:
-            return newSVpv (elem.valuestr(), 0);
-            break;
-        case mongo::Array:
-            return bson_to_av (oid_class, elem.embeddedObject());
-            break;
-        case mongo::Object:
-            return perl_mongo_bson_to_sv (oid_class, elem.embeddedObject());
-            break;
-        case mongo::jstOID:
-            return oid_to_sv (oid_class, elem.__oid());
-            break;
-        case mongo::EOO:
-            return NULL;
-            break;
-        case mongo::BinData: {
-            const char *data;
-            int len;
-            if (elem.binDataType() != mongo::ByteArray) {
-                croak ("bindata type unhandled");
-            }
-            data = elem.binData(len);
-            return newSVpv (data, len);
-            break;
-        }
-        default:
-            croak ("type unhandled");
-    }
+  SV *value;
+
+  switch(type) {
+  case BSON_OID: {
+    value = oid_to_sv(oid_class, buf);
+    buf->pos += OID_SIZE;
+    break;
+  }
+  case BSON_DOUBLE: {
+    value = newSVnv(*(double*)buf->pos);
+    buf->pos += DOUBLE_64;
+    break;
+  }
+  case BSON_STRING: {
+    // len includes \0
+    int len = *((int*)buf->pos);
+    buf->pos += INT_32;
+
+    value = newSVpv(buf->pos, len-1);
+    buf->pos += len;
+    break;
+  }
+  case BSON_OBJECT: {
+    value = perl_mongo_bson_to_sv(oid_class, buf);
+    break;
+  }
+  case BSON_ARRAY: {
+    value = bson_to_av(oid_class, buf);
+    break;
+  }
+  case BSON_BINARY: {
+    // TODO
+    /*int len = *(int*)buf->pos;
+      char type, *bytes;
+
+      buf->pos += INT_32;
+
+      type = *buf->pos++;
+
+      bytes = buf->pos;
+      buf->pos += len;
+
+      object_init_ex(value, mongo_ce_BinData);
+
+      add_property_stringl(value, "bin", bytes, len, DUP);
+      add_property_long(value, "type", type);
+    */
+    break;
+  }
+  case BSON_BOOL: {
+    char d = *buf->pos++;
+    value = newSViv(d);
+    break;
+  }
+  case BSON_UNDEF:
+  case BSON_NULL: {
+    value = &PL_sv_undef;
+    break;
+  }
+  case BSON_INT: {
+    value = newSViv(*((int*)buf->pos));
+    buf->pos += INT_32;
+    break;
+  }
+  case BSON_LONG: {
+    value = newSViv(*((long long int*)buf->pos));
+    buf->pos += INT_64;
+    break;
+  }
+  case BSON_DATE: {
+    // TODO
+    /*long long int d = *((long long int*)buf->pos);
+      buf->pos += INT_64;
+      
+      object_init_ex(value, mongo_ce_Date);
+
+      add_property_long(value, "sec", (long)(d/1000));
+      add_property_long(value, "usec", (d*1000)%1000000);
+    */
+    break;
+  }
+  case BSON_REGEX: {
+    // TODO
+    /*char *regex, *flags;
+      int regex_len, flags_len;
+
+      regex = buf->pos;
+      regex_len = strlen(buf->pos);
+      buf->pos += regex_len+1;
+
+      flags = buf->pos;
+      flags_len = strlen(buf->pos);
+      buf->pos += flags_len+1;
+
+      object_init_ex(value, mongo_ce_Regex);
+
+      add_property_stringl(value, "regex", regex, regex_len, 1);
+      add_property_stringl(value, "flags", flags, flags_len, 1);
+    */
+    break;
+  }
+  case BSON_CODE: 
+  case BSON_CODE__D: {
+    // TODO
+    /*zval *zcope;
+      int code_len;
+      char *code;
+
+      object_init_ex(value, mongo_ce_Code);
+      // initialize scope array
+      MAKE_STD_ZVAL(zcope);
+      array_init(zcope);
+
+      // CODE has a useless total size field
+      if (type == BSON_CODE) {
+      buf->pos += INT_32;
+      }
+
+      // length of code (includes \0)
+      code_len = *(int*)buf->pos;
+      buf->pos += INT_32;
+
+      code = buf->pos;
+      buf->pos += code_len;
+
+      if (type == BSON_CODE) {
+      buf->pos = bson_to_zval(buf->pos, HASH_P(zcope) TSRMLS_CC);
+      }
+
+      // exclude \0
+      add_property_stringl(value, "code", code, code_len-1, DUP);
+      add_property_zval(value, "scope", zcope);
+
+      // somehow, we pick up an extra zcope ref
+      zval_ptr_dtor(&zcope);
+    */
+    break;
+  }
+  case BSON_TIMESTAMP: {
+    value = newSViv((long)*(int*)buf->pos);
+    buf->pos += INT_64;
+    break;
+  }
+  case BSON_MINKEY: {
+    STRLEN len;
+    value = newSVpv("[MinKey]", len);
+    break;
+  }
+  case BSON_MAXKEY: {
+    STRLEN len;
+    value = newSVpv("[MaxKey]", len);
+    break;
+  }
+  default: {
+    croak("type %d not supported\n", type);
+    // give up, it'll be trouble if we keep going
+  }
+  }
+  return value;
 }
 
 static SV *
-bson_to_av (const char *oid_class, mongo::BSONObj obj)
+bson_to_av (const char *oid_class, buffer *buf)
 {
     AV *ret = newAV ();
-    mongo::BSONObjIterator it = mongo::BSONObjIterator(obj);
-    while (it.more()) {
-        SV *sv;
-        mongo::BSONElement elem = it.next();
-        if ((sv = elem_to_sv (oid_class, elem))) {
-            av_push (ret, sv);
-        }
+
+    char type;
+
+    // for size
+    buf->pos += INT_32;
+  
+    while ((type = *buf->pos++) != 0) {
+      SV *sv;
+    
+      // get past field name
+      buf->pos += strlen(buf->pos) + 1;
+
+      // get value
+      if ((sv = elem_to_sv (oid_class, type, buf))) {
+        av_push (ret, sv);
+      }
     }
 
     return newRV_noinc ((SV *)ret);
 }
 
 SV *
-perl_mongo_bson_to_sv (const char *oid_class, mongo::BSONObj obj)
+perl_mongo_bson_to_sv (const char *oid_class, buffer *buf)
 {
     HV *ret;
 
-    if (obj.isEmpty()) {
-        return &PL_sv_undef;
-    }
+    char type;
 
-    ret  = newHV ();
-    mongo::BSONObjIterator it = mongo::BSONObjIterator(obj);
-    while (it.more()) {
-        SV *sv;
-        mongo::BSONElement elem = it.next();
-        if ((sv = elem_to_sv (oid_class, elem))) {
-            const char *key = elem.fieldName();
-            if (!hv_store (ret, key, strlen (key), sv, 0)) {
-                croak ("failed storing value in hash");
-            }
-        }
+    // for size
+    buf->pos += INT_32;
+  
+    while ((type = *buf->pos++) != 0) {
+      char *name;
+      SV *value;
+    
+      name = buf->pos;
+      // get past field name
+      buf->pos += strlen(buf->pos) + 1;
+
+      // get value
+      value = elem_to_sv(oid_class, type, buf);
+      if (!hv_store (ret, name, strlen (name), value, 0)) {
+        croak ("failed storing value in hash");
+      }
     }
 
     return newRV_noinc ((SV *)ret);
@@ -340,18 +468,35 @@ static void append_sv (buffer *buf, const char *key, SV *sv, const char *oid_cla
 static void
 hv_to_bson (buffer *buf, HV *hv, const char *oid_class)
 {
+    int start;
     HE *he;
+
+    // keep a record of the starting position
+    // as an offset, in case the memory is resized
+    start = buf->pos-buf->start;
+
+    // skip first 4 bytes to leave room for size
+    buf->pos += INT_32;
+
     (void)hv_iterinit (hv);
     while ((he = hv_iternext (hv))) {
         STRLEN len;
         const char *key = HePV (he, len);
         append_sv (buf, key, HeVAL (he), oid_class);
     }
+
+    serialize_null(buf);
+    serialize_size(buf->start+start, buf);
 }
 
 static void
 av_to_bson (buffer *buf, AV *av, const char *oid_class)
 {
+    int start;
+
+    start = buf->pos-buf->start;
+    buf->pos += INT_32;
+
     I32 i;
     for (i = 0; i <= av_len (av); i++) {
         SV **sv;
@@ -362,6 +507,9 @@ av_to_bson (buffer *buf, AV *av, const char *oid_class)
         append_sv (buf, SvPVutf8_nolen(key), *sv, oid_class);
         SvREFCNT_dec (key);
     }
+
+    serialize_null(buf);
+    serialize_size(buf->start+start, buf);
 }
 
 static void
@@ -444,18 +592,9 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
 void
 perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class)
 {
-    int start;
-
     if (!SvROK (sv)) {
         croak ("not a reference");
     }
-
-    // keep a record of the starting position
-    // as an offset, in case the memory is resized
-    start = buf->pos-buf->start;
-
-    // skip first 4 bytes to leave room for size
-    buf->pos += INT_32;
 
     switch (SvTYPE (SvRV (sv))) {
         case SVt_PVHV:
@@ -482,7 +621,4 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class)
             sv_dump(sv);
             croak ("type unhandled");
     }
-
-    serialize_null(buf);
-    serialize_size(buf->start+start, buf);
 }

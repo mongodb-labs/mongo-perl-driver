@@ -70,11 +70,12 @@ void *perl_mongo_get_ptr_from_instance (SV *self);
 SV *perl_mongo_construct_instance (const char *klass, ...);
 SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...);
-SV *perl_mongo_bson_to_sv (const char *oid_class, mongo::BSONObj obj);
-void perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class);
 
 
 // serialization
+SV *perl_mongo_bson_to_sv (const char *oid_class, buffer *buf);
+void perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class);
+
 void serialize_size(char*, buffer*);
 inline void serialize_double(buffer*, double);
 inline void serialize_string(buffer*, const char*, int);

@@ -41,13 +41,16 @@ connect (self)
 		SvREFCNT_dec (port_sv);
 
 SV *
-mongo::DBClientConnection::_query (ns, query=0, limit=0, skip=0, sort=0)
+_query (self, ns, query=0, limit=0, skip=0, sort=0)
+        SV *self
         const char *ns
         SV *query
         int limit
         int skip
         SV *sort
     PREINIT:
+        mongo_cursor *cursor;
+        SV **socket;
         HV *this_hash, *stash, *rcursor, *full_query;
     CODE:
         // create a new MongoDB::Cursor
@@ -55,18 +58,23 @@ mongo::DBClientConnection::_query (ns, query=0, limit=0, skip=0, sort=0)
         rcursor = newHV();
         RETVAL = sv_bless(newRV_noinc((SV *)rcursor), stash);
 
-        this_hash = SvSTASH(SvRV(RETVAL));
+        // attach a mongo_cursor* to the MongoDB::Cursor
+        cursor = (mongo_cursor*)malloc(sizeof(mongo_cursor));
+        perl_mongo_attach_ptr_to_instance(RETVAL, cursor);
+
+        // START cursor setup
 
         // set the connection
-        SvREFCNT_inc(ST(0));
-        hv_store(this_hash, "connection", strlen("connection"), ST(0), 0);
+        this_hash = SvSTASH(SvRV(self));
+        socket = hv_fetch(this_hash, "socket", strlen("socket"), 0);
+        cursor->socket = SvIV(*socket);
 
         // set the namespace
-        hv_store(this_hash, "ns", strlen("ns"), newSVpv(ns, strlen(ns)), 0);
+        cursor->ns = ns;
 
         // create the query
         full_query = newHV();
-        hv_store(this_hash, "query", strlen("query"), newRV_noinc((SV*)full_query), 0);
+        cursor->query = newRV_noinc((SV*)full_query);
 
         // add the query to the... query
         if (!query || !SvOK(query)) {
@@ -80,8 +88,15 @@ mongo::DBClientConnection::_query (ns, query=0, limit=0, skip=0, sort=0)
         }
 
         // add limit/skip
-        hv_store(this_hash, "limit", strlen("limit"), newSViv(limit), 0);
-        hv_store(this_hash, "skip", strlen("skip"), newSViv(skip), 0);
+        cursor->limit = limit;
+        cursor->skip = skip;
+
+        // zero other fields
+        cursor->fields = 0;
+        cursor->opts = 0;
+        cursor->started_iterating = 0;
+
+        // STOP cursor setup
 
     OUTPUT:
         RETVAL
@@ -99,8 +114,8 @@ mongo::DBClientConnection::_find_one (ns, query)
         attr = perl_mongo_call_reader (ST (0), "_oid_class");
         //q = new mongo::Query(perl_mongo_sv_to_bson (query, SvPV_nolen (attr)));
     CODE:
-        ret = THIS->findOne(ns, *q);
-        RETVAL = perl_mongo_bson_to_sv (SvPV_nolen (attr), ret);
+        //        ret = THIS->findOne(ns, *q);
+        //        RETVAL = perl_mongo_bson_to_sv (SvPV_nolen (attr), ret);
     OUTPUT:
         RETVAL
     CLEANUP:

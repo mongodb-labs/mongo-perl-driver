@@ -53,10 +53,10 @@
   APPEND_HEADER_NS(buf, ns, 0);
 
 #define CREATE_HEADER_WITH_OPTS(buf, ns, opcode, opts)  \
-  CREATE_MSG_HEADER(request_id++, 0, opcode);   \
-  APPEND_HEADER_NS(buf, ns, strlen(ns), opts);
+  CREATE_MSG_HEADER(request_id++, 0, opcode);           \
+  APPEND_HEADER_NS(buf, ns, opts);
 
-#define CREATE_HEADER(buf, ns, opcode)                          \
+#define CREATE_HEADER(buf, ns, opcode)          \
   CREATE_RESPONSE_HEADER(buf, ns, 0, opcode);                    
 
 #define APPEND_HEADER(buf, opts) buf.pos += INT_32;       \
@@ -85,15 +85,14 @@ typedef struct {
 typedef struct {
   int socket;
   // collection namespace
-  char *ns;
+  const char *ns;
 
   // fields to send
-  /*zval *query;
-  zval *fields;
+  SV *query;
+  SV *fields;
   int limit;
   int skip;
   int opts;
-  */
 
   // response header
   mongo_msg_header header;

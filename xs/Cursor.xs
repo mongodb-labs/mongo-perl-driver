@@ -1,59 +1,89 @@
 #include "perl_mongo.h"
+#include "mongo_link.h"
+
+extern int request_id;
 
 static int already_queried(SV *self) {
   // check if the query's been executed
   return SvTRUE(perl_mongo_call_reader (self, "_queried"));
 }
 
-static mongo::DBClientCursor* get_cursor(SV *self) {
-  mongo::DBClientConnection *connection;
-  mongo::DBClientCursor *cursor;
-  mongo::BSONObj *f = 0;
-  HV *this_hash;
-  SV **query, **fields, **limit, **skip, **ns, **conn;
+static mongo_cursor* get_cursor(SV *self) {
+  mongo_cursor *cursor;
+  buffer buf;
+  mongo_msg_header header;
+  int sent;
+
+  cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
 
   // if so, get the cursor
-  if (already_queried(self)) {
-    return (mongo::DBClientCursor*)perl_mongo_get_ptr_from_instance(self);
+  if (cursor->started_iterating) {
+    return cursor;
   }
 
   // if not, execute the query
-
-  this_hash = SvSTASH(SvRV(self));
-
-  query = hv_fetch(this_hash, "query", strlen("query"), 0);
-  fields = hv_fetch(this_hash, "fields", strlen("fields"), 0);
-  limit = hv_fetch(this_hash, "limit", strlen("limit"), 0);
-  skip = hv_fetch(this_hash, "skip", strlen("skip"), 0);
-
-  ns = hv_fetch(this_hash, "ns", strlen("ns"), 0);
-  conn = hv_fetch(this_hash, "connection", strlen("connection"), 0);
-
-  connection = static_cast<mongo::DBClientConnection *>(perl_mongo_get_ptr_from_instance(*conn));
-
-  if (fields) {
-    //    f = &perl_mongo_sv_to_bson(*fields, "MongoDB::OID");
+  CREATE_BUF(INITIAL_BUF_SIZE);
+  CREATE_HEADER_WITH_OPTS(buf, cursor->ns, OP_QUERY, cursor->opts);
+  serialize_int(&buf, cursor->skip);
+  serialize_int(&buf, cursor->limit);
+  perl_mongo_sv_to_bson(&buf, cursor->query, "MongoDB::OID");
+  if (cursor->fields) {
+    perl_mongo_sv_to_bson(&buf, cursor->fields, "MongoDB::OID");
   }
 
-  // create the cursor
-  /*  cursor = new mongo::DBClientCursor((mongo::DBConnector*)connection, 
-                                     string(SvPV_nolen(*ns)), 
-                                     perl_mongo_sv_to_bson(*query, "MongoDB::OID"),
-                                     (int)SvIV(*limit),
-                                     (int)SvIV(*skip),
-                                     f,
-                                   0);
-  // actually do the query
-  cursor->init();
-  */
-  // attach to self
-  perl_mongo_attach_ptr_to_instance(self, (void*)cursor);
+  serialize_size(buf.start, &buf);
 
-  // set MongoDB::Cursor::_queried to 1
-  perl_mongo_call_writer (self, "_queried", newSViv(1));
+  // sends
+  sent = mongo_link_say(cursor->socket, &buf);
+  free(buf.start);
+  if (sent == -1) {
+    croak("couldn't send query.");
+  }
+
+  mongo_link_hear(cursor);
+  cursor->started_iterating = 1;
 
   return cursor;
 }
+
+static int _has_next(mongo_cursor *cursor) {
+  mongo_msg_header header;
+  buffer buf;
+  int size;
+
+  if ((cursor->limit > 0 && cursor->at >= cursor->limit) || 
+      cursor->num == 0) {
+    return 0;
+  }
+  else if (cursor->at < cursor->num) {
+    return 1;
+  }
+
+  // we have to go and check with the db
+  size = 34+strlen(cursor->ns);
+  buf.start = (char*)malloc(size);
+  buf.pos = buf.start;
+  buf.end = buf.start + size;
+
+  CREATE_RESPONSE_HEADER(buf, cursor->ns, cursor->header.request_id, OP_GET_MORE);
+  serialize_int(&buf, cursor->limit);
+  serialize_long(&buf, cursor->cursor_id);
+  serialize_size(buf.start, &buf);
+
+  // fails if we're out of elems
+  if(mongo_link_say(cursor->socket, &buf) == -1) {
+    free(buf.start);
+    return 0;
+  }
+
+  free(buf.start);
+
+  // if we have cursor->at == cursor->num && recv fails,
+  // we're probably just out of results
+  // mongo_link_hear returns 0 on success
+  return (mongo_link_hear(cursor) == 0);
+}
+
 
 MODULE = MongoDB::Cursor  PACKAGE = MongoDB::Cursor
 
@@ -64,10 +94,10 @@ bool
 has_next (self)
         SV *self
     PREINIT:
-        mongo::DBClientCursor *cursor;
+        mongo_cursor *cursor;
     CODE:
         cursor = get_cursor(self);
-        RETVAL = cursor->more();
+        RETVAL = _has_next(cursor);
     OUTPUT:
         RETVAL
 
@@ -75,13 +105,18 @@ SV *
 next (self)
         SV *self
     PREINIT:
-        mongo::DBClientCursor *cursor;
+        mongo_cursor *cursor;
     CODE:
         cursor = get_cursor(self);
 
-        if (cursor->more()) {
-          mongo::BSONObj obj = cursor->next();
-          RETVAL = perl_mongo_bson_to_sv ("MongoDB::OID", obj);
+        if (!_has_next(cursor)) {
+          RETVAL = &PL_sv_undef;
+        }
+        else if (cursor->at < cursor->num) {
+          RETVAL = perl_mongo_bson_to_sv("MongoDB::OID", &cursor->buf);
+          cursor->at++;
+
+          //TODO handle $err
         }
         else {
           RETVAL = &PL_sv_undef;
@@ -145,4 +180,6 @@ sort (self, sort)
 
 
 void
-mongo::DBClientCursor::DESTROY ()
+mongo_cursor_DESTROY ()
+  CODE:
+  printf("in cursor destroy\n");
