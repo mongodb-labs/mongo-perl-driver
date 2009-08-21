@@ -1,4 +1,10 @@
 #include "perl_mongo.h"
+#include "mongo_link.h"
+
+#ifdef WIN32
+#include <memory.h>
+#endif
+
 
 void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark)
@@ -254,22 +260,97 @@ perl_mongo_bson_to_sv (const char *oid_class, mongo::BSONObj obj)
     return newRV_noinc ((SV *)ret);
 }
 
-static void append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *oid_class);
+static int resize_buf(buffer *buf, int size) {
+  int total = buf->end - buf->start;
+  int used = buf->pos - buf->start;
+
+  total = total < GROW_SLOWLY ? total*2 : total+INITIAL_BUF_SIZE;
+  while (total-used < size) {
+    total += size;
+  }
+
+  buf->start = (char*)realloc(buf->start, total);
+  buf->pos = buf->start + used;
+  buf->end = buf->start + total;
+  return total;
+}
+
+inline void serialize_byte(buffer *buf, char b) {
+  if(BUF_REMAINING <= 1) {
+    resize_buf(buf, 1);
+  }
+  *(buf->pos) = b;
+  buf->pos += 1;
+}
+
+inline void serialize_bytes(buffer *buf, const char *str, int str_len) {
+  if(BUF_REMAINING <= str_len) {
+    resize_buf(buf, str_len);
+  }
+  memcpy(buf->pos, str, str_len);
+  buf->pos += str_len;
+}
+
+inline void serialize_string(buffer *buf, const char *str, int str_len) {
+  if(BUF_REMAINING <= str_len+1) {
+    resize_buf(buf, str_len+1);
+  }
+
+  memcpy(buf->pos, str, str_len);
+  // add \0 at the end of the string
+  buf->pos[str_len] = 0;
+  buf->pos += str_len + 1;
+}
+
+inline void serialize_int(buffer *buf, int num) {
+  if(BUF_REMAINING <= INT_32) {
+    resize_buf(buf, INT_32);
+  }
+  memcpy(buf->pos, &num, INT_32);
+  buf->pos += INT_32;
+}
+
+inline void serialize_long(buffer *buf, long long num) {
+  if(BUF_REMAINING <= INT_64) {
+    resize_buf(buf, INT_64);
+  }
+  memcpy(buf->pos, &num, INT_64);
+  buf->pos += INT_64;
+}
+
+inline void serialize_double(buffer *buf, double num) {
+  if(BUF_REMAINING <= INT_64) {
+    resize_buf(buf, INT_64);
+  }
+  memcpy(buf->pos, &num, DOUBLE_64);
+  buf->pos += DOUBLE_64;
+}
+
+/* the position is not increased, we are just filling
+ * in the first 4 bytes with the size.
+ */
+void serialize_size(char *start, buffer *buf) {
+  int total = buf->pos - start;
+  memcpy(start, &total, INT_32);
+}
+
+
+static void append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class);
 
 static void
-hv_to_bson (mongo::BSONObjBuilder *builder, HV *hv, const char *oid_class)
+hv_to_bson (buffer *buf, HV *hv, const char *oid_class)
 {
     HE *he;
     (void)hv_iterinit (hv);
     while ((he = hv_iternext (hv))) {
         STRLEN len;
         const char *key = HePV (he, len);
-        append_sv (builder, key, HeVAL (he), oid_class);
+        append_sv (buf, key, HeVAL (he), oid_class);
     }
 }
 
 static void
-av_to_bson (mongo::BSONObjBuilder *builder, AV *av, const char *oid_class)
+av_to_bson (buffer *buf, AV *av, const char *oid_class)
 {
     I32 i;
     for (i = 0; i <= av_len (av); i++) {
@@ -278,38 +359,42 @@ av_to_bson (mongo::BSONObjBuilder *builder, AV *av, const char *oid_class)
         if (!(sv = av_fetch (av, i, 0))) {
             croak ("failed to fetch array value");
         }
-        append_sv (builder, SvPV_nolen(key), *sv, oid_class);
+        append_sv (buf, SvPVutf8_nolen(key), *sv, oid_class);
         SvREFCNT_dec (key);
     }
 }
 
 static void
-append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *oid_class)
+append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
 {
     if (!SvOK(sv)) {
-        builder->appendNull(key);
+        set_type(buf, BSON_NULL);
+        serialize_string(buf, key, strlen(key));
         return;
     }
     if (SvROK (sv)) {
-        mongo::BSONObjBuilder *subobj = new mongo::BSONObjBuilder();
         if (sv_isobject (sv)) {
             if (sv_derived_from (sv, oid_class)) {
                 SV *attr = perl_mongo_call_reader (sv, "value");
-                std::string *str = new string(SvPV_nolen (attr));
-                mongo::OID *id = new mongo::OID();
-                id->init(*str);
-                builder->appendOID(key, id);
+                char *str = SvPV_nolen (attr);
+
+                set_type(buf, BSON_OID);
+                serialize_string(buf, key, strlen(key));
+                serialize_bytes(buf, str, OID_SIZE);
+
                 SvREFCNT_dec (attr);
             }
         } else {
             switch (SvTYPE (SvRV (sv))) {
                 case SVt_PVHV:
-                    hv_to_bson (subobj, (HV *)SvRV (sv), oid_class);
-                    builder->append(key, subobj->done());
+                    set_type(buf, BSON_OBJECT);
+                    serialize_string(buf, key, strlen(key));
+                    hv_to_bson (buf, (HV *)SvRV (sv), oid_class);
                     break;
                 case SVt_PVAV:
-                    av_to_bson (subobj, (AV *)SvRV (sv), oid_class);
-                    builder->appendArray(key, subobj->done());
+                    set_type(buf, BSON_ARRAY);
+                    serialize_string(buf, key, strlen(key));
+                    av_to_bson (buf, (AV *)SvRV (sv), oid_class);
                     break;
                 default:
                     sv_dump(SvRV(sv));
@@ -319,7 +404,9 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
     } else {
         switch (SvTYPE (sv)) {
             case SVt_IV:
-                builder->append(key, (int)SvIV (sv));
+                set_type(buf, BSON_INT);
+                serialize_string(buf, key, strlen(key));
+                serialize_int(buf, (int)SvIV (sv));
                 break;
             case SVt_PV:
             case SVt_NV:
@@ -330,10 +417,21 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
                 if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
                     STRLEN len;
                     const char *bytes = SvPVbyte (sv, len);
-                    builder->appendBinData(key, len, mongo::ByteArray, bytes);
+
+                    set_type(buf, BSON_BINARY);
+                    serialize_string(buf, key, strlen(key));
+                    serialize_int(buf, len);
+                    serialize_byte(buf, mongo::ByteArray);
+                    serialize_bytes(buf, bytes, len);
                 }
                 else {
-                    builder->append(key, (char *)SvPVutf8_nolen (sv));
+                    STRLEN len;
+                    const char *str = SvPVutf8(sv, len);
+
+                    set_type(buf, BSON_STRING);
+                    serialize_string(buf, key, strlen(key));
+                    serialize_int(buf, len+1);
+                    serialize_string(buf, str, len);
                 }
                 break;
             default:
@@ -343,18 +441,25 @@ append_sv (mongo::BSONObjBuilder *builder, const char *key, SV *sv, const char *
     }
 }
 
-mongo::BSONObj
-perl_mongo_sv_to_bson (SV *sv, const char *oid_class)
+void
+perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class)
 {
-    mongo::BSONObjBuilder *builder = new mongo::BSONObjBuilder();
+    int start;
 
     if (!SvROK (sv)) {
         croak ("not a reference");
     }
 
+    // keep a record of the starting position
+    // as an offset, in case the memory is resized
+    start = buf->pos-buf->start;
+
+    // skip first 4 bytes to leave room for size
+    buf->pos += INT_32;
+
     switch (SvTYPE (SvRV (sv))) {
         case SVt_PVHV:
-            hv_to_bson (builder, (HV *)SvRV (sv), oid_class);
+            hv_to_bson (buf, (HV *)SvRV (sv), oid_class);
             break;
         case SVt_PVAV: {
             I32 i;
@@ -368,7 +473,7 @@ perl_mongo_sv_to_bson (SV *sv, const char *oid_class)
                 if ( !((key = av_fetch (av, i, 0)) && (val = av_fetch (av, i + 1, 0))) ) {
                     croak ("failed to fetch array element");
                 }
-                append_sv (builder, SvPVutf8_nolen (*key), *val, oid_class);
+                append_sv (buf, SvPVutf8_nolen (*key), *val, oid_class);
             }
 
             break;
@@ -378,6 +483,6 @@ perl_mongo_sv_to_bson (SV *sv, const char *oid_class)
             croak ("type unhandled");
     }
 
-    mongo::BSONObj obj = builder->done();
-    return obj;
+    serialize_null(buf);
+    serialize_size(buf->start+start, buf);
 }

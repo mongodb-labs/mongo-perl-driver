@@ -1,5 +1,7 @@
 #include "perl_mongo.h"
 
+int request_id = rand();
+
 extern "C" XS(boot_MongoDB__Connection);
 extern "C" XS(boot_MongoDB__Cursor);
 extern "C" XS(boot_MongoDB__OID);

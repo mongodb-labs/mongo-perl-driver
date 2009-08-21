@@ -2,6 +2,7 @@
 !.gitignore
 *.c
 !perl_mongo.c
+!mongo_link.c
 *.o
 Makefile*
 !Makefile.PL

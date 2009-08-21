@@ -32,20 +32,20 @@ static mongo::DBClientCursor* get_cursor(SV *self) {
   connection = static_cast<mongo::DBClientConnection *>(perl_mongo_get_ptr_from_instance(*conn));
 
   if (fields) {
-    f = &perl_mongo_sv_to_bson(*fields, "MongoDB::OID");
+    //    f = &perl_mongo_sv_to_bson(*fields, "MongoDB::OID");
   }
 
   // create the cursor
-  cursor = new mongo::DBClientCursor((mongo::DBConnector*)connection, 
+  /*  cursor = new mongo::DBClientCursor((mongo::DBConnector*)connection, 
                                      string(SvPV_nolen(*ns)), 
                                      perl_mongo_sv_to_bson(*query, "MongoDB::OID"),
                                      (int)SvIV(*limit),
                                      (int)SvIV(*skip),
                                      f,
-                                     0);
+                                   0);
   // actually do the query
   cursor->init();
-
+  */
   // attach to self
   perl_mongo_attach_ptr_to_instance(self, (void*)cursor);
 

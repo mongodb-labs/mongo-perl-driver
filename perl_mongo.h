@@ -31,6 +31,16 @@
 
 #define GROW_SLOWLY 1048576
 
+typedef struct {
+  char *start;
+  char *pos;
+  char *end;
+} buffer;
+
+#define BUF_REMAINING (buf->end-buf->pos)
+#define set_type(buf, type) serialize_byte(buf, (char)type)
+#define serialize_null(buf) serialize_byte(buf, (char)0)
+#define serialize_bool(buf, b) serialize_byte(buf, (char)b)
 
 #include <client/dbclient.h>
 
@@ -61,7 +71,18 @@ SV *perl_mongo_construct_instance (const char *klass, ...);
 SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...);
 SV *perl_mongo_bson_to_sv (const char *oid_class, mongo::BSONObj obj);
-mongo::BSONObj perl_mongo_sv_to_bson (SV *sv, const char *oid_class);
+void perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class);
+
+
+// serialization
+void serialize_size(char*, buffer*);
+inline void serialize_double(buffer*, double);
+inline void serialize_string(buffer*, const char*, int);
+inline void serialize_long(buffer*, long long);
+inline void serialize_int(buffer*, int);
+inline void serialize_byte(buffer*, char);
+inline void serialize_bytes(buffer*, const char*, int);
+
 
 }
 
