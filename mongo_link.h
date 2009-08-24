@@ -1,4 +1,3 @@
-
 #ifndef MONGO_LINK_H
 #define MONGO_LINK_H
 
@@ -70,7 +69,7 @@
   serialize_string(&buf, ns, strlen(ns));              
 
 #define CREATE_BUF(size)                                \
-  buf.start = (char*)malloc(size);                      \
+  Newx(buf.start, size, char);				\
   buf.pos = buf.start;                                  \
   buf.end = buf.start + size;
 
@@ -81,6 +80,27 @@ typedef struct {
   int response_to;
   int op;
 } mongo_msg_header;
+
+typedef struct {
+  int paired;
+  int master;
+  union {
+    struct {
+      char *host;
+      int port;
+      int socket;
+    } single;
+    struct {
+      char *left_host;
+      int left_port;
+      int left_socket;
+
+      char *right_host;
+      int right_port;
+      int right_socket;
+    } pair;
+  } server;
+} mongo_link;
 
 typedef struct {
   int socket;

@@ -18,12 +18,16 @@ connect (self)
 		char *host;
                 int port;
                 int socket;
+		mongo_link *link;
 	INIT:
 		host_sv = perl_mongo_call_reader (ST (0), "host");
 		port_sv = perl_mongo_call_reader (ST (0), "port");
 		host = SvPV_nolen(host_sv);
 		port = SvIV(port_sv);
 	CODE:
+	        Newx(link, 1, mongo_link);
+		perl_mongo_attach_ptr_to_instance(self, link);
+
                 // TODO: pairing
                 // this will be be server1, server2 
 		if (!(socket = mongo_link_connect(host, port))) {
@@ -31,6 +35,11 @@ connect (self)
                   return;
 		}
 
+		/*link->paired = 0;
+		link->server.single.socket = socket;
+		link->server.single.host = host;
+		link->server.single.port = port;
+		*/
                 this_hash = SvSTASH(SvRV(ST(0)));
 
                 // set the socket
@@ -59,7 +68,7 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         RETVAL = sv_bless(newRV_noinc((SV *)rcursor), stash);
 
         // attach a mongo_cursor* to the MongoDB::Cursor
-        cursor = (mongo_cursor*)malloc(sizeof(mongo_cursor));
+        Newx(cursor, 1, mongo_cursor);
         perl_mongo_attach_ptr_to_instance(RETVAL, cursor);
 
         // START cursor setup
@@ -91,6 +100,10 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         cursor->limit = limit;
         cursor->skip = skip;
 
+	// zero results fields
+	cursor->num = 0;
+	cursor->at = 0;
+
         // zero other fields
         cursor->fields = 0;
         cursor->opts = 0;
@@ -103,13 +116,12 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
 
 
 SV *
-mongo::DBClientConnection::_find_one (ns, query)
+_find_one (self, ns, query)
+	SV *self
         const char *ns
         SV *query
     PREINIT:
         SV *attr;
-        mongo::Query *q;
-        mongo::BSONObj ret;
     INIT:
         attr = perl_mongo_call_reader (ST (0), "_oid_class");
         //q = new mongo::Query(perl_mongo_sv_to_bson (query, SvPV_nolen (attr)));
@@ -119,7 +131,6 @@ mongo::DBClientConnection::_find_one (ns, query)
     OUTPUT:
         RETVAL
     CLEANUP:
-        delete q;
         SvREFCNT_dec (attr);
 
 void
@@ -145,7 +156,7 @@ _insert (self, ns, object)
 
         // sends
         mongo_link_say(SvIV(*socket), &buf);
-        free(buf.start);
+        Safefree(buf.start);
       CLEANUP:
         SvREFCNT_dec (oid_class);
 
@@ -174,7 +185,7 @@ _remove (self, ns, query, just_one)
 
         // sends
         mongo_link_say(SvIV(*socket), &buf);
-        free(buf.start);
+        Safefree(buf.start);
     CLEANUP:
         SvREFCNT_dec (oid_class);
 
@@ -205,50 +216,52 @@ _update (self, ns, query, object, upsert)
 
         // sends
         mongo_link_say(SvIV(*socket), &buf);
-        free(buf.start);
+        Safefree(buf.start);
     CLEANUP:
         SvREFCNT_dec (oid_class);
 
 void
-mongo::DBClientConnection::_ensure_index (ns, keys, unique=0)
+_ensure_index (self, ns, keys, unique=0)
+	SV *self
         const char *ns
         SV *keys
         int unique
     PREINIT:
         SV *oid_class;
-        mongo::BSONObj obj;
     INIT:
         oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
         //obj = perl_mongo_sv_to_bson (keys, SvPV_nolen (oid_class));
     CODE:
-        THIS->ensureIndex(ns, obj, unique);
+        //THIS->ensureIndex(ns, obj, unique);
     CLEANUP:
         SvREFCNT_dec (oid_class);
 
 NO_OUTPUT bool
-mongo::DBClientConnection::_authenticate (dbname, username, password, is_digest=false)
+_authenticate (self, dbname, username, password, is_digest=0)
+	SV *self
         const char *dbname
         const char *username
         const char *password
         bool is_digest
     PREINIT:
-        std::string error_message;
-        std::string digest_password;
+        //std::string error_message;
+        //std::string digest_password;
     INIT:
-        if (is_digest) {
+        /*if (is_digest) {
             digest_password = password;
         } else {
             digest_password = THIS->createPasswordDigest(username, password);
-        }
+        }*/
     CODE:
-        RETVAL = THIS->auth(dbname, username, password, error_message, true);
-    POSTCALL:
-        if (!RETVAL) {
-            croak ("%s", error_message.c_str());
-        }
+        //RETVAL = THIS->auth(dbname, username, password, error_message, true);
+
 
 void
 connection_DESTROY (self)
           SV *self
+     PREINIT:
+         mongo_link *link;
      CODE:
+         link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
+         Safefree(link);
          printf("in destroy\n");

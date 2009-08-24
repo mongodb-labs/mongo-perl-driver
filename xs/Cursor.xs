@@ -35,7 +35,7 @@ static mongo_cursor* get_cursor(SV *self) {
 
   // sends
   sent = mongo_link_say(cursor->socket, &buf);
-  free(buf.start);
+  Safefree(buf.start);
   if (sent == -1) {
     croak("couldn't send query.");
   }
@@ -61,7 +61,7 @@ static int _has_next(mongo_cursor *cursor) {
 
   // we have to go and check with the db
   size = 34+strlen(cursor->ns);
-  buf.start = (char*)malloc(size);
+  Newx(buf.start, size, char);
   buf.pos = buf.start;
   buf.end = buf.start + size;
 
@@ -72,11 +72,11 @@ static int _has_next(mongo_cursor *cursor) {
 
   // fails if we're out of elems
   if(mongo_link_say(cursor->socket, &buf) == -1) {
-    free(buf.start);
+    Safefree(buf.start);
     return 0;
   }
 
-  free(buf.start);
+  Safefree(buf.start);
 
   // if we have cursor->at == cursor->num && recv fails,
   // we're probably just out of results
@@ -108,17 +108,12 @@ next (self)
         mongo_cursor *cursor;
     CODE:
         cursor = get_cursor(self);
-
-        if (!_has_next(cursor)) {
-          RETVAL = &PL_sv_undef;
-        }
-        else if (cursor->at < cursor->num) {
+        if (_has_next(cursor)) {
           RETVAL = perl_mongo_bson_to_sv("MongoDB::OID", &cursor->buf);
           cursor->at++;
 
           //TODO handle $err
-        }
-        else {
+	} else {
           RETVAL = &PL_sv_undef;
         }
     OUTPUT:
@@ -180,6 +175,11 @@ sort (self, sort)
 
 
 void
-mongo_cursor_DESTROY ()
+mongo_cursor_DESTROY (self)
+      SV *self
+  PREINIT:
+      mongo_cursor *cursor;
   CODE:
-  printf("in cursor destroy\n");
+      cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+      Safefree(cursor);
+      printf("in cursor destroy\n");

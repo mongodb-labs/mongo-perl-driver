@@ -569,7 +569,8 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
                     set_type(buf, BSON_BINARY);
                     serialize_string(buf, key, strlen(key));
                     serialize_int(buf, len);
-                    serialize_byte(buf, mongo::ByteArray);
+		    // TODO: replace with something
+                    serialize_byte(buf, 2);
                     serialize_bytes(buf, bytes, len);
                 }
                 else {

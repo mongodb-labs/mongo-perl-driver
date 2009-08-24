@@ -1,5 +1,13 @@
-#ifndef PERL_MONGO
-#define PERL_MONGO
+#ifndef PERL_MONGO_H
+#define PERL_MONGO_H
+
+#define PERL_GCC_BRACE_GROUPS_FORBIDDEN
+
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+
+#define PERL_MONGO_CALL_BOOT(name)  perl_mongo_call_xs (aTHX_ name, cv, mark)
 
 #undef VERSION
 
@@ -42,26 +50,6 @@ typedef struct {
 #define serialize_null(buf) serialize_byte(buf, (char)0)
 #define serialize_bool(buf, b) serialize_byte(buf, (char)b)
 
-#include <client/dbclient.h>
-
-// dbclient.h redefines assert, so we'll redefine it back again.
-#define assert(what) PERL_DEB(                                       \
-        ((what) ? ((void) 0) :                                       \
-         (Perl_croak(aTHX_ "Assertion %s failed: file \"" __FILE__   \
-                     "\", line %d", STRINGIFY(what), __LINE__),      \
-          PerlProc_exit(1),                                          \
-          (void) 0)))
-
-extern "C" {
-
-#define PERL_GCC_BRACE_GROUPS_FORBIDDEN
-
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-
-#define PERL_MONGO_CALL_BOOT(name)  perl_mongo_call_xs (aTHX_ name, cv, mark)
-
 void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 SV *perl_mongo_call_reader (SV *self, const char *reader);
 SV *perl_mongo_call_writer (SV *self, const char *reader, SV *value);
@@ -83,8 +71,5 @@ inline void serialize_long(buffer*, long long);
 inline void serialize_int(buffer*, int);
 inline void serialize_byte(buffer*, char);
 inline void serialize_bytes(buffer*, const char*, int);
-
-
-}
 
 #endif

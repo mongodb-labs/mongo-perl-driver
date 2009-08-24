@@ -16,51 +16,14 @@ BEGIN {
 sub mongo {
     my ($self, @mongo_vars) = @_;
 
-    my $mongo_inc;
-    my $mongo_lib;
-    if (@mongo_vars == 1) {
-        $mongo_inc =  catdir($mongo_vars[0], 'include', 'mongo');
-        $mongo_lib = catdir($mongo_vars[0], 'lib');
-    }
-    else {
-        $mongo_inc =  catdir($mongo_vars[0], 'mongo');
-        $mongo_lib = catdir($mongo_vars[1]);
+    if ($Config{osname} eq 'darwin') {
+	$self->makemaker_args( CCFLAGS => ' -arch i386 -g -pipe -fno-common -DPERL_DARWIN -no-cpp-precomp -fno-strict-aliasing -Wdeclaration-after-statement -I/usr/local/include');
+	$self->makemaker_args( LDDLFLAGS => ' -arch i386 -bundle -undefined dynamic_lookup -L/usr/local/lib');
     }
 
-    my $cc;
-    if ($ENV{CC}) {
-        $cc = $ENV{CC};
-    } elsif ($Config{gccversion} and $Config{cc}  =~ m{\bgcc\b[^/]*$}) {
-        ($cc = $Config{cc}) =~ s[\bgcc\b([^/]*)$(?:)][g\+\+$1];
-    } elsif ($Config{osname} =~ /^MSWin/) {
-        $cc = 'cl -TP';
-    } elsif ($Config{osname} eq 'linux') {
-        $cc = 'g++';
-    } elsif ($Config{osname} eq 'cygwin') {
-        $cc = 'g++';
-    } elsif ($Config{osname} eq 'solaris' or $Config{osname} eq 'SunOS') {
-        if ($Config{cc} eq 'gcc') {
-            $cc = 'g++';
-        } else {
-            $cc = 'CC';
-        }
-    } else {
-        if ($Config{osname} eq 'darwin') {
-            $self->makemaker_args( CCFLAGS => ' -arch i386 -g -pipe -fno-common -DPERL_DARWIN -no-cpp-precomp -fno-strict-aliasing -Wdeclaration-after-statement -I/usr/local/include');
-            $self->makemaker_args( LDDLFLAGS => ' -arch i386 -bundle -undefined dynamic_lookup -L/usr/local/lib');
-        }
-        $cc = 'g++';
-    }
-
-    $self->requires_external_bin($cc);;
     $self->xs_files;
 
-    $self->makemaker_args( INC   => '-I. -I/usr/include/boost -I' . $mongo_inc );
-    $self->makemaker_args( CC    => $cc );
-    $self->makemaker_args( XSOPT => ' -C++' );
-    $self->cc_lib_paths($mongo_lib);
-    $self->cc_lib_links(qw/mongoclient boost_thread-mt boost_filesystem-mt boost_program_options-mt boost_system-mt stdc++/);
-
+    $self->makemaker_args( INC   => '-I. ' );
     return;
 }
 
