@@ -211,12 +211,25 @@ sub remove {
             confess 'expected hash or array reference for keys';
         }
 
-        $self->_ensure_index($ns, { map {
+        my $k = { map {
             my $dir = $keys{$_};
             confess "unknown direction '${dir}'"
                 unless exists $direction_map{$dir};
             ($_ => $direction_map{$dir})
-        } keys %keys }, $unique);
+        } keys %keys };
+
+        my @name;
+        while ((my $idx, my $d) = each(%$k)) {
+            push @name, $idx;
+            push @name, $d;
+        }
+
+        my $obj = {"ns" => $ns,
+                   "key" => $k,
+                   "name" => join("_", @name),
+                   "unique" => $unique };
+
+        $self->insert(substr($ns, 0, index($ns, ".")).".system.indexes", $obj);
         return;
     }
 }
