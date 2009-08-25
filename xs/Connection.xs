@@ -126,6 +126,11 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         cursor->opts = 0;
         cursor->started_iterating = 0;
 
+        // clear the buf
+        cursor->buf.start = 0;
+        cursor->buf.pos = 0;
+        cursor->buf.end = 0;
+
         // STOP cursor setup
 
     OUTPUT:
@@ -138,17 +143,14 @@ _find_one (self, ns, query)
         const char *ns
         SV *query
     PREINIT:
-        SV *attr;
-    INIT:
-        attr = perl_mongo_call_reader (ST (0), "_oid_class");
-        //q = new mongo::Query(perl_mongo_sv_to_bson (query, SvPV_nolen (attr)));
+        SV *cursor;
     CODE:
-        //        ret = THIS->findOne(ns, *q);
-        //        RETVAL = perl_mongo_bson_to_sv (SvPV_nolen (attr), ret);
+        // create a cursor with limit = -1
+        cursor = perl_mongo_call_method(self, "_query", 3, ST(1), ST(2), newSViv(-1));
+        RETVAL = perl_mongo_call_method(cursor, "next", 0);
     OUTPUT:
         RETVAL
-    CLEANUP:
-        SvREFCNT_dec (attr);
+
 
 void
 _insert (self, ns, object)
@@ -156,15 +158,14 @@ _insert (self, ns, object)
         const char *ns
         SV *object
     PREINIT:
-        SV *oid_class, **socket;
-        HV *this_hash;
+        SV *oid_class;
+        mongo_link *link;
         mongo_msg_header header;
         buffer buf;
     INIT:
         oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
     CODE:
-        this_hash = SvSTASH(SvRV(self));
-        socket = hv_fetch(this_hash, "socket", strlen("socket"), 0);
+        link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_INSERT);
@@ -172,7 +173,7 @@ _insert (self, ns, object)
         serialize_size(buf.start, &buf);
 
         // sends
-        mongo_link_say(SvIV(*socket), &buf);
+        mongo_link_say(link, &buf);
         Safefree(buf.start);
       CLEANUP:
         SvREFCNT_dec (oid_class);
@@ -184,15 +185,14 @@ _remove (self, ns, query, just_one)
         SV *query
         bool just_one
     PREINIT:
-        SV *oid_class, **socket;
-        HV *this_hash;
+        SV *oid_class;
+        mongo_link *link;
         mongo_msg_header header;
         buffer buf;
     INIT:
         oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
     CODE:
-        this_hash = SvSTASH(SvRV(self));
-        socket = hv_fetch(this_hash, "socket", strlen("socket"), 0);
+        link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_DELETE);
@@ -201,7 +201,7 @@ _remove (self, ns, query, just_one)
         serialize_size(buf.start, &buf);
 
         // sends
-        mongo_link_say(SvIV(*socket), &buf);
+        mongo_link_say(link, &buf);
         Safefree(buf.start);
     CLEANUP:
         SvREFCNT_dec (oid_class);
@@ -214,15 +214,14 @@ _update (self, ns, query, object, upsert)
         SV *object
         bool upsert
     PREINIT:
-        SV *oid_class, **socket;
-        HV *this_hash;
+        SV *oid_class;
+        mongo_link *link;
         mongo_msg_header header;
         buffer buf;
     INIT:
         oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
     CODE:
-        this_hash = SvSTASH(SvRV(self));
-        socket = hv_fetch(this_hash, "socket", strlen("socket"), 0);
+        link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_UPDATE);
@@ -232,7 +231,7 @@ _update (self, ns, query, object, upsert)
         serialize_size(buf.start, &buf);
 
         // sends
-        mongo_link_say(SvIV(*socket), &buf);
+        mongo_link_say(link, &buf);
         Safefree(buf.start);
     CLEANUP:
         SvREFCNT_dec (oid_class);

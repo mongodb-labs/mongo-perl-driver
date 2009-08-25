@@ -195,11 +195,11 @@ int mongo_link_hear(mongo_link *link, mongo_cursor *cursor) {
 
   // point buf.start at buf's first char
   if (!cursor->buf.start) {
-    cursor->buf.start = (char*)malloc(cursor->header.length);
+    Newx(cursor->buf.start, cursor->header.length, char);
     cursor->buf.end = cursor->buf.start + cursor->header.length;
   }
-  else if (cursor->buf.end - cursor->buf.start < cursor->header.length) {
-    cursor->buf.start = (char*)realloc(cursor->buf.start, cursor->header.length);
+  else if (cursor->buf.end - cursor->buf.start < cursor->header.length) { 
+    Renew(cursor->buf.start, cursor->header.length, char);
     cursor->buf.end = cursor->buf.start + cursor->header.length;
   }
   cursor->buf.pos = cursor->buf.start;

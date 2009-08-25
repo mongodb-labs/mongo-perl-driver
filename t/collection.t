@@ -15,7 +15,7 @@ is($coll->name, 'test_collection', 'get name');
 $db->drop;
 
 my $id = $coll->insert({ just => 'another', perl => 'hacker' });
-is($coll->count, 1);
+is($coll->count, 1, 'count');
 
 $coll->update({ _id => $id }, {
     just => "an\xE4oth\0er",
@@ -25,13 +25,13 @@ $coll->update({ _id => $id }, {
 });
 is($coll->count, 1);
 
-is($coll->count({ mongo => 'programmer' }), 0);
-is($coll->count({ mongo => 'hacker'     }), 1);
-is($coll->count({ 'with.a' => 'reference' }), 1);
+is($coll->count({ mongo => 'programmer' }), 0, 'count = 0');
+is($coll->count({ mongo => 'hacker'     }), 1, 'count = 1');
+is($coll->count({ 'with.a' => 'reference' }), 1, 'inner obj count');
 
 my $obj = $coll->find_one;
-is($obj->{mongo} => 'hacker');
-is(ref $obj->{with}, 'HASH');
+is($obj->{mongo} => 'hacker', 'find_one');
+is(ref $obj->{with}, 'HASH', 'find_one type');
 is($obj->{with}->{a}, 'reference');
 is(ref $obj->{and}, 'ARRAY');
 is_deeply($obj->{and}, [qw/an array reference/]);

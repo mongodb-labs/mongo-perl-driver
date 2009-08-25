@@ -11,6 +11,8 @@ _build_value (self, c_str)
     PREINIT: 
         STRLEN len;
         char *data;
+    INIT:
+        Newx(data, 12, char);
     CODE:
         if (c_str && strlen(c_str) == 24) {
           data = (char*)c_str;

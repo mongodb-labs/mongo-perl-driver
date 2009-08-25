@@ -19,7 +19,7 @@ The OID value. A random value will be generated if none exists already.
 has value => (
     is      => 'ro',
     isa     => 'Str',
-    lazy    => 1,
+    required => 1,
     builder => 'build_value',
 );
 

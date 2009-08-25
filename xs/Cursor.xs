@@ -135,10 +135,12 @@ SV *
 snapshot (self)
         SV *self
     PREINIT:
+        mongo_cursor *cursor;
         HV *this_hash;
         SV **query;
     CODE:
-        if (already_queried(self)) {
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+        if (cursor->started_iterating) {
           croak("cannot set snapshot() after query");
           return;
         }
@@ -159,10 +161,12 @@ sort (self, sort)
         SV *self
         SV *sort
      PREINIT:
+        mongo_cursor *cursor;
         HV *this_hash;
         SV **query;
      CODE:
-        if (already_queried(self)) {
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+        if (cursor->started_iterating) {
           croak("cannot set sort() after query");
           return;
         }
@@ -180,6 +184,49 @@ sort (self, sort)
             // should we croak here?
           }
         }
+        // increment this
+        SvREFCNT_inc(self);
+
+SV *
+limit (self, num)
+        SV *self
+        int num
+     PREINIT:
+        mongo_cursor *cursor;
+        HV *this_hash;
+     CODE:
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+        if (cursor->started_iterating) {
+          croak("cannot set limit() after query");
+          return;
+        }
+
+        this_hash = SvSTASH(SvRV(self));
+
+        // store limit
+        hv_store(this_hash, "limit", strlen("limit"), newSViv(num), 0);
+        // increment this
+        SvREFCNT_inc(self);
+
+
+SV *
+skip (self, num)
+        SV *self
+        int num
+     PREINIT:
+        mongo_cursor *cursor;
+        HV *this_hash;
+     CODE:
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+        if (cursor->started_iterating) {
+          croak("cannot set skip() after query");
+          return;
+        }
+
+        this_hash = SvSTASH(SvRV(self));
+
+        // store skip
+        hv_store(this_hash, "skip", strlen("skip"), newSViv(num), 0);
         // increment this
         SvREFCNT_inc(self);
 
