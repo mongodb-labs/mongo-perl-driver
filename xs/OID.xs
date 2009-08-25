@@ -1,5 +1,6 @@
 #include "perl_mongo.h"
 
+
 MODULE = MongoDB::OID  PACKAGE = MongoDB::OID
 
 PROTOTYPES: DISABLE
@@ -10,22 +11,21 @@ _build_value (self, c_str)
         const char *c_str;
     PREINIT: 
         STRLEN len;
-        char *data;
-    INIT:
-        Newx(data, 12, char);
+        char id[25];
     CODE:
         if (c_str && strlen(c_str) == 24) {
-          data = (char*)c_str;
+          memcpy(id, c_str, 24);
         }
         else {
+          int i;
+          char *movable, *id_str, *T;
+          char data[12];
           unsigned t;
-          char *T;
 
           int r1 = rand();
           int r2 = rand();
           
           char *inc = (char*)(void*)&r2;
-          
           t = (unsigned) time(0);
 
           T = (char*)&t;
@@ -39,8 +39,10 @@ _build_value (self, c_str)
           data[9] = inc[2];
           data[10] = inc[1];
           data[11] = inc[0];
+
+          perl_mongo_oid_create(data, id);
         }
-        RETVAL = newSVpv (data, len);
+        RETVAL = newSVpv (id, len);
     OUTPUT:
         RETVAL
 

@@ -52,7 +52,6 @@ typedef struct {
 
 void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 SV *perl_mongo_call_reader (SV *self, const char *reader);
-SV *perl_mongo_call_writer (SV *self, const char *reader, SV *value);
 SV *perl_mongo_call_method (SV *self, const char *method, int num, ...);
 void perl_mongo_attach_ptr_to_instance (SV *self, void *ptr);
 void *perl_mongo_get_ptr_from_instance (SV *self);
@@ -60,6 +59,7 @@ SV *perl_mongo_construct_instance (const char *klass, ...);
 SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...);
 
+void perl_mongo_oid_create(char* twelve, char *twenty4);
 
 // serialization
 SV *perl_mongo_bson_to_sv (const char *oid_class, buffer *buf);

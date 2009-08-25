@@ -52,7 +52,7 @@ connect (self)
                 // TODO: pairing
                 // this will be be server1, server2 
 		if (!mongo_link_connect(link)) {
-                  croak ("could not connect");
+                  croak ("couldn't connect to server");
                   return;
 		}
 	CLEANUP:

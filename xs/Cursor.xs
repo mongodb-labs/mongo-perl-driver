@@ -59,12 +59,14 @@ static int _has_next(SV *self, mongo_cursor *cursor) {
   int size;
 
   if ((cursor->limit > 0 && cursor->at >= cursor->limit) || 
-      cursor->num == 0) {
+      cursor->num == 0 ||
+      (cursor->at == cursor->num && cursor->cursor_id == 0)) {
     return 0;
   }
   else if (cursor->at < cursor->num) {
     return 1;
   }
+
 
   link_sv = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(*link_sv);

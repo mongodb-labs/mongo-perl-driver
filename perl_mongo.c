@@ -47,39 +47,6 @@ perl_mongo_call_reader (SV *self, const char *reader)
     return ret;
 }
 
-SV *
-perl_mongo_call_writer (SV *self, const char *reader, SV *value)
-{
-    dSP;
-    SV *ret;
-    I32 count;
-
-    ENTER;
-    SAVETMPS;
-
-    PUSHMARK (SP);
-    XPUSHs (self);
-    XPUSHs (value);
-    PUTBACK;
-
-    count = call_method (reader, G_SCALAR);
-
-    SPAGAIN;
-
-    if (count != 1) {
-        croak ("reader didn't return a value");
-    }
-
-    ret = POPs;
-    SvREFCNT_inc (ret);
-
-    PUTBACK;
-    FREETMPS;
-    LEAVE;
-
-    return ret;
-}
-
 
 SV *
 perl_mongo_call_method (SV *self, const char *method, int num, ...)
@@ -111,7 +78,7 @@ perl_mongo_call_method (SV *self, const char *method, int num, ...)
     SPAGAIN;
 
     if (count != 1) {
-        croak ("reader didn't return a value");
+        croak ("method didn't return a value");
     }
 
     ret = POPs;
@@ -209,29 +176,28 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...)
 
 static SV *bson_to_av (const char *oid_class, buffer *buf);
 
+void perl_mongo_oid_create(char *twelve, char *twenty4) {
+  int i;
+  char *id_str = twelve;
+  char *movable = twenty4;
+
+  for(i=0; i<12; i++) {
+    int x = *id_str;
+    if (*id_str < 0) {
+      x = 256 + *id_str;
+    }
+    sprintf(movable, "%02x", x);
+    movable += 2;
+    id_str++;
+  }
+  twenty4[24] = '\0';
+}
+
 static SV *
 oid_to_sv (const char *oid_class, buffer *buf)
 {
-    int i;
-    char *id, *movable, *id_str;
-
-    // create a 24-char zeroed string
-    Newxz(id, 25, char);
-    id_str = buf->pos;
-
-    movable = id;
-    for(i=0; i<12; i++) {
-      int x = *id_str;
-      if (*id_str < 0) {
-        x = 256 + *id_str;
-      }
-      sprintf(movable, "%02x", x);
-      movable += 2;
-      id_str++;
-    }
-    
-    id[24] = '\0';
-
+    char id[25];
+    perl_mongo_oid_create(buf->pos, id);
     return perl_mongo_construct_instance (oid_class, "value", newSVpv (id, 24), NULL);
 }
 
@@ -269,22 +235,17 @@ elem_to_sv (const char *oid_class, int type, buffer *buf)
     break;
   }
   case BSON_BINARY: {
-    // TODO
-    /*int len = *(int*)buf->pos;
-      char type, *bytes;
+    int len = *(int*)buf->pos;
+    char type, *bytes;
 
-      buf->pos += INT_32;
+    buf->pos += INT_32;
 
-      type = *buf->pos++;
+    type = *buf->pos++;
 
-      bytes = buf->pos;
-      buf->pos += len;
+    bytes = buf->pos;
+    buf->pos += len;
 
-      object_init_ex(value, mongo_ce_BinData);
-
-      add_property_stringl(value, "bin", bytes, len, DUP);
-      add_property_long(value, "type", type);
-    */
+    value = newSVpv(bytes, len);
     break;
   }
   case BSON_BOOL: {
@@ -518,6 +479,28 @@ inline void serialize_double(buffer *buf, double num) {
   buf->pos += DOUBLE_64;
 }
 
+inline void serialize_oid(buffer *buf, char *id) {
+  int i;
+
+  if(BUF_REMAINING <= OID_SIZE) {
+    resize_buf(buf, OID_SIZE);
+  }
+
+  for(i=0;i<OID_SIZE;i++) {
+    char digit1 = id[i*2], digit2 = id[i*2+1];
+    digit1 = digit1 >= 'a' && digit1 <= 'f' ? digit1 -= 87 : digit1;
+    digit1 = digit1 >= 'A' && digit1 <= 'F' ? digit1 -= 55 : digit1;
+    digit1 = digit1 >= '0' && digit1 <= '9' ? digit1 -= 48 : digit1;
+    
+    digit2 = digit2 >= 'a' && digit2 <= 'f' ? digit2 -= 87 : digit2;
+    digit2 = digit2 >= 'A' && digit2 <= 'F' ? digit2 -= 55 : digit2;
+    digit2 = digit2 >= '0' && digit2 <= '9' ? digit2 -= 48 : digit2;
+    
+    buf->pos[i] = digit1*16+digit2;
+  }
+  buf->pos += OID_SIZE;
+}
+
 /* the position is not increased, we are just filling
  * in the first 4 bytes with the size.
  */
@@ -546,7 +529,7 @@ hv_to_bson (buffer *buf, HV *hv, const char *oid_class)
     while ((he = hv_iternext (hv))) {
         STRLEN len;
         const char *key = HePV (he, len);
-        append_sv (buf, key, HeVAL (he), oid_class);
+        append_sv (buf, key, HeVAL (he), oid_class); 
     }
 
     serialize_null(buf);
@@ -592,7 +575,7 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
 
                 set_type(buf, BSON_OID);
                 serialize_string(buf, key, strlen(key));
-                serialize_bytes(buf, str, OID_SIZE);
+                serialize_oid(buf, str);
 
                 SvREFCNT_dec (attr);
             }

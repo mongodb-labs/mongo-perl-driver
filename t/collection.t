@@ -43,7 +43,7 @@ lives_ok {
 } 'validate';
 
 $coll->remove($obj);
-is($coll->count, 0);
+is($coll->count, 0, 'remove() deleted everything');
 
 $coll->drop;
 ok(!$coll->get_indexes, 'no indexes yet');
@@ -57,7 +57,7 @@ is($coll->count, 2);
 $coll->ensure_index([qw/boo/], "ascending", 1);
 $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
 
-is($coll->count, 2);
+is($coll->count, 2, 'unique index');
 
 my @indexes = $coll->get_indexes;
 is(scalar @indexes, 4, 'three custom indexes and the default _id_ index');
