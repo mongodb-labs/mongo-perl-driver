@@ -8,16 +8,39 @@ SV *
 _build_value (self, c_str)
         SV *self
         const char *c_str;
+    PREINIT: 
+        STRLEN len;
+        char *data;
     CODE:
-        mongo::OID oid;
         if (c_str && strlen(c_str) == 24) {
-           oid.init(string(c_str));
-        } else {
-           oid.init();
+          data = (char*)c_str;
         }
-        RETVAL = newSVpv (oid.str().c_str(), oid.str().length());
+        else {
+          unsigned t;
+          char *T;
+
+          int r1 = rand();
+          int r2 = rand();
+          
+          char *inc = (char*)(void*)&r2;
+          
+          t = (unsigned) time(0);
+
+          T = (char*)&t;
+          data[0] = T[3];
+          data[1] = T[2];
+          data[2] = T[1];
+          data[3] = T[0];
+
+          memcpy(data+4, &r1, 4);
+          data[8] = inc[3];
+          data[9] = inc[2];
+          data[10] = inc[1];
+          data[11] = inc[0];
+        }
+        RETVAL = newSVpv (data, len);
     OUTPUT:
         RETVAL
 
-
+    
         
