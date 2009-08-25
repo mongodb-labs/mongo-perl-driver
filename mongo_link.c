@@ -3,6 +3,8 @@
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(int socket, void *dest, int len);
 static int do_connect(char *host, int port);
+static int check_connection(mongo_link *link);
+static int get_master(mongo_link *link);
 
 int mongo_link_connect(mongo_link *link) {
   if (link->paired) {
@@ -83,10 +85,11 @@ static int do_connect(char *host, int port) {
 #ifdef WIN32
     errno = WSAGetLastError();
     if (errno != WSAEINPROGRESS &&
-		errno != WSAEWOULDBLOCK) {
+		errno != WSAEWOULDBLOCK)
 #else
-    if (errno != EINPROGRESS) {
+    if (errno != EINPROGRESS)
 #endif
+    {
       return 0;
     }
 
@@ -136,17 +139,20 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
 /*
  * Sends a message to the MongoDB server
  */
-int mongo_link_say(int sock, buffer *buf) {
-  int sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
+int mongo_link_say(mongo_link *link, buffer *buf) {
+  int sock, sent;
+
+  sock = get_master(link);
+  sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
 
   if (sent == -1) {
-    /*if (check_connection(link) == SUCCESS) {
+    if (check_connection(link)) {
       sock = get_master(link);
-      sent = send(sock, (const char*)buf->start, buf->pos-buf->start, FLAGS);
+      sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
     }
     else {
-      return FAILURE;
-      }*/
+      return -1;
+    }
   }
 
   return sent;
@@ -157,13 +163,13 @@ int mongo_link_say(int sock, buffer *buf) {
  * Gets a reply from the MongoDB server and
  * creates a cursor for it
  */
-int mongo_link_hear(mongo_cursor *cursor) {
-  int sock;
+int mongo_link_hear(mongo_link *link, mongo_cursor *cursor) {
+  int sock = get_master(link);
   int num_returned = 0;
 
   // if this fails, we might be disconnected... but we're probably
   // just out of results
-  if (recv(sock, &cursor->header.length, INT_32, 0) == -1) {
+  if (recv(sock, (char*)&cursor->header.length, INT_32, 0) == -1) {
     return 0;
   }
 
@@ -198,7 +204,7 @@ int mongo_link_hear(mongo_cursor *cursor) {
   }
   cursor->buf.pos = cursor->buf.start;
 
-  if (mongo_link_reader(cursor->socket, cursor->buf.pos, cursor->header.length) == -1) {
+  if (mongo_link_reader(sock, cursor->buf.pos, cursor->header.length) == -1) {
 #ifdef WIN32
     croak("WSA error getting database response: %d\n", WSAGetLastError());
 #else
@@ -238,3 +244,122 @@ static int mongo_link_reader(int socket, void *dest, int len) {
   return r;
 }
 
+static int check_connection(mongo_link *link) {
+  int now;
+#ifdef WIN32
+  SYSTEMTIME systemTime;
+  GetSystemTime(&systemTime);
+  now = systemTime.wMilliseconds;
+#else
+  now = time(0);
+#endif
+
+  if (!link->auto_reconnect ||
+      (now-link->ts) < 2) {
+    return 1;
+  }
+
+  link->ts = now;
+
+#ifdef WIN32
+  if (link->paired) {
+    closesocket(link->server.pair.left_socket);
+    closesocket(link->server.pair.right_socket);
+  }
+  else {
+    closesocket(link->server.single.socket);
+  }
+  WSACleanup();
+#else
+  if (link->paired) {
+    close(link->server.pair.left_socket);
+    close(link->server.pair.right_socket);
+  }
+  else {
+    close(link->server.single.socket);
+  }
+#endif
+
+  return mongo_link_connect(link);
+}
+
+static int get_master(mongo_link *link) {
+  if (!link->paired) {
+    return link->server.single.socket;
+  }
+
+  if (link->server.pair.left_socket == link->master) {
+    return link->server.pair.left_socket;
+  }
+  else if (link->server.pair.right_socket == link->master) {
+    return link->server.pair.right_socket;
+  }
+
+  return -1;
+  /*
+  MAKE_STD_ZVAL(cursor_zval);
+  object_init_ex(cursor_zval, mongo_ce_Cursor);
+  cursor = (mongo_cursor*)zend_object_store_get_object(cursor_zval TSRMLS_CC);
+
+  // redetermine master
+  MAKE_STD_ZVAL(query);
+  object_init(query);
+  MAKE_STD_ZVAL(is_master);
+  object_init(is_master);
+  add_property_long(is_master, "ismaster", 1);
+  add_property_zval(query, "query", is_master);
+
+  cursor->ns = estrdup("admin.$cmd");
+  cursor->query = query;
+  cursor->fields = 0;
+  cursor->limit = -1;
+  cursor->skip = 0;
+  cursor->opts = 0;
+
+  temp.paired = 0;
+  // check the left
+  temp.server.single.socket = link->server.paired.lsocket;
+  cursor->link = &temp;
+
+  // need to call this after setting cursor->link
+  // reset checks that cursor->link != 0
+  MONGO_METHOD(MongoCursor, reset)(0, &temp_ret, NULL, cursor_zval, 0 TSRMLS_CC);
+
+  MAKE_STD_ZVAL(response);
+  MONGO_METHOD(MongoCursor, getNext)(0, response, NULL, cursor_zval, 0 TSRMLS_CC);
+  if ((Z_TYPE_P(response) == IS_ARRAY ||
+       Z_TYPE_P(response) == IS_OBJECT) &&
+      zend_hash_find(HASH_P(response), "ismaster", 9, (void**)&ans) == SUCCESS &&
+      Z_LVAL_PP(ans) == 1) {
+    zval_ptr_dtor(&cursor_zval);
+    zval_ptr_dtor(&query);
+    zval_ptr_dtor(&response);
+    return link->master = link->server.paired.lsocket;
+  }
+
+  // reset response
+  zval_ptr_dtor(&response);
+  MAKE_STD_ZVAL(response);
+
+  // check the right
+  temp.server.single.socket = link->server.paired.rsocket;
+  cursor->link = &temp;
+
+  MONGO_METHOD(MongoCursor, reset)(0, &temp_ret, NULL, cursor_zval, 0 TSRMLS_CC);
+  MONGO_METHOD(MongoCursor, getNext)(0, response, NULL, cursor_zval, 0 TSRMLS_CC);
+  if ((Z_TYPE_P(response) == IS_ARRAY ||
+       Z_TYPE_P(response) == IS_OBJECT) &&
+      zend_hash_find(HASH_P(response), "ismaster", 9, (void**)&ans) == SUCCESS &&
+      Z_LVAL_PP(ans) == 1) {
+    zval_ptr_dtor(&cursor_zval);
+    zval_ptr_dtor(&query);
+    zval_ptr_dtor(&response);
+    return link->master = link->server.paired.rsocket;
+  }
+
+  zval_ptr_dtor(&response);
+  zval_ptr_dtor(&query);
+  zval_ptr_dtor(&cursor_zval);
+  return FAILURE;
+  */
+}

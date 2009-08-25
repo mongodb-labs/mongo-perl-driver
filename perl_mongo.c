@@ -168,7 +168,27 @@ static SV *bson_to_av (const char *oid_class, buffer *buf);
 static SV *
 oid_to_sv (const char *oid_class, buffer *buf)
 {
-    return perl_mongo_construct_instance (oid_class, "value", newSVpv (buf->pos, OID_SIZE), NULL);
+    int i;
+    char *id, *movable, *id_str;
+
+    // create a 24-char zeroed string
+    Newxz(id, 25, char);
+    id_str = buf->pos;
+
+    movable = id;
+    for(i=0; i<12; i++) {
+      int x = *id_str;
+      if (*id_str < 0) {
+        x = 256 + *id_str;
+      }
+      sprintf(movable, "%02x", x);
+      movable += 2;
+      id_str++;
+    }
+    
+    id[24] = '\0';
+
+    return perl_mongo_construct_instance (oid_class, "value", newSVpv (id, 24), NULL);
 }
 
 static SV *
@@ -363,7 +383,7 @@ bson_to_av (const char *oid_class, buffer *buf)
 SV *
 perl_mongo_bson_to_sv (const char *oid_class, buffer *buf)
 {
-    HV *ret;
+    HV *ret = newHV();
 
     char type;
 

@@ -84,6 +84,8 @@ typedef struct {
 typedef struct {
   int paired;
   int master;
+  int ts;
+  int auto_reconnect;
   union {
     struct {
       char *host;
@@ -103,7 +105,6 @@ typedef struct {
 } mongo_link;
 
 typedef struct {
-  int socket;
   // collection namespace
   const char *ns;
 
@@ -132,7 +133,7 @@ typedef struct {
 } mongo_cursor;
 
 int mongo_link_connect(mongo_link *link);
-int mongo_link_say(int socket, buffer *buf);
-int mongo_link_hear(mongo_cursor *cursor);
+int mongo_link_say(mongo_link *link, buffer *buf);
+int mongo_link_hear(mongo_link *link, mongo_cursor *cursor);
 
 #endif

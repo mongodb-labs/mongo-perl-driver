@@ -9,6 +9,8 @@ static int already_queried(SV *self) {
 }
 
 static mongo_cursor* get_cursor(SV *self) {
+  SV **link_sv;
+  mongo_link *link;
   mongo_cursor *cursor;
   buffer buf;
   mongo_msg_header header;
@@ -20,6 +22,9 @@ static mongo_cursor* get_cursor(SV *self) {
   if (cursor->started_iterating) {
     return cursor;
   }
+
+  link_sv = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
+  link = (mongo_link*)perl_mongo_get_ptr_from_instance(*link_sv);
 
   // if not, execute the query
   CREATE_BUF(INITIAL_BUF_SIZE);
@@ -34,19 +39,21 @@ static mongo_cursor* get_cursor(SV *self) {
   serialize_size(buf.start, &buf);
 
   // sends
-  sent = mongo_link_say(cursor->socket, &buf);
+  sent = mongo_link_say(link, &buf);
   Safefree(buf.start);
   if (sent == -1) {
     croak("couldn't send query.");
   }
 
-  mongo_link_hear(cursor);
+  mongo_link_hear(link, cursor);
   cursor->started_iterating = 1;
 
   return cursor;
 }
 
-static int _has_next(mongo_cursor *cursor) {
+static int _has_next(SV *self, mongo_cursor *cursor) {
+  SV **link_sv;
+  mongo_link *link;
   mongo_msg_header header;
   buffer buf;
   int size;
@@ -58,6 +65,9 @@ static int _has_next(mongo_cursor *cursor) {
   else if (cursor->at < cursor->num) {
     return 1;
   }
+
+  link_sv = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
+  link = (mongo_link*)perl_mongo_get_ptr_from_instance(*link_sv);
 
   // we have to go and check with the db
   size = 34+strlen(cursor->ns);
@@ -71,7 +81,7 @@ static int _has_next(mongo_cursor *cursor) {
   serialize_size(buf.start, &buf);
 
   // fails if we're out of elems
-  if(mongo_link_say(cursor->socket, &buf) == -1) {
+  if(mongo_link_say(link, &buf) == -1) {
     Safefree(buf.start);
     return 0;
   }
@@ -81,7 +91,7 @@ static int _has_next(mongo_cursor *cursor) {
   // if we have cursor->at == cursor->num && recv fails,
   // we're probably just out of results
   // mongo_link_hear returns 0 on success
-  return (mongo_link_hear(cursor) == 0);
+  return (mongo_link_hear(link, cursor) == 0);
 }
 
 
@@ -95,9 +105,10 @@ has_next (self)
         SV *self
     PREINIT:
         mongo_cursor *cursor;
+        mongo_link *link;
     CODE:
         cursor = get_cursor(self);
-        RETVAL = _has_next(cursor);
+        RETVAL = _has_next(self, cursor);
     OUTPUT:
         RETVAL
 
@@ -108,7 +119,7 @@ next (self)
         mongo_cursor *cursor;
     CODE:
         cursor = get_cursor(self);
-        if (_has_next(cursor)) {
+        if (_has_next(self, cursor)) {
           RETVAL = perl_mongo_bson_to_sv("MongoDB::OID", &cursor->buf);
           cursor->at++;
 
@@ -178,8 +189,16 @@ void
 mongo_cursor_DESTROY (self)
       SV *self
   PREINIT:
+      SV *link;
+      HV *this_hash;
       mongo_cursor *cursor;
   CODE:
-      cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-      Safefree(cursor);
+      this_hash = SvSTASH(SvRV(self));
+      link = hv_fetch(this_hash, "link", strlen("link"), 0);
+      SvREFCNT_dec(link);
+
       printf("in cursor destroy\n");
+      cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+      if (cursor->buf.start)
+        Safefree(cursor->buf.start);
+      Safefree(cursor);

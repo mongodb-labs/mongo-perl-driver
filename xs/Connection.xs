@@ -36,6 +36,7 @@ connect (self)
 		perl_mongo_attach_ptr_to_instance(self, link);
 
                 link->paired = paired;
+                link->ts = time(0);
                 if (paired) {
                   link->server.pair.left_host = SvPV_nolen(left_host_sv);
                   link->server.pair.left_port = SvIV(left_port_sv);
@@ -84,16 +85,15 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         rcursor = newHV();
         RETVAL = sv_bless(newRV_noinc((SV *)rcursor), stash);
 
+        // associate this connection with the cursor
+        hv_store(stash, "link", strlen("link"), self, 0);
+        SvREFCNT_inc(self);
+
         // attach a mongo_cursor* to the MongoDB::Cursor
         Newx(cursor, 1, mongo_cursor);
         perl_mongo_attach_ptr_to_instance(RETVAL, cursor);
 
         // START cursor setup
-
-        // set the connection
-        this_hash = SvSTASH(SvRV(self));
-        socket = hv_fetch(this_hash, "socket", strlen("socket"), 0);
-        cursor->socket = SvIV(*socket);
 
         // set the namespace
         cursor->ns = ns;
