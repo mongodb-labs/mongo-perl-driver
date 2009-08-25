@@ -2,8 +2,20 @@
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(int socket, void *dest, int len);
+static int do_connect(char *host, int port);
 
-int mongo_link_connect(char *host, int port) {
+int mongo_link_connect(mongo_link *link) {
+  if (link->paired) {
+    link->server.pair.left_socket = do_connect(link->server.pair.left_host, link->server.pair.left_port);
+    link->server.pair.right_socket = do_connect(link->server.pair.right_host, link->server.pair.right_port);
+    return link->server.pair.left_socket && link->server.pair.right_socket;
+  }
+
+  link->server.single.socket = do_connect(link->server.single.host, link->server.single.port);
+  return link->server.single.socket;
+}
+
+static int do_connect(char *host, int port) {
   int sock;
   struct sockaddr_in addr, check_connect;
   fd_set rset, wset;

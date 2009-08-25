@@ -131,7 +131,7 @@ typedef struct {
 
 } mongo_cursor;
 
-int mongo_link_connect(char *server, int port);
+int mongo_link_connect(mongo_link *link);
 int mongo_link_say(int socket, buffer *buf);
 int mongo_link_hear(mongo_cursor *cursor);
 

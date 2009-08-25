@@ -13,41 +13,58 @@ void
 connect (self)
                 SV *self
 	PREINIT:
-                SV *host_sv, *port_sv;
-                HV *this_hash;
-		char *host;
-                int port;
-                int socket;
+                int paired;
+                SV *host_sv = 0, *port_sv, 
+                    *left_host_sv, *right_host_sv,
+                    *left_port_sv, *right_port_sv;
 		mongo_link *link;
 	INIT:
-		host_sv = perl_mongo_call_reader (ST (0), "host");
-		port_sv = perl_mongo_call_reader (ST (0), "port");
-		host = SvPV_nolen(host_sv);
-		port = SvIV(port_sv);
+                left_host_sv = perl_mongo_call_reader (ST(0), "left_host");
+                right_host_sv = perl_mongo_call_reader (ST(0), "right_host");
+
+                paired = SvOK(left_host_sv) && SvOK(right_host_sv);
+                if (paired) {
+                  left_port_sv = perl_mongo_call_reader (ST(0), "left_port");
+                  right_port_sv = perl_mongo_call_reader (ST(0), "right_port");
+                }
+                else {
+                  host_sv = perl_mongo_call_reader (ST (0), "host");
+                  port_sv = perl_mongo_call_reader (ST (0), "port");
+                }
 	CODE:
 	        Newx(link, 1, mongo_link);
 		perl_mongo_attach_ptr_to_instance(self, link);
 
+                link->paired = paired;
+                if (paired) {
+                  link->server.pair.left_host = SvPV_nolen(left_host_sv);
+                  link->server.pair.left_port = SvIV(left_port_sv);
+
+                  link->server.pair.right_host = SvPV_nolen(right_host_sv);
+                  link->server.pair.right_port = SvIV(right_port_sv);
+                }
+                else {
+                  link->server.single.host = SvPV_nolen(host_sv);
+                  link->server.single.port = SvIV(port_sv);
+                }
+
                 // TODO: pairing
                 // this will be be server1, server2 
-		if (!(socket = mongo_link_connect(host, port))) {
+		if (!mongo_link_connect(link)) {
                   croak ("could not connect");
                   return;
 		}
-
-		/*link->paired = 0;
-		link->server.single.socket = socket;
-		link->server.single.host = host;
-		link->server.single.port = port;
-		*/
-                this_hash = SvSTASH(SvRV(ST(0)));
-
-                // set the socket
-                hv_store(this_hash, "socket", strlen("socket"), newSViv(socket), 0);
-
 	CLEANUP:
-		SvREFCNT_dec (host_sv);
-		SvREFCNT_dec (port_sv);
+                if (paired) {
+                  SvREFCNT_dec(left_host_sv);
+                  SvREFCNT_dec(left_port_sv);
+                  SvREFCNT_dec(right_host_sv);
+                  SvREFCNT_dec(right_port_sv);
+                }
+                else {
+                  SvREFCNT_dec (host_sv);
+                  SvREFCNT_dec (port_sv);
+                }
 
 SV *
 _query (self, ns, query=0, limit=0, skip=0, sort=0)

@@ -29,6 +29,52 @@ has port => (
     default  => 27017,
 );
 
+=attr left_host
+
+Paired connection host to connect to. Can be master or slave.
+
+=cut
+
+has left_host => (
+    is       => 'ro',
+    isa      => 'Str',
+);
+
+=attr left_port
+
+Port to use when connecting to left_host. Defaults to C<27017>.
+
+=cut
+
+has left_port => (
+    is       => 'ro',
+    isa      => 'Int',
+    default  => 27017,
+);
+
+=attr right_host
+
+Paired connection host to connect to. Can be master or slave.
+
+=cut
+
+has right_host => (
+    is       => 'ro',
+    isa      => 'Str',
+);
+
+=attr right_port
+
+Port to use when connecting to right_host. Defaults to C<27017>.
+
+=cut
+
+has right_port => (
+    is       => 'ro',
+    isa      => 'Int',
+    default  => 27017,
+);
+
 has _server => (
     is       => 'ro',
     isa      => 'Str',
