@@ -150,6 +150,8 @@ _find_one (self, ns, query)
         RETVAL = perl_mongo_call_method(cursor, "next", 0);
     OUTPUT:
         RETVAL
+    CLEANUP:
+        SvREFCNT_dec (cursor);
 
 
 void
@@ -243,14 +245,15 @@ _ensure_index (self, ns, keys, unique=0)
         SV *keys
         int unique
     PREINIT:
-        SV *oid_class;
-    INIT:
-        oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
-        //obj = perl_mongo_sv_to_bson (keys, SvPV_nolen (oid_class));
+        HV *key_hash;
+        SV *ret;
     CODE:
-        //THIS->ensureIndex(ns, obj, unique);
+        key_hash = SvRV(keys);
+        hv_store(key_hash, "unique", strlen("unique"), unique ? &PL_sv_yes : &PL_sv_no, 0);
+        ret = perl_mongo_call_method(self, "_insert", 2, ST(1), ST(2));
     CLEANUP:
-        SvREFCNT_dec (oid_class);
+        SvREFCNT_dec (ret);
+
 
 NO_OUTPUT bool
 _authenticate (self, dbname, username, password, is_digest=0)

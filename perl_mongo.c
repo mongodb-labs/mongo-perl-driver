@@ -603,11 +603,26 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
                 serialize_string(buf, key, strlen(key));
                 serialize_int(buf, (int)SvIV (sv));
                 break;
+            // stupid special casing for bools
+            case SVt_PVNV: {
+              if (sv == &PL_sv_yes) {
+                set_type(buf, BSON_BOOL);
+                serialize_string(buf, key, strlen(key));
+                serialize_byte(buf, 1);
+                break;
+              }
+              else if (sv == &PL_sv_no) {
+                set_type(buf, BSON_BOOL);
+                serialize_string(buf, key, strlen(key));
+                serialize_byte(buf, 0);
+                break;
+              }
+              // otherwise, continue
+            }
             case SVt_PV:
             case SVt_NV:
             case SVt_PVIV:
             case SVt_PVMG:
-            case SVt_PVNV:
                 /* Do we need SVt_PVLV here, too? */
                 if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
                     STRLEN len;

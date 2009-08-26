@@ -226,10 +226,9 @@ sub remove {
 
         my $obj = {"ns" => $ns,
                    "key" => $k,
-                   "name" => join("_", @name),
-                   "unique" => $unique };
+                   "name" => join("_", @name)};
 
-        $self->insert(substr($ns, 0, index($ns, ".")).".system.indexes", $obj);
+        $self->_ensure_index(substr($ns, 0, index($ns, ".")).".system.indexes", $obj, $unique);
         return;
     }
 }
