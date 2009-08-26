@@ -279,6 +279,35 @@ sub get_database {
     );
 }
 
+=method find_master
+
+    $connection->find_master
+
+Determines which host of a paired connection is master.  Does nothing for
+a non-paired connection.  Called automatically by internal functions.
+
+=cut
+
+sub find_master {
+    my ($self) = @_;
+    return unless defined $self->left_host && $self->right_host;
+
+    my $left = MongoDB::Connection->new("host" => $self->left_host, "port" => $self->left_port);
+    my $master = $left->find_one('admin.$cmd', {ismaster => 1});
+    if ($master->{'ismaster'}) {    
+        return 0;
+    }
+
+    my $right = MongoDB::Connection->new("host" => $self->right_host, "port" => $self->right_port);
+    $master = $right->find_one('admin.$cmd', {ismaster => 1});
+    if ($master->{'ismaster'}) {
+        return 1;
+    }
+
+    # something went wrong
+    croak("couldn't find master");
+}
+
 =method authenticate ($dbname, $username, $password, $is_digest?)
 
     $connection->authenticate('foo', 'username', 'secret');

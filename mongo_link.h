@@ -1,3 +1,19 @@
+/*
+ *  Copyright 2009 10gen, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 #ifndef MONGO_LINK_H
 #define MONGO_LINK_H
 
@@ -83,6 +99,7 @@ typedef struct {
 
 typedef struct {
   int paired;
+  // master socket
   int master;
   int ts;
   int auto_reconnect;
@@ -91,15 +108,18 @@ typedef struct {
       char *host;
       int port;
       int socket;
+      int connected;
     } single;
     struct {
       char *left_host;
       int left_port;
       int left_socket;
+      int left_connected;
 
       char *right_host;
       int right_port;
       int right_socket;
+      int right_connected;
     } pair;
   } server;
 } mongo_link;
@@ -133,7 +153,8 @@ typedef struct {
 } mongo_cursor;
 
 int mongo_link_connect(mongo_link *link);
-int mongo_link_say(mongo_link *link, buffer *buf);
-int mongo_link_hear(mongo_link *link, mongo_cursor *cursor);
+int mongo_link_say(SV *self, mongo_link *link, buffer *buf);
+int mongo_link_hear(SV *self, mongo_link *link, mongo_cursor *cursor);
+int perl_mongo_link_master(SV *self, mongo_link *link);
 
 #endif

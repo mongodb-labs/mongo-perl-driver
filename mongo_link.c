@@ -1,20 +1,40 @@
+/*
+ *  Copyright 2009 10gen, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 #include "mongo_link.h"
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(int socket, void *dest, int len);
 static int do_connect(char *host, int port);
 static int check_connection(mongo_link *link);
-static int get_master(mongo_link *link);
 
 int mongo_link_connect(mongo_link *link) {
   if (link->paired) {
     link->server.pair.left_socket = do_connect(link->server.pair.left_host, link->server.pair.left_port);
+    link->server.pair.left_connected = (link->server.pair.left_socket != 0);
+
     link->server.pair.right_socket = do_connect(link->server.pair.right_host, link->server.pair.right_port);
-    return link->server.pair.left_socket && link->server.pair.right_socket;
+    link->server.pair.right_connected = (link->server.pair.right_socket != 0);
+
+    return link->server.pair.left_connected && link->server.pair.right_connected;
   }
 
   link->server.single.socket = do_connect(link->server.single.host, link->server.single.port);
-  return link->server.single.socket;
+  link->server.single.connected = link->server.single.socket;
+  return link->server.single.connected;
 }
 
 static int do_connect(char *host, int port) {
@@ -139,15 +159,15 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
 /*
  * Sends a message to the MongoDB server
  */
-int mongo_link_say(mongo_link *link, buffer *buf) {
+int mongo_link_say(SV *self, mongo_link *link, buffer *buf) {
   int sock, sent;
 
-  sock = get_master(link);
+  sock = perl_mongo_link_master(self, link);
   sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
 
   if (sent == -1) {
     if (check_connection(link)) {
-      sock = get_master(link);
+      sock = perl_mongo_link_master(self, link);
       sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
     }
     else {
@@ -163,8 +183,8 @@ int mongo_link_say(mongo_link *link, buffer *buf) {
  * Gets a reply from the MongoDB server and
  * creates a cursor for it
  */
-int mongo_link_hear(mongo_link *link, mongo_cursor *cursor) {
-  int sock = get_master(link);
+int mongo_link_hear(SV *self, mongo_link *link, mongo_cursor *cursor) {
+  int sock = perl_mongo_link_master(self, link);
   int num_returned = 0;
 
   // if this fails, we might be disconnected... but we're probably
@@ -245,17 +265,12 @@ static int mongo_link_reader(int socket, void *dest, int len) {
 }
 
 static int check_connection(mongo_link *link) {
-  int now;
-#ifdef WIN32
-  SYSTEMTIME systemTime;
-  GetSystemTime(&systemTime);
-  now = systemTime.wMilliseconds;
-#else
-  now = time(0);
-#endif
+  int now = time(0);
 
   if (!link->auto_reconnect ||
-      (now-link->ts) < 2) {
+      (link->paired && link->server.pair.left_connected && link->server.pair.right_connected) ||
+      (!link->paired && link->server.single.connected) ||
+      now-link->ts < 2) {
     return 1;
   }
 
@@ -280,86 +295,42 @@ static int check_connection(mongo_link *link) {
   }
 #endif
 
+  if (link->paired) {
+    link->server.pair.left_connected = 0;
+    link->server.pair.right_connected = 0;
+  }
+  else {
+    link->server.single.connected = 0;
+  }
+
   return mongo_link_connect(link);
 }
 
-static int get_master(mongo_link *link) {
+int perl_mongo_link_master(SV *self, mongo_link *link) {
+  SV *master;
+  int side;
+
   if (!link->paired) {
     return link->server.single.socket;
   }
 
-  if (link->server.pair.left_socket == link->master) {
-    return link->server.pair.left_socket;
+  if (link->server.pair.left_socket == link->master &&
+      link->server.pair.left_connected) {
+    return link->master;
   }
-  else if (link->server.pair.right_socket == link->master) {
-    return link->server.pair.right_socket;
-  }
-
-  return -1;
-  /*
-  MAKE_STD_ZVAL(cursor_zval);
-  object_init_ex(cursor_zval, mongo_ce_Cursor);
-  cursor = (mongo_cursor*)zend_object_store_get_object(cursor_zval TSRMLS_CC);
-
-  // redetermine master
-  MAKE_STD_ZVAL(query);
-  object_init(query);
-  MAKE_STD_ZVAL(is_master);
-  object_init(is_master);
-  add_property_long(is_master, "ismaster", 1);
-  add_property_zval(query, "query", is_master);
-
-  cursor->ns = estrdup("admin.$cmd");
-  cursor->query = query;
-  cursor->fields = 0;
-  cursor->limit = -1;
-  cursor->skip = 0;
-  cursor->opts = 0;
-
-  temp.paired = 0;
-  // check the left
-  temp.server.single.socket = link->server.paired.lsocket;
-  cursor->link = &temp;
-
-  // need to call this after setting cursor->link
-  // reset checks that cursor->link != 0
-  MONGO_METHOD(MongoCursor, reset)(0, &temp_ret, NULL, cursor_zval, 0 TSRMLS_CC);
-
-  MAKE_STD_ZVAL(response);
-  MONGO_METHOD(MongoCursor, getNext)(0, response, NULL, cursor_zval, 0 TSRMLS_CC);
-  if ((Z_TYPE_P(response) == IS_ARRAY ||
-       Z_TYPE_P(response) == IS_OBJECT) &&
-      zend_hash_find(HASH_P(response), "ismaster", 9, (void**)&ans) == SUCCESS &&
-      Z_LVAL_PP(ans) == 1) {
-    zval_ptr_dtor(&cursor_zval);
-    zval_ptr_dtor(&query);
-    zval_ptr_dtor(&response);
-    return link->master = link->server.paired.lsocket;
+  else if (link->server.pair.right_socket == link->master &&
+           link->server.pair.right_connected) {
+    return link->master;
   }
 
-  // reset response
-  zval_ptr_dtor(&response);
-  MAKE_STD_ZVAL(response);
+  master = perl_mongo_call_method(self, "find_master", 0);
+  side = SvIV(master);
 
-  // check the right
-  temp.server.single.socket = link->server.paired.rsocket;
-  cursor->link = &temp;
-
-  MONGO_METHOD(MongoCursor, reset)(0, &temp_ret, NULL, cursor_zval, 0 TSRMLS_CC);
-  MONGO_METHOD(MongoCursor, getNext)(0, response, NULL, cursor_zval, 0 TSRMLS_CC);
-  if ((Z_TYPE_P(response) == IS_ARRAY ||
-       Z_TYPE_P(response) == IS_OBJECT) &&
-      zend_hash_find(HASH_P(response), "ismaster", 9, (void**)&ans) == SUCCESS &&
-      Z_LVAL_PP(ans) == 1) {
-    zval_ptr_dtor(&cursor_zval);
-    zval_ptr_dtor(&query);
-    zval_ptr_dtor(&response);
-    return link->master = link->server.paired.rsocket;
+  if (side == 0) {
+    return link->master = link->server.pair.left_socket;
   }
-
-  zval_ptr_dtor(&response);
-  zval_ptr_dtor(&query);
-  zval_ptr_dtor(&cursor_zval);
-  return FAILURE;
-  */
+  else if (side == 1) {
+    return link->master = link->server.pair.right_socket;
+  }
+  croak("error finding master");
 }

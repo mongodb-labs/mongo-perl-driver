@@ -52,25 +52,33 @@ connect (self)
 		perl_mongo_attach_ptr_to_instance(self, link);
 
                 link->paired = paired;
+                link->master = -1;
                 link->ts = time(0);
                 if (paired) {
                   link->server.pair.left_host = SvPV_nolen(left_host_sv);
                   link->server.pair.left_port = SvIV(left_port_sv);
+                  link->server.pair.left_connected = 0;
 
                   link->server.pair.right_host = SvPV_nolen(right_host_sv);
                   link->server.pair.right_port = SvIV(right_port_sv);
+                  link->server.pair.right_connected = 0;
                 }
                 else {
                   link->server.single.host = SvPV_nolen(host_sv);
                   link->server.single.port = SvIV(port_sv);
+                  link->server.single.connected = 0;
                 }
 
                 // TODO: pairing
                 // this will be be server1, server2 
-		if (!mongo_link_connect(link)) {
+                if (!mongo_link_connect(link)) {
                   croak ("couldn't connect to server");
                   return;
 		}
+
+                if (paired) {
+                  perl_mongo_link_master(self, link);
+                }
 	CLEANUP:
                 if (paired) {
                   SvREFCNT_dec(left_host_sv);
@@ -192,7 +200,7 @@ _insert (self, ns, object)
         serialize_size(buf.start, &buf);
 
         // sends
-        mongo_link_say(link, &buf);
+        mongo_link_say(self, link, &buf);
         Safefree(buf.start);
       CLEANUP:
         SvREFCNT_dec (oid_class);
@@ -220,7 +228,7 @@ _remove (self, ns, query, just_one)
         serialize_size(buf.start, &buf);
 
         // sends
-        mongo_link_say(link, &buf);
+        mongo_link_say(self, link, &buf);
         Safefree(buf.start);
     CLEANUP:
         SvREFCNT_dec (oid_class);
@@ -250,7 +258,7 @@ _update (self, ns, query, object, upsert)
         serialize_size(buf.start, &buf);
 
         // sends
-        mongo_link_say(link, &buf);
+        mongo_link_say(self, link, &buf);
         Safefree(buf.start);
     CLEANUP:
         SvREFCNT_dec (oid_class);
