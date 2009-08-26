@@ -185,6 +185,8 @@ sort (self, sort)
             SvREFCNT_dec(sort);
             // should we croak here?
           }
+        } else {
+          croak("something is wrong with the query");
         }
         // increment this
         SvREFCNT_inc(self);

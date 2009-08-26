@@ -513,10 +513,11 @@ void serialize_size(char *start, buffer *buf) {
 static void append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class);
 
 static void
-hv_to_bson (buffer *buf, HV *hv, const char *oid_class)
+hv_to_bson (buffer *buf, SV *sv, const char *oid_class)
 {
     int start;
     HE *he;
+    HV *hv;
 
     // keep a record of the starting position
     // as an offset, in case the memory is resized
@@ -524,6 +525,8 @@ hv_to_bson (buffer *buf, HV *hv, const char *oid_class)
 
     // skip first 4 bytes to leave room for size
     buf->pos += INT_32;
+
+    hv = (HV*)SvRV(sv);
 
     (void)hv_iterinit (hv);
     while ((he = hv_iternext (hv))) {
@@ -579,12 +582,43 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
 
                 SvREFCNT_dec (attr);
             }
+            else if (sv_derived_from (sv, "Tie::Hash")) {
+              int start, i;
+              SV **keys_sv, **values_sv;
+              AV *array, *keys, *values;
+
+              array = (AV*)SvRV(sv);
+
+              // keys
+              keys_sv = av_fetch(array, 1, 0);
+              keys = (AV*)SvRV(*keys_sv);
+              values_sv = av_fetch(array, 2, 0);
+              values = (AV*)SvRV(*values_sv);
+
+              set_type(buf, BSON_OBJECT);
+              serialize_string(buf, key, strlen(key));
+
+              start = buf->pos-buf->start;
+              buf->pos += INT_32;
+
+              for (i=0; i<=av_len(keys); i++) {
+                SV **k, **v;
+                if (!(k = av_fetch(keys, i, 0)) ||
+                    !(v = av_fetch(values, i, 0))) {
+                  croak ("failed to fetch associative array value");
+                }
+                append_sv(buf, SvPVutf8_nolen(*k), *v, oid_class);
+              }
+
+              serialize_null(buf);
+              serialize_size(buf->start+start, buf);
+            }
         } else {
             switch (SvTYPE (SvRV (sv))) {
                 case SVt_PVHV:
                     set_type(buf, BSON_OBJECT);
                     serialize_string(buf, key, strlen(key));
-                    hv_to_bson (buf, (HV *)SvRV (sv), oid_class);
+                    hv_to_bson (buf, sv, oid_class);
                     break;
                 case SVt_PVAV:
                     set_type(buf, BSON_ARRAY);
@@ -661,7 +695,7 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class)
 
     switch (SvTYPE (SvRV (sv))) {
         case SVt_PVHV:
-            hv_to_bson (buf, (HV *)SvRV (sv), oid_class);
+            hv_to_bson (buf, sv, oid_class);
             break;
         case SVt_PVAV: {
             I32 i;
@@ -670,6 +704,11 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class)
                 croak ("odd number of elements in structure");
             }
 
+            int start;
+            
+            start = buf->pos-buf->start;
+            buf->pos += INT_32;
+
             for (i = 0; i <= av_len (av); i += 2) {
                 SV **key, **val;
                 if ( !((key = av_fetch (av, i, 0)) && (val = av_fetch (av, i + 1, 0))) ) {
@@ -677,6 +716,9 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class)
                 }
                 append_sv (buf, SvPVutf8_nolen (*key), *val, oid_class);
             }
+
+            serialize_null(buf);
+            serialize_size(buf->start+start, buf);
 
             break;
         }

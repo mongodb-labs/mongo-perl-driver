@@ -1,5 +1,6 @@
 package MongoDB::Collection;
 # ABSTRACT: A Mongo Collection
+use Tie::IxHash;
 
 use Any::Moose;
 
@@ -183,10 +184,9 @@ Removes an index called C<$index_name> from this collection.
 
 sub drop_index {
     my ($self, $index_name) = @_;
-    return $self->_database->run_command([
-        deleteIndexes => $self->name,
-        index         => $index_name,
-    ]);
+    my $t = tie(my %myhash, 'Tie::IxHash');
+    %myhash = ("deleteIndexes" => $self->name, "index" => $index_name);
+    return $self->_database->run_command($t);
 }
 
 =method get_indexes

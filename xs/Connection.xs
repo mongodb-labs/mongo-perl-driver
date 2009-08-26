@@ -112,6 +112,7 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         if (sort && SvOK(sort)) {
           hv_store(full_query, "orderby", strlen("orderby"), SvREFCNT_inc(sort), 0);
         }
+        hv_store(stash, "query", strlen("query"), newRV_noinc(full_query), 0);
 
         // add limit/skip
         cursor->limit = limit;
