@@ -103,7 +103,7 @@ has _server => (
 =attr auto_reconnect
 
 Boolean indicating whether or not to reconnect if the connection is
-interrupted. Defaults to C<0>.
+interrupted. Defaults to C<1>.
 
 =cut
 
@@ -111,7 +111,7 @@ has auto_reconnect => (
     is       => 'ro',
     isa      => 'Bool',
     required => 1,
-    default  => 0,
+    default  => 1,
 );
 
 =attr auto_connect
@@ -336,7 +336,6 @@ sub authenticate {
 
     my $nonce = $result->{'nonce'};
     my $digest = Digest::MD5::md5_hex($nonce.$username.$hash);
-    print "digest: $digest\n";
 
     my $login = tie(my %hash, 'Tie::IxHash');
     %hash = (authenticate => 1,

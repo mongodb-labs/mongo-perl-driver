@@ -32,7 +32,8 @@ connect (self)
                 int paired;
                 SV *host_sv = 0, *port_sv, 
                     *left_host_sv, *right_host_sv,
-                    *left_port_sv, *right_port_sv;
+                    *left_port_sv, *right_port_sv,
+                    *auto_reconnect_sv;
 		mongo_link *link;
 	INIT:
                 left_host_sv = perl_mongo_call_reader (ST(0), "left_host");
@@ -47,6 +48,8 @@ connect (self)
                   host_sv = perl_mongo_call_reader (ST (0), "host");
                   port_sv = perl_mongo_call_reader (ST (0), "port");
                 }
+
+                auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
 	CODE:
 	        Newx(link, 1, mongo_link);
 		perl_mongo_attach_ptr_to_instance(self, link);
@@ -54,17 +57,25 @@ connect (self)
                 link->paired = paired;
                 link->master = -1;
                 link->ts = time(0);
+                link->auto_reconnect = SvIV(auto_reconnect_sv);
                 if (paired) {
-                  link->server.pair.left_host = SvPV_nolen(left_host_sv);
+                  int llen = strlen(SvPV_nolen(left_host_sv));
+                  int rlen = strlen(SvPV_nolen(right_host_sv));
+
+                  Newxz(link->server.pair.left_host, llen+1, char);
+                  memcpy(link->server.pair.left_host, SvPV_nolen(left_host_sv), llen);
                   link->server.pair.left_port = SvIV(left_port_sv);
                   link->server.pair.left_connected = 0;
 
-                  link->server.pair.right_host = SvPV_nolen(right_host_sv);
+                  Newxz(link->server.pair.right_host, rlen+1, char);
+                  memcpy(link->server.pair.right_host, SvPV_nolen(right_host_sv), rlen);
                   link->server.pair.right_port = SvIV(right_port_sv);
                   link->server.pair.right_connected = 0;
                 }
-                else {
-                  link->server.single.host = SvPV_nolen(host_sv);
+                else { 
+                  int len = strlen(SvPV_nolen(host_sv));
+                  Newxz(link->server.single.host, len+1, char);
+                  memcpy(link->server.single.host, SvPV_nolen(host_sv), len);
                   link->server.single.port = SvIV(port_sv);
                   link->server.single.connected = 0;
                 }
@@ -90,6 +101,8 @@ connect (self)
                   SvREFCNT_dec (host_sv);
                   SvREFCNT_dec (port_sv);
                 }
+                SvREFCNT_dec (auto_reconnect_sv);
+
 
 SV *
 _query (self, ns, query=0, limit=0, skip=0, sort=0)
@@ -287,5 +300,12 @@ connection_DESTROY (self)
          mongo_link *link;
      CODE:
          link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
+         if (link->paired) {
+           Safefree(link->server.pair.left_host);
+           Safefree(link->server.pair.right_host);
+         }
+         else {
+           Safefree(link->server.single.host);
+         }
          Safefree(link);
          printf("in destroy\n");

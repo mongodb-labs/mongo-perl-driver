@@ -20,20 +20,21 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(int socket, void *dest, int len);
 static int do_connect(char *host, int port);
 static int check_connection(mongo_link *link);
+inline void set_disconnected(mongo_link *link);
 
 int mongo_link_connect(mongo_link *link) {
   if (link->paired) {
     link->server.pair.left_socket = do_connect(link->server.pair.left_host, link->server.pair.left_port);
-    link->server.pair.left_connected = (link->server.pair.left_socket != 0);
+    link->server.pair.left_connected = (link->server.pair.left_socket != -1);
 
     link->server.pair.right_socket = do_connect(link->server.pair.right_host, link->server.pair.right_port);
-    link->server.pair.right_connected = (link->server.pair.right_socket != 0);
+    link->server.pair.right_connected = (link->server.pair.right_socket != -1);
 
     return link->server.pair.left_connected && link->server.pair.right_connected;
   }
 
   link->server.single.socket = do_connect(link->server.single.host, link->server.single.port);
-  link->server.single.connected = link->server.single.socket;
+  link->server.single.connected = (link->server.single.socket != -1);
   return link->server.single.connected;
 }
 
@@ -72,8 +73,9 @@ static int do_connect(char *host, int port) {
   int yes = 1;
 
   // create socket
-  if (!(sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))) {
-    return 0;
+  if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
+    croak("couldn't create socket: %d\n", strerror(errno));
+    return -1;
   }
 #endif
 
@@ -83,7 +85,7 @@ static int do_connect(char *host, int port) {
 
   // get addresses
   if (!mongo_link_sockaddr(&addr, host, port)) {
-    return 0;
+    return -1;
   }
 
   setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &yes, INT_32);
@@ -101,7 +103,7 @@ static int do_connect(char *host, int port) {
   FD_SET(sock, &wset);
 
   // connect
-  if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+  if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
 #ifdef WIN32
     errno = WSAGetLastError();
     if (errno != WSAEINPROGRESS &&
@@ -110,21 +112,21 @@ static int do_connect(char *host, int port) {
     if (errno != EINPROGRESS)
 #endif
     {
-      return 0;
+      return -1;
     }
 
     if (!select(sock+1, &rset, &wset, 0, &timeout)) {
-      return 0;
+      return -1;
     }
 
     size = sizeof(check_connect);
 
     connected = getpeername(sock, (struct sockaddr*)&addr, &size);
     if (connected == -1) {
-      return 0;
+      return -1;
     }
   }
-
+  
 // reset flags
 #ifdef WIN32
   ioctlsocket(sock, FIONBIO, &no);
@@ -162,6 +164,11 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
 int mongo_link_say(SV *self, mongo_link *link, buffer *buf) {
   int sock, sent;
 
+  if (!check_connection(link)) {
+    croak("can't get db response, not connected");
+    return -1;
+  }
+
   sock = perl_mongo_link_master(self, link);
   sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
 
@@ -184,8 +191,14 @@ int mongo_link_say(SV *self, mongo_link *link, buffer *buf) {
  * creates a cursor for it
  */
 int mongo_link_hear(SV *self, mongo_link *link, mongo_cursor *cursor) {
-  int sock = perl_mongo_link_master(self, link);
+  int sock;
   int num_returned = 0;
+
+  if (!check_connection(link)) {
+    croak("can't get db response, not connected");
+    return -1;
+  }
+  sock = perl_mongo_link_master(self, link);
 
   // if this fails, we might be disconnected... but we're probably
   // just out of results
@@ -196,8 +209,13 @@ int mongo_link_hear(SV *self, mongo_link *link, mongo_cursor *cursor) {
   // make sure we're not getting crazy data
   if (cursor->header.length > MAX_RESPONSE_LEN ||
       cursor->header.length < REPLY_HEADER_SIZE) {
-    croak("bad response length: %d, max: %d, did the db assert?\n", cursor->header.length, MAX_RESPONSE_LEN);
-    return 0;
+
+    set_disconnected(link);
+
+    if (!check_connection(link)) {
+      croak("bad response length: %d, max: %d, did the db assert?\n", cursor->header.length, MAX_RESPONSE_LEN);
+      return 0;
+    }
   }
 
   if (recv(sock, (char*)&cursor->header.request_id, INT_32, 0) == -1 ||
@@ -270,7 +288,7 @@ static int check_connection(mongo_link *link) {
   if (!link->auto_reconnect ||
       (link->paired && link->server.pair.left_connected && link->server.pair.right_connected) ||
       (!link->paired && link->server.single.connected) ||
-      now-link->ts < 2) {
+      now == link->ts) {
     return 1;
   }
 
@@ -295,6 +313,12 @@ static int check_connection(mongo_link *link) {
   }
 #endif
 
+  set_disconnected(link);
+
+  return mongo_link_connect(link);
+}
+
+inline void set_disconnected(mongo_link *link) {
   if (link->paired) {
     link->server.pair.left_connected = 0;
     link->server.pair.right_connected = 0;
@@ -302,8 +326,6 @@ static int check_connection(mongo_link *link) {
   else {
     link->server.single.connected = 0;
   }
-
-  return mongo_link_connect(link);
 }
 
 int perl_mongo_link_master(SV *self, mongo_link *link) {
