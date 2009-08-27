@@ -55,13 +55,13 @@ static mongo_cursor* get_cursor(SV *self) {
   serialize_size(buf.start, &buf);
 
   // sends
-  sent = mongo_link_say(link_sv, link, &buf);
+  sent = mongo_link_say(*link_sv, link, &buf);
   Safefree(buf.start);
   if (sent == -1) {
     croak("couldn't send query.");
   }
 
-  mongo_link_hear(link_sv, link, cursor);
+  mongo_link_hear(*link_sv, link, cursor);
   cursor->started_iterating = 1;
 
   return cursor;
@@ -99,7 +99,7 @@ static int _has_next(SV *self, mongo_cursor *cursor) {
   serialize_size(buf.start, &buf);
 
   // fails if we're out of elems
-  if(mongo_link_say(link_sv, link, &buf) == -1) {
+  if(mongo_link_say(*link_sv, link, &buf) == -1) {
     Safefree(buf.start);
     return 0;
   }
@@ -109,7 +109,7 @@ static int _has_next(SV *self, mongo_cursor *cursor) {
   // if we have cursor->at == cursor->num && recv fails,
   // we're probably just out of results
   // mongo_link_hear returns 0 on success
-  return (mongo_link_hear(link_sv, link, cursor) == 0);
+  return (mongo_link_hear(*link_sv, link, cursor) == 0);
 }
 
 
@@ -213,7 +213,6 @@ limit (self, num)
         int num
      PREINIT:
         mongo_cursor *cursor;
-        HV *this_hash;
      CODE:
         cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
         if (cursor->started_iterating) {
@@ -221,11 +220,7 @@ limit (self, num)
           return;
         }
 
-        this_hash = SvSTASH(SvRV(self));
-
-        // store limit
-        hv_store(this_hash, "limit", strlen("limit"), newSViv(num), 0);
-        // increment this
+        cursor->limit = num;
         SvREFCNT_inc(self);
 
 
@@ -235,7 +230,6 @@ skip (self, num)
         int num
      PREINIT:
         mongo_cursor *cursor;
-        HV *this_hash;
      CODE:
         cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
         if (cursor->started_iterating) {
@@ -243,11 +237,7 @@ skip (self, num)
           return;
         }
 
-        this_hash = SvSTASH(SvRV(self));
-
-        // store skip
-        hv_store(this_hash, "skip", strlen("skip"), newSViv(num), 0);
-        // increment this
+        cursor->skip = num;
         SvREFCNT_inc(self);
 
 

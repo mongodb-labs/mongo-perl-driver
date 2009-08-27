@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 37;
+use Test::More tests => 40;
 use Test::Exception;
 
 use MongoDB;
@@ -91,4 +91,12 @@ is($cursor3->has_next, 1);
 $cursor3->next;
 is(int $cursor3->has_next, 0, 'check has_next is false');
 
-
+$coll->insert({x => 2});
+$coll->insert({x => 3});
+$coll->insert({x => 4});
+my $paging = $coll->query->skip(1)->limit(2);
+is($paging->has_next, 1, 'check skip/limit');
+$paging->next;
+is($paging->has_next, 1);
+$paging->next;
+is(int $paging->has_next, 0);

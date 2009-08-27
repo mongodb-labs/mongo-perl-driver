@@ -55,6 +55,25 @@ Adds a sort to the query.
 Returns this cursor for chaining operations.
 
 
+=method limit
+
+    $per_page = 20;
+    $cursor = $coll->find->limit($per_page);
+
+Returns a maximum of N results.
+Returns this cursor for chaining operations.
+
+
+=method skip
+
+    $page_num = 7;
+    $per_page = 100;
+    $cursor = $coll->find->limit($per_page)->skip($page_num * $per_page);
+
+Skips the first N results.
+Returns this cursor for chaining operations.
+
+
 =method snapshot
 
     my $cursor = $coll->find->snapshot;
