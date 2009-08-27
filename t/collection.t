@@ -1,7 +1,9 @@
 use strict;
 use warnings;
-use Test::More tests => 34;
+use Test::More tests => 37;
 use Test::Exception;
+
+use Tie::IxHash;
 
 use MongoDB;
 
@@ -104,6 +106,19 @@ $coll->drop;
 $coll->insert({"\x9F" => "hi"});
 $utfblah = $coll->find_one;
 is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
+
+
+$coll->drop;
+my $keys = tie(my %idx, 'Tie::IxHash');
+%idx = ('sn' => 'ascending', 'ts' => 'descending');
+
+$coll->ensure_index($keys);
+
+my @tied = $coll->get_indexes;
+is(scalar @tied, 2, 'num indexes');
+is($tied[1]->{'ns'}, 'test_database.test_collection', 'namespace');
+is($tied[1]->{'name'}, 'sn_1_ts_-1', 'namespace');
+
 
 END {
     $db->drop;

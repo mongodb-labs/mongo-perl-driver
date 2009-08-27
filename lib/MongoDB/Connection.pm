@@ -218,28 +218,47 @@ sub remove {
         $direction ||= 'ascending';
         $unique = 0 unless defined $unique;
 
-        my %keys;
-        if (ref $keys eq 'ARRAY') {
-            %keys = map { ($_ => $direction) } @{ $keys };
+        my $k;
+        my @name;
+        if (ref $keys eq 'ARRAY' ||
+            ref $keys eq 'HASH' ) {
+            my %keys;
+            if (ref $keys eq 'ARRAY') {
+                %keys = map { ($_ => $direction) } @{ $keys };
+            }
+            else {
+                %keys = %{ $keys };
+            }
+
+            $k = { map {
+                my $dir = $keys{$_};
+                confess "unknown direction '${dir}'"
+                    unless exists $direction_map{$dir};
+                ($_ => $direction_map{$dir})
+            } keys %keys };
+
+            while ((my $idx, my $d) = each(%$k)) {
+                push @name, $idx;
+                push @name, $d;
+            }
         }
-        elsif (ref $keys eq 'HASH') {
-            %keys = %{ $keys };
+        elsif (ref $keys eq 'Tie::IxHash') {
+            my @ks = $keys->Keys;
+            my @vs = $keys->Values;
+
+            for (my $i=0; $i<$keys->Length; $i++) {
+                $keys->Replace($i, $direction_map{$vs[$i]});
+            }
+
+            @vs = $keys->Values;
+            for (my $i=0; $i<$keys->Length; $i++) {
+                push @name, $ks[$i];
+                push @name, $vs[$i];
+            }
+            $k = $keys;
         }
         else {
             confess 'expected hash or array reference for keys';
-        }
-
-        my $k = { map {
-            my $dir = $keys{$_};
-            confess "unknown direction '${dir}'"
-                unless exists $direction_map{$dir};
-            ($_ => $direction_map{$dir})
-        } keys %keys };
-
-        my @name;
-        while ((my $idx, my $d) = each(%$k)) {
-            push @name, $idx;
-            push @name, $d;
         }
 
         my $obj = {"ns" => $ns,
