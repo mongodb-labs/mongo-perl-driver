@@ -243,19 +243,40 @@ skip (self, num)
 
 
 void
-mongo_cursor_DESTROY (self)
+DESTROY (self)
       SV *self
   PREINIT:
-      SV *link;
+      SV **link;
       HV *this_hash;
       mongo_cursor *cursor;
   CODE:
-      this_hash = SvSTASH(SvRV(self));
-      link = hv_fetch(this_hash, "link", strlen("link"), 0);
-      SvREFCNT_dec(link);
-
-      printf("in cursor destroy\n");
+      //this_hash = SvSTASH(SvRV(self));
+      //link = hv_fetch(this_hash, "link", strlen("link"), 0);
+      //SvREFCNT_dec(*link);
+      
       cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-      if (cursor->buf.start)
-        Safefree(cursor->buf.start);
-      Safefree(cursor);
+      if (cursor) {
+        if (cursor->ns) { 
+          Safefree(cursor->ns);
+          cursor->ns = 0;
+        }
+        
+        if (cursor->query) { 
+          SvREFCNT_dec(cursor->query);
+          cursor->query = 0;
+        }
+        
+        if (cursor->fields) {
+          SvREFCNT_dec(cursor->fields);
+          cursor->fields = 0;
+        }
+
+        if (cursor->buf.start) {
+          Safefree(cursor->buf.start);
+          cursor->buf.start = 0;
+        }
+        
+        Safefree(cursor);
+        cursor = 0;
+        
+      }

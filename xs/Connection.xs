@@ -123,8 +123,8 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         RETVAL = sv_bless(newRV_noinc((SV *)rcursor), stash);
 
         // associate this connection with the cursor
-        hv_store(stash, "link", strlen("link"), self, 0);
         SvREFCNT_inc(self);
+        hv_store(stash, "link", strlen("link"), self, 0);
 
         // attach a mongo_cursor* to the MongoDB::Cursor
         Newx(cursor, 1, mongo_cursor);
@@ -133,17 +133,19 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         // START cursor setup
 
         // set the namespace
-        cursor->ns = ns;
+        Newxz(cursor->ns, strlen(ns)+1, char);
+        memcpy(cursor->ns, ns, strlen(ns));
 
         // create the query
         full_query = newHV();
-        cursor->query = newRV_noinc((SV*)full_query);
+        cursor->query = newRV((SV*)full_query);
 
         // add the query to the... query
         if (!query || !SvOK(query)) {
           query = newRV_noinc((SV*)newHV());
         }
-        hv_store(full_query, "query", strlen("query"), SvREFCNT_inc(query), 0);
+        SvREFCNT_inc(query);
+        hv_store(full_query, "query", strlen("query"), query, 0);
 
         // add sort to the query
         if (sort && SvOK(sort)) {
@@ -294,7 +296,7 @@ _ensure_index (self, ns, keys, unique=0)
 
 
 void
-connection_DESTROY (self)
+DESTROY (self)
           SV *self
      PREINIT:
          mongo_link *link;
@@ -308,4 +310,3 @@ connection_DESTROY (self)
            Safefree(link->server.single.host);
          }
          Safefree(link);
-         printf("in destroy\n");

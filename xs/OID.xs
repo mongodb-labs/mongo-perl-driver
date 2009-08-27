@@ -61,5 +61,5 @@ _build_value (self, c_str)
     OUTPUT:
         RETVAL
 
-    
-        
+
+
