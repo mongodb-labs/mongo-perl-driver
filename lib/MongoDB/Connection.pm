@@ -17,6 +17,8 @@
 package MongoDB::Connection;
 # ABSTRACT: A connection to a Mongo server
 
+use Digest::MD5;
+use Tie::IxHash;
 use Any::Moose;
 
 =attr host
@@ -320,8 +322,30 @@ true, which will assume you already did the hashing on yourself.
 =cut
 
 sub authenticate {
-    my ($self, @args) = @_;
-    return $self->_authenticate(@args);
+    my ($self, $dbname, $username, $password, $is_digest) = @_;
+    my $hash = $password;
+    if (!$is_digest) {
+        $hash = Digest::MD5::md5_hex("${username}:mongo:${password}");
+    }
+
+    my $db = $self->get_database($dbname);
+    my $result = $db->run_command({getnonce => 1});
+    if (!$result->{'ok'}) {
+        return $result;
+    }
+
+    my $nonce = $result->{'nonce'};
+    my $digest = Digest::MD5::md5_hex($nonce.$username.$hash);
+    print "digest: $digest\n";
+
+    my $login = tie(my %hash, 'Tie::IxHash');
+    %hash = (authenticate => 1,
+             user => $username, 
+             nonce => $nonce,
+             key => $digest);
+    $result = $db->run_command($login);
+
+    return $result;
 }
 
 no Any::Moose;

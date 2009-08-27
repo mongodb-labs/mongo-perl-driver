@@ -280,26 +280,6 @@ _ensure_index (self, ns, keys, unique=0)
         SvREFCNT_dec (ret);
 
 
-NO_OUTPUT bool
-_authenticate (self, dbname, username, password, is_digest=0)
-	SV *self
-        const char *dbname
-        const char *username
-        const char *password
-        bool is_digest
-    PREINIT:
-        //std::string error_message;
-        //std::string digest_password;
-    INIT:
-        /*if (is_digest) {
-            digest_password = password;
-        } else {
-            digest_password = THIS->createPasswordDigest(username, password);
-        }*/
-    CODE:
-        //RETVAL = THIS->auth(dbname, username, password, error_message, true);
-
-
 void
 connection_DESTROY (self)
           SV *self

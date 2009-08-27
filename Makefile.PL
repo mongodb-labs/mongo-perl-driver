@@ -11,6 +11,7 @@ requires 'Any::Moose';
 # to use Mouse instead of Moose. We depend on it anyway to make sure it's there
 # when it's needed.
 requires 'Class::Method::Modifiers';
+requires 'Digest::MD5';
 test_requires 'Test::Exception';
 
 mongo;
