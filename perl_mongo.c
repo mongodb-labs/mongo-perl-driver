@@ -629,6 +629,30 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
               serialize_null(buf);
               serialize_size(buf->start+start, buf);
             }
+            else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
+              int f=0;
+              char flags[] = {0,0,0,0,0,0};
+              REGEXP *re = SvRX(sv);
+              if (!re) {
+                croak ("couldn't parse this type of obj");
+              }
+
+              set_type(buf, BSON_REGEX);
+              serialize_string(buf, key, strlen(key));
+              serialize_string(buf, re->precomp, re->prelen);
+
+              if (re->extflags & RXf_PMf_FOLD) 
+                flags[f++] = 'i';
+              if (re->extflags & RXf_PMf_MULTILINE)
+                flags[f++] = 'm';
+              if (re->extflags & RXf_PMf_EXTENDED)
+                flags[f++] = 'x';
+              if (re->extflags & RXf_PMf_LOCALE)
+                flags[f++] = 'l';
+              if (re->extflags & RXf_PMf_SINGLELINE)
+                flags[f++] = 's';
+              serialize_string(buf, flags, strlen(flags));
+            }
         } else {
             switch (SvTYPE (SvRV (sv))) {
                 case SVt_PVHV:

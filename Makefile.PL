@@ -12,6 +12,7 @@ requires 'Any::Moose';
 # when it's needed.
 requires 'Class::Method::Modifiers';
 requires 'Digest::MD5';
+requires 'Tie::IxHash';
 test_requires 'Test::Exception';
 
 mongo;
