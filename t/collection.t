@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 37;
+use Test::More tests => 42;
 use Test::Exception;
 
 use Tie::IxHash;
@@ -118,6 +118,17 @@ my @tied = $coll->get_indexes;
 is(scalar @tied, 2, 'num indexes');
 is($tied[1]->{'ns'}, 'test_database.test_collection', 'namespace');
 is($tied[1]->{'name'}, 'sn_1_ts_-1', 'namespace');
+
+$coll->drop;
+
+$coll->insert({x => 1, y => 2, z => 3, w => 4});
+my $cursor = $coll->query->fields({y => 1});
+$obj = $cursor->next;
+is(exists $obj->{y}, 1, 'y exists');
+is(exists $obj->{_id}, 1, '_id exists');
+is(exists $obj->{x}, '', 'x doesn\'t exist');
+is(exists $obj->{z}, '', 'z doesn\'t exist');
+is(exists $obj->{w}, '', 'w doesn\'t exist');
 
 
 END {

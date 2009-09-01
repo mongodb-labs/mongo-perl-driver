@@ -175,6 +175,24 @@ snapshot (self)
 
 
 SV *
+fields (self, fields)
+        SV *self
+        SV *fields
+     PREINIT:
+        mongo_cursor *cursor;
+     CODE:
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+        if (cursor->started_iterating) {
+          croak("cannot set fields after query");
+          return;
+        }
+
+        SvREFCNT_inc(fields);
+        cursor->fields = fields;
+
+        SvREFCNT_inc(self);
+
+SV *
 sort (self, sort)
         SV *self
         SV *sort

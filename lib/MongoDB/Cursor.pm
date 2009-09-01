@@ -44,6 +44,16 @@ has _queried => (
     default  => 0,
 );
 
+=method fields
+
+    $coll->insert({name => "Fred", age => 20});
+    my $cursor = $coll->find->fields({ name => 1 });
+    my $obj = $cursor->next;
+    $obj->{name}; "Fred"
+    $obj->{age}; # undef
+
+Selects which fields are returned. 
+The default is all fields.  _id is always returned.
 
 =method sort
 
