@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 42;
+use Test::More tests => 43;
 use Test::Exception;
 
 use Tie::IxHash;
@@ -46,6 +46,13 @@ lives_ok {
 
 $coll->remove($obj);
 is($coll->count, 0, 'remove() deleted everything');
+
+$coll->drop;
+for (my $i=0; $i<10; $i++) {
+    $coll->insert({'x' => $i, 'z' => 3, 'w' => 4});
+    $coll->insert({'x' => $i, 'y' => 2, 'z' => 3, 'w' => 4});
+}
+is($coll->count({}, {y => 1}), 10, 'count fields');
 
 $coll->drop;
 ok(!$coll->get_indexes, 'no indexes yet');

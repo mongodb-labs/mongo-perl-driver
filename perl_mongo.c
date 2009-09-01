@@ -215,7 +215,7 @@ oid_to_sv (const char *oid_class, buffer *buf)
     char *id;
     Newxz(id, 25, char);
     perl_mongo_oid_create(buf->pos, id);
-    return perl_mongo_construct_instance (oid_class, "value", newSVpv (id, 24), NULL);
+    return perl_mongo_construct_instance (oid_class, "value", newSVpvn (id, 24), NULL);
 }
 
 static SV *
@@ -235,11 +235,14 @@ elem_to_sv (const char *oid_class, int type, buffer *buf)
     break;
   }
   case BSON_STRING: {
-    // len includes \0
     int len = *((int*)buf->pos);
+    char *str;
     buf->pos += INT_32;
 
-    value = newSVpv(buf->pos, len-1);
+    // len includes \0
+    Newx(str, len, char);
+    memcpy(str, buf->pos, len);
+    value = newSVpvn(str, len-1);
     buf->pos += len;
     break;
   }
@@ -259,10 +262,11 @@ elem_to_sv (const char *oid_class, int type, buffer *buf)
 
     type = *buf->pos++;
 
-    bytes = buf->pos;
+    Newxz(bytes, len+1, char);
+    memcpy(bytes, buf->pos, len);
     buf->pos += len;
 
-    value = newSVpv(bytes, len);
+    value = newSVpvn(bytes, len);
     break;
   }
   case BSON_BOOL: {

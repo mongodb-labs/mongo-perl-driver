@@ -136,23 +136,27 @@ sub _query_ns {
     return $self->name;
 }
 
-=method count ($query)
+=method count ($query, $fields)
 
     my $n_objects = $collection->count({ name => 'Bob' });
+    my $n_objects = $collection->count({ name => 'Bob' }, { zip : 1 });
 
-Counts the number of objects in this collection that match the given C<$query>.
+Counts the number of objects in this collection that match the given C<$query>
+and contain the given C<$fields> (both parameters optional).
 
 =cut
 
 sub count {
-    my ($self, $query) = @_;
+    my ($self, $query, $fields) = @_;
     $query ||= {};
+    $fields ||= {};
 
     my $obj;
     eval {
         $obj = $self->_database->run_command({
             count => $self->name,
             query => $query,
+            fields => $fields,
         });
     };
 
