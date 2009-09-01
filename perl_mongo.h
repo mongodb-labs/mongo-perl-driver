@@ -25,7 +25,11 @@
 
 #define PERL_MONGO_CALL_BOOT(name)  perl_mongo_call_xs (aTHX_ name, cv, mark)
 
-#undef VERSION
+#define OID_CLASS "MongoDB::OID"
+
+/* whether to add an _id field */
+#define PREP 1
+#define NO_PREP 0
 
 #define INT_32 4
 #define INT_64 8
@@ -79,7 +83,7 @@ void perl_mongo_oid_create(char* twelve, char *twenty4);
 
 // serialization
 SV *perl_mongo_bson_to_sv (const char *oid_class, buffer *buf);
-void perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class);
+void perl_mongo_sv_to_bson (buffer *buf, SV *sv, int add_oid);
 
 void serialize_size(char*, buffer*);
 inline void serialize_double(buffer*, double);

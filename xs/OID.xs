@@ -25,8 +25,9 @@ _build_value (self, c_str)
         SV *self
         const char *c_str;
     PREINIT: 
-        STRLEN len;
-        char id[25];
+        char *id;
+    INIT:
+        Newxz(id, 25, char);
     CODE:
         if (c_str && strlen(c_str) == 24) {
           memcpy(id, c_str, 24);
@@ -57,7 +58,7 @@ _build_value (self, c_str)
 
           perl_mongo_oid_create(data, id);
         }
-        RETVAL = newSVpv (id, len);
+        RETVAL = newSVpv (id, 24);
     OUTPUT:
         RETVAL
 

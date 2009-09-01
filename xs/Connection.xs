@@ -200,25 +200,21 @@ _insert (self, ns, object)
         const char *ns
         SV *object
     PREINIT:
-        SV *oid_class;
         mongo_link *link;
         mongo_msg_header header;
         buffer buf;
-    INIT:
-        oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
     CODE:
         link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_INSERT);
-        perl_mongo_sv_to_bson(&buf, object, SvPV_nolen (oid_class));
+        perl_mongo_sv_to_bson(&buf, object, PREP);
         serialize_size(buf.start, &buf);
 
         // sends
         mongo_link_say(self, link, &buf);
         Safefree(buf.start);
-      CLEANUP:
-        SvREFCNT_dec (oid_class);
+
 
 void
 _remove (self, ns, query, just_one)
@@ -227,26 +223,22 @@ _remove (self, ns, query, just_one)
         SV *query
         bool just_one
     PREINIT:
-        SV *oid_class;
         mongo_link *link;
         mongo_msg_header header;
         buffer buf;
-    INIT:
-        oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
     CODE:
         link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_DELETE);
         serialize_int(&buf, (int)(just_one == 1));
-        perl_mongo_sv_to_bson(&buf, query, SvPV_nolen (oid_class));
+        perl_mongo_sv_to_bson(&buf, query, NO_PREP);
         serialize_size(buf.start, &buf);
 
         // sends
         mongo_link_say(self, link, &buf);
         Safefree(buf.start);
-    CLEANUP:
-        SvREFCNT_dec (oid_class);
+
 
 void
 _update (self, ns, query, object, upsert)
@@ -256,27 +248,22 @@ _update (self, ns, query, object, upsert)
         SV *object
         bool upsert
     PREINIT:
-        SV *oid_class;
         mongo_link *link;
         mongo_msg_header header;
         buffer buf;
-    INIT:
-        oid_class = perl_mongo_call_reader (ST (0), "_oid_class");
     CODE:
         link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_UPDATE);
         serialize_int(&buf, upsert);
-        perl_mongo_sv_to_bson(&buf, query, SvPV_nolen (oid_class));
-        perl_mongo_sv_to_bson(&buf, object, SvPV_nolen (oid_class));
+        perl_mongo_sv_to_bson(&buf, query, NO_PREP);
+        perl_mongo_sv_to_bson(&buf, object, NO_PREP);
         serialize_size(buf.start, &buf);
 
         // sends
         mongo_link_say(self, link, &buf);
         Safefree(buf.start);
-    CLEANUP:
-        SvREFCNT_dec (oid_class);
 
 void
 _ensure_index (self, ns, keys, unique=0)

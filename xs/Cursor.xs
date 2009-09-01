@@ -47,9 +47,9 @@ static mongo_cursor* get_cursor(SV *self) {
   CREATE_HEADER_WITH_OPTS(buf, cursor->ns, OP_QUERY, cursor->opts);
   serialize_int(&buf, cursor->skip);
   serialize_int(&buf, cursor->limit);
-  perl_mongo_sv_to_bson(&buf, cursor->query, "MongoDB::OID");
+  perl_mongo_sv_to_bson(&buf, cursor->query, NO_PREP);
   if (cursor->fields) {
-    perl_mongo_sv_to_bson(&buf, cursor->fields, "MongoDB::OID");
+    perl_mongo_sv_to_bson(&buf, cursor->fields, NO_PREP);
   }
 
   serialize_size(buf.start, &buf);

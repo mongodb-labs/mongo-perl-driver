@@ -212,7 +212,8 @@ void perl_mongo_oid_create(char *twelve, char *twenty4) {
 static SV *
 oid_to_sv (const char *oid_class, buffer *buf)
 {
-    char id[25];
+    char *id;
+    Newxz(id, 25, char);
     perl_mongo_oid_create(buf->pos, id);
     return perl_mongo_construct_instance (oid_class, "value", newSVpv (id, 24), NULL);
 }
@@ -525,22 +526,35 @@ void serialize_size(char *start, buffer *buf) {
   memcpy(start, &total, INT_32);
 }
 
+static void append_sv (buffer *buf, const char *key, SV *sv);
 
-static void append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class);
+/* add an _id */
+static void
+prep(buffer *buf, SV *sv) {
+  HV *hash = (HV*)SvRV(sv);
+  if (hv_exists(hash, "_id", strlen("_id"))) {
+    SV **id = hv_fetch(hash, "_id", strlen("_id"), 0);
+    append_sv(buf, "_id", *id);
+  }
+}
 
 static void
-hv_to_bson (buffer *buf, SV *sv, const char *oid_class)
+hv_to_bson (buffer *buf, SV *sv, int add_oid)
 {
     int start;
     HE *he;
     HV *hv;
 
-    // keep a record of the starting position
-    // as an offset, in case the memory is resized
+    /* keep a record of the starting position
+     * as an offset, in case the memory is resized */
     start = buf->pos-buf->start;
 
-    // skip first 4 bytes to leave room for size
+    /* skip first 4 bytes to leave room for size */
     buf->pos += INT_32;
+
+    if (add_oid) {
+      prep(buf, sv);
+    }
 
     hv = (HV*)SvRV(sv);
 
@@ -548,7 +562,12 @@ hv_to_bson (buffer *buf, SV *sv, const char *oid_class)
     while ((he = hv_iternext (hv))) {
         STRLEN len;
         const char *key = HePV (he, len);
-        append_sv (buf, key, HeVAL (he), oid_class); 
+
+        /* if we've already added the oid field, continue */
+        if (add_oid && strcmp(key, "_id") == 0) {
+          continue;
+        }
+        append_sv (buf, key, HeVAL (he)); 
     }
 
     serialize_null(buf);
@@ -556,7 +575,7 @@ hv_to_bson (buffer *buf, SV *sv, const char *oid_class)
 }
 
 static void
-av_to_bson (buffer *buf, AV *av, const char *oid_class)
+av_to_bson (buffer *buf, AV *av)
 {
     int start;
 
@@ -570,7 +589,7 @@ av_to_bson (buffer *buf, AV *av, const char *oid_class)
         if (!(sv = av_fetch (av, i, 0))) {
             croak ("failed to fetch array value");
         }
-        append_sv (buf, SvPVutf8_nolen(key), *sv, oid_class);
+        append_sv (buf, SvPVutf8_nolen(key), *sv);
         SvREFCNT_dec (key);
     }
 
@@ -579,7 +598,7 @@ av_to_bson (buffer *buf, AV *av, const char *oid_class)
 }
 
 static void
-append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
+append_sv (buffer *buf, const char *key, SV *sv)
 {
     if (!SvOK(sv)) {
         set_type(buf, BSON_NULL);
@@ -588,7 +607,7 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
     }
     if (SvROK (sv)) {
         if (sv_isobject (sv)) {
-            if (sv_derived_from (sv, oid_class)) {
+            if (sv_derived_from (sv, OID_CLASS)) {
                 SV *attr = perl_mongo_call_reader (sv, "value");
                 char *str = SvPV_nolen (attr);
 
@@ -623,7 +642,7 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
                     !(v = av_fetch(values, i, 0))) {
                   croak ("failed to fetch associative array value");
                 }
-                append_sv(buf, SvPVutf8_nolen(*k), *v, oid_class);
+                append_sv(buf, SvPVutf8_nolen(*k), *v);
               }
 
               serialize_null(buf);
@@ -658,12 +677,13 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
                 case SVt_PVHV:
                     set_type(buf, BSON_OBJECT);
                     serialize_string(buf, key, strlen(key));
-                    hv_to_bson (buf, sv, oid_class);
+                    /* don't add a _id to inner objs */
+                    hv_to_bson (buf, sv, NO_PREP);
                     break;
                 case SVt_PVAV:
                     set_type(buf, BSON_ARRAY);
                     serialize_string(buf, key, strlen(key));
-                    av_to_bson (buf, (AV *)SvRV (sv), oid_class);
+                    av_to_bson (buf, (AV *)SvRV (sv));
                     break;
                 default:
                     sv_dump(SvRV(sv));
@@ -727,7 +747,7 @@ append_sv (buffer *buf, const char *key, SV *sv, const char *oid_class)
 }
 
 void
-perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class)
+perl_mongo_sv_to_bson (buffer *buf, SV *sv, int add_oid)
 {
     if (!SvROK (sv)) {
         croak ("not a reference");
@@ -735,7 +755,7 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class)
 
     switch (SvTYPE (SvRV (sv))) {
         case SVt_PVHV:
-            hv_to_bson (buf, sv, oid_class);
+            hv_to_bson (buf, sv, add_oid);
             break;
         case SVt_PVAV: {
             I32 i;
@@ -749,12 +769,17 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, const char *oid_class)
             start = buf->pos-buf->start;
             buf->pos += INT_32;
 
+            /* 
+             * we don't need to worry about serializing the _id,
+             * as it's illegal to insert an array 
+             */
+
             for (i = 0; i <= av_len (av); i += 2) {
                 SV **key, **val;
                 if ( !((key = av_fetch (av, i, 0)) && (val = av_fetch (av, i + 1, 0))) ) {
                     croak ("failed to fetch array element");
                 }
-                append_sv (buf, SvPVutf8_nolen (*key), *val, oid_class);
+                append_sv (buf, SvPVutf8_nolen (*key), *val);
             }
 
             serialize_null(buf);
