@@ -280,21 +280,10 @@ elem_to_sv (const char *oid_class, int type, buffer *buf)
     buf->pos += INT_32;
     break;
   }
-  case BSON_LONG: {
+  case BSON_LONG: 
+  case BSON_DATE: {
     value = newSViv(*((long long int*)buf->pos));
     buf->pos += INT_64;
-    break;
-  }
-  case BSON_DATE: {
-    // TODO
-    /*long long int d = *((long long int*)buf->pos);
-      buf->pos += INT_64;
-      
-      object_init_ex(value, mongo_ce_Date);
-
-      add_property_long(value, "sec", (long)(d/1000));
-      add_property_long(value, "usec", (d*1000)%1000000);
-    */
     break;
   }
   case BSON_REGEX: {
