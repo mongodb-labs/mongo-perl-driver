@@ -107,6 +107,23 @@ sub drop {
     return $self->run_command({ dropDatabase => 1 });
 }
 
+
+=method last_error
+
+    my $err = $db->last_error;
+
+Queries the database to check if the last operation caused an error.
+
+=cut
+
+sub last_error {
+    my ($self) = @_;
+    return $self->run_command({
+        "getlasterror" => 1
+    });
+}
+
+
 =method run_command ($command)
 
     my $result = $database->run_command({ some_command => 1 });
