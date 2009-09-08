@@ -560,7 +560,7 @@ hv_to_bson (buffer *buf, SV *sv, int add_oid)
         if (add_oid && strcmp(key, "_id") == 0) {
           continue;
         }
-        append_sv (buf, key, HeVAL (he)); 
+        append_sv (buf, key, HeVAL (he));
     }
 
     serialize_null(buf);
@@ -570,12 +570,12 @@ hv_to_bson (buffer *buf, SV *sv, int add_oid)
 static void
 av_to_bson (buffer *buf, AV *av)
 {
+    I32 i;
     int start;
 
     start = buf->pos-buf->start;
     buf->pos += INT_32;
 
-    I32 i;
     for (i = 0; i <= av_len (av); i++) {
         SV **sv;
         SV *key = newSViv (i);
@@ -641,10 +641,12 @@ append_sv (buffer *buf, const char *key, SV *sv)
               serialize_null(buf);
               serialize_size(buf->start+start, buf);
             }
+#ifndef PERL_DARWIN
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
-              int f=0;
+              int extflags = 0, f=0;
               char flags[] = {0,0,0,0,0,0};
               REGEXP *re = SvRX(sv);
+
               if (!re) {
                 croak ("couldn't parse this type of obj");
               }
@@ -652,19 +654,21 @@ append_sv (buffer *buf, const char *key, SV *sv)
               set_type(buf, BSON_REGEX);
               serialize_string(buf, key, strlen(key));
               serialize_string(buf, re->precomp, re->prelen);
+              extflags = re->extflags;
 
-              if (re->extflags & RXf_PMf_FOLD) 
+              if (extflags & PMf_FOLD)
                 flags[f++] = 'i';
-              if (re->extflags & RXf_PMf_MULTILINE)
+              if (extflags & PMf_MULTILINE)
                 flags[f++] = 'm';
-              if (re->extflags & RXf_PMf_EXTENDED)
+              if (extflags & PMf_EXTENDED)
                 flags[f++] = 'x';
-              if (re->extflags & RXf_PMf_LOCALE)
+              if (extflags & PMf_LOCALE)
                 flags[f++] = 'l';
-              if (re->extflags & RXf_PMf_SINGLELINE)
+              if (extflags & PMf_SINGLELINE)
                 flags[f++] = 's';
               serialize_string(buf, flags, strlen(flags));
             }
+#endif
         } else {
             switch (SvTYPE (SvRV (sv))) {
                 case SVt_PVHV:
@@ -753,18 +757,18 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, int add_oid)
         case SVt_PVAV: {
             I32 i;
             AV *av = (AV *)SvRV (sv);
+            int start;
+
             if ((av_len (av) % 2) == 0) {
                 croak ("odd number of elements in structure");
             }
 
-            int start;
-            
             start = buf->pos-buf->start;
             buf->pos += INT_32;
 
-            /* 
+            /*
              * we don't need to worry about serializing the _id,
-             * as it's illegal to insert an array 
+             * as it's illegal to insert an array
              */
 
             for (i = 0; i <= av_len (av); i += 2) {
