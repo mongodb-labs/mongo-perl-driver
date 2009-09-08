@@ -123,8 +123,8 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         RETVAL = sv_bless(newRV_noinc((SV *)rcursor), stash);
 
         // associate this connection with the cursor
-        SvREFCNT_inc(self);
-        hv_store(stash, "link", strlen("link"), self, 0);
+        SvREFCNT_inc(SvRV(self));
+        hv_store(stash, "link", strlen("link"), SvRV(self), 0);
 
         // attach a mongo_cursor* to the MongoDB::Cursor
         Newx(cursor, 1, mongo_cursor);
