@@ -51,7 +51,9 @@ sub to_string {
     $self->value;
 }
 
-use overload '""' => \&to_string;
+use overload
+    '""' => \&to_string,
+    'fallback' => 1;
 
 no Any::Moose;
 __PACKAGE__->meta->make_immutable;
