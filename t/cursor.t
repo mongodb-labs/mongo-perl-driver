@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 40;
+use Test::More tests => 41;
 use Test::Exception;
 
 use MongoDB;
@@ -100,3 +100,20 @@ $paging->next;
 is($paging->has_next, 1);
 $paging->next;
 is(int $paging->has_next, 0);
+
+
+my $collection = $db->get_collection('test');
+$collection->drop;
+$collection->ensure_index(['sn']);
+
+my $sn = 0;
+while ($sn <= 500) {
+  $collection->insert({sn => $sn++});
+}
+
+$cursor = $collection->query();
+my $count = 0;
+while (my $doc = $cursor->next()) {
+    $count++;
+}
+is(501, $count);

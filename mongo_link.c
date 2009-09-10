@@ -196,7 +196,7 @@ int mongo_link_hear(SV *self, mongo_link *link, mongo_cursor *cursor) {
 
   if (!check_connection(link)) {
     croak("can't get db response, not connected");
-    return -1;
+    return 0;
   }
   sock = perl_mongo_link_master(self, link);
 
