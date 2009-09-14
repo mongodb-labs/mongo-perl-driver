@@ -270,9 +270,9 @@ DESTROY (self)
       HV *this_hash;
       mongo_cursor *cursor;
   CODE:
-      this_hash = SvSTASH(SvRV(self));
-      link = hv_fetch(this_hash, "link", strlen("link"), 0);
-      SvREFCNT_dec(*link);
+      //this_hash = SvSTASH(SvRV(self));
+      //link = hv_fetch(this_hash, "link", strlen("link"), 0);
+      //SvREFCNT_dec(*link);
 
       cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
       if (cursor) {

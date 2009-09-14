@@ -86,8 +86,8 @@ is($cursor_sort->next->{'x'}, 5);
 
 my $cursor3 = $coll->query->snapshot;
 is($cursor3->has_next, 1, 'check has_next');
-$cursor3->next;
-is($cursor3->has_next, 1);
+my $r1 = $cursor3->next;
+is($cursor3->has_next, 1, 'if this failed, the database you\'re running is old and snapshot won\'t work');
 $cursor3->next;
 is(int $cursor3->has_next, 0, 'check has_next is false');
 

@@ -45,7 +45,7 @@ lives_ok {
 } 'validate';
 
 $coll->remove($obj);
-is($coll->count, 0, 'remove() deleted everything');
+is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
 
 $coll->drop;
 for (my $i=0; $i<10; $i++) {
