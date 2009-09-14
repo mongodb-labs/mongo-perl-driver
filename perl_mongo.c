@@ -21,6 +21,7 @@
 #include <memory.h>
 #endif
 
+#include "regcomp.h"
 
 void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark)
@@ -292,59 +293,11 @@ elem_to_sv (const char *oid_class, int type, buffer *buf)
   }
   case BSON_REGEX: {
     // TODO
-    /*char *regex, *flags;
-      int regex_len, flags_len;
-
-      regex = buf->pos;
-      regex_len = strlen(buf->pos);
-      buf->pos += regex_len+1;
-
-      flags = buf->pos;
-      flags_len = strlen(buf->pos);
-      buf->pos += flags_len+1;
-
-      object_init_ex(value, mongo_ce_Regex);
-
-      add_property_stringl(value, "regex", regex, regex_len, 1);
-      add_property_stringl(value, "flags", flags, flags_len, 1);
-    */
     break;
   }
   case BSON_CODE: 
   case BSON_CODE__D: {
     // TODO
-    /*zval *zcope;
-      int code_len;
-      char *code;
-
-      object_init_ex(value, mongo_ce_Code);
-      // initialize scope array
-      MAKE_STD_ZVAL(zcope);
-      array_init(zcope);
-
-      // CODE has a useless total size field
-      if (type == BSON_CODE) {
-      buf->pos += INT_32;
-      }
-
-      // length of code (includes \0)
-      code_len = *(int*)buf->pos;
-      buf->pos += INT_32;
-
-      code = buf->pos;
-      buf->pos += code_len;
-
-      if (type == BSON_CODE) {
-      buf->pos = bson_to_zval(buf->pos, HASH_P(zcope) TSRMLS_CC);
-      }
-
-      // exclude \0
-      add_property_stringl(value, "code", code, code_len-1, DUP);
-      add_property_zval(value, "scope", zcope);
-
-      // somehow, we pick up an extra zcope ref
-      zval_ptr_dtor(&zcope);
-    */
     break;
   }
   case BSON_TIMESTAMP: {
@@ -641,13 +594,17 @@ append_sv (buffer *buf, const char *key, SV *sv)
               serialize_null(buf);
               serialize_size(buf->start+start, buf);
             }
-#ifndef PERL_DARWIN
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
               int extflags = 0, f=0;
               char flags[] = {0,0,0,0,0,0};
-              REGEXP *re = SvRX(sv);
+              REGEXP *re;
+              SV* tmpsv = (SV*)SvRV(sv);
 
-              if (!re) {
+              if (SvTYPE(tmpsv) == SVt_PVMG) {
+                MAGIC* tmpmg = mg_find(tmpsv, PERL_MAGIC_qr);
+                re = (REGEXP *) tmpmg->mg_obj;
+              }
+              else {
                 croak ("couldn't parse this type of obj");
               }
 
@@ -656,19 +613,22 @@ append_sv (buffer *buf, const char *key, SV *sv)
               serialize_string(buf, re->precomp, re->prelen);
               extflags = re->extflags;
 
-              if (extflags & PMf_FOLD)
-                flags[f++] = 'i';
-              if (extflags & PMf_MULTILINE)
-                flags[f++] = 'm';
-              if (extflags & PMf_EXTENDED)
-                flags[f++] = 'x';
-              if (extflags & PMf_LOCALE)
-                flags[f++] = 'l';
-              if (extflags & PMf_SINGLELINE)
-                flags[f++] = 's';
+              int i = 0;
+              STRLEN string_length;
+              char * string = SvPV(sv, string_length);
+              
+              // todo: check for valid flags
+              // i, m, x, s (can this do l?)
+              string += 2;
+              for(i = 2; i < string_length; i++) {
+                flags[f++] = string[0];
+                string++;
+                if(string[0] == ':')
+                  break;
+              }
+
               serialize_string(buf, flags, strlen(flags));
             }
-#endif
         } else {
             switch (SvTYPE (SvRV (sv))) {
                 case SVt_PVHV:
