@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 41;
+use Test::More tests => 45;
 use Test::Exception;
 
 use MongoDB;
@@ -117,3 +117,19 @@ while (my $doc = $cursor->next()) {
     $count++;
 }
 is(501, $count);
+
+# reset
+$cursor->reset;
+$r1 = $cursor->next;
+$cursor->reset;
+my $r2 = $cursor->next;
+
+is($r1->{'sn'}, $r2->{'sn'}, 'reset');
+
+# explain
+my $exp = $cursor->explain;
+is(501, $exp->{'n'}, 'explain');
+is('BasicCursor', $exp->{'cursor'});
+ok(exists $exp->{'endKey'});
+
+$collection->drop;

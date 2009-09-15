@@ -617,7 +617,7 @@ append_sv (buffer *buf, const char *key, SV *sv)
               STRLEN string_length;
               char * string = SvPV(sv, string_length);
               
-              // todo: check for valid flags
+              // TODO: check for valid flags
               // i, m, x, s (can this do l?)
               string += 2;
               for(i = 2; i < string_length; i++) {

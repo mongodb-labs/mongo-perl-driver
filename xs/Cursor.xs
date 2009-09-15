@@ -19,11 +19,6 @@
 
 extern int request_id;
 
-static int already_queried(SV *self) {
-  // check if the query's been executed
-  return SvTRUE(perl_mongo_call_reader (self, "_queried"));
-}
-
 static mongo_cursor* get_cursor(SV *self) {
   SV **link_sv, *link_rv;
   mongo_link *link;
@@ -143,7 +138,12 @@ next (self)
           RETVAL = perl_mongo_bson_to_sv("MongoDB::OID", &cursor->buf);
           cursor->at++;
 
-          //TODO handle $err
+          if (cursor->num == 1 &&
+              hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))) {
+            STRLEN len;
+            SV **err = hv_fetch((HV*)SvRV(RETVAL), "$err", strlen("$err"), 0);
+            croak(SvPV_nolen(*err));
+          }
 	} else {
           RETVAL = &PL_sv_undef;
         }
@@ -259,6 +259,45 @@ skip (self, num)
 
         cursor->skip = num;
         SvREFCNT_inc(self);
+
+
+SV *
+explain (self) 
+        SV *self
+    PREINIT:
+        mongo_cursor *cursor;
+        HV *this_hash;
+        SV **query;
+    CODE:
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+
+        this_hash = SvSTASH(SvRV(self));
+        query = hv_fetch(this_hash, "query", strlen("query"), 0);
+
+        if (!query || !SvROK(*query) || SvTYPE(SvRV(*query)) != SVt_PVHV) {
+          croak("couldn't run explain, invalid query");
+        }
+
+        // store $explain
+        hv_store((HV*)SvRV(*query), "$explain", strlen("$explain"), &PL_sv_yes, 0);
+
+        perl_mongo_call_method(self, "reset", 0);
+        RETVAL = perl_mongo_call_method(self, "next", 0);
+    OUTPUT:
+        RETVAL
+
+
+SV *
+reset (self)
+        SV *self
+    PREINIT:
+        mongo_cursor *cursor;
+    CODE:
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+        cursor->buf.pos = cursor->buf.start;
+        cursor->started_iterating = 0;
+        cursor->at = 0;
+        cursor->num = 0;
 
 
 

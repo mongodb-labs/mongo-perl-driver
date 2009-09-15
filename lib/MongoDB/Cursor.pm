@@ -97,6 +97,24 @@ query responses (less than 1MB) are always effectively
 snapshotted.  Currently, snapshot mode may not be used with 
 sorting or explicit hints.
 
+
+=method explain
+
+    my $explanation = $cursor->explain;
+
+This will tell you the type of cursor used, the number of records 
+the DB had to examine as part of this query, the number of records 
+returned by the query, and the time in milliseconds the query took 
+to execute.
+
+
+=method reset
+
+Resets the cursor.  After being reset, pre-query methods can be
+called on the cursor (sort, limit, etc.) and subsequent calls to
+next, has_next, or all will re-query the database.
+
+
 =method has_next
 
     while ($cursor->has_next) {
