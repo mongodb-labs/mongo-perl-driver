@@ -227,6 +227,41 @@ sort (self, sort)
         // increment this
         SvREFCNT_inc(self);
 
+
+SV *
+hint (self, hint)
+        SV *self
+        SV *hint
+     PREINIT:
+        mongo_cursor *cursor;
+        HV *this_hash;
+        SV **query;
+     CODE:
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+        if (cursor->started_iterating) {
+          croak("cannot set hint() after query");
+          return;
+        }
+
+        this_hash = SvSTASH(SvRV(self));
+        query = hv_fetch(this_hash, "query", strlen("query"), 0);
+
+        if (query && SvROK(*query) && SvTYPE(SvRV(*query)) == SVt_PVHV) {
+          // store hint and increase refcount
+          SV **ret = hv_store((HV*)SvRV(*query), "$hint", strlen("$hint"), SvREFCNT_inc(hint), 0);
+
+          // if the hash update failed, decrement the refcount
+          if (!ret) {
+            SvREFCNT_dec(hint);
+            // should we croak here?
+          }
+        } else {
+          croak("something is wrong with the query");
+        }
+        // increment this
+        SvREFCNT_inc(self);
+
+
 SV *
 limit (self, num)
         SV *self

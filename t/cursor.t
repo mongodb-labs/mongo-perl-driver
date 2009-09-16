@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 47;
+use Test::More tests => 49;
 use Test::Exception;
 
 use MongoDB;
@@ -139,4 +139,20 @@ $cursor->reset;
 $exp = $cursor->limit(-20)->explain;
 is(20, $exp->{'n'});
 
+#hint
+$cursor->reset;
+my $hinted = $cursor->hint({'x' => 1});
+is($hinted, $cursor);
+
 $collection->drop;
+
+$collection->insert({'num' => 1, 'foo' => 1});
+
+my $aok = 1;
+eval {
+    $collection->query->hint({'num' => 1})->explain;
+    $aok = 0;
+};
+
+ok($@ =~ m/^bad hint at/);
+

@@ -98,6 +98,13 @@ snapshotted.  Currently, snapshot mode may not be used with
 sorting or explicit hints.
 
 
+=method hint
+
+    my $cursor = $coll->find->hint({'x' => 1});
+
+Force Mongo to use a specific index for a query.
+
+
 =method explain
 
     my $explanation = $cursor->explain;
