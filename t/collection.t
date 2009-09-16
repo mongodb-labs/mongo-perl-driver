@@ -129,13 +129,13 @@ is($tied[1]->{'name'}, 'sn_1_ts_-1', 'namespace');
 $coll->drop;
 
 $coll->insert({x => 1, y => 2, z => 3, w => 4});
-my $cursor = $coll->query->fields({y => 1});
+my $cursor = $coll->query->fields({'y' => 1});
 $obj = $cursor->next;
-is(exists $obj->{y}, 1, 'y exists');
-is(exists $obj->{_id}, 1, '_id exists');
-is(exists $obj->{x}, '', 'x doesn\'t exist');
-is(exists $obj->{z}, '', 'z doesn\'t exist');
-is(exists $obj->{w}, '', 'w doesn\'t exist');
+is(exists $obj->{'y'}, 1, 'y exists');
+is(exists $obj->{'_id'}, 1, '_id exists');
+is(exists $obj->{'x'}, '', 'x doesn\'t exist');
+is(exists $obj->{'z'}, '', 'z doesn\'t exist');
+is(exists $obj->{'w'}, '', 'w doesn\'t exist');
 
 
 END {
