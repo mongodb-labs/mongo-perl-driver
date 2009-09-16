@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 45;
+use Test::More tests => 47;
 use Test::Exception;
 
 use MongoDB;
@@ -131,5 +131,12 @@ my $exp = $cursor->explain;
 is(501, $exp->{'n'}, 'explain');
 is('BasicCursor', $exp->{'cursor'});
 ok(exists $exp->{'endKey'});
+
+$cursor->reset;
+$exp = $cursor->limit(20)->explain;
+is(20, $exp->{'n'}, 'explain limit');
+$cursor->reset;
+$exp = $cursor->limit(-20)->explain;
+is(20, $exp->{'n'});
 
 $collection->drop;

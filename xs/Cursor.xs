@@ -268,8 +268,14 @@ explain (self)
         mongo_cursor *cursor;
         HV *this_hash;
         SV **query;
+        int temp_limit;
     CODE:
         cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+
+        temp_limit = cursor->limit;
+        if (cursor->limit > 0) {
+          cursor->limit *= -1;
+        }
 
         this_hash = SvSTASH(SvRV(self));
         query = hv_fetch(this_hash, "query", strlen("query"), 0);
@@ -283,6 +289,8 @@ explain (self)
 
         perl_mongo_call_method(self, "reset", 0);
         RETVAL = perl_mongo_call_method(self, "next", 0);
+
+        cursor->limit = temp_limit;
     OUTPUT:
         RETVAL
 
