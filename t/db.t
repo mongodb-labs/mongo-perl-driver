@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 8;
+use Test::More tests => 10;
 use Test::Exception;
 
 use MongoDB;
@@ -24,3 +24,8 @@ is($result->{ok}, 1, 'last_error1');
 is($result->{n}, 0, 'last_error2');
 is($result->{err}, 'forced error', 'last_error3');
 
+my $hello = $db->eval('function(x) { return "hello, "+x; }', ["world"]);
+is('hello, world', $hello, 'db eval');
+
+my $err = $db->eval('function(x) { xreturn "hello, "+x; }', ["world"]);
+is('compile failed: JS Error: SyntaxError: missing ; before statement nofile_b:0', $err, 'js err');

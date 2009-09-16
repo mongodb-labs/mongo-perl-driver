@@ -141,6 +141,36 @@ sub run_command {
     $obj->{'errmsg'};
 }
 
+
+=method eval ($code, $args)
+
+    my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
+
+Evaluate a JavaScript expression on the Mongo server. 
+
+Useful if you need to touch a lot of data lightly; in such a scenario 
+the network transfer of the data could be a bottleneck. The $code 
+argument must be a JavaScript function. $args is an array of 
+parameters that will be passed to the function.
+
+=cut
+
+sub eval {
+    my ($self, $code, $args) = @_;
+
+    my $cmd = tie(my %hash, 'Tie::IxHash');
+    %hash = ('$eval' => $code,
+             'args' => $args);
+
+    my $result = $self->run_command($cmd);
+    if (ref $result eq 'HASH' && exists $result->{'retval'}) {
+        return $result->{'retval'};
+    }
+    else {
+        return $result;
+    }
+}
+
 no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
