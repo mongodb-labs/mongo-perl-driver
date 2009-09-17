@@ -80,8 +80,6 @@ connect (self)
                   link->server.single.connected = 0;
                 }
 
-                // TODO: pairing
-                // this will be be server1, server2 
                 if (!mongo_link_connect(link)) {
                   croak ("couldn't connect to server");
                   return;

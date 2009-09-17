@@ -30,7 +30,7 @@ int mongo_link_connect(mongo_link *link) {
     link->server.pair.right_socket = do_connect(link->server.pair.right_host, link->server.pair.right_port);
     link->server.pair.right_connected = (link->server.pair.right_socket != -1);
 
-    return link->server.pair.left_connected && link->server.pair.right_connected;
+    return link->server.pair.left_connected || link->server.pair.right_connected;
   }
 
   link->server.single.socket = do_connect(link->server.single.host, link->server.single.port);
@@ -198,6 +198,7 @@ int mongo_link_hear(SV *self, mongo_link *link, mongo_cursor *cursor) {
     croak("can't get db response, not connected");
     return 0;
   }
+
   sock = perl_mongo_link_master(self, link);
 
   // if this fails, we might be disconnected... but we're probably
@@ -283,16 +284,13 @@ static int mongo_link_reader(int socket, void *dest, int len) {
 }
 
 static int check_connection(mongo_link *link) {
-  int now = time(0);
-
   if (!link->auto_reconnect ||
-      (link->paired && link->server.pair.left_connected && link->server.pair.right_connected) ||
-      (!link->paired && link->server.single.connected) ||
-      now == link->ts) {
+      (link->paired && (link->server.pair.left_connected || link->server.pair.right_connected)) ||
+      (!link->paired && link->server.single.connected)) {
     return 1;
   }
 
-  link->ts = now;
+  link->ts = time(0);
 
 #ifdef WIN32
   if (link->paired) {
@@ -322,6 +320,7 @@ inline void set_disconnected(mongo_link *link) {
   if (link->paired) {
     link->server.pair.left_connected = 0;
     link->server.pair.right_connected = 0;
+    link->master = -1;
   }
   else {
     link->server.single.connected = 0;
@@ -336,23 +335,28 @@ int perl_mongo_link_master(SV *self, mongo_link *link) {
     return link->server.single.socket;
   }
 
-  if (link->server.pair.left_socket == link->master &&
-      link->server.pair.left_connected) {
-    return link->master;
-  }
-  else if (link->server.pair.right_socket == link->master &&
-           link->server.pair.right_connected) {
-    return link->master;
+  if (link->master != -1) {
+    if (link->server.pair.left_socket == link->master &&
+        link->server.pair.left_connected) {
+      return link->master;
+    }
+    else if (link->server.pair.right_socket == link->master &&
+             link->server.pair.right_connected) {
+      return link->master;
+    }
   }
 
   master = perl_mongo_call_method(self, "find_master", 0);
   side = SvIV(master);
 
   if (side == 0) {
+    link->server.pair.left_connected = 1;
     return link->master = link->server.pair.left_socket;
   }
   else if (side == 1) {
+    link->server.pair.right_connected = 1;
     return link->master = link->server.pair.right_socket;
   }
-  croak("error finding master");
+
+  croak("couldn't find master");
 }

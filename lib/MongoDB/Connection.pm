@@ -312,21 +312,30 @@ a non-paired connection.  Called automatically by internal functions.
 sub find_master {
     my ($self) = @_;
     return unless defined $self->left_host && $self->right_host;
+    my ($left, $right, $master);
 
-    my $left = MongoDB::Connection->new("host" => $self->left_host, "port" => $self->left_port);
-    my $master = $left->find_one('admin.$cmd', {ismaster => 1});
-    if ($master->{'ismaster'}) {    
-        return 0;
+    eval {
+        $left = MongoDB::Connection->new("host" => $self->left_host, "port" => $self->left_port);
+    };
+    if (!($@ =~ m/couldn't connect to server/)) {
+        $master = $left->find_one('admin.$cmd', {ismaster => 1});
+        if ($master->{'ismaster'}) {    
+            return 0;
+        }
     }
 
-    my $right = MongoDB::Connection->new("host" => $self->right_host, "port" => $self->right_port);
-    $master = $right->find_one('admin.$cmd', {ismaster => 1});
-    if ($master->{'ismaster'}) {
-        return 1;
+    eval {
+        $right = MongoDB::Connection->new("host" => $self->right_host, "port" => $self->right_port);
+    };
+    if (!($@ =~ m/couldn't connect to server/)) {
+        $master = $right->find_one('admin.$cmd', {ismaster => 1});
+        if ($master->{'ismaster'}) {
+            return 1;
+        }
     }
 
     # something went wrong
-    croak("couldn't find master");
+    return -1;
 }
 
 =method authenticate ($dbname, $username, $password, $is_digest?)
