@@ -37,6 +37,14 @@ has _oid_class => (
 );
 
 
+=attr slave_okay
+
+    $MongoDB::Cursor::slave_okay = 1;
+
+Whether it is okay to run queries on the slave.  Defaults to 0.
+
+=cut
+
 $MongoDB::Cursor::slave_okay = 0;
 
 
