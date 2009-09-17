@@ -37,12 +37,8 @@ has _oid_class => (
 );
 
 
-has _queried => (
-    is       => 'rw',
-    isa      => 'Bool',
-    required => 1,
-    default  => 0,
-);
+$MongoDB::Cursor::slave_okay = 0;
+
 
 =method fields
 

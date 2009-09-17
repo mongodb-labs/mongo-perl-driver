@@ -20,7 +20,7 @@
 extern int request_id;
 
 static mongo_cursor* get_cursor(SV *self) {
-  SV **link_sv, *link_rv;
+  SV **link_sv, *link_rv, *slave_okay;
   mongo_link *link;
   mongo_cursor *cursor;
   buffer buf;
@@ -37,6 +37,9 @@ static mongo_cursor* get_cursor(SV *self) {
   link_sv = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
   link_rv = newRV_noinc(*link_sv);
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_rv);
+
+  slave_okay = get_sv ("MongoDB::Cursor::slave_okay", GV_ADD);
+  cursor->opts = SvIV(slave_okay) ? 1 << 2 : 0;
 
   // if not, execute the query
   CREATE_BUF(INITIAL_BUF_SIZE);

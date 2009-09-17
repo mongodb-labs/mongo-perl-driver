@@ -32,3 +32,4 @@ BOOT:
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Connection);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Cursor);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__OID);
+        gv_fetchpv("MongoDB::Cursor::slave_okay",  GV_ADDMULTI, SVt_IV);
