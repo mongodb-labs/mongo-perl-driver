@@ -19,6 +19,10 @@
 
 extern int request_id;
 
+static mongo_cursor* get_cursor(SV *self);
+static int has_next(SV *self, mongo_cursor *cursor);
+static void kill_cursor(SV *self);
+
 static mongo_cursor* get_cursor(SV *self) {
   SV **link_sv, *link_rv, *slave_okay;
   mongo_link *link;
@@ -66,7 +70,7 @@ static mongo_cursor* get_cursor(SV *self) {
   return cursor;
 }
 
-static int _has_next(SV *self, mongo_cursor *cursor) {
+static int has_next(SV *self, mongo_cursor *cursor) {
   SV **link_sv, *link_rv;
   mongo_link *link;
   mongo_msg_header header;
@@ -113,6 +117,38 @@ static int _has_next(SV *self, mongo_cursor *cursor) {
 }
 
 
+static void kill_cursor(SV *self) {
+  mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+  mongo_link *link = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
+  unsigned char quickbuf[128];
+  buffer buf;
+  mongo_msg_header header;
+
+  // we allocate a cursor even if no results are returned,
+  // but the database will throw an assertion if we try to
+  // kill a non-existant cursor
+  // non-cursors have ids of 0
+  if (cursor->cursor_id == 0) {
+    return;
+  }
+  buf.pos = quickbuf;
+  buf.start = buf.pos;
+  buf.end = buf.start + 128;
+
+  // std header
+  CREATE_MSG_HEADER(cursor->header.request_id++, 0, OP_KILL_CURSORS);
+  APPEND_HEADER(buf, 0);
+
+  // # of cursors
+  serialize_int(&buf, 1);
+  // cursor ids
+  serialize_long(&buf, cursor->cursor_id);
+  serialize_size(buf.start, &buf);
+
+  mongo_link_say(self, link, &buf);
+}
+
+
 MODULE = MongoDB::Cursor  PACKAGE = MongoDB::Cursor
 
 PROTOTYPES: DISABLE
@@ -126,7 +162,7 @@ has_next (self)
         mongo_link *link;
     CODE:
         cursor = get_cursor(self);
-        RETVAL = _has_next(self, cursor);
+        RETVAL = has_next(self, cursor);
     OUTPUT:
         RETVAL
 
@@ -137,7 +173,7 @@ next (self)
         mongo_cursor *cursor;
     CODE:
         cursor = get_cursor(self);
-        if (_has_next(self, cursor)) {
+        if (has_next(self, cursor)) {
           RETVAL = perl_mongo_bson_to_sv("MongoDB::OID", &cursor->buf);
           cursor->at++;
 
@@ -355,6 +391,8 @@ DESTROY (self)
       HV *this_hash;
       mongo_cursor *cursor;
   CODE:
+      kill_cursor(self);
+
       //this_hash = SvSTASH(SvRV(self));
       //link = hv_fetch(this_hash, "link", strlen("link"), 0);
       //SvREFCNT_dec(*link);
