@@ -160,4 +160,7 @@ ok($@ =~ m/^bad hint/);
 $MongoDB::Cursor::slave_okay = 1;
 $cursor = $collection->query->next;
 
+$MongoDB::Cursor::slave_okay = "invalid";
+$cursor = $collection->query->next;
+
 $collection->drop;

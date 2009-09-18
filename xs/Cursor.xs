@@ -24,7 +24,7 @@ static int has_next(SV *self, mongo_cursor *cursor);
 static void kill_cursor(SV *self);
 
 static mongo_cursor* get_cursor(SV *self) {
-  SV **link_sv, *link_rv, *slave_okay;
+  SV **link_sv, *slave_okay;
   mongo_link *link;
   mongo_cursor *cursor;
   buffer buf;
@@ -39,11 +39,10 @@ static mongo_cursor* get_cursor(SV *self) {
   }
 
   link_sv = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
-  link_rv = newRV_noinc(*link_sv);
-  link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_rv);
+  link = (mongo_link*)perl_mongo_get_ptr_from_instance(*link_sv);
 
   slave_okay = get_sv ("MongoDB::Cursor::slave_okay", GV_ADD);
-  cursor->opts = SvIV(slave_okay) ? 1 << 2 : 0;
+  cursor->opts = SvTRUE(slave_okay) ? 1 << 2 : 0;
 
   // if not, execute the query
   CREATE_BUF(INITIAL_BUF_SIZE);
@@ -58,20 +57,20 @@ static mongo_cursor* get_cursor(SV *self) {
   serialize_size(buf.start, &buf);
 
   // sends
-  sent = mongo_link_say(link_rv, link, &buf);
+  sent = mongo_link_say(*link_sv, link, &buf);
   Safefree(buf.start);
   if (sent == -1) {
     croak("couldn't send query.");
   }
 
-  mongo_link_hear(link_rv, link, cursor);
+  mongo_link_hear(*link_sv, link, cursor);
   cursor->started_iterating = 1;
 
   return cursor;
 }
 
 static int has_next(SV *self, mongo_cursor *cursor) {
-  SV **link_sv, *link_rv;
+  SV **link_sv;
   mongo_link *link;
   mongo_msg_header header;
   buffer buf;
@@ -88,8 +87,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
 
 
   link_sv = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
-  link_rv = newRV_noinc(*link_sv);
-  link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_rv);
+  link = (mongo_link*)perl_mongo_get_ptr_from_instance(*link_sv);
 
   // we have to go and check with the db
   size = 34+strlen(cursor->ns);
@@ -103,7 +101,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   serialize_size(buf.start, &buf);
 
   // fails if we're out of elems
-  if(mongo_link_say(link_rv, link, &buf) == -1) {
+  if(mongo_link_say(*link_sv, link, &buf) == -1) {
     Safefree(buf.start);
     return 0;
   }
@@ -113,7 +111,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   // if we have cursor->at == cursor->num && recv fails,
   // we're probably just out of results
   // mongo_link_hear returns 0 on success
-  return (mongo_link_hear(link_rv, link, cursor) > 0);
+  return (mongo_link_hear(*link_sv, link, cursor) > 0);
 }
 
 
