@@ -130,7 +130,7 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
 
         // set the namespace
         Newxz(cursor->ns, strlen(ns)+1, char);
-        memcpy(cursor->ns, ns, strlen(ns));
+        memcpy(cursor->ns, (char*)ns, strlen(ns));
 
         // create the query
         full_query = newHV();
@@ -147,7 +147,7 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         if (sort && SvOK(sort)) {
           hv_store(full_query, "orderby", strlen("orderby"), SvREFCNT_inc(sort), 0);
         }
-        hv_store(stash, "query", strlen("query"), newRV_noinc(full_query), 0);
+        hv_store(stash, "query", strlen("query"), newRV_noinc((SV*)full_query), 0);
 
         // add limit/skip
         cursor->limit = limit;
@@ -271,7 +271,7 @@ _ensure_index (self, ns, keys, unique=0)
         HV *key_hash;
         SV *ret;
     CODE:
-        key_hash = SvRV(keys);
+        key_hash = (HV*)SvRV(keys);
         hv_store(key_hash, "unique", strlen("unique"), unique ? &PL_sv_yes : &PL_sv_no, 0);
         ret = perl_mongo_call_method(self, "_insert", 2, ST(1), ST(2));
     CLEANUP:

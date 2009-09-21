@@ -117,8 +117,8 @@ static int has_next(SV *self, mongo_cursor *cursor) {
 
 static void kill_cursor(SV *self) {
   mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-  mongo_link *link = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
-  unsigned char quickbuf[128];
+  mongo_link *link = (mongo_link*)hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
+  char quickbuf[128];
   buffer buf;
   mongo_msg_header header;
 

@@ -595,10 +595,12 @@ append_sv (buffer *buf, const char *key, SV *sv)
               serialize_size(buf->start+start, buf);
             }
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
-              int extflags = 0, f=0;
+              int f=0, i=0;
               char flags[] = {0,0,0,0,0,0};
               REGEXP *re;
-              SV* tmpsv = (SV*)SvRV(sv);
+              SV *tmpsv = (SV*)SvRV(sv);
+              STRLEN string_length;
+              char *string;
 
               if (SvTYPE(tmpsv) == SVt_PVMG) {
                 MAGIC* tmpmg = mg_find(tmpsv, PERL_MAGIC_qr);
@@ -611,12 +613,9 @@ append_sv (buffer *buf, const char *key, SV *sv)
               set_type(buf, BSON_REGEX);
               serialize_string(buf, key, strlen(key));
               serialize_string(buf, re->precomp, re->prelen);
-              extflags = re->extflags;
 
-              int i = 0;
-              STRLEN string_length;
-              char * string = SvPV(sv, string_length);
-              
+              string = SvPV(sv, string_length);
+
               // TODO: check for valid flags
               // i, m, x, s (can this do l?)
               string += 2;
