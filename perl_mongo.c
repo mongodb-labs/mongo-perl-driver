@@ -268,6 +268,7 @@ elem_to_sv (const char *oid_class, int type, buffer *buf)
     buf->pos += len;
 
     value = newSVpvn(bytes, len);
+    // TODO: add magic (PVMG)
     break;
   }
   case BSON_BOOL: {
@@ -598,35 +599,41 @@ append_sv (buffer *buf, const char *key, SV *sv)
               int f=0, i=0;
               char flags[] = {0,0,0,0,0,0};
               REGEXP *re;
-              SV *tmpsv = (SV*)SvRV(sv);
               STRLEN string_length;
               char *string;
+              MAGIC *remg;
 
-              if (SvTYPE(tmpsv) == SVt_PVMG) {
-                MAGIC* tmpmg = mg_find(tmpsv, PERL_MAGIC_qr);
-                re = (REGEXP *) tmpmg->mg_obj;
+              if (remg = mg_find((SV*)SvRV(sv), PERL_MAGIC_qr)) {
+                re = (REGEXP *) remg->mg_obj;
+                set_type(buf, BSON_REGEX);
+                serialize_string(buf, key, strlen(key));
+                serialize_string(buf, re->precomp, re->prelen);
+                
+                string = SvPV(sv, string_length);
+                
+                // TODO: check for valid flags
+                // i, m, x, s (can this do l?)
+                string += 2;
+                for(i = 2; i < string_length; i++) {
+                  flags[f++] = string[0];
+                  string++;
+                  if(string[0] == ':')
+                    break;
+                }
+
+                serialize_string(buf, flags, strlen(flags));
+                
               }
               else {
-                croak ("couldn't parse this type of obj");
+                STRLEN len;
+                const char *bytes = SvPVbyte((SV*)SvRV(sv), len);
+                
+                set_type(buf, BSON_BINARY);
+                serialize_string(buf, key, strlen(key));
+                serialize_int(buf, len);
+                serialize_byte(buf, 2);
+                serialize_bytes(buf, bytes, len);
               }
-
-              set_type(buf, BSON_REGEX);
-              serialize_string(buf, key, strlen(key));
-              serialize_string(buf, re->precomp, re->prelen);
-
-              string = SvPV(sv, string_length);
-
-              // TODO: check for valid flags
-              // i, m, x, s (can this do l?)
-              string += 2;
-              for(i = 2; i < string_length; i++) {
-                flags[f++] = string[0];
-                string++;
-                if(string[0] == ':')
-                  break;
-              }
-
-              serialize_string(buf, flags, strlen(flags));
             }
         } else {
             switch (SvTYPE (SvRV (sv))) {

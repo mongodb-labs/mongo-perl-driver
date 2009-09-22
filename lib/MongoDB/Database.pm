@@ -94,6 +94,29 @@ sub get_collection {
     );
 }
 
+=method get_gridfs ($prefix)
+
+    my $grid = $database->get_gridfs;
+
+Returns a C<MongoDB::GridFS> for storing and retrieving files from the database.
+Default prefix is "fs".
+
+=cut
+
+sub get_gridfs {
+    my ($self, $prefix) = @_;
+    $prefix = "fs" unless $prefix;
+
+    my $files = $self->get_collection("${prefix}.files");
+    my $chunks = $self->get_collection("${prefix}.chunks");
+
+    return MongoDB::GridFS->new(
+        _database => $self,
+        files => $files,
+        chunks => $chunks,
+    );
+}
+
 =method drop
 
     $database->drop;
