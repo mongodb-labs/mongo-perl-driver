@@ -17,7 +17,8 @@
 package MongoDB::GridFS;
 
 use Any::Moose;
-use Data::Dumper;
+use MongoDB::GridFS::File;
+
 $MongoDB::GridFS::chunk_size = 1048576;
 
 has _database => (
@@ -67,11 +68,11 @@ Returns a matching MongoDB::GridFS::File or undef.
 
 sub find_one {
     #TODO: add fields
-    my ($self, $criteria) = $_;
+    my ($self, $criteria) = @_;
 
     my $file = $self->files->find_one($criteria);
     return undef unless $file;
-    return MongoDB::GridFS::File->new($self, $file);
+    return MongoDB::GridFS::File->new({_grid => $self,info => $file});
 }
 
 =method remove ($criteria)
@@ -83,8 +84,8 @@ Cleanly removes a file from the database.
 =cut
 
 sub remove {
-    #TODO: add fields
-    my ($self, $criteria) = $_;
+    #TODO: add just_one
+    my ($self, $criteria) = @_;
 
     my $cursor = $self->files->find($criteria);
     while (my $meta = $cursor->next) {
@@ -152,9 +153,8 @@ Removes all files' metadata and contents.
 =cut
 
 sub drop {
-    my ($self) = $_;
+    my ($self) = @_;
 
-    print Dumper($self);
     $self->files->drop;
     $self->chunks->drop;
 }
@@ -168,12 +168,16 @@ Returns a list of the files in the database.
 =cut
 
 sub all {
-    my ($self) = $_;
+    my ($self) = @_;
     my @ret;
 
-    my $cursor = $self->files->query->find;
+    my $cursor = $self->files->query;
     while (my $meta = $cursor->next) {
-        push @ret, MongoDB::GridFS::File->new($self, $meta);
+        print "here\n";
+        push @ret, MongoDB::GridFS::File->new(
+            _grid => $self, 
+            info => $meta); 
+        print "there\n";
     }
     return @ret;
 }

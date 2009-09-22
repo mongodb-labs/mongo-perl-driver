@@ -18,6 +18,7 @@ package MongoDB::Database;
 # ABSTRACT: A Mongo Database
 
 use Any::Moose;
+use MongoDB::GridFS;
 
 has _connection => (
     is       => 'ro',

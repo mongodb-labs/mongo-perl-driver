@@ -18,6 +18,7 @@ package MongoDB::GridFS::File;
 # ABSTRACT: A Mongo GridFS file
 
 use Any::Moose;
+use MongoDB::GridFS;
 
 has _grid => (
     is       => 'ro',
@@ -25,7 +26,13 @@ has _grid => (
     required => 1,
 );
 
-has meta => (
+=attr info
+
+A hash of info information saved with this file.
+
+=cut
+
+has info => (
     is => 'ro',
     isa => 'HashRef',
     required => 1,
@@ -45,17 +52,17 @@ of bytes written.
 
 sub print {
     #TODO: bytes, offset
-    my ($self, $fh) = $_;
+    my ($self, $fh) = @_;
 
-    $self->_grid->chunks->ensure_index("n");
+    $self->_grid->chunks->ensure_index(["n"]);
 
     my $written = 0;
     my $pos = $fh->getpos();
-    my $chunk_size = $self->meta{"chunkSize"};
+    my $chunk_size = $self->info->{"chunkSize"};
 
-    my $cursor = $self->_grid->chunks->find({"_id" => $self->meta{"_id"}})->sort({"n" => 1});
-    while (my $chunk = $cursor->next && $written < $bytes) {
-        print $fh, $chunk{"data"};
+    my $cursor = $self->_grid->chunks->query({"_id" => $self->info->{"_id"}})->sort({"n" => 1});
+    while (my $chunk = $cursor->next) { # && $written < $bytes) {
+        print $fh, $chunk->{"data"};
         $written += $chunk_size;
         $pos += $chunk_size;
     }
