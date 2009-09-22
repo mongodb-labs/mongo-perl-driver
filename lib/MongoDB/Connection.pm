@@ -23,7 +23,7 @@ use Any::Moose;
 
 =attr host
 
-Hostname to connect to. Defaults to C<loalhost>.
+Hostname to connect to. Defaults to C<localhost>.
 
 =cut
 
