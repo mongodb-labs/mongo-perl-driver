@@ -268,7 +268,6 @@ elem_to_sv (const char *oid_class, int type, buffer *buf)
     buf->pos += len;
 
     value = newSVpvn(bytes, len);
-    // TODO: add magic (PVMG)
     break;
   }
   case BSON_BOOL: {
@@ -676,8 +675,6 @@ append_sv (buffer *buf, const char *key, SV *sv)
               }
               // otherwise, continue
             }
-            case SVt_PV:
-            case SVt_NV:
             case SVt_PVIV: {
               if (SvIOK(sv)) {
                 set_type(buf, BSON_INT);
@@ -686,6 +683,8 @@ append_sv (buffer *buf, const char *key, SV *sv)
                 break;
               }
             }
+            case SVt_PV:
+            case SVt_NV:
             case SVt_PVMG:
                 /* Do we need SVt_PVLV here, too? */
                 if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
