@@ -1,16 +1,12 @@
 use strict;
 use warnings;
-#use Test::More tests => 22;
-use Test::More 'no_plan';
+use Test::More tests => 37;
 use Test::Exception;
 use IO::File;
-use Tie::IxHash;
 
 use MongoDB;
 use MongoDB::GridFS;
 use MongoDB::GridFS::File;
-
-use Data::Dumper;
 
 my $m = MongoDB::Connection->new;
 my $db = $m->get_database('foo');
@@ -45,6 +41,7 @@ is($chunk->{'files_id'}, $file->{'_id'}, "compare ids");
 # test bin insert
 my $img = new IO::File("t/img.png", "r") or die $!;
 $id = $grid->insert($img);
+my $save_id = $id;
 $img->read($dumb_str, 4000000);
 $img->close;
 
@@ -78,7 +75,7 @@ is($file->info->{"uploaded"}, $now, "compare ts");
 is($file->info->{"filename"}, "t/input.txt", "compare filename");
 
 #write
-my $wfh = IO::File->new("t/temp.txt", "+<") or die $!;
+my $wfh = IO::File->new("t/output.txt", "+>") or die $!;
 my $written = $file->print($wfh);
 is($written, length "abc\n\nzyw\n");
 
@@ -87,21 +84,30 @@ $wfh->read($buf, 1000);
 
 is($buf, "abc\n\nzyw\n");
 
+my $wh = IO::File->new("t/outsub.txt", "+>") or die $!;
+$written = $file->print($wh, 3, 2);
+is($written, 3);
+
+# write bindata
+$file = $grid->find_one({'_id' => $save_id});
+$wfh = IO::File->new('t/output.png', '+>') or die $!;
+$written = $file->print($wfh);
+is($written, $file->info->{'length'}, 'bin file length');
 
 #all
 my @list = $grid->all;
 is(@list, 3, "three files");
 for (my $i=0; $i<3; $i++) {
-    isa_ok(@list[$i], 'MongoDB::GridFS::File');
+    isa_ok($list[$i], 'MongoDB::GridFS::File');
 }
-is(@list[0]->info->{'length'}, 9);
-is(@list[1]->info->{'length'}, 1292706);
-is(@list[2]->info->{'length'}, 9);
+is($list[0]->info->{'length'}, 9, 'checking lens');
+is($list[1]->info->{'length'}, 1292706);
+is($list[2]->info->{'length'}, 9);
 
 #remove
-is($grid->files->query({"_id" => 1})->has_next, 1);
+is($grid->files->query({"_id" => 1})->has_next, 1, 'pre-remove');
 is($grid->chunks->query({"files_id" => 1})->has_next, 1);
 $file = $grid->remove({"_id" => 1});
-is(int($grid->files->query({"_id" => 1})->has_next), 0);
+is(int($grid->files->query({"_id" => 1})->has_next), 0, 'post-remove');
 is(int($grid->chunks->query({"files_id" => 1})->has_next), 0);
 
