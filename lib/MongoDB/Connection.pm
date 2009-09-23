@@ -17,9 +17,9 @@
 package MongoDB::Connection;
 # ABSTRACT: A connection to a Mongo server
 
+use Any::Moose;
 use Digest::MD5;
 use Tie::IxHash;
-use Any::Moose;
 
 =attr host
 
@@ -190,8 +190,29 @@ sub insert {
     confess 'not a hash reference' unless ref $object eq 'HASH';
     my %copy = %{ $object }; # a shallow copy is good enough. we won't modify anything deep down in the structure.
     $copy{_id} = $self->_oid_class->new unless exists $copy{_id};
-    $self->_insert($ns, \%copy);
-    return $copy{_id};
+    $self->_insert($ns, [\%copy]);
+    return $copy{'_id'};
+}
+
+sub batch_insert {
+    my ($self, $ns, $object) = @_;
+    confess 'not an array reference' unless ref $object eq 'ARRAY';
+
+    my @copies;
+    my @ids;
+
+    foreach my $obj (@{$object}) {
+        confess 'not a hash reference' unless ref $obj eq 'HASH';
+
+        my %copy = %{ $obj };
+        $copy{'_id'} = MongoDB::OID->new unless exists $copy{'_id'};
+
+        push @copies, \%copy;
+        push @ids, $copy{'_id'};
+    } 
+
+    $self->_insert($ns, \@copies);
+    return @ids;
 }
 
 sub update {
@@ -265,7 +286,7 @@ sub remove {
                    "key" => $k,
                    "name" => join("_", @name)};
 
-        $self->_ensure_index(substr($ns, 0, index($ns, ".")).".system.indexes", $obj, $unique);
+        $self->_ensure_index(substr($ns, 0, index($ns, ".")).".system.indexes", [$obj], $unique);
         return;
     }
 }

@@ -111,4 +111,4 @@ $file = $grid->remove({"_id" => 1});
 is(int($grid->files->query({"_id" => 1})->has_next), 0, 'post-remove');
 is(int($grid->chunks->query({"files_id" => 1})->has_next), 0);
 
-unlink 'output.txt', 'output.png', 'outsub.txt';
+unlink 't/output.txt', 't/output.png', 't/outsub.txt';

@@ -199,12 +199,20 @@ _insert (self, ns, object)
         mongo_link *link;
         mongo_msg_header header;
         buffer buf;
+        int i;
+        AV *a;
+    INIT:
+        a = (AV*)SvRV(object);
     CODE:
         link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_INSERT);
-        perl_mongo_sv_to_bson(&buf, object, PREP);
+
+        for (i=0; i<=av_len(a); i++) {
+          SV **obj = av_fetch(a, i, 0);
+          perl_mongo_sv_to_bson(&buf, *obj, PREP);
+        }
         serialize_size(buf.start, &buf);
 
         // sends
@@ -268,11 +276,14 @@ _ensure_index (self, ns, keys, unique=0)
         SV *keys
         int unique
     PREINIT:
-        HV *key_hash;
+        AV *key_array;
+        SV **key_hash;
         SV *ret;
+    INIT:
+        key_array = (AV*)SvRV(keys);
+        key_hash = av_fetch(key_array, 0, 0);
     CODE:
-        key_hash = (HV*)SvRV(keys);
-        hv_store(key_hash, "unique", strlen("unique"), unique ? &PL_sv_yes : &PL_sv_no, 0);
+        hv_store((HV*)SvRV(*key_hash), "unique", strlen("unique"), unique ? &PL_sv_yes : &PL_sv_no, 0);
         ret = perl_mongo_call_method(self, "_insert", 2, ST(1), ST(2));
     CLEANUP:
         SvREFCNT_dec (ret);

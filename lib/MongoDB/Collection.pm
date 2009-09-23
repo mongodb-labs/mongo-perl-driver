@@ -24,7 +24,7 @@ has _database => (
     is       => 'ro',
     isa      => 'MongoDB::Database',
     required => 1,
-    handles  => [qw/query find_one insert update remove ensure_index/],
+    handles  => [qw/query find_one insert update remove ensure_index batch_insert/],
 );
 
 =attr name
@@ -105,6 +105,12 @@ Executes the given C<$query> and returns the first object matching it.
 Inserts the given C<$object> into the database and returns it's id
 value. The id is the C<_id> value specified in the data or a C<MongoDB::OID>.
 
+=method batch_insert (@array)
+
+    my @ids = $collection->batch_insert(({name => "Joe"}, {name => "Fred"}, {name => "Sam"}));
+
+Inserts each of the documents in the array into the database and returns their _ids.
+
 =method update ($update, $object, $upsert?)
 
     $collection->update($object);
@@ -126,7 +132,7 @@ index direction defaults to C<ascending>.
 
 =cut
 
-around qw/query find_one insert update remove ensure_index/ => sub {
+around qw/query find_one insert update remove ensure_index batch_insert/ => sub {
     my ($next, $self, @args) = @_;
     return $self->$next($self->_query_ns, @args);
 };
@@ -139,7 +145,7 @@ sub _query_ns {
 =method count ($query, $fields)
 
     my $n_objects = $collection->count({ name => 'Bob' });
-    my $n_objects = $collection->count({ name => 'Bob' }, { zip : 1 });
+    $bobs_with_zip = $collection->count({ name => 'Bob' }, { zip : 1 });
 
 Counts the number of objects in this collection that match the given C<$query>
 and contain the given C<$fields> (both parameters optional).

@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 43;
+use Test::More tests => 47;
 use Test::Exception;
 
 use Tie::IxHash;
@@ -52,7 +52,7 @@ for (my $i=0; $i<10; $i++) {
     $coll->insert({'x' => $i, 'z' => 3, 'w' => 4});
     $coll->insert({'x' => $i, 'y' => 2, 'z' => 3, 'w' => 4});
 }
-is($coll->count({}, {y => 1}), 10, 'count fields');
+is($coll->count({}, {'y' => 1}), 10, 'count fields');
 
 $coll->drop;
 ok(!$coll->get_indexes, 'no indexes yet');
@@ -136,6 +136,17 @@ is(exists $obj->{'_id'}, 1, '_id exists');
 is(exists $obj->{'x'}, '', 'x doesn\'t exist');
 is(exists $obj->{'z'}, '', 'z doesn\'t exist');
 is(exists $obj->{'w'}, '', 'w doesn\'t exist');
+
+# batch insert
+$coll->drop;
+my $ids = $coll->batch_insert([{'x' => 1}, {'x' => 2}, {'x' => 3}]);
+is($coll->count, 3, 'batch_insert');
+
+$cursor = $coll->query->sort({'x' => 1});
+my $i = 1;
+while ($obj = $cursor->next) {
+    is($obj->{'x'}, $i++);
+}
 
 
 END {
