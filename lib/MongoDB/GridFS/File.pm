@@ -58,14 +58,14 @@ sub print {
 
     my $written = 0;
     my $pos = $fh->getpos();
-    my $chunk_size = $self->info->{"chunkSize"};
 
-    my $cursor = $self->_grid->chunks->query({"_id" => $self->info->{"_id"}})->sort({"n" => 1});
+    my $cursor = $self->_grid->chunks->query({"files_id" => $self->info->{"_id"}})->sort({"n" => 1});
     while (my $chunk = $cursor->next) { # && $written < $bytes) {
-        print $fh, $chunk->{"data"};
-        $written += $chunk_size;
-        $pos += $chunk_size;
+        $fh->print($chunk->{"data"});
+        $written += length $chunk->{'data'};
+        #$pos += length $chunk->{'data'};
     }
+    $fh->setpos($pos);
     return $written;
 }
 

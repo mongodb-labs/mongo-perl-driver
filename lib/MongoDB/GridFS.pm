@@ -87,9 +87,9 @@ sub remove {
     #TODO: add just_one
     my ($self, $criteria) = @_;
 
-    my $cursor = $self->files->find($criteria);
+    my $cursor = $self->files->query($criteria);
     while (my $meta = $cursor->next) {
-        $self->chunks->remove({"files_id" => $meta->{'files_id'}});
+        $self->chunks->remove({"files_id" => $meta->{'_id'}});
     }
     $self->files->remove($criteria);
 }
@@ -173,11 +173,9 @@ sub all {
 
     my $cursor = $self->files->query;
     while (my $meta = $cursor->next) {
-        print "here\n";
         push @ret, MongoDB::GridFS::File->new(
             _grid => $self, 
             info => $meta); 
-        print "there\n";
     }
     return @ret;
 }

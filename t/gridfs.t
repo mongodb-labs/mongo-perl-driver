@@ -1,6 +1,7 @@
 use strict;
 use warnings;
-use Test::More tests => 22;
+#use Test::More tests => 22;
+use Test::More 'no_plan';
 use Test::Exception;
 use IO::File;
 use Tie::IxHash;
@@ -75,19 +76,32 @@ $file = $grid->find_one({"_id" => 1});
 isa_ok($file, 'MongoDB::GridFS::File');
 is($file->info->{"uploaded"}, $now, "compare ts");
 is($file->info->{"filename"}, "t/input.txt", "compare filename");
-my $wfh = IO::File->new("t/temp.txt", "+>") or die $!;
-$file->print($wfh);
-$wfh->setpos(0);
-$wfh->read(my $buf, 1000);
 
-#is($buf, "abc\n\nzyw\n");
+#write
+my $wfh = IO::File->new("t/temp.txt", "+<") or die $!;
+my $written = $file->print($wfh);
+is($written, length "abc\n\nzyw\n");
 
+my $buf;
+$wfh->read($buf, 1000);
+
+is($buf, "abc\n\nzyw\n");
 
 
 #all
-#my @list = $grid->all;
-#print Dumper(@list);
+my @list = $grid->all;
+is(@list, 3, "three files");
+for (my $i=0; $i<3; $i++) {
+    isa_ok(@list[$i], 'MongoDB::GridFS::File');
+}
+is(@list[0]->info->{'length'}, 9);
+is(@list[1]->info->{'length'}, 1292706);
+is(@list[2]->info->{'length'}, 9);
 
 #remove
-#write
+is($grid->files->query({"_id" => 1})->has_next, 1);
+is($grid->chunks->query({"files_id" => 1})->has_next, 1);
+$file = $grid->remove({"_id" => 1});
+is(int($grid->files->query({"_id" => 1})->has_next), 0);
+is(int($grid->chunks->query({"files_id" => 1})->has_next), 0);
 
