@@ -15,9 +15,22 @@
 #
 
 package MongoDB::GridFS;
+our $VERSION = '0.22';
+
+# ABSTRACT: A file storage utility
 
 use Any::Moose;
 use MongoDB::GridFS::File;
+
+=head1 SYNOPSIS
+
+    use MongoDB::GridFS;
+
+    my $grid = $database->get_gridfs;
+    my $fh = IO::File->new("myfile", "r");
+    $grid->insert($fh, {"filename" => "mydbfile"});
+
+=cut
 
 $MongoDB::GridFS::chunk_size = 1048576;
 
@@ -31,8 +44,7 @@ has _database => (
 
 Collection in which file metadata is stored.  Each
 document contains md5 and length fields, plus
-user-defined metadata (and an _id).  Defaults to
-a collection named C<fs.files>.
+user-defined metadata (and an _id). 
 
 =cut
 
@@ -47,8 +59,7 @@ has files => (
 Actual content of the files stored.  Each chunk contains
 up to 4Mb of data, as well as a number (its order within 
 the file) and a files_id (the _id of the file in the 
-files collection it belongs to).  Defaults to a
-collection named C<fs.chunks>.
+files collection it belongs to).  
 
 =cut
 

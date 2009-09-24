@@ -66,9 +66,9 @@ typedef struct {
 } buffer;
 
 #define BUF_REMAINING (buf->end-buf->pos)
-#define set_type(buf, type) serialize_byte(buf, (char)type)
-#define serialize_null(buf) serialize_byte(buf, (char)0)
-#define serialize_bool(buf, b) serialize_byte(buf, (char)b)
+#define set_type(buf, type) perl_mongo_serialize_byte(buf, (char)type)
+#define perl_mongo_serialize_null(buf) perl_mongo_serialize_byte(buf, (char)0)
+#define perl_mongo_serialize_bool(buf, b) perl_mongo_serialize_byte(buf, (char)b)
 
 void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 SV *perl_mongo_call_reader (SV *self, const char *reader);
@@ -82,15 +82,15 @@ SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...)
 void perl_mongo_oid_create(char* twelve, char *twenty4);
 
 // serialization
-SV *perl_mongo_bson_to_sv (const char *oid_class, buffer *buf);
+SV *perl_mongo_bson_to_sv (buffer *buf);
 void perl_mongo_sv_to_bson (buffer *buf, SV *sv, int add_oid);
 
-void serialize_size(char*, buffer*);
-inline void serialize_double(buffer*, double);
-inline void serialize_string(buffer*, const char*, int);
-inline void serialize_long(buffer*, long long);
-inline void serialize_int(buffer*, int);
-inline void serialize_byte(buffer*, char);
-inline void serialize_bytes(buffer*, const char*, int);
+void perl_mongo_serialize_size(char*, buffer*);
+void perl_mongo_serialize_double(buffer*, double);
+void perl_mongo_serialize_string(buffer*, const char*, int);
+void perl_mongo_serialize_long(buffer*, long long);
+void perl_mongo_serialize_int(buffer*, int);
+void perl_mongo_serialize_byte(buffer*, char);
+void perl_mongo_serialize_bytes(buffer*, const char*, int);
 
 #endif

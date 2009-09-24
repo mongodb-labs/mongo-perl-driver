@@ -47,14 +47,14 @@ static mongo_cursor* get_cursor(SV *self) {
   // if not, execute the query
   CREATE_BUF(INITIAL_BUF_SIZE);
   CREATE_HEADER_WITH_OPTS(buf, cursor->ns, OP_QUERY, cursor->opts);
-  serialize_int(&buf, cursor->skip);
-  serialize_int(&buf, cursor->limit);
+  perl_mongo_serialize_int(&buf, cursor->skip);
+  perl_mongo_serialize_int(&buf, cursor->limit);
   perl_mongo_sv_to_bson(&buf, cursor->query, NO_PREP);
   if (cursor->fields) {
     perl_mongo_sv_to_bson(&buf, cursor->fields, NO_PREP);
   }
 
-  serialize_size(buf.start, &buf);
+  perl_mongo_serialize_size(buf.start, &buf);
 
   // sends
   sent = mongo_link_say(*link_sv, link, &buf);
@@ -96,9 +96,9 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   buf.end = buf.start + size;
 
   CREATE_RESPONSE_HEADER(buf, cursor->ns, cursor->header.request_id, OP_GET_MORE);
-  serialize_int(&buf, cursor->limit);
-  serialize_long(&buf, cursor->cursor_id);
-  serialize_size(buf.start, &buf);
+  perl_mongo_serialize_int(&buf, cursor->limit);
+  perl_mongo_serialize_long(&buf, cursor->cursor_id);
+  perl_mongo_serialize_size(buf.start, &buf);
 
   // fails if we're out of elems
   if(mongo_link_say(*link_sv, link, &buf) == -1) {
@@ -138,10 +138,10 @@ static void kill_cursor(SV *self) {
   APPEND_HEADER(buf, 0);
 
   // # of cursors
-  serialize_int(&buf, 1);
+  perl_mongo_serialize_int(&buf, 1);
   // cursor ids
-  serialize_long(&buf, cursor->cursor_id);
-  serialize_size(buf.start, &buf);
+  perl_mongo_serialize_long(&buf, cursor->cursor_id);
+  perl_mongo_serialize_size(buf.start, &buf);
 
   mongo_link_say(self, link, &buf);
 }
@@ -172,7 +172,7 @@ next (self)
     CODE:
         cursor = get_cursor(self);
         if (has_next(self, cursor)) {
-          RETVAL = perl_mongo_bson_to_sv("MongoDB::OID", &cursor->buf);
+          RETVAL = perl_mongo_bson_to_sv(&cursor->buf);
           cursor->at++;
 
           if (cursor->num == 1 &&

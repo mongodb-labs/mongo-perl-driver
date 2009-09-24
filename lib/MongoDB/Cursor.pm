@@ -15,6 +15,8 @@
 #
 
 package MongoDB::Cursor;
+our $VERSION = '0.22';
+
 # ABSTRACT: A cursor/iterator for Mongo query results
 
 use Any::Moose;
@@ -26,15 +28,6 @@ use Any::Moose;
     }
 
     my @objects = $cursor->all;
-
-=cut
-
-has _oid_class => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 1,
-    default  => 'MongoDB::OID',
-);
 
 
 =attr slave_okay

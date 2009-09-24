@@ -15,6 +15,8 @@
 #
 
 package MongoDB::Collection;
+our $VERSION = '0.22';
+
 # ABSTRACT: A Mongo Collection
 
 use Tie::IxHash;

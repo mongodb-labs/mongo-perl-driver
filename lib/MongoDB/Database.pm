@@ -15,6 +15,8 @@
 #
 
 package MongoDB::Database;
+our $VERSION = '0.22';
+
 # ABSTRACT: A Mongo Database
 
 use Any::Moose;
@@ -39,16 +41,10 @@ has name => (
     required => 1,
 );
 
-has _collection_class => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 1,
-    default  => 'MongoDB::Collection',
-);
 
 sub BUILD {
     my ($self) = @_;
-    Any::Moose::load_class($self->_collection_class);
+    Any::Moose::load_class("MongoDB::Collection");
 }
 
 around qw/query find_one insert update remove ensure_index batch_insert/ => sub {
@@ -89,7 +85,7 @@ database.
 
 sub get_collection {
     my ($self, $collection_name) = @_;
-    return $self->_collection_class->new(
+    return MongoDB::Collection->new(
         _database => $self,
         name      => $collection_name,
     );
@@ -100,7 +96,8 @@ sub get_collection {
     my $grid = $database->get_gridfs;
 
 Returns a C<MongoDB::GridFS> for storing and retrieving files from the database.
-Default prefix is "fs".
+Default prefix is "fs", making C<$grid->files> "fs.files" and C<$grid->chunks>
+"fs.chunks".
 
 =cut
 

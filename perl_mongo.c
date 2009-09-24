@@ -191,7 +191,7 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...)
     return ret;
 }
 
-static SV *bson_to_av (const char *oid_class, buffer *buf);
+static SV *bson_to_av (buffer *buf);
 
 void perl_mongo_oid_create(char *twelve, char *twenty4) {
   int i;
@@ -211,22 +211,22 @@ void perl_mongo_oid_create(char *twelve, char *twenty4) {
 }
 
 static SV *
-oid_to_sv (const char *oid_class, buffer *buf)
+oid_to_sv (buffer *buf)
 {
     char *id;
     Newxz(id, 25, char);
     perl_mongo_oid_create(buf->pos, id);
-    return perl_mongo_construct_instance (oid_class, "value", newSVpvn (id, 24), NULL);
+    return perl_mongo_construct_instance (OID_CLASS, "value", newSVpvn (id, 24), NULL);
 }
 
 static SV *
-elem_to_sv (const char *oid_class, int type, buffer *buf)
+elem_to_sv (int type, buffer *buf)
 {
   SV *value;
 
   switch(type) {
   case BSON_OID: {
-    value = oid_to_sv(oid_class, buf);
+    value = oid_to_sv(buf);
     buf->pos += OID_SIZE;
     break;
   }
@@ -248,11 +248,11 @@ elem_to_sv (const char *oid_class, int type, buffer *buf)
     break;
   }
   case BSON_OBJECT: {
-    value = perl_mongo_bson_to_sv(oid_class, buf);
+    value = perl_mongo_bson_to_sv(buf);
     break;
   }
   case BSON_ARRAY: {
-    value = bson_to_av(oid_class, buf);
+    value = bson_to_av(buf);
     break;
   }
   case BSON_BINARY: {
@@ -324,7 +324,7 @@ elem_to_sv (const char *oid_class, int type, buffer *buf)
 }
 
 static SV *
-bson_to_av (const char *oid_class, buffer *buf)
+bson_to_av (buffer *buf)
 {
     AV *ret = newAV ();
 
@@ -340,7 +340,7 @@ bson_to_av (const char *oid_class, buffer *buf)
       buf->pos += strlen(buf->pos) + 1;
 
       // get value
-      if ((sv = elem_to_sv (oid_class, type, buf))) {
+      if ((sv = elem_to_sv (type, buf))) {
         av_push (ret, sv);
       }
     }
@@ -349,7 +349,7 @@ bson_to_av (const char *oid_class, buffer *buf)
 }
 
 SV *
-perl_mongo_bson_to_sv (const char *oid_class, buffer *buf)
+perl_mongo_bson_to_sv (buffer *buf)
 {
     HV *ret = newHV();
 
@@ -367,7 +367,7 @@ perl_mongo_bson_to_sv (const char *oid_class, buffer *buf)
       buf->pos += strlen(buf->pos) + 1;
 
       // get value
-      value = elem_to_sv(oid_class, type, buf);
+      value = elem_to_sv(type, buf);
       if (!hv_store (ret, name, strlen (name), value, 0)) {
         croak ("failed storing value in hash");
       }
@@ -391,7 +391,7 @@ static int resize_buf(buffer *buf, int size) {
   return total;
 }
 
-inline void serialize_byte(buffer *buf, char b) {
+void perl_mongo_serialize_byte(buffer *buf, char b) {
   if(BUF_REMAINING <= 1) {
     resize_buf(buf, 1);
   }
@@ -399,7 +399,7 @@ inline void serialize_byte(buffer *buf, char b) {
   buf->pos += 1;
 }
 
-inline void serialize_bytes(buffer *buf, const char *str, int str_len) {
+void perl_mongo_serialize_bytes(buffer *buf, const char *str, int str_len) {
   if(BUF_REMAINING <= str_len) {
     resize_buf(buf, str_len);
   }
@@ -407,7 +407,7 @@ inline void serialize_bytes(buffer *buf, const char *str, int str_len) {
   buf->pos += str_len;
 }
 
-inline void serialize_string(buffer *buf, const char *str, int str_len) {
+void perl_mongo_serialize_string(buffer *buf, const char *str, int str_len) {
   if(BUF_REMAINING <= str_len+1) {
     resize_buf(buf, str_len+1);
   }
@@ -418,7 +418,7 @@ inline void serialize_string(buffer *buf, const char *str, int str_len) {
   buf->pos += str_len + 1;
 }
 
-inline void serialize_int(buffer *buf, int num) {
+void perl_mongo_serialize_int(buffer *buf, int num) {
   if(BUF_REMAINING <= INT_32) {
     resize_buf(buf, INT_32);
   }
@@ -426,7 +426,7 @@ inline void serialize_int(buffer *buf, int num) {
   buf->pos += INT_32;
 }
 
-inline void serialize_long(buffer *buf, long long num) {
+void perl_mongo_serialize_long(buffer *buf, long long num) {
   if(BUF_REMAINING <= INT_64) {
     resize_buf(buf, INT_64);
   }
@@ -434,7 +434,7 @@ inline void serialize_long(buffer *buf, long long num) {
   buf->pos += INT_64;
 }
 
-inline void serialize_double(buffer *buf, double num) {
+void perl_mongo_serialize_double(buffer *buf, double num) {
   if(BUF_REMAINING <= INT_64) {
     resize_buf(buf, INT_64);
   }
@@ -442,7 +442,7 @@ inline void serialize_double(buffer *buf, double num) {
   buf->pos += DOUBLE_64;
 }
 
-inline void serialize_oid(buffer *buf, char *id) {
+void perl_mongo_serialize_oid(buffer *buf, char *id) {
   int i;
 
   if(BUF_REMAINING <= OID_SIZE) {
@@ -467,7 +467,7 @@ inline void serialize_oid(buffer *buf, char *id) {
 /* the position is not increased, we are just filling
  * in the first 4 bytes with the size.
  */
-void serialize_size(char *start, buffer *buf) {
+void perl_mongo_serialize_size(char *start, buffer *buf) {
   int total = buf->pos - start;
   memcpy(start, &total, INT_32);
 }
@@ -516,8 +516,8 @@ hv_to_bson (buffer *buf, SV *sv, int add_oid)
         append_sv (buf, key, HeVAL (he));
     }
 
-    serialize_null(buf);
-    serialize_size(buf->start+start, buf);
+    perl_mongo_serialize_null(buf);
+    perl_mongo_serialize_size(buf->start+start, buf);
 }
 
 static void
@@ -539,8 +539,8 @@ av_to_bson (buffer *buf, AV *av)
         SvREFCNT_dec (key);
     }
 
-    serialize_null(buf);
-    serialize_size(buf->start+start, buf);
+    perl_mongo_serialize_null(buf);
+    perl_mongo_serialize_size(buf->start+start, buf);
 }
 
 static void
@@ -548,7 +548,7 @@ append_sv (buffer *buf, const char *key, SV *sv)
 {
     if (!SvOK(sv)) {
         set_type(buf, BSON_NULL);
-        serialize_string(buf, key, strlen(key));
+        perl_mongo_serialize_string(buf, key, strlen(key));
         return;
     }
     if (SvROK (sv)) {
@@ -558,8 +558,8 @@ append_sv (buffer *buf, const char *key, SV *sv)
                 char *str = SvPV_nolen (attr);
 
                 set_type(buf, BSON_OID);
-                serialize_string(buf, key, strlen(key));
-                serialize_oid(buf, str);
+                perl_mongo_serialize_string(buf, key, strlen(key));
+                perl_mongo_serialize_oid(buf, str);
 
                 SvREFCNT_dec (attr);
             }
@@ -577,7 +577,7 @@ append_sv (buffer *buf, const char *key, SV *sv)
               values = (AV*)SvRV(*values_sv);
 
               set_type(buf, BSON_OBJECT);
-              serialize_string(buf, key, strlen(key));
+              perl_mongo_serialize_string(buf, key, strlen(key));
 
               start = buf->pos-buf->start;
               buf->pos += INT_32;
@@ -591,8 +591,8 @@ append_sv (buffer *buf, const char *key, SV *sv)
                 append_sv(buf, SvPVutf8_nolen(*k), *v);
               }
 
-              serialize_null(buf);
-              serialize_size(buf->start+start, buf);
+              perl_mongo_serialize_null(buf);
+              perl_mongo_serialize_size(buf->start+start, buf);
             }
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
               int f=0, i=0;
@@ -605,8 +605,8 @@ append_sv (buffer *buf, const char *key, SV *sv)
               if (remg = mg_find((SV*)SvRV(sv), PERL_MAGIC_qr)) {
                 re = (REGEXP *) remg->mg_obj;
                 set_type(buf, BSON_REGEX);
-                serialize_string(buf, key, strlen(key));
-                serialize_string(buf, re->precomp, re->prelen);
+                perl_mongo_serialize_string(buf, key, strlen(key));
+                perl_mongo_serialize_string(buf, re->precomp, re->prelen);
                 
                 string = SvPV(sv, string_length);
                 
@@ -620,7 +620,7 @@ append_sv (buffer *buf, const char *key, SV *sv)
                     break;
                 }
 
-                serialize_string(buf, flags, strlen(flags));
+                perl_mongo_serialize_string(buf, flags, strlen(flags));
                 
               }
               else {
@@ -628,23 +628,23 @@ append_sv (buffer *buf, const char *key, SV *sv)
                 const char *bytes = SvPVbyte((SV*)SvRV(sv), len);
                 
                 set_type(buf, BSON_BINARY);
-                serialize_string(buf, key, strlen(key));
-                serialize_int(buf, len);
-                serialize_byte(buf, 2);
-                serialize_bytes(buf, bytes, len);
+                perl_mongo_serialize_string(buf, key, strlen(key));
+                perl_mongo_serialize_int(buf, len);
+                perl_mongo_serialize_byte(buf, 2);
+                perl_mongo_serialize_bytes(buf, bytes, len);
               }
             }
         } else {
             switch (SvTYPE (SvRV (sv))) {
                 case SVt_PVHV:
                     set_type(buf, BSON_OBJECT);
-                    serialize_string(buf, key, strlen(key));
+                    perl_mongo_serialize_string(buf, key, strlen(key));
                     /* don't add a _id to inner objs */
                     hv_to_bson (buf, sv, NO_PREP);
                     break;
                 case SVt_PVAV:
                     set_type(buf, BSON_ARRAY);
-                    serialize_string(buf, key, strlen(key));
+                    perl_mongo_serialize_string(buf, key, strlen(key));
                     av_to_bson (buf, (AV *)SvRV (sv));
                     break;
                 default:
@@ -656,21 +656,21 @@ append_sv (buffer *buf, const char *key, SV *sv)
         switch (SvTYPE (sv)) {
             case SVt_IV:
                 set_type(buf, BSON_INT);
-                serialize_string(buf, key, strlen(key));
-                serialize_int(buf, (int)SvIV (sv));
+                perl_mongo_serialize_string(buf, key, strlen(key));
+                perl_mongo_serialize_int(buf, (int)SvIV (sv));
                 break;
             // stupid special casing for bools
             case SVt_PVNV: {
               if (sv == &PL_sv_yes) {
                 set_type(buf, BSON_BOOL);
-                serialize_string(buf, key, strlen(key));
-                serialize_byte(buf, 1);
+                perl_mongo_serialize_string(buf, key, strlen(key));
+                perl_mongo_serialize_byte(buf, 1);
                 break;
               }
               else if (sv == &PL_sv_no) {
                 set_type(buf, BSON_BOOL);
-                serialize_string(buf, key, strlen(key));
-                serialize_byte(buf, 0);
+                perl_mongo_serialize_string(buf, key, strlen(key));
+                perl_mongo_serialize_byte(buf, 0);
                 break;
               }
               // otherwise, continue
@@ -678,8 +678,8 @@ append_sv (buffer *buf, const char *key, SV *sv)
             case SVt_PVIV: {
               if (SvIOK(sv)) {
                 set_type(buf, BSON_INT);
-                serialize_string(buf, key, strlen(key));
-                serialize_int(buf, (int)SvIV (sv));
+                perl_mongo_serialize_string(buf, key, strlen(key));
+                perl_mongo_serialize_int(buf, (int)SvIV (sv));
                 break;
               }
             }
@@ -692,20 +692,20 @@ append_sv (buffer *buf, const char *key, SV *sv)
                     const char *bytes = SvPVbyte (sv, len);
 
                     set_type(buf, BSON_BINARY);
-                    serialize_string(buf, key, strlen(key));
-                    serialize_int(buf, len);
+                    perl_mongo_serialize_string(buf, key, strlen(key));
+                    perl_mongo_serialize_int(buf, len);
 		    // TODO: replace with something
-                    serialize_byte(buf, 2);
-                    serialize_bytes(buf, bytes, len);
+                    perl_mongo_serialize_byte(buf, 2);
+                    perl_mongo_serialize_bytes(buf, bytes, len);
                 }
                 else {
                     STRLEN len;
                     const char *str = SvPVutf8(sv, len);
 
                     set_type(buf, BSON_STRING);
-                    serialize_string(buf, key, strlen(key));
-                    serialize_int(buf, len+1);
-                    serialize_string(buf, str, len);
+                    perl_mongo_serialize_string(buf, key, strlen(key));
+                    perl_mongo_serialize_int(buf, len+1);
+                    perl_mongo_serialize_string(buf, str, len);
                 }
                 break;
             default:
@@ -751,8 +751,8 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, int add_oid)
                 append_sv (buf, SvPVutf8_nolen (*key), *val);
             }
 
-            serialize_null(buf);
-            serialize_size(buf->start+start, buf);
+            perl_mongo_serialize_null(buf);
+            perl_mongo_serialize_size(buf->start+start, buf);
 
             break;
         }

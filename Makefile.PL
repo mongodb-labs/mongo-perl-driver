@@ -4,6 +4,9 @@ use lib 'ext';
 use inc::Module::Install;
 
 name 'MongoDB';
+perl_version '5.8.0';
+author 'Kristina Chodorow <kristina@10gen.com>';
+license 'Apache';
 all_from 'lib/MongoDB.pm';
 
 requires 'Any::Moose';
@@ -20,12 +23,12 @@ mongo;
 
 no_index directory => 'ext';
 
-license 'apache';
 repository 'git://github.com/mongodb/mongo-perl-driver.git';
 
 WriteAll;
 
 package MY;
+our $VERSION = '0.22';
 
 use Config;
 

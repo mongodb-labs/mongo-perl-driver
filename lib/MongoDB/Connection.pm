@@ -15,8 +15,11 @@
 #
 
 package MongoDB::Connection;
+our $VERSION = '0.22';
+
 # ABSTRACT: A connection to a Mongo server
 
+use MongoDB;
 use Any::Moose;
 use Digest::MD5;
 use Tie::IxHash;
@@ -128,26 +131,6 @@ has auto_connect => (
     default  => 1,
 );
 
-has _database_class => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 1,
-    default  => 'MongoDB::Database',
-);
-
-has _cursor_class => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 1,
-    default  => 'MongoDB::Cursor',
-);
-
-has _oid_class => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 1,
-    default  => 'MongoDB::OID',
-);
 
 sub _build__server {
     my ($self) = @_;
@@ -158,7 +141,7 @@ sub _build__server {
 sub BUILD {
     my ($self) = @_;
     eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
-        for map { $self->$_ } qw/_database_class _cursor_class _oid_class/;
+        for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID/;
     $self->connect if $self->auto_connect;
 }
 
@@ -189,7 +172,7 @@ sub insert {
     my ($self, $ns, $object) = @_;
     confess 'not a hash reference' unless ref $object eq 'HASH';
     my %copy = %{ $object }; # a shallow copy is good enough. we won't modify anything deep down in the structure.
-    $copy{_id} = $self->_oid_class->new unless exists $copy{_id};
+    $copy{_id} = MongoDB::OID->new unless exists $copy{_id};
     $self->_insert($ns, [\%copy]);
     return $copy{'_id'};
 }
@@ -315,7 +298,7 @@ Returns a C<MongoDB::Database> instance for database with the given C<$name>.
 
 sub get_database {
     my ($self, $database_name) = @_;
-    return $self->_database_class->new(
+    return MongoDB::Database->new(
         _connection => $self,
         name        => $database_name,
     );

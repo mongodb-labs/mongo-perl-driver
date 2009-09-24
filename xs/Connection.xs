@@ -213,7 +213,7 @@ _insert (self, ns, object)
           SV **obj = av_fetch(a, i, 0);
           perl_mongo_sv_to_bson(&buf, *obj, PREP);
         }
-        serialize_size(buf.start, &buf);
+        perl_mongo_serialize_size(buf.start, &buf);
 
         // sends
         mongo_link_say(self, link, &buf);
@@ -235,9 +235,9 @@ _remove (self, ns, query, just_one)
 
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_DELETE);
-        serialize_int(&buf, (int)(just_one == 1));
+        perl_mongo_serialize_int(&buf, (int)(just_one == 1));
         perl_mongo_sv_to_bson(&buf, query, NO_PREP);
-        serialize_size(buf.start, &buf);
+        perl_mongo_serialize_size(buf.start, &buf);
 
         // sends
         mongo_link_say(self, link, &buf);
@@ -260,10 +260,10 @@ _update (self, ns, query, object, upsert)
 
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_UPDATE);
-        serialize_int(&buf, upsert);
+        perl_mongo_serialize_int(&buf, upsert);
         perl_mongo_sv_to_bson(&buf, query, NO_PREP);
         perl_mongo_sv_to_bson(&buf, object, NO_PREP);
-        serialize_size(buf.start, &buf);
+        perl_mongo_serialize_size(buf.start, &buf);
 
         // sends
         mongo_link_say(self, link, &buf);

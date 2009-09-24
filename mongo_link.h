@@ -75,14 +75,14 @@
   CREATE_RESPONSE_HEADER(buf, ns, 0, opcode);                    
 
 #define APPEND_HEADER(buf, opts) buf.pos += INT_32;       \
-  serialize_int(&buf, header.request_id);                 \
-  serialize_int(&buf, header.response_to);                \
-  serialize_int(&buf, header.op);                         \
-  serialize_int(&buf, opts);                                
+  perl_mongo_serialize_int(&buf, header.request_id);                 \
+  perl_mongo_serialize_int(&buf, header.response_to);                \
+  perl_mongo_serialize_int(&buf, header.op);                         \
+  perl_mongo_serialize_int(&buf, opts);                                
 
 #define APPEND_HEADER_NS(buf, ns, opts)                 \
   APPEND_HEADER(buf, opts);                             \
-  serialize_string(&buf, ns, strlen(ns));              
+  perl_mongo_serialize_string(&buf, ns, strlen(ns));              
 
 #define CREATE_BUF(size)                                \
   Newx(buf.start, size, char);				\

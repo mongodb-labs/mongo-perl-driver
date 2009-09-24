@@ -32,7 +32,8 @@ package MongoDB;
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.22';
+
 
 use XSLoader;
 use MongoDB::Connection;

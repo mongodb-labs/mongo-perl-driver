@@ -15,10 +15,22 @@
 #
 
 package MongoDB::GridFS::File;
+our $VERSION = '0.22';
+
 # ABSTRACT: A Mongo GridFS file
 
 use Any::Moose;
 use MongoDB::GridFS;
+
+=head1 SYNOPSIS
+
+    use MongoDB::GridFS::File;
+
+    my $outfile = IO::File->new("outfile", "w");
+    my $file = $grid->find_one;
+    $file->print($outfile);
+
+=cut
 
 has _grid => (
     is       => 'ro',
