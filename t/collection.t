@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 47;
+use Test::More tests => 50;
 use Test::Exception;
 
 use Tie::IxHash;
@@ -148,6 +148,14 @@ while ($obj = $cursor->next) {
     is($obj->{'x'}, $i++);
 }
 
+# find_one fields
+$coll->drop;
+$coll->insert({'x' => 1, 'y' => 2, 'z' => 3});
+my $yer = $coll->find_one({}, {'y' => 1});
+
+ok(exists $yer->{'y'}, 'y exists');
+ok(!exists $yer->{'x'}, 'x doesn\'t');
+ok(!exists $yer->{'z'}, 'z doesn\'t');
 
 END {
     $db->drop;

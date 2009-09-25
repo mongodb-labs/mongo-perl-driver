@@ -173,23 +173,6 @@ _query (self, ns, query=0, limit=0, skip=0, sort=0)
         RETVAL
 
 
-SV *
-_find_one (self, ns, query)
-	SV *self
-        const char *ns
-        SV *query
-    PREINIT:
-        SV *cursor;
-    CODE:
-        // create a cursor with limit = -1
-        cursor = perl_mongo_call_method(self, "_query", 3, ST(1), ST(2), newSViv(-1));
-        RETVAL = perl_mongo_call_method(cursor, "next", 0);
-    OUTPUT:
-        RETVAL
-    CLEANUP:
-        SvREFCNT_dec (cursor);
-
-
 void
 _insert (self, ns, object)
         SV *self

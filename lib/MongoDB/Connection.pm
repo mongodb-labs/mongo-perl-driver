@@ -167,9 +167,10 @@ C<auto_connect> is true.
 =cut
 
 sub find_one {
-    my ($self, $ns, $query) = @_;
+    my ($self, $ns, $query, $fields) = @_;
     $query ||= {};
-    return $self->_find_one($ns, $query);
+    $fields ||= {};
+    return $self->query($ns, $query)->limit(-1)->fields($fields)->next;
 }
 
 sub query {

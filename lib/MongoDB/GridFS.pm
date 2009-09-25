@@ -85,7 +85,7 @@ has chunks => (
 
 =head1 METHODS
 
-=head2 find_one ($criteria)
+=head2 find_one ($criteria, $fields)
 
     my $file = $grid->find_one({"filename" => "foo.txt"});
 
@@ -94,10 +94,9 @@ Returns a matching MongoDB::GridFS::File or undef.
 =cut
 
 sub find_one {
-    #TODO: add fields
-    my ($self, $criteria) = @_;
+    my ($self, $criteria, $fields) = @_;
 
-    my $file = $self->files->find_one($criteria);
+    my $file = $self->files->find_one($criteria, $fields);
     return undef unless $file;
     return MongoDB::GridFS::File->new({_grid => $self,info => $file});
 }
