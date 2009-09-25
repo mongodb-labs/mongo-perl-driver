@@ -594,6 +594,17 @@ append_sv (buffer *buf, const char *key, SV *sv)
               perl_mongo_serialize_null(buf);
               perl_mongo_serialize_size(buf->start+start, buf);
             }
+            else if (sv_isa(sv, "DateTime")) {
+              set_type(buf, BSON_DATE);
+              perl_mongo_serialize_string(buf, key, strlen(key));
+              SV *sec = perl_mongo_call_reader (sv, "epoch");
+              SV *ms = perl_mongo_call_method (sv, "millisecond", 0);
+
+              perl_mongo_serialize_long(buf, (long long int)SvIV(sec)*1000+SvIV(ms));
+
+              SvREFCNT_dec (sec);
+              SvREFCNT_dec (ms);
+            }
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
               int f=0, i=0;
               char flags[] = {0,0,0,0,0,0};
