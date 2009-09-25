@@ -15,22 +15,25 @@
 #
 
 package MongoDB::OID;
-our $VERSION = '0.22';
-
+our $VERSION = '0.23';
 # ABSTRACT: A Mongo Object ID
 
 use Any::Moose;
 
-sub BUILDARGS { 
-    my $class = shift; 
-    return $class->SUPER::BUILDARGS(flibble => @_)
-        if @_ % 2; 
-    return $class->SUPER::BUILDARGS(@_); 
-}
+=head1 NAME
 
-=attr value
+MongoDB::OID - A Mongo Object ID
+
+=head1 VERSION
+
+version 0.23
+
+=head1 ATTRIBUTES
+
+=head2 value
 
 The OID value. A random value will be generated if none exists already.
+It is a 24-character hexidecimal string (12 bytes).
 
 =cut
 
@@ -40,6 +43,13 @@ has value => (
     required => 1,
     builder => 'build_value',
 );
+
+sub BUILDARGS { 
+    my $class = shift; 
+    return $class->SUPER::BUILDARGS(flibble => @_)
+        if @_ % 2; 
+    return $class->SUPER::BUILDARGS(@_); 
+}
 
 sub build_value {
     my ($self, $str) = @_;

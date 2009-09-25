@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 # ABSTRACT: A connection to a Mongo server
 
@@ -24,7 +24,17 @@ use Any::Moose;
 use Digest::MD5;
 use Tie::IxHash;
 
-=attr host
+=head1 NAME
+
+MongoDB::Connection - A connection to a Mongo server
+
+=head1 VERSION
+
+version 0.23
+
+=head1 ATTRIBUTES
+
+=head2 host
 
 Hostname to connect to. Defaults to C<localhost>.
 
@@ -37,7 +47,7 @@ has host => (
     default  => 'localhost',
 );
 
-=attr port
+=head2 port
 
 Port to use when connecting. Defaults to C<27017>.
 
@@ -50,7 +60,7 @@ has port => (
     default  => 27017,
 );
 
-=attr left_host
+=head2 left_host
 
 Paired connection host to connect to. Can be master or slave.
 
@@ -61,7 +71,7 @@ has left_host => (
     isa      => 'Str',
 );
 
-=attr left_port
+=head2 left_port
 
 Port to use when connecting to left_host. Defaults to C<27017>.
 
@@ -73,7 +83,7 @@ has left_port => (
     default  => 27017,
 );
 
-=attr right_host
+=head2 right_host
 
 Paired connection host to connect to. Can be master or slave.
 
@@ -84,7 +94,7 @@ has right_host => (
     isa      => 'Str',
 );
 
-=attr right_port
+=head2 right_port
 
 Port to use when connecting to right_host. Defaults to C<27017>.
 
@@ -103,7 +113,7 @@ has _server => (
     builder  => '_build__server',
 );
 
-=attr auto_reconnect
+=head2 auto_reconnect
 
 Boolean indicating whether or not to reconnect if the connection is
 interrupted. Defaults to C<1>.
@@ -117,7 +127,7 @@ has auto_reconnect => (
     default  => 1,
 );
 
-=attr auto_connect
+=head2 auto_connect
 
 Boolean indication whether or not to connect automatically on object
 construction. Defaults to C<1>.
@@ -145,7 +155,9 @@ sub BUILD {
     $self->connect if $self->auto_connect;
 }
 
-=method connect
+=head1 METHODS
+
+=head2 connect
 
     $connection->connect;
 
@@ -274,7 +286,7 @@ sub remove {
     }
 }
 
-=method database_names
+=head2 database_names
 
     my @dbs = $connection->database_names;
 
@@ -288,7 +300,7 @@ sub database_names {
     return map { $_->{name} } @{ $ret->{databases} };
 }
 
-=method get_database ($name)
+=head2 get_database ($name)
 
     my $database = $connection->get_database('foo');
 
@@ -304,7 +316,7 @@ sub get_database {
     );
 }
 
-=method find_master
+=head2 find_master
 
     $connection->find_master
 
@@ -342,7 +354,7 @@ sub find_master {
     return -1;
 }
 
-=method authenticate ($dbname, $username, $password, $is_digest?)
+=head2 authenticate ($dbname, $username, $password, $is_digest?)
 
     $connection->authenticate('foo', 'username', 'secret');
 

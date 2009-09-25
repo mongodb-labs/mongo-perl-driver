@@ -15,9 +15,19 @@
 #
 
 package MongoDB::Collection;
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 # ABSTRACT: A Mongo Collection
+
+=head1 NAME
+
+MongoDB::Collection - A Mongo Collection
+
+=head1 VERSION
+
+version 0.23
+
+=cut
 
 use Tie::IxHash;
 use Any::Moose;
@@ -29,7 +39,9 @@ has _database => (
     handles  => [qw/query find_one insert update remove ensure_index batch_insert/],
 );
 
-=attr name
+=head1 ATTRIBUTES
+
+=head2 name
 
 The name of the collection.
 
@@ -41,7 +53,7 @@ has name => (
     required => 1,
 );
 
-=attr full_name
+=head2 full_name
 
 The full_name of the collection, including the namespace of the database it's
 in.
@@ -62,7 +74,9 @@ sub _build_full_name {
     return "${db_name}.${name}";
 }
 
-=method query ($query, \%attrs?)
+=head1 METHODS
+
+=head2 query ($query, \%attrs?)
 
     my $cursor = $collection->query({ i => { '$gt' => 42 } });
 
@@ -94,38 +108,38 @@ Order results.
 
 =back
 
-=method find_one ($query)
+=head2 find_one ($query)
 
     my $object = $collection->find_one({ name => 'Resi' });
 
 Executes the given C<$query> and returns the first object matching it.
 
-=method insert ($object)
+=head2 insert ($object)
 
     my $id = $collection->insert({ name => 'mongo', type => 'database' });
 
 Inserts the given C<$object> into the database and returns it's id
 value. The id is the C<_id> value specified in the data or a C<MongoDB::OID>.
 
-=method batch_insert (@array)
+=head2 batch_insert (@array)
 
     my @ids = $collection->batch_insert(({name => "Joe"}, {name => "Fred"}, {name => "Sam"}));
 
 Inserts each of the documents in the array into the database and returns their _ids.
 
-=method update ($update, $object, $upsert?)
+=head2 update ($update, $object, $upsert?)
 
     $collection->update($object);
 
 Updates an existing C<$object> in the database.
 
-=method remove ($query)
+=head2 remove ($query)
 
     $collection->remove({ answer => { '$ne' => 42 } });
 
 Removes all objects matching the given C<$query> from the database.
 
-=method ensure_index (\@keys, $direction?, $unique?)
+=head2 ensure_index (\@keys, $direction?, $unique?)
 
     $collection->ensure_index([qw/foo bar/]);
 
@@ -144,7 +158,7 @@ sub _query_ns {
     return $self->name;
 }
 
-=method count ($query, $fields)
+=head2 count ($query, $fields)
 
     my $n_objects = $collection->count({ name => 'Bob' });
     $bobs_with_zip = $collection->count({ name => 'Bob' }, { zip : 1 });
@@ -175,7 +189,7 @@ sub count {
     return $obj->{n};
 }
 
-=method validate
+=head2 validate
 
     $collection->validate;
 
@@ -189,7 +203,7 @@ sub validate {
     my $obj = $self->_database->run_command({ validate => $self->name });
 }
 
-=method drop_indexes
+=head2 drop_indexes
 
     $collection->drop_indexes;
 
@@ -202,7 +216,7 @@ sub drop_indexes {
     return $self->drop_index('*');
 }
 
-=method drop_index ($index_name)
+=head2 drop_index ($index_name)
 
     $collection->drop_index('foo');
 
@@ -217,7 +231,7 @@ sub drop_index {
     return $self->_database->run_command($t);
 }
 
-=method get_indexes
+=head2 get_indexes
 
     my @indexes = $collection->get_indexes;
 
@@ -232,7 +246,7 @@ sub get_indexes {
     })->all;
 }
 
-=method drop
+=head2 drop
 
     $collection->drop;
 

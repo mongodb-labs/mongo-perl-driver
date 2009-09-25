@@ -15,11 +15,19 @@
 #
 
 package MongoDB::Cursor;
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 # ABSTRACT: A cursor/iterator for Mongo query results
 
 use Any::Moose;
+
+=head1 NAME
+
+MongoDB::Cursor - A cursor/iterator for Mongo query results
+
+=head1 VERSION
+
+version 0.23
 
 =head1 SYNOPSIS
 
@@ -30,7 +38,9 @@ use Any::Moose;
     my @objects = $cursor->all;
 
 
-=attr slave_okay
+=head1 ATTRIBUTES
+
+=head2 slave_okay
 
     $MongoDB::Cursor::slave_okay = 1;
 
@@ -40,8 +50,9 @@ Whether it is okay to run queries on the slave.  Defaults to 0.
 
 $MongoDB::Cursor::slave_okay = 0;
 
+=head1 METHODS
 
-=method fields
+=head2 fields
 
     $coll->insert({name => "Fred", age => 20});
     my $cursor = $coll->find->fields({ name => 1 });
@@ -52,7 +63,7 @@ $MongoDB::Cursor::slave_okay = 0;
 Selects which fields are returned. 
 The default is all fields.  _id is always returned.
 
-=method sort
+=head2 sort
 
     # sort by name, descending
     my $sort = {"name" => -1};
@@ -62,7 +73,7 @@ Adds a sort to the query.
 Returns this cursor for chaining operations.
 
 
-=method limit
+=head2 limit
 
     $per_page = 20;
     $cursor = $coll->find->limit($per_page);
@@ -71,7 +82,7 @@ Returns a maximum of N results.
 Returns this cursor for chaining operations.
 
 
-=method skip
+=head2 skip
 
     $page_num = 7;
     $per_page = 100;
@@ -81,7 +92,7 @@ Skips the first N results.
 Returns this cursor for chaining operations.
 
 
-=method snapshot
+=head2 snapshot
 
     my $cursor = $coll->find->snapshot;
 
@@ -95,14 +106,14 @@ snapshotted.  Currently, snapshot mode may not be used with
 sorting or explicit hints.
 
 
-=method hint
+=head2 hint
 
     my $cursor = $coll->find->hint({'x' => 1});
 
 Force Mongo to use a specific index for a query.
 
 
-=method explain
+=head2 explain
 
     my $explanation = $cursor->explain;
 
@@ -112,14 +123,14 @@ returned by the query, and the time in milliseconds the query took
 to execute.
 
 
-=method reset
+=head2 reset
 
 Resets the cursor.  After being reset, pre-query methods can be
 called on the cursor (sort, limit, etc.) and subsequent calls to
 next, has_next, or all will re-query the database.
 
 
-=method has_next
+=head2 has_next
 
     while ($cursor->has_next) {
         ...
@@ -128,7 +139,7 @@ next, has_next, or all will re-query the database.
 Checks if there is another result to fetch.
 
 
-=method next
+=head2 next
 
     while (my $object = $cursor->next) {
         ...
@@ -138,7 +149,7 @@ Returns the next object in the cursor. Will automatically fetch more data from
 the server if necessary. Returns undef if no more data is available.
 
 
-=method all
+=head2 all
 
     my @objects = $cursor->all;
 

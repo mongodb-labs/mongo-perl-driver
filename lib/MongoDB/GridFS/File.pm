@@ -15,12 +15,20 @@
 #
 
 package MongoDB::GridFS::File;
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 # ABSTRACT: A Mongo GridFS file
 
 use Any::Moose;
 use MongoDB::GridFS;
+
+=head1 NAME
+
+MongoDB::GridFS::File - A Mongo GridFS file
+
+=head1 VERSION
+
+version 0.23
 
 =head1 SYNOPSIS
 
@@ -38,7 +46,9 @@ has _grid => (
     required => 1,
 );
 
-=attr info
+=head1 ATTRIBUTES
+
+=head2 info
 
 A hash of info information saved with this file.
 
@@ -50,8 +60,9 @@ has info => (
     required => 1,
 );
 
+=head1 METHODS
 
-=method print ($fh, $length, $offset)
+=head2 print ($fh, $length, $offset)
 
     $written = $file->print($fh, 50, 200);
 

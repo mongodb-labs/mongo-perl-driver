@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Database;
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 # ABSTRACT: A Mongo Database
 
@@ -29,7 +29,17 @@ has _connection => (
     handles  => [qw/query find_one insert update remove ensure_index batch_insert/],
 );
 
-=attr name
+=head1 NAME
+
+MongoDB::Database - A Mongo Database
+
+=head1 VERSION
+
+version 0.23
+
+=head1 ATTRIBUTES
+
+=head2 name
 
 The name of the database.
 
@@ -58,7 +68,9 @@ sub _query_ns {
     return qq{${name}.${ns}};
 }
 
-=method collection_names
+=head1 METHODS
+
+=head2 collection_names
 
     my @collections = $database->collection_names;
 
@@ -74,7 +86,7 @@ sub collection_names {
     } map { $_->{name} } $it->all;
 }
 
-=method get_collection ($name)
+=head2 get_collection ($name)
 
     my $collection = $database->get_collection('foo');
 
@@ -91,7 +103,7 @@ sub get_collection {
     );
 }
 
-=method get_gridfs ($prefix)
+=head2 get_gridfs ($prefix)
 
     my $grid = $database->get_gridfs;
 
@@ -115,7 +127,7 @@ sub get_gridfs {
     );
 }
 
-=method drop
+=head2 drop
 
     $database->drop;
 
@@ -129,7 +141,7 @@ sub drop {
 }
 
 
-=method last_error
+=head2 last_error
 
     my $err = $db->last_error;
 
@@ -145,7 +157,7 @@ sub last_error {
 }
 
 
-=method run_command ($command)
+=head2 run_command ($command)
 
     my $result = $database->run_command({ some_command => 1 });
 
@@ -163,7 +175,7 @@ sub run_command {
 }
 
 
-=method eval ($code, $args)
+=head2 eval ($code, $args)
 
     my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
 

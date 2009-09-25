@@ -15,12 +15,20 @@
 #
 
 package MongoDB::GridFS;
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 # ABSTRACT: A file storage utility
 
 use Any::Moose;
 use MongoDB::GridFS::File;
+
+=head1 NAME
+
+MongoDB::GridFS - A file storage utility
+
+=head1 VERSION
+
+version 0.23
 
 =head1 SYNOPSIS
 
@@ -29,6 +37,12 @@ use MongoDB::GridFS::File;
     my $grid = $database->get_gridfs;
     my $fh = IO::File->new("myfile", "r");
     $grid->insert($fh, {"filename" => "mydbfile"});
+
+=head1 ATTRIBUTES
+
+=head2 chunk_size
+
+The number of bytes per chunk.  Defaults to 1048576.
 
 =cut
 
@@ -40,7 +54,7 @@ has _database => (
     required => 1,
 );
 
-=attr files
+=head2 files
 
 Collection in which file metadata is stored.  Each
 document contains md5 and length fields, plus
@@ -54,7 +68,7 @@ has files => (
     required => 1,
 );
 
-=attr chunks
+=head2 chunks
 
 Actual content of the files stored.  Each chunk contains
 up to 4Mb of data, as well as a number (its order within 
@@ -69,7 +83,9 @@ has chunks => (
     required => 1,
 );
 
-=method find_one ($criteria)
+=head1 METHODS
+
+=head2 find_one ($criteria)
 
     my $file = $grid->find_one({"filename" => "foo.txt"});
 
@@ -86,7 +102,7 @@ sub find_one {
     return MongoDB::GridFS::File->new({_grid => $self,info => $file});
 }
 
-=method remove ($criteria)
+=head2 remove ($criteria)
 
     $grid->remove({"filename" => "foo.txt"});
 
@@ -106,7 +122,7 @@ sub remove {
 }
 
 
-=method insert ($fh, $metadata)
+=head2 insert ($fh, $metadata)
 
     my $id = $gridfs->insert($fh, {"content-type" => "text/html"});
 
@@ -155,7 +171,7 @@ sub insert {
     return $self->files->insert(\%copy);
 }
 
-=method drop
+=head2 drop
 
     @files = $grid->drop;
 
@@ -170,7 +186,7 @@ sub drop {
     $self->chunks->drop;
 }
 
-=method all
+=head2 all
 
     @files = $grid->all;
 

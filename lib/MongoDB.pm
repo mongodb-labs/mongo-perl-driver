@@ -20,6 +20,24 @@ use warnings;
 package MongoDB;
 # ABSTRACT: A Mongo Driver for Perl
 
+our $VERSION = '0.23';
+
+
+use XSLoader;
+use MongoDB::Connection;
+
+XSLoader::load(__PACKAGE__, $VERSION);
+
+1;
+
+=head1 NAME
+
+MongoDB - A Mongo Driver for Perl
+
+=head1 VERSION
+
+version 0.23
+
 =head1 SYNOPSIS
 
     use MongoDB;
@@ -30,14 +48,16 @@ package MongoDB;
     my $id         = $collection->insert({ some => 'data' });
     my $data       = $collection->find_one({ _id => $id });
 
-=cut
+=head1 AUTHOR
 
-our $VERSION = '0.22';
+  Florian Ragwitz <rafl@debian.org>
+  Kristina Chodorow <kristina@10gen.com>
 
+=head1 COPYRIGHT AND LICENSE
 
-use XSLoader;
-use MongoDB::Connection;
+This software is Copyright (c) 2009 by 10Gen.
 
-XSLoader::load(__PACKAGE__, $VERSION);
+This is free software, licensed under:
 
-1;
+  The Apache License, Version 2.0, January 2004
+
