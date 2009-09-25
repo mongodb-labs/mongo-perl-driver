@@ -73,6 +73,7 @@ typedef struct {
 void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 SV *perl_mongo_call_reader (SV *self, const char *reader);
 SV *perl_mongo_call_method (SV *self, const char *method, int num, ...);
+SV *perl_mongo_call_function (const char *func, int num, ...);
 void perl_mongo_attach_ptr_to_instance (SV *self, void *ptr);
 void *perl_mongo_get_ptr_from_instance (SV *self);
 SV *perl_mongo_construct_instance (const char *klass, ...);

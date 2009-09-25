@@ -108,6 +108,48 @@ perl_mongo_call_method (SV *self, const char *method, int num, ...)
     return ret;
 }
 
+SV *
+perl_mongo_call_function (const char *func, int num, ...)
+{
+    dSP;
+    SV *ret;
+    I32 count;
+    va_list args;
+    int save_num = num;
+
+    ENTER;
+    SAVETMPS;
+
+    PUSHMARK (SP);
+
+    va_start( args, num );
+ 
+    for( ; num > 0; num-- ) {
+      XPUSHs (va_arg( args, SV* ));
+    }
+ 
+    va_end( args );
+
+    PUTBACK;
+
+    count = call_pv (func, G_SCALAR);
+
+    SPAGAIN;
+
+    if (count != 1) {
+        croak ("method didn't return a value");
+    }
+
+    ret = POPs;
+    SvREFCNT_inc (ret);
+
+    PUTBACK;
+    FREETMPS;
+    LEAVE;
+
+    return ret;
+}
+
 
 void
 perl_mongo_attach_ptr_to_instance (SV *self, void *ptr)
@@ -285,10 +327,24 @@ elem_to_sv (int type, buffer *buf)
     buf->pos += INT_32;
     break;
   }
-  case BSON_LONG: 
-  case BSON_DATE: {
+  case BSON_LONG: {
     value = newSViv(*((long long int*)buf->pos));
     buf->pos += INT_64;
+    break;
+  }
+  case BSON_DATE: {
+    int64_t ms = *(long long int*)buf->pos;
+    buf->pos += INT_64;
+    ms /= 1000;
+
+    SV *datetime = sv_2mortal(newSVpv("DateTime", 0));
+    SV *epoch = sv_2mortal(newSVpv("epoch", 0));
+    SV *mortal_ms = sv_2mortal(newSViv(ms));
+
+    HV *named_params = newHV();
+    hv_store(named_params, "epoch", strlen("epoch"), mortal_ms, 0);
+
+    value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime, newRV_noinc((SV*)named_params));
     break;
   }
   case BSON_REGEX: {
@@ -426,7 +482,7 @@ void perl_mongo_serialize_int(buffer *buf, int num) {
   buf->pos += INT_32;
 }
 
-void perl_mongo_serialize_long(buffer *buf, long long num) {
+void perl_mongo_serialize_long(buffer *buf, int64_t num) {
   if(BUF_REMAINING <= INT_64) {
     resize_buf(buf, INT_64);
   }
@@ -600,7 +656,7 @@ append_sv (buffer *buf, const char *key, SV *sv)
               SV *sec = perl_mongo_call_reader (sv, "epoch");
               SV *ms = perl_mongo_call_method (sv, "millisecond", 0);
 
-              perl_mongo_serialize_long(buf, (long long int)SvIV(sec)*1000+SvIV(ms));
+              perl_mongo_serialize_long(buf, (int64_t)SvIV(sec)*1000+SvIV(ms));
 
               SvREFCNT_dec (sec);
               SvREFCNT_dec (ms);

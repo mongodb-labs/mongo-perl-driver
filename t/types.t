@@ -1,10 +1,11 @@
 use strict;
 use warnings;
-use Test::More tests => 6;
+use Test::More tests => 9;
 use Test::Exception;
 
 use MongoDB;
 use MongoDB::OID;
+use DateTime;
 
 my $conn = MongoDB::Connection->new;
 my $db = $conn->get_database('x');
@@ -28,4 +29,22 @@ ok(!$freds->has_next, 'bob doesn\'t match');
 
 my $fred = $coll->find_one({'x' => qr/^F/});
 is($fred->{'x'}, 'FRED', 'starts with');
+
+# date
+$coll->drop;
+
+my $now = DateTime->now;
+
+$coll->insert({'date' => $now});
+my $date = $coll->find_one;
+
+is($date->{'date'}->epoch, $now->epoch);
+is($date->{'date'}->day_of_week, $now->day_of_week);
+
+my $past = DateTime->from_epoch('epoch' => 1234567890);
+
+$coll->insert({'date' => $past});
+$date = $coll->find_one({'date' => $past});
+
+is($date->{'date'}->epoch, 1234567890);
 
