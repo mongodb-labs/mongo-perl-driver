@@ -128,8 +128,8 @@ is($r1->{'sn'}, $r2->{'sn'}, 'reset');
 
 # explain
 my $exp = $cursor->explain;
-is(501, $exp->{'n'}, 'explain');
-is('BasicCursor', $exp->{'cursor'});
+is($exp->{'n'}, 501, 'explain');
+is($exp->{'cursor'}, 'BasicCursor');
 ok(exists $exp->{'endKey'});
 
 $cursor->reset;

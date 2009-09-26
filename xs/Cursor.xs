@@ -24,84 +24,109 @@ static int has_next(SV *self, mongo_cursor *cursor);
 static void kill_cursor(SV *self);
 
 static mongo_cursor* get_cursor(SV *self) {
-  SV **link_sv, *slave_okay;
-  mongo_link *link;
+  SV *link, *slave_okay, *skip, *limit,
+     *query, *fields, *ns, *started_iterating;
   mongo_cursor *cursor;
   buffer buf;
   mongo_msg_header header;
-  int sent;
+  int sent, opts = 0;
 
   cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
 
+  started_iterating = perl_mongo_call_reader (self, "started_iterating");
+
   // if so, get the cursor
-  if (cursor->started_iterating) {
+  if (SvIV(started_iterating)) {
+    SvREFCNT_dec(started_iterating);
     return cursor;
   }
+  SvREFCNT_dec(started_iterating);
 
-  link_sv = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
-  link = (mongo_link*)perl_mongo_get_ptr_from_instance(*link_sv);
+  link = perl_mongo_call_reader (self, "_connection");
+  ns = perl_mongo_call_reader (self, "_ns");
+  skip = perl_mongo_call_reader (self, "_skip");
+  limit = perl_mongo_call_reader (self, "_limit");
+  query = perl_mongo_call_reader (self, "_query");
+  fields = perl_mongo_call_reader (self, "_fields");
 
   slave_okay = get_sv ("MongoDB::Cursor::slave_okay", GV_ADD);
-  cursor->opts = SvTRUE(slave_okay) ? 1 << 2 : 0;
+  opts = SvTRUE(slave_okay) ? 1 << 2 : 0;
 
   // if not, execute the query
   CREATE_BUF(INITIAL_BUF_SIZE);
-  CREATE_HEADER_WITH_OPTS(buf, cursor->ns, OP_QUERY, cursor->opts);
-  perl_mongo_serialize_int(&buf, cursor->skip);
-  perl_mongo_serialize_int(&buf, cursor->limit);
-  perl_mongo_sv_to_bson(&buf, cursor->query, NO_PREP);
-  if (cursor->fields) {
-    perl_mongo_sv_to_bson(&buf, cursor->fields, NO_PREP);
+  CREATE_HEADER_WITH_OPTS(buf, SvPV_nolen(ns), OP_QUERY, opts);
+  perl_mongo_serialize_int(&buf, SvIV(skip));
+  perl_mongo_serialize_int(&buf, SvIV(limit));
+  perl_mongo_sv_to_bson(&buf, query, NO_PREP);
+  if (SvROK(fields)) {
+    perl_mongo_sv_to_bson(&buf, fields, NO_PREP);
   }
 
   perl_mongo_serialize_size(buf.start, &buf);
 
+  SvREFCNT_dec(ns);
+  SvREFCNT_dec(query);
+  SvREFCNT_dec(fields);
+  SvREFCNT_dec(limit);
+  SvREFCNT_dec(skip);
+
   // sends
-  sent = mongo_link_say(*link_sv, link, &buf);
+  sent = mongo_link_say(link, &buf);
   Safefree(buf.start);
   if (sent == -1) {
+    SvREFCNT_dec(link);
     croak("couldn't send query.");
   }
 
-  mongo_link_hear(*link_sv, link, cursor);
-  cursor->started_iterating = 1;
+  mongo_link_hear(self);
+
+  started_iterating = perl_mongo_call_method (self, "started_iterating", 1, sv_2mortal(newSViv(1)));
+  SvREFCNT_dec(started_iterating);
+  SvREFCNT_dec(link);
 
   return cursor;
 }
 
 static int has_next(SV *self, mongo_cursor *cursor) {
-  SV **link_sv;
-  mongo_link *link;
+  SV *link, *limit, *ns;
   mongo_msg_header header;
   buffer buf;
-  int size;
+  int size, heard;
 
-  if ((cursor->limit > 0 && cursor->at >= cursor->limit) || 
+  limit = perl_mongo_call_reader (self, "_limit");
+
+  if ((SvIV(limit) > 0 && cursor->at >= SvIV(limit)) || 
       cursor->num == 0 ||
       (cursor->at == cursor->num && cursor->cursor_id == 0)) {
+    SvREFCNT_dec(limit);
     return 0;
   }
   else if (cursor->at < cursor->num) {
+    SvREFCNT_dec(limit);
     return 1;
   }
 
 
-  link_sv = hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
-  link = (mongo_link*)perl_mongo_get_ptr_from_instance(*link_sv);
+  link = perl_mongo_call_reader (self, "_connection");
+  ns = perl_mongo_call_reader (self, "_ns");
 
   // we have to go and check with the db
-  size = 34+strlen(cursor->ns);
+  size = 34+strlen(SvPV_nolen(ns));
   Newx(buf.start, size, char);
   buf.pos = buf.start;
   buf.end = buf.start + size;
 
-  CREATE_RESPONSE_HEADER(buf, cursor->ns, cursor->header.request_id, OP_GET_MORE);
-  perl_mongo_serialize_int(&buf, cursor->limit);
+  CREATE_RESPONSE_HEADER(buf, SvPV_nolen(ns), cursor->header.request_id, OP_GET_MORE);
+  perl_mongo_serialize_int(&buf, SvIV(limit));
   perl_mongo_serialize_long(&buf, cursor->cursor_id);
   perl_mongo_serialize_size(buf.start, &buf);
 
+  SvREFCNT_dec(limit);
+  SvREFCNT_dec(ns);
+
   // fails if we're out of elems
-  if(mongo_link_say(*link_sv, link, &buf) == -1) {
+  if(mongo_link_say(link, &buf) == -1) {
+    SvREFCNT_dec(link);
     Safefree(buf.start);
     return 0;
   }
@@ -111,13 +136,15 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   // if we have cursor->at == cursor->num && recv fails,
   // we're probably just out of results
   // mongo_link_hear returns 0 on success
-  return (mongo_link_hear(*link_sv, link, cursor) > 0);
+  heard = mongo_link_hear(self);
+  SvREFCNT_dec(link);
+  return heard > 0;
 }
 
 
 static void kill_cursor(SV *self) {
   mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-  mongo_link *link = (mongo_link*)hv_fetch(SvSTASH(SvRV(self)), "link", strlen("link"), 0);
+  SV *link = perl_mongo_call_reader (self, "_connection");
   char quickbuf[128];
   buffer buf;
   mongo_msg_header header;
@@ -143,13 +170,34 @@ static void kill_cursor(SV *self) {
   perl_mongo_serialize_long(&buf, cursor->cursor_id);
   perl_mongo_serialize_size(buf.start, &buf);
 
-  mongo_link_say(self, link, &buf);
+  mongo_link_say(link, &buf);
 }
 
 
 MODULE = MongoDB::Cursor  PACKAGE = MongoDB::Cursor
 
 PROTOTYPES: DISABLE
+
+void
+_init (self)
+        SV *self
+    PREINIT:
+        SV *ns_sv;
+        mongo_cursor *cursor;
+    CODE:
+        // attach a mongo_cursor* to the MongoDB::Cursor
+        Newx(cursor, 1, mongo_cursor);
+        perl_mongo_attach_ptr_to_instance(self, cursor);
+
+	// zero results fields
+	cursor->num = 0;
+	cursor->at = 0;
+
+        // clear the buf
+        cursor->buf.start = 0;
+        cursor->buf.pos = 0;
+        cursor->buf.end = 0;
+
 
 
 bool
@@ -189,180 +237,32 @@ next (self)
 
 
 SV *
-snapshot (self)
-        SV *self
-    PREINIT:
-        mongo_cursor *cursor;
-        HV *this_hash;
-        SV **query;
-    CODE:
-        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-        if (cursor->started_iterating) {
-          croak("cannot set snapshot() after query");
-          return;
-        }
-
-        this_hash = SvSTASH(SvRV(self));
-        query = hv_fetch(this_hash, "query", strlen("query"), 0);
-
-        if (query && SvROK(*query) && SvTYPE(SvRV(*query)) == SVt_PVHV) {
-          // store $snapshot
-          SV **ret = hv_store((HV*)SvRV(*query), "$snapshot", strlen("$snapshot"), newSViv(1), 0);
-        }
-        // increment this
-        SvREFCNT_inc(self);
-
-
-SV *
-fields (self, fields)
-        SV *self
-        SV *fields
-     PREINIT:
-        mongo_cursor *cursor;
-     CODE:
-        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-        if (cursor->started_iterating) {
-          croak("cannot set fields after query");
-          return;
-        }
-
-        SvREFCNT_inc(fields);
-        cursor->fields = fields;
-
-        SvREFCNT_inc(self);
-
-SV *
-sort (self, sort)
-        SV *self
-        SV *sort
-     PREINIT:
-        mongo_cursor *cursor;
-        HV *this_hash;
-        SV **query;
-     CODE:
-        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-        if (cursor->started_iterating) {
-          croak("cannot set sort() after query");
-          return;
-        }
-
-        this_hash = SvSTASH(SvRV(self));
-        query = hv_fetch(this_hash, "query", strlen("query"), 0);
-
-        if (query && SvROK(*query) && SvTYPE(SvRV(*query)) == SVt_PVHV) {
-          // store sort and increase refcount
-          SV **ret = hv_store((HV*)SvRV(*query), "orderby", strlen("orderby"), SvREFCNT_inc(sort), 0);
-
-          // if the hash update failed, decrement the refcount
-          if (!ret) {
-            SvREFCNT_dec(sort);
-            // should we croak here?
-          }
-        } else {
-          croak("something is wrong with the query");
-        }
-        // increment this
-        SvREFCNT_inc(self);
-
-
-SV *
-hint (self, hint)
-        SV *self
-        SV *hint
-     PREINIT:
-        mongo_cursor *cursor;
-        HV *this_hash;
-        SV **query;
-     CODE:
-        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-        if (cursor->started_iterating) {
-          croak("cannot set hint() after query");
-          return;
-        }
-
-        this_hash = SvSTASH(SvRV(self));
-        query = hv_fetch(this_hash, "query", strlen("query"), 0);
-
-        if (query && SvROK(*query) && SvTYPE(SvRV(*query)) == SVt_PVHV) {
-          // store hint and increase refcount
-          SV **ret = hv_store((HV*)SvRV(*query), "$hint", strlen("$hint"), SvREFCNT_inc(hint), 0);
-
-          // if the hash update failed, decrement the refcount
-          if (!ret) {
-            SvREFCNT_dec(hint);
-            // should we croak here?
-          }
-        } else {
-          croak("something is wrong with the query");
-        }
-        // increment this
-        SvREFCNT_inc(self);
-
-
-SV *
-limit (self, num)
-        SV *self
-        int num
-     PREINIT:
-        mongo_cursor *cursor;
-     CODE:
-        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-        if (cursor->started_iterating) {
-          croak("cannot set limit() after query");
-          return;
-        }
-
-        cursor->limit = num;
-        SvREFCNT_inc(self);
-
-
-SV *
-skip (self, num)
-        SV *self
-        int num
-     PREINIT:
-        mongo_cursor *cursor;
-     CODE:
-        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-        if (cursor->started_iterating) {
-          croak("cannot set skip() after query");
-          return;
-        }
-
-        cursor->skip = num;
-        SvREFCNT_inc(self);
-
-
-SV *
 explain (self) 
         SV *self
     PREINIT:
-        mongo_cursor *cursor;
-        HV *this_hash;
-        SV **query;
-        int temp_limit;
+        SV *temp_limit, *query, *rubbish;
     CODE:
-        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-
-        temp_limit = cursor->limit;
-        if (cursor->limit > 0) {
-          cursor->limit *= -1;
+        temp_limit = perl_mongo_call_reader (self, "_limit");
+        if (SvIV(temp_limit) > 0) {
+	  rubbish = perl_mongo_call_method (self, "_limit", 1, sv_2mortal(newSViv(SvIV(temp_limit) * -1)));
+	  SvREFCNT_dec(rubbish);
         }
 
-        this_hash = SvSTASH(SvRV(self));
-        query = hv_fetch(this_hash, "query", strlen("query"), 0);
+        query = perl_mongo_call_reader (self, "_query");
 
-        if (!query || !SvROK(*query) || SvTYPE(SvRV(*query)) != SVt_PVHV) {
+        if (!query || !SvROK(query) || SvTYPE(SvRV(query)) != SVt_PVHV) {
           croak("couldn't run explain, invalid query");
         }
 
         // store $explain
-        hv_store((HV*)SvRV(*query), "$explain", strlen("$explain"), &PL_sv_yes, 0);
+        hv_store((HV*)SvRV(query), "$explain", strlen("$explain"), &PL_sv_yes, 0);
 
         perl_mongo_call_method(self, "reset", 0);
         RETVAL = perl_mongo_call_method(self, "next", 0);
 
-        cursor->limit = temp_limit;
+	rubbish = perl_mongo_call_method (self, "_limit", 1, temp_limit);
+	SvREFCNT_dec(rubbish);
+	SvREFCNT_dec(query);
     OUTPUT:
         RETVAL
 
@@ -371,53 +271,21 @@ SV *
 reset (self)
         SV *self
     PREINIT:
+        SV *rubbish;
         mongo_cursor *cursor;
     CODE:
         cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
         cursor->buf.pos = cursor->buf.start;
-        cursor->started_iterating = 0;
         cursor->at = 0;
         cursor->num = 0;
+
+	rubbish = perl_mongo_call_method (self, "started_iterating", 1, sv_2mortal(newSViv(0)));
+	SvREFCNT_dec(rubbish);
 
 
 
 void
 DESTROY (self)
       SV *self
-  PREINIT:
-      SV **link;
-      HV *this_hash;
-      mongo_cursor *cursor;
   CODE:
       kill_cursor(self);
-
-      //this_hash = SvSTASH(SvRV(self));
-      //link = hv_fetch(this_hash, "link", strlen("link"), 0);
-      //SvREFCNT_dec(*link);
-
-      cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-      if (cursor) {
-        if (cursor->ns) { 
-          Safefree(cursor->ns);
-          cursor->ns = 0;
-        }
-        
-        if (cursor->query) { 
-          SvREFCNT_dec(cursor->query);
-          cursor->query = 0;
-        }
-        
-        if (cursor->fields) {
-          SvREFCNT_dec(cursor->fields);
-          cursor->fields = 0;
-        }
-
-        if (cursor->buf.start) {
-          Safefree(cursor->buf.start);
-          cursor->buf.start = 0;
-        }
-        
-        Safefree(cursor);
-        cursor = 0;
-        
-      }

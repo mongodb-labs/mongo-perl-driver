@@ -20,6 +20,8 @@ our $VERSION = '0.23';
 # ABSTRACT: A connection to a Mongo server
 
 use MongoDB;
+use MongoDB::Cursor;
+
 use Any::Moose;
 use Digest::MD5;
 use Tie::IxHash;
@@ -178,7 +180,27 @@ sub query {
     my ($limit, $skip, $sort_by) = @{ $attrs || {} }{qw/limit skip sort_by/};
     $limit   ||= 0;
     $skip    ||= 0;
-    return $self->_query($ns, $query, $limit, $skip, $sort_by);
+
+    my $q = {};
+    if ($query) {
+	$q->{'query'} = $query;
+    }
+    else {
+	$q->{'query'} = {};
+    }
+    if ($sort_by) {
+	$q->{'orderby'} = $sort_by;
+    }
+
+    my $cursor = MongoDB::Cursor->new(
+	_connection => $self,
+	_ns => $ns, 
+	_query => $q, 
+	_limit => $limit, 
+	_skip => $skip
+    );
+    $cursor->_init;
+    return $cursor;
 }
 
 sub insert {

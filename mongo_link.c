@@ -74,7 +74,7 @@ static int do_connect(char *host, int port) {
 
   // create socket
   if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-    croak("couldn't create socket: %d\n", strerror(errno));
+    croak("couldn't create socket: %s\n", strerror(errno));
     return -1;
   }
 #endif
@@ -161,20 +161,21 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
 /*
  * Sends a message to the MongoDB server
  */
-int mongo_link_say(SV *self, mongo_link *link, buffer *buf) {
+int mongo_link_say(SV *link_sv, buffer *buf) {
   int sock, sent;
+  mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
   if (!check_connection(link)) {
     croak("can't get db response, not connected");
     return -1;
   }
 
-  sock = perl_mongo_link_master(self, link);
+  sock = perl_mongo_link_master(link_sv);
   sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
 
   if (sent == -1) {
     if (check_connection(link)) {
-      sock = perl_mongo_link_master(self, link);
+      sock = perl_mongo_link_master(link_sv);
       sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
     }
     else {
@@ -190,16 +191,19 @@ int mongo_link_say(SV *self, mongo_link *link, buffer *buf) {
  * Gets a reply from the MongoDB server and
  * creates a cursor for it
  */
-int mongo_link_hear(SV *self, mongo_link *link, mongo_cursor *cursor) {
+int mongo_link_hear(SV *cursor_sv) {
   int sock;
   int num_returned = 0;
+  mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv);
+  SV *link_sv = perl_mongo_call_reader(cursor_sv, "_connection");
+  mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
   if (!check_connection(link)) {
     croak("can't get db response, not connected");
     return 0;
   }
 
-  sock = perl_mongo_link_master(self, link);
+  sock = perl_mongo_link_master(link_sv);
 
   // if this fails, we might be disconnected... but we're probably
   // just out of results
@@ -327,9 +331,10 @@ inline void set_disconnected(mongo_link *link) {
   }
 }
 
-int perl_mongo_link_master(SV *self, mongo_link *link) {
+int perl_mongo_link_master(SV *link_sv) {
   SV *master;
   int side;
+  mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
   if (!link->paired) {
     return link->server.single.socket;
@@ -346,7 +351,7 @@ int perl_mongo_link_master(SV *self, mongo_link *link) {
     }
   }
 
-  master = perl_mongo_call_method(self, "find_master", 0);
+  master = perl_mongo_call_method(link_sv, "find_master", 0);
   side = SvIV(master);
 
   if (side == 0) {

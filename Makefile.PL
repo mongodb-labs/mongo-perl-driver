@@ -16,6 +16,7 @@ requires 'Any::Moose';
 requires 'Class::Method::Modifiers';
 requires 'Digest::MD5';
 requires 'Tie::IxHash';
+requires 'DateTime';
 requires 'XSLoader';
 test_requires 'Test::Exception';
 

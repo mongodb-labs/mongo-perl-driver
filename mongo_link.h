@@ -125,16 +125,6 @@ typedef struct {
 } mongo_link;
 
 typedef struct {
-  // collection namespace
-  const char *ns;
-
-  // fields to send
-  SV *query;
-  SV *fields;
-  int limit;
-  int skip;
-  int opts;
-
   // response header
   mongo_msg_header header;
   // response fields
@@ -153,8 +143,8 @@ typedef struct {
 } mongo_cursor;
 
 int mongo_link_connect(mongo_link *link);
-int mongo_link_say(SV *self, mongo_link *link, buffer *buf);
-int mongo_link_hear(SV *self, mongo_link *link, mongo_cursor *cursor);
-int perl_mongo_link_master(SV *self, mongo_link *link);
+int mongo_link_say(SV *self, buffer *buf);
+int mongo_link_hear(SV *self);
+int perl_mongo_link_master(SV *self);
 
 #endif
