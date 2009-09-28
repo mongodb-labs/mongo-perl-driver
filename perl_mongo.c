@@ -348,7 +348,41 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_REGEX: {
-    // TODO
+    SV *pattern;
+    pattern = sv_2mortal(newSVpv(buf->pos, 0));
+    buf->pos += strlen(buf->pos)+1;
+
+    U32 flags = 0;
+    while(*(buf->pos) != 0) {
+      switch(*(buf->pos)) {
+      case 'l':
+        flags |= PMf_LOCALE;
+        break;
+      case 'm':
+        flags |= PMf_MULTILINE;
+        break;
+      case 'i':
+        flags |= PMf_FOLD;
+        break;
+      case 'x':
+        flags |= PMf_EXTENDED;
+        break;
+      case 's':
+        flags |= PMf_SINGLELINE;
+        break;
+      }
+      buf->pos++;
+    }
+    buf->pos++;
+
+    REGEXP *re = re_compile(pattern, flags);
+    SV *regex = newSVpv(0,0);
+    sv_magic(regex, re, PERL_MAGIC_qr, 0, 0);
+
+    SV *stash = gv_stashpv("Regexp", 0);
+    sv_bless(newRV_noinc((SV *)regex), stash);
+
+    value = newRV_noinc(regex);
     break;
   }
   case BSON_CODE: 
@@ -667,29 +701,33 @@ append_sv (buffer *buf, const char *key, SV *sv)
               perl_mongo_serialize_byte(buf, SvIV(SvRV(sv)));
             }
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
-              int f=0, i=0;
-              char flags[] = {0,0,0,0,0,0};
-              REGEXP *re;
-              STRLEN string_length;
-              char *string;
               MAGIC *remg;
 
               if (remg = mg_find((SV*)SvRV(sv), PERL_MAGIC_qr)) {
-                re = (REGEXP *) remg->mg_obj;
+                int f=0, i=0;
+                STRLEN string_length;
+                char flags[] = {0,0,0,0,0,0};
+                char *string;
+                REGEXP *re = (REGEXP *) remg->mg_obj;
+
                 set_type(buf, BSON_REGEX);
                 perl_mongo_serialize_string(buf, key, strlen(key));
                 perl_mongo_serialize_string(buf, re->precomp, re->prelen);
-                
+
                 string = SvPV(sv, string_length);
                 
-                // TODO: check for valid flags
-                // i, m, x, s (can this do l?)
-                string += 2;
-                for(i = 2; i < string_length; i++) {
-                  flags[f++] = string[0];
-                  string++;
-                  if(string[0] == ':')
+                for(i = 2; i < string_length && string[i] != '-'; i++) {
+                  if (string[i] == 'i' ||
+                      string[i] == 'm' ||
+                      string[i] == 'x' ||
+                      string[i] == 'l' ||
+                      string[i] == 's' ||
+                      string[i] == 'u') {
+                    flags[f++] = string[i];
+                  }
+                  else if(string[i] == ':') {
                     break;
+                  }
                 }
 
                 perl_mongo_serialize_string(buf, flags, strlen(flags));

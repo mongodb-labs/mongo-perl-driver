@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 9;
+use Test::More tests => 12;
 use Test::Exception;
 
 use MongoDB;
@@ -29,6 +29,15 @@ ok(!$freds->has_next, 'bob doesn\'t match');
 
 my $fred = $coll->find_one({'x' => qr/^F/});
 is($fred->{'x'}, 'FRED', 'starts with');
+
+# saving/getting regexes
+$coll->drop;
+$coll->insert({"r" => qr/foo/i});
+my $obj = $coll->find_one;
+ok("foo" =~ $obj->{'r'}, 'matches');
+ok("FOO" =~ $obj->{'r'}, 'flags');
+ok(!("bar" =~ $obj->{'r'}), 'not a match');
+
 
 # date
 $coll->drop;
