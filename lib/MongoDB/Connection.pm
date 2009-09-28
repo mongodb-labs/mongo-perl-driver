@@ -25,6 +25,7 @@ use MongoDB::Cursor;
 use Any::Moose;
 use Digest::MD5;
 use Tie::IxHash;
+use boolean;
 
 =head1 NAME
 
@@ -303,9 +304,11 @@ sub remove {
 
         my $obj = {"ns" => $ns,
                    "key" => $k,
-                   "name" => join("_", @name)};
+                   "name" => join("_", @name),
+                   "unique" => $unique ? boolean::true : boolean::false};
 
-        $self->_ensure_index(substr($ns, 0, index($ns, ".")).".system.indexes", [$obj], $unique);
+        my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
+        $self->insert("$db.system.indexes", $obj);
         return;
     }
 }

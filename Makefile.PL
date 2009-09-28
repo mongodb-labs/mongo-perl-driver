@@ -18,6 +18,7 @@ requires 'Digest::MD5';
 requires 'Tie::IxHash';
 requires 'DateTime';
 requires 'XSLoader';
+requires 'boolean';
 test_requires 'Test::Exception';
 
 mongo;

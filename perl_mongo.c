@@ -661,6 +661,11 @@ append_sv (buffer *buf, const char *key, SV *sv)
               SvREFCNT_dec (sec);
               SvREFCNT_dec (ms);
             }
+            else if (sv_isa(sv, "boolean")) {
+              set_type(buf, BSON_BOOL);
+              perl_mongo_serialize_string(buf, key, strlen(key));
+              perl_mongo_serialize_byte(buf, SvIV(SvRV(sv)));
+            }
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
               int f=0, i=0;
               char flags[] = {0,0,0,0,0,0};
@@ -721,26 +726,11 @@ append_sv (buffer *buf, const char *key, SV *sv)
         }
     } else {
         switch (SvTYPE (sv)) {
-            case SVt_IV:
+            case SVt_IV: {
                 set_type(buf, BSON_INT);
                 perl_mongo_serialize_string(buf, key, strlen(key));
                 perl_mongo_serialize_int(buf, (int)SvIV (sv));
                 break;
-            // stupid special casing for bools
-            case SVt_PVNV: {
-              if (sv == &PL_sv_yes) {
-                set_type(buf, BSON_BOOL);
-                perl_mongo_serialize_string(buf, key, strlen(key));
-                perl_mongo_serialize_byte(buf, 1);
-                break;
-              }
-              else if (sv == &PL_sv_no) {
-                set_type(buf, BSON_BOOL);
-                perl_mongo_serialize_string(buf, key, strlen(key));
-                perl_mongo_serialize_byte(buf, 0);
-                break;
-              }
-              // otherwise, continue
             }
             case SVt_PVIV: {
               if (SvIOK(sv)) {

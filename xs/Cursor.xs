@@ -236,36 +236,6 @@ next (self)
         RETVAL
 
 
-SV *
-explain (self) 
-        SV *self
-    PREINIT:
-        SV *temp_limit, *query, *rubbish;
-    CODE:
-        temp_limit = perl_mongo_call_reader (self, "_limit");
-        if (SvIV(temp_limit) > 0) {
-	  rubbish = perl_mongo_call_method (self, "_limit", 1, sv_2mortal(newSViv(SvIV(temp_limit) * -1)));
-	  SvREFCNT_dec(rubbish);
-        }
-
-        query = perl_mongo_call_reader (self, "_query");
-
-        if (!query || !SvROK(query) || SvTYPE(SvRV(query)) != SVt_PVHV) {
-          croak("couldn't run explain, invalid query");
-        }
-
-        // store $explain
-        hv_store((HV*)SvRV(query), "$explain", strlen("$explain"), &PL_sv_yes, 0);
-
-        perl_mongo_call_method(self, "reset", 0);
-        RETVAL = perl_mongo_call_method(self, "next", 0);
-
-	rubbish = perl_mongo_call_method (self, "_limit", 1, temp_limit);
-	SvREFCNT_dec(rubbish);
-	SvREFCNT_dec(query);
-    OUTPUT:
-        RETVAL
-
 
 SV *
 reset (self)

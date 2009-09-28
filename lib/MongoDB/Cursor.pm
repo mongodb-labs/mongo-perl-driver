@@ -20,6 +20,7 @@ our $VERSION = '0.24';
 # ABSTRACT: A cursor/iterator for Mongo query results
 use Data::Dumper;
 use Any::Moose;
+use boolean;
 
 =head1 NAME
 
@@ -244,7 +245,24 @@ sub hint {
 This will tell you the type of cursor used, the number of records 
 the DB had to examine as part of this query, the number of records 
 returned by the query, and the time in milliseconds the query took 
-to execute.
+to execute.  Requires C<boolean> package.
+
+=cut
+
+sub explain {
+    my ($self) = @_;
+    my $temp = $self->_limit;
+    if ($self->_limit > 0) {
+        $self->_limit($self->_limit * -1);
+    }
+
+    $self->_query->{'$explain'} = boolean::true;
+
+    my $retval = $self->reset->next;
+    $self->reset->limit($temp);
+
+    return $retval;
+}
 
 =head2 count
 

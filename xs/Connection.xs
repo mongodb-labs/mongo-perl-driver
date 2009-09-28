@@ -173,25 +173,6 @@ _update (self, ns, query, object, upsert)
         mongo_link_say(self, &buf);
         Safefree(buf.start);
 
-void
-_ensure_index (self, ns, keys, unique=0)
-	SV *self
-        const char *ns
-        SV *keys
-        int unique
-    PREINIT:
-        AV *key_array;
-        SV **key_hash;
-        SV *ret;
-    INIT:
-        key_array = (AV*)SvRV(keys);
-        key_hash = av_fetch(key_array, 0, 0);
-    CODE:
-        hv_store((HV*)SvRV(*key_hash), "unique", strlen("unique"), unique ? &PL_sv_yes : &PL_sv_no, 0);
-        ret = perl_mongo_call_method(self, "_insert", 2, ST(1), ST(2));
-    CLEANUP:
-        SvREFCNT_dec (ret);
-
 
 void
 DESTROY (self)
