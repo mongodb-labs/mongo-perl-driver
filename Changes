@@ -1,7 +1,13 @@
-0.20
+0.23
+
+  - find_one takes optional fields parameter
+  - corrected documentation
+  - DateTime used for dates
+
+0.22
 
   Changes in this version by Ask Bjørn Hansen, Florian Ragwitz,
-  Orlando Vazquez and Kristina Chodorow:
+  Orlando Vazquez, Kristina Chodorow, and Eric Wilhelm:
 
   - Make inserting double's (floats/NV's), undefined/null, Tie::IxHash values
   - Query sorting, snapshot, explain, and hint

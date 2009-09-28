@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 37;
+use Test::More tests => 39;
 use Test::Exception;
 use IO::File;
 
@@ -104,11 +104,22 @@ is($list[0]->info->{'length'}, 9, 'checking lens');
 is($list[1]->info->{'length'}, 1292706);
 is($list[2]->info->{'length'}, 9);
 
-#remove
+# remove
 is($grid->files->query({"_id" => 1})->has_next, 1, 'pre-remove');
 is($grid->chunks->query({"files_id" => 1})->has_next, 1);
 $file = $grid->remove({"_id" => 1});
 is(int($grid->files->query({"_id" => 1})->has_next), 0, 'post-remove');
 is(int($grid->chunks->query({"files_id" => 1})->has_next), 0);
 
+# remove just_one
+$grid->drop;
+$img = new IO::File("t/img.png", "r") or die $!;
+$grid->insert($img, {"filename" => "garbage.png"});
+$grid->insert($img, {"filename" => "garbage.png"});
+
+is($grid->files->count, 2);
+$grid->remove({'filename' => 'garbage.png'}, 1);
+is($grid->files->count, 1, 'remove just one');
+
 unlink 't/output.txt', 't/output.png', 't/outsub.txt';
+$grid->drop;

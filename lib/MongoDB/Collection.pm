@@ -133,11 +133,12 @@ Inserts each of the documents in the array into the database and returns their _
 
 Updates an existing C<$object> in the database.
 
-=head2 remove ($query)
+=head2 remove ($query, $just_one)
 
     $collection->remove({ answer => { '$ne' => 42 } });
 
-Removes all objects matching the given C<$query> from the database.
+Removes all objects matching the given C<$query> from the database. Optional
+boolean parameter C<$just_one> causes only one matching document to be removed.
 
 =head2 ensure_index (\@keys, $direction?, $unique?)
 

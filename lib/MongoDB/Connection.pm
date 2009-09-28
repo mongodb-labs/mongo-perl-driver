@@ -241,8 +241,9 @@ sub update {
 }
 
 sub remove {
-    my ($self, $ns, $query) = @_;
-    $self->_remove($ns, $query, 0);
+    my ($self, $ns, $query, $just_one) = @_;
+    $just_one ||= 0;
+    $self->_remove($ns, $query, $just_one);
     return;
 }
 

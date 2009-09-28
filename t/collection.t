@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 50;
+use Test::More tests => 51;
 use Test::Exception;
 
 use Tie::IxHash;
@@ -156,6 +156,12 @@ my $yer = $coll->find_one({}, {'y' => 1});
 ok(exists $yer->{'y'}, 'y exists');
 ok(!exists $yer->{'x'}, 'x doesn\'t');
 ok(!exists $yer->{'z'}, 'z doesn\'t');
+
+$coll->drop;
+$coll->batch_insert([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
+$coll->remove({"x" => 1}, 1);
+is ($coll->count, 2, 'remove just one');
+
 
 END {
     $db->drop;
