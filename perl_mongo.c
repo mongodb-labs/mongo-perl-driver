@@ -328,12 +328,12 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_LONG: {
-    value = newSViv(*((long long int*)buf->pos));
+    value = newSViv(*((int64_t*)buf->pos));
     buf->pos += INT_64;
     break;
   }
   case BSON_DATE: {
-    int64_t ms = *(long long int*)buf->pos;
+    int64_t ms = *(int64_t*)buf->pos;
     buf->pos += INT_64;
     ms /= 1000;
 
