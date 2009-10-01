@@ -334,25 +334,33 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_DATE: {
     int64_t ms = *(long long int*)buf->pos;
+    SV *datetime, *epoch, *mortal_ms;
+    HV *named_params;
     buf->pos += INT_64;
     ms /= 1000;
 
-    SV *datetime = sv_2mortal(newSVpv("DateTime", 0));
-    SV *epoch = sv_2mortal(newSVpv("epoch", 0));
-    SV *mortal_ms = sv_2mortal(newSViv(ms));
+    datetime = sv_2mortal(newSVpv("DateTime", 0));
+    epoch = sv_2mortal(newSVpv("epoch", 0));
+    mortal_ms = sv_2mortal(newSViv(ms));
 
-    HV *named_params = newHV();
+    named_params = newHV();
     hv_store(named_params, "epoch", strlen("epoch"), mortal_ms, 0);
 
     value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime, newRV_noinc((SV*)named_params));
     break;
   }
   case BSON_REGEX: {
-    SV *pattern;
+    SV *pattern, *regex;
+    HV *stash;
+    U32 flags = 0;
+    PMOP pm;
+    STRLEN len;
+    char *pat;
+    REGEXP *re;
+
     pattern = sv_2mortal(newSVpv(buf->pos, 0));
     buf->pos += strlen(buf->pos)+1;
 
-    U32 flags = 0;
     while(*(buf->pos) != 0) {
       switch(*(buf->pos)) {
       case 'l':
@@ -375,17 +383,24 @@ elem_to_sv (int type, buffer *buf)
     }
     buf->pos++;
 
-    REGEXP *re = re_compile(pattern, flags);
-    SV *regex = newSVpv(0,0);
-    sv_magic(regex, re, PERL_MAGIC_qr, 0, 0);
+    // 5.10
+    //REGEXP *re = re_compile(pattern, flags);
+    // 5.8
+    pm.op_pmdynflags = flags;
+    pat = SvPV(pattern, len);
+    re = pregcomp(pat, pat + len, &pm);
+    // eo version-dependent code
 
-    SV *stash = gv_stashpv("Regexp", 0);
+    regex = newSVpv("",0);
+    sv_magic(regex, (SV*)re, PERL_MAGIC_qr, 0, 0);
+
+    stash = gv_stashpv("Regexp", 0);
     sv_bless(newRV_noinc((SV *)regex), stash);
 
     value = newRV_noinc(regex);
     break;
   }
-  case BSON_CODE: 
+  case BSON_CODE:
   case BSON_CODE__D: {
     // TODO
     break;
@@ -685,10 +700,11 @@ append_sv (buffer *buf, const char *key, SV *sv)
               perl_mongo_serialize_size(buf->start+start, buf);
             }
             else if (sv_isa(sv, "DateTime")) {
+              SV *sec, *ms;
               set_type(buf, BSON_DATE);
               perl_mongo_serialize_string(buf, key, strlen(key));
-              SV *sec = perl_mongo_call_reader (sv, "epoch");
-              SV *ms = perl_mongo_call_method (sv, "millisecond", 0);
+              sec = perl_mongo_call_reader (sv, "epoch");
+              ms = perl_mongo_call_method (sv, "millisecond", 0);
 
               perl_mongo_serialize_long(buf, (int64_t)SvIV(sec)*1000+SvIV(ms));
 
