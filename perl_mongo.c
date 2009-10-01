@@ -383,13 +383,16 @@ elem_to_sv (int type, buffer *buf)
     }
     buf->pos++;
 
-    // 5.10
-    //REGEXP *re = re_compile(pattern, flags);
-    // 5.8
+    /* 5.10 */
+#if PERL_REVISION==5 || PERL_VERSION==10
+    re = re_compile(pattern, flags);
+#else
+    /* 5.8 */
     pm.op_pmdynflags = flags;
     pat = SvPV(pattern, len);
     re = pregcomp(pat, pat + len, &pm);
-    // eo version-dependent code
+#endif
+     // eo version-dependent code
 
     regex = newSVpv("",0);
     sv_magic(regex, (SV*)re, PERL_MAGIC_qr, 0, 0);
