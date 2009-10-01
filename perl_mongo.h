@@ -89,7 +89,7 @@ void perl_mongo_sv_to_bson (buffer *buf, SV *sv, int add_oid);
 void perl_mongo_serialize_size(char*, buffer*);
 void perl_mongo_serialize_double(buffer*, double);
 void perl_mongo_serialize_string(buffer*, const char*, int);
-void perl_mongo_serialize_long(buffer*, long long);
+void perl_mongo_serialize_long(buffer*, int64_t);
 void perl_mongo_serialize_int(buffer*, int);
 void perl_mongo_serialize_byte(buffer*, char);
 void perl_mongo_serialize_bytes(buffer*, const char*, int);
