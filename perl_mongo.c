@@ -384,7 +384,7 @@ elem_to_sv (int type, buffer *buf)
     buf->pos++;
 
     /* 5.10 */
-#if PERL_REVISION==5 || PERL_VERSION==10
+#if PERL_REVISION==5 && PERL_VERSION==10
     re = re_compile(pattern, flags);
 #else
     /* 5.8 */
