@@ -35,7 +35,7 @@ $coll->drop;
 $coll->insert({"r" => qr/foo/i});
 my $obj = $coll->find_one;
 ok("foo" =~ $obj->{'r'}, 'matches');
-ok("FOO" =~ $obj->{'r'}, 'flags');
+ok("FOO" =~ $obj->{'r'}, 'this won\'t pass with Perl 5.8');
 ok(!("bar" =~ $obj->{'r'}), 'not a match');
 
 

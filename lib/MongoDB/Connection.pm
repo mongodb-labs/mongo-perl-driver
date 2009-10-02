@@ -183,12 +183,8 @@ sub query {
     $skip    ||= 0;
 
     my $q = {};
-    if ($query) {
-	$q->{'query'} = $query;
-    }
-    else {
-	$q->{'query'} = {};
-    }
+    $q->{'query'} = $query ? $query : {};
+
     if ($sort_by) {
 	$q->{'orderby'} = $sort_by;
     }
@@ -206,32 +202,14 @@ sub query {
 
 sub insert {
     my ($self, $ns, $object) = @_;
-    confess 'not a hash reference' unless ref $object eq 'HASH';
-    my %copy = %{ $object }; # a shallow copy is good enough. we won't modify anything deep down in the structure.
-    $copy{_id} = MongoDB::OID->new unless exists $copy{_id};
-    $self->_insert($ns, [\%copy]);
-    return $copy{'_id'};
+    my $id = $self->_insert($ns, [$object]);
+    return @$id[0];
 }
 
 sub batch_insert {
     my ($self, $ns, $object) = @_;
     confess 'not an array reference' unless ref $object eq 'ARRAY';
-
-    my @copies;
-    my @ids;
-
-    foreach my $obj (@{$object}) {
-        confess 'not a hash reference' unless ref $obj eq 'HASH';
-
-        my %copy = %{ $obj };
-        $copy{'_id'} = MongoDB::OID->new unless exists $copy{'_id'};
-
-        push @copies, \%copy;
-        push @ids, $copy{'_id'};
-    } 
-
-    $self->_insert($ns, \@copies);
-    return @ids;
+    return $self->_insert($ns, $object);
 }
 
 sub update {

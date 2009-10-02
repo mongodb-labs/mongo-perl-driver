@@ -100,7 +100,7 @@ connect (self)
                 SvREFCNT_dec (auto_reconnect_sv);
 
 
-void
+AV*
 _insert (self, ns, object)
         SV *self
         const char *ns
@@ -110,22 +110,27 @@ _insert (self, ns, object)
         mongo_msg_header header;
         buffer buf;
         int i;
-        AV *a;
+        AV *a, *ids;
     INIT:
         a = (AV*)SvRV(object);
+        ids = newAV();
     CODE:
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_INSERT);
 
         for (i=0; i<=av_len(a); i++) {
           SV **obj = av_fetch(a, i, 0);
-          perl_mongo_sv_to_bson(&buf, *obj, PREP);
+          perl_mongo_sv_to_bson(&buf, *obj, ids);
         }
         perl_mongo_serialize_size(buf.start, &buf);
 
         // sends
         mongo_link_say(self, &buf);
         Safefree(buf.start);
+
+        RETVAL = ids;
+    OUTPUT:
+        RETVAL
 
 
 void

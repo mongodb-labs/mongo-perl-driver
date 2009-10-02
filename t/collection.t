@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 51;
+use Test::More tests => 66;
 use Test::Exception;
 
 use Tie::IxHash;
@@ -161,6 +161,44 @@ $coll->drop;
 $coll->batch_insert([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
 $coll->remove({"x" => 1}, 1);
 is ($coll->count, 2, 'remove just one');
+
+# tie::ixhash for update/insert
+$coll->drop;
+my $hash = Tie::IxHash->new("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
+$id = $coll->insert($hash);
+isa_ok($id, 'MongoDB::OID');
+my $tied = $coll->find_one;
+is($tied->{'_id'}."", "$id");
+is($tied->{'f'}, 1);
+is($tied->{'s'}, 2);
+is($tied->{'fo'}, 4);
+is($tied->{'t'}, 3);
+
+my $criteria = Tie::IxHash->new("_id" => $id);
+$hash->Push("something" => "else");
+$coll->update($criteria, $hash);
+$tied = $coll->find_one;
+is($tied->{'f'}, 1);
+is($tied->{'something'}, 'else');
+
+
+# () update/insert
+$coll->drop;
+my @h = ("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
+$id = $coll->insert(\@h);
+isa_ok($id, 'MongoDB::OID');
+$tied = $coll->find_one;
+is($tied->{'_id'}."", "$id");
+is($tied->{'f'}, 1);
+is($tied->{'s'}, 2);
+is($tied->{'fo'}, 4);
+is($tied->{'t'}, 3);
+
+my @criteria = ("_id" => $id);
+my @newobj = ('$inc' => {"f" => 1});
+$coll->update(\@criteria, \@newobj);
+$tied = $coll->find_one;
+is($tied->{'f'}, 2);
 
 
 END {
