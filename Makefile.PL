@@ -20,6 +20,9 @@ requires 'DateTime';
 requires 'XSLoader';
 requires 'boolean';
 test_requires 'Test::Exception';
+test_requires 'Tie::IxHash';
+test_requires 'DateTime';
+test_requires 'boolean';
 
 mongo;
 
