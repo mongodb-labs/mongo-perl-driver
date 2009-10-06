@@ -35,7 +35,12 @@ $coll->drop;
 $coll->insert({"r" => qr/foo/i});
 my $obj = $coll->find_one;
 ok("foo" =~ $obj->{'r'}, 'matches');
-ok("FOO" =~ $obj->{'r'}, 'this won\'t pass with Perl 5.8');
+
+SKIP: {
+    skip "regex flags don't work yet with perl 5.8", 1 if $] =~ /5\.008/;
+    ok("FOO" =~ $obj->{'r'}, 'this won\'t pass with Perl 5.8');
+}
+
 ok(!("bar" =~ $obj->{'r'}), 'not a match');
 
 
