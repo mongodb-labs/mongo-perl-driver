@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Collection;
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 # ABSTRACT: A Mongo Collection
 
@@ -25,7 +25,7 @@ MongoDB::Collection - A Mongo Collection
 
 =head1 VERSION
 
-version 0.23
+version 0.24
 
 =cut
 

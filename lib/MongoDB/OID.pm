@@ -15,7 +15,7 @@
 #
 
 package MongoDB::OID;
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 # ABSTRACT: A Mongo Object ID
 
 use Any::Moose;
@@ -26,14 +26,34 @@ MongoDB::OID - A Mongo Object ID
 
 =head1 VERSION
 
-version 0.23
+version 0.24
+
+=head1 SYNOPSIS
+
+If no _id field is provided when a document is inserted into the
+database, an _id field will be added with a new MongoDB::OID as
+its value.
+
+    my $id = $collection->insert({'name' => 'Alice', age => 20});
+
+C<$id> will be a MongoDB::OID that can be used to retreive or
+update the saved document:
+
+    $collection->update({_id => $id}, {'age' => {'$inc' => 1}});
+    # now Alice is 21
+
+Warning: at the moment, OID generation is not thread safe.
 
 =head1 ATTRIBUTES
 
 =head2 value
 
 The OID value. A random value will be generated if none exists already.
-It is a 24-character hexidecimal string (12 bytes).
+It is a 24-character hexidecimal string (12 bytes).  
+
+Its string representation is the 24-character string.
+
+=head1
 
 =cut
 

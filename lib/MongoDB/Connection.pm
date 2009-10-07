@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 # ABSTRACT: A connection to a Mongo server
 
@@ -33,7 +33,31 @@ MongoDB::Connection - A connection to a Mongo server
 
 =head1 VERSION
 
-version 0.23
+version 0.24
+
+=head1 SYNOPSIS
+
+The MongoDB::Connection class creates a connection to 
+the MongoDB server. 
+
+By default, it connects to a single server running on
+the local machine listening on the default port:
+
+    # connects to localhost:27017
+    my $connection = MongoDB::Connection->new;
+
+It can connect to a database server running anywhere, 
+though:
+
+    my $connection = MongoDB::Connection->new(host => 'example.com', port => 12345);
+
+It can also be used to connect to a replication pair
+of database servers:
+
+    my $connection = MongoDB::Connection->new(left_host => '192.0.2.0', right_host => '192.0.2.1');
+
+If ports aren't given, they default to C<27017>.
+
 
 =head1 ATTRIBUTES
 
@@ -323,18 +347,22 @@ sub get_database {
 
 =head2 find_master
 
-    $connection->find_master
+    $master = $connection->find_master
 
 Determines which host of a paired connection is master.  Does nothing for
-a non-paired connection.  Called automatically by internal functions.
+a non-paired connection.  This need never be invoked by a user, it is 
+called automatically by internal functions.  Returns 0 if the left host 
+is master, 1 if the right is, -1 if if cannot be determined.
 
 =cut
 
 sub find_master {
     my ($self) = @_;
+    # return if the connection isn't paired
     return unless defined $self->left_host && $self->right_host;
     my ($left, $right, $master);
 
+    # check the left host
     eval {
         $left = MongoDB::Connection->new("host" => $self->left_host, "port" => $self->left_port);
     };
@@ -345,6 +373,7 @@ sub find_master {
         }
     }
 
+    # check the right_host
     eval {
         $right = MongoDB::Connection->new("host" => $self->right_host, "port" => $self->right_port);
     };
@@ -373,10 +402,13 @@ true, which will assume you already did the hashing on yourself.
 sub authenticate {
     my ($self, $dbname, $username, $password, $is_digest) = @_;
     my $hash = $password;
+
+    # create a hash if the password isn't yet encrypted
     if (!$is_digest) {
         $hash = Digest::MD5::md5_hex("${username}:mongo:${password}");
     }
 
+    # get the nonce
     my $db = $self->get_database($dbname);
     my $result = $db->run_command({getnonce => 1});
     if (!$result->{'ok'}) {
@@ -386,6 +418,7 @@ sub authenticate {
     my $nonce = $result->{'nonce'};
     my $digest = Digest::MD5::md5_hex($nonce.$username.$hash);
 
+    # run the login command
     my $login = tie(my %hash, 'Tie::IxHash');
     %hash = (authenticate => 1,
              user => $username, 
