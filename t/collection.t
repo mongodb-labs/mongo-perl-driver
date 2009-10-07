@@ -1,8 +1,9 @@
 use strict;
 use warnings;
-use Test::More tests => 66;
+use Test::More tests => 68;
 use Test::Exception;
 
+use Data::Types qw(:float);
 use Tie::IxHash;
 
 use MongoDB;
@@ -95,6 +96,15 @@ my $pi = 3.14159265;
 ok($id = $coll->insert({ data => 'pi', pi => $pi }), "inserting float number value");
 ok($obj = $coll->find_one({ data => 'pi' }));
 is($obj->{pi}, $pi);
+
+$coll->drop;
+my $object = {};
+$object->{'autoPartNum'} = '123456';
+$object->{'price'} = 123.19;
+$coll->insert($object);
+my $auto = $coll->find_one;
+ok(is_float($auto->{'price'}));
+is($auto->{'price'}, $object->{'price'});
 
 # test undefined values
 ok($id  = $coll->insert({ data => 'null', none => undef }), 'inserting undefined data');
