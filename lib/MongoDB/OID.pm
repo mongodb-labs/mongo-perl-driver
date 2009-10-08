@@ -53,8 +53,6 @@ It is a 24-character hexidecimal string (12 bytes).
 
 Its string representation is the 24-character string.
 
-=head1
-
 =cut
 
 has value => (
