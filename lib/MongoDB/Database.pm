@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Database;
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 # ABSTRACT: A Mongo Database
 
@@ -35,7 +35,7 @@ MongoDB::Database - A Mongo Database
 
 =head1 VERSION
 
-version 0.23
+version 0.24
 
 =head1 ATTRIBUTES
 
@@ -208,3 +208,7 @@ no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+=head1 AUTHOR
+
+  Kristina Chodorow <kristina@10gen.com>

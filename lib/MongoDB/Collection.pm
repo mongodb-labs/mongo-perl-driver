@@ -265,3 +265,7 @@ no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+=head1 AUTHOR
+
+  Kristina Chodorow <kristina@10gen.com>
