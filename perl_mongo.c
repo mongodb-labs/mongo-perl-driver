@@ -527,26 +527,38 @@ void perl_mongo_serialize_string(buffer *buf, const char *str, int str_len) {
 }
 
 void perl_mongo_serialize_int(buffer *buf, int num) {
+  int i;
+  int *ptr = &num;
+
   if(BUF_REMAINING <= INT_32) {
     resize_buf(buf, INT_32);
   }
-  memcpy(buf->pos, &num, INT_32);
+
+  SERIALIZE(buf->pos, ptr, INT_32);
   buf->pos += INT_32;
 }
 
 void perl_mongo_serialize_long(buffer *buf, int64_t num) {
+  int i;
+  int64_t *ptr = &num;
+
   if(BUF_REMAINING <= INT_64) {
     resize_buf(buf, INT_64);
   }
-  memcpy(buf->pos, &num, INT_64);
+
+  SERIALIZE(buf->pos, ptr, INT_64);
   buf->pos += INT_64;
 }
 
 void perl_mongo_serialize_double(buffer *buf, double num) {
-  if(BUF_REMAINING <= INT_64) {
-    resize_buf(buf, INT_64);
+  int i;
+  double *ptr = &num;
+
+  if(BUF_REMAINING <= DOUBLE_64) {
+    resize_buf(buf, DOUBLE_64);
   }
-  memcpy(buf->pos, &num, DOUBLE_64);
+
+  SERIALIZE(buf->pos, ptr, DOUBLE_64);
   buf->pos += DOUBLE_64;
 }
 
@@ -577,7 +589,9 @@ void perl_mongo_serialize_oid(buffer *buf, char *id) {
  */
 void perl_mongo_serialize_size(char *start, buffer *buf) {
   int total = buf->pos - start;
-  memcpy(start, &total, INT_32);
+  int *ptr = &total;
+
+  SERIALIZE(start, ptr, INT_32);
 }
 
 static void append_sv (buffer *buf, const char *key, SV *sv, AV *ids);

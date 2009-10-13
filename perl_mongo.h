@@ -23,7 +23,20 @@
 #include "perl.h"
 #include "XSUB.h"
 
+
 #define PERL_MONGO_CALL_BOOT(name)  perl_mongo_call_xs (aTHX_ name, cv, mark)
+
+/* take care of big endian machines */
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define SERIALIZE(pos, ptr, len)                \
+  for(i=0; i<len; i++) {                        \
+    pos[i] = ptr[(len-i)-1];                    \
+  }
+#else
+#define SERIALIZE(pos, ptr, len)                \
+  memcpy(pos, ptr, len);
+#endif
 
 #define OID_CLASS "MongoDB::OID"
 
