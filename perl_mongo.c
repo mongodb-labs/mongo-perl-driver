@@ -646,10 +646,11 @@ av_to_bson (buffer *buf, AV *av)
     for (i = 0; i <= av_len (av); i++) {
         SV **sv;
         SV *key = newSViv (i);
-        if (!(sv = av_fetch (av, i, 0))) {
-            croak ("failed to fetch array value");
-        }
-        append_sv (buf, SvPVutf8_nolen(key), *sv, NO_PREP);
+        if (!(sv = av_fetch (av, i, 0)))
+            append_sv (buf, SvPVutf8_nolen(key), newSV(0), NO_PREP);
+        else
+            append_sv (buf, SvPVutf8_nolen(key), *sv, NO_PREP);
+
         SvREFCNT_dec (key);
     }
 

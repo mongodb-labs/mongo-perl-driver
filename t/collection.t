@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 68;
+use Test::More tests => 71;
 use Test::Exception;
 
 use Data::Types qw(:float);
@@ -210,6 +210,14 @@ $coll->update(\@criteria, \@newobj);
 $tied = $coll->find_one;
 is($tied->{'f'}, 2);
 
+$coll->drop;
+
+# test uninitialised array elements
+my @g = ();
+$g[1] = 'foo';
+ok($id = $coll->insert({ data => \@g }));
+ok($obj = $coll->find_one());
+is_deeply($obj->{data}, [undef, 'foo']);
 
 END {
     $db->drop;
