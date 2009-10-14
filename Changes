@@ -3,6 +3,7 @@
   - find_one takes optional fields parameter
   - corrected documentation
   - DateTime used for dates
+  - Fix for uninitialized array values (David Morrison)
 
 0.22
 

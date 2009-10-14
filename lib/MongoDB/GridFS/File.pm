@@ -15,7 +15,7 @@
 #
 
 package MongoDB::GridFS::File;
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 # ABSTRACT: A Mongo GridFS file
 
@@ -28,7 +28,7 @@ MongoDB::GridFS::File - A Mongo GridFS file
 
 =head1 VERSION
 
-version 0.23
+version 0.24
 
 =head1 SYNOPSIS
 
@@ -125,3 +125,6 @@ sub print {
 
 1;
 
+=head1 AUTHOR
+
+  Kristina Chodorow <kristina@10gen.com>
