@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 71;
+use Test::More tests => 75;
 use Test::Exception;
 
 use Data::Types qw(:float);
@@ -17,7 +17,23 @@ is($coll->name, 'test_collection', 'get name');
 
 $db->drop;
 
-my $id = $coll->insert({ just => 'another', perl => 'hacker' });
+# very small insert
+my $id = $coll->insert({_id => 1});
+is($id, 1);
+my $tiny = $coll->find_one;
+is($tiny->{'_id'}, 1);
+
+$coll->remove;
+
+$id = $coll->insert({});
+isa_ok($id, 'MongoDB::OID');
+$tiny = $coll->find_one;
+is($tiny->{'_id'}, $id);
+
+$coll->remove;
+
+# insert
+$id = $coll->insert({ just => 'another', perl => 'hacker' });
 is($coll->count, 1, 'count');
 
 $coll->update({ _id => $id }, {
