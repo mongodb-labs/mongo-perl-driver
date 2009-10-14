@@ -33,30 +33,42 @@ _build_value (self, c_str)
           memcpy(id, c_str, 24);
         }
         else {
-          int i;
-          char *movable, *id_str, *T;
+          //SV *temp;
+          int seed;
+          char *movable, *id_str;
           char data[12];
-          unsigned t;
+
+          // the pid is stored in $$
+          SV *pid_s = get_sv("$", 0);
+          // ...but if it's not, don't crash
+          int pid = pid_s ? SvIV(pid_s) : rand_r(&seed);
+
+          // ts increment
+          //SV *inc_s = get_sv("MongoDB::OID::_inc", GV_ADD);
+          //int inc = SvIV(inc_s);
 
           int r1 = rand();
-          int r2 = rand();
-          
-          char *inc = (char*)(void*)&r2;
-          t = (unsigned) time(0);
+          int inc = rand();
 
-          T = (char*)&t;
+          unsigned t = (unsigned) time(0);
+
+          char *T = (char*)&t;
           data[0] = T[3];
           data[1] = T[2];
           data[2] = T[1];
           data[3] = T[0];
 
-          memcpy(data+4, &r1, 4);
-          data[8] = inc[3];
-          data[9] = inc[2];
-          data[10] = inc[1];
-          data[11] = inc[0];
+          memcpy(data+4, &r1, 3);
+          memcpy(data+7, &pid, 2);
+          memcpy(data+9, &inc, 3);
 
           perl_mongo_oid_create(data, id);
+
+          // increment
+          //temp = perl_mongo_call_function("MongoDB::OID::_inc", 2, 
+          //                                sv_2mortal(newSVpv("MongoDB::OID", 0)), 
+          //                                sv_2mortal(newSViv(inc+1)));
+          //SvREFCNT_dec(temp);
         }
         RETVAL = newSVpv (id, 24);
     OUTPUT:

@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 12;
+use Test::More tests => 21;
 use Test::Exception;
 
 use MongoDB;
@@ -16,6 +16,16 @@ $coll->drop;
 my $id = MongoDB::OID->new;
 isa_ok($id, 'MongoDB::OID');
 is($id."", $id->value);
+
+# OIDs created in time-ascending order
+my $ids = [];
+for (0..9) {
+    push @$ids, new MongoDB::OID;
+    sleep 1;
+}
+for (0..8) {
+    ok((@$ids[$_]."") lt (@$ids[$_+1].""));
+}
 
 $coll->insert({'x' => 'FRED', 'y' => 1});
 $coll->insert({'x' => 'bob'});
