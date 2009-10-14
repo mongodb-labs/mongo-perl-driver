@@ -51,7 +51,7 @@ version 0.24
 =head1 AUTHOR
 
   Florian Ragwitz <rafl@debian.org>
-  Kristina Chodorow <kristina@10gen.com>
+  Kristina Chodorow <kristina@mongodb.org>
 
 =head1 COPYRIGHT AND LICENSE
 

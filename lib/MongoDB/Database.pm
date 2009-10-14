@@ -211,4 +211,4 @@ __PACKAGE__->meta->make_immutable;
 
 =head1 AUTHOR
 
-  Kristina Chodorow <kristina@10gen.com>
+  Kristina Chodorow <kristina@mongodb.org>

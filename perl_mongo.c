@@ -588,6 +588,7 @@ void perl_mongo_serialize_oid(buffer *buf, char *id) {
  * in the first 4 bytes with the size.
  */
 void perl_mongo_serialize_size(char *start, buffer *buf) {
+  int i;
   int total = buf->pos - start;
   int *ptr = &total;
 
