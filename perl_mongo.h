@@ -28,14 +28,16 @@
 
 /* take care of big endian machines */
 
-#if __BYTE_ORDER == __BIG_ENDIAN
-#define SERIALIZE(pos, ptr, len)                \
-  for(i=0; i<len; i++) {                        \
-    pos[i] = ptr[(len-i)-1];                    \
+#define SERIALIZE(dest, src, len)               \
+  memcpy(dest, src, len);
+
+#ifndef WIN32
+#  if __BYTE_ORDER == __BIG_ENDIAN
+#    define SERIALIZE(dest, src, len)                \
+  for(i=0; i<len; i++) {                             \
+    dest[i] = src[(len-i)-1];                        \
   }
-#else
-#define SERIALIZE(pos, ptr, len)                \
-  memcpy(pos, ptr, len);
+#  endif
 #endif
 
 #define OID_CLASS "MongoDB::OID"
