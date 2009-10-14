@@ -1,11 +1,11 @@
-0.23
+0.24  15 Oct 2009
 
-  - find_one takes optional fields parameter
-  - corrected documentation
-  - DateTime used for dates
   - Fix for uninitialized array values (David Morrison)
+  - boolean support
+  - Connection memory leak fix
+  - added MongoDB::Cursor::count
 
-0.22
+0.23  25 Sept 2009
 
   Changes in this version by Ask Bjørn Hansen, Florian Ragwitz,
   Orlando Vazquez, Kristina Chodorow, and Eric Wilhelm:
@@ -15,8 +15,9 @@
   - Added non-unique ensure_index
   - Added GridFS
   - Added regex support
+  - find_one takes optional fields parameter
+  - DateTime used for dates
   - No C++ driver dependency
-
 
 0.01  06 May 2009
   - Initial release.

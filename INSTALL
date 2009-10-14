@@ -1,14 +1,23 @@
-Install Instruction
--------------------
+Installation Instructions
+-------------------------
 
 If they aren't already installed, you will need the following modules:
   sudo cpan Module::Install
   sudo cpan Test::Exception
   sudo cpan Any::Moose
   sudo cpan Class::Method::Modifiers
+  sudo cpan Tie::IxHash (most db commands, MongoDBensure_index)
+
+A couple methods (that you might not run into) require:
+  sudo cpan boolean (MongoDB::Collection::ensure_index)
+  sudo cpan Digest::MD5 (MongoDB::Connection::authenticate)
+
+And if you want to use dates, you need:
+  sudo cpan DateTime
+
 
 Then do:
-  MONGO_SDK=/path/to/mongodb-full-../ perl Makefile.PL
-  make
-  make test
-  make install
+  $ perl Makefile.PL
+  $ make
+  $ make test
+  $ make install
