@@ -843,11 +843,14 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
                 perl_mongo_serialize_int(buf, (int)SvIV (sv));
                 break;
             }
+            case SVt_PVNV:
             case SVt_NV: {
+              if (SvNOK(sv)) {
                 set_type(buf, BSON_DOUBLE);
                 perl_mongo_serialize_string(buf, key, strlen(key));
                 perl_mongo_serialize_double(buf, (double)SvNV (sv));
                 break;
+              }
             }
             case SVt_PVIV: {
               if (SvIOK(sv)) {

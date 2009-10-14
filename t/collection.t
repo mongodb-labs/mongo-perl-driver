@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 75;
+use Test::More tests => 81;
 use Test::Exception;
 
 use Data::Types qw(:float);
@@ -234,6 +234,22 @@ $g[1] = 'foo';
 ok($id = $coll->insert({ data => \@g }));
 ok($obj = $coll->find_one());
 is_deeply($obj->{data}, [undef, 'foo']);
+
+$coll->drop;
+
+# test PVNV with was float, now string
+my $val = 1.5;
+$val = 'foo';
+ok($id => $coll->insert({ data => $val }));
+ok($obj = $coll->find_one({ data => $val }));
+is($obj->{data}, 'foo');
+
+# was string, now float
+my $f = 'abc';
+$f = 3.3;
+ok($id => $coll->insert({ data => $f }));
+ok($obj = $coll->find_one({ data => $f }));
+is($obj->{data}, 3.3);
 
 END {
     $db->drop;
