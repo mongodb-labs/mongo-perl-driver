@@ -137,7 +137,7 @@ Deletes the database.
 
 sub drop {
     my ($self) = @_;
-    return $self->run_command({ dropDatabase => 1 });
+    return $self->run_command({ 'dropDatabase' => 1 });
 }
 
 

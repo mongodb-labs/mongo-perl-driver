@@ -108,7 +108,7 @@ Order results.
 
 =back
 
-=head2 find_one ($query)
+=head2 find_one (\%query)
 
     my $object = $collection->find_one({ name => 'Resi' });
 
@@ -119,33 +119,41 @@ Executes the given C<$query> and returns the first object matching it.
     my $id = $collection->insert({ name => 'mongo', type => 'database' });
 
 Inserts the given C<$object> into the database and returns it's id
-value. The id is the C<_id> value specified in the data or a C<MongoDB::OID>.
+value. C<$object> can be a hash reference, a reference to an array with an
+even number of elements, or a C<Tie::IxHash>.  The id is the C<_id> value 
+specified in the data or a C<MongoDB::OID>.
 
 =head2 batch_insert (@array)
 
     my @ids = $collection->batch_insert(({name => "Joe"}, {name => "Fred"}, {name => "Sam"}));
 
-Inserts each of the documents in the array into the database and returns their _ids.
+Inserts each of the documents in the array into the database and returns an
+array of their _id fields.
 
-=head2 update ($update, $object, $upsert?)
+=head2 update (\%update, \%object, $upsert?)
 
     $collection->update($object);
 
-Updates an existing C<$object> in the database.
+Updates an existing C<$object> matching C<$criteria> in the database. If
+C<$upsert> is true, if no object matching C<$criteria> is found, C<$object>
+will be inserted.
 
-=head2 remove ($query, $just_one)
+=head2 remove (\%query?, $just_one?)
 
     $collection->remove({ answer => { '$ne' => 42 } });
 
-Removes all objects matching the given C<$query> from the database. Optional
-boolean parameter C<$just_one> causes only one matching document to be removed.
+Removes all objects matching the given C<$query> from the database. If no
+parameters are given, removes all objects from the collection (but does not
+delete indexes, as C<MongoDB::Collection::drop> does).  Boolean parameter 
+C<$just_one> causes only one matching document to be removed.
 
-=head2 ensure_index (\@keys, $direction?, $unique?)
+=head2 ensure_index ($keys, $direction?, $unique?)
 
     $collection->ensure_index([qw/foo bar/]);
 
-Makes sure the given C<@keys> of this collection are indexed. The optional
-index direction defaults to C<ascending>.
+Makes sure the given C<@keys> of this collection are indexed. C<keys> can 
+be an array reference, hash reference, or C<Tie::IxHash>.  The optional
+index direction defaults to C<ascending>.  
 
 =cut
 
@@ -165,7 +173,8 @@ sub _query_ns {
     $bobs_with_zip = $collection->count({ name => 'Bob' }, { zip : 1 });
 
 Counts the number of objects in this collection that match the given C<$query>
-and contain the given C<$fields> (both parameters optional).
+and contain the given C<$fields>. Both parameters are optional, if neither are 
+given, the total number of objects in the collection are returned.
 
 =cut
 
@@ -195,6 +204,16 @@ sub count {
     $collection->validate;
 
 Asks the server to validate this collection.
+Returns a hash of the form:
+
+    {
+        'ok' => '1',
+        'ns' => 'foo.bar',
+        'result' => info
+    }
+
+where C<info> is a string of information 
+about the collection.
 
 =cut
 
@@ -219,9 +238,10 @@ sub drop_indexes {
 
 =head2 drop_index ($index_name)
 
-    $collection->drop_index('foo');
+    $collection->drop_index('foo_1');
 
 Removes an index called C<$index_name> from this collection.
+Use C<MongoDB::Collection::get_indexes> to find the index name.
 
 =cut
 
@@ -237,6 +257,22 @@ sub drop_index {
     my @indexes = $collection->get_indexes;
 
 Returns a list of all indexes of this collection.
+Each index contains C<ns>, C<name>, and C<key>
+fields of the form:
+
+    {
+        'ns' => 'db_name.collection_name',
+        'name' => 'index_name',
+        'key' => {
+            'key1' => dir1,
+            'key2' => dir2,
+            ...
+            'keyN' => dirN
+        }
+    }
+
+where C<dirX> is 1 or -1, depending on if the
+index is ascending or descending on that key.
 
 =cut
 

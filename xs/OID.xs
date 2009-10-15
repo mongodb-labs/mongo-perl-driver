@@ -41,7 +41,7 @@ _build_value (self, c_str)
           // the pid is stored in $$
           SV *pid_s = get_sv("$", 0);
           // ...but if it's not, don't crash
-          int pid = pid_s ? SvIV(pid_s) : rand_r(&seed);
+          int pid = pid_s ? SvIV(pid_s) : rand();
 
           // ts increment
           //SV *inc_s = get_sv("MongoDB::OID::_inc", GV_ADD);
