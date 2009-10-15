@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Cursor;
-our $VERSION = '0.24';
+our $VERSION = '0.25';
 
 # ABSTRACT: A cursor/iterator for Mongo query results
 use Data::Dumper;
@@ -28,7 +28,7 @@ MongoDB::Cursor - A cursor/iterator for Mongo query results
 
 =head1 VERSION
 
-version 0.24
+version 0.25
 
 =head1 SYNOPSIS
 
