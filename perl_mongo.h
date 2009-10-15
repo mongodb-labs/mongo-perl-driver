@@ -31,17 +31,6 @@
 #define SERIALIZE(dest, src, len)               \
   memcpy(dest, src, len);
 
-/* just take this out for now */
-/*#ifndef WIN32
-#  if __BYTE_ORDER == __BIG_ENDIAN
-#    define SERIALIZE(dest, src, len)                \
-  for(i=0; i<len; i++) {                             \
-    dest[i] = src[(len-i)-1];                        \
-  }
-#  endif
-#endif
-*/
-
 #define OID_CLASS "MongoDB::OID"
 
 /* whether to add an _id field */
