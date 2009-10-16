@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 39;
+use Test::More tests => 40;
 use Test::Exception;
 use IO::File;
 
@@ -40,10 +40,14 @@ is($chunk->{'files_id'}, $file->{'_id'}, "compare ids");
 
 # test bin insert
 my $img = new IO::File("t/img.png", "r") or die $!;
+# Windows is dumb
+binmode($img);
 $id = $grid->insert($img);
 my $save_id = $id;
 $img->read($dumb_str, 4000000);
 $img->close;
+my $meta = $grid->files->find_one({'_id' => $save_id});
+is($meta->{'length'}, 1292706);
 
 $chunk = $grid->chunks->find_one({'files_id' => $id});
 is(0, $chunk->{'n'});
