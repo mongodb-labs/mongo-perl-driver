@@ -129,7 +129,7 @@ typedef struct {
   mongo_msg_header header;
   // response fields
   int flag;
-  long long cursor_id;
+  int64_t cursor_id;
   int start;
   // number of results used
   int at;

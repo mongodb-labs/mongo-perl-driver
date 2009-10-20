@@ -37,6 +37,11 @@
 #define PREP 1
 #define NO_PREP 0
 
+#ifdef _MSC_VER
+typedef __int64 int64_t;
+#define inline __inline
+#endif
+
 #define INT_32 4
 #define INT_64 8
 #define DOUBLE_64 8

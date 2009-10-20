@@ -91,6 +91,7 @@ is($written, 3);
 # write bindata
 $file = $grid->find_one({'_id' => $save_id});
 $wfh = IO::File->new('t/output.png', '+>') or die $!;
+$wfh->binmode;
 $written = $file->print($wfh);
 is($written, $file->info->{'length'}, 'bin file length');
 
