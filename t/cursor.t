@@ -1,7 +1,8 @@
 use strict;
 use warnings;
-use Test::More tests => 53;
+use Test::More tests => 56;
 use Test::Exception;
+use Tie::IxHash;
 
 use MongoDB;
 
@@ -75,6 +76,8 @@ is_deeply([$cursor2->all], [{_id => $id2, x => 5}]);
 
 is_deeply([$coll->query->all], [{_id => $id1, x => 1}, {_id => $id2, x => 5}]);
 
+
+# sort
 my $cursor_sort = $coll->query->sort({'x' => -1});
 is($cursor_sort->has_next, 1);
 is($cursor_sort->next->{'x'}, 5, 'Cursor->sort');
@@ -84,6 +87,16 @@ $cursor_sort = $coll->query->sort({'x' => 1});
 is($cursor_sort->next->{'x'}, 1);
 is($cursor_sort->next->{'x'}, 5);
 
+
+# sort by tie::ixhash
+my $hash = Tie::IxHash->new("x" => -1);
+$cursor_sort = $coll->query->sort($hash);
+is($cursor_sort->has_next, 1);
+is($cursor_sort->next->{'x'}, 5, 'Tie::IxHash cursor->sort');
+is($cursor_sort->next->{'x'}, 1);
+
+
+# snapshot
 my $cursor3 = $coll->query->snapshot;
 is($cursor3->has_next, 1, 'check has_next');
 my $r1 = $cursor3->next;

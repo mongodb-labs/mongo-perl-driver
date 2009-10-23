@@ -133,13 +133,14 @@ sub fields {
     return $self;
 }
 
-=head2 sort (\%order)
+=head2 sort ($order)
 
     # sort by name, descending
     my $sort = {"name" => -1};
     $cursor = $coll->query->sort($sort);
 
-Adds a sort to the query.
+Adds a sort to the query.  Argument is either
+a hash reference or a Tie::IxHash.
 Returns this cursor for chaining operations.
 
 =cut
@@ -148,8 +149,6 @@ sub sort {
     my ($self, $order) = @_;
     confess "cannot set sort after querying"
 	if $self->started_iterating;
-    confess 'not a hash reference' 
-	unless ref $order eq 'HASH';
 
     $self->_query->{'orderby'} = $order;
     return $self;
