@@ -150,7 +150,7 @@ sub sort {
     confess "cannot set sort after querying"
 	if $self->started_iterating;
     confess 'not a hash reference' 
-	unless ref $f eq 'HASH' || ref $c eq 'Tie::IxHash';
+	unless ref $order eq 'HASH' || ref $order eq 'Tie::IxHash';
 
     $self->_query->{'orderby'} = $order;
     return $self;
