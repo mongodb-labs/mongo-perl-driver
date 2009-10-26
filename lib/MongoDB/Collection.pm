@@ -130,13 +130,25 @@ specified in the data or a C<MongoDB::OID>.
 Inserts each of the documents in the array into the database and returns an
 array of their _id fields.
 
-=head2 update (\%update, \%object, $upsert?)
+=head2 update (\%criteria, \%object, \%options?)
 
-    $collection->update($object);
+    $collection->update({'x' => 3}, {'$inc' => {'count' => -1}, {"upsert" => 1, "multiple" => 1});
 
-Updates an existing C<$object> matching C<$criteria> in the database. If
-C<$upsert> is true, if no object matching C<$criteria> is found, C<$object>
-will be inserted.
+Updates an existing C<$object> matching C<$criteria> in the database. 
+
+C<update> can take a hash reference of options.  The options 
+currently supported are:
+
+=over 
+
+=item C<upsert> 
+If no object matching C<$criteria> is found, C<$object> will be inserted.
+
+=item C<multiple>
+All of the documents that match C<$criteria> will be updated, not just 
+the first document found.
+
+=back
 
 =head2 remove (\%query?, $just_one?)
 

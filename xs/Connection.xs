@@ -156,12 +156,12 @@ _remove (self, ns, query, just_one)
 
 
 void
-_update (self, ns, query, object, upsert)
+_update (self, ns, query, object, flags)
         SV *self
         const char *ns
         SV *query
         SV *object
-        bool upsert
+        int flags
     PREINIT:
         mongo_link *link;
         mongo_msg_header header;
@@ -169,7 +169,7 @@ _update (self, ns, query, object, upsert)
     CODE:
         CREATE_BUF(INITIAL_BUF_SIZE);
         CREATE_HEADER(buf, ns, OP_UPDATE);
-        perl_mongo_serialize_int(&buf, upsert);
+        perl_mongo_serialize_int(&buf, flags);
         perl_mongo_sv_to_bson(&buf, query, NO_PREP);
         perl_mongo_sv_to_bson(&buf, object, NO_PREP);
         perl_mongo_serialize_size(buf.start, &buf);

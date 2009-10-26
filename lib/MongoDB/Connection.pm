@@ -237,9 +237,28 @@ sub batch_insert {
 }
 
 sub update {
-    my ($self, $ns, $query, $object, $upsert) = @_;
-    $upsert = 0 unless defined $upsert;
-    $self->_update($ns, $query, $object, $upsert);
+    my ($self, $ns, $query, $object, $opts) = @_;
+
+    # there used to be one option: upsert=0/1
+    # now there are two, there will probably be
+    # more in the future.  So, to support old code,
+    # passing "1" will still be supported, but not
+    # documentd, so we can phase that out eventually.
+    #
+    # The preferred way of passing options will be a
+    # hash of {optname=>value, ...}
+    my $flags = 0;
+    if ($opts && ref $opts eq 'HASH') {
+        $flags |= $opts->{'upsert'} << 0
+            if exists $opts->{'upsert'};
+        $flags |= $opts->{'multiple'} << 1
+            if exists $opts->{'multiple'};
+    }
+    else {
+        $flags = !(!$opts);
+    }
+
+    $self->_update($ns, $query, $object, $flags);
     return;
 }
 
