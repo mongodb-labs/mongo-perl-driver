@@ -257,5 +257,13 @@ reset (self)
 void
 DESTROY (self)
       SV *self
+  PREINIT:
+     mongo_cursor *cursor;
   CODE:
       kill_cursor(self);
+
+      cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+      if (cursor->buf.start) {
+        Safefree(cursor->buf.start);
+      }
+      Safefree(cursor);

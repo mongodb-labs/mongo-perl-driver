@@ -199,15 +199,17 @@ int mongo_link_hear(SV *cursor_sv) {
   mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
   if (!check_connection(link)) {
+    SvREFCNT_dec(link_sv);
     croak("can't get db response, not connected");
     return 0;
   }
-
+  
   sock = perl_mongo_link_master(link_sv);
 
   // if this fails, we might be disconnected... but we're probably
   // just out of results
   if (recv(sock, (char*)&cursor->header.length, INT_32, 0) == -1) {
+    SvREFCNT_dec(link_sv);
     return 0;
   }
 
@@ -218,11 +220,12 @@ int mongo_link_hear(SV *cursor_sv) {
     set_disconnected(link);
 
     if (!check_connection(link)) {
+      SvREFCNT_dec(link_sv);
       croak("bad response length: %d, max: %d, did the db assert?\n", cursor->header.length, MAX_RESPONSE_LEN);
       return 0;
     }
   }
-
+  
   if (recv(sock, (char*)&cursor->header.request_id, INT_32, 0) == -1 ||
       recv(sock, (char*)&cursor->header.response_to, INT_32, 0) == -1 ||
       recv(sock, (char*)&cursor->header.op, INT_32, 0) == -1 ||
@@ -230,6 +233,7 @@ int mongo_link_hear(SV *cursor_sv) {
       recv(sock, (char*)&cursor->cursor_id, INT_64, 0) == -1 ||
       recv(sock, (char*)&cursor->start, INT_32, 0) == -1 ||
       recv(sock, (char*)&num_returned, INT_32, 0) == -1) {
+    SvREFCNT_dec(link_sv);
     return 0;
   }
 
@@ -253,9 +257,11 @@ int mongo_link_hear(SV *cursor_sv) {
 #else
     croak("error getting database response: %s\n", strerror(errno));
 #endif 
+    SvREFCNT_dec(link_sv);
     return 0;
   }
   
+  SvREFCNT_dec(link_sv);
   cursor->num += num_returned;
   return num_returned > 0;
 }

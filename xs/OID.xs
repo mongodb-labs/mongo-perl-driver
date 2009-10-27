@@ -25,12 +25,11 @@ _build_value (self, c_str)
         SV *self
         const char *c_str;
     PREINIT: 
-        char *id;
-    INIT:
-        Newxz(id, 25, char);
+        char id[25];
     CODE:
         if (c_str && strlen(c_str) == 24) {
           memcpy(id, c_str, 24);
+          id[24] = '\0';
         }
         else {
           //SV *temp;
