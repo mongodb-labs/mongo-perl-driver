@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 91;
+use Test::More tests => 90;
 use Test::Exception;
 
 use Data::Types qw(:float);
@@ -69,7 +69,6 @@ for (my $i=0; $i<10; $i++) {
     $coll->insert({'x' => $i, 'z' => 3, 'w' => 4});
     $coll->insert({'x' => $i, 'y' => 2, 'z' => 3, 'w' => 4});
 }
-is($coll->count({}, {'y' => 1}), 10, 'count fields');
 
 $coll->drop;
 ok(!$coll->get_indexes, 'no indexes yet');

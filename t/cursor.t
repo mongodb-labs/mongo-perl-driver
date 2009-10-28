@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 56;
+use Test::More tests => 54;
 use Test::Exception;
 use Tie::IxHash;
 
@@ -184,6 +184,4 @@ $coll->batch_insert([{'x' => 1}, {'x' => 1}, {'y' => 1}, {'x' => 1, 'z' => 1}]);
 
 is($coll->query->count, 4, 'count');
 is($coll->query({'x' => 1})->count, 3, 'count query');
-is($coll->query->fields({'y' => 1})->count, 1, 'count fields');    
-is($coll->query({'x' => 1})->fields({'z' => 1})->count, 1, 'count fields');
 
