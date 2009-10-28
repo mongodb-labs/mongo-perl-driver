@@ -154,6 +154,7 @@ static void kill_cursor(SV *self) {
   // kill a non-existant cursor
   // non-cursors have ids of 0
   if (cursor->cursor_id == 0) {
+    SvREFCNT_dec(link);
     return;
   }
   buf.pos = quickbuf;
@@ -171,6 +172,7 @@ static void kill_cursor(SV *self) {
   perl_mongo_serialize_size(buf.start, &buf);
 
   mongo_link_say(link, &buf);
+  SvREFCNT_dec(link);
 }
 
 
@@ -182,12 +184,10 @@ void
 _init (self)
         SV *self
     PREINIT:
-        SV *ns_sv;
         mongo_cursor *cursor;
     CODE:
-        // attach a mongo_cursor* to the MongoDB::Cursor
         Newx(cursor, 1, mongo_cursor);
-        perl_mongo_attach_ptr_to_instance(self, cursor);
+        cursor->started_iterating = 0;
 
 	// zero results fields
 	cursor->num = 0;
@@ -197,6 +197,9 @@ _init (self)
         cursor->buf.start = 0;
         cursor->buf.pos = 0;
         cursor->buf.end = 0;
+
+        // attach a mongo_cursor* to the MongoDB::Cursor
+        perl_mongo_attach_ptr_to_instance(self, cursor);
 
 
 
@@ -263,7 +266,13 @@ DESTROY (self)
       kill_cursor(self);
 
       cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-      if (cursor->buf.start) {
-        Safefree(cursor->buf.start);
+
+      if (cursor) {
+
+        if (cursor->buf.start) {
+          Safefree(cursor->buf.start);
+        }
+
+        Safefree(cursor);
       }
-      Safefree(cursor);
+

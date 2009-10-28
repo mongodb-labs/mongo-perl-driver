@@ -257,7 +257,7 @@ oid_to_sv (buffer *buf)
 {
     char id[25];
     perl_mongo_oid_create(buf->pos, id);
-    return perl_mongo_construct_instance (OID_CLASS, "value", newSVpvn (id, 24), NULL);
+    return perl_mongo_construct_instance (OID_CLASS, "value", sv_2mortal(newSVpvn (id, 24)), NULL);
 }
 
 static SV *
