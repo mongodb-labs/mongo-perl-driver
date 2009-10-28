@@ -304,6 +304,14 @@ elem_to_sv (int type, buffer *buf)
     // we should do something with type
     type = *buf->pos++;
 
+    if (type == 2) {
+      int len2 = *(int*)buf->pos;
+      if (len2 == len - 4) {
+        len = len2;
+        buf->pos += INT_32;
+      }
+    }
+
     value = newSVpvn(buf->pos, len);
     buf->pos += len;
 
@@ -581,6 +589,24 @@ void perl_mongo_serialize_oid(buffer *buf, char *id) {
   buf->pos += OID_SIZE;
 }
 
+void perl_mongo_serialize_bindata(buffer *buf, SV *sv)
+{
+  STRLEN len;
+  const char *bytes = SvPVbyte (sv, len);
+
+  // length of length+bindata
+  perl_mongo_serialize_int(buf, len+4);
+  
+  // TODO: type
+  perl_mongo_serialize_byte(buf, 2);
+  
+  // length
+  perl_mongo_serialize_int(buf, len);
+  // bindata
+  perl_mongo_serialize_bytes(buf, bytes, len);
+}
+
+
 /* the position is not increased, we are just filling
  * in the first 4 bytes with the size.
  */
@@ -804,14 +830,9 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
                 
               }
               else {
-                STRLEN len;
-                const char *bytes = SvPVbyte((SV*)SvRV(sv), len);
-                
                 set_type(buf, BSON_BINARY);
                 perl_mongo_serialize_string(buf, key, strlen(key));
-                perl_mongo_serialize_int(buf, len);
-                perl_mongo_serialize_byte(buf, 2);
-                perl_mongo_serialize_bytes(buf, bytes, len);
+                perl_mongo_serialize_bindata(buf, SvRV(sv));
               }
             }
         } else {
@@ -861,15 +882,9 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
             case SVt_PVMG:
                 /* Do we need SVt_PVLV here, too? */
                 if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
-                    STRLEN len;
-                    const char *bytes = SvPVbyte (sv, len);
-
                     set_type(buf, BSON_BINARY);
                     perl_mongo_serialize_string(buf, key, strlen(key));
-                    perl_mongo_serialize_int(buf, len);
-		    // TODO: replace with something
-                    perl_mongo_serialize_byte(buf, 2);
-                    perl_mongo_serialize_bytes(buf, bytes, len);
+                    perl_mongo_serialize_bindata(buf, sv);
                 }
                 else {
                     STRLEN len;

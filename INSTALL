@@ -12,8 +12,9 @@ A couple methods (that you might not run into) require:
   sudo cpan boolean (MongoDB::Collection::ensure_index)
   sudo cpan Digest::MD5 (MongoDB::Connection::authenticate)
 
-And if you want to use dates, you need:
-  sudo cpan DateTime
+Packages needed for different types:
+  dates: DateTime
+  booleans: boolean
 
 
 Then do:
