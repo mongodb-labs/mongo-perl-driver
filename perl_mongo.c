@@ -338,20 +338,21 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_DATE: {
-    int64_t ms = *(int64_t*)buf->pos;
-    SV *datetime, *epoch, *mortal_ms;
+    int64_t ms_i = *(int64_t*)buf->pos;
+    SV *datetime, *epoch, *ms;
     HV *named_params;
     buf->pos += INT_64;
-    ms /= 1000;
+    ms_i /= 1000;
 
     datetime = sv_2mortal(newSVpv("DateTime", 0));
     epoch = sv_2mortal(newSVpv("epoch", 0));
-    mortal_ms = sv_2mortal(newSViv(ms));
+    ms = newSViv(ms_i);
 
     named_params = newHV();
-    hv_store(named_params, "epoch", strlen("epoch"), mortal_ms, 0);
+    hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
 
-    value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime, newRV_noinc((SV*)named_params));
+    value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime, 
+                                     sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
     break;
   }
   case BSON_REGEX: {
@@ -498,7 +499,7 @@ static int resize_buf(buffer *buf, int size) {
     total += size;
   }
 
-  buf->start = (char*)realloc(buf->start, total);
+  Renew(buf->start, total, char);
   buf->pos = buf->start + used;
   buf->end = buf->start + total;
   return total;
@@ -648,6 +649,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids)
       if(hv_exists(hv, "_id", strlen("_id"))) {
         SV **id = hv_fetch(hv, "_id", strlen("_id"), 0);
         append_sv(buf, "_id", *id, NO_PREP);
+        SvREFCNT_inc(*id);
         av_push(ids, *id);
       }
       else {

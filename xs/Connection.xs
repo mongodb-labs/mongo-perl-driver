@@ -128,7 +128,7 @@ _insert (self, ns, object)
         mongo_link_say(self, &buf);
         Safefree(buf.start);
 
-        RETVAL = ids;
+        RETVAL = sv_2mortal((SV*)ids);
     OUTPUT:
         RETVAL
 
