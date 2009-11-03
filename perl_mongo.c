@@ -400,13 +400,14 @@ elem_to_sv (int type, buffer *buf)
 #endif
      // eo version-dependent code
 
-    regex = newSVpv("",0);
+    regex = sv_2mortal(newSVpv("",0));
+    SV *regex_ref = newRV((SV*)regex);
     sv_magic(regex, (SV*)re, PERL_MAGIC_qr, 0, 0);
 
     stash = gv_stashpv("Regexp", 0);
-    sv_bless(newRV_noinc((SV *)regex), stash);
+    sv_bless(regex_ref, stash);
 
-    value = newRV_noinc(regex);
+    value = regex_ref;
     break;
   }
   case BSON_CODE:
