@@ -356,7 +356,7 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_REGEX: {
-    SV *pattern, *regex;
+    SV *pattern, *regex, *regex_ref;
     HV *stash;
     U32 flags = 0;
     PMOP pm;
@@ -401,7 +401,7 @@ elem_to_sv (int type, buffer *buf)
      // eo version-dependent code
 
     regex = sv_2mortal(newSVpv("",0));
-    SV *regex_ref = newRV((SV*)regex);
+    regex_ref = newRV((SV*)regex);
     sv_magic(regex, (SV*)re, PERL_MAGIC_qr, 0, 0);
 
     stash = gv_stashpv("Regexp", 0);
