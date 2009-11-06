@@ -179,28 +179,24 @@ sub _query_ns {
     return $self->name;
 }
 
-=head2 count ($query, $fields)
+=head2 count ($query?)
 
     my $n_objects = $collection->count({ name => 'Bob' });
-    $bobs_with_zip = $collection->count({ name => 'Bob' }, { zip : 1 });
 
-Counts the number of objects in this collection that match the given C<$query>
-and contain the given C<$fields>. Both parameters are optional, if neither are 
-given, the total number of objects in the collection are returned.
+Counts the number of objects in this collection that match the given C<$query>. 
+If no query is given, the total number of objects in the collection is returned.
 
 =cut
 
 sub count {
-    my ($self, $query, $fields) = @_;
+    my ($self, $query) = @_;
     $query ||= {};
-    $fields ||= {};
 
     my $obj;
     eval {
         $obj = $self->_database->run_command({
             count => $self->name,
             query => $query,
-            fields => $fields,
         });
     };
 

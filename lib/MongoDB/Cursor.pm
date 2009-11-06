@@ -280,8 +280,6 @@ sub count {
     my $cmd = {'count' => $coll};
     $cmd->{'query'} = $self->_query->{'query'}
         if exists $self->_query->{'query'};
-    $cmd->{'fields'} = $self->_fields 
-	if $self->_fields;
 
     my $result = $self->_connection->get_database($db)->run_command($cmd);
 
