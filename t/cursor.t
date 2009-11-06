@@ -1,12 +1,23 @@
 use strict;
 use warnings;
-use Test::More tests => 54;
+use Test::More;
 use Test::Exception;
 use Tie::IxHash;
 
 use MongoDB;
 
-my $conn = MongoDB::Connection->new;
+my $conn;
+eval {
+    $conn = MongoDB::Connection->new;
+};
+
+if ($@) {
+    plan skip_all => $@;
+}
+else {
+    plan tests => 54;
+}
+
 my $db = $conn->get_database('test_database');
 $db->drop;
 

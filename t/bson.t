@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 15;
+use Test::More;
 use Test::Exception;
 
 use MongoDB;
@@ -9,7 +9,20 @@ use boolean;
 use DateTime;
 use Tie::IxHash;
 
-my $conn = MongoDB::Connection->new;
+my $conn;
+eval {
+    $conn = MongoDB::Connection->new;
+};
+
+if ($@) {
+    plan skip_all => $@;
+}
+else {
+    plan tests => 15;
+}
+
+
+
 my $db = $conn->get_database('foo');
 my $c = $db->get_collection('bar');
 

@@ -1,15 +1,26 @@
 use strict;
 use warnings;
-use Test::More tests => 9;
+use Test::More;
 use Test::Exception;
 
 use MongoDB;
+
+my $conn;
+eval {
+    $conn = MongoDB::Connection->new;
+};
+
+if ($@) {
+    plan skip_all => $@;
+}
+else {
+    plan tests => 9;
+}
 
 throws_ok {
     MongoDB::Connection->new(host => 'localhost', port => 1);
 } qr/couldn't connect to server/, 'exception on connection failure';
 
-my $conn;
 lives_ok {
     $conn = MongoDB::Connection->new;
 } 'successful connection';

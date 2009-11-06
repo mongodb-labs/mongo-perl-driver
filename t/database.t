@@ -1,14 +1,27 @@
 use strict;
 use warnings;
-use Test::More tests => 11;
+use Test::More;
 use Test::Exception;
 
 use MongoDB;
 
-my $conn = MongoDB::Connection->new;
+my $conn;
+eval {
+    $conn = MongoDB::Connection->new;
+};
+
+if ($@) {
+    plan skip_all => $@;
+}
+else {
+    plan tests => 11;
+}
+
 isa_ok($conn, 'MongoDB::Connection');
 
 my $db = $conn->get_database('test_database');
+$db->drop;
+
 isa_ok($db, 'MongoDB::Database');
 
 $db->drop;
@@ -29,6 +42,4 @@ is($coll->find_one->{_id}->value, $id->value, 'insert id');
 
 is($db->run_command({ foo => 'bar' }), "no such cmd");
 
-END {
-    $db->drop;
-}
+

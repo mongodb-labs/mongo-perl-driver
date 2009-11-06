@@ -1,13 +1,24 @@
 use strict;
 use warnings;
-use Test::More tests => 21;
+use Test::More;
 use Test::Exception;
 
 use MongoDB;
 use MongoDB::OID;
 use DateTime;
 
-my $conn = MongoDB::Connection->new;
+my $conn;
+eval {
+    $conn = MongoDB::Connection->new;
+};
+
+if ($@) {
+    plan skip_all => $@;
+}
+else {
+    plan tests => 21;
+}
+
 my $db = $conn->get_database('x');
 my $coll = $db->get_collection('y');
 

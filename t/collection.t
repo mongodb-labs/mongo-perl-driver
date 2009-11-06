@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 90;
+use Test::More;
 use Test::Exception;
 
 use Data::Types qw(:float);
@@ -8,8 +8,21 @@ use Tie::IxHash;
 
 use MongoDB;
 
-my $conn = MongoDB::Connection->new;
+my $conn;
+eval {
+    $conn = MongoDB::Connection->new;
+};
+
+if ($@) {
+    plan skip_all => $@;
+}
+else {
+    plan tests => 90;
+}
+
 my $db   = $conn->get_database('test_database');
+$db->drop;
+
 my $coll = $db->get_collection('test_collection');
 isa_ok($coll, 'MongoDB::Collection');
 
@@ -290,6 +303,4 @@ ok($id => $coll->insert({ data => $f }));
 ok($obj = $coll->find_one({ data => $f }));
 is($obj->{data}, 3.3);
 
-END {
-    $db->drop;
-}
+

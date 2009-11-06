@@ -1,11 +1,22 @@
 use strict;
 use warnings;
-use Test::More tests => 10;
+use Test::More;
 use Test::Exception;
 
 use MongoDB;
 
-my $conn = MongoDB::Connection->new;
+my $conn;
+eval {
+    $conn = MongoDB::Connection->new;
+};
+
+if ($@) {
+    plan skip_all => $@;
+}
+else {
+    plan tests => 10;
+}
+
 my $db   = $conn->get_database('test_database');
 
 my $result = $db->run_command({reseterror => 1});

@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 40;
+use Test::More;
 use Test::Exception;
 use IO::File;
 
@@ -8,7 +8,18 @@ use MongoDB;
 use MongoDB::GridFS;
 use MongoDB::GridFS::File;
 
-my $m = MongoDB::Connection->new;
+my $m;
+eval {
+    $m = MongoDB::Connection->new;
+};
+
+if ($@) {
+    plan skip_all => $@;
+}
+else {
+    plan tests => 40;
+}
+
 my $db = $m->get_database('foo');
 my $grid = $db->get_gridfs;
 $grid->drop;
