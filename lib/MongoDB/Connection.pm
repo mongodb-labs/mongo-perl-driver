@@ -371,8 +371,23 @@ sub get_database {
 
 Determines which host of a paired connection is master.  Does nothing for
 a non-paired connection.  This need never be invoked by a user, it is 
-called automatically by internal functions.  Returns 0 if the left host 
-is master, 1 if the right is, -1 if if cannot be determined.
+called automatically by internal functions.  Returns values:
+
+=over
+
+=item 0 
+
+The left host is master
+
+=item 1
+
+The right host is master
+
+=item -1 
+
+Error, master cannot be determined.
+
+=back
 
 =cut
 

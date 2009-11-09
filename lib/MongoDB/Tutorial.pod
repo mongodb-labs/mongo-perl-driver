@@ -11,7 +11,7 @@ The tutorial runs through the basic functionality of the MongoDB package.  This
 is a good starting point if you have never used MongoDB before.
 
 The tutorial assumes that you are running a Mongo database server locally on the
-default port.
+default port.  You can download Mongo from L<http://www.mongodb.org>.
 
 =head1 TERMINOLOGY
 
@@ -41,19 +41,20 @@ Autoincrementing primary key
 
 =head2 Connecting
 
-First, we have to connect to the database server, which should be running
-locally on the default port (27017).  
+To get started, we have to connect to the database server.  Because it's running
+locally on the default port, we need not pass any parameters to the
+L<MongoDB::Connection> constructor:
 
     my $conn = MongoDB::Connection->new;
 
-Now we need a database to work with, we'll call it "tutorial".  You need not do
-anything special to create the database, Mongo will create it on the fly.
+Now we're connected to the database server.  Next we need a database to work 
+with, we'll call it "tutorial".  You need not do anything special to create the 
+database, Mongo will create it on the fly.
 
     my $db = $conn->get_database("tutorial");
 
-The last part of the preliminary setup is to choose a collection, roughly 
-equivalent to a relational database's table.  We'll be using the "users" 
-collection to start out.
+The last part of the preliminary setup is to choose a collection.  We'll be 
+using the "users" collection to start out.
 
     my $users = $db->get_collection("users");
 
@@ -64,41 +65,42 @@ as needed.
 
 =head3 Inserting
 
-To add document to the collection, we use the C<insert> function, passing it a
-hash to save.
+To add a document to the collection, we use the C<insert> function.  It takes a
+hash, which it saves to the collection.
 
     $users->insert({"name" => "Joe", 
         "age" => 52, 
-        "likes" => [qw/skiing math ponies/])});
+        "likes" => [qw/skiing math ponies/]});
 
 Now there is a user in the collection.  
 
 =head3 C<MongoDB::OID>s
 
 When a document is inserted, it is given an _id field if one does not already
-exist.  By default, this field is a C<MongoDB::OID>, 12 bytes that are 
+exist.  By default, this field is a L<MongoDB::OID>, 12 bytes that are 
 guaranteed to be unique. The _id field of the inserted document is returned by
 the C<insert> method.
 
-    $id = $users->insert({"name" => "Bill"});
+    my $id = $users->insert({"name" => "Bill"});
 
 An efficient way to insert documents is to send many at a time to the database
 by using C<batch_insert>, which returns an array of the _id fields of the 
 documents inserted.
 
-    @ids = $users->batch_insert(\@fifty_hashrefs);
+    @ids = $users->batch_insert(\@fifty_users);
 
 
 =head2 Retrieving Documents
 
 =head3 Queries
 
-To retrive all documents in a collection, we can use the C<query> method.
+To retrive documents that were saved to a collection, we can use the C<query> 
+method.
 
     my $all_users = $users->query;
 
-To return all users named Joe, pass the query a hash with the key/value pair you
-wish to match:
+To query for certain criteria, say, all users named Joe, pass the query a hash 
+with the key/value pair you wish to match:
 
     my $some_users = $users->query({"name" => "Joe"});
 
@@ -109,32 +111,31 @@ like math:
 
 =head3 Ranges
 
-As queries are hashes, they cannot express familiar relations like "x < 4".  To
-query with a comparison filter, Mongo uses $-prefixed terms.  For example, 
-"x < 4" could be expressed by:
+As queries are hashes, they use a special syntax to express comparisons, such as
+"x < 4".  To make the query a valid hash, Mongo uses $-prefixed terms.  For 
+example, "x < 4" could be expressed by:
 
     my $doc321 = $collection->query({'x' => { '$lt' => 4 }});
 
-We can use multiple comparison operators to get a range:
+Comparison operators can be combined to get a range:
 
     my $doc32 = $collection->query({'x' => { '$gte' => 2, '$lt' => 4 }});
 
 
 =head3 Cursors
 
-C<query> returns a C<MongoDB::Cursor>, which can be converted into an array of
-hash references.  For example, to print the "name" field of the first result:
-
-    my @arr = $geeks->all;
-    print @arr[0]->{'name'}."\n";
-
-Cursors can also be iterated over, which is often better, as the entire result
-set doesn't have to be stored in memory.  The following prints all of the users'
-names:
+C<query> returns a L<MongoDB::Cursor>, which can be iterated over.  It lazily
+loads results from the database.  The following prints all of the users' names:
 
     while (my $doc = $all_users->next) {
         print $doc->{'name'}."\n";
     }
+
+A cursor can also be converted into an array of hash references.  For example, 
+to print the "name" field of the first result:
+
+    my @arr = $geeks->all;
+    print $arr[0]->{'name'}."\n";
 
 
 =head2 Updating Documents
@@ -168,38 +169,54 @@ document matches the query.  There are two options available to change this
 behavior.
 
 Suppose we want to add a "gift" field to everyone whose birthday it is today.
-We can write:
+One way would be to find every person whose birthday it was and iterate through 
+the user documents, updating each one.  However, it would be much faster and 
+easier to update multiple documents at once.  We can do this by using an 
+optional third parameter with C<update>:
 
-    $today = DateTime->now;
-    $tomorrow = DateTime->now->set('day' => $today->day+1);
+    my $today = DateTime->now;
+    my $tomorrow = DateTime->now->set('day' => $today->day+1);
 
-    $users->update({"bday" => {'$gte' => $today, '$lte' => $tomorrow}, 
+    $users->update({"bday" => {'$gte' => $today, '$lte' => $tomorrow}}, 
         {'$set' => {'gift' => $gift}},
         {'multiple' => 1});
 
 Sometimes we may want update to create an element if it does not already exist.
-This is called an 'upsert' (update+insert).  For example, creating and updating
-a log document could both be done with an insert:
+This is called an 'upsert' (as it is a combination of an update and an insert).  
+For example, the same code could be used for creating and updating a log 
+document:
 
     $pageviews->update({"url" => "www.example.com"},
         {"url" => "www.example.com", '$inc' => {"views" => 1}},
         {'upsert' => 1});
 
+If the pageview counter for www.example.com did not exist yet, it would be 
+created and the "views" field would be set to 1.  If it did exist, the "views" 
+field would be incremented.
 
 =head2 Deleting Documents
 
-To delete documents, we use the C<remove> method.
+To delete documents, we use the C<remove> method.  It takes the same type of
+hash queries do:
 
-    $user->remove({"name" => "Joe"});
+    $users->remove({"name" => "Joe"});
 
 Calling C<remove> with no parameters removes all of the objects in a collection.
-It does not delete the collection, though (in that the indexes will still
-exist).  To remove a collection, call C<drop>:
+It does not delete the collection, though (in that in that it will still appear
+if the user lists collections in the database and the indexes will still exist).  
+To remove a collection entirely, call C<drop>:
 
-    $user->drop;
+    $users->drop;
 
 C<drop> can also be used for whole databases:
 
     $db->drop;
 
+=head1 NEXT STEPS
 
+Now that you know the basic syntax used by the Perl driver, you should be able
+to translate the JavaScript examples in the main MongoDB documentation 
+(L<http://www.mongodb.org>) into Perl.
+
+If there's anything else you'd like to see as part of the tutorial or 
+documentation in general, please contact kristina@mongodb.org.

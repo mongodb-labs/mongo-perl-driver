@@ -88,7 +88,9 @@ sub _build_full_name {
     );
 
 Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
-A hash reference of attributes may be passed as the second argument.
+C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
+even number of elements).  A hash reference of attributes may be passed as the 
+second argument.
 
 Valid query attributes are:
 
@@ -113,6 +115,8 @@ Order results.
     my $object = $collection->find_one({ name => 'Resi' });
 
 Executes the given C<$query> and returns the first object matching it.
+C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
+even number of elements).  
 
 =head2 insert ($object)
 
@@ -120,8 +124,8 @@ Executes the given C<$query> and returns the first object matching it.
 
 Inserts the given C<$object> into the database and returns it's id
 value. C<$object> can be a hash reference, a reference to an array with an
-even number of elements, or a C<Tie::IxHash>.  The id is the C<_id> value 
-specified in the data or a C<MongoDB::OID>.
+even number of elements, or a L<Tie::IxHash>.  The id is the C<_id> value 
+specified in the data or a L<MongoDB::OID>.
 
 =head2 batch_insert (@array)
 

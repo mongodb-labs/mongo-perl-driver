@@ -62,7 +62,7 @@ has info => (
 
 =head1 METHODS
 
-=head2 print ($fh, $length, $offset)
+=head2 print ($fh, $length?, $offset?)
 
     $written = $file->print($fh, 50, 200);
 

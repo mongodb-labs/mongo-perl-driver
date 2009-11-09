@@ -85,7 +85,7 @@ has chunks => (
 
 =head1 METHODS
 
-=head2 find_one ($criteria, $fields)
+=head2 find_one ($criteria?, $fields?)
 
     my $file = $grid->find_one({"filename" => "foo.txt"});
 
@@ -101,7 +101,7 @@ sub find_one {
     return MongoDB::GridFS::File->new({_grid => $self,info => $file});
 }
 
-=head2 remove ($criteria, $just_one)
+=head2 remove ($criteria?, $just_one?)
 
     $grid->remove({"filename" => "foo.txt"});
 
@@ -128,7 +128,7 @@ sub remove {
 }
 
 
-=head2 insert ($fh, $metadata)
+=head2 insert ($fh, $metadata?)
 
     my $id = $gridfs->insert($fh, {"content-type" => "text/html"});
 

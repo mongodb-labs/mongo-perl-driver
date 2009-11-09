@@ -103,7 +103,7 @@ sub get_collection {
     );
 }
 
-=head2 get_gridfs ($prefix)
+=head2 get_gridfs ($prefix?)
 
     my $grid = $database->get_gridfs;
 
@@ -163,7 +163,8 @@ sub last_error {
 
 Runs a command for this database on the mongo server. Throws an exception with
 an error message if the command fails. Returns the result of the command on
-success.
+success.  For a list of possible database commands, see 
+L<http://www.mongodb.org/display/DOCS/Table+of+Database+Commands>.
 
 =cut
 
@@ -175,7 +176,7 @@ sub run_command {
 }
 
 
-=head2 eval ($code, $args)
+=head2 eval ($code, $args?)
 
     my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
 
@@ -184,7 +185,8 @@ Evaluate a JavaScript expression on the Mongo server.
 Useful if you need to touch a lot of data lightly; in such a scenario 
 the network transfer of the data could be a bottleneck. The $code 
 argument must be a JavaScript function. $args is an array of 
-parameters that will be passed to the function.
+parameters that will be passed to the function.  For more examples of using eval
+see L<http://www.mongodb.org/display/DOCS/Server-side+Code+Execution#Server-sideCodeExecution-Using{{db.eval%28%29}}>.
 
 =cut
 

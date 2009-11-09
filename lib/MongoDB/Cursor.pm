@@ -18,7 +18,6 @@ package MongoDB::Cursor;
 our $VERSION = '0.25';
 
 # ABSTRACT: A cursor/iterator for Mongo query results
-use Data::Dumper;
 use Any::Moose;
 use boolean;
 
@@ -246,7 +245,7 @@ sub hint {
 This will tell you the type of cursor used, the number of records 
 the DB had to examine as part of this query, the number of records 
 returned by the query, and the time in milliseconds the query took 
-to execute.  Requires C<boolean> package.
+to execute.  Requires L<boolean> package.
 
 =cut
 
