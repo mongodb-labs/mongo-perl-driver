@@ -10,6 +10,7 @@ lib/MongoDB/Database.pm
 lib/MongoDB/GridFS.pm
 lib/MongoDB/GridFS/File.pm
 lib/MongoDB/OID.pm
+lib/MongoDB/Tutorial.pod
 Makefile.PL
 MANIFEST			This list of files
 META.yml

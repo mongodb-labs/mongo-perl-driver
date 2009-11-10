@@ -1,8 +1,9 @@
-0.25  09 Nov 2009
+0.26  09 Nov 2009
 
   - Don't force i386 arch (Needed to compile on OS X with x86_64) (Graham Barr)
   - Include inc/ dir for CPAN
   - Memory leak fixes
+  - Added tutorial
 
 0.24  15 Oct 2009
 

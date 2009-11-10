@@ -15,7 +15,7 @@
 #
 
 package MongoDB::OID;
-our $VERSION = '0.25';
+our $VERSION = '0.26';
 # ABSTRACT: A Mongo Object ID
 
 use Any::Moose;
@@ -26,7 +26,7 @@ MongoDB::OID - A Mongo Object ID
 
 =head1 VERSION
 
-version 0.25
+version 0.26
 
 =head1 SYNOPSIS
 

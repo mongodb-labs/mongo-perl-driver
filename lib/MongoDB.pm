@@ -20,7 +20,7 @@ use warnings;
 package MongoDB;
 # ABSTRACT: A Mongo Driver for Perl
 
-our $VERSION = '0.25';
+our $VERSION = '0.26';
 
 
 use XSLoader;
@@ -36,7 +36,7 @@ MongoDB - A Mongo Driver for Perl
 
 =head1 VERSION
 
-version 0.25
+version 0.26
 
 =head1 SYNOPSIS
 
