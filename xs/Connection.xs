@@ -186,11 +186,25 @@ DESTROY (self)
          mongo_link *link;
      CODE:
          link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
+
          if (link->paired) {
+#ifdef WIN32
+           closesocket(link->server.pair.left_socket);
+           closesocket(link->server.pair.right_socket);
+#else
+           close(link->server.pair.left_socket);
+           close(link->server.pair.right_socket);
+#endif
            Safefree(link->server.pair.left_host);
            Safefree(link->server.pair.right_host);
          }
          else {
+#ifdef WIN32
+	   closesocket(link->server.single.socket);
+#else
+	   close(link->server.single.socket);
+#endif
            Safefree(link->server.single.host);
          }
+
          Safefree(link);
