@@ -81,7 +81,6 @@ has _ns => (
 
 has _query => (
     is => 'rw',
-    isa => 'HashRef',
     required => 1,
 );
 
@@ -106,7 +105,28 @@ has _skip => (
 );
 
 
+# stupid hack for inconsistent database handling of queries
+has _grrrr => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0,
+);
+
+
 =head1 METHODS
+
+=cut
+
+sub _ensure_special {
+    my ($self) = @_;
+
+    if ($self->_grrrr) {
+        return;
+    }
+
+    $self->_grrrr(1);
+    $self->_query({'query' => $self->_query})
+}
 
 =head2 fields (\%f)
 
@@ -151,6 +171,7 @@ sub sort {
     confess 'not a hash reference' 
 	unless ref $order eq 'HASH' || ref $order eq 'Tie::IxHash';
 
+    $self->_ensure_special;
     $self->_query->{'orderby'} = $order;
     return $self;
 }
@@ -215,6 +236,7 @@ sub snapshot {
     confess "cannot set snapshot after querying"
 	if $self->started_iterating;
 
+    $self->_ensure_special;
     $self->_query->{'$snapshot'} = 1;
     return $self;
 }
@@ -234,6 +256,7 @@ sub hint {
     confess 'not a hash reference' 
 	unless ref $index eq 'HASH';
 
+    $self->_ensure_special;
     $self->_query->{'$hint'} = $index;
     return $self;
 }
@@ -256,6 +279,7 @@ sub explain {
         $self->_limit($self->_limit * -1);
     }
 
+    $self->_ensure_special;
     $self->_query->{'$explain'} = boolean::true;
 
     my $retval = $self->reset->next;
@@ -277,8 +301,13 @@ sub count {
 
     my ($db, $coll) = $self->_ns =~ m/^([^\.]+).(.*)/;
     my $cmd = {'count' => $coll};
-    $cmd->{'query'} = $self->_query->{'query'}
-        if exists $self->_query->{'query'};
+
+    if ($self->_grrrr) {
+        $cmd->{'query'} = $self->_query->{'query'};
+    }
+    else {
+        $cmd->{'query'} = $self->_query;
+    }
 
     my $result = $self->_connection->get_database($db)->run_command($cmd);
 

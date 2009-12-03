@@ -207,10 +207,12 @@ sub query {
     $skip    ||= 0;
 
     my $q = {};
-    $q->{'query'} = $query ? $query : {};
-
     if ($sort_by) {
+        $q->{'query'} = $query;
 	$q->{'orderby'} = $sort_by;
+    }
+    else {
+        $q = $query ? $query : {};
     }
 
     my $cursor = MongoDB::Cursor->new(
