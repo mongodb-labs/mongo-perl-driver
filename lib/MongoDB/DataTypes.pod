@@ -1,0 +1,109 @@
+
+=pod
+
+=head1 NAME
+
+MongoDB::DataTypes - the data types used with MongoDB
+
+=head1 DESCRIPTION
+
+This goes over the types you can save to the database and use for queries.
+
+=head1 TYPES
+
+=head2 Dates
+
+The L<DateTime> package can be used insert and query for dates. Dates stored in 
+the database will be returned as instances of DateTime.
+
+An example of storing and retrieving a date:
+
+    use DateTime;
+
+    my $now = DateTime->now;
+    $collection->insert({'ts' => $now});
+
+    my $obj = $collection->find_one;
+    print "Today is ".$obj->{'ts'}->ymd."\n";
+
+An example of querying for a range of dates:
+
+    my $start = DateTime->from_epoch( epoch => 100000 );
+    my $end = DateTime->from_epoch( epoch => 500000 );
+
+    my $cursor = $collection->query({event => {'$gt' => $start, '$lt' => $end}});
+
+=head2 Regular Expressions
+
+Use C<qr/.../> to use a regular expression in a query:
+
+    my $cursor = $collection->query({"name" => qr/[Jj]oh?n/});
+
+Regular expressions will match strings saved in the database.
+
+You can also save and retrieve regular expressions themselves:
+
+    $collection->insert({"regex" => qr/foo/i});
+    $obj = $collection->find_one;
+    if ("FOO" =~ $obj->{'regex'}) { # matches
+        print "hooray\n";
+    }
+
+Note for Perl 5.8 users: flags are lost when regular expressions are retrieved 
+from the database (this does not affect queries or Perl 5.10).
+
+=head2 Booleans
+
+Use the L<boolean> pachage to get boolean values.  C<boolean::true> and 
+C<boolean::false> are the only parts of the package used, currently.
+
+An example of inserting boolean values:
+
+    use boolean;
+
+    $collection->insert({"okay" => true, "name" => "fred"});
+
+An example using boolean values for query operators (only returns documents
+where the name field exists):
+
+    my $cursor = $collection->query({"name" => {'$exists' => boolean::true}});
+
+=head2 Other
+
+There are a few Mongo-specific data types.
+
+=head3 MongoDB::OID
+
+"OID" stands for "Object ID", and is a unique id that is automatically added to 
+documents if they do not already have an C<_id> field before they are saved to 
+the database.  They are 12 bytes which are guarenteed to be unique.  Their 
+string form is a 24-character string of hexidecimal digits.
+
+To create a unique id:
+
+    my $oid = MongoDB::OID->new;
+
+To create a MongoDB::OID from an existing 24-character hexidecimal string:
+
+    my $oid = MongoDB::OID->new("123456789012345678901234");
+
+=head3 MongoDB::MinKey
+
+MongoDB::MinKey is "less than" any other value of any type.  This can be useful
+for always returning certain documents first (or last).
+
+MongoDB::MinKey has no methods, fields, or string form.  To create one, it is
+sufficient to say:
+
+    bless $minKey, "MongoDB::MinKey";
+
+=head3 MongoDB::MaxKey
+
+MongoDB::MaxKey is "greater than" any other value of any type.  This can be useful
+for always returning certain documents last (or first).
+
+MongoDB::MaxKey has no methods, fields, or string form.  To create one, it is
+sufficient to say:
+
+    bless $minKey, "MongoDB::MaxKey";
+

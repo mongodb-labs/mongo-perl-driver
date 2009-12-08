@@ -32,7 +32,7 @@ XSLoader::load(__PACKAGE__, $VERSION);
 
 =head1 NAME
 
-MongoDB - A Mongo Driver for Perl
+MongoDB - Mongo Driver for Perl
 
 =head1 VERSION
 
@@ -48,7 +48,14 @@ version 0.26
     my $id         = $collection->insert({ some => 'data' });
     my $data       = $collection->find_one({ _id => $id });
 
-=head1 AUTHOR
+=head1 GETTING HELP
+
+If you have any questions, comments, or complaints, you can get through to the 
+developers most dependably via the MongoDB user list: 
+I<mongodb-user@googlegroups.com>.  You might be able to get someone quicker
+through the MongoDB IRC channel, I<irc.freenode.net#mongodb>.
+
+=head1 AUTHORS
 
   Florian Ragwitz <rafl@debian.org>
   Kristina Chodorow <kristina@mongodb.org>
@@ -61,3 +68,55 @@ This is free software, licensed under:
 
   The Apache License, Version 2.0, January 2004
 
+=head1 DESCRIPTION
+
+MongoDB is a database access module.
+
+=head2 Notation and Conventions
+
+The following conventions are used in this document:
+
+    $conn   Database connection
+    $db     Database
+    $coll   Collection
+    undef   NULL values are represented by undefined values in Perl
+    \@arr   Reference to an array passed to methods
+    \%attr  Reference to a hash of attribute values passed to methods
+
+Note that Perl will automatically close and clean up database connections if
+all references to them are deleted.
+
+=head2 Outline Usage
+
+To use MongoDB, first you need to load the MongoDB module:
+
+    use MongoDB;
+    use strict;
+    use warnings;
+
+(The C<use strict;> and C<use warnings;> isn't required, but it's strongly 
+recommended.)
+
+Then you need to connect to a Mongo database server.  By default, Mongo listens
+for connections on port 27017.  Unless otherwise noted, this documentation 
+assumes you are running MongoDB locally on the default port.  
+
+Mongo can be started in I<authentication mode>, which requires clients to log in
+before manipulating data.  By default, Mongo does not start in this mode, so no 
+username or password is required to make a fully functional connection.  If you
+would like to learn more about authentication, see the L<authenticate> method.
+
+To connect to the database, create a new MongoDB Connection object:
+
+    $conn = MongoDB::Connection->new("host" => "localhost", "port" => 27017);
+
+As these are the defaults, we can use the equivalent shorthand:
+
+    $conn = MongoDB::Connection->new;
+
+Connecting is expensive, so try not to open superfluous connections.
+
+There is no way to explicitly disconnect from the database.  When C<$conn> goes
+out of scope, the connection will automatically be clased and cleaned up.
+
+=head2 Types

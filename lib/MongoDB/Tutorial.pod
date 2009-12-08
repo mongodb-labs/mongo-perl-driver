@@ -37,9 +37,7 @@ Autoincrementing primary key
 
 =back
 
-=head1 TUTORIAL
-
-=head2 Connecting
+=head1 CONNECTING
 
 To get started, we have to connect to the database server.  Because it's running
 locally on the default port, we need not pass any parameters to the
@@ -60,6 +58,8 @@ using the "users" collection to start out.
 
 Again, there is no need to create the collection in advance, it will be created
 as needed.
+
+=head1 CRUD
 
 =head2 Creating Documents
 
