@@ -212,6 +212,40 @@ C<drop> can also be used for whole databases:
 
     $db->drop;
 
+=head1 MONGO BASICS
+
+=head2 Indexes
+
+Creating an Index
+
+Unique and non-unique indexes can be created on collections using 
+L<MongoDB::Collection::ensure_index>.
+
+For example, to create a non-unique index on 'x':
+
+    $collection->ensure_index({'x' => 'ascending'})
+
+To create a unique index on 'y':
+
+    $collection->ensure_index({'y' => 'ascending', 'z' => 'descending'}, 1);
+
+For multi-key indexes, keep in mind that you should use L<Tie::IxHash> to 
+guarantee the keys will be saved in the correct order.
+
+=head2 Database Commands
+
+There are a large number of useful database commands that can be called directly
+with $db->run_command. For example, to drop a collection, you can use:
+
+    $db->run_command({drop => $collection_name});
+
+"drop" only requires one key/value pair, but for commands that require multiple 
+fields, Mongo expects key/value pairs to be in a certain order. It will no 
+recognize the command if they are not ordered command name first. Thus, if you
+are running a database command, you should probably use L<Tie::IxHash> instead of a
+normal hash (normal hashes are not ordered).
+
+
 =head1 NEXT STEPS
 
 Now that you know the basic syntax used by the Perl driver, you should be able
@@ -220,3 +254,4 @@ to translate the JavaScript examples in the main MongoDB documentation
 
 If there's anything else you'd like to see as part of the tutorial or 
 documentation in general, please contact kristina@mongodb.org.
+
