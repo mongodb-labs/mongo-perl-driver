@@ -15,7 +15,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 54;
+    plan tests => 57;
 }
 
 my $db = $conn->get_database('test_database');
@@ -196,3 +196,6 @@ $coll->batch_insert([{'x' => 1}, {'x' => 1}, {'y' => 1}, {'x' => 1, 'z' => 1}]);
 is($coll->query->count, 4, 'count');
 is($coll->query({'x' => 1})->count, 3, 'count query');
 
+is($coll->query->limit(1)->count(1), 1, 'count limit');
+is($coll->query->skip(1)->count(1), 3, 'count skip');
+is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');

@@ -20,6 +20,7 @@ our $VERSION = '0.26';
 # ABSTRACT: A cursor/iterator for Mongo query results
 use Any::Moose;
 use boolean;
+use Tie::IxHash;
 
 =head1 NAME
 
@@ -288,36 +289,39 @@ sub explain {
     return $retval;
 }
 
-=head2 count
+=head2 count($all?)
 
     my $num = $cursor->count;
+    my $num = $cursor->skip(20)->count(1);
 
-Returns the number of document this query will return.
+Returns the number of document this query will return.  Optionally takes a
+boolean parameter, indicating that the cursor's limit and skip fields should be 
+used in calculating the count.
 
 =cut
 
 sub count {
-    my ($self) = @_;
+    my ($self, $all) = @_;
 
-    my ($db, $coll) = $self->_ns =~ m/^([^\.]+).(.*)/;
-    my $cmd = {'count' => $coll};
+    my ($db, $coll) = $self->_ns =~ m/^([^\.]+)\.(.*)/;
+    my $cmd = new Tie::IxHash(count => $coll);
 
     if ($self->_grrrr) {
-        $cmd->{'query'} = $self->_query->{'query'};
+        $cmd->Push(query => $self->_query->{'query'});
     }
     else {
-        $cmd->{'query'} = $self->_query;
+        $cmd->Push(query => $self->_query);
+    }
+
+    if ($all) {
+        $cmd->Push(limit => $self->_limit) if $self->_limit;
+        $cmd->Push(skip => $self->_skip) if $self->_skip;
     }
 
     my $result = $self->_connection->get_database($db)->run_command($cmd);
 
     # returns "ns missing" if collection doesn't exist
     return 0 unless ref $result eq 'HASH';
-
-    if ($self->_limit && $result->{'n'} > $self->_limit) {
-	return $self->_limit;
-    }
-
     return $result->{'n'};
 }
 
