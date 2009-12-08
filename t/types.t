@@ -16,7 +16,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 23;
+    plan tests => 24;
 }
 
 my $db = $conn->get_database('x');
@@ -37,6 +37,13 @@ for (0..9) {
 for (0..8) {
     ok((@$ids[$_]."") lt (@$ids[$_+1].""));
 }
+
+my $now = DateTime->now;
+$id = MongoDB::OID->new;
+
+is($now->epoch, $id->get_time);
+
+#regexes
 
 $coll->insert({'x' => 'FRED', 'y' => 1});
 $coll->insert({'x' => 'bob'});
@@ -68,7 +75,7 @@ ok(!("bar" =~ $obj->{'r'}), 'not a match');
 # date
 $coll->drop;
 
-my $now = DateTime->now;
+$now = DateTime->now;
 
 $coll->insert({'date' => $now});
 my $date = $coll->find_one;
