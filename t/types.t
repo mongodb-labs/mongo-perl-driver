@@ -16,7 +16,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 21;
+    plan tests => 23;
 }
 
 my $db = $conn->get_database('x');
@@ -82,4 +82,16 @@ $coll->insert({'date' => $past});
 $date = $coll->find_one({'date' => $past});
 
 is($date->{'date'}->epoch, 1234567890);
+
+# minkey/maxkey
+$coll->drop;
+
+my $min = bless {}, "MongoDB::MinKey";
+my $max = bless {}, "MongoDB::MaxKey";
+
+$coll->insert({min => $min, max => $max});
+my $x = $coll->find_one;
+
+isa_ok($x->{min}, 'MongoDB::MinKey');
+isa_ok($x->{max}, 'MongoDB::MaxKey');
 

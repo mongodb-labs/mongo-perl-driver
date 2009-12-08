@@ -421,13 +421,13 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_MINKEY: {
-    STRLEN len;
-    value = newSVpv("[MinKey]", len);
+    HV *stash = gv_stashpv("MongoDB::MinKey", 0);
+    value = sv_bless(newRV(sv_2mortal((SV*)newHV())), stash);
     break;
   }
   case BSON_MAXKEY: {
-    STRLEN len;
-    value = newSVpv("[MaxKey]", len);
+    HV *stash = gv_stashpv("MongoDB::MaxKey", 0);
+    value = sv_bless(newRV(sv_2mortal((SV*)newHV())), stash);
     break;
   }
   default: {
@@ -767,6 +767,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
     }
     if (SvROK (sv)) {
         if (sv_isobject (sv)) {
+            /* OIDs */
             if (sv_derived_from (sv, OID_CLASS)) {
                 SV *attr = perl_mongo_call_reader (sv, "value");
                 char *str = SvPV_nolen (attr);
@@ -777,11 +778,13 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
 
                 SvREFCNT_dec (attr);
             }
+	    /* Tie::IxHash */
             else if (sv_isa(sv, "Tie::IxHash")) {
               set_type(buf, BSON_OBJECT);
               perl_mongo_serialize_string(buf, key, strlen(key));
               ixhash_to_bson(buf, sv, NO_PREP);
             }
+	    /* DateTime */
             else if (sv_isa(sv, "DateTime")) {
               SV *sec, *ms;
               set_type(buf, BSON_DATE);
@@ -794,15 +797,25 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
               SvREFCNT_dec (sec);
               SvREFCNT_dec (ms);
             }
+	    /* boolean */
             else if (sv_isa(sv, "boolean")) {
               set_type(buf, BSON_BOOL);
               perl_mongo_serialize_string(buf, key, strlen(key));
               perl_mongo_serialize_byte(buf, SvIV(SvRV(sv)));
             }
+            else if (sv_isa(sv, "MongoDB::MinKey")) {
+              set_type(buf, BSON_MINKEY);
+              perl_mongo_serialize_string(buf, key, strlen(key));
+            }
+            else if (sv_isa(sv, "MongoDB::MaxKey")) {
+              set_type(buf, BSON_MAXKEY);
+              perl_mongo_serialize_string(buf, key, strlen(key));
+            }
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
               MAGIC *remg;
 
               if (remg = mg_find((SV*)SvRV(sv), PERL_MAGIC_qr)) {
+		/* regular expression */
                 int f=0, i=0;
                 STRLEN string_length;
                 char flags[] = {0,0,0,0,0,0};
@@ -833,6 +846,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
                 
               }
               else {
+		/* binary */
                 set_type(buf, BSON_BINARY);
                 perl_mongo_serialize_string(buf, key, strlen(key));
                 perl_mongo_serialize_bindata(buf, SvRV(sv));
@@ -841,12 +855,14 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
         } else {
             switch (SvTYPE (SvRV (sv))) {
                 case SVt_PVHV:
+                    /* hash */
                     set_type(buf, BSON_OBJECT);
                     perl_mongo_serialize_string(buf, key, strlen(key));
                     /* don't add a _id to inner objs */
                     hv_to_bson (buf, sv, NO_PREP);
                     break;
                 case SVt_PVAV:
+                    /* array */
                     set_type(buf, BSON_ARRAY);
                     perl_mongo_serialize_string(buf, key, strlen(key));
                     av_to_bson (buf, (AV *)SvRV (sv));
@@ -858,14 +874,9 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
         }
     } else {
         switch (SvTYPE (sv)) {
-            case SVt_IV: {
-                set_type(buf, BSON_INT);
-                perl_mongo_serialize_string(buf, key, strlen(key));
-                perl_mongo_serialize_int(buf, (int)SvIV (sv));
-                break;
-            }
-            case SVt_PVNV:
-            case SVt_NV: {
+	    /* double */
+            case SVt_NV: 
+            case SVt_PVNV: {
               if (SvNOK(sv)) {
                 set_type(buf, BSON_DOUBLE);
                 perl_mongo_serialize_string(buf, key, strlen(key));
@@ -873,6 +884,8 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
                 break;
               }
             }
+            /* int */
+            case SVt_IV:
             case SVt_PVIV: {
               if (SvIOK(sv)) {
                 set_type(buf, BSON_INT);
@@ -881,6 +894,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
                 break;
               }
             }
+	    /* string */
             case SVt_PV:
             case SVt_PVMG:
                 /* Do we need SVt_PVLV here, too? */
