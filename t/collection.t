@@ -303,4 +303,8 @@ ok($id => $coll->insert({ data => $f }));
 ok($obj = $coll->find_one({ data => $f }));
 is($obj->{data}, 3.3);
 
-
+END {
+    if ($db) {
+        $db->drop;
+    }
+}

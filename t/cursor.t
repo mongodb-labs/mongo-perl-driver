@@ -199,3 +199,9 @@ is($coll->query({'x' => 1})->count, 3, 'count query');
 is($coll->query->limit(1)->count(1), 1, 'count limit');
 is($coll->query->skip(1)->count(1), 3, 'count skip');
 is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
+
+END {
+    if ($db) {
+        $db->drop;
+    }
+}

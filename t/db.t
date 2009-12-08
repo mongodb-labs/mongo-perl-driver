@@ -40,3 +40,9 @@ is('hello, world', $hello, 'db eval');
 
 my $err = $db->eval('function(x) { xreturn "hello, "+x; }', ["world"]);
 is('compile failed: JS Error: SyntaxError: missing ; before statement nofile_b:0', $err, 'js err');
+
+END {
+    if ($db) {
+        $db->drop;
+    }
+}

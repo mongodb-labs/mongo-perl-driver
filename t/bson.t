@@ -77,3 +77,9 @@ my $c = $db->get_collection('bar');
     is($obj->{'_id'}, $id);
     is($obj->{'string'}, 'string');
 }
+
+END {
+    if ($db) {
+        $db->drop;
+    }
+}

@@ -95,3 +95,8 @@ my $x = $coll->find_one;
 isa_ok($x->{min}, 'MongoDB::MinKey');
 isa_ok($x->{max}, 'MongoDB::MaxKey');
 
+END {
+    if ($db) {
+        $db->drop;
+    }
+}
