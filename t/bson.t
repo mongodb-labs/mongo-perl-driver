@@ -8,6 +8,7 @@ use MongoDB::OID;
 use boolean;
 use DateTime;
 use Tie::IxHash;
+use Data::Dumper;
 
 my $conn;
 eval {
@@ -18,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 15;
+    plan tests => 19;
 }
 
 
@@ -76,6 +77,28 @@ my $c = $db->get_collection('bar');
     isa_ok($obj->{'_id'}, 'MongoDB::OID');
     is($obj->{'_id'}, $id);
     is($obj->{'string'}, 'string');
+}
+
+{
+    $MongoDB::BSON::char = "=";
+    $c->drop;
+    $c->update({x => 1}, {"=inc" => {x => 1}}, {upsert => true});
+
+    my $up = $c->find_one;
+    is($up->{x}, 2);
+}
+
+{
+    $MongoDB::BSON::char = ":";
+    $c->drop;
+    $c->batch_insert([{x => 1}, {x => 2}, {x => 3}, {x => 4}, {x => 5}]);
+    my $cursor = $c->query({x => {":gt" => 2, ":lte" => 4}})->sort({x => 1});
+
+    my $result = $cursor->next;
+    is($result->{x}, 3);
+    $result = $cursor->next;
+    is($result->{x}, 4);
+    ok(!$cursor->has_next);
 }
 
 END {
