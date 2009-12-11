@@ -49,7 +49,7 @@ connect (self)
 
                 auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
 	CODE:
-	        Newx(link, 1, mongo_link);
+                New(0, link, 1, mongo_link);
 		perl_mongo_attach_ptr_to_instance(self, link);
 
                 link->paired = paired;
@@ -60,19 +60,19 @@ connect (self)
                   int llen = strlen(SvPV_nolen(left_host_sv));
                   int rlen = strlen(SvPV_nolen(right_host_sv));
 
-                  Newxz(link->server.pair.left_host, llen+1, char);
+                  Newz(0, link->server.pair.left_host, llen+1, char);
                   memcpy(link->server.pair.left_host, SvPV_nolen(left_host_sv), llen);
                   link->server.pair.left_port = SvIV(left_port_sv);
                   link->server.pair.left_connected = 0;
 
-                  Newxz(link->server.pair.right_host, rlen+1, char);
+                  Newz(0, link->server.pair.right_host, rlen+1, char);
                   memcpy(link->server.pair.right_host, SvPV_nolen(right_host_sv), rlen);
                   link->server.pair.right_port = SvIV(right_port_sv);
                   link->server.pair.right_connected = 0;
                 }
                 else { 
                   int len = strlen(SvPV_nolen(host_sv));
-                  Newxz(link->server.single.host, len+1, char);
+                  Newz(0, link->server.single.host, len+1, char);
                   memcpy(link->server.single.host, SvPV_nolen(host_sv), len);
                   link->server.single.port = SvIV(port_sv);
                   link->server.single.connected = 0;

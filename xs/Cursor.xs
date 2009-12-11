@@ -112,7 +112,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
 
   // we have to go and check with the db
   size = 34+strlen(SvPV_nolen(ns));
-  Newx(buf.start, size, char);
+  New(0, buf.start, size, char);
   buf.pos = buf.start;
   buf.end = buf.start + size;
 
@@ -186,7 +186,7 @@ _init (self)
     PREINIT:
         mongo_cursor *cursor;
     CODE:
-        Newx(cursor, 1, mongo_cursor);
+        New(0, cursor, 1, mongo_cursor);
         cursor->started_iterating = 0;
 
 	// zero results fields

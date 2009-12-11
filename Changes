@@ -1,3 +1,7 @@
+0.27 
+
+  - 5.8.7-compatible memory allocation (Peter Edwards)
+
 0.26  09 Nov 2009
 
   - Don't force i386 arch (Needed to compile on OS X with x86_64) (Graham Barr)
