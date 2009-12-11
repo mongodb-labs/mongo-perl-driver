@@ -5,6 +5,7 @@ use Test::Exception;
 
 use Data::Types qw(:float);
 use Tie::IxHash;
+use Perl::Version;
 
 use MongoDB;
 
@@ -29,6 +30,11 @@ isa_ok($coll, 'MongoDB::Collection');
 is($coll->name, 'test_collection', 'get name');
 
 $db->drop;
+
+my $admin = $conn->get_database('admin');
+my $buildinfo = $admin->run_command({buildinfo => 1});
+$buildinfo->{version} =~ /(\d+\.\d+\.\d+)/;
+my $db_version = Perl::Version->new($1);
 
 # very small insert
 my $id = $coll->insert({_id => 1});
@@ -263,21 +269,27 @@ $obj = $cursor->next();
 is($obj->{'y'}, 4);
 
 # check with upsert if there are matches
-$coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1}); 
-is($coll->count({"x" => 3}), 2);
+my $upsert_version = Perl::Version->new('1.1.3');
+SKIP: {
+    skip "multiple update won't work with db version $db_version < $upsert_version", 1 if $db_version < $upsert_version;
 
-$cursor = $coll->query({"x" => 3})->sort({"y" => 1});
+    $coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1}); 
+    is($coll->count({"x" => 3}), 2);
+    
+    $cursor = $coll->query({"x" => 3})->sort({"y" => 1});
+    
+    $obj = $cursor->next();
+    is($obj->{'y'}, 3);
+    $obj = $cursor->next();
+    is($obj->{'y'}, 4);
+    
+    # check with upsert if there are no matches
+    $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multiple' => 1});
+    ok($coll->find_one({"z" => 4}));
+    
+    is($coll->count(), 5);
+}
 
-$obj = $cursor->next();
-is($obj->{'y'}, 3);
-$obj = $cursor->next();
-is($obj->{'y'}, 4);
-
-# check with upsert if there are no matches
-$coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multiple' => 1});
-ok($coll->find_one({"z" => 4}));
-
-is($coll->count(), 5);
 $coll->drop;
 
 # test uninitialised array elements
