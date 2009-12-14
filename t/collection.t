@@ -18,7 +18,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 90;
+    plan tests => 93;
 }
 
 my $db   = $conn->get_database('test_database');
@@ -124,6 +124,28 @@ is_deeply(
 
 $coll->drop;
 ok(!$coll->get_indexes, 'no indexes after dropping');
+
+# make sure this still works
+$coll->ensure_index(["foo"]);
+@indexes = $coll->get_indexes;
+is(scalar @indexes, 2, '1 custom index and the default _id_ index');
+$coll->drop;
+
+# test new form of ensure index
+{
+    $coll->ensure_index({foo => 1, bar => -1, baz => 1});
+    $coll->ensure_index({foo => 1, bar => 1});
+    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
+    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
+    is($coll->count, 2);
+    
+    # unique index
+    $coll->ensure_index({boo => 1}, {unique => 1});
+    $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
+    is($coll->count, 2, 'unique index');
+}
+$coll->drop;
+
 
 # test doubles
 my $pi = 3.14159265;

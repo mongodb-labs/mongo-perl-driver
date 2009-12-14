@@ -278,13 +278,17 @@ sub remove {
         descending => -1,
     );
 
-    sub ensure_index {
+
+    # arg, this is such a mess.  support fade out:
+    #     .27 - support for old & new format
+    #     .28 - support for new format, remove documentation on old format
+    #     .29 - remove old format
+    sub _old_ensure_index {
         my ($self, $ns, $keys, $direction, $unique) = @_;
         $direction ||= 'ascending';
         $unique = 0 unless defined $unique;
 
         my $k;
-        my @name;
         if (ref $keys eq 'ARRAY' ||
             ref $keys eq 'HASH' ) {
             my %keys;
@@ -301,11 +305,6 @@ sub remove {
                     unless exists $direction_map{$dir};
                 ($_ => $direction_map{$dir})
             } keys %keys };
-
-            while ((my $idx, my $d) = each(%$k)) {
-                push @name, $idx;
-                push @name, $d;
-            }
         }
         elsif (ref $keys eq 'Tie::IxHash') {
             my @ks = $keys->Keys;
@@ -315,21 +314,50 @@ sub remove {
                 $keys->Replace($i, $direction_map{$vs[$i]});
             }
 
-            @vs = $keys->Values;
-            for (my $i=0; $i<$keys->Length; $i++) {
-                push @name, $ks[$i];
-                push @name, $vs[$i];
-            }
             $k = $keys;
         }
         else {
-            confess 'expected hash or array reference for keys';
+            confess 'expected Tie::IxHash, hash, or array reference for keys';
         }
 
+        my @name = MongoDB::Collection::to_index_string($k);
         my $obj = {"ns" => $ns,
                    "key" => $k,
                    "name" => join("_", @name),
                    "unique" => $unique ? boolean::true : boolean::false};
+        
+        my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
+        $self->insert("$db.system.indexes", $obj);
+        return;
+    }
+
+    sub ensure_index {
+        my ($self, $ns, $keys, $options, $garbage) = @_;
+
+        # we need to use the crappy old api if...
+        #  - $options isn't a hash, it's a string like "ascending"
+        #  - $keys is a one-element array: [foo]
+        #  - $keys is an array with more than one element and the second 
+        #    element isn't a direction (or at least a good one)
+        #  - Tie::IxHash has values like "ascending"
+        if (($options && ref $options ne 'HASH') ||
+            (ref $keys eq 'ARRAY' && 
+             ($#$keys == 0 || $#$keys >= 1 && !($keys->[1] =~ /-?1/))) ||
+            (ref $keys eq 'Tie::IxHash' && $keys->[2][0] =~ /(de)|(a)scending/)) {
+            _old_ensure_index(@_);
+            return;
+        }
+
+        my $obj = Tie::IxHash->new("ns" => $ns, 
+            "key" => $keys, 
+            "name" => MongoDB::Collection::to_index_string($keys));
+
+        if (exists $options->{unique}) {
+            $obj->Push("unique" => ($options->{unique} ? boolean::true : boolean::false));
+        }
+        if (exists $options->{drop_dups}) {
+            $obj->Push("dropDups" => ($options->{drop_dups} ? boolean::true : boolean::false));
+        }
 
         my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
         $self->insert("$db.system.indexes", $obj);

@@ -74,6 +74,46 @@ sub _build_full_name {
     return "${db_name}.${name}";
 }
 
+=head1 STATIC METHODS
+
+=head2 to_index_string ($keys)
+
+    $name = MongoDB::Collection::to_index_string({age : 1});
+
+Takes a L<Tie::IxHash>, hash reference, or array reference.  Converts it into
+an index string.
+
+=cut
+
+sub to_index_string {
+    my $keys = shift;
+
+    my @name;
+    if (ref $keys eq 'ARRAY' ||
+        ref $keys eq 'HASH' ) {
+        
+        while ((my $idx, my $d) = each(%$keys)) {
+            push @name, $idx;
+            push @name, $d;
+        }
+    }
+    elsif (ref $keys eq 'Tie::IxHash') {
+        my @ks = $keys->Keys;
+        my @vs = $keys->Values;
+
+        @vs = $keys->Values;
+        for (my $i=0; $i<$keys->Length; $i++) {
+            push @name, $ks[$i];
+            push @name, $vs[$i];
+        }
+    }
+    else {
+        confess 'expected Tie::IxHash, hash, or array reference for keys';
+    }
+
+    return join("_", @name);
+}
+
 =head1 METHODS
 
 =head2 query ($query, \%attrs?)
@@ -163,13 +203,33 @@ parameters are given, removes all objects from the collection (but does not
 delete indexes, as C<MongoDB::Collection::drop> does).  Boolean parameter 
 C<$just_one> causes only one matching document to be removed.
 
-=head2 ensure_index ($keys, $direction?, $unique?)
+=head2 ensure_index (\%keys, $options?)
 
-    $collection->ensure_index([qw/foo bar/]);
+    use boolean;
+    $collection->ensure_index({"foo" => 1, "bar" => -1}, { unique => true });
 
-Makes sure the given C<@keys> of this collection are indexed. C<keys> can 
-be an array reference, hash reference, or C<Tie::IxHash>.  The optional
-index direction defaults to C<ascending>.  
+Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be an
+array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is prefered
+for multi-key indexes, so that the keys are in the correct order.  1 creates an 
+ascending index, -1 creates a descending index.  
+
+The second parameter gives index options.  Available options are:
+
+=over
+
+=item C<unique => boolean>
+
+By default, indexes are not unique. To create a unique index, pass 
+C<"unique" => true>.  C<true> can be L<boolean::true> or any other true value.
+
+=item C<drop_dups => boolean>
+
+If a unique index is being created on an existing set of data that has duplicate
+values, creating the index will fail.  To force the index creation by deleting 
+duplicate values, use this option.  Again, any value that evaluates to true will
+work.
+
+=back
 
 =cut
 
