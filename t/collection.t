@@ -5,7 +5,6 @@ use Test::Exception;
 
 use Data::Types qw(:float);
 use Tie::IxHash;
-use Perl::Version;
 
 use MongoDB;
 
@@ -30,11 +29,6 @@ isa_ok($coll, 'MongoDB::Collection');
 is($coll->name, 'test_collection', 'get name');
 
 $db->drop;
-
-my $admin = $conn->get_database('admin');
-my $buildinfo = $admin->run_command({buildinfo => 1});
-$buildinfo->{version} =~ /(\d+\.\d+\.\d+)/;
-my $db_version = Perl::Version->new($1);
 
 # very small insert
 my $id = $coll->insert({_id => 1});
@@ -291,9 +285,10 @@ $obj = $cursor->next();
 is($obj->{'y'}, 4);
 
 # check with upsert if there are matches
-my $upsert_version = Perl::Version->new('1.1.3');
 SKIP: {
-    skip "multiple update won't work with db version $db_version < $upsert_version", 1 if $db_version < $upsert_version;
+    my $admin = $conn->get_database('admin');
+    my $buildinfo = $admin->run_command({buildinfo => 1});
+    skip "multiple update won't work with db version $buildinfo->{version}", 1 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[12]\d*.\d+)/;
 
     $coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1}); 
     is($coll->count({"x" => 3}), 2);

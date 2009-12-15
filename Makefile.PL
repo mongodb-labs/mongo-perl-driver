@@ -24,7 +24,6 @@ test_requires 'Tie::IxHash';
 test_requires 'DateTime';
 test_requires 'boolean';
 test_requires 'Data::Types';
-test_requires 'Perl::Version';
 
 mongo;
 
