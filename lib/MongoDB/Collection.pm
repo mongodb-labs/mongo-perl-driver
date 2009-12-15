@@ -176,7 +176,7 @@ array of their _id fields.
 
 =head2 update (\%criteria, \%object, \%options?)
 
-    $collection->update({'x' => 3}, {'$inc' => {'count' => -1}, {"upsert" => 1, "multiple" => 1});
+    $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
 
 Updates an existing C<$object> matching C<$criteria> in the database. 
 
