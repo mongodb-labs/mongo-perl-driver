@@ -577,14 +577,14 @@ void perl_mongo_serialize_oid(buffer *buf, char *id) {
 
   for(i=0;i<OID_SIZE;i++) {
     char digit1 = id[i*2], digit2 = id[i*2+1];
-    digit1 = digit1 >= 'a' && digit1 <= 'f' ? digit1 -= 87 : digit1;
-    digit1 = digit1 >= 'A' && digit1 <= 'F' ? digit1 -= 55 : digit1;
-    digit1 = digit1 >= '0' && digit1 <= '9' ? digit1 -= 48 : digit1;
-    
-    digit2 = digit2 >= 'a' && digit2 <= 'f' ? digit2 -= 87 : digit2;
-    digit2 = digit2 >= 'A' && digit2 <= 'F' ? digit2 -= 55 : digit2;
-    digit2 = digit2 >= '0' && digit2 <= '9' ? digit2 -= 48 : digit2;
-    
+    digit1 = digit1 >= 'a' && digit1 <= 'f' ? digit1 - 87 : digit1;
+    digit1 = digit1 >= 'A' && digit1 <= 'F' ? digit1 - 55 : digit1;
+    digit1 = digit1 >= '0' && digit1 <= '9' ? digit1 - 48 : digit1;
+
+    digit2 = digit2 >= 'a' && digit2 <= 'f' ? digit2 - 87 : digit2;
+    digit2 = digit2 >= 'A' && digit2 <= 'F' ? digit2 - 55 : digit2;
+    digit2 = digit2 >= '0' && digit2 <= '9' ? digit2 - 48 : digit2;
+
     buf->pos[i] = digit1*16+digit2;
   }
   buf->pos += OID_SIZE;

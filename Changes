@@ -1,5 +1,8 @@
 0.27 
 
+  - Added safe insert
+  - $ can be replaced by any character using MongoDB::BSON::char
+  - Fixed undefined behavior in OID serialization (Peter Edwards)
   - 5.8.7-compatible memory allocation (Peter Edwards)
 
 0.26  09 Nov 2009
