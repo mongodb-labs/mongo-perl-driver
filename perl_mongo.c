@@ -339,13 +339,12 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_DATE: {
     int64_t ms_i = *(int64_t*)buf->pos;
-    SV *datetime, *epoch, *ms;
+    SV *datetime, *ms;
     HV *named_params;
     buf->pos += INT_64;
     ms_i /= 1000;
 
     datetime = sv_2mortal(newSVpv("DateTime", 0));
-    epoch = sv_2mortal(newSVpv("epoch", 0));
     ms = newSViv(ms_i);
 
     named_params = newHV();
