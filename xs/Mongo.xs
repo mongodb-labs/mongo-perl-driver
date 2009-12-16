@@ -72,7 +72,7 @@ write_query(ns, opts, skip, limit, query, fields = 0)
 
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
          XPUSHs(sv_2mortal(newSViv(buf.pos - buf.start)));
-         XPUSHs(sv_2mortal(newRV_noinc(info)));
+         XPUSHs(sv_2mortal(newRV_noinc((SV*)info)));
 
          Safefree(buf.start);
 
