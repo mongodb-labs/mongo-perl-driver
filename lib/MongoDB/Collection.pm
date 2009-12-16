@@ -158,21 +158,30 @@ Executes the given C<$query> and returns the first object matching it.
 C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
 even number of elements).  
 
-=head2 insert ($object)
+=head2 insert (\%object, \%options?)
 
-    my $id = $collection->insert({ name => 'mongo', type => 'database' });
+    my $id1 = $coll->insert({ name => 'mongo', type => 'database' });
+    my $id2 = $coll->insert({ name => 'mongo', type => 'database' }, {safe => 1});
 
 Inserts the given C<$object> into the database and returns it's id
 value. C<$object> can be a hash reference, a reference to an array with an
 even number of elements, or a L<Tie::IxHash>.  The id is the C<_id> value 
 specified in the data or a L<MongoDB::OID>.
 
-=head2 batch_insert (@array)
+The optional C<$options> parameter can be used to specify if this is a safe 
+insert.  A safe insert will check with the database if the insert succeeded and
+confess that it did not, if an error occured.
+
+=head2 batch_insert (@array, \%options)
 
     my @ids = $collection->batch_insert(({name => "Joe"}, {name => "Fred"}, {name => "Sam"}));
 
 Inserts each of the documents in the array into the database and returns an
 array of their _id fields.
+
+The optional C<$options> parameter can be used to specify if this is a safe 
+insert.  A safe insert will check with the database if the insert succeeded and
+confess that it did not, if an error occured.
 
 =head2 update (\%criteria, \%object, \%options?)
 
