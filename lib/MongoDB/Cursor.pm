@@ -39,6 +39,38 @@ version 0.26
     my @objects = $cursor->all;
 
 
+=head1 OPTIONS
+
+The MongoDB::Cursor::Options subpackage defines the actual values for options 
+that can be put on a cursor.
+
+These are used internally by the driver.
+
+=head2 tailable
+
+If a cursor should be tailable.
+
+=head2 slave_okay
+
+If a query can be done on a slave database server.
+
+=head2 immortal
+
+Ordinarily, a cursor "dies" on the database server after a certain length of
+time, to prevent inactive cursors from hogging resources.  This option sets that
+a cursor should never die.
+
+=cut
+
+{
+    package Flags;
+
+    $MongoDB::Cursor::Flags::tailable = 2;
+    $MongoDB::Cursor::Flags::slave_okay = 4;
+    $MongoDB::Cursor::Flags::immortal = 16;
+
+}
+
 =head1 STATIC ATTRIBUTES
 
 =head2 slave_okay

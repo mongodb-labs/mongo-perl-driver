@@ -227,15 +227,34 @@ sub query {
 }
 
 sub insert {
-    my ($self, $ns, $object) = @_;
-    my $id = $self->_insert($ns, [$object]);
-    return @$id[0];
+    my ($self, $ns, $object, $options) = @_;
+    my @id = $self->batch_insert($ns, [$object], $options);
+    return $id[0];
 }
 
 sub batch_insert {
-    my ($self, $ns, $object) = @_;
+    my ($self, $ns, $object, $options) = @_;
     confess 'not an array reference' unless ref $object eq 'ARRAY';
-    return $self->_insert($ns, $object);
+
+    my ($insert, $ilen, $ids) = MongoDB::write_insert($ns, $object);
+
+    if (defined($options) && $options->{safe}) {
+        my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
+        my ($query, $qlen, $info) = write_query($db.'$cmd', 0, 0, -1, {getlasterror => 1});
+
+        $self->send("$insert$query");
+
+        my $cursor = $self->recv($info);
+        my $ok = $cursor->next();
+        if (!$ok->{ok}) {
+            die $ok->{err};
+        }
+    }
+    else {
+        $self->send($insert);
+    }
+
+    return @$ids;
 }
 
 sub update {
@@ -492,6 +511,34 @@ sub authenticate {
     $result = $db->run_command($login);
 
     return $result;
+}
+
+=head2 send($str)
+
+    my ($insert, $len, $ids) = MongoDB::write_insert('foo.bar', [{name => "joe", age => 40}]);
+    $conn->send($insert);
+
+Low-level function to send a string directly to the database.  Use 
+L<MongoDB::write_insert>, L<MongoDB::write_update>, L<MongoDB::write_remove>, or
+L<MongoDB::write_query> to create a valid string.
+
+=head2 recv(\%info)
+
+    my $cursor = $conn->recv({ns => "foo.bar"});
+
+Low-level function to receive a response from the database. Returns a 
+C<MongoDB::Cursor>.  At the moment, the only required field for C<$info> is 
+"ns", although "request_id" is likely to be required in the future.  The 
+C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
+
+=cut
+
+sub recv {
+    my ($self, $info) = @_;
+    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _connection => $self, _query => {});
+    $cursor->_init;
+    $self->_recv($cursor);
+    return $cursor;
 }
 
 no Any::Moose;

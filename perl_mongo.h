@@ -97,7 +97,8 @@ void perl_mongo_oid_create(char* twelve, char *twenty4);
 SV *perl_mongo_bson_to_sv (buffer *buf);
 void perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids);
 
-void perl_mongo_serialize_key(buffer*, char*, void*);
+int perl_mongo_resize_buf (buffer*, int);
+void perl_mongo_serialize_key(buffer*, const char*, void*);
 void perl_mongo_serialize_size(char*, buffer*);
 void perl_mongo_serialize_double(buffer*, double);
 void perl_mongo_serialize_string(buffer*, const char*, int);

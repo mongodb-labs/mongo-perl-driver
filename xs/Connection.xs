@@ -100,38 +100,6 @@ connect (self)
                 SvREFCNT_dec (auto_reconnect_sv);
 
 
-AV*
-_insert (self, ns, object)
-        SV *self
-        const char *ns
-        SV *object
-    PREINIT:
-        mongo_link *link;
-        mongo_msg_header header;
-        buffer buf;
-        int i;
-        AV *a, *ids;
-    INIT:
-        a = (AV*)SvRV(object);
-        ids = newAV();
-    CODE:
-        CREATE_BUF(INITIAL_BUF_SIZE);
-        CREATE_HEADER(buf, ns, OP_INSERT);
-
-        for (i=0; i<=av_len(a); i++) {
-          SV **obj = av_fetch(a, i, 0);
-          perl_mongo_sv_to_bson(&buf, *obj, ids);
-        }
-        perl_mongo_serialize_size(buf.start, &buf);
-
-        // sends
-        mongo_link_say(self, &buf);
-        Safefree(buf.start);
-
-        RETVAL = (AV*)sv_2mortal((SV*)ids);
-    OUTPUT:
-        RETVAL
-
 
 void
 _remove (self, ns, query, just_one)
@@ -177,6 +145,32 @@ _update (self, ns, query, object, flags)
         // sends
         mongo_link_say(self, &buf);
         Safefree(buf.start);
+
+
+int
+send(self, str)
+         SV *self
+         SV *str
+     PREINIT:
+         buffer buf;
+         STRLEN len;
+     INIT:
+         buf.start = SvPV(str,len);
+         buf.pos = buf.start+len;
+         buf.end = buf.start+len;
+     CODE:
+
+         RETVAL = mongo_link_say(self, &buf);
+     OUTPUT:
+         RETVAL
+
+
+void
+_recv(self, cursor)
+         SV *self
+         SV *cursor
+     CODE:
+         mongo_link_hear(cursor);
 
 
 void

@@ -491,7 +491,7 @@ perl_mongo_bson_to_sv (buffer *buf)
     return newRV_noinc ((SV *)ret);
 }
 
-static int resize_buf(buffer *buf, int size) {
+int perl_mongo_resize_buf(buffer *buf, int size) {
   int total = buf->end - buf->start;
   int used = buf->pos - buf->start;
 
@@ -508,7 +508,7 @@ static int resize_buf(buffer *buf, int size) {
 
 void perl_mongo_serialize_byte(buffer *buf, char b) {
   if(BUF_REMAINING <= 1) {
-    resize_buf(buf, 1);
+    perl_mongo_resize_buf(buf, 1);
   }
   *(buf->pos) = b;
   buf->pos += 1;
@@ -516,7 +516,7 @@ void perl_mongo_serialize_byte(buffer *buf, char b) {
 
 void perl_mongo_serialize_bytes(buffer *buf, const char *str, int str_len) {
   if(BUF_REMAINING <= str_len) {
-    resize_buf(buf, str_len);
+    perl_mongo_resize_buf(buf, str_len);
   }
   memcpy(buf->pos, str, str_len);
   buf->pos += str_len;
@@ -524,7 +524,7 @@ void perl_mongo_serialize_bytes(buffer *buf, const char *str, int str_len) {
 
 void perl_mongo_serialize_string(buffer *buf, const char *str, int str_len) {
   if(BUF_REMAINING <= str_len+1) {
-    resize_buf(buf, str_len+1);
+    perl_mongo_resize_buf(buf, str_len+1);
   }
 
   memcpy(buf->pos, str, str_len);
@@ -538,7 +538,7 @@ void perl_mongo_serialize_int(buffer *buf, int num) {
   int *ptr = &num;
 
   if(BUF_REMAINING <= INT_32) {
-    resize_buf(buf, INT_32);
+    perl_mongo_resize_buf(buf, INT_32);
   }
 
   SERIALIZE(buf->pos, ptr, INT_32);
@@ -550,7 +550,7 @@ void perl_mongo_serialize_long(buffer *buf, int64_t num) {
   int64_t *ptr = &num;
 
   if(BUF_REMAINING <= INT_64) {
-    resize_buf(buf, INT_64);
+    perl_mongo_resize_buf(buf, INT_64);
   }
 
   SERIALIZE(buf->pos, ptr, INT_64);
@@ -562,7 +562,7 @@ void perl_mongo_serialize_double(buffer *buf, double num) {
   double *ptr = &num;
 
   if(BUF_REMAINING <= DOUBLE_64) {
-    resize_buf(buf, DOUBLE_64);
+    perl_mongo_resize_buf(buf, DOUBLE_64);
   }
 
   SERIALIZE(buf->pos, ptr, DOUBLE_64);
@@ -573,7 +573,7 @@ void perl_mongo_serialize_oid(buffer *buf, char *id) {
   int i;
 
   if(BUF_REMAINING <= OID_SIZE) {
-    resize_buf(buf, OID_SIZE);
+    perl_mongo_resize_buf(buf, OID_SIZE);
   }
 
   for(i=0;i<OID_SIZE;i++) {
@@ -608,11 +608,11 @@ void perl_mongo_serialize_bindata(buffer *buf, SV *sv)
   perl_mongo_serialize_bytes(buf, bytes, len);
 }
 
-void perl_mongo_serialize_key(buffer *buf, char *str, void *prep) {
+void perl_mongo_serialize_key(buffer *buf, const char *str, void *prep) {
   SV *c = get_sv("MongoDB::BSON::char", 0);
 
   if(BUF_REMAINING <= strlen(str)+1) {
-    resize_buf(buf, strlen(str)+1);
+    perl_mongo_resize_buf(buf, strlen(str)+1);
   }
 
   if (c && SvPOK(c) && SvPV_nolen(c)[0] == str[0]) {
