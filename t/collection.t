@@ -17,7 +17,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 93;
+    plan tests => 94;
 }
 
 my $db   = $conn->get_database('test_database');
@@ -331,6 +331,21 @@ $f = 3.3;
 ok($id => $coll->insert({ data => $f }));
 ok($obj = $coll->find_one({ data => $f }));
 is($obj->{data}, 3.3);
+
+# safe insert
+{
+    $coll->drop;
+    $coll->insert({_id => 1}, {safe => 1});
+    eval {
+        $coll->insert({_id => 1}, {safe => 1});
+    };
+    if ($@) {
+        ok($@ =~ /^E11000/, 'duplicate key exception');
+    }
+    else {
+        ok(0);
+    }
+}
 
 END {
     if ($db) {

@@ -72,7 +72,9 @@ write_query(ns, opts, skip, limit, query, fields = 0)
 
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
          XPUSHs(sv_2mortal(newSViv(buf.pos - buf.start)));
-         XPUSHs(sv_2mortal(newRV(info)));
+         XPUSHs(sv_2mortal(newRV_noinc(info)));
+
+         Safefree(buf.start);
 
 
 void
@@ -96,6 +98,7 @@ write_insert(ns, a)
 
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
          XPUSHs(sv_2mortal(newSViv(buf.pos - buf.start)));
-         XPUSHs(sv_2mortal(newRV((SV*)ids)));
+         XPUSHs(sv_2mortal(newRV_noinc((SV*)ids)));
 
+         Safefree(buf.start);
 

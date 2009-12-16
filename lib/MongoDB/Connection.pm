@@ -240,14 +240,14 @@ sub batch_insert {
 
     if (defined($options) && $options->{safe}) {
         my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
-        my ($query, $qlen, $info) = write_query($db.'$cmd', 0, 0, -1, {getlasterror => 1});
+        my ($query, $qlen, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, {getlasterror => 1});
 
         $self->send("$insert$query");
 
         my $cursor = $self->recv($info);
         my $ok = $cursor->next();
         if (!$ok->{ok}) {
-            die $ok->{err};
+            confess $ok->{err};
         }
     }
     else {
