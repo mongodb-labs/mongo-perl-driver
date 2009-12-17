@@ -71,6 +71,19 @@ This is free software, licensed under:
 
 MongoDB is a database access module.
 
+MongoDB (the database) store all strings as UTF-8.  Non-UTF-8 strings will be 
+forcibly converted to UTF-8.  To convert something from another encoding to 
+UTF-8, you can use L<Encode>:
+    
+    use Encode;
+    
+    my $name = decode('cp932', "\x90\xbc\x96\xec\x81\x40\x91\xbe\x98\x59");
+    my $id = $coll->insert( { name => $name, } );
+    
+    my $object = $coll->find_one( { name => $name } );
+
+Thanks to taronishino for this example.
+
 =head2 Notation and Conventions
 
 The following conventions are used in this document:

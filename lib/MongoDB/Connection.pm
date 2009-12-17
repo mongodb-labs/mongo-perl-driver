@@ -246,7 +246,8 @@ sub batch_insert {
 
         my $cursor = $self->recv($info);
         my $ok = $cursor->next();
-        if (!$ok->{ok}) {
+
+        if ($ok->{err}) {
             confess $ok->{err};
         }
     }
