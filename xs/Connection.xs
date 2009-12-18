@@ -100,53 +100,6 @@ connect (self)
                 SvREFCNT_dec (auto_reconnect_sv);
 
 
-
-void
-_remove (self, ns, query, just_one)
-        SV *self
-        const char *ns
-        SV *query
-        bool just_one
-    PREINIT:
-        mongo_link *link;
-        mongo_msg_header header;
-        buffer buf;
-    CODE:
-        CREATE_BUF(INITIAL_BUF_SIZE);
-        CREATE_HEADER(buf, ns, OP_DELETE);
-        perl_mongo_serialize_int(&buf, (int)(just_one == 1));
-        perl_mongo_sv_to_bson(&buf, query, NO_PREP);
-        perl_mongo_serialize_size(buf.start, &buf);
-
-        // sends
-        mongo_link_say(self, &buf);
-        Safefree(buf.start);
-
-
-void
-_update (self, ns, query, object, flags)
-        SV *self
-        const char *ns
-        SV *query
-        SV *object
-        int flags
-    PREINIT:
-        mongo_link *link;
-        mongo_msg_header header;
-        buffer buf;
-    CODE:
-        CREATE_BUF(INITIAL_BUF_SIZE);
-        CREATE_HEADER(buf, ns, OP_UPDATE);
-        perl_mongo_serialize_int(&buf, flags);
-        perl_mongo_sv_to_bson(&buf, query, NO_PREP);
-        perl_mongo_sv_to_bson(&buf, object, NO_PREP);
-        perl_mongo_serialize_size(buf.start, &buf);
-
-        // sends
-        mongo_link_say(self, &buf);
-        Safefree(buf.start);
-
-
 int
 send(self, str)
          SV *self
@@ -159,14 +112,13 @@ send(self, str)
          buf.pos = buf.start+len;
          buf.end = buf.start+len;
      CODE:
-
          RETVAL = mongo_link_say(self, &buf);
      OUTPUT:
          RETVAL
 
 
 void
-_recv(self, cursor)
+recv(self, cursor)
          SV *self
          SV *cursor
      CODE:

@@ -244,7 +244,9 @@ sub batch_insert {
 
         $self->send("$insert$query");
 
-        my $cursor = $self->recv($info);
+        my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _connection => $self, _query => {});
+        $cursor->_init;
+        $self->recv($cursor);
         my $ok = $cursor->next();
 
         if ($ok->{err}) {
@@ -280,7 +282,7 @@ sub update {
         $flags = !(!$opts);
     }
 
-    $self->_update($ns, $query, $object, $flags);
+    $self->send(MongoDB::write_update($ns, $query, $object, $flags));
     return;
 }
 
@@ -288,7 +290,7 @@ sub remove {
     my ($self, $ns, $query, $just_one) = @_;
     $query ||= {};
     $just_one ||= 0;
-    $self->_remove($ns, $query, $just_one);
+    $self->send(MongoDB::write_remove($ns, $query, $just_one));
     return;
 }
 
@@ -533,14 +535,6 @@ C<MongoDB::Cursor>.  At the moment, the only required field for C<$info> is
 C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
 
 =cut
-
-sub recv {
-    my ($self, $info) = @_;
-    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _connection => $self, _query => {});
-    $cursor->_init;
-    $self->_recv($cursor);
-    return $cursor;
-}
 
 no Any::Moose;
 __PACKAGE__->meta->make_immutable;

@@ -102,3 +102,41 @@ write_insert(ns, a)
 
          Safefree(buf.start);
 
+void
+write_remove(ns, criteria, flags)
+         char *ns
+         SV *criteria
+         int flags
+     PREINIT:
+         buffer buf;
+         mongo_msg_header header;
+     PPCODE:
+         CREATE_BUF(INITIAL_BUF_SIZE);
+         CREATE_HEADER(buf, ns, OP_DELETE);
+         perl_mongo_serialize_int(&buf, flags);
+         perl_mongo_sv_to_bson(&buf, criteria, NO_PREP);
+         perl_mongo_serialize_size(buf.start, &buf);
+
+         XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
+         Safefree(buf.start);
+
+void
+write_update(ns, criteria, obj, flags)
+         char *ns
+         SV *criteria
+         SV *obj
+         int flags
+    PREINIT:
+         buffer buf;
+         mongo_msg_header header;
+    PPCODE:
+         CREATE_BUF(INITIAL_BUF_SIZE);
+         CREATE_HEADER(buf, ns, OP_UPDATE);
+         perl_mongo_serialize_int(&buf, flags);
+         perl_mongo_sv_to_bson(&buf, criteria, NO_PREP);
+         perl_mongo_sv_to_bson(&buf, obj, NO_PREP);
+         perl_mongo_serialize_size(buf.start, &buf);
+
+         XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
+         Safefree(buf.start);
+
