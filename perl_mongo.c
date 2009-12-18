@@ -23,6 +23,8 @@
 
 #include "regcomp.h"
 
+static int isUTF8(const char*, int);
+
 void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark)
 {
@@ -707,9 +709,9 @@ av_to_bson (buffer *buf, AV *av)
         SV **sv;
         SV *key = newSViv (i);
         if (!(sv = av_fetch (av, i, 0)))
-            append_sv (buf, SvPVutf8_nolen(key), newSV(0), NO_PREP);
+            append_sv (buf, SvPV_nolen(key), newSV(0), NO_PREP);
         else
-            append_sv (buf, SvPVutf8_nolen(key), *sv, NO_PREP);
+            append_sv (buf, SvPV_nolen(key), *sv, NO_PREP);
 
         SvREFCNT_dec (key);
     }
@@ -765,16 +767,56 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids) {
     
     for (i=0; i<=av_len(keys); i++) {
         SV **k, **v;
+        STRLEN len;
+        const char *str;
+
         if (!(k = av_fetch(keys, i, 0)) ||
             !(v = av_fetch(values, i, 0))) {
             croak ("failed to fetch associative array value");
         }
-        append_sv(buf, SvPVutf8_nolen(*k), *v, NO_PREP);
+
+        str = SvPV(*k, len);
+
+        if (isUTF8(str, len)) {
+          str = SvPVutf8(*k, len);
+        }
+
+        append_sv(buf, str, *v, NO_PREP);
     }
 
     perl_mongo_serialize_null(buf);
     perl_mongo_serialize_size(buf->start+start, buf);
 }
+
+static int isUTF8(const char *s, int len) {
+  int i;
+
+  for (i=0; i<len; i++) {
+    if (i+3 < len &&
+        (s[i] & 248) == 240 &&
+        (s[i+1] & 192) == 128 &&
+        (s[i+2] & 192) == 128 &&
+        (s[i+3] & 192) == 128) {
+      i += 3;
+    }
+    else if (i+2 < len && 
+             (s[i] & 240) == 224 &&
+             (s[i+1] & 192) == 128 &&
+             (s[i+2] & 192) == 128) {
+      i += 2;
+    }
+    else if (i+1 < len &&
+             (s[i] & 224) == 192 &&
+             (s[i+2] & 192) == 128) {
+      i += 1;
+    }
+    else if ((s[i] & 128) != 0) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 
 static void
 append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
@@ -924,7 +966,11 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
                 }
                 else {
                     STRLEN len;
-                    const char *str = SvPVutf8(sv, len);
+                    const char *str = SvPV(sv, len);
+
+                    if (!isUTF8(str, len)) {
+                      str = SvPVutf8(sv, len);
+                    }
 
                     set_type(buf, BSON_STRING);
                     perl_mongo_serialize_key(buf, key, ids);
@@ -999,10 +1045,19 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids)
 
                 for (i = 0; i <= av_len (av); i += 2) {
                     SV **key, **val;
+                    STRLEN len;
+                    const char *str;
+
                     if ( !((key = av_fetch (av, i, 0)) && (val = av_fetch (av, i + 1, 0))) ) {
                         croak ("failed to fetch array element");
                     }
-                    append_sv (buf, SvPVutf8_nolen (*key), *val, NO_PREP);
+
+                    str = SvPV(*key, len);
+
+                    if (!isUTF8(str, len)) {
+                      str = SvPVutf8(*key, len);
+                    }
+                    append_sv (buf, str, *val, NO_PREP);
                 }
 
                 perl_mongo_serialize_null(buf);

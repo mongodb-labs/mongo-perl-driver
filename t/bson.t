@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 19;
+    plan tests => 21;
 }
 
 
@@ -99,6 +99,25 @@ my $c = $db->get_collection('bar');
     $result = $cursor->next;
     is($result->{x}, 4);
     ok(!$cursor->has_next);
+}
+
+# utf8
+{
+    $c->drop;
+
+    # should convert invalid utf8 to valid
+    my $invalid = "\xFE";
+    $c->insert({char => $invalid});
+    my $x =$c->find_one;
+    is($x->{char}, "\xC3\xBE");
+
+    $c->remove;
+
+    # should be the same with valid utf8
+    my $valid = "\xE6\xB5\x8B\xE8\xAF\x95";
+    $c->insert({char => $valid});
+    $x = $c->find_one;
+    is($x->{char}, $valid);
 }
 
 END {
