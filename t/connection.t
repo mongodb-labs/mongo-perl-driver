@@ -7,7 +7,11 @@ use MongoDB;
 
 my $conn;
 eval {
-    $conn = MongoDB::Connection->new;
+    my $host = "localhost";
+    if (exists $ENV{MONGOD}) {
+        $host = $ENV{MONGOD};
+    }
+    $conn = MongoDB::Connection->new(host => $host);
 };
 
 if ($@) {
@@ -21,13 +25,17 @@ throws_ok {
     MongoDB::Connection->new(host => 'localhost', port => 1);
 } qr/couldn't connect to server/, 'exception on connection failure';
 
-lives_ok {
-    $conn = MongoDB::Connection->new;
-} 'successful connection';
-isa_ok($conn, 'MongoDB::Connection');
+SKIP: {
+    skip "connecting to default host/port won't work with a remote db", 4 if exists $ENV{MONGOD};
 
-is($conn->host, 'localhost', 'host default value');
-is($conn->port, '27017',     'port default value');
+    lives_ok {
+        $conn = MongoDB::Connection->new;
+    } 'successful connection';
+    isa_ok($conn, 'MongoDB::Connection');
+    
+    is($conn->host, 'localhost', 'host default value');
+    is($conn->port, '27017',     'port default value');
+}
 
 my $db = $conn->get_database('test_database');
 isa_ok($db, 'MongoDB::Database', 'get_database');

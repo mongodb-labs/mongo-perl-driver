@@ -10,7 +10,11 @@ use MongoDB::GridFS::File;
 
 my $m;
 eval {
-    $m = MongoDB::Connection->new;
+    my $host = "localhost";
+    if (exists $ENV{MONGOD}) {
+        $host = $ENV{MONGOD};
+    }
+    $m = MongoDB::Connection->new(host => $host);
 };
 
 if ($@) {

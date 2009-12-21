@@ -12,7 +12,11 @@ use Data::Dumper;
 
 my $conn;
 eval {
-    $conn = MongoDB::Connection->new;
+    my $host = "localhost";
+    if (exists $ENV{MONGOD}) {
+        $host = $ENV{MONGOD};
+    }
+    $conn = MongoDB::Connection->new(host => $host);
 };
 
 if ($@) {
@@ -21,8 +25,6 @@ if ($@) {
 else {
     plan tests => 21;
 }
-
-
 
 my $db = $conn->get_database('foo');
 my $c = $db->get_collection('bar');

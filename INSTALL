@@ -22,3 +22,20 @@ Then do:
   $ make
   $ make test
   $ make install
+
+
+Big Endian Machines
+-------------------
+
+MongoDB cannot run on a big endian machine, but the driver can.  If you have a
+little endian machine available, you can connect to that remotely and develop on
+your big endian machine.  
+
+To run the tests using a remote database, make sure mongod is running on it and 
+then do:
+
+  $ MONGOD=example.com make test
+
+where example.com is the hostname for your machine running mongod.  The driver 
+will use the value of $ENV{MONGOD} as the host if you provide it, otherwise it 
+will try to connect to localhost.

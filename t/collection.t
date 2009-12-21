@@ -10,7 +10,11 @@ use MongoDB;
 
 my $conn;
 eval {
-    $conn = MongoDB::Connection->new;
+    my $host = "localhost";
+    if (exists $ENV{MONGOD}) {
+        $host = $ENV{MONGOD};
+    }
+    $conn = MongoDB::Connection->new(host => $host);
 };
 
 if ($@) {
@@ -288,7 +292,7 @@ is($obj->{'y'}, 4);
 SKIP: {
     my $admin = $conn->get_database('admin');
     my $buildinfo = $admin->run_command({buildinfo => 1});
-    skip "multiple update won't work with db version $buildinfo->{version}", 1 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[12]\d*.\d+)/;
+    skip "multiple update won't work with db version $buildinfo->{version}", 5 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[12]\d*.\d+)/;
 
     $coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1}); 
     is($coll->count({"x" => 3}), 2);

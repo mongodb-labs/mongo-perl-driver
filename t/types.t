@@ -9,7 +9,11 @@ use DateTime;
 
 my $conn;
 eval {
-    $conn = MongoDB::Connection->new;
+    my $host = "localhost";
+    if (exists $ENV{MONGOD}) {
+        $host = $ENV{MONGOD};
+    }
+    $conn = MongoDB::Connection->new(host => $host);
 };
 
 if ($@) {
