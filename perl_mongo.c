@@ -274,12 +274,17 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_DOUBLE: {
-    value = newSVnv(*(double*)buf->pos);
+    void *ptr;
+    int64_t i = *(int64_t*)buf->pos;
+    i = MONGO_64(i);
+    ptr = &i;
+
+    value = newSVnv(*(double*)ptr);
     buf->pos += DOUBLE_64;
     break;
   }
   case BSON_STRING: {
-    int len = *((int*)buf->pos);
+    int len = MONGO_32(*((int*)buf->pos));
     char *str;
     buf->pos += INT_32;
 
@@ -298,7 +303,7 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_BINARY: {
-    int len = *(int*)buf->pos;
+    int len = MONGO_32(*(int*)buf->pos);
     char type, *bytes;
 
     buf->pos += INT_32;
@@ -307,7 +312,7 @@ elem_to_sv (int type, buffer *buf)
     type = *buf->pos++;
 
     if (type == 2) {
-      int len2 = *(int*)buf->pos;
+      int len2 = MONGO_32(*(int*)buf->pos);
       if (len2 == len - 4) {
         len = len2;
         buf->pos += INT_32;
@@ -330,17 +335,17 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_INT: {
-    value = newSViv(*((int*)buf->pos));
+    value = newSViv(MONGO_32(*((int*)buf->pos)));
     buf->pos += INT_32;
     break;
   }
   case BSON_LONG: {
-    value = newSViv(*((int64_t*)buf->pos));
+    value = newSViv(MONGO_64(*((int64_t*)buf->pos)));
     buf->pos += INT_64;
     break;
   }
   case BSON_DATE: {
-    int64_t ms_i = *(int64_t*)buf->pos;
+    int64_t ms_i = MONGO_64(*(int64_t*)buf->pos);
     SV *datetime, *ms;
     HV *named_params;
     buf->pos += INT_64;
@@ -417,7 +422,7 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_TIMESTAMP: {
-    value = newSViv((long)*(int*)buf->pos);
+    value = newSViv(MONGO_64((long)*(int*)buf->pos));
     buf->pos += INT_64;
     break;
   }
@@ -535,38 +540,36 @@ void perl_mongo_serialize_string(buffer *buf, const char *str, int str_len) {
 }
 
 void perl_mongo_serialize_int(buffer *buf, int num) {
-  int i;
-  int *ptr = &num;
+  int i = MONGO_32(num);
 
   if(BUF_REMAINING <= INT_32) {
     perl_mongo_resize_buf(buf, INT_32);
   }
 
-  SERIALIZE(buf->pos, ptr, INT_32);
+  memcpy(buf->pos, &i, INT_32);
   buf->pos += INT_32;
 }
 
 void perl_mongo_serialize_long(buffer *buf, int64_t num) {
-  int i;
-  int64_t *ptr = &num;
+  int64_t i = MONGO_64(num);
 
   if(BUF_REMAINING <= INT_64) {
     perl_mongo_resize_buf(buf, INT_64);
   }
 
-  SERIALIZE(buf->pos, ptr, INT_64);
+  memcpy(buf->pos, &i, INT_64);
   buf->pos += INT_64;
 }
 
 void perl_mongo_serialize_double(buffer *buf, double num) {
-  int i;
-  double *ptr = &num;
+  void *ptr = &num;
+  int64_t i = MONGO_64(*(int64_t*)ptr);
 
   if(BUF_REMAINING <= DOUBLE_64) {
     perl_mongo_resize_buf(buf, DOUBLE_64);
   }
 
-  SERIALIZE(buf->pos, ptr, DOUBLE_64);
+  memcpy(buf->pos, &i, DOUBLE_64);
   buf->pos += DOUBLE_64;
 }
 
@@ -634,11 +637,10 @@ void perl_mongo_serialize_key(buffer *buf, const char *str, void *prep) {
  * in the first 4 bytes with the size.
  */
 void perl_mongo_serialize_size(char *start, buffer *buf) {
-  int i;
   int total = buf->pos - start;
-  int *ptr = &total;
+  total = MONGO_32(total);
 
-  SERIALIZE(start, ptr, INT_32);
+  memcpy(start, &total, INT_32);
 }
 
 static void append_sv (buffer *buf, const char *key, SV *sv, AV *ids);

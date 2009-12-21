@@ -15,6 +15,7 @@
  */
 
 #include "mongo_link.h"
+#include "perl_mongo.h"
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(int socket, void *dest, int len);
@@ -213,6 +214,8 @@ int mongo_link_hear(SV *cursor_sv) {
     return 0;
   }
 
+  cursor->header.length = MONGO_32(cursor->header.length);
+
   // make sure we're not getting crazy data
   if (cursor->header.length > MAX_RESPONSE_LEN ||
       cursor->header.length < REPLY_HEADER_SIZE) {
@@ -236,6 +239,14 @@ int mongo_link_hear(SV *cursor_sv) {
     SvREFCNT_dec(link_sv);
     return 0;
   }
+
+  cursor->header.request_id = MONGO_32(cursor->header.request_id);
+  cursor->header.response_to = MONGO_32(cursor->header.response_to);
+  cursor->header.op = MONGO_32(cursor->header.op);
+  cursor->flag = MONGO_32(cursor->flag);
+  cursor->cursor_id = MONGO_64(cursor->cursor_id);
+  cursor->start = MONGO_32(cursor->start);
+  num_returned = MONGO_32(num_returned);
 
   // create buf
   cursor->header.length -= INT_32*9;
