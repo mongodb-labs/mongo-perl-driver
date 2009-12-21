@@ -8,7 +8,6 @@ use MongoDB::OID;
 use boolean;
 use DateTime;
 use Tie::IxHash;
-use Data::Dumper;
 
 my $conn;
 eval {

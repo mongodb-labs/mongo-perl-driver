@@ -26,8 +26,6 @@
 
 #define PERL_MONGO_CALL_BOOT(name)  perl_mongo_call_xs (aTHX_ name, cv, mark)
 
-#define OID_CLASS "MongoDB::OID"
-
 /* whether to add an _id field */
 #define PREP 1
 #define NO_PREP 0

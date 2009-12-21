@@ -259,7 +259,7 @@ oid_to_sv (buffer *buf)
 {
     char id[25];
     perl_mongo_oid_create(buf->pos, id);
-    return perl_mongo_construct_instance (OID_CLASS, "value", sv_2mortal(newSVpvn (id, 24)), NULL);
+    return perl_mongo_construct_instance ("MongoDB::OID", "value", sv_2mortal(newSVpvn (id, 24)), NULL);
 }
 
 static SV *
@@ -340,7 +340,7 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_LONG: {
-    value = newSViv(MONGO_64(*((int64_t*)buf->pos)));
+    value = newSVnv((double)MONGO_64(*((int64_t*)buf->pos)));
     buf->pos += INT_64;
     break;
   }
@@ -648,7 +648,7 @@ static void append_sv (buffer *buf, const char *key, SV *sv, AV *ids);
 /* add an _id */
 static void
 perl_mongo_prep(buffer *buf, AV *ids) {
-  SV *id = perl_mongo_construct_instance (OID_CLASS, NULL);
+  SV *id = perl_mongo_construct_instance ("MongoDB::OID", NULL);
   append_sv(buf, "_id", id, NO_PREP);
   av_push(ids, id);
 }
@@ -831,7 +831,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
     if (SvROK (sv)) {
         if (sv_isobject (sv)) {
             /* OIDs */
-            if (sv_derived_from (sv, OID_CLASS)) {
+            if (sv_derived_from (sv, "MongoDB::OID")) {
                 SV *attr = perl_mongo_call_reader (sv, "value");
                 char *str = SvPV_nolen (attr);
 

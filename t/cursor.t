@@ -182,7 +182,7 @@ eval {
     $aok = 0;
 };
 
-ok($@ =~ m/^bad hint/);
+ok($@ =~ m/bad hint/);
 
 # MongoDB::Cursor::slave_okay
 $MongoDB::Cursor::slave_okay = 1;

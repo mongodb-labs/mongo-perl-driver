@@ -230,7 +230,7 @@ next (self)
               hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))) {
             STRLEN len;
             SV **err = hv_fetch((HV*)SvRV(RETVAL), "$err", strlen("$err"), 0);
-            croak(SvPV_nolen(*err));
+            croak("query error: %s", SvPV_nolen(*err));
           }
 	} else {
           RETVAL = &PL_sv_undef;
