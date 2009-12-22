@@ -1,3 +1,4 @@
+#line 1
 use strict;
 use warnings;
 
@@ -13,20 +14,12 @@ BEGIN {
     @ISA     = qw{Module::Install::Base};
 }
 
-# check for big-endian                                                                                                                                                                                                                
-my $endianess = $Config{byteorder};
-my $ccflags = "";
-if ($ccflags == 4321) {
-    $ccflags = " -DMONGO_BIG_ENDIAN=1 ";
-}
-
 sub mongo {
     my ($self, @mongo_vars) = @_;
 
     if ($Config{osname} eq 'darwin') {
-        $ccflags = $ccflags . ' -g -pipe -fno-common -DPERL_DARWIN -no-cpp-precomp -fno-strict-aliasing -Wdeclaration-after-statement -I/usr/local/include';
-        $self->makemaker_args( CCFLAGS => $ccflags);
-        $self->makemaker_args( LDDLFLAGS => ' -bundle -undefined dynamic_lookup -L/usr/local/lib');
+	$self->makemaker_args( CCFLAGS => '  -g -pipe -fno-common -DPERL_DARWIN -no-cpp-precomp -fno-strict-aliasing -Wdeclaration-after-statement -I/usr/local/include');
+	$self->makemaker_args( LDDLFLAGS => ' -bundle -undefined dynamic_lookup -L/usr/local/lib');
     }
 
     $self->xs_files;

@@ -6,12 +6,9 @@
 *.o
 Makefile*
 !Makefile.PL
-META.yml
 blib
-inc
 pm_to_blib
 Debian*
-README
 MongoDB-*
 *.bs
 *~

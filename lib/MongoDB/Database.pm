@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Database;
-our $VERSION = '0.26';
+our $VERSION = '0.27';
 
 # ABSTRACT: A Mongo Database
 
@@ -35,7 +35,7 @@ MongoDB::Database - A Mongo Database
 
 =head1 VERSION
 
-version 0.26
+version 0.27
 
 =head1 ATTRIBUTES
 

@@ -1,0 +1,37 @@
+---
+abstract: 'Mongo Driver for Perl'
+author:
+  - 'Kristina Chodorow <kristina@10gen.com>'
+build_requires:
+  Data::Types: 0
+  DateTime: 0
+  ExtUtils::MakeMaker: 6.42
+  Test::Exception: 0
+  Tie::IxHash: 0
+  boolean: 0
+configure_requires:
+  ExtUtils::MakeMaker: 6.42
+distribution_type: module
+generated_by: 'Module::Install version 0.91'
+license: Apache
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: MongoDB
+no_index:
+  directory:
+    - ext
+    - inc
+    - t
+requires:
+  Any::Moose: 0
+  Class::Method::Modifiers: 0
+  DateTime: 0
+  Digest::MD5: 0
+  Tie::IxHash: 0
+  XSLoader: 0
+  boolean: 0
+  perl: 5.8.0
+resources:
+  repository: git://github.com/mongodb/mongo-perl-driver.git
+version: 0.27

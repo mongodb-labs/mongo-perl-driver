@@ -1,9 +1,13 @@
-0.27 
+0.27 22 Dec 2009
 
-  - Added safe insert
+  - Indexes: Improved ensure_index syntax, added drop_dups option
+  - Inserts: Added safe insert, checks object is < 4 MB before inserting
+  - Fixed socket closing bug
+  - Big-endian support
   - $ can be replaced by any character using MongoDB::BSON::char
-  - Fixed undefined behavior in OID serialization (Peter Edwards)
+  - MongoDB::OIDs: Fixed undefined behavior in serialization (Peter Edwards), added OID::get_time
   - 5.8.7-compatible memory allocation (Peter Edwards)
+  - Added MongoDB::MaxKey and MongoDB::MinKey support
 
 0.26  09 Nov 2009
 
