@@ -86,6 +86,7 @@ typedef __int64 int64_t;
 #define BSON_MAXKEY 127
 
 #define GROW_SLOWLY 1048576
+#define MAX_OBJ_SIZE 1024*1024*4
 
 typedef struct {
   char *start;
