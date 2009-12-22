@@ -71,7 +71,6 @@ write_query(ns, opts, skip, limit, query, fields = 0)
          perl_mongo_serialize_size(buf.start, &buf);
 
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
-         XPUSHs(sv_2mortal(newSViv(buf.pos - buf.start)));
          XPUSHs(sv_2mortal(newRV_noinc((SV*)info)));
 
          Safefree(buf.start);
@@ -97,7 +96,6 @@ write_insert(ns, a)
          perl_mongo_serialize_size(buf.start, &buf);
 
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
-         XPUSHs(sv_2mortal(newSViv(buf.pos - buf.start)));
          XPUSHs(sv_2mortal(newRV_noinc((SV*)ids)));
 
          Safefree(buf.start);

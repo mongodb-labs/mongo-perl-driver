@@ -20,9 +20,13 @@ our $VERSION = '0.26';
 # ABSTRACT: Tools for serializing and deserializing data in BSON form
 use Any::Moose;
 
+
+=head1 ATTRIBUTES
+
 =head2 char
 
     $MongoDB::BSON::char = ":";
+    $collection->query({"x" => {":gt" => 4}});
 
 Can be used to set a character other than "$" to use for special operators.
 

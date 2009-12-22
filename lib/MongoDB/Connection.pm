@@ -37,27 +37,23 @@ version 0.26
 
 =head1 SYNOPSIS
 
-The MongoDB::Connection class creates a connection to 
-the MongoDB server. 
+The MongoDB::Connection class creates a connection to the MongoDB server. 
 
-By default, it connects to a single server running on
-the local machine listening on the default port:
+By default, it connects to a single server running on the local machine 
+listening on the default port:
 
     # connects to localhost:27017
     my $connection = MongoDB::Connection->new;
 
-It can connect to a database server running anywhere, 
-though:
+It can connect to a database server running anywhere, though:
 
     my $connection = MongoDB::Connection->new(host => 'example.com', port => 12345);
 
-It can also be used to connect to a replication pair
-of database servers:
+It can also be used to connect to a replication pair of database servers:
 
     my $connection = MongoDB::Connection->new(left_host => '192.0.2.0', right_host => '192.0.2.1');
 
 If ports aren't given, they default to C<27017>.
-
 
 =head1 ATTRIBUTES
 
@@ -236,11 +232,11 @@ sub batch_insert {
     my ($self, $ns, $object, $options) = @_;
     confess 'not an array reference' unless ref $object eq 'ARRAY';
 
-    my ($insert, $ilen, $ids) = MongoDB::write_insert($ns, $object);
+    my ($insert, $ids) = MongoDB::write_insert($ns, $object);
 
     if (defined($options) && $options->{safe}) {
         my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
-        my ($query, $qlen, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, {getlasterror => 1});
+        my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, {getlasterror => 1});
 
         $self->send("$insert$query");
 
@@ -518,7 +514,7 @@ sub authenticate {
 
 =head2 send($str)
 
-    my ($insert, $len, $ids) = MongoDB::write_insert('foo.bar', [{name => "joe", age => 40}]);
+    my ($insert, $ids) = MongoDB::write_insert('foo.bar', [{name => "joe", age => 40}]);
     $conn->send($insert);
 
 Low-level function to send a string directly to the database.  Use 
