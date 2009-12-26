@@ -20,7 +20,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 24;
+    plan tests => 26;
 }
 
 my $db = $conn->get_database('x');
@@ -33,19 +33,32 @@ isa_ok($id, 'MongoDB::OID');
 is($id."", $id->value);
 
 # OIDs created in time-ascending order
-my $ids = [];
-for (0..9) {
-    push @$ids, new MongoDB::OID;
-    sleep 1;
-}
-for (0..8) {
-    ok((@$ids[$_]."") lt (@$ids[$_+1].""));
+{
+    my $ids = [];
+    for (0..9) {
+        push @$ids, new MongoDB::OID;
+        sleep 1;
+    }
+    for (0..8) {
+        ok((@$ids[$_]."") lt (@$ids[$_+1].""));
+    }
+    
+    my $now = DateTime->now;
+    $id = MongoDB::OID->new;
+    
+    is($now->epoch, $id->get_time);
 }
 
-my $now = DateTime->now;
-$id = MongoDB::OID->new;
+# creating ids from an existing value
+{
+    my $value = "012345678901234567890123";
+    my $id = MongoDB::OID->new(value => $value);
+    is($id->value, $value);
 
-is($now->epoch, $id->get_time);
+    my $id_orig = MongoDB::OID->new;
+    my $id_copy = MongoDB::OID->new(value => $id_orig->value);
+    is($id_orig->value, $id_copy->value);
+}
 
 #regexes
 
@@ -79,7 +92,7 @@ ok(!("bar" =~ $obj->{'r'}), 'not a match');
 # date
 $coll->drop;
 
-$now = DateTime->now;
+my $now = DateTime->now;
 
 $coll->insert({'date' => $now});
 my $date = $coll->find_one;

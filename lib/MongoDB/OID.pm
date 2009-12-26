@@ -30,17 +30,24 @@ version 0.27
 
 =head1 SYNOPSIS
 
-If no _id field is provided when a document is inserted into the
-database, an _id field will be added with a new MongoDB::OID as
-its value.
+If no C<_id> field is provided when a document is inserted into the database, an 
+C<_id> field will be added with a new C<MongoDB::OID> as its value.
 
     my $id = $collection->insert({'name' => 'Alice', age => 20});
 
-C<$id> will be a MongoDB::OID that can be used to retreive or
-update the saved document:
+C<$id> will be a C<MongoDB::OID> that can be used to retreive or update the 
+saved document:
 
     $collection->update({_id => $id}, {'age' => {'$inc' => 1}});
     # now Alice is 21
+
+To create a copy of an existing OID, you must set the value attribute in the
+constructor.  For example:
+
+    my $id1 = MongoDB::OID->new;
+    my $id2 = MongoDB::OID->new(value => $id1->value);
+
+Now C<$id1> and C<$id2> will have the same value.
 
 Warning: at the moment, OID generation is not thread safe.
 
