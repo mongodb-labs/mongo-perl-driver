@@ -4,7 +4,6 @@ use warnings;
 package Module::Install::PRIVATE::Mongo;
 
 use Module::Install::Base;
-use inc::Module::Install::Makefile;
 use Config;
 use File::Spec::Functions qw/catdir/;
 
