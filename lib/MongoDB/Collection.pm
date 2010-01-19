@@ -172,9 +172,9 @@ The optional C<$options> parameter can be used to specify if this is a safe
 insert.  A safe insert will check with the database if the insert succeeded and
 confess that it did not, if an error occured.
 
-=head2 batch_insert (@array, \%options)
+=head2 batch_insert (\@array, \%options)
 
-    my @ids = $collection->batch_insert(({name => "Joe"}, {name => "Fred"}, {name => "Sam"}));
+    my @ids = $collection->batch_insert([{name => "Joe"}, {name => "Fred"}, {name => "Sam"}]);
 
 Inserts each of the documents in the array into the database and returns an
 array of their _id fields.
