@@ -116,7 +116,7 @@ assumes you are running MongoDB locally on the default port.
 Mongo can be started in I<authentication mode>, which requires clients to log in
 before manipulating data.  By default, Mongo does not start in this mode, so no 
 username or password is required to make a fully functional connection.  If you
-would like to learn more about authentication, see the L<authenticate> method.
+would like to learn more about authentication, see the C<authenticate> method.
 
 To connect to the database, create a new MongoDB Connection object:
 
@@ -129,7 +129,7 @@ As these are the defaults, we can use the equivalent shorthand:
 Connecting is expensive, so try not to open superfluous connections.
 
 There is no way to explicitly disconnect from the database.  When C<$conn> goes
-out of scope, the connection will automatically be clased and cleaned up.
+out of scope, the connection will automatically be closed and cleaned up.
 
 =head1 FUNCTIONS
 
@@ -140,14 +140,14 @@ nice wrappers in L<MongoDB::Collection>.
 
     my ($insert, $ids) = MongoDB::write_insert("foo.bar", [{foo => 1}, {bar => -1}, {baz => 1}]);
 
-Creates an insert string to be used by L<MongoDB::Connection::send>.  The second
+Creates an insert string to be used by C<MongoDB::Connection::send>.  The second
 argument is an array of hashes to insert.  To imitate the behavior of 
-L<MongoDB::Collection::insert>, pass a single hash, for example:
+C<MongoDB::Collection::insert>, pass a single hash, for example:
 
     my ($insert, $ids) = MongoDB::write_insert("foo.bar", [{foo => 1}]);
 
 Passing multiple hashes imitates the behavior of 
-L<MongoDB::Collection::batch_insert>.
+C<MongoDB::Collection::batch_insert>.
 
 This function returns the string and an array of the the _id fields that the
 inserted hashes will contain.
@@ -156,26 +156,26 @@ inserted hashes will contain.
 
     my ($query, $info) = MongoDB::write_query('foo.$cmd', 0, 0, -1, {getlasterror => 1});
 
-Creates a database query to be used by L<MongoDB::Connection::send>.  C<$flags>
-are query flags to use (see L<MongoDB::Cursor::Flags> for possible values). 
+Creates a database query to be used by C<MongoDB::Connection::send>.  C<$flags>
+are query flags to use (see C<MongoDB::Cursor::Flags> for possible values). 
 C<$skip> is the number of results to skip, C<$limit> is the number of results to 
 return, C<$query> is the query hash, and C<$fields> is the optional fields to 
 return.
 
 This returns the query string and a hash of information about the query that is 
-used by L<MongoDB::Connection::recv> to get the database response to the query.
+used by C<MongoDB::Connection::recv> to get the database response to the query.
 
 =head2 write_update($ns, $criteria, $obj, $flags)
 
     my ($update) = MongoDB::write_update("foo.bar", {age => {'$lt' => 20}}, {'$set' => {young => true}}, 0);
 
-Creates an update that can be used with L<MongoDB::Connection::send>.  C<$flags>
+Creates an update that can be used with C<MongoDB::Connection::send>.  C<$flags>
 can be 1 for upsert and/or 2 for updating multiple documents.
 
 =head2 write_remove($ns, $criteria, $flags)
 
     my ($remove) = MongoDB::write_remove("foo.bar", {name => "joe"}, 0);
 
-Creates a remove that can be used with L<MongoDB::Connection::send>.  C<$flags>
+Creates a remove that can be used with C<MongoDB::Connection::send>.  C<$flags>
 can be 1 for removing just one matching document.
 

@@ -220,7 +220,7 @@ C<drop> can also be used for whole databases:
 Creating an Index
 
 Unique and non-unique indexes can be created on collections using 
-L<MongoDB::Collection::ensure_index>.
+C<MongoDB::Collection::ensure_index>.
 
 For example, to create a non-unique index on C<x>:
 
