@@ -168,7 +168,7 @@ sub insert {
 
     # get an md5 hash for the file
     my $result = $self->_database->run_command({"filemd5", $id, 
-                                                "root" => $self->files->full_name});
+                                                "root" => "fs"});
 
     my %copy = %{$metadata};
     $copy{"_id"} = $id;

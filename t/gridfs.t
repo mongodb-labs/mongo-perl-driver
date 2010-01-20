@@ -21,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 40;
+    plan tests => 41;
 }
 
 my $db = $m->get_database('foo');
@@ -47,9 +47,10 @@ is(0, $chunk->{'n'});
 is("$id", $chunk->{'files_id'}."", "compare returned id");
 is($dumb_str, $chunk->{'data'}, "compare file content");
 
-my $md5 = $db->run_command({"filemd5" => $chunk->{'files_id'}, "root" => "foo.fs.files"});
+my $md5 = $db->run_command({"filemd5" => $chunk->{'files_id'}, "root" => "fs"});
 my $file = $grid->files->find_one();
-is($file->{'md5'}, $md5->{'md5'});
+ok($file->{'md5'} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->{'md5'});
+is($file->{'md5'}, $md5->{'md5'}, $md5->{'md5'});
 is($file->{'length'}, length $dumb_str, "compare file len");
 is($chunk->{'files_id'}, $file->{'_id'}, "compare ids");
 
