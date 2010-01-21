@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 use Test::Exception;
 use IO::File;
+use File::Slurp qw(read_file write_file);
 
 use MongoDB;
 use MongoDB::GridFS;
@@ -22,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 43;
+    plan tests => 49;
 }
 
 my $db = $m->get_database('foo');
@@ -53,7 +54,7 @@ my $md5 = $db->run_command({"filemd5" => $chunk->{'files_id'}, "root" => "fs"});
 my $file = $grid->files->find_one();
 ok($file->{'md5'} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->{'md5'});
 is($file->{'md5'}, $md5->{'md5'}, $md5->{'md5'});
-is($file->{'uploadDate'}, $ts);
+ok($file->{'uploadDate'}->epoch - $ts->epoch < 10);
 is($file->{'chunkSize'}, $MongoDB::GridFS::chunk_size);
 is($file->{'length'}, length $dumb_str, "compare file len");
 is($chunk->{'files_id'}, $file->{'_id'}, "compare ids");
@@ -148,6 +149,33 @@ is($grid->files->count, 1, 'remove just one');
 
 unlink 't/output.txt', 't/output.png', 't/outsub.txt';
 $grid->drop;
+
+
+$grid->drop();
+
+my @files = qw( a.txt b.txt c.txt );
+my $filecount = 0;
+FILELOOP:
+for my $f (@files) {
+    my $txt = "HELLO" x 1_000_000; # 5MB
+    my $l = length($txt);
+    
+    my $tmpfile = "/tmp/file.$$.tmp";
+    write_file( $tmpfile, $txt ) || die $!;
+    my $fh = IO::File->new($tmpfile, "r");
+    
+    $grid->insert( $fh, { filename=>$f } );
+    $fh->close() || die $!;
+    unlink($tmpfile) || die $!;
+
+    # now, spot check that we can retrieve the file
+    my $gridfile = $grid->find_one( { filename => $f } );
+    my $info = $gridfile->info();
+
+    is($info->{length}, 5000000, 'length: '.$info->{'length'});
+    is($info->{filename}, $f, $info->{'filename'});
+}
+
 
 END {
     if ($db) {

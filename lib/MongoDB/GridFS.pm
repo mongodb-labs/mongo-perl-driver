@@ -84,6 +84,7 @@ has chunks => (
     required => 1,
 );
 
+
 =head1 METHODS
 
 =head2 find_one ($criteria?, $fields?)
@@ -155,6 +156,8 @@ sub insert {
     else {
         $id = MongoDB::OID->new;
     }
+
+    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1));
 
     my $n = 0;
     my $length = 0;
