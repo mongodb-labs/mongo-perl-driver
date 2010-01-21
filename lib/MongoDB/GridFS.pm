@@ -21,6 +21,7 @@ our $VERSION = '0.27';
 
 use Any::Moose;
 use MongoDB::GridFS::File;
+use DateTime;
 
 =head1 NAME
 
@@ -173,6 +174,8 @@ sub insert {
     my %copy = %{$metadata};
     $copy{"_id"} = $id;
     $copy{"md5"} = $result->{"md5"};
+    $copy{"chunkSize"} = $MongoDB::GridFS::chunk_size;
+    $copy{"uploadDate"} = DateTime->now;
     $copy{"length"} = $length;
     return $self->files->insert(\%copy);
 }

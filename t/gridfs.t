@@ -7,6 +7,7 @@ use IO::File;
 use MongoDB;
 use MongoDB::GridFS;
 use MongoDB::GridFS::File;
+use DateTime;
 
 my $m;
 eval {
@@ -21,7 +22,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 41;
+    plan tests => 43;
 }
 
 my $db = $m->get_database('foo');
@@ -39,6 +40,7 @@ is('foo.bar.chunks', $fancy_grid->chunks->full_name);
 # test text insert
 my $dumb_str = "abc\n\nzyw\n";
 my $text_doc = new IO::File("t/input.txt", "r") or die $!;
+my $ts = DateTime->now;
 my $id = $grid->insert($text_doc);
 $text_doc->close;
 
@@ -51,6 +53,8 @@ my $md5 = $db->run_command({"filemd5" => $chunk->{'files_id'}, "root" => "fs"});
 my $file = $grid->files->find_one();
 ok($file->{'md5'} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->{'md5'});
 is($file->{'md5'}, $md5->{'md5'}, $md5->{'md5'});
+is($file->{'uploadDate'}, $ts);
+is($file->{'chunkSize'}, $MongoDB::GridFS::chunk_size);
 is($file->{'length'}, length $dumb_str, "compare file len");
 is($chunk->{'files_id'}, $file->{'_id'}, "compare ids");
 
