@@ -30,10 +30,14 @@
 #define PREP 1
 #define NO_PREP 0
 
+#ifdef WIN32
 #ifdef _MSC_VER
 typedef __int64 int64_t;
 #define inline __inline
-#endif
+#else
+#include <stdint.h>
+#endif // _MSC_VER
+#endif // WIN32
 
 #if MONGO_BIG_ENDIAN
 #define BYTE1_32(b) ((b & 0xff000000) >> 24)
