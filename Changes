@@ -1,3 +1,7 @@
+0.28 
+
+  - Added GridFS multi-chunk test (Josh Rabinowitz)
+
 0.27 22 Dec 2009
 
   - Indexes: Improved ensure_index syntax, added drop_dups option
