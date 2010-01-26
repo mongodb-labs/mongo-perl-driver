@@ -22,7 +22,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 21;
+    plan tests => 23;
 }
 
 my $db = $conn->get_database('foo');
@@ -120,6 +120,15 @@ my $c = $db->get_collection('bar');
     $x = $c->find_one;
     is($x->{char}, $valid);
 }
+
+# undefined
+{
+    my $err = $db->last_error(); 
+    ok(!$err->{err}, "undef");
+    $err->{err} = "foo";
+    is($err->{err}, "foo", "assign to undef");
+}
+
 
 END {
     if ($db) {

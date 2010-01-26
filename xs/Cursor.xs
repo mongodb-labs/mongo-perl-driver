@@ -233,7 +233,7 @@ next (self)
             croak("query error: %s", SvPV_nolen(*err));
           }
 	} else {
-          RETVAL = &PL_sv_undef;
+          RETVAL = newSV(0);
         }
     OUTPUT:
         RETVAL

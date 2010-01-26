@@ -331,7 +331,7 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_UNDEF:
   case BSON_NULL: {
-    value = &PL_sv_undef;
+    value = newSV(0);
     break;
   }
   case BSON_INT: {
