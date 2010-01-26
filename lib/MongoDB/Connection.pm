@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-our $VERSION = '0.27';
+our $VERSION = $MongoDB::VERSION;
 
 # ABSTRACT: A connection to a Mongo server
 
@@ -30,10 +30,6 @@ use boolean;
 =head1 NAME
 
 MongoDB::Connection - A connection to a Mongo server
-
-=head1 VERSION
-
-version 0.27
 
 =head1 SYNOPSIS
 

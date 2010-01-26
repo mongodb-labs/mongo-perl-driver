@@ -33,10 +33,6 @@ XSLoader::load(__PACKAGE__, $VERSION);
 
 MongoDB - Mongo Driver for Perl
 
-=head1 VERSION
-
-version 0.27
-
 =head1 SYNOPSIS
 
     use MongoDB;

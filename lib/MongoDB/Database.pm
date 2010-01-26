@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Database;
-our $VERSION = '0.27';
+our $VERSION = $MongoDB::VERSION;
 
 # ABSTRACT: A Mongo Database
 
@@ -32,10 +32,6 @@ has _connection => (
 =head1 NAME
 
 MongoDB::Database - A Mongo Database
-
-=head1 VERSION
-
-version 0.27
 
 =head1 ATTRIBUTES
 
