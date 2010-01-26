@@ -1,7 +1,7 @@
 0.28 
 
   - Fixed undef values (Andrew Bryan)
-  - Added GridFS multi-chunk test (Josh Rabinowitz)
+  - Added GridFS multi-chunk test using File::Temp (Josh Rabinowitz)
 
 0.27 22 Dec 2009
 

@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 use Test::Exception;
 use IO::File;
+use File::Temp;
 use File::Slurp qw(read_file write_file);
 
 use MongoDB;
@@ -148,32 +149,29 @@ $grid->remove({'filename' => 'garbage.png'}, 1);
 is($grid->files->count, 1, 'remove just one');
 
 unlink 't/output.txt', 't/output.png', 't/outsub.txt';
-$grid->drop;
 
 
-$grid->drop();
+{
+    $grid->drop();
 
-my @files = qw( a.txt b.txt c.txt );
-my $filecount = 0;
-FILELOOP:
-for my $f (@files) {
-    my $txt = "HELLO" x 1_000_000; # 5MB
-    my $l = length($txt);
-    
-    my $tmpfile = "/tmp/file.$$.tmp";
-    write_file( $tmpfile, $txt ) || die $!;
-    my $fh = IO::File->new($tmpfile, "r");
-    
-    $grid->insert( $fh, { filename=>$f } );
-    $fh->close() || die $!;
-    unlink($tmpfile) || die $!;
+    foreach (1..3) {
+        my $txt = "HELLO" x 1_000_000; # 5MB
+        
+        my $fh = File::Temp->new;
+        write_file( $fh->filename, $txt ) || die $!;
+        $fh->seek(0, 0);
 
-    # now, spot check that we can retrieve the file
-    my $gridfile = $grid->find_one( { filename => $f } );
-    my $info = $gridfile->info();
-
-    is($info->{length}, 5000000, 'length: '.$info->{'length'});
-    is($info->{filename}, $f, $info->{'filename'});
+        $grid->insert( $fh, { filename => $fh->filename } );
+        $fh->close() || die $!;
+        #file is unlinked by dtor
+        
+        # now, spot check that we can retrieve the file
+        my $gridfile = $grid->find_one( { filename => $fh->filename } );
+        my $info = $gridfile->info();
+        
+        is($info->{length}, 5000000, 'length: '.$info->{'length'});
+        is($info->{filename}, $fh->filename, $info->{'filename'});
+    }
 }
 
 
