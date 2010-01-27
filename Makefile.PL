@@ -25,6 +25,7 @@ test_requires 'DateTime';
 test_requires 'boolean';
 test_requires 'Data::Types';
 test_requires 'File::Slurp';
+test_requires 'FileHandle';
 
 mongo;
 

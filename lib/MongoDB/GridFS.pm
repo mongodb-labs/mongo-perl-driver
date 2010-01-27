@@ -133,6 +133,21 @@ sub remove {
 Reads from a file handle into the database.  Saves the file 
 with the given metadata.  The file handle must be readable.
 
+Because C<MongoDB::GridFS::insert> takes a file handle, it can be used to insert
+very long strings into the database (as well as files).  C<$fh> must be a 
+FileHandle (not just the native file handle type), so you can insert a string 
+with:
+
+    # open the string like a file
+    my $basic_fh;
+    open($basic_fh, '<', \$very_long_string);
+
+    # turn the file handle into a FileHandle
+    my $fh = FileHandle->new;
+    $fh->fdopen($basic_fh, 'r');
+
+    $gridfs->insert($fh);
+
 =cut
 
 sub insert {

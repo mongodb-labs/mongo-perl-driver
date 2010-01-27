@@ -10,6 +10,7 @@ use MongoDB;
 use MongoDB::GridFS;
 use MongoDB::GridFS::File;
 use DateTime;
+use FileHandle;
 
 my $m;
 eval {
@@ -24,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 49;
+    plan tests => 51;
 }
 
 my $db = $m->get_database('foo');
@@ -150,9 +151,9 @@ is($grid->files->count, 1, 'remove just one');
 
 unlink 't/output.txt', 't/output.png', 't/outsub.txt';
 
-
+# multi-chunk
 {
-    $grid->drop();
+    $grid->drop;
 
     foreach (1..3) {
         my $txt = "HELLO" x 1_000_000; # 5MB
@@ -172,6 +173,24 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
         is($info->{length}, 5000000, 'length: '.$info->{'length'});
         is($info->{filename}, $fh->filename, $info->{'filename'});
     }
+}
+
+# reading from a big string
+{
+    $grid->drop;
+
+    my $txt = "HELLO";
+
+    my $basicfh;
+    open($basicfh, '<', \$txt);
+    
+    my $fh = FileHandle->new;
+    $fh->fdopen($basicfh, 'r');
+    $grid->insert($fh, {filename => 'hello.txt'});
+
+    my $file = $grid->find_one;
+    is($file->info->{filename}, 'hello.txt');
+    is($file->info->{length}, '5');
 }
 
 
