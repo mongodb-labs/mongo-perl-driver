@@ -684,6 +684,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids)
 
     (void)hv_iterinit (hv);
     while ((he = hv_iternext (hv))) {
+        SV **hval;
         STRLEN len;
         const char *key = HePV (he, len);
 
@@ -696,7 +697,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids)
          * HeVAL doesn't return the correct value for tie(%foo, 'Tie::IxHash')
          * so we're using hv_fetch
          */
-        SV **hval = hv_fetch(hv, key, len, 0);
+        hval = hv_fetch(hv, key, len, 0);
         append_sv (buf, key, *hval, NO_PREP);
     }
 
