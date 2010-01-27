@@ -691,7 +691,13 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids)
         if (ids && strcmp(key, "_id") == 0) {
           continue;
         }
-        append_sv (buf, key, HeVAL (he), NO_PREP);
+
+        /* 
+         * HeVAL doesn't return the correct value for tie(%foo, 'Tie::IxHash')
+         * so we're using hv_fetch
+         */
+        SV **hval = hv_fetch(hv, key, len, 0);
+        append_sv (buf, key, *hval, NO_PREP);
     }
 
     perl_mongo_serialize_null(buf);

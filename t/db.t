@@ -18,7 +18,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 10;
+    plan tests => 11;
 }
 
 my $db   = $conn->get_database('test_database');
@@ -44,6 +44,15 @@ is('hello, world', $hello, 'db eval');
 
 my $err = $db->eval('function(x) { xreturn "hello, "+x; }', ["world"]);
 is('compile failed: JS Error: SyntaxError: missing ; before statement nofile_b:0', $err, 'js err');
+
+# tie
+{
+    my $admin = $conn->get_database('admin');
+    my %cmd;
+    tie( %cmd, 'Tie::IxHash', buildinfo => 1);
+    my $result = $admin->run_command(\%cmd);
+    is($result->{ok}, 1);
+}
 
 END {
     if ($db) {
