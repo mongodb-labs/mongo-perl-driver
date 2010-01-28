@@ -208,7 +208,6 @@ has_next (self)
         SV *self
     PREINIT:
         mongo_cursor *cursor;
-        mongo_link *link;
     CODE:
         cursor = get_cursor(self);
         RETVAL = has_next(self, cursor);
@@ -228,7 +227,6 @@ next (self)
 
           if (cursor->num == 1 &&
               hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))) {
-            STRLEN len;
             SV **err = hv_fetch((HV*)SvRV(RETVAL), "$err", strlen("$err"), 0);
             croak("query error: %s", SvPV_nolen(*err));
           }

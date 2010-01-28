@@ -49,12 +49,13 @@ write_query(ns, opts, skip, limit, query, fields = 0)
          buffer buf;
          mongo_msg_header header;
          HV *info = newHV();
+         SV **heval;
      PPCODE:
-         hv_store(info, "ns", strlen("ns"), newSVpv(ns, strlen(ns)), 0);
-         hv_store(info, "opts", strlen("opts"), newSViv(opts), 0);
-         hv_store(info, "skip", strlen("skip"), newSViv(skip), 0);
-         hv_store(info, "limit", strlen("limit"), newSViv(limit), 0);
-         hv_store(info, "request_id", strlen("request_id"), newSViv(request_id), 0);
+         heval = hv_store(info, "ns", strlen("ns"), newSVpv(ns, strlen(ns)), 0);
+         heval = hv_store(info, "opts", strlen("opts"), newSViv(opts), 0);
+         heval = hv_store(info, "skip", strlen("skip"), newSViv(skip), 0);
+         heval = hv_store(info, "limit", strlen("limit"), newSViv(limit), 0);
+         heval = hv_store(info, "request_id", strlen("request_id"), newSViv(request_id), 0);
 
          CREATE_BUF(INITIAL_BUF_SIZE);
          CREATE_HEADER_WITH_OPTS(buf, ns, OP_QUERY, opts);

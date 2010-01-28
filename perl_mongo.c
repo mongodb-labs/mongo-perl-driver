@@ -265,7 +265,7 @@ oid_to_sv (buffer *buf)
 static SV *
 elem_to_sv (int type, buffer *buf)
 {
-  SV *value;
+  SV *value = 0;
 
   switch(type) {
   case BSON_OID: {
@@ -285,7 +285,6 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_STRING: {
     int len = MONGO_32(*((int*)buf->pos));
-    char *str;
     buf->pos += INT_32;
 
     // this makes a copy of the buffer
@@ -304,7 +303,7 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_BINARY: {
     int len = MONGO_32(*(int*)buf->pos);
-    char type, *bytes;
+    char type;
 
     buf->pos += INT_32;
 
@@ -346,7 +345,7 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_DATE: {
     int64_t ms_i = MONGO_64(*(int64_t*)buf->pos);
-    SV *datetime, *ms;
+    SV *datetime, *ms, **heval;
     HV *named_params;
     buf->pos += INT_64;
     ms_i /= 1000;
@@ -355,7 +354,7 @@ elem_to_sv (int type, buffer *buf)
     ms = newSViv(ms_i);
 
     named_params = newHV();
-    hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
+    heval = hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
 
     value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime, 
                                      sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));

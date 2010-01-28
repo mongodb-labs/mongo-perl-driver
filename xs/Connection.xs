@@ -28,10 +28,10 @@ connect (self)
                 SV *self
 	PREINIT:
                 int paired;
-                SV *host_sv = 0, *port_sv, 
-                    *left_host_sv, *right_host_sv,
-                    *left_port_sv, *right_port_sv,
-                    *auto_reconnect_sv;
+                SV *host_sv = 0, *port_sv = 0, 
+                    *left_host_sv = 0, *right_host_sv = 0,
+                    *left_port_sv = 0, *right_port_sv = 0,
+                    *auto_reconnect_sv = 0;
 		mongo_link *link;
 	INIT:
                 left_host_sv = perl_mongo_call_reader (ST(0), "left_host");
