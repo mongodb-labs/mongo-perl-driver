@@ -15,13 +15,17 @@
 #
 
 package MongoDB::Collection;
-our $VERSION = $MongoDB::VERSION;
+our $VERSION = '0.27';
 
 # ABSTRACT: A Mongo Collection
 
 =head1 NAME
 
 MongoDB::Collection - A Mongo Collection
+
+=head1 VERSION
+
+version 0.27
 
 =cut
 

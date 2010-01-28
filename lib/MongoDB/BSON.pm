@@ -15,7 +15,7 @@
 #
 
 package MongoDB::BSON;
-our $VERSION = $MongoDB::VERSION;
+our $VERSION = '0.27';
 
 # ABSTRACT: Tools for serializing and deserializing data in BSON form
 use Any::Moose;
@@ -23,6 +23,10 @@ use Any::Moose;
 =head1 NAME
 
 MongoDB::BSON - encoding and decoding utilities (more to come)
+
+=head1 VERSION
+
+version 0.27
 
 =head1 ATTRIBUTES
 

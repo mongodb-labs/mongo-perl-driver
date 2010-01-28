@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Cursor;
-our $VERSION = $MongoDB::VERSION;
+our $VERSION = '0.27';
 
 # ABSTRACT: A cursor/iterator for Mongo query results
 use Any::Moose;
@@ -25,6 +25,10 @@ use Tie::IxHash;
 =head1 NAME
 
 MongoDB::Cursor - A cursor/iterator for Mongo query results
+
+=head1 VERSION
+
+version 0.27
 
 =head1 SYNOPSIS
 

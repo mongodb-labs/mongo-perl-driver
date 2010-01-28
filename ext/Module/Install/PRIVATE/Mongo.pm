@@ -7,8 +7,9 @@ use Module::Install::Base;
 use Config;
 use File::Spec::Functions qw/catdir/;
 
-use vars qw/@ISA/;
+use vars qw{$VERSION @ISA};
 BEGIN {
+    $VERSION = '0.27';
     @ISA     = qw{Module::Install::Base};
 }
 
