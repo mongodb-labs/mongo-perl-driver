@@ -1,7 +1,11 @@
-0.28 
+0.28 28 Jan 2010
 
   - Fixed undef values (Andrew Bryan)
   - Added GridFS multi-chunk test using File::Temp (Josh Rabinowitz)
+  - Allow tie(%h, 'Tie::IxHash') to be used as well as Tie::IxHash->new
+  - Fixed GridFS indexes and added chunkSize and uploadDate to metadata
+  - Fixed batch_insert doc (Eric Wilhelm)
+  - Fixed big endian build
 
 0.27 22 Dec 2009
 

@@ -15,7 +15,7 @@
 #
 
 package MongoDB::GridFS;
-our $VERSION = '0.27';
+our $VERSION = '0.28';
 
 # ABSTRACT: A file storage utility
 
@@ -26,10 +26,6 @@ use DateTime;
 =head1 NAME
 
 MongoDB::GridFS - A file storage utility
-
-=head1 VERSION
-
-version 0.27
 
 =head1 SYNOPSIS
 

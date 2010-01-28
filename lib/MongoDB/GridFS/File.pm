@@ -15,7 +15,7 @@
 #
 
 package MongoDB::GridFS::File;
-our $VERSION = '0.27';
+our $VERSION = '0.28';
 
 # ABSTRACT: A Mongo GridFS file
 
@@ -25,10 +25,6 @@ use MongoDB::GridFS;
 =head1 NAME
 
 MongoDB::GridFS::File - A Mongo GridFS file
-
-=head1 VERSION
-
-version 0.27
 
 =head1 SYNOPSIS
 
