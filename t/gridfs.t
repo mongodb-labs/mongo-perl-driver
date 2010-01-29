@@ -25,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 51;
+    plan tests => 54;
 }
 
 my $db = $m->get_database('foo');
@@ -190,7 +190,19 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
 
     my $file = $grid->find_one;
     is($file->info->{filename}, 'hello.txt');
-    is($file->info->{length}, '5');
+    is($file->info->{length}, 5);
+}
+
+# safe insert
+{
+    $grid->drop;
+    $img = new IO::File("t/img.png", "r") or die $!;
+    $grid->insert($img, {filename => 'img.png'}, {safe => boolean::true});
+
+    my $file = $grid->find_one;
+    is($file->info->{filename}, 'img.png', 'safe insert');
+    is($file->info->{length}, 1292706);
+    ok($file->info->{md5} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->info->{'md5'});
 }
 
 
