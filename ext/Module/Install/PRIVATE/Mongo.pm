@@ -9,7 +9,7 @@ use File::Spec::Functions qw/catdir/;
 
 use vars qw{$VERSION @ISA};
 BEGIN {
-    $VERSION = '0.28';
+    $VERSION = '0.28_01';
     @ISA     = qw{Module::Install::Base};
 }
 

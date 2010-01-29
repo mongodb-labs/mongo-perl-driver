@@ -36,7 +36,7 @@ repository 'git://github.com/mongodb/mongo-perl-driver.git';
 WriteAll;
 
 package MY;
-our $VERSION = '0.28';
+our $VERSION = '0.28_01';
 
 use Config;
 

@@ -197,6 +197,7 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
 {
     $grid->drop;
     $img = new IO::File("t/img.png", "r") or die $!;
+    $img->binmode;
     $grid->insert($img, {filename => 'img.png'}, {safe => boolean::true});
 
     my $file = $grid->find_one;

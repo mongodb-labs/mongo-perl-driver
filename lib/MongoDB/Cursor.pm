@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Cursor;
-our $VERSION = '0.28';
+our $VERSION = '0.28_01';
 
 # ABSTRACT: A cursor/iterator for Mongo query results
 use Any::Moose;
