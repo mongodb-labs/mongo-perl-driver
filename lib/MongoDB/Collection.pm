@@ -146,13 +146,16 @@ Order results.
 
 =back
 
-=head2 find_one (\%query)
+=head2 find_one ($query, $fields?)
 
     my $object = $collection->find_one({ name => 'Resi' });
+    my $object = $collection->find_one({ name => 'Resi' }, { name => 1, age => 1});
 
 Executes the given C<$query> and returns the first object matching it.
 C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).  
+even number of elements).  If C<$fields> is specified, the resulting document 
+will only include the fields given (and the C<_id> field) which can cut down on
+wire traffic.
 
 =head2 insert (\%object, \%options?)
 
