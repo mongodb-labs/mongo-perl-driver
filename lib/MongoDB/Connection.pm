@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-our $VERSION = '0.28_01';
+our $VERSION = '0.28_02';
 
 # ABSTRACT: A connection to a Mongo server
 
@@ -161,6 +161,11 @@ has auto_connect => (
 );
 
 
+has _last_error => (
+    is => 'rw',
+);
+
+
 sub _build__server {
     my ($self) = @_;
     my ($host, $port) = map { $self->$_ } qw/host port/;
@@ -218,10 +223,33 @@ sub query {
     return $cursor;
 }
 
+
+
 sub insert {
     my ($self, $ns, $object, $options) = @_;
     my @id = $self->batch_insert($ns, [$object], $options);
-    return $id[0];
+    return exists $id[0] ? $id[0] : 0;
+}
+
+sub _make_safe {
+    my ($self, $ns, $req) = @_;
+
+    my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
+    my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, {getlasterror => 1});
+    
+    $self->send("$req$query");
+
+    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _connection => $self, _query => {});
+    $cursor->_init;
+    $self->recv($cursor);
+
+    my $ok = $cursor->next();
+    $self->_last_error($ok);
+
+    if ($ok->{err}) {
+        return 0;
+    }
+    return 1;
 }
 
 sub batch_insert {
@@ -231,18 +259,10 @@ sub batch_insert {
     my ($insert, $ids) = MongoDB::write_insert($ns, $object);
 
     if (defined($options) && $options->{safe}) {
-        my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
-        my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, {getlasterror => 1});
+        my $ok = $self->_make_safe($ns, $insert);
 
-        $self->send("$insert$query");
-
-        my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _connection => $self, _query => {});
-        $cursor->_init;
-        $self->recv($cursor);
-        my $ok = $cursor->next();
-
-        if ($ok->{err}) {
-            confess $ok->{err};
+        if (!$ok) {
+            return 0;
         }
     }
     else {
@@ -274,16 +294,36 @@ sub update {
         $flags = !(!$opts);
     }
 
+    if ($opts->{safe}) {
+        return $self->_make_safe($ns, MongoDB::write_update($ns, $query, $object, $flags));
+    }
+
     $self->send(MongoDB::write_update($ns, $query, $object, $flags));
-    return;
+
+    return 1;
 }
 
 sub remove {
-    my ($self, $ns, $query, $just_one) = @_;
+    my ($self, $ns, $query, $options) = @_;
+    my $just_one;
+
     $query ||= {};
-    $just_one ||= 0;
+
+    if (defined $options && ref $options eq 'HASH') {
+        $just_one = exists $options->{just_one} ? $options->{just_one} : 0;
+
+        if ($options->{safe}) {
+            my $ok = $self->_make_safe($ns, MongoDB::write_remove($ns, $query, $just_one));
+            return $ok;
+        }
+    }
+    else { 
+        $just_one = $options || 0;
+    }
+
     $self->send(MongoDB::write_remove($ns, $query, $just_one));
-    return;
+
+    return 1;
 }
 
 {
@@ -359,7 +399,12 @@ sub remove {
              ($#$keys == 0 || $#$keys >= 1 && !($keys->[1] =~ /-?1/))) ||
             (ref $keys eq 'Tie::IxHash' && $keys->[2][0] =~ /(de)|(a)scending/)) {
             _old_ensure_index(@_);
-            return;
+
+            my $db = substr($ns, 0, index($ns, '.'));
+            $self->_last_error({"ok" => 0, "err" => "you're using the old ".
+                "format for ensure_index, please check the documentation and ".
+                "update your code"});
+            return 0;
         }
 
         my $obj = Tie::IxHash->new("ns" => $ns, 
@@ -374,8 +419,8 @@ sub remove {
         }
 
         my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
-        $self->insert("$db.system.indexes", $obj);
-        return;
+
+        return $self->insert("$db.system.indexes", $obj, $options);
     }
 }
 

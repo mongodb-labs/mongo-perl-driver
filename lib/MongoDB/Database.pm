@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Database;
-our $VERSION = '0.28_01';
+our $VERSION = '0.28_02';
 
 # ABSTRACT: A Mongo Database
 
@@ -55,6 +55,7 @@ sub BUILD {
 
 around qw/query find_one insert update remove ensure_index batch_insert/ => sub {
     my ($next, $self, $ns, @args) = @_;
+    $self->_connection->_last_error(undef);
     return $self->$next($self->_query_ns($ns), @args);
 };
 
@@ -141,15 +142,20 @@ sub drop {
 
     my $err = $db->last_error;
 
-Queries the database to check if the last operation caused an error.
+Finds out if the last database operation completed successfully.  If the last
+operation did not complete successfully, returns a hash reference of information
+about the error that occured.
 
 =cut
 
 sub last_error {
     my ($self) = @_;
-    return $self->run_command({
-        "getlasterror" => 1
-    });
+
+    if ($self->_connection->_last_error) {
+        return $self->_connection->_last_error;
+    }
+
+    return $self->run_command({"getlasterror" => 1});
 }
 
 

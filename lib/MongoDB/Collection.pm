@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Collection;
-our $VERSION = '0.28_01';
+our $VERSION = '0.28_02';
 
 # ABSTRACT: A Mongo Collection
 
@@ -157,7 +157,7 @@ even number of elements).  If C<$fields> is specified, the resulting document
 will only include the fields given (and the C<_id> field) which can cut down on
 wire traffic.
 
-=head2 insert (\%object, \%options?)
+=head2 insert ($object, $options?)
 
     my $id1 = $coll->insert({ name => 'mongo', type => 'database' });
     my $id2 = $coll->insert({ name => 'mongo', type => 'database' }, {safe => 1});
@@ -169,9 +169,10 @@ specified in the data or a L<MongoDB::OID>.
 
 The optional C<$options> parameter can be used to specify if this is a safe 
 insert.  A safe insert will check with the database if the insert succeeded and
-confess that it did not, if an error occured.
+return 0 if it did not.  You should check C<MongoDB::Database::last_error> to see
+the reason that the insert failed.
 
-=head2 batch_insert (\@array, \%options)
+=head2 batch_insert (\@array, $options)
 
     my @ids = $collection->batch_insert([{name => "Joe"}, {name => "Fred"}, {name => "Sam"}]);
 
@@ -180,7 +181,8 @@ array of their _id fields.
 
 The optional C<$options> parameter can be used to specify if this is a safe 
 insert.  A safe insert will check with the database if the insert succeeded and
-confess that it did not, if an error occured.
+return 0 if it did not.  You should check C<$MongoDB::Database::last_error> to see
+the reason that the insert failed.
 
 =head2 update (\%criteria, \%object, \%options?)
 
@@ -188,8 +190,10 @@ confess that it did not, if an error occured.
 
 Updates an existing C<$object> matching C<$criteria> in the database. 
 
-C<update> can take a hash reference of options.  The options 
-currently supported are:
+Returns 1 unless the C<safe> option is set. 
+
+C<update> can take a hash reference of options.  The options currently supported
+are:
 
 =over 
 
@@ -201,18 +205,37 @@ All of the documents that match C<$criteria> will be updated, not just
 the first document found. (Only available with database version 1.1.3 and 
 newer.)
 
+=item C<safe>
+If the update fails and safe is set, this function will return 0.  You should 
+check C<MongoDB::Database::last_error> to find out why the update failed.
+
 =back
 
-=head2 remove (\%query?, $just_one?)
+=head2 remove ($query?, $options?)
 
     $collection->remove({ answer => { '$ne' => 42 } });
 
 Removes all objects matching the given C<$query> from the database. If no
 parameters are given, removes all objects from the collection (but does not
-delete indexes, as C<MongoDB::Collection::drop> does).  Boolean parameter 
-C<$just_one> causes only one matching document to be removed.
+delete indexes, as C<MongoDB::Collection::drop> does).  
 
-=head2 ensure_index (\%keys, $options?)
+Returns 1 unless the safe option is set.
+
+C<remove> can take a hash reference of options.  The options currently supported
+are 
+
+=over
+
+=item C<just_one> 
+Only one matching document to be removed.
+
+=item C<safe>
+If the update fails and safe is set, this function will return 0.  You should 
+check C<MongoDB::Database::last_error> to find out why the update failed.
+
+=back
+
+=head2 ensure_index ($keys, $options?)
 
     use boolean;
     $collection->ensure_index({"foo" => 1, "bar" => -1}, { unique => true });
@@ -221,6 +244,8 @@ Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be an
 array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is prefered
 for multi-key indexes, so that the keys are in the correct order.  1 creates an 
 ascending index, -1 creates a descending index.  
+
+If the C<safe> option is not set, ensure_index will always return 1.
 
 The second parameter gives index options.  Available options are:
 
@@ -237,6 +262,11 @@ If a unique index is being created on an existing set of data that has duplicate
 values, creating the index will fail.  To force the index creation by deleting 
 duplicate values, use this option.  Again, any value that evaluates to true will
 work.
+
+=item C<safe => boolean>
+
+If the update fails and safe is set, this function will return 0.  You should 
+check C<MongoDB::Database::last_error> to find out why the update failed.
 
 =back
 
