@@ -15,7 +15,7 @@
 #
 
 package MongoDB::OID;
-our $VERSION = '0.28_03';
+our $VERSION = '0.28_04';
 # ABSTRACT: A Mongo Object ID
 
 use Any::Moose;
@@ -46,6 +46,10 @@ constructor.  For example:
 Now C<$id1> and C<$id2> will have the same value.
 
 Warning: at the moment, OID generation is not thread safe.
+
+=head1 SEE ALSO
+
+Core documentation on object ids: L<http://dochub.mongodb.org/core/objectids>.
 
 =head1 ATTRIBUTES
 

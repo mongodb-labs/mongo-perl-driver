@@ -15,7 +15,7 @@
 #
 
 package MongoDB::GridFS;
-our $VERSION = '0.28_03';
+our $VERSION = '0.28_04';
 
 # ABSTRACT: A file storage utility
 
@@ -35,6 +35,10 @@ MongoDB::GridFS - A file storage utility
     my $grid = $database->get_gridfs;
     my $fh = IO::File->new("myfile", "r");
     $grid->insert($fh, {"filename" => "mydbfile"});
+
+=head1 SEE ALSO
+
+Core documentation on GridFS: L<http://dochub.mongodb.org/core/gridfs>.
 
 =head1 ATTRIBUTES
 

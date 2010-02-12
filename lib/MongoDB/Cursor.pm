@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Cursor;
-our $VERSION = '0.28_03';
+our $VERSION = '0.28_04';
 
 # ABSTRACT: A cursor/iterator for Mongo query results
 use Any::Moose;
@@ -34,6 +34,10 @@ MongoDB::Cursor - A cursor/iterator for Mongo query results
 
     my @objects = $cursor->all;
 
+
+=head1 SEE ALSO
+
+Core documentation on cursors: L<http://dochub.mongodb.org/core/cursors>.
 
 =head1 OPTIONS
 
@@ -231,8 +235,9 @@ sub limit {
     $per_page = 100;
     $cursor = $coll->query->limit($per_page)->skip($page_num * $per_page);
 
-Skips the first N results.
-Returns this cursor for chaining operations.
+Skips the first N results. Returns this cursor for chaining operations.
+
+See also core documentation on limit: L<http://dochub.mongodb.org/core/limit>.
 
 =cut
 
@@ -294,10 +299,12 @@ sub hint {
 
     my $explanation = $cursor->explain;
 
-This will tell you the type of cursor used, the number of records 
-the DB had to examine as part of this query, the number of records 
-returned by the query, and the time in milliseconds the query took 
-to execute.  Requires L<boolean> package.
+This will tell you the type of cursor used, the number of records the DB had to 
+examine as part of this query, the number of records returned by the query, and 
+the time in milliseconds the query took to execute.  Requires L<boolean> package.
+
+See also core documentation on explain: 
+L<http://dochub.mongodb.org/core/explain>.
 
 =cut
 

@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Database;
-our $VERSION = '0.28_03';
+our $VERSION = '0.28_04';
 
 # ABSTRACT: A Mongo Database
 
@@ -32,6 +32,10 @@ has _connection => (
 =head1 NAME
 
 MongoDB::Database - A Mongo Database
+
+=head1 SEE ALSO
+
+Core documentation on databases: L<http://dochub.mongodb.org/core/databases>.
 
 =head1 ATTRIBUTES
 
@@ -167,6 +171,9 @@ Runs a command for this database on the mongo server. Throws an exception with
 an error message if the command fails. Returns the result of the command on
 success.  For a list of possible database commands, see 
 L<http://www.mongodb.org/display/DOCS/Table+of+Database+Commands>.
+
+See also core documentation on database commands: 
+L<http://dochub.mongodb.org/core/commands>.
 
 =cut
 

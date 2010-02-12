@@ -15,13 +15,17 @@
 #
 
 package MongoDB::Collection;
-our $VERSION = '0.28_03';
+our $VERSION = '0.28_04';
 
 # ABSTRACT: A Mongo Collection
 
 =head1 NAME
 
 MongoDB::Collection - A Mongo Collection
+
+=head1 SEE ALSO
+
+Core documentation on collections: L<http://dochub.mongodb.org/core/collections>.
 
 =cut
 
@@ -146,6 +150,9 @@ Order results.
 
 =back
 
+See also core documentation on querying: 
+L<http://dochub.mongodb.org/core/find>.
+
 =head2 find_one ($query, $fields?)
 
     my $object = $collection->find_one({ name => 'Resi' });
@@ -171,6 +178,8 @@ The optional C<$options> parameter can be used to specify if this is a safe
 insert.  A safe insert will check with the database if the insert succeeded and
 return 0 if it did not.  You should check C<MongoDB::Database::last_error> to see
 the reason that the insert failed.
+
+See also core documentation on insert: L<http://dochub.mongodb.org/core/insert>.
 
 =head2 batch_insert (\@array, $options)
 
@@ -211,6 +220,8 @@ check C<MongoDB::Database::last_error> to find out why the update failed.
 
 =back
 
+See also core documentation on update: L<http://dochub.mongodb.org/core/update>.
+
 =head2 remove ($query?, $options?)
 
     $collection->remove({ answer => { '$ne' => 42 } });
@@ -234,6 +245,8 @@ If the update fails and safe is set, this function will return 0.  You should
 check C<MongoDB::Database::last_error> to find out why the update failed.
 
 =back
+
+See also core documentation on remove: L<http://dochub.mongodb.org/core/remove>.
 
 =head2 ensure_index ($keys, $options?)
 
@@ -269,6 +282,9 @@ If the update fails and safe is set, this function will return 0.  You should
 check C<MongoDB::Database::last_error> to find out why the update failed.
 
 =back
+
+See also core documentation on indexing: 
+L<http://dochub.mongodb.org/core/indexes>.
 
 =cut
 

@@ -285,6 +285,7 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_STRING: {
     int len = MONGO_32(*((int*)buf->pos));
+    STRLEN len2;
     buf->pos += INT_32;
 
     // this makes a copy of the buffer

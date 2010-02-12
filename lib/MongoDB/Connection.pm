@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-our $VERSION = '0.28_03';
+our $VERSION = '0.28_04';
 
 # ABSTRACT: A connection to a Mongo server
 
@@ -50,6 +50,10 @@ It can also be used to connect to a replication pair of database servers:
     my $connection = MongoDB::Connection->new(left_host => '192.0.2.0', right_host => '192.0.2.1');
 
 If ports aren't given, they default to C<27017>.
+
+=head1 SEE ALSO
+
+Core documentation on connections: L<http://dochub.mongodb.org/core/connections>.
 
 =head1 ATTRIBUTES
 
@@ -520,6 +524,9 @@ Attempts to authenticate for use of the C<$dbname> database with C<$username>
 and C<$password>. Passwords are expected to be cleartext and will be
 automatically hashed before sending over the wire, unless C<$is_digest> is
 true, which will assume you already did the hashing on yourself.
+
+See also the core documentation on authentication: 
+L<http://dochub.mongodb.org/core/authentication>.
 
 =cut
 
