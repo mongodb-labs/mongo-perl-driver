@@ -181,7 +181,7 @@ $coll->drop;
 # ord("\x9F") is 159
 $coll->insert({foo => "\x9F" });
 my $utfblah = $coll->find_one;
-is(ord($utfblah->{'foo'}), 194, 'translate non-utf8 to utf8 char');
+is(ord($utfblah->{'foo'}), 159, 'translate non-utf8 to utf8 char');
 
 $coll->drop;
 $coll->insert({"\x9F" => "hi"});
