@@ -21,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 110;
+    plan tests => 113;
 }
 
 my $db   = $conn->get_database('test_database');
@@ -375,6 +375,23 @@ is($obj->{data}, 3.3);
     $ok = $coll->update({}, {'$inc' => {x => 2}}, {safe => 1});
     is($ok, 1);
     is($db->last_error->{n}, 1);
+}
+
+# save
+{
+    $coll->drop;
+
+    my $x = {"hello" => "world"};
+    $coll->save($x);
+    is($coll->count, 1);
+
+    my $y = $coll->find_one;
+    $y->{"hello"} = 3;
+    $coll->save($y);
+    is($coll->count, 1);
+
+    my $z = $coll->find_one;
+    is($z->{"hello"}, 3);
 }
 
 END {

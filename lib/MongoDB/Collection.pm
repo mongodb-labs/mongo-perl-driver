@@ -31,6 +31,7 @@ Core documentation on collections: L<http://dochub.mongodb.org/core/collections>
 
 use Tie::IxHash;
 use Any::Moose;
+use boolean;
 
 has _database => (
     is       => 'ro',
@@ -298,7 +299,53 @@ sub _query_ns {
     return $self->name;
 }
 
-=head2 count ($query?)
+=head2 save($doc, $options)
+
+    $collection->save({"author" => "joe"});
+    my $post = $collection->find_one;
+
+    $post->{author} = {"name" => "joe", "id" => 123, "phone" => "555-5555"};
+
+    $collection->save($post);
+
+Inserts a document into the database if it does not have an _id field, upserts
+it if it does have an _id field.
+
+=over
+
+=item C<safe => boolean>
+
+If the save fails and safe is set, this function will return 0.  You should 
+check C<MongoDB::Database::last_error> to find out why the update failed.
+
+=back
+
+The return types for this function are a bit of a mess, as it will return the 
+_id if a new document was inserted, 1 if an upsert occurred, and 0 if the safe 
+option was set and an error occurred.
+
+=cut
+
+sub save {
+    my ($self, $doc, $options) = @_;
+
+    if (exists $doc->{"_id"}) {
+
+        if (!$options || !ref $options eq 'HASH') {
+            $options->{'upsert'} = boolean::true;
+        }
+        else {
+            $options = {"upsert" => boolean::true};
+        }
+
+        return $self->update({"_id" => $doc->{"_id"}}, $doc, $options);
+    }
+    else {
+        return $self->insert($doc, $options);
+    }
+}
+
+=head2 count($query?)
 
     my $n_objects = $collection->count({ name => 'Bob' });
 
