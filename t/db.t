@@ -43,7 +43,7 @@ my $hello = $db->eval('function(x) { return "hello, "+x; }', ["world"]);
 is('hello, world', $hello, 'db eval');
 
 my $err = $db->eval('function(x) { xreturn "hello, "+x; }', ["world"]);
-is('compile failed: JS Error: SyntaxError: missing ; before statement nofile_b:0', $err, 'js err');
+ok($err =~ /compile failed: JS Error/, 'js err');
 
 # tie
 {
