@@ -397,14 +397,14 @@ elem_to_sv (int type, buffer *buf)
     }
     buf->pos++;
 
-    /* 5.10 */
-#if PERL_REVISION==5 && PERL_VERSION==10
-    re = re_compile(pattern, flags);
-#else
+#if PERL_REVISION==5 && PERL_VERSION<=8
     /* 5.8 */
     pm.op_pmdynflags = flags;
     pat = SvPV(pattern, len);
     re = pregcomp(pat, pat + len, &pm);
+#else
+    /* 5.10 and beyond */
+    re = re_compile(pattern, flags);
 #endif
      // eo version-dependent code
 
@@ -896,7 +896,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
 
                 set_type(buf, BSON_REGEX);
                 perl_mongo_serialize_key(buf, key, ids);
-                perl_mongo_serialize_string(buf, re->precomp, re->prelen);
+                perl_mongo_serialize_string(buf, RX_PRECOMP(re), RX_PRELEN(re));
 
                 string = SvPV(sv, string_length);
                 
