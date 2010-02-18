@@ -37,6 +37,8 @@ typedef __int64 int64_t;
 #else
 #include <stdint.h>
 #endif // _MSC_VER
+#define RX_PRECOMP(re) (re->precomp)
+#define RX_PRELEN(re) (re->prelen)
 #endif // WIN32
 
 // define regex macros for Perl 5.8
