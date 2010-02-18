@@ -39,6 +39,12 @@ typedef __int64 int64_t;
 #endif // _MSC_VER
 #endif // WIN32
 
+// define regex macros for Perl 5.8
+#if PERL_REVISION==5 && PERL_VERSION<=8
+#define RX_PRECOMP(re) (re->precomp)
+#define RX_PRELEN(re) (re->prelen)
+#endif
+
 #if MONGO_BIG_ENDIAN
 #define BYTE1_32(b) ((b & 0xff000000) >> 24)
 #define BYTE2_32(b) ((b & 0x00ff0000) >> 8)
