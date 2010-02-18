@@ -274,12 +274,15 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_DOUBLE: {
-    void *ptr;
-    int64_t i = *(int64_t*)buf->pos;
-    i = MONGO_64(i);
-    ptr = &i;
+    double d = *(double*)buf->pos;
+    int64_t i, *i_p;
+    i_p = &i;
 
-    value = newSVnv(*(double*)ptr);
+    memcpy(i_p, &d, DOUBLE_64);
+    i = MONGO_64(i);
+    memcpy(&d, i_p, DOUBLE_64);
+ 
+    value = newSVnv(d);
     buf->pos += DOUBLE_64;
     break;
   }
@@ -564,14 +567,16 @@ void perl_mongo_serialize_long(buffer *buf, int64_t num) {
 }
 
 void perl_mongo_serialize_double(buffer *buf, double num) {
-  void *ptr = &num;
-  int64_t i = MONGO_64(*(int64_t*)ptr);
-
+  int64_t dest, *dest_p;
+  dest_p = &dest;
+  memcpy(dest_p, &num, 8);
+  dest = MONGO_64(dest);
+ 
   if(BUF_REMAINING <= DOUBLE_64) {
     perl_mongo_resize_buf(buf, DOUBLE_64);
   }
-
-  memcpy(buf->pos, &i, DOUBLE_64);
+ 
+  memcpy(buf->pos, dest_p, DOUBLE_64);
   buf->pos += DOUBLE_64;
 }
 
