@@ -154,7 +154,7 @@ collection name ("foo").
 
 =item C<$db->insert($name, $doc)>
 
-Calls L<MongoDB::Connection's implementation of C<insert>, passing along the
+Calls L<MongoDB::Connection>'s implementation of C<insert>, passing along the
 fully qualified namespace ("foo.bar").
 
 =item C<$connection->insert($ns, $doc)>
