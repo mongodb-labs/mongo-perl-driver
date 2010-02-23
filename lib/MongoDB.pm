@@ -127,6 +127,51 @@ Connecting is expensive, so try not to open superfluous connections.
 There is no way to explicitly disconnect from the database.  When C<$conn> goes
 out of scope, the connection will automatically be closed and cleaned up.
 
+=head2 INTERNALS
+
+=head3 Class Hierarchy
+
+The classes are arranged in a heirarchy: you cannot create a 
+L<MongoDB::Collection> instance before you create L<MongoDB::Database> instance,
+for example.  The full heirarchy is:
+
+    MongoDB::Connection -> MongoDB::Database -> MongoDB::Collection
+
+This is because L<MongoDB::Database> has a field that is a 
+L<MongoDB::Connection> and L<MongoDB::Collection> has a L<MongoDB::Database> 
+field.
+
+When you call a L<MongoDB::Collection> function, it "trickles up" the chain of
+classes.  For example, say we're inserting C<$doc> into the collection C<bar> in
+the database C<foo>.  The calls made look like:
+
+=over
+
+=item C<$collection->insert($doc)>
+
+Calls L<MongoDB::Database>'s implementation of C<insert>, passing along the
+collection name ("foo").
+
+=item C<$db->insert($name, $doc)>
+
+Calls L<MongoDB::Connection's implementation of C<insert>, passing along the
+fully qualified namespace ("foo.bar").
+
+=item C<$connection->insert($ns, $doc)>
+
+L<MongoDB::Connection> does the actual work and sends a message to the database.
+
+=back
+
+=head3 Error Reporting
+
+If something goes wrong, the database will send back an error message (unless 
+something went really wrong) and the command being called will return 0.  To see
+the error message, call C<MongoDB::Database::last_error>.  This will display the
+error message, if there is one.  If there is no error message, this function 
+will check with the database (so that you can see if an operation succeeded, 
+even if you didn't run it with the safe option).
+
 =head1 FUNCTIONS
 
 These functions should generally not be used.  They are very low level and have 
