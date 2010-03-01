@@ -838,10 +838,16 @@ static void
 append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
 {
     if (!SvOK(sv)) {
+      if (SvGMAGICAL(sv)) {
+        mg_get(sv);
+      }
+      else {
         set_type(buf, BSON_NULL);
         perl_mongo_serialize_key(buf, key, ids);
         return;
+      }
     }
+
     if (SvROK (sv)) {
         if (sv_isobject (sv)) {
             /* OIDs */
@@ -963,7 +969,8 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
             }
             /* int */
             case SVt_IV:
-            case SVt_PVIV: {
+            case SVt_PVIV: 
+            case SVt_PVLV: {
               if (SvIOK(sv)) {
                 set_type(buf, BSON_INT);
                 perl_mongo_serialize_key(buf, key, ids);
@@ -974,7 +981,6 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
 	    /* string */
             case SVt_PV:
             case SVt_PVMG:
-                /* Do we need SVt_PVLV here, too? */
                 if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
                     set_type(buf, BSON_BINARY);
                     perl_mongo_serialize_key(buf, key, ids);

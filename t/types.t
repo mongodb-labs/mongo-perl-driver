@@ -20,7 +20,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 26;
+    plan tests => 28;
 }
 
 my $db = $conn->get_database('x');
@@ -118,6 +118,22 @@ my $x = $coll->find_one;
 
 isa_ok($x->{min}, 'MongoDB::MinKey');
 isa_ok($x->{max}, 'MongoDB::MaxKey');
+
+# tie::ixhash
+{
+    $coll->remove;
+
+    my %test;
+    tie %test, 'Tie::IxHash'; 
+    $test{one} = "on"; 
+    $test{two} = 2; 
+    
+    $coll->insert(\%test);
+
+    my $doc = $coll->find_one;
+    is($doc->{'one'}, 'on');
+    is($doc->{'two'}, 2);
+}
 
 END {
     if ($db) {
