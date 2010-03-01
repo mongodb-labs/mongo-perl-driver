@@ -40,14 +40,11 @@ int mongo_link_connect(mongo_link *link) {
 }
 
 static int do_connect(char *host, int port) {
-  int sock;
+  int sock, status, connected = 0;
   struct sockaddr_in addr, check_connect;
   fd_set rset, wset;
 
   struct timeval timeout;
-
-  // start unconnected
-  int connected = 0;
 
 #ifdef WIN32
   WORD version;
@@ -104,7 +101,8 @@ static int do_connect(char *host, int port) {
   FD_SET(sock, &wset);
 
   // connect
-  if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+  status = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
+  if (status == -1) {
 #ifdef WIN32
     errno = WSAGetLastError();
     if (errno != WSAEINPROGRESS &&
@@ -126,6 +124,9 @@ static int do_connect(char *host, int port) {
     if (connected == -1) {
       return -1;
     }
+  }
+  else if (status == 0) {
+    connected = 1;
   }
   
 // reset flags
