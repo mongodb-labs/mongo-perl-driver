@@ -74,7 +74,6 @@ perl_mongo_call_method (SV *self, const char *method, int num, ...)
     SV *ret;
     I32 count;
     va_list args;
-    int save_num = num;
 
     ENTER;
     SAVETMPS;
@@ -117,7 +116,6 @@ perl_mongo_call_function (const char *func, int num, ...)
     SV *ret;
     I32 count;
     va_list args;
-    int save_num = num;
 
     ENTER;
     SAVETMPS;
@@ -288,7 +286,6 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_STRING: {
     int len = MONGO_32(*((int*)buf->pos));
-    STRLEN len2;
     buf->pos += INT_32;
 
     // this makes a copy of the buffer
@@ -370,10 +367,12 @@ elem_to_sv (int type, buffer *buf)
     SV *pattern, *regex, *regex_ref;
     HV *stash;
     U32 flags = 0;
+    REGEXP *re;
+#if PERL_REVISION==5 && PERL_VERSION<=8
     PMOP pm;
     STRLEN len;
     char *pat;
-    REGEXP *re;
+#endif
 
     pattern = sv_2mortal(newSVpv(buf->pos, 0));
     buf->pos += strlen(buf->pos)+1;
@@ -897,7 +896,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
               MAGIC *remg;
 
-              if (remg = mg_find((SV*)SvRV(sv), PERL_MAGIC_qr)) {
+              if ((remg = mg_find((SV*)SvRV(sv), PERL_MAGIC_qr)) != 0) {
 		/* regular expression */
                 int f=0, i=0;
                 STRLEN string_length;
