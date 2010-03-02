@@ -352,7 +352,12 @@ is($obj->{data}, 3.3);
     $coll->insert({_id => 1}, {safe => 1});
     $ok = $coll->insert({_id => 1}, {safe => 1});
     is($ok, 0);
-    is($db->last_error->{code}, 11000);
+
+  SKIP: {
+      skip "the version of the db you're running doesn't give error codes, you may wish to consider upgrading", 1 if !exists $db->last_error->{code};
+
+      is($db->last_error->{code}, 11000);
+    }
 }
 
 # safe remove/update
