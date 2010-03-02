@@ -949,6 +949,12 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
                     perl_mongo_serialize_key(buf, key, ids);
                     av_to_bson (buf, (AV *)SvRV (sv));
                     break;
+                case SVt_PV:
+                    /* binary */
+                    set_type(buf, BSON_BINARY);
+                    perl_mongo_serialize_key(buf, key, ids);
+                    perl_mongo_serialize_bindata(buf, SvRV(sv));
+                    break;
                 default:
                     sv_dump(SvRV(sv));
                     croak ("type (ref) unhandled");

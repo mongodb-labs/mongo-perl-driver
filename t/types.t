@@ -20,7 +20,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 28;
+    plan tests => 29;
 }
 
 my $db = $conn->get_database('x');
@@ -133,6 +133,17 @@ isa_ok($x->{max}, 'MongoDB::MaxKey');
     my $doc = $coll->find_one;
     is($doc->{'one'}, 'on');
     is($doc->{'two'}, 2);
+}
+
+# binary
+{
+    $coll->remove;
+
+    my $invalid = "\xFE";
+    $coll->insert({"bin" => \$invalid});
+
+    my $one = $coll->find_one;
+    is($one->{'bin'}, "\xFE");
 }
 
 END {

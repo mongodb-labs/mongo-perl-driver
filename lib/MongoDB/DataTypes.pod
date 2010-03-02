@@ -87,6 +87,19 @@ To create a MongoDB::OID from an existing 24-character hexidecimal string:
 
     my $oid = MongoDB::OID->new("123456789012345678901234");
 
+=head3 Binary Data
+
+By default, all database strings are UTF8.  To save images, binaries, and other
+non-UTF8 data, you can pass the string as a reference to the database.  For 
+example:
+
+    # non-utf8 string
+    my $string = "\xFF\xFE\xFF";
+
+    $collection->insert({"photo" => \$string});
+
+This will save the variable as binary data, bypassing the UTF8 check.
+
 =head3 MongoDB::MinKey
 
 MongoDB::MinKey is "less than" any other value of any type.  This can be useful
