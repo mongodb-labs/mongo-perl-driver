@@ -19,32 +19,35 @@
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(int socket, void *dest, int len);
-static int do_connect(char *host, int port);
+static int do_connect(char *host, int port, int timeout);
 static int check_connection(mongo_link *link);
 inline void set_disconnected(mongo_link *link);
 
 int mongo_link_connect(mongo_link *link) {
   if (link->paired) {
-    link->server.pair.left_socket = do_connect(link->server.pair.left_host, link->server.pair.left_port);
+    link->server.pair.left_socket = do_connect(link->server.pair.left_host, link->server.pair.left_port, link->timeout);
     link->server.pair.left_connected = (link->server.pair.left_socket != -1);
 
-    link->server.pair.right_socket = do_connect(link->server.pair.right_host, link->server.pair.right_port);
+    link->server.pair.right_socket = do_connect(link->server.pair.right_host, link->server.pair.right_port, link->timeout);
     link->server.pair.right_connected = (link->server.pair.right_socket != -1);
 
     return link->server.pair.left_connected || link->server.pair.right_connected;
   }
 
-  link->server.single.socket = do_connect(link->server.single.host, link->server.single.port);
+  link->server.single.socket = do_connect(link->server.single.host, link->server.single.port, link->timeout);
   link->server.single.connected = (link->server.single.socket != -1);
   return link->server.single.connected;
 }
 
-static int do_connect(char *host, int port) {
+static int do_connect(char *host, int port, int timeout) {
   int sock, status, connected = 0;
   struct sockaddr_in addr, check_connect;
   fd_set rset, wset;
 
-  struct timeval timeout;
+  // timeout
+  struct timeval timeout_struct;
+  timeout_struct.tv_sec = timeout / 1000;
+  timeout_struct.tv_usec = (timeout % 1000) * 1000;
 
 #ifdef WIN32
   WORD version;
@@ -76,10 +79,6 @@ static int do_connect(char *host, int port) {
     return -1;
   }
 #endif
-
-  // timeout
-  timeout.tv_sec = 20;
-  timeout.tv_usec = 0;
 
   // get addresses
   if (!mongo_link_sockaddr(&addr, host, port)) {
@@ -114,7 +113,7 @@ static int do_connect(char *host, int port) {
       return -1;
     }
 
-    if (!select(sock+1, &rset, &wset, 0, &timeout)) {
+    if (!select(sock+1, &rset, &wset, 0, &timeout_struct)) {
       return -1;
     }
 

@@ -103,6 +103,7 @@ typedef struct {
   int master;
   int ts;
   int auto_reconnect;
+  int timeout;
   union {
     struct {
       char *host;

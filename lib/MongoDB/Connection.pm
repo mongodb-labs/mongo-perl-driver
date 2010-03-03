@@ -23,6 +23,7 @@ use MongoDB;
 use MongoDB::Cursor;
 
 use Any::Moose;
+use Any::Moose 'Util::TypeConstraints';
 use Digest::MD5;
 use Tie::IxHash;
 use boolean;
@@ -164,6 +165,18 @@ has auto_connect => (
     default  => 1,
 );
 
+=head2 timeout
+
+Connection timeout in milliseconds. Defaults to C<20000>.
+
+=cut
+
+has timeout => (
+    is       => 'ro',
+    isa      => subtype ( 'Int' => where { $_ > 0 } => message { "$_ is not a positive Integer" } ),
+    required => 1,
+    default  => 20000,
+);
 
 has _last_error => (
     is => 'rw',

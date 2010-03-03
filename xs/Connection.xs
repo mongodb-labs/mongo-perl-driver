@@ -31,7 +31,7 @@ connect (self)
                 SV *host_sv = 0, *port_sv = 0, 
                     *left_host_sv = 0, *right_host_sv = 0,
                     *left_port_sv = 0, *right_port_sv = 0,
-                    *auto_reconnect_sv = 0;
+                    *auto_reconnect_sv = 0, *timeout_sv = 0;
 		mongo_link *link;
 	INIT:
                 left_host_sv = perl_mongo_call_reader (ST(0), "left_host");
@@ -48,6 +48,7 @@ connect (self)
                 }
 
                 auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
+                timeout_sv = perl_mongo_call_reader (ST(0), "timeout");
 	CODE:
                 New(0, link, 1, mongo_link);
 		perl_mongo_attach_ptr_to_instance(self, link);
@@ -56,6 +57,7 @@ connect (self)
                 link->master = -1;
                 link->ts = time(0);
                 link->auto_reconnect = SvIV(auto_reconnect_sv);
+                link->timeout = SvIV(timeout_sv);
                 if (paired) {
                   int llen = strlen(SvPV_nolen(left_host_sv));
                   int rlen = strlen(SvPV_nolen(right_host_sv));
@@ -98,6 +100,7 @@ connect (self)
                   SvREFCNT_dec (port_sv);
                 }
                 SvREFCNT_dec (auto_reconnect_sv);
+                SvREFCNT_dec (timeout_sv);
 
 
 int
