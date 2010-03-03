@@ -35,6 +35,11 @@ SKIP: {
     
     is($conn->host, 'localhost', 'host default value');
     is($conn->port, '27017',     'port default value');
+
+    # just make sure a couple timeouts work
+    my $to = MongoDB::Connection->new('timeout' => 1);
+    $to = MongoDB::Connection->new('timeout' => 123);
+    $to = MongoDB::Connection->new('timeout' => 2000000);
 }
 
 my $db = $conn->get_database('test_database');

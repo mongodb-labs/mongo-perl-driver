@@ -1,3 +1,7 @@
+0.30
+
+  - Added connection timeout option (Othello Maurer)
+
 0.29 01 March 2010
 
   - Added safe options for remove, update, and ensure_index

@@ -15,7 +15,7 @@
 #
 
 package MongoDB::BSON;
-our $VERSION = '0.29';
+our $VERSION = '0.29_01';
 
 # ABSTRACT: Tools for serializing and deserializing data in BSON form
 use Any::Moose;
