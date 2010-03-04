@@ -128,10 +128,13 @@ sub to_index_string {
         { sort_by  => { age => 1 } },
     );
 
+    my $cursor = $collection->query( )->fields( {f1 => 1} );
+
 Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
 C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
 even number of elements).  A hash reference of attributes may be passed as the 
-second argument.
+second argument. The set of fields returned can be limited through the use of
+fields() method on the resulting L<MongoDB::Cursor> object.
 
 Valid query attributes are:
 
