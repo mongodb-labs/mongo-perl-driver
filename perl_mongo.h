@@ -21,7 +21,6 @@
 
 #include "EXTERN.h"
 #include "perl.h"
-#include "regexp.h"
 #include "XSUB.h"
 
 
@@ -38,14 +37,12 @@ typedef __int64 int64_t;
 #else
 #include <stdint.h>
 #endif // _MSC_VER
-#define RX_PRECOMP(re) (re->precomp)
-#define RX_PRELEN(re) (re->prelen)
 #endif // WIN32
 
 // define regex macros for Perl 5.8
-#if PERL_REVISION==5 && PERL_VERSION<=8
-#define RX_PRECOMP(re) (re->precomp)
-#define RX_PRELEN(re) (re->prelen)
+#ifndef RX_PRECOMP
+#define RX_PRECOMP(re) ((re)->precomp)
+#define RX_PRELEN(re) ((re)->prelen)
 #endif
 
 #if MONGO_BIG_ENDIAN

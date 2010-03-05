@@ -36,4 +36,4 @@ requires:
   perl: 5.8.0
 resources:
   repository: git://github.com/mongodb/mongo-perl-driver.git
-version: 0.28_04
+version: 0.29_01
