@@ -860,6 +860,54 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
 
                 SvREFCNT_dec (attr);
             }
+            /* 64-bit integers */
+            else if (sv_isa(sv, "Math::BigInt")) {
+              int64_t big = 0;
+              int offset = 1, i = 0, length = 0, sign = 1;
+              SV **av_ref, **sign_ref;
+              AV *av;
+ 
+              set_type(buf, BSON_LONG);
+              perl_mongo_serialize_key(buf, key, ids);
+
+              // get sign
+              sign_ref = hv_fetch((HV*)SvRV(sv), "sign", strlen("sign"), 0);
+              if (!sign_ref) {
+                sv_dump( sv );
+                croak( "couldn't get BigInt sign" );
+              }
+              else if ( SvPOK(*sign_ref) && strcmp(SvPV_nolen( *sign_ref ), "-") == 0 ) {
+                sign = -1;
+              }
+
+              // get value
+              av_ref = hv_fetch((HV*)SvRV(sv), "value", strlen("value"), 0);
+              if (!av_ref) {
+                sv_dump( sv );
+                croak( "couldn't get BigInt value" );
+              }
+
+              av = (AV*)SvRV(*av_ref);
+
+              if ( av_len( av ) > 3 ) {
+                sv_dump( sv );
+                croak( "BigInt is too large" );
+              }
+
+              for (i = 0; i <= av_len( av ); i++) {
+                SV **val;
+                
+                if ( !(val = av_fetch (av, i, 0)) || !SvIOK(*val) ) {
+                  croak ("failed to fetch BigNum element");
+                }
+                
+                big += ((int64_t)SvIV(*val)) * offset; 
+                length += strlen(SvPV_nolen(*val));
+                offset = pow(10, length);
+              }
+
+              perl_mongo_serialize_long(buf, big*sign);
+            }
 	    /* Tie::IxHash */
             else if (sv_isa(sv, "Tie::IxHash")) {
               set_type(buf, BSON_OBJECT);

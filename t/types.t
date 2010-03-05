@@ -20,7 +20,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 29;
+    plan tests => 31;
 }
 
 my $db = $conn->get_database('x');
@@ -144,6 +144,25 @@ isa_ok($x->{max}, 'MongoDB::MaxKey');
 
     my $one = $coll->find_one;
     is($one->{'bin'}, "\xFE");
+}
+
+# 64-bit ints
+{
+    $coll->remove;
+
+    my $x = 2 ** 34;
+    $coll->save({x => $x});
+    my $result = $coll->find_one;
+
+    is($result->{'x'}, 17179869184);
+
+    $coll->remove;
+
+    $x = (2 ** 34) * -1;
+    $coll->save({x => $x});
+    $result = $coll->find_one;
+
+    is($result->{'x'}, -17179869184);
 }
 
 END {
