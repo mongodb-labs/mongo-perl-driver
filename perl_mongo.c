@@ -897,11 +897,18 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
               for (i = 0; i <= av_len( av ); i++) {
                 SV **val;
                 
-                if ( !(val = av_fetch (av, i, 0)) || !SvIOK(*val) ) {
-                  croak ("failed to fetch BigNum element");
+                if ( !(val = av_fetch (av, i, 0)) || !(SvPOK(*val) || SvIOK(*val)) ) {
+                  sv_dump( sv );
+                  croak ("failed to fetch BigInt element");
                 }
-                
-                big += ((int64_t)SvIV(*val)) * offset; 
+
+                if ( SvIOK(*val) ) {
+                  big += ((int64_t)SvIV(*val)) * offset;
+                }
+                else {
+                  big += ((int64_t)atoi(SvPV_nolen(*val))) * offset;
+                }
+
                 length += strlen(SvPV_nolen(*val));
                 offset = pow(10, length);
               }
