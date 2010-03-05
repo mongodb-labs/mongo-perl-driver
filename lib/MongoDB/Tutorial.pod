@@ -254,6 +254,18 @@ recognize the command if they are not ordered command name first. Thus, if you
 are running a database command, you should probably use L<Tie::IxHash> instead of a
 normal hash (normal hashes are not ordered).
 
+For example, you can use a database command to create a capped collection like
+so:
+
+    my $cmd = Tie::IxHash->new("create" => "posts", 
+        "capped" => boolean::true, 
+        "size" => 10240, 
+        "max" => 100);
+
+    $db->run_command($cmd);
+
+This will create a capped collection called "posts" in the current database.  It
+has a maximum size of 10240 bytes and can contain up to 100 documents.
 
 =head1 NEXT STEPS
 
