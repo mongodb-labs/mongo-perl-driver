@@ -505,7 +505,7 @@ sub find_master {
 
     # check the left host
     eval {
-        $left = MongoDB::Connection->new("host" => $self->left_host, "port" => $self->left_port);
+        $left = MongoDB::Connection->new("host" => $self->left_host, "port" => $self->left_port, timeout => $self->timeout);
     };
     if (!($@ =~ m/couldn't connect to server/)) {
         $master = $left->find_one('admin.$cmd', {ismaster => 1});
@@ -516,7 +516,7 @@ sub find_master {
 
     # check the right_host
     eval {
-        $right = MongoDB::Connection->new("host" => $self->right_host, "port" => $self->right_port);
+        $right = MongoDB::Connection->new("host" => $self->right_host, "port" => $self->right_port, timeout => $self->timeout);
     };
     if (!($@ =~ m/couldn't connect to server/)) {
         $master = $right->find_one('admin.$cmd', {ismaster => 1});
