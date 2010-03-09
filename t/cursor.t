@@ -158,7 +158,6 @@ is($r1->{'sn'}, $r2->{'sn'}, 'reset');
 my $exp = $cursor->explain;
 is($exp->{'n'}, 501, 'explain');
 is($exp->{'cursor'}, 'BasicCursor');
-ok(exists $exp->{'endKey'});
 
 $cursor->reset;
 $exp = $cursor->limit(20)->explain;
