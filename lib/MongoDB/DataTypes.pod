@@ -68,6 +68,21 @@ where the name field exists):
 
     my $cursor = $collection->query({"name" => {'$exists' => boolean::true}});
 
+=head2 Numbers
+
+By default, numbers with a decimal point will be saved as doubles (64-bit) and
+numbers without decimal points will be saved as 32-bit integers.  To save a 
+number as a 64-bit integer, use bigint:
+
+    use bigint;
+
+    $collection->insert({"user_id" => 28347197234178})
+
+The driver will die if you try to insert a number beyond the signed 64-bit 
+range: -9,223,372,036,854,775,808 to +9,223,372,036,854,775,807.
+
+Numbers that are saved as 64-bit integers will be decoded as doubles.
+
 =head2 Other
 
 There are a few Mongo-specific data types.
