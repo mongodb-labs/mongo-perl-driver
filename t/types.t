@@ -20,7 +20,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 32;
+    plan tests => 34;
 }
 
 my $db = $conn->get_database('x');
@@ -170,6 +170,15 @@ isa_ok($x->{max}, 'MongoDB::MaxKey');
     $coll->save({x => 2712631400});
     $result = $coll->find_one;
     is($result->{'x'}, 2712631400);
+
+    my $aok = 1;
+    eval {
+        my $ok = $coll->save({x => 9834590149023841902384137418571984503});
+        my $aok = 0;
+    };
+
+    ok($@ =~ m/BigInt is too large/);
+    ok($aok);
 }
 
 END {

@@ -873,7 +873,6 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
               // get sign
               sign_ref = hv_fetch((HV*)SvRV(sv), "sign", strlen("sign"), 0);
               if (!sign_ref) {
-                sv_dump( sv );
                 croak( "couldn't get BigInt sign" );
               }
               else if ( SvPOK(*sign_ref) && strcmp(SvPV_nolen( *sign_ref ), "-") == 0 ) {
@@ -883,14 +882,12 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
               // get value
               av_ref = hv_fetch((HV*)SvRV(sv), "value", strlen("value"), 0);
               if (!av_ref) {
-                sv_dump( sv );
                 croak( "couldn't get BigInt value" );
               }
 
               av = (AV*)SvRV(*av_ref);
 
               if ( av_len( av ) > 3 ) {
-                sv_dump( sv );
                 croak( "BigInt is too large" );
               }
 
