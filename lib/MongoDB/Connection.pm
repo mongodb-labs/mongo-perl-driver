@@ -173,7 +173,7 @@ Connection timeout in milliseconds. Defaults to C<20000>.
 
 has timeout => (
     is       => 'ro',
-    isa      => subtype ( 'Int' => where { $_ > 0 } => message { "$_ is not a positive Integer" } ),
+    isa      => subtype( 'Natural' => as 'Int' => where { $_ > 0 } =>  message {"$_ is not a positive Integer" } ),
     required => 1,
     default  => 20000,
 );
