@@ -1,5 +1,7 @@
 0.30
 
+  - Support BigInt
+  - On 64-bit machines, support 64-bit nums w/out BigInt (Ryan Olson)
   - Added connection timeout option (Othello Maurer)
   - Added clarifying docs on fields (Josh Rabinowitz)
 
