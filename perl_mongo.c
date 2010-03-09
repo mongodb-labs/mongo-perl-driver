@@ -1036,7 +1036,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
 #if defined(USE_64_BIT_INT)
                 set_type(buf, BSON_LONG);
                 perl_mongo_serialize_key(buf, key, ids);
-                perl_mongo_serialize_int(buf, (int64_t)SvIV(sv));
+                perl_mongo_serialize_long(buf, (int64_t)SvIV(sv));
 #else
                 set_type(buf, BSON_INT);
                 perl_mongo_serialize_key(buf, key, ids);
