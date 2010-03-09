@@ -20,7 +20,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 34;
+    plan tests => 35;
 }
 
 my $db = $conn->get_database('x');
@@ -179,6 +179,18 @@ isa_ok($x->{max}, 'MongoDB::MaxKey');
 
     ok($@ =~ m/BigInt is too large/);
     ok($aok);
+
+    $coll->remove;
+}
+
+SKIP: {
+    use Config;
+    skip "Skipping 64 bit native SV", 1
+        if ( !$Config{use64bitint} );
+
+    $coll->update({ x => 1 }, { '$inc' => { 'y' => 19401194714 } }, { 'upsert' => 1 });
+    my $result = $coll->find_one;
+    is($result->{'y'},19401194714,'64 bit ints without Math::BigInt');
 }
 
 END {

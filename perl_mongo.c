@@ -342,7 +342,11 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_LONG: {
+#if defined(USE_64_BIT_INT)
+    value = newSViv(MONGO_64(*((int64_t*)buf->pos)));
+#else
     value = newSVnv((double)MONGO_64(*((int64_t*)buf->pos)));
+#endif
     buf->pos += INT_64;
     break;
   }
@@ -1029,11 +1033,18 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
             case SVt_PVIV: 
             case SVt_PVLV: {
               if (SvIOK(sv)) {
+#if defined(USE_64_BIT_INT)
+                set_type(buf, BSON_LONG);
+                perl_mongo_serialize_key(buf, key, ids);
+                perl_mongo_serialize_int(buf, (int64_t)SvIV(sv));
+#else
                 set_type(buf, BSON_INT);
                 perl_mongo_serialize_key(buf, key, ids);
-                perl_mongo_serialize_int(buf, (int)SvIV (sv));
+                perl_mongo_serialize_int(buf, (int)SvIV(sv));
+#endif
                 break;
               }
+
             }
 	    /* string */
             case SVt_PV:
