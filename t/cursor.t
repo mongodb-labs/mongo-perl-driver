@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 57;
+    plan tests => 56;
 }
 
 my $db = $conn->get_database('test_database');
