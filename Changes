@@ -1,4 +1,4 @@
-0.30
+0.30 10 March 2009
 
   - Support BigInt
   - On 64-bit machines, support 64-bit nums w/out BigInt (Ryan Olson)
