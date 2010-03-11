@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-our $VERSION = '0.30';
+our $VERSION = '0.30_01';
 
 # ABSTRACT: A connection to a Mongo server
 
