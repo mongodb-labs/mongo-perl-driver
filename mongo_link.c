@@ -46,8 +46,6 @@ static int do_connect(char *host, int port, int timeout) {
 
   // timeout
   struct timeval timeout_struct;
-  timeout_struct.tv_sec = timeout / 1000;
-  timeout_struct.tv_usec = (timeout % 1000) * 1000;
 
 #ifdef WIN32
   WORD version;
@@ -113,6 +111,8 @@ static int do_connect(char *host, int port, int timeout) {
       return -1;
     }
 
+    timeout_struct.tv_sec = timeout / 1000;
+    timeout_struct.tv_usec = (timeout % 1000) * 1000;
     if (!select(sock+1, &rset, &wset, 0, &timeout_struct)) {
       return -1;
     }
