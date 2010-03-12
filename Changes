@@ -1,3 +1,7 @@
+0.31
+
+  - C89 fix (Taro Nishino)
+
 0.30 10 March 2009
 
   - Support BigInt

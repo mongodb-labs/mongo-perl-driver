@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-our $VERSION = '0.30_01';
+our $VERSION = '0.30_02';
 
 # ABSTRACT: A connection to a Mongo server
 
@@ -173,7 +173,7 @@ Connection timeout in milliseconds. Defaults to C<20000>.
 
 has timeout => (
     is       => 'ro',
-    isa      => subtype( 'Natural' => as 'Int' => where { $_ > 0 } =>  message {"$_ is not a positive Integer" } ),
+    isa      => 'Int',
     required => 1,
     default  => 20000,
 );

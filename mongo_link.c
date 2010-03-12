@@ -111,8 +111,8 @@ static int do_connect(char *host, int port, int timeout) {
       return -1;
     }
 
-    timeout_struct.tv_sec = timeout / 1000;
-    timeout_struct.tv_usec = (timeout % 1000) * 1000;
+    timeout_struct.tv_sec = timeout > 0 ? (timeout / 1000) : 20;
+    timeout_struct.tv_usec = timeout > 0 ? ((timeout % 1000) * 1000) : 0;
     if (!select(sock+1, &rset, &wset, 0, &timeout_struct)) {
       return -1;
     }
