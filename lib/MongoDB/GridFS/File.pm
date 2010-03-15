@@ -15,7 +15,7 @@
 #
 
 package MongoDB::GridFS::File;
-our $VERSION = '0.30_02';
+our $VERSION = '0.30_03';
 
 # ABSTRACT: A Mongo GridFS file
 
