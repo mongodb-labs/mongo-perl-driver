@@ -167,7 +167,6 @@ int mongo_link_say(SV *link_sv, buffer *buf) {
   mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
   if (!check_connection(link)) {
-    croak("can't get db response, not connected");
     return -1;
   }
 
