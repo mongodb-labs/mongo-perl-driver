@@ -866,8 +866,8 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
             }
             /* 64-bit integers */
             else if (sv_isa(sv, "Math::BigInt")) {
-              int64_t big = 0;
-              int offset = 1, i = 0, length = 0, sign = 1;
+              int64_t big = 0, offset = 1;
+              int i = 0, length = 0, sign = 1;
               SV **av_ref, **sign_ref;
               AV *av;
  
@@ -896,6 +896,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
               }
 
               for (i = 0; i <= av_len( av ); i++) {
+                int j = 0;
                 SV **val;
                 
                 if ( !(val = av_fetch (av, i, 0)) || !(SvPOK(*val) || SvIOK(*val)) ) {
@@ -904,14 +905,27 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
                 }
 
                 if ( SvIOK(*val) ) {
-                  big += ((int64_t)SvIV(*val)) * offset;
+                  int64_t temp = SvIV(*val);
+
+                  while (temp > 0) {
+                    temp = temp / 10;
+                    length++;
+                  }
+
+                  temp = (int64_t)(((int64_t)SvIV(*val)) * (int64_t)offset);
+                  big = big + temp;
                 }
                 else {
+                  STRLEN len;
+                  char *str = SvPV(*val, len);
+
+                  length += len;
                   big += ((int64_t)atoi(SvPV_nolen(*val))) * offset;
                 }
 
-                length += strlen(SvPV_nolen(*val));
-                offset = pow(10, length);
+                for (j = 0; j < length; j++) {
+                  offset *= 10;
+                }
               }
 
               perl_mongo_serialize_long(buf, big*sign);
