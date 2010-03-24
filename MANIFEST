@@ -12,6 +12,8 @@ lib/MongoDB/GridFS/File.pm
 lib/MongoDB/OID.pm
 lib/MongoDB/Tutorial.pod
 lib/MongoDB/DataTypes.pod
+lib/MongoDB/Examples.pod
+lib/MongoDB/Indexing.pod
 Makefile.PL
 MANIFEST			This list of files
 META.yml

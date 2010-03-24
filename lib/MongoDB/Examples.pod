@@ -1,0 +1,69 @@
+
+=pod
+
+=head1 DATABASE COMMANDS
+
+=head2 MapReduce
+
+MapReduce is a powerful aggregation tool.  (For traditional queries, you should
+use C<MongoDB::Collection::query>.)  
+
+This example counts the number of occurences of each tag in a collection.  Each
+document contains a "tags" array that contains zero or more strings.
+
+    my $map = <<MAP;
+    function() {
+        this.tags.forEach(function(tag) {
+            emit(tag, {count : 1});
+        });
+    }
+    MAP
+    
+    my $reduce = <<REDUCE;
+    function(prev, current) {
+        result = {count : 0};
+        current.forEach(function(item) {
+            result.count += item.count;
+        });
+        return result;
+    }
+    REDUCE
+    
+    my $cmd = Tie::IxHash->new("mapreduce" => "foo",
+        "map" => $map,
+        "reduce" => $reduce);
+    
+    my $result = $db->run_command($cmd);
+
+See the MongoDB documentation on MapReduce for more information
+(L<http://dochub.mongodb.org/core/mapreduce>).
+
+=head1 UPDATING
+
+=head2 Positional Operator
+
+In MongoDB 1.3.4 and later, you can use positional operator, C<$>, to update 
+elements of an array.  For instance, suppose you have an array of user 
+information and you want to update a user's name.
+
+A sample document in JavaScript:
+
+    {
+        "users" : [
+            {
+                "name" : "bill",
+                "age" : 60
+            },
+            {
+                "name" : "fred",
+                "age" : 29
+            },
+        ]
+    }
+
+The update:
+
+    $coll->update({"users.name" => "fred"}, {'users.$.name' => "george"});
+
+This will update the array so that the element containing C<"name" => "fred"> 
+now has C<"name" => "george">.
