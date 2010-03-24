@@ -1,0 +1,120 @@
+
+=pod
+
+=head1 CREATING AN INDEX
+
+Unique and non-unique indexes can be created on collections using 
+C<MongoDB::Collection::ensure_index>.
+
+For example, to create a non-unique index on C<x>:
+
+    $collection->ensure_index({'x' => 1})
+
+To create a unique index on C<y>:
+
+    $collection->ensure_index({"y" => 1}, {"unique" => 1});
+
+Multi-key indexes can be created to speed up queries like "sort by name, then by
+age."  Index direction (1 or -1) is only important for multi-key indexes and
+should be the sort order.  So, for example, if we want a fast sort by name 
+ascending and age descending, we'd write:
+
+    my $idx = Tie::IxHash->new(name => 1, age => -1);
+    $collection->ensure_index($idx);
+
+Keep in mind that you should use L<Tie::IxHash> for multi-key indexes to 
+guarantee the keys will be saved in the correct order.
+
+=head2 Options
+
+The second parameter to C<MongoDB::Collection::ensure_index> specifies index
+options.  Available options are:
+
+=over
+
+=item C<unique => boolean>
+
+By default, indexes are not unique. To create a unique index, pass 
+C<"unique" => true>.  C<true> can be L<boolean::true> or any other true value.
+
+=item C<drop_dups => boolean>
+
+If a unique index is being created on an existing set of data that has duplicate
+values, creating the index will fail.  To force the index creation by deleting 
+duplicate values, use this option.  Again, any value that evaluates to true will
+work.
+
+=item C<safe => boolean>
+
+If the update fails and safe is set, this function will return 0.  You should 
+check C<MongoDB::Database::last_error> to find out why the update failed.
+
+=item C<background => boolean>
+
+Create the index as a background operation.
+
+=item C<name => string>
+
+Give the index a non-default name.  This can be useful if the index contains so
+many keys that you get an "index name too long" assertion, or if you just prefer
+a more human-readable name.
+
+=back
+
+=head2 See Also
+
+MongoDB documentation on indexing: 
+L<http://dochub.mongodb.org/core/indexes>.
+
+=head2 GEOSPATIAL INDEXES
+
+Starting in version 1.3.3 of MongoDB, you can create geospatial indexes.  These
+are useful for querying for "N documents nearest this point" or "documents 
+within this shape."
+
+To create an index for geospatial queries, use "2d" instead of 1 or -1.  
+For example, this would create an index on the "location" field:
+
+    $coll->ensure_index({"location" => "2d"});
+
+Then, you can query for documents using C<$near>:
+
+    my $cursor = $coll->query({"location" => {'$near' => [44, -70]}})->limit(10);
+
+This finds the 10 nearest documents (automatically sorted by distance ascending) 
+to latitude -70, longitude 44.
+
+Documents must have some sort of pair in the "location" field, although the 
+database is pretty flexible as to what it will accept:
+
+    # valid geospatial locations
+    $coll->insert({"location" => [44, -70]}); 
+    $coll->insert({"location" => {"x" => 44, "y" => -70}}); 
+    $coll->insert({"location" => {"foo" => 44, "bar" => -70}}); 
+
+You can save values in C<(x,y)> or C<(y,x)> order, but you must be consistent.
+
+By default, the geospatial index assumes that points will lie between -180 and 
+180, for longitude and latitude queries.
+
+=head2 Options
+
+=over
+
+=item C<min => int>
+
+By default, the geospatial index assumes that points will lie between -180 and 
+180, for longitude and latitude queries.  If you need an alternative minimum
+value, you can use this option.  This value is exclusive: if you specify
+C<min => 0>, you cannot save a point with a 0 value coordinate.
+
+=item C<max => int>
+
+Alternative maximum value, exclusive.
+
+=back
+
+=head2 See Also
+
+MongoDB documentation on geospatial indexes:
+L<http://dochub.mongodb.org/core/geo>.

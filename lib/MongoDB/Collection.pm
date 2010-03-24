@@ -264,31 +264,7 @@ ascending index, -1 creates a descending index.
 
 If the C<safe> option is not set, ensure_index will always return 1.
 
-The second parameter gives index options.  Available options are:
-
-=over
-
-=item C<unique => boolean>
-
-By default, indexes are not unique. To create a unique index, pass 
-C<"unique" => true>.  C<true> can be L<boolean::true> or any other true value.
-
-=item C<drop_dups => boolean>
-
-If a unique index is being created on an existing set of data that has duplicate
-values, creating the index will fail.  To force the index creation by deleting 
-duplicate values, use this option.  Again, any value that evaluates to true will
-work.
-
-=item C<safe => boolean>
-
-If the update fails and safe is set, this function will return 0.  You should 
-check C<MongoDB::Database::last_error> to find out why the update failed.
-
-=back
-
-See also core documentation on indexing: 
-L<http://dochub.mongodb.org/core/indexes>.
+See the L<MongoDB::Indexing> pod for more information on indexing.
 
 =cut
 

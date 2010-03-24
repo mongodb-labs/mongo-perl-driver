@@ -215,32 +215,6 @@ C<drop> can also be used for whole databases:
 
 =head1 MONGO BASICS
 
-=head2 Indexes
-
-Creating an Index
-
-Unique and non-unique indexes can be created on collections using 
-C<MongoDB::Collection::ensure_index>.
-
-For example, to create a non-unique index on C<x>:
-
-    $collection->ensure_index({'x' => 1})
-
-To create a unique index on C<y>:
-
-    $collection->ensure_index({"y" => 1}, {"unique" => 1});
-
-Multi-key indexes can be created to speed up queries like "sort by name, then by
-age."  Index direction (1 or -1) is only important for multi-key indexes and
-should be the sort order.  So, for example, if we want a fast sort by name 
-ascending and age descending, we'd write:
-
-    my $idx = Tie::IxHash->new(name => 1, age => -1);
-    $collection->ensure_index($idx);
-
-Keep in mind that you should use L<Tie::IxHash> for multi-key indexes to 
-guarantee the keys will be saved in the correct order.
-
 =head2 Database Commands
 
 There are a large number of useful database commands that can be called directly
