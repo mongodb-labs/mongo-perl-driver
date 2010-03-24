@@ -424,9 +424,14 @@ sub remove {
             return 0;
         }
 
-        my $obj = Tie::IxHash->new("ns" => $ns, 
-            "key" => $keys, 
-            "name" => MongoDB::Collection::to_index_string($keys));
+        my $obj = Tie::IxHash->new("ns" => $ns, "key" => $keys);
+
+        if (exists $options->{name}) {
+            $obj->Push("name" => $options->{name});
+        }
+        else {
+            $obj->Push("name" => MongoDB::Collection::to_index_string($keys));
+        }
 
         if (exists $options->{unique}) {
             $obj->Push("unique" => ($options->{unique} ? boolean::true : boolean::false));
