@@ -24,19 +24,16 @@ static int check_connection(mongo_link *link);
 inline void set_disconnected(mongo_link *link);
 
 int mongo_link_connect(mongo_link *link) {
-  if (link->paired) {
-    link->server.pair.left_socket = do_connect(link->server.pair.left_host, link->server.pair.left_port, link->timeout);
-    link->server.pair.left_connected = (link->server.pair.left_socket != -1);
+  int i = 0, connected = 0;
 
-    link->server.pair.right_socket = do_connect(link->server.pair.right_host, link->server.pair.right_port, link->timeout);
-    link->server.pair.right_connected = (link->server.pair.right_socket != -1);
+  for (i = 0; i < link->num; i++) {
+    link->server[i]->socket = do_connect(link->server[i]->host, link->server[i]->port, link->timeout);
+    link->server[i]->connected = (link->server[i]->socket != 0);
 
-    return link->server.pair.left_connected || link->server.pair.right_connected;
+    connected |= link->server[i]->connected;
   }
 
-  link->server.single.socket = do_connect(link->server.single.host, link->server.single.port, link->timeout);
-  link->server.single.connected = (link->server.single.socket != -1);
-  return link->server.single.connected;
+  return connected;
 }
 
 static int do_connect(char *host, int port, int timeout) {
@@ -50,7 +47,7 @@ static int do_connect(char *host, int port, int timeout) {
 #ifdef WIN32
   WORD version;
   WSADATA wsaData;
-  int size, error;
+  int error;
   u_long no = 0;
   const char yes = 1;
 
@@ -68,19 +65,18 @@ static int do_connect(char *host, int port, int timeout) {
   }
 
 #else
-  uint size;
   int yes = 1;
 
   // create socket
   if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
     croak("couldn't create socket: %s\n", strerror(errno));
-    return -1;
+    return 0;
   }
 #endif
 
   // get addresses
   if (!mongo_link_sockaddr(&addr, host, port)) {
-    return -1;
+    return 0;
   }
 
   setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &yes, INT_32);
@@ -100,28 +96,32 @@ static int do_connect(char *host, int port, int timeout) {
   // connect
   status = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
   if (status == -1) {
+    int size;
+
 #ifdef WIN32
     errno = WSAGetLastError();
+
     if (errno != WSAEINPROGRESS &&
-		errno != WSAEWOULDBLOCK)
+        errno != WSAEWOULDBLOCK)
 #else
     if (errno != EINPROGRESS)
 #endif
     {
-      return -1;
+      return 0;
     }
 
     timeout_struct.tv_sec = timeout > 0 ? (timeout / 1000) : 20;
     timeout_struct.tv_usec = timeout > 0 ? ((timeout % 1000) * 1000) : 0;
+
     if (!select(sock+1, &rset, &wset, 0, &timeout_struct)) {
-      return -1;
+      return 0;
     }
 
     size = sizeof(check_connect);
 
     connected = getpeername(sock, (struct sockaddr*)&addr, &size);
     if (connected == -1) {
-      return -1;
+      return 0;
     }
   }
   else if (status == 0) {
@@ -305,31 +305,12 @@ static int mongo_link_reader(int socket, void *dest, int len) {
 
 static int check_connection(mongo_link *link) {
   if (!link->auto_reconnect ||
-      (link->paired && (link->server.pair.left_connected || link->server.pair.right_connected)) ||
-      (!link->paired && link->server.single.connected)) {
+      (-1 != link->master && link->server[link->master]->connected) ||
+      (-1 == link->master && link->server[0]->connected)) {
     return 1;
   }
 
   link->ts = time(0);
-
-#ifdef WIN32
-  if (link->paired) {
-    closesocket(link->server.pair.left_socket);
-    closesocket(link->server.pair.right_socket);
-  }
-  else {
-    closesocket(link->server.single.socket);
-  }
-  WSACleanup();
-#else
-  if (link->paired) {
-    close(link->server.pair.left_socket);
-    close(link->server.pair.right_socket);
-  }
-  else {
-    close(link->server.single.socket);
-  }
-#endif
 
   set_disconnected(link);
 
@@ -337,46 +318,46 @@ static int check_connection(mongo_link *link) {
 }
 
 inline void set_disconnected(mongo_link *link) {
-  if (link->paired) {
-    link->server.pair.left_connected = 0;
-    link->server.pair.right_connected = 0;
-    link->master = -1;
+  int i = 0;
+
+  for (i = 0; i < link->num; i++) {
+
+#ifdef WIN32
+    closesocket(link->server[i]->socket);
+#else
+    close(link->server[i]->socket);
+#endif
+
+    link->server[i]->connected = 0;
+
   }
-  else {
-    link->server.single.connected = 0;
-  }
+
+#ifdef WIN32
+  WSACleanup();
+#endif
+
+  link->master = -1;
 }
 
 int perl_mongo_link_master(SV *link_sv) {
   SV *master;
-  int side;
   mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
-  if (!link->paired) {
-    return link->server.single.socket;
+  if (-1 == link->master) {
+    return link->server[0]->socket;
   }
 
-  if (link->master != -1) {
-    if (link->server.pair.left_socket == link->master &&
-        link->server.pair.left_connected) {
-      return link->master;
-    }
-    else if (link->server.pair.right_socket == link->master &&
-             link->server.pair.right_connected) {
-      return link->master;
-    }
+
+  if (link->server[link->master]->connected) {
+    return link->server[link->master]->socket;
   }
 
   master = perl_mongo_call_method(link_sv, "find_master", 0);
-  side = SvIV(master);
+  link->master = SvIV(master);
 
-  if (side == 0) {
-    link->server.pair.left_connected = 1;
-    return link->master = link->server.pair.left_socket;
-  }
-  else if (side == 1) {
-    link->server.pair.right_connected = 1;
-    return link->master = link->server.pair.right_socket;
+  if (-1 != link->master) {
+    link->server[link->master]->connected = 1;
+    return link->server[link->master]->socket;
   }
 
   croak("couldn't find master");

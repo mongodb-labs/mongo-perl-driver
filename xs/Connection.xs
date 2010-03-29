@@ -34,6 +34,10 @@ connect (self)
                     *auto_reconnect_sv = 0, *timeout_sv = 0;
 		mongo_link *link;
 	INIT:
+                New(0, link, 1, mongo_link);
+		perl_mongo_attach_ptr_to_instance(self, link);
+
+                host_sv = perl_mongo_call_reader (ST (0), "host");
                 left_host_sv = perl_mongo_call_reader (ST(0), "left_host");
                 right_host_sv = perl_mongo_call_reader (ST(0), "right_host");
 
@@ -47,38 +51,49 @@ connect (self)
                   port_sv = perl_mongo_call_reader (ST (0), "port");
                 }
 
+                if (paired) {
+                  STRLEN llen, rlen;
+                  char *lhost = SvPV(left_host_sv, llen);
+                  char *rhost = SvPV(right_host_sv, rlen);
+                  
+                  link->num = 2;
+                  
+                  New(0, link->server, link->num, mongo_server*);
+                  New(0, link->server[0], 1, mongo_server);
+                  New(0, link->server[1], 1, mongo_server);
+                  
+                  Newz(0, link->server[0]->host, llen+1, char);
+                  memcpy(link->server[0]->host, lhost, llen);
+                  link->server[0]->port = SvIV(left_port_sv);
+                  link->server[0]->connected = 0;
+                  
+                  Newz(0, link->server[1]->host, rlen+1, char);
+                  memcpy(link->server[1]->host, rhost, rlen);
+                  link->server[1]->port = SvIV(right_port_sv);
+                  link->server[1]->connected = 0;
+                }
+                else {
+                  STRLEN len; 
+                  char *host = SvPV(host_sv, len);
+
+                  link->num = 1;
+                  
+                  New(0, link->server, link->num, mongo_server*);
+                  New(0, link->server[0], 1, mongo_server);
+                  
+                  Newz(0, link->server[0]->host, len+1, char);
+                  memcpy(link->server[0]->host, host, len);
+                  link->server[0]->port = SvIV(port_sv);
+                  link->server[0]->connected = 0;
+                }
+
                 auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
                 timeout_sv = perl_mongo_call_reader (ST(0), "timeout");
 	CODE:
-                New(0, link, 1, mongo_link);
-		perl_mongo_attach_ptr_to_instance(self, link);
-
-                link->paired = paired;
                 link->master = -1;
                 link->ts = time(0);
                 link->auto_reconnect = SvIV(auto_reconnect_sv);
                 link->timeout = SvIV(timeout_sv);
-                if (paired) {
-                  int llen = strlen(SvPV_nolen(left_host_sv));
-                  int rlen = strlen(SvPV_nolen(right_host_sv));
-
-                  Newz(0, link->server.pair.left_host, llen+1, char);
-                  memcpy(link->server.pair.left_host, SvPV_nolen(left_host_sv), llen);
-                  link->server.pair.left_port = SvIV(left_port_sv);
-                  link->server.pair.left_connected = 0;
-
-                  Newz(0, link->server.pair.right_host, rlen+1, char);
-                  memcpy(link->server.pair.right_host, SvPV_nolen(right_host_sv), rlen);
-                  link->server.pair.right_port = SvIV(right_port_sv);
-                  link->server.pair.right_connected = 0;
-                }
-                else { 
-                  int len = strlen(SvPV_nolen(host_sv));
-                  Newz(0, link->server.single.host, len+1, char);
-                  memcpy(link->server.single.host, SvPV_nolen(host_sv), len);
-                  link->server.single.port = SvIV(port_sv);
-                  link->server.single.connected = 0;
-                }
 
                 if (!mongo_link_connect(link)) {
                   croak ("couldn't connect to server");
@@ -136,27 +151,25 @@ DESTROY (self)
           SV *self
      PREINIT:
          mongo_link *link;
+         int i = 0;
      CODE:
          link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 
-         if (link->paired) {
+         for (i = 0; i < link->num; i++) {
+           if (link->server[i]->connected) {
 #ifdef WIN32
-           closesocket(link->server.pair.left_socket);
-           closesocket(link->server.pair.right_socket);
+             closesocket(link->server[i]->socket);
 #else
-           close(link->server.pair.left_socket);
-           close(link->server.pair.right_socket);
+             close(link->server[i]->socket);
 #endif
-           Safefree(link->server.pair.left_host);
-           Safefree(link->server.pair.right_host);
-         }
-         else {
-#ifdef WIN32
-	   closesocket(link->server.single.socket);
-#else
-	   close(link->server.single.socket);
-#endif
-           Safefree(link->server.single.host);
+           }
+
+           if (link->server[i]->host) {
+             Safefree(link->server[i]->host);
+           }
+
+           Safefree(link->server[i]);
          }
 
+         Safefree(link->server);
          Safefree(link);

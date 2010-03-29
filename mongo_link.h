@@ -97,32 +97,36 @@ typedef struct {
   int op;
 } mongo_msg_header;
 
+/*
+ * a connection to the database
+ *
+ * host is hostname
+ * port is port number
+ * socket is the actual socket the connection is using
+ * connected is a boolean indicating if the socket is connected or not
+ */
+typedef struct _mongo_server {
+  char *host;
+  int port;
+  int socket;
+  int connected;
+} mongo_server;
+
+/*
+ * auto_reconnect is whether to reconnect on disconnect
+ * timeout is how long to try to connect before failing
+ * num is the number of servers in this set
+ * master is the index of the master server, if there is more than 1 server
+ * server is an array of pointers to connections
+ */
 typedef struct {
-  int paired;
-  // master socket
-  int master;
   int ts;
   int auto_reconnect;
   int timeout;
-  union {
-    struct {
-      char *host;
-      int port;
-      int socket;
-      int connected;
-    } single;
-    struct {
-      char *left_host;
-      int left_port;
-      int left_socket;
-      int left_connected;
 
-      char *right_host;
-      int right_port;
-      int right_socket;
-      int right_connected;
-    } pair;
-  } server;
+  int num;
+  int master;
+  mongo_server **server;
 } mongo_link;
 
 typedef struct {
