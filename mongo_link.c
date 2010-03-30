@@ -119,7 +119,7 @@ static int do_connect(char *host, int port, int timeout) {
 
     size = sizeof(check_connect);
 
-    connected = getpeername(sock, (struct sockaddr*)&addr, (uint*)&size);
+    connected = getpeername(sock, (struct sockaddr*)&addr, &size);
     if (connected == -1) {
       return 0;
     }
