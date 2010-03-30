@@ -60,7 +60,29 @@ Core documentation on connections: L<http://dochub.mongodb.org/core/connections>
 
 =head2 host
 
-Hostname to connect to. Defaults to C<localhost>.
+Server or servers to connect to. Defaults to C<mongodb://localhost:27017>.  
+
+To connect to more than one database server, use the format:
+
+    mongodb://host1[:port1][,host2[:port2],...[,hostN[:portN]]]
+
+An arbitrary number of hosts can be specified.
+
+The connect method will return that it succeeded if it can connect to at least 
+one of the hosts listed.  If it cannot connect to any hosts, it will die. 
+
+If a port is not specified for a given host, it will default to 27017. For 
+example, to connecting to C<localhost:27017> and C<localhost:27018>:
+
+    $conn = MongoDB::Connection->new("host" => "mongodb://localhost,localhost:27018");
+
+This will succeed if either C<localhost:27017> or C<localhost:27018> are available.
+
+The connect method will also try to determine who is master if more than one 
+server is given.  It will try the hosts in order from left to right.  As soon as
+one of the hosts reports that it is master, the connect will return.  If no 
+hosts report themselves as masters, the connect will die, reporting that it 
+could not find a master.
 
 =cut
 
@@ -71,7 +93,9 @@ has host => (
     default  => 'localhost',
 );
 
-=head2 port
+=head2 port [deprecated]
+
+Use host instead.
 
 Port to use when connecting. Defaults to C<27017>.
 
@@ -84,7 +108,9 @@ has port => (
     default  => 27017,
 );
 
-=head2 left_host
+=head2 left_host [deprecated]
+
+Use host instead.
 
 Paired connection host to connect to. Can be master or slave.
 
@@ -95,7 +121,9 @@ has left_host => (
     isa      => 'Str',
 );
 
-=head2 left_port
+=head2 left_port [deprecated]
+
+Use host instead.
 
 Port to use when connecting to left_host. Defaults to C<27017>.
 
@@ -107,7 +135,9 @@ has left_port => (
     default  => 27017,
 );
 
-=head2 right_host
+=head2 right_host [deprecated]
+
+Use host instead.
 
 Paired connection host to connect to. Can be master or slave.
 
@@ -118,7 +148,9 @@ has right_host => (
     isa      => 'Str',
 );
 
-=head2 right_port
+=head2 right_port [deprecated]
+
+Use host instead.
 
 Port to use when connecting to right_host. Defaults to C<27017>.
 
@@ -128,13 +160,6 @@ has right_port => (
     is       => 'ro',
     isa      => 'Int',
     default  => 27017,
-);
-
-has _server => (
-    is       => 'ro',
-    isa      => 'Str',
-    lazy     => 1,
-    builder  => '_build__server',
 );
 
 =head2 auto_reconnect
@@ -182,18 +207,46 @@ has _last_error => (
     is => 'rw',
 );
 
-
-sub _build__server {
+sub _get_hosts {
     my ($self) = @_;
-    my ($host, $port) = map { $self->$_ } qw/host port/;
-    return "${host}:${port}";
+    my %hosts;
+
+    # deprecated syntax
+    if (!($self->host =~ /^mongodb:\/\//)) {
+        if (!$self->left_host || !$self->right_host) {
+            $hosts{$self->host} = $self->port;
+        }
+        else {
+            $hosts{$self->left_host} = $self->left_port;
+            $hosts{$self->right_host} = $self->right_port;
+        }
+        return %hosts;
+    }
+
+    my $str = substr $self->host, 10;
+
+    my @pairs = split ",", $str;
+    
+    foreach (@pairs) {
+        my @hp = split ":", $_;
+        
+        if (!exists $hp[1]) {
+            $hp[1] = 27017;
+        }
+
+        $hosts{$hp[0]} = $hp[1];
+    }
+
+    return %hosts;
 }
 
 sub BUILD {
     my ($self) = @_;
     eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
         for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID/;
-    $self->connect if $self->auto_connect;
+
+    my %hosts = $self->_get_hosts;
+    $self->connect(\%hosts) if $self->auto_connect;
 }
 
 =head1 METHODS
@@ -482,30 +535,37 @@ sub get_database {
 
 Determines which host of a paired connection is master.  Does nothing for
 a non-paired connection.  This need never be invoked by a user, it is 
-called automatically by internal functions.  Returns values:
-
-=over
-
-=item 0 
-
-The left host is master
-
-=item 1
-
-The right host is master
-
-=item -1 
-
-Error, master cannot be determined.
-
-=back
+called automatically by internal functions.  Returns the index of the master
+connection in the list of connections or -1 if it cannot be determined.
 
 =cut
 
 sub find_master {
     my ($self) = @_;
     # return if the connection isn't paired
-    return unless defined $self->left_host && $self->right_host;
+    if (!(defined $self->left_host) || !(defined $self->right_host)) {
+        my %servers = $self->_get_hosts;
+        return -1 unless %servers;
+
+        my $index = 0;
+        while ( my ($host, $port) = each(%servers) ) {
+            my $conn;
+            eval {
+                $conn = MongoDB::Connection->new("host" => $host, "port" => $port, timeout => $self->timeout);
+            };
+            if (!($@ =~ m/couldn't connect to server/)) {
+                my $master = $conn->find_one('admin.$cmd', {ismaster => 1});
+                if ($master->{'ismaster'}) {    
+                    return $index;
+                }
+            }
+
+            $index++;
+        }
+
+        return -1;
+    }
+
     my ($left, $right, $master);
 
     # check the left host
