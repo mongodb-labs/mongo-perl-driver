@@ -119,7 +119,7 @@ static int do_connect(char *host, int port, int timeout) {
 
     size = sizeof(check_connect);
 
-    connected = getpeername(sock, (struct sockaddr*)&addr, &size);
+    connected = getpeername(sock, (struct sockaddr*)&addr, (uint*)&size);
     if (connected == -1) {
       return 0;
     }
@@ -193,9 +193,10 @@ int mongo_link_say(SV *link_sv, buffer *buf) {
  */
 int mongo_link_hear(SV *cursor_sv) {
   int sock;
-  int num_returned = 0;
+  int num_returned = 0, timeout = -1;
   mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv);
   SV *link_sv = perl_mongo_call_reader(cursor_sv, "_connection");
+  SV *timeout_sv = get_sv("MongoDB::Cursor::timeout", GV_ADD);
   mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
   if (!check_connection(link)) {
@@ -205,6 +206,27 @@ int mongo_link_hear(SV *cursor_sv) {
   }
   
   sock = perl_mongo_link_master(link_sv);
+
+  timeout = SvIV(timeout_sv);
+
+  // set a timeout
+  if (timeout >= 0) {
+    struct timeval t;
+    fd_set readfds;
+
+    t.tv_sec = timeout / 1000 ;
+    t.tv_usec = (timeout % 1000) * 1000;
+
+    FD_ZERO(&readfds);
+    FD_SET(sock, &readfds);
+
+    select(sock+1, &readfds, NULL, NULL, &t);
+
+    if (!FD_ISSET(sock, &readfds)) {
+      croak("recv timed out");
+      return 0;
+    }
+  }
 
   // if this fails, we might be disconnected... but we're probably
   // just out of results
@@ -317,6 +339,9 @@ static int check_connection(mongo_link *link) {
   return mongo_link_connect(link);
 }
 
+/*
+ * closes sockets and sets "connected" to 0
+ */
 inline void set_disconnected(mongo_link *link) {
   int i = 0;
 
@@ -343,12 +368,11 @@ int perl_mongo_link_master(SV *link_sv) {
   SV *master;
   mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
-  if (-1 == link->master) {
+  if (1 == link->num) {
     return link->server[0]->socket;
   }
 
-
-  if (link->server[link->master]->connected) {
+  if (-1 != link->master && link->server[link->master]->connected) {
     return link->server[link->master]->socket;
   }
 

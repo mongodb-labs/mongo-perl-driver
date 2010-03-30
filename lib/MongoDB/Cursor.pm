@@ -83,6 +83,16 @@ Whether it is okay to run queries on the slave.  Defaults to 0.
 
 $MongoDB::Cursor::slave_okay = 0;
 
+=head2 timeout
+
+How many milliseconds to wait for a response from the server.  Set to 30000
+(30 seconds) by default.  -1 waits forever (or until TCP times out, which is
+usually a long time).
+
+=cut
+
+$MongoDB::Cursor::timeout = 30000;
+
 =head1 ATTRIBUTES
 
 =head2 started_iterating
