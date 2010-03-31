@@ -284,6 +284,7 @@ elem_to_sv (int type, buffer *buf)
     buf->pos += DOUBLE_64;
     break;
   }
+  case BSON_SYMBOL:
   case BSON_STRING: {
     int len = MONGO_32(*((int*)buf->pos));
     buf->pos += INT_32;
