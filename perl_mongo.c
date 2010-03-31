@@ -427,7 +427,28 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_CODE:
   case BSON_CODE__D: {
-    // TODO
+    SV *code, *scope;
+    int code_len;
+
+    if (type == BSON_CODE) {
+      buf->pos += INT_32;
+    }
+
+    code_len = MONGO_32(*(int*)buf->pos);
+    buf->pos += INT_32;
+
+    code = sv_2mortal(newSVpvn(buf->pos, code_len-1));
+    buf->pos += code_len;
+
+    if (type == BSON_CODE) {
+      scope = perl_mongo_bson_to_sv(buf);
+
+      value = perl_mongo_construct_instance("MongoDB::Code", "code", code, "scope", scope, NULL);
+    }
+    else {
+      value = perl_mongo_construct_instance("MongoDB::Code", "code", code, NULL);
+    }
+
     break;
   }
   case BSON_TIMESTAMP: {
@@ -677,6 +698,12 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids)
 
     /* skip first 4 bytes to leave room for size */
     buf->pos += INT_32;
+
+    if (!SvROK(sv)) {
+      perl_mongo_serialize_null(buf);
+      perl_mongo_serialize_size(buf->start+start, buf);
+      return;
+    }
 
     hv = (HV*)SvRV(sv);
 
@@ -955,6 +982,31 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
               set_type(buf, BSON_BOOL);
               perl_mongo_serialize_key(buf, key, ids);
               perl_mongo_serialize_byte(buf, SvIV(SvRV(sv)));
+            }
+            else if (sv_isa(sv, "MongoDB::Code")) {
+              SV *code, *scope;
+              char *code_str;
+              STRLEN code_len;
+              int start;
+
+              set_type(buf, BSON_CODE);
+              perl_mongo_serialize_key(buf, key, ids);
+
+              start = buf->pos-buf->start;
+              buf->pos += INT_32;
+
+              code = perl_mongo_call_reader (sv, "code");
+              code_str = SvPV(code, code_len);
+              perl_mongo_serialize_int(buf, code_len+1);
+              perl_mongo_serialize_string(buf, code_str, code_len);
+
+              scope = perl_mongo_call_method (sv, "scope", 0);
+              hv_to_bson(buf, scope, 0);
+
+              perl_mongo_serialize_size(buf->start+start, buf);
+
+              SvREFCNT_dec(code);
+              SvREFCNT_dec(scope);
             }
             else if (sv_isa(sv, "MongoDB::MinKey")) {
               set_type(buf, BSON_MINKEY);

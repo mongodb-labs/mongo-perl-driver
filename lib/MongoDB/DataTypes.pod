@@ -139,6 +139,22 @@ example:
 
 This will save the variable as binary data, bypassing the UTF8 check.
 
+=head3 MongoDB::Code
+
+C<MongoDB::Code> is used to represent JavaScript code and, optionally, scope.
+To create one:
+
+    use MongoDB::Code;
+
+    my $code = MongoDB::Code->new("code" => "function() { return 'hello, world'; }");
+
+Or, with a scope:
+
+    my $code = MongoDB::Code->new("code" => "function() { return 'hello, '+name; }",
+        "scope" => "Fred");
+
+Which would then return "hello, Fred" when run.
+
 =head3 MongoDB::MinKey
 
 MongoDB::MinKey is "less than" any other value of any type.  This can be useful
