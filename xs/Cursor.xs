@@ -136,7 +136,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
 
   // if we have cursor->at == cursor->num && recv fails,
   // we're probably just out of results
-  // mongo_link_hear returns 0 on success
+  // mongo_link_hear returns 1 on success, 0 on failure
   heard = mongo_link_hear(self);
   SvREFCNT_dec(link);
   return heard > 0;
