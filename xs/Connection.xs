@@ -78,7 +78,7 @@ connect (self)
    CODE:
      for (i = 0; i < link->num; i++) {
        link->server[i]->socket = perl_mongo_connect(link->server[i]->host, link->server[i]->port, link->timeout);
-       link->server[i]->connected = (link->server[i]->socket != 0);
+       link->server[i]->connected = (link->server[i]->socket != -1);
 
        connected |= link->server[i]->connected;
      }

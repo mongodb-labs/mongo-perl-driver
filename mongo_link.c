@@ -22,7 +22,12 @@ static int mongo_link_reader(int socket, void *dest, int len);
 static int check_connection(SV *link_sv);
 inline void set_disconnected(mongo_link *link);
 
-
+/*
+ * Returns -1 on failure, the socket fh on success.  
+ *
+ * Note: this cannot return 0 on failure, because reconnecting sometimes makes
+ * the fh 0 (briefly).
+ */
 int perl_mongo_connect(char *host, int port, int timeout) {
   int sock, status, connected = 0;
   struct sockaddr_in addr, check_connect;
@@ -42,13 +47,13 @@ int perl_mongo_connect(char *host, int port, int timeout) {
   error = WSAStartup(version, &wsaData);
 
   if (error != 0) {
-    return 0;
+    return -1;
   }
 
   // create socket
   sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sock == INVALID_SOCKET) {
-    return 0;
+    return -1;
   }
 
 #else
@@ -57,13 +62,13 @@ int perl_mongo_connect(char *host, int port, int timeout) {
   // create socket
   if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
     croak("couldn't create socket: %s\n", strerror(errno));
-    return 0;
+    return -1;
   }
 #endif
 
   // get addresses
   if (!mongo_link_sockaddr(&addr, host, port)) {
-    return 0;
+    return -1;
   }
 
   setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &yes, INT_32);
@@ -94,7 +99,7 @@ int perl_mongo_connect(char *host, int port, int timeout) {
     if (errno != EINPROGRESS)
 #endif
     {
-      return 0;
+      return -1;
     }
 
     timeout_struct.tv_sec = timeout > 0 ? (timeout / 1000) : 20;
@@ -108,7 +113,7 @@ int perl_mongo_connect(char *host, int port, int timeout) {
 
     connected = getpeername(sock, (struct sockaddr*)&addr, &size);
     if (connected == -1) {
-      return 0;
+      return -1;
     }
   }
   else if (status == 0) {
