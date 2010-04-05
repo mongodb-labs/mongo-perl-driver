@@ -29,30 +29,47 @@ _init_conn(self, hosts=0)
     SV *hosts
   PREINIT:
     SV *auto_reconnect_sv = 0, *timeout_sv = 0;
+    int i = 0;
     mongo_link *link;
-    HV *hv;
-    HE *he;
+    AV *av;
   CODE:
     New(0, link, 1, mongo_link);
     perl_mongo_attach_ptr_to_instance(self, link);
 
-    hv = (HV*)SvRV(hosts);
-    link->num = HvKEYS(hv);
+    /*
+     * hosts are of the form:
+     * [{host => "host", port => 27017}, ...]
+     */
+    av = (AV*)SvRV(hosts);
+    link->num = av_len(av)+1;
     New(0, link->server, link->num, mongo_server*);
 
-    (void)hv_iterinit (hv);
-    while ((he = hv_iternext (hv))) {
+    for (i=0; i<link->num; i++) {
       STRLEN len;
-      const char *host = HePV (he, len);
-      SV **hval = hv_fetch(hv, host, len, 0);
-      int port = (hval && SvOK(*hval)) ? SvIV(*hval) : 27017;
+      const char *host;
+      int port;
+      HV *hv;
+      SV **host_sv, **port_sv, **elem = av_fetch(av, i, 0);
+
+      if (!elem) {
+        croak("could not extract host");
+        return;
+      }
+
+      hv = (HV*)SvRV(*elem);
+
+      host_sv = hv_fetch(hv, "host", strlen("host"), 0);
+      host = SvPV(*host_sv, len);
+
+      port_sv = hv_fetch(hv, "port", strlen("port"), 0);
+      port = (port_sv && SvOK(*port_sv)) ? SvIV(*port_sv) : 27017;
+
+      New(0, link->server[i], 1, mongo_server);
       
-      New(0, link->server[0], 1, mongo_server);
-      
-      Newz(0, link->server[0]->host, len+1, char);
-      memcpy(link->server[0]->host, host, len);
-      link->server[0]->port = port;
-      link->server[0]->connected = 0;
+      Newz(0, link->server[i]->host, len+1, char);
+      memcpy(link->server[i]->host, host, len);
+      link->server[i]->port = port;
+      link->server[i]->connected = 0;
     }
 
     auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");

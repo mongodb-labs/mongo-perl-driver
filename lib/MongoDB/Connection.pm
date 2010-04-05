@@ -217,26 +217,26 @@ set, the connection will attempt to authenticate on connection/reconnection.
 
 has username => (
     is       => 'rw',
-    isa      => 'String',
+    isa      => 'Str',
     required => 0,
 );
 
 =head2 password
 
-password for this connection.  Optional.  If this and the username field are 
+Password for this connection.  Optional.  If this and the username field are 
 set, the connection will attempt to authenticate on connection/reconnection.
 
 =cut
 
 has password => (
     is       => 'rw',
-    isa      => 'String',
+    isa      => 'Str',
     required => 0,
 );
 
 =head2 db_name
 
-database to authenticate on for this connection.  Optional.  If this, the 
+Database to authenticate on for this connection.  Optional.  If this, the 
 username, and the password fields are set, the connection will attempt to 
 authenticate against this database on connection/reconnection.  Defaults to
 "admin".
@@ -257,35 +257,37 @@ has _last_error => (
 
 sub _get_hosts {
     my ($self) = @_;
-    my %hosts;
+    my @hosts;
 
     # deprecated syntax
     if (!($self->host =~ /^mongodb:\/\//)) {
+
         if (!$self->left_host || !$self->right_host) {
-            $hosts{$self->host} = $self->port;
+            push @hosts, {host => $self->host, port => $self->port};
         }
         else {
-            $hosts{$self->left_host} = $self->left_port;
-            $hosts{$self->right_host} = $self->right_port;
+            push @hosts, {host => $self->left_host, port => $self->left_port};
+            push @hosts, {host => $self->right_host, port => $self->right_port};
         }
-        return %hosts;
+        
+        return @hosts;
     }
 
     my $str = substr $self->host, 10;
 
     my @pairs = split ",", $str;
-    
+
     foreach (@pairs) {
         my @hp = split ":", $_;
-        
+
         if (!exists $hp[1]) {
             $hp[1] = 27017;
         }
 
-        $hosts{$hp[0]} = $hp[1];
+        push @hosts, {host => $hp[0], port => $hp[1]};
     }
 
-    return %hosts;
+    return @hosts;
 }
 
 sub BUILD {
@@ -293,8 +295,8 @@ sub BUILD {
     eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
         for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID/;
 
-    my %hosts = $self->_get_hosts;
-    $self->_init_conn(\%hosts);
+    my @hosts = $self->_get_hosts;
+    $self->_init_conn(\@hosts);
 
     if ($self->auto_connect) {
         $self->connect;
@@ -600,14 +602,14 @@ sub find_master {
     my ($self) = @_;
     # return if the connection isn't paired
     if (!(defined $self->left_host) || !(defined $self->right_host)) {
-        my %servers = $self->_get_hosts;
-        return -1 unless %servers;
+        my @servers = $self->_get_hosts;
+        return -1 unless @servers;
 
         my $index = 0;
-        while ( my ($host, $port) = each(%servers) ) {
+        foreach (@servers) {
             my $conn;
             eval {
-                $conn = MongoDB::Connection->new("host" => $host, "port" => $port, timeout => $self->timeout);
+                $conn = MongoDB::Connection->new("host" => $_->{host}, "port" => $_->{port}, timeout => $self->timeout);
             };
             if (!($@ =~ m/couldn't connect to server/)) {
                 my $master = $conn->find_one('admin.$cmd', {ismaster => 1});
