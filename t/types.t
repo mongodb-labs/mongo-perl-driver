@@ -21,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 40;
+    plan tests => 44;
 }
 
 my $db = $conn->get_database('x');
@@ -201,10 +201,20 @@ isa_ok($x->{max}, 'MongoDB::MaxKey');
     my $x = $db->eval($code);
     is($x, 5);
 
-    $code = MongoDB::Code->new("code" => "function() { return name; }",
+    $str = "function() { return name; }";
+    $code = MongoDB::Code->new("code" => $str,
                                "scope" => {"name" => "Fred"});
     $x = $db->eval($code);
     is($x, "Fred");
+
+    $coll->remove;
+
+    $coll->insert({"x" => "foo", "y" => $code, "z" => 1});
+    $x = $coll->find_one;
+    is($x->{x}, "foo");
+    is($x->{y}->code, $str);
+    is($x->{y}->scope->{"name"}, "Fred");
+    is($x->{z}, 1);
 
     $coll->remove;
 }
