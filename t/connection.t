@@ -18,7 +18,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 12;
+    plan tests => 11;
 }
 
 throws_ok {
@@ -33,8 +33,7 @@ SKIP: {
     } 'successful connection';
     isa_ok($conn, 'MongoDB::Connection');
     
-    is($conn->host, 'localhost', 'host default value');
-    is($conn->port, '27017',     'port default value');
+    is($conn->host, 'mongodb://localhost:27017', 'host default value');
 
     # just make sure a couple timeouts work
     my $to = MongoDB::Connection->new('timeout' => 1);

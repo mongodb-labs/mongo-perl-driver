@@ -23,57 +23,102 @@ MODULE = MongoDB::Connection  PACKAGE = MongoDB::Connection
 
 PROTOTYPES: DISABLE
 
+void 
+_init_conn(self, hosts=0)
+    SV *self
+    SV *hosts
+  PREINIT:
+    SV *auto_reconnect_sv = 0, *timeout_sv = 0;
+    mongo_link *link;
+    HV *hv;
+    HE *he;
+  CODE:
+    New(0, link, 1, mongo_link);
+    perl_mongo_attach_ptr_to_instance(self, link);
+
+    hv = (HV*)SvRV(hosts);
+    link->num = HvKEYS(hv);
+    New(0, link->server, link->num, mongo_server*);
+
+    (void)hv_iterinit (hv);
+    while ((he = hv_iternext (hv))) {
+      STRLEN len;
+      const char *host = HePV (he, len);
+      SV **hval = hv_fetch(hv, host, len, 0);
+      int port = (hval && SvOK(*hval)) ? SvIV(*hval) : 27017;
+      
+      New(0, link->server[0], 1, mongo_server);
+      
+      Newz(0, link->server[0]->host, len+1, char);
+      memcpy(link->server[0]->host, host, len);
+      link->server[0]->port = port;
+      link->server[0]->connected = 0;
+    }
+
+    auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
+    timeout_sv = perl_mongo_call_reader (ST(0), "timeout");
+
+    link->auto_reconnect = SvIV(auto_reconnect_sv);
+    link->timeout = SvIV(timeout_sv);
+
+    link->master = -1;
+    link->ts = time(0);
+
+  CLEANUP:
+    SvREFCNT_dec (auto_reconnect_sv);
+    SvREFCNT_dec (timeout_sv);
+    
+
 void
-connect (self, hosts=0)
-                SV *self
-                SV *hosts
-	PREINIT:
-                SV *auto_reconnect_sv = 0, *timeout_sv = 0;
-	        mongo_link *link;
-                HV *hv;
-                HE *he;
-	INIT:
-                New(0, link, 1, mongo_link);
-		perl_mongo_attach_ptr_to_instance(self, link);
+connect (self)
+     SV *self
+   PREINIT:
+     int i = 0, connected = 0;
+     mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
+   CODE:
+     for (i = 0; i < link->num; i++) {
+       link->server[i]->socket = perl_mongo_connect(link->server[i]->host, link->server[i]->port, link->timeout);
+       link->server[i]->connected = (link->server[i]->socket != 0);
 
-                hv = (HV*)SvRV(hosts);
-                link->num = HvKEYS(hv);
-                New(0, link->server, link->num, mongo_server*);
+       connected |= link->server[i]->connected;
+     }
 
-                (void)hv_iterinit (hv);
-                while ((he = hv_iternext (hv))) {
-                  STRLEN len;
-                  const char *host = HePV (he, len);
-                  SV **hval = hv_fetch(hv, host, len, 0);
-                  int port = (hval && SvOK(*hval)) ? SvIV(*hval) : 27017;
+     // try authentication
+     if (connected) {
+       SV *username, *password;
 
-                  New(0, link->server[0], 1, mongo_server);
-                  
-                  Newz(0, link->server[0]->host, len+1, char);
-                  memcpy(link->server[0]->host, host, len);
-                  link->server[0]->port = port;
-                  link->server[0]->connected = 0;
-                }
+       username = perl_mongo_call_reader (self, "username");
+       password = perl_mongo_call_reader (self, "password");
+       
+       if (SvPOK(username) && SvPOK(password)) {
+         SV *database, *result, **ok;
+         
+         database = perl_mongo_call_reader (self, "db_name");
+         result = perl_mongo_call_method(self, "authenticate", 3, database, username, password);
+         
+         ok = hv_fetch((HV*)SvRV(result), "ok", strlen("ok"), 0);
+         if (!ok || 1 != SvIV(*ok)) {
+           SvREFCNT_dec(database);
+           SvREFCNT_dec(username);
+           SvREFCNT_dec(password);
 
-                auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
-                timeout_sv = perl_mongo_call_reader (ST(0), "timeout");
+           croak ("couldn't authenticate with server");
+           return;
+         }
 
-                link->auto_reconnect = SvIV(auto_reconnect_sv);
-                link->timeout = SvIV(timeout_sv);
+         SvREFCNT_dec(database);
+       }
 
-                link->master = -1;
-                link->ts = time(0);
-	CODE:
+       SvREFCNT_dec(username);
+       SvREFCNT_dec(password);
+     }
+     else {
+       croak ("couldn't connect to server");
+       return;
+     }
 
-                if (!mongo_link_connect(link)) {
-                  croak ("couldn't connect to server");
-                  return;
-		}
-
-                perl_mongo_link_master(self);
-	CLEANUP:
-                SvREFCNT_dec (auto_reconnect_sv);
-                SvREFCNT_dec (timeout_sv);
+     // croaks on failure
+     perl_mongo_master(self);
 
 
 int

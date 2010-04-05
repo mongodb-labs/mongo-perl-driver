@@ -84,13 +84,18 @@ one of the hosts reports that it is master, the connect will return.  If no
 hosts report themselves as masters, the connect will die, reporting that it 
 could not find a master.
 
+If username and password are given, success is conditional on being able to log 
+into the database as well as connect.  By default, the driver will attempt to
+authenticate with the admin database.  If a different database is specified
+using the C<db_name> property, it will be used instead.  
+
 =cut
 
 has host => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
-    default  => 'localhost',
+    default  => 'mongodb://localhost:27017',
 );
 
 =head2 port [deprecated]
@@ -203,6 +208,49 @@ has timeout => (
     default  => 20000,
 );
 
+=head2 username
+
+Username for this connection.  Optional.  If this and the password field are 
+set, the connection will attempt to authenticate on connection/reconnection.
+
+=cut
+
+has username => (
+    is       => 'rw',
+    isa      => 'String',
+    required => 0,
+);
+
+=head2 password
+
+password for this connection.  Optional.  If this and the username field are 
+set, the connection will attempt to authenticate on connection/reconnection.
+
+=cut
+
+has password => (
+    is       => 'rw',
+    isa      => 'String',
+    required => 0,
+);
+
+=head2 db_name
+
+database to authenticate on for this connection.  Optional.  If this, the 
+username, and the password fields are set, the connection will attempt to 
+authenticate against this database on connection/reconnection.  Defaults to
+"admin".
+
+=cut
+
+has db_name => (
+    is       => 'rw',
+    isa      => 'Str',
+    required => 1,
+    default  => 'admin',
+);
+
+
 has _last_error => (
     is => 'rw',
 );
@@ -246,7 +294,15 @@ sub BUILD {
         for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID/;
 
     my %hosts = $self->_get_hosts;
-    $self->connect(\%hosts) if $self->auto_connect;
+    $self->_init_conn(\%hosts);
+
+    if ($self->auto_connect) {
+        $self->connect;
+
+        if (defined $self->username && defined $self->password) {
+            $self->authenticate($self->db_name, $self->username, $self->password);
+        }
+    }
 }
 
 =head1 METHODS
