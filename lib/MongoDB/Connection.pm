@@ -261,15 +261,12 @@ sub _get_hosts {
 
     # deprecated syntax
     if (!($self->host =~ /^mongodb:\/\//)) {
-
-        if (!$self->left_host || !$self->right_host) {
-            push @hosts, {host => $self->host, port => $self->port};
-        }
-        else {
-            push @hosts, {host => $self->left_host, port => $self->left_port};
-            push @hosts, {host => $self->right_host, port => $self->right_port};
-        }
-        
+        push @hosts, {host => $self->host, port => $self->port};
+        return @hosts;
+    }
+    elsif ($self->left_host && $self->right_host) {
+        push @hosts, {host => $self->left_host, port => $self->left_port};
+        push @hosts, {host => $self->right_host, port => $self->right_port};
         return @hosts;
     }
 
