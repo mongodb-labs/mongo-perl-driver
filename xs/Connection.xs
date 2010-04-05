@@ -95,6 +95,17 @@ connect (self)
          
          database = perl_mongo_call_reader (self, "db_name");
          result = perl_mongo_call_method(self, "authenticate", 3, database, username, password);
+         if (!result || SvTYPE(result) != SVt_RV) {
+           if (result && SvPOK(result)) {
+             croak(SvPV_nolen(result));
+             return;
+           }
+           else { 
+             sv_dump(result);
+             croak("something weird happened with authentication");
+             return;
+           }
+         }
          
          ok = hv_fetch((HV*)SvRV(result), "ok", strlen("ok"), 0);
          if (!ok || 1 != SvIV(*ok)) {
