@@ -1,8 +1,13 @@
-0.31
+0.31 April 5, 2010
 
   - C89 fix (Taro Nishino)
+  - Added MongoDB::Code type
+  - Use connection format: mongodb://host1,host2:port2,host3...
+  - Arbitrary number of hosts supported
+  - Auto-reauthentication on dropped connection
+  - ensure_index name option
 
-0.30 10 March 2009
+0.30 10 March 2010
 
   - Support BigInt
   - On 64-bit machines, support 64-bit nums w/out BigInt (Ryan Olson)
