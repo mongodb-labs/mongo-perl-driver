@@ -106,7 +106,7 @@ int perl_mongo_connect(char *host, int port, int timeout) {
     timeout_struct.tv_usec = timeout > 0 ? ((timeout % 1000) * 1000) : 0;
 
     if (!select(sock+1, &rset, &wset, 0, &timeout_struct)) {
-      return 0;
+      return -1;
     }
 
     size = sizeof(check_connect);
