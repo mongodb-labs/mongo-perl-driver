@@ -3,6 +3,8 @@ dist.ini
 ext/Module/Install/PRIVATE/Mongo.pm
 INSTALL
 lib/MongoDB.pm
+lib/MongoDB/BSON.pm
+lib/MongoDB/Code.pm
 lib/MongoDB/Collection.pm
 lib/MongoDB/Connection.pm
 lib/MongoDB/Cursor.pm
