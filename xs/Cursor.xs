@@ -257,7 +257,7 @@ reset (self)
 
 
 void
-DESTROY (self)
+DEMOLISH (self)
       SV *self
   PREINIT:
      mongo_cursor *cursor;
