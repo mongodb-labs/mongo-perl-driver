@@ -188,7 +188,7 @@ an update and an insert).  For example, the same code could be used for creating
 and updating a log document:
 
     $pageviews->update({"url" => "www.example.com"},
-        {"url" => "www.example.com", '$inc' => {"views" => 1}},
+        {'$inc' => {"views" => 1}},
         {'upsert' => 1});
 
 If the pageview counter for www.example.com did not exist yet, it would be 
