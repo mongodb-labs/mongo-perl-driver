@@ -178,7 +178,7 @@ recv(self, cursor)
 
 
 void
-DEMOLISH (self)
+DESTROY (self)
           SV *self
      PREINIT:
          mongo_link *link;
