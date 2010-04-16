@@ -255,6 +255,12 @@ has _last_error => (
     is => 'rw',
 );
 
+sub croak (@) {
+    # Mouse delegation is doing something weird here - and confess is overkill
+    local $Carp::CarpLevel = 4;
+    Carp::croak(@_);
+}
+
 sub _get_hosts {
     my ($self) = @_;
     my @hosts;
@@ -352,8 +358,8 @@ sub query {
 
 sub insert {
     my ($self, $ns, $object, $options) = @_;
-    my @id = $self->batch_insert($ns, [$object], $options);
-    return exists $id[0] ? $id[0] : 0;
+    my ($id) = $self->batch_insert($ns, [$object], $options);
+    return $id;
 }
 
 sub _make_safe {
@@ -370,10 +376,8 @@ sub _make_safe {
 
     my $ok = $cursor->next();
     $self->_last_error($ok);
+    croak $ok->{err} if $ok->{err};
 
-    if ($ok->{err}) {
-        return 0;
-    }
     return 1;
 }
 

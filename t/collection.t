@@ -350,8 +350,8 @@ is($obj->{data}, 3.3);
 {
     $coll->drop;
     $coll->insert({_id => 1}, {safe => 1});
-    $ok = $coll->insert({_id => 1}, {safe => 1});
-    is($ok, 0);
+    eval {$coll->insert({_id => 1}, {safe => 1})};
+    ok($@ and $@ =~ /^E11000/, 'duplicate key exception');
 
   SKIP: {
       skip "the version of the db you're running doesn't give error codes, you may wish to consider upgrading", 1 if !exists $db->last_error->{code};
