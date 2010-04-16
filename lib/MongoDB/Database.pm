@@ -189,13 +189,15 @@ sub run_command {
 
     my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
 
-Evaluate a JavaScript expression on the Mongo server. 
+Evaluate a JavaScript expression on the Mongo server. The C<$code> argument can
+be a string or an instance of C<MongoDB::Code>.  The C<$args> are an optional 
+array of arguemnts to be passed to the C<$code> function.
 
-Useful if you need to touch a lot of data lightly; in such a scenario 
-the network transfer of the data could be a bottleneck. The $code 
-argument must be a JavaScript function. $args is an array of 
-parameters that will be passed to the function.  For more examples of using eval
-see L<http://www.mongodb.org/display/DOCS/Server-side+Code+Execution#Server-sideCodeExecution-Using{{db.eval%28%29}}>.
+C<eval> is useful if you need to touch a lot of data lightly; in such a scenario
+the network transfer of the data could be a bottleneck. The C<$code> argument 
+must be a JavaScript function. $args is an array of parameters that will be 
+passed to the function.  For more examples of using eval see 
+L<http://www.mongodb.org/display/DOCS/Server-side+Code+Execution#Server-sideCodeExecution-Using{{db.eval%28%29}}>.
 
 =cut
 
