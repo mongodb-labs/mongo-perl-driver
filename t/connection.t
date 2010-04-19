@@ -18,7 +18,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 11;
+    plan tests => 16;
 }
 
 throws_ok {
@@ -66,3 +66,35 @@ lives_ok {
 } 'drop database';
 
 ok(!(grep { $_ eq 'test_database' } $conn->database_names), 'database got dropped');
+
+
+# w
+{
+    is($conn->w, 1, "get w");
+    $conn->w(3);
+    is($conn->w, 3, "set w");
+
+    is($conn->wtimeout, 1000, "get wtimeout");
+    $conn->wtimeout(100);
+    is($conn->wtimeout, 100, "set wtimeout");
+
+    my $admin = $conn->get_database('admin');
+    my $buildinfo = $admin->run_command({buildinfo => 1});
+    skip "w won't work with db version $buildinfo->{version}", 1 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[1234]\d*.\d+)/;
+
+    my $coll = $db->get_collection('test_collection');
+    my $ret;
+    eval {
+        $ret = $coll->insert({ foo => 42 }, {safe => 1});
+    };
+
+    if ($@) {
+        ok($@ =~ /timed out/, "w timeout");
+    }
+    else {
+        ok(0);
+    }
+
+    $db->drop;
+}
+

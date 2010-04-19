@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-our $VERSION = '0.31_02';
+our $VERSION = '0.31_03';
 
 # ABSTRACT: A connection to a Mongo server
 
@@ -96,6 +96,68 @@ has host => (
     isa      => 'Str',
     required => 1,
     default  => 'mongodb://localhost:27017',
+);
+
+=head2 w
+
+I<Only supported in MongoDB server version 1.5+.>
+
+The default number of mongod slaves to replicate a change to before reporting 
+success for all operations on this collection.
+
+Defaults to 1 (just the current master).
+
+If this is not set, a safe insert will wait for 1 machine (the master) to 
+ack the operation, then return that it was successful.  If the master has 
+slaves, the slaves may not yet have a record of the operation when success is
+reported.  Thus, if the master goes down, the slaves will never get this 
+operation.  
+
+To prevent this, you can set C<w> to a value greater than 1.  If you set C<w> to
+<N>, it means that safe operations must have succeeded on the master and C<N-1>
+slaves before the client is notified that the operation succeeded.  If the 
+operation did not succeed or could not be replicated to C<N-1> slaves within the
+timeout (see C<wtimeout> below), the safe operation will fail (croak).
+
+Some examples of a safe insert with C<w> set to 3 and C<wtimeout> set to 100:
+
+=over 4
+
+=item The master inserts the document, but 100 milliseconds pass before the 
+slaves have a chance to replicate it.  The master returns failure and the client
+croaks.
+
+=item The master inserts the document and two or more slaves replicate the 
+operation within 100 milliseconds.  The safe insert returns success.
+
+=item The master inserts the document but there is only one slave up.  The 
+safe insert times out and croaks.
+
+=back
+
+=cut
+
+has w => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 1,
+);
+
+=head2 wtimeout
+
+The number of milliseconds an operation should wait for C<w> slaves to replicate 
+it.
+
+Defaults to 1000 (1 second).
+
+See C<w> above for more information.
+
+=cut
+
+has wtimeout => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 1000,
 );
 
 =head2 port [deprecated]
@@ -366,7 +428,8 @@ sub _make_safe {
     my ($self, $ns, $req) = @_;
 
     my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
-    my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, {getlasterror => 1});
+    my $last_error = Tie::IxHash->new(getlasterror => 1, w => $self->w, wtimeout => $self->wtimeout);
+    my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
     
     $self->send("$req$query");
 
@@ -375,8 +438,15 @@ sub _make_safe {
     $self->recv($cursor);
 
     my $ok = $cursor->next();
+
+    # handle errors
     $self->_last_error($ok);
+    # $ok->{ok} is 1 if err is set
     croak $ok->{err} if $ok->{err};
+    # $ok->{ok} == 0 is still an error
+    if (!$ok->{ok}) {
+        croak $ok->{errmsg};
+    }
 
     return 1;
 }
