@@ -37,7 +37,7 @@ has _database => (
     is       => 'ro',
     isa      => 'MongoDB::Database',
     required => 1,
-    handles  => [qw/query find_one insert update remove ensure_index batch_insert/],
+    handles  => [qw/query find_one insert update remove ensure_index batch_insert find/],
 );
 
 =head1 ATTRIBUTES
@@ -117,9 +117,25 @@ sub to_index_string {
 
 =head1 METHODS
 
-=head2 query ($query, \%attrs?)
+=head2 find($query)
 
-    my $cursor = $collection->query({ i => { '$gt' => 42 } });
+    my $cursor = $collection->find({ i => { '$gt' => 42 } });
+
+Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
+C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
+even number of elements).  
+
+The set of fields returned can be limited through the use of the
+C<MongoDB::Cursor::fields> method on the resulting L<MongoDB::Cursor> object.
+Other commonly used cursor methods are C<MongoDB::Cursor::limit>, 
+C<MongoDB::Cursor::skip>, and C<MongoDB::Cursor::sort>.
+
+See also core documentation on querying: 
+L<http://dochub.mongodb.org/core/find>.
+
+=head2 query($query, $attrs?)
+
+Identical to C<MongoDB::Collection::find>, described above.
 
     my $cursor = $collection->query({ }, { limit => 10, skip => 10 });
 
@@ -127,14 +143,6 @@ sub to_index_string {
         { location => "Vancouver" },
         { sort_by  => { age => 1 } },
     );
-
-    my $cursor = $collection->query( )->fields( {f1 => 1} );
-
-Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
-C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).  A hash reference of attributes may be passed as the 
-second argument. The set of fields returned can be limited through the use of
-fields() method on the resulting L<MongoDB::Cursor> object.
 
 Valid query attributes are:
 
@@ -153,9 +161,6 @@ Skip a number of results.
 Order results.
 
 =back
-
-See also core documentation on querying: 
-L<http://dochub.mongodb.org/core/find>.
 
 =head2 find_one ($query, $fields?)
 
@@ -268,7 +273,7 @@ See the L<MongoDB::Indexing> pod for more information on indexing.
 
 =cut
 
-around qw/query find_one insert update remove ensure_index batch_insert/ => sub {
+around qw/query find_one insert update remove ensure_index batch_insert find/ => sub {
     my ($next, $self, @args) = @_;
     return $self->$next($self->_query_ns, @args);
 };

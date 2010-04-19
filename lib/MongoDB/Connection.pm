@@ -416,7 +416,11 @@ sub query {
     return $cursor;
 }
 
+sub find {
+    my ($self, $ns, $query, $attrs) = @_;
 
+    return $self->query($ns, $query, $attrs);
+}
 
 sub insert {
     my ($self, $ns, $object, $options) = @_;

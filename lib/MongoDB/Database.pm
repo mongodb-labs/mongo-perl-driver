@@ -26,7 +26,7 @@ has _connection => (
     is       => 'ro',
     isa      => 'MongoDB::Connection',
     required => 1,
-    handles  => [qw/query find_one insert update remove ensure_index batch_insert/],
+    handles  => [qw/query find_one insert update remove ensure_index batch_insert find/],
 );
 
 =head1 NAME
@@ -57,7 +57,7 @@ sub BUILD {
     Any::Moose::load_class("MongoDB::Collection");
 }
 
-around qw/query find_one insert update remove ensure_index batch_insert/ => sub {
+around qw/query find_one insert update remove ensure_index batch_insert find/ => sub {
     my ($next, $self, $ns, @args) = @_;
     $self->_connection->_last_error(undef);
     return $self->$next($self->_query_ns($ns), @args);

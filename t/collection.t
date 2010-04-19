@@ -21,10 +21,10 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 113;
+    plan tests => 116;
 }
 
-my $db   = $conn->get_database('test_database');
+my $db = $conn->get_database('test_database');
 $db->drop;
 
 my $coll = $db->get_collection('test_collection');
@@ -397,6 +397,25 @@ is($obj->{data}, 3.3);
 
     my $z = $coll->find_one;
     is($z->{"hello"}, 3);
+}
+
+# find
+{
+    $coll->drop;
+
+    $coll->insert({x => 1});
+    $coll->insert({x => 4});
+    $coll->insert({x => 5});
+
+    my $cursor = $coll->find({x=>4});
+    my $result = $cursor->next;
+    is($result->{'x'}, 4);
+
+    $cursor = $coll->find({x=>{'$gt' => 1}})->sort({x => -1});
+    $result = $cursor->next;
+    is($result->{'x'}, 5);
+    $result = $cursor->next;
+    is($result->{'x'}, 4);
 }
 
 END {
