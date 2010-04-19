@@ -15,7 +15,7 @@
 #
 
 package MongoDB::GridFS;
-our $VERSION = '0.31_03';
+our $VERSION = '0.31_04';
 
 # ABSTRACT: A file storage utility
 
@@ -35,6 +35,11 @@ MongoDB::GridFS - A file storage utility
     my $grid = $database->get_gridfs;
     my $fh = IO::File->new("myfile", "r");
     $grid->insert($fh, {"filename" => "mydbfile"});
+
+There are two interfaces for GridFS: a file-system/collection-like interface
+(insert, remove, drop, find_one) and a more general interface 
+(get, put, delete).  Their functionality is the same, using one over the other
+is a matter of preference.
 
 =head1 SEE ALSO
 
@@ -58,9 +63,8 @@ has _database => (
 
 =head2 files
 
-Collection in which file metadata is stored.  Each
-document contains md5 and length fields, plus
-user-defined metadata (and an _id). 
+Collection in which file metadata is stored.  Each document contains md5 and 
+length fields, plus user-defined metadata (and an _id). 
 
 =cut
 
@@ -72,10 +76,9 @@ has files => (
 
 =head2 chunks
 
-Actual content of the files stored.  Each chunk contains
-up to 4Mb of data, as well as a number (its order within 
-the file) and a files_id (the _id of the file in the 
-files collection it belongs to).  
+Actual content of the files stored.  Each chunk contains up to 4Mb of data, as 
+well as a number (its order within the file) and a files_id (the _id of the file 
+in the files collection it belongs to).  
 
 =cut
 
@@ -87,6 +90,53 @@ has chunks => (
 
 
 =head1 METHODS
+
+=head2 get($id)
+
+    my $file = $grid->get("my file");
+
+Get a file from GridFS based on its _id.  Returns a L<MongoDB::GridFS::File>.
+
+=cut
+
+sub get {
+    my ($self, $id) = @_;
+
+    return $self->find_one({_id => $id});
+}
+
+=head2 put($fh, $metadata)
+
+    my $id = $grid->put($fh, {filename => "pic.jpg"});
+
+Inserts a file into GridFS, adding a L<MongoDB::OID> as the _id field if the 
+field is not already defined.  This is a wrapper for C<MongoDB::GridFS::insert>,
+see that method below for more information.  
+
+Returns the _id field.
+
+=cut
+
+sub put {
+    my ($self, $fh, $metadata) = @_;
+
+    return $self->insert($fh, $metadata, {safe => 1});
+}
+
+=head2 delete($id)
+
+    $grid->delete($id)
+
+Removes the file with the given _id.  Will die if the remove is unsuccessful.
+Does not return anything on success.
+
+=cut
+
+sub delete {
+    my ($self, $id) = @_;
+
+    $self->remove({_id => $id}, {safe => 1});
+}
 
 =head2 find_one ($criteria?, $fields?)
 
@@ -104,29 +154,54 @@ sub find_one {
     return MongoDB::GridFS::File->new({_grid => $self,info => $file});
 }
 
-=head2 remove ($criteria?, $just_one?)
+=head2 remove ($criteria?, $options?)
 
     $grid->remove({"filename" => "foo.txt"});
 
-Cleanly removes files from the database.  If C<$just_one>
-is given, only one file matching the criteria will be removed.
+Cleanly removes files from the database.  C<$options> is a hash of options for
+the remove.  Possible options are:
+
+=over 4
+
+=item just_one
+If true, only one file matching the criteria will be removed.
+
+=item safe
+If true, each remove will be checked for success and die on failure.
+
+=back
+
+This method doesn't return anything.
 
 =cut
 
 sub remove {
-    my ($self, $criteria, $just_one) = @_;
+    my ($self, $criteria, $options) = @_;
+
+    my $just_one = 0;
+    my $safe = 0;
+
+    if (defined $options) {
+        if (ref $options eq 'HASH') {
+            $just_one = $options->{just_one} && 1;
+            $safe = $options->{safe} && 1;
+        }
+        elsif ($options) {
+            $just_one = $options && 1;
+        }
+    }
 
     if ($just_one) {
         my $meta = $self->files->find_one($criteria);
-        $self->chunks->remove({"files_id" => $meta->{'_id'}});
-        $self->files->remove({"_id" => $meta->{'_id'}});
+        $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
+        $self->files->remove({"_id" => $meta->{'_id'}}, {safe => $safe});
     }
     else {
         my $cursor = $self->files->query($criteria);
         while (my $meta = $cursor->next) {
-            $self->chunks->remove({"files_id" => $meta->{'_id'}});
+            $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
         }
-        $self->files->remove($criteria);
+        $self->files->remove($criteria, {safe => $safe});
     }
 }
 

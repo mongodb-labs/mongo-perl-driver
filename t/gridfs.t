@@ -25,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 54;
+    plan tests => 61;
 }
 
 my $db = $m->get_database('foo');
@@ -204,6 +204,41 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
     is($file->info->{filename}, 'img.png', 'safe insert');
     is($file->info->{length}, 1292706);
     ok($file->info->{md5} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->info->{'md5'});
+}
+
+# get, put, delete
+{
+    $grid->drop;
+
+    $img = new IO::File("t/img.png", "r") or die $!;
+    $img->binmode;
+
+    my $id = $grid->put($img, {_id => 1, filename => 'img.png'});
+    is($id, 1, "put _id");
+
+    $id = $grid->put($img);
+    isa_ok($id, 'MongoDB::OID');
+
+    eval {
+        $id = $grid->put($img, {_id => 1, filename => 'img.png'});
+    };
+
+    ok($@ and $@ =~ /^E11000/, 'duplicate key exception');
+
+    my $file = $grid->get(1);
+    is($file->info->{filename}, 'img.png');
+    ok($file->info->{md5} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->info->{'md5'});
+
+    $grid->delete(1);
+
+    my $coll = $db->get_collection('fs.files');
+
+    $file = $coll->find_one({_id => 1});
+    is($file, undef);
+
+    $coll = $db->get_collection('fs.chunks');
+    $file = $coll->find_one({files_id => 1});
+    is($file, undef);
 }
 
 
