@@ -350,8 +350,16 @@ sub count {
         });
     };
 
-    if ($obj =~ m/^ns missing/) {
-        return 0;
+    # if there was an error, check if it was the "ns missing" one that means the
+    # collection hasn't been created or a real error.
+    if ($@) {
+        # if the request timed out, $obj might not be initialized
+        if ($obj && $obj =~ m/^ns missing/) {
+            return 0;
+        }
+        else {
+            die $@;
+        }
     }
 
     return $obj->{n};

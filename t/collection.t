@@ -21,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 116;
+    plan tests => 117;
 }
 
 my $db = $conn->get_database('test_database');
@@ -416,6 +416,20 @@ is($obj->{data}, 3.3);
     is($result->{'x'}, 5);
     $result = $cursor->next;
     is($result->{'x'}, 4);
+}
+
+# count
+{
+    my $timeout = $MongoDB::Cursor::timeout;
+    $MongoDB::Cursor::timeout = 0;
+
+    eval {
+        my $num = $coll->count;
+    };
+
+    ok($@ && $@ =~ /recv timed out/, 'count timeout');
+
+    $MongoDB::Cursor::timeout = $timeout;
 }
 
 END {

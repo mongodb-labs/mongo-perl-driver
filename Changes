@@ -1,6 +1,7 @@
 0.32
 
   - croak on failed safe update/insert/remove/ensure_index (Eric Wilhelm)
+  - die correctly on MongoCollection::count errors (help from Josh Rabinowitz)
 
 0.31 April 5, 2010
 
