@@ -423,8 +423,12 @@ is($obj->{data}, 3.3);
     my $timeout = $MongoDB::Cursor::timeout;
     $MongoDB::Cursor::timeout = 0;
 
+    for (0 .. 10000) {
+        $coll->insert({"field1" => "foo", "field2" => "bar", 'x' => $_});
+    }
+
     eval {
-        my $num = $coll->count;
+        my $num = $coll->count({'x' => {'$lt' => 9000, '$gt' => 1233}});
     };
 
     ok($@ && $@ =~ /recv timed out/, 'count timeout');
