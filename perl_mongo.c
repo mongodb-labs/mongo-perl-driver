@@ -417,9 +417,15 @@ elem_to_sv (int type, buffer *buf)
 #endif
      // eo version-dependent code
 
+#if PERL_REVISION==5 && PERL_VERSION>=12
+    // they removed magic and made this a normal obj in 5.12
+    regex_ref = newRV((SV*)re);
+#else
     regex = sv_2mortal(newSVpv("",0));
     regex_ref = newRV((SV*)regex);
+
     sv_magic(regex, (SV*)re, PERL_MAGIC_qr, 0, 0);
+#endif
 
     stash = gv_stashpv("Regexp", 0);
     sv_bless(regex_ref, stash);
