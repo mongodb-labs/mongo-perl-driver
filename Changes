@@ -1,9 +1,13 @@
-0.32
+0.32 21 April 2010
 
-  - croak on failed safe update/insert/remove/ensure_index (Eric Wilhelm)
+  - BACKWARD COMPATIBILITY BREAK: croak on failed safe update/insert/remove/ensure_index (Eric Wilhelm)
+  - w and wtimeout (see MongoDB::Connection::w)
   - die correctly on MongoCollection::count errors (help from Josh Rabinowitz)
+  - added MongoDB::Collection::find (same as query)
+  - added get, put, and delete methods to MongoDB::GridFS
+  - Perl 5.12 compatibility
 
-0.31 April 5, 2010
+0.31 05 April 2010
 
   - C89 fix (Taro Nishino)
   - Added MongoDB::Code type
