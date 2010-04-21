@@ -21,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 117;
+    plan tests => 114;
 }
 
 my $db = $conn->get_database('test_database');
@@ -90,21 +90,22 @@ for (my $i=0; $i<10; $i++) {
 $coll->drop;
 ok(!$coll->get_indexes, 'no indexes yet');
 
-my $ok = $coll->ensure_index([qw/foo bar baz/]);
-is($ok, 0);
+my $indexes = Tie::IxHash->new(foo => 1, bar => 1, baz => 1);
+my $ok = $coll->ensure_index($indexes);
+isa_ok($ok, 'MongoDB::OID');
 my $err = $db->last_error;
-is($err->{ok}, 0);
-is($err->{err}, "you're using the old format for ensure_index, ".
-   "please check the documentation and update your code");
+is($err->{ok}, 1);
+is($err->{err}, undef);
 
-$ok = $coll->ensure_index([qw/foo bar/]);
-is($ok, 0);
+$indexes = Tie::IxHash->new(foo => 1, bar => 1);
+$ok = $coll->ensure_index($indexes);
+isa_ok($ok, 'MongoDB::OID');
 $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
 $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
 is($coll->count, 2);
 
-$ok = $coll->ensure_index([qw/boo/], "ascending", 1);
-is($ok, 0);
+$ok = $coll->ensure_index({boo => 1}, {unique => 1});
+isa_ok($ok, 'MongoDB::OID');
 $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
 
 is($coll->count, 2, 'unique index');
@@ -363,23 +364,24 @@ is($obj->{data}, 3.3);
 # safe remove/update
 {
     $coll->drop;
+
     $ok = $coll->remove;
     is($ok, 1);
     is($db->last_error->{n}, 0);
 
-    $coll->insert({x=>1});
-    $ok = $coll->remove({}, {safe => 1});
-    is($ok, 1);
-    is($db->last_error->{n}, 1);
+    my $syscoll = $db->get_collection('system.indexes');
+    eval {
+        $ok = $syscoll->remove({}, {safe => 1});
+    };
+
+    ok($@ && $@ =~ 'cannot delete from system namespace');
 
     $coll->insert({x=>1});
     $ok = $coll->update({}, {'$inc' => {x => 1}});
     is($ok, 1);
-    is($db->last_error->{n}, 1);
 
     $ok = $coll->update({}, {'$inc' => {x => 2}}, {safe => 1});
     is($ok, 1);
-    is($db->last_error->{n}, 1);
 }
 
 # save

@@ -313,10 +313,6 @@ has db_name => (
 );
 
 
-has _last_error => (
-    is => 'rw',
-);
-
 sub croak (@) {
     # Mouse delegation is doing something weird here - and confess is overkill
     local $Carp::CarpLevel = 4;
@@ -443,8 +439,6 @@ sub _make_safe {
 
     my $ok = $cursor->next();
 
-    # handle errors
-    $self->_last_error($ok);
     # $ok->{ok} is 1 if err is set
     croak $ok->{err} if $ok->{err};
     # $ok->{ok} == 0 is still an error
@@ -604,9 +598,6 @@ sub remove {
             _old_ensure_index(@_);
 
             my $db = substr($ns, 0, index($ns, '.'));
-            $self->_last_error({"ok" => 0, "err" => "you're using the old ".
-                "format for ensure_index, please check the documentation and ".
-                "update your code"});
             return 0;
         }
 

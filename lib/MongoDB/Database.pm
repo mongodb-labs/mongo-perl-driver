@@ -59,7 +59,6 @@ sub BUILD {
 
 around qw/query find_one insert update remove ensure_index batch_insert find/ => sub {
     my ($next, $self, $ns, @args) = @_;
-    $self->_connection->_last_error(undef);
     return $self->$next($self->_query_ns($ns), @args);
 };
 
@@ -142,24 +141,50 @@ sub drop {
 }
 
 
-=head2 last_error
+=head2 last_error($options?)
 
-    my $err = $db->last_error;
+    my $err = $db->last_error({w => 2});
 
 Finds out if the last database operation completed successfully.  If the last
 operation did not complete successfully, returns a hash reference of information
 about the error that occured.
 
+The optional C<$options> parameter is a hash reference that can contain any of
+the following:
+
+=over 4
+
+=item w
+
+Guarantees that the previous operation will be replicated to C<w> servers before
+this command will return success. See C<MongoDB::Connection::w> for more 
+information.
+
+=item wtimeout
+
+Milliseconds to wait for C<w> copies of the data to be made.  This parameter
+should generally be specified, as the database will otherwise wait forever if 
+C<w> copies cannot be made.
+
+=item fsync
+
+If true, the database will fsync to disk before returning.
+
+=back
+
 =cut
 
 sub last_error {
-    my ($self) = @_;
+    my ($self, $options) = @_;
 
-    if ($self->_connection->_last_error) {
-        return $self->_connection->_last_error;
+    my $cmd = Tie::IxHash->new("getlasterror" => 1);
+    if ($options) {
+        $cmd->Push("w", $options->{w}) if $options->{w};
+        $cmd->Push("wtimeout", $options->{wtimeout}) if $options->{wtimeout};
+        $cmd->Push("fsync", $options->{fsync}) if $options->{fsync};
     }
 
-    return $self->run_command({"getlasterror" => 1});
+    return $self->run_command($cmd);
 }
 
 

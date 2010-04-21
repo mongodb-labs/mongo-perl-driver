@@ -18,7 +18,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 11;
+    plan tests => 14;
 }
 
 isa_ok($conn, 'MongoDB::Connection');
@@ -46,4 +46,12 @@ is($coll->find_one->{_id}->value, $id->value, 'insert id');
 
 is($db->run_command({ foo => 'bar' }), "no such cmd");
 
+# getlasterror
+{
+    my $result = $db->last_error({w => 20, wtimeout => 1});
+    is($result, 'timed out waiting for slaves', 'last error timeout');
 
+    my $result = $db->last_error({fsync => 1});
+    is($result->{ok}, 1);
+    is($result->{err}, undef);
+}
