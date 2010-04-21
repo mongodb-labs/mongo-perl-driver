@@ -51,7 +51,7 @@ is($db->run_command({ foo => 'bar' }), "no such cmd");
     my $result = $db->last_error({w => 20, wtimeout => 1});
     is($result, 'timed out waiting for slaves', 'last error timeout');
 
-    my $result = $db->last_error({fsync => 1});
+    $result = $db->last_error({fsync => 1});
     is($result->{ok}, 1);
     is($result->{err}, undef);
 }
