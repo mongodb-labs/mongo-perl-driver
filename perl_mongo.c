@@ -1024,6 +1024,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
               set_type(buf, BSON_MAXKEY);
               perl_mongo_serialize_key(buf, key, ids);
             }
+#if PERL_REVISION==5 && PERL_VERSION>=12
             // Perl 5.12 regexes
             else if (sv_isa(sv, "Regexp")) {
               REGEXP * re = SvRX(sv);
@@ -1031,6 +1032,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
               serialize_regex(buf, key, re, ids);
               serialize_regex_flags(buf, sv);
             }
+#endif
             else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
 
               MAGIC *remg;
