@@ -47,7 +47,11 @@ is($coll->find_one->{_id}->value, $id->value, 'insert id');
 is($db->run_command({ foo => 'bar' }), "no such cmd");
 
 # getlasterror
-{
+SKIP: {
+    my $admin = $conn->get_database('admin');
+    my $buildinfo = $admin->run_command({buildinfo => 1});
+    skip "MongoDB 1.5+ needed", 3 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[1234]\d*.\d+)/;
+
     my $result = $db->last_error({w => 20, wtimeout => 1});
     is($result, 'timed out waiting for slaves', 'last error timeout');
 

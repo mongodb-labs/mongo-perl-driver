@@ -69,7 +69,7 @@ ok(!(grep { $_ eq 'test_database' } $conn->database_names), 'database got droppe
 
 
 # w
-{
+SKIP: {
     is($conn->w, 1, "get w");
     $conn->w(3);
     is($conn->w, 3, "set w");
