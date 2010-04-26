@@ -1,6 +1,10 @@
 
 =pod
 
+=head1 NAME
+
+MongoDB::Examples - some more advanced examples
+
 =head1 DATABASE COMMANDS
 
 =head2 MapReduce

@@ -1,3 +1,7 @@
+0.33 26 April 2010
+
+  - Fixed tests
+
 0.32 21 April 2010
 
   - BACKWARD COMPATIBILITY BREAK: croak on failed safe update/insert/remove/ensure_index (Eric Wilhelm)

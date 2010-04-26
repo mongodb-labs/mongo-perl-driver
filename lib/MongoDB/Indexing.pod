@@ -1,6 +1,10 @@
 
 =pod
 
+=head1 NAME
+
+MongoDB::Indexing - indexing collections
+
 =head1 CREATING AN INDEX
 
 Unique and non-unique indexes can be created on collections using 
