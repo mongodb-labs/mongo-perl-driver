@@ -11,6 +11,38 @@ This goes over the types you can save to the database and use for queries.
 
 =head1 TYPES
 
+=head2 Strings
+
+All strings must be valid UTF-8 to be sent to the database.  If a string is not
+valid, it will not be saved.  If you need to save a non-UTF-8 string, you can 
+save it as a binary blob (see the Binary Data section below).  
+
+All strings returned from the database have the UTF-8 flag set.
+
+Unfortunately, due to Perl weirdness, UTF-8 is not very pretty.  For example,
+suppose we have a UTF-8 string:
+
+    my $str = 'Åland Islands';
+
+Now, let's print it:
+
+    print "$str\n";
+
+You can see in the output:
+
+    "\x{c5}land Islands"
+
+Lovely, isn't it?  This is how Perl prints UTF-8.  To make it "pretty," you can
+do one of two things:
+
+    my $pretty_str = utf8::encode($str);
+
+which, unintuitively, clears the UTF-8 flag.  You can also just run
+
+    binmode STDOUT, ':utf8';
+
+and then the string (and all future UTF-8 strings) will print "correctly."
+
 =head2 Dates
 
 The L<DateTime> package can be used insert and query for dates. Dates stored in 
@@ -50,7 +82,7 @@ You can also save and retrieve regular expressions themselves:
     }
 
 Note for Perl 5.8 users: flags are lost when regular expressions are retrieved 
-from the database (this does not affect queries or Perl 5.10).
+from the database (this does not affect queries or Perl 5.10+).
 
 =head2 Booleans
 
@@ -67,6 +99,10 @@ An example using boolean values for query operators (only returns documents
 where the name field exists):
 
     my $cursor = $collection->query({"name" => {'$exists' => boolean::true}});
+
+Most of the time, you can just use 1 or 0 instead of C<true> and C<false>, such
+as for specifying fields to return.  L<boolean> is the only way to save 
+booleans to the database, though.
 
 =head2 Numbers
 
@@ -107,11 +143,7 @@ effectively converting it to a 64-bit int.
 
 Nothing drastic, but good to be aware of.
 
-=head2 Other
-
-There are a few Mongo-specific data types.
-
-=head3 MongoDB::OID
+=head2 MongoDB::OID
 
 "OID" stands for "Object ID", and is a unique id that is automatically added to 
 documents if they do not already have an C<_id> field before they are saved to 
@@ -126,7 +158,7 @@ To create a MongoDB::OID from an existing 24-character hexidecimal string:
 
     my $oid = MongoDB::OID->new("123456789012345678901234");
 
-=head3 Binary Data
+=head2 Binary Data
 
 By default, all database strings are UTF8.  To save images, binaries, and other
 non-UTF8 data, you can pass the string as a reference to the database.  For 
@@ -139,7 +171,15 @@ example:
 
 This will save the variable as binary data, bypassing the UTF8 check.
 
-=head3 MongoDB::Code
+Binary data can be matched exactly by the database, so this query will match 
+the object we inserted above:
+
+    $collection->find({"photo" => \$string});
+
+Comparisons (e.g., $gt, $lt) may not work as you expect with binary data, so it
+is worth experimenting.
+
+=head2 MongoDB::Code
 
 C<MongoDB::Code> is used to represent JavaScript code and, optionally, scope.
 To create one:
@@ -155,7 +195,7 @@ Or, with a scope:
 
 Which would then return "hello, Fred" when run.
 
-=head3 MongoDB::MinKey
+=head2 MongoDB::MinKey
 
 MongoDB::MinKey is "less than" any other value of any type.  This can be useful
 for always returning certain documents first (or last).
@@ -165,7 +205,7 @@ sufficient to say:
 
     bless $minKey, "MongoDB::MinKey";
 
-=head3 MongoDB::MaxKey
+=head2 MongoDB::MaxKey
 
 MongoDB::MaxKey is "greater than" any other value of any type.  This can be useful
 for always returning certain documents last (or first).
