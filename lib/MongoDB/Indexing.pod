@@ -36,7 +36,7 @@ options.  Available options are:
 
 =over
 
-=item C<unique => boolean>
+=item C<unique =&gt; boolean>
 
 By default, indexes are not unique. To create a unique index, pass 
 C<"unique" => true>.  C<true> can be L<boolean::true> or any other true value.
@@ -48,7 +48,7 @@ values, creating the index will fail.  To force the index creation by deleting
 duplicate values, use this option.  Again, any value that evaluates to true will
 work.
 
-=item C<safe => boolean>
+=item C<safe =&gt; boolean>
 
 If the update fails and safe is set, this function will return 0.  You should 
 check C<MongoDB::Database::last_error> to find out why the update failed.
@@ -57,7 +57,7 @@ check C<MongoDB::Database::last_error> to find out why the update failed.
 
 Create the index as a background operation.
 
-=item C<name => string>
+=item C<name =&gt; string>
 
 Give the index a non-default name.  This can be useful if the index contains so
 many keys that you get an "index name too long" assertion, or if you just prefer
@@ -105,14 +105,14 @@ By default, the geospatial index assumes that points will lie between -180 and
 
 =over
 
-=item C<min => int>
+=item C<min =&gt; int>
 
 By default, the geospatial index assumes that points will lie between -180 and 
 180, for longitude and latitude queries.  If you need an alternative minimum
 value, you can use this option.  This value is exclusive: if you specify
 C<min => 0>, you cannot save a point with a 0 value coordinate.
 
-=item C<max => int>
+=item C<max =&gt; int>
 
 Alternative maximum value, exclusive.
 
