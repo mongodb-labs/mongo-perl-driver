@@ -31,7 +31,7 @@ Table
 
 Record or row
 
-=item C<MongoDB::OID>
+=item L<MongoDB::OID>
 
 Autoincrementing primary key
 
@@ -66,7 +66,7 @@ as needed.
 =head3 Inserting
 
 To add a document to the collection, we use the C<insert> function.  It takes a
-hash, which it saves to the collection.
+hash which is saved to the collection.
 
     $users->insert({"name" => "Joe", 
         "age" => 52, 
@@ -74,17 +74,17 @@ hash, which it saves to the collection.
 
 Now there is a user in the collection.  
 
-=head3 C<MongoDB::OID>s
+=head3 L<MongoDB::OID>s
 
-When a document is inserted, it is given an _id field if one does not already
+When a document is inserted, it is given a C<_id> field if one does not already
 exist.  By default, this field is a L<MongoDB::OID>, 12 bytes that are 
-guaranteed to be unique. The _id field of the inserted document is returned by
-the C<insert> method.
+guaranteed to be unique. The C<_id> field of the inserted document is returned 
+by the C<insert> method.
 
     my $id = $users->insert({"name" => "Bill"});
 
 An efficient way to insert documents is to send many at a time to the database
-by using C<batch_insert>, which returns an array of the _id fields of the 
+by using C<batch_insert>, which returns an array of the C<_id> fields of the 
 documents inserted.
 
     @ids = $users->batch_insert(\@fifty_users);
@@ -94,20 +94,30 @@ documents inserted.
 
 =head3 Queries
 
-To retrive documents that were saved to a collection, we can use the C<query> 
+To retrive documents that were saved to a collection, we can use the C<find> 
 method.
 
-    my $all_users = $users->query;
+    my $all_users = $users->find;
 
 To query for certain criteria, say, all users named Joe, pass the query a hash 
 with the key/value pair you wish to match:
 
-    my $some_users = $users->query({"name" => "Joe"});
+    my $some_users = $users->find({"name" => "Joe"});
 
 You can match array elements in your querys; for example, to find all users who
 like math:
 
-    my $geeks = $users->query({"likes" => "math"});
+    my $geeks = $users->find({"likes" => "math"});
+
+=head3
+
+This being Perl, it is important to mention that you can also use regular 
+expressions to search for strings.  If you wanted to find all users with the
+name John and all variations of said name, you could do:
+
+    my $john = $users->find({"name" => qr/joh?n/i});
+
+See L<MongoDB::DataTypes/"Regular Expressions"> for more information.
 
 =head3 Ranges
 
