@@ -21,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 114;
+    plan tests => 115;
 }
 
 my $db = $conn->get_database('test_database');
@@ -399,6 +399,13 @@ is($obj->{data}, 3.3);
 
     my $z = $coll->find_one;
     is($z->{"hello"}, 3);
+
+    my $syscoll = $db->get_collection('system.indexes');
+    eval {
+        $ok = $syscoll->save({_id => 'foo'}, {safe => 1});
+    };
+
+    ok($@ && $@ =~ 'cannot update system collection');
 }
 
 # find

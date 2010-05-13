@@ -316,10 +316,10 @@ sub save {
     if (exists $doc->{"_id"}) {
 
         if (!$options || !ref $options eq 'HASH') {
-            $options->{'upsert'} = boolean::true;
+            $options = {"upsert" => boolean::true};
         }
         else {
-            $options = {"upsert" => boolean::true};
+            $options->{'upsert'} = boolean::true;
         }
 
         return $self->update({"_id" => $doc->{"_id"}}, $doc, $options);
