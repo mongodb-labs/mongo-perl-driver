@@ -37,6 +37,16 @@ Autoincrementing primary key
 
 =back
 
+=head1 PREAMBLE
+
+The MongoDB package load L<MongoDB::Connection>, L<MongoDB::Database>, 
+L<MongoDB::Collection>, and L<MongoDB::Cursor>.  To use special Mongo data types
+(see L<MongoDB::DataTypes>), you have to include them separately.  So, usually,
+to use Mongo, you'll start with at least:
+
+    use MongoDB;
+    use MongoDB::OID;
+
 =head1 CONNECTING
 
 To get started, we have to connect to the database server.  Because it's running
