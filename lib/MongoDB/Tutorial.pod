@@ -243,7 +243,7 @@ with $db->run_command. For example, to drop a collection, you can use:
     $db->run_command({drop => $collection_name});
 
 "drop" only requires one key/value pair, but for commands that require multiple 
-fields, Mongo expects key/value pairs to be in a certain order. It will no 
+fields, Mongo expects key/value pairs to be in a certain order. It will not 
 recognize the command if they are not ordered command name first. Thus, if you
 are running a database command, you should probably use L<Tie::IxHash> instead of a
 normal hash (normal hashes are not ordered).
