@@ -160,6 +160,7 @@ has _grrrr => (
 
 =cut
 
+sub CLONE_SKIP { 1 }
 sub _ensure_special {
     my ($self) = @_;
 

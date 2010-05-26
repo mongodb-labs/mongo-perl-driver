@@ -313,6 +313,8 @@ has db_name => (
 );
 
 
+sub CLONE_SKIP { 1 }
+
 sub croak (@) {
     # Mouse delegation is doing something weird here - and confess is overkill
     local $Carp::CarpLevel = 4;
