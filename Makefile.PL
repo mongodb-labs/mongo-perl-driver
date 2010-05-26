@@ -26,6 +26,7 @@ test_requires 'boolean';
 test_requires 'Data::Types';
 test_requires 'File::Slurp';
 test_requires 'FileHandle';
+test_requires 'JSON';
 
 mongo;
 

@@ -83,12 +83,20 @@ sub build_value {
     _build_value($self, $str);
 }
 
+=head1 METHODS
+
+=head2 to_string
+
+    my $hex = $oid->to_string;
+
+Gets the value of this OID as a 24-digit hexidecimal string.
+
+=cut
+
 sub to_string {
     my ($self) = @_;
     $self->value;
 }
-
-=head1 METHODS
 
 =head2 get_time
 
@@ -107,6 +115,26 @@ sub get_time {
         $ts = ($ts * 256) + hex(substr($self->value, $i*2, 2));
     }
     return $ts;
+}
+
+=head2 TO_JSON
+
+    my $json = JSON->new;
+    $json->allow_blessed;
+    $json->convert_blessed;
+
+    $json->encode(MongoDB::OID->new);
+
+Returns a JSON string for this OID.  This is compatible with the strict JSON
+representation used by MongoDB, that is, an OID with the value 
+"012345678901234567890123" will be represented as 
+C<{"$oid" : "012345678901234567890123"}>.
+
+=cut
+
+sub TO_JSON {
+    my ($self) = @_;
+    return {'$oid' => $self->value};
 }
 
 use overload

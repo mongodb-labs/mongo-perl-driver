@@ -7,6 +7,7 @@ use MongoDB;
 use MongoDB::OID;
 use MongoDB::Code;
 use DateTime;
+use JSON;
 
 my $conn;
 eval {
@@ -21,7 +22,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 44;
+    plan tests => 45;
 }
 
 my $db = $conn->get_database('x');
@@ -227,6 +228,18 @@ SKIP: {
     $coll->update({ x => 1 }, { '$inc' => { 'y' => 19401194714 } }, { 'upsert' => 1 });
     my $result = $coll->find_one;
     is($result->{'y'},19401194714,'64 bit ints without Math::BigInt');
+}
+
+# oid json
+{
+    my $doc = {"foo" => MongoDB::OID->new};
+
+    my $j = JSON->new;
+    $j->allow_blessed;
+    $j->convert_blessed;
+
+    my $json = $j->encode($doc);
+    is($json, '{"foo":{"$oid":"'.$doc->{'foo'}->value.'"}}');
 }
 
 END {
