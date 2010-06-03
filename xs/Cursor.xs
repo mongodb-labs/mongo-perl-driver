@@ -24,8 +24,9 @@ static int has_next(SV *self, mongo_cursor *cursor);
 static void kill_cursor(SV *self);
 
 static mongo_cursor* get_cursor(SV *self) {
-  SV *link, *slave_okay, *skip, *limit,
-     *query, *fields, *ns, *started_iterating;
+  SV *link, *skip, *limit,
+    *query, *fields, *ns, *started_iterating,
+    *tailable, *slave_okay, *immortal;
   mongo_cursor *cursor;
   buffer buf;
   mongo_msg_header header;
@@ -49,8 +50,20 @@ static mongo_cursor* get_cursor(SV *self) {
   query = perl_mongo_call_reader (self, "_query");
   fields = perl_mongo_call_reader (self, "_fields");
 
-  slave_okay = get_sv ("MongoDB::Cursor::slave_okay", GV_ADD);
+  slave_okay = get_sv("MongoDB::Cursor::slave_okay", GV_ADD);
   opts = SvTRUE(slave_okay) ? 1 << 2 : 0;
+
+  tailable = perl_mongo_call_reader (self, "tailable");
+  slave_okay = perl_mongo_call_reader (self, "slave_okay");
+  immortal = perl_mongo_call_reader (self, "immortal");
+
+  opts |= SvTRUE(tailable) ? 1 << 1 : 0;
+  opts |= SvTRUE(slave_okay) ? 1 << 2 : 0;
+  opts |= SvTRUE(immortal) ? 1 << 4 : 0;
+
+  SvREFCNT_dec(tailable);
+  SvREFCNT_dec(slave_okay);
+  SvREFCNT_dec(immortal);
 
   // if not, execute the query
   CREATE_BUF(INITIAL_BUF_SIZE);

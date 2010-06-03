@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 56;
+    plan tests => 62;
 }
 
 my $db = $conn->get_database('test_database');
@@ -202,6 +202,28 @@ is($coll->query({'x' => 1})->count, 3, 'count query');
 is($coll->query->limit(1)->count(1), 1, 'count limit');
 is($coll->query->skip(1)->count(1), 3, 'count skip');
 is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
+
+# cursor opts
+# not a functional test, just make sure they don't blow up
+{
+    my $cursor = $coll->find();
+
+    $cursor->tailable(1);
+    is($cursor->tailable, 1);
+    $cursor->tailable(0);
+    is($cursor->tailable, 0);
+
+    $cursor->immortal(1);
+    is($cursor->immortal, 1);
+    $cursor->immortal(0);
+    is($cursor->immortal, 0);
+
+    $cursor->slave_okay(1);
+    is($cursor->slave_okay, 1);
+    $cursor->slave_okay(0);
+    is($cursor->slave_okay, 0);
+}
+
 
 END {
     if ($db) {

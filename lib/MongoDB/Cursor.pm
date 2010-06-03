@@ -39,38 +39,6 @@ MongoDB::Cursor - A cursor/iterator for Mongo query results
 
 Core documentation on cursors: L<http://dochub.mongodb.org/core/cursors>.
 
-=head1 OPTIONS
-
-The MongoDB::Cursor::Options subpackage defines the actual values for options 
-that can be put on a cursor.
-
-These are used internally by the driver.
-
-=head2 tailable
-
-If a cursor should be tailable.
-
-=head2 slave_okay
-
-If a query can be done on a slave database server.
-
-=head2 immortal
-
-Ordinarily, a cursor "dies" on the database server after a certain length of
-time, to prevent inactive cursors from hogging resources.  This option sets that
-a cursor should never die.
-
-=cut
-
-{
-    package Flags;
-
-    $MongoDB::Cursor::Flags::tailable = 2;
-    $MongoDB::Cursor::Flags::slave_okay = 4;
-    $MongoDB::Cursor::Flags::immortal = 16;
-
-}
-
 =head1 STATIC ATTRIBUTES
 
 =head2 slave_okay
@@ -147,6 +115,64 @@ has _skip => (
     default => 0,
 );
 
+=head2 immortal
+
+    $cursor->immortal(1);
+
+Ordinarily, a cursor "dies" on the database server after a certain length of
+time (approximately 10 minutes), to prevent inactive cursors from hogging 
+resources.  This option sets that a cursor should not die until all of its
+results have been fetched or it goes out of scope in Perl.
+
+Boolean value, defaults to 0.
+
+=cut
+
+has immortal => (
+    is => 'rw',
+    isa => 'Bool',
+    required => 0,
+    default => 0,
+);
+
+=head2 tailable
+
+    $cursor->tailable(1);
+
+If a cursor should be tailable.  Tailable cursors can only be used on capped
+collections and are similar to the C<tail -f> command: they never die and keep
+returning new results as more is added to a collection.  
+
+They are often used for getting log messages.
+
+Boolean value, defaults to 0.
+
+=cut
+
+has tailable => (
+    is => 'rw',
+    isa => 'Bool',
+    required => 0,
+    default => 0,
+);
+
+=head2 slave_okay
+
+    $cursor->slave_okay(1);
+
+If a query can be done on a slave database server.
+
+Boolean value, defaults to 0.
+
+=cut
+
+has slave_okay => (
+    is => 'rw',
+    isa => 'Bool',
+    required => 0,
+    default => 0,
+);
+
 
 # stupid hack for inconsistent database handling of queries
 has _grrrr => (
@@ -161,6 +187,7 @@ has _grrrr => (
 =cut
 
 sub CLONE_SKIP { 1 }
+
 sub _ensure_special {
     my ($self) = @_;
 
