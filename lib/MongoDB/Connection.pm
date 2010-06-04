@@ -432,11 +432,13 @@ sub _make_safe {
     my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
     my $last_error = Tie::IxHash->new(getlasterror => 1, w => $self->w, wtimeout => $self->wtimeout);
     my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
-    
+
     $self->send("$req$query");
 
     my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _connection => $self, _query => {});
     $cursor->_init;
+    $cursor->_request_id($info->{'request_id'});
+
     $self->recv($cursor);
 
     my $ok = $cursor->next();

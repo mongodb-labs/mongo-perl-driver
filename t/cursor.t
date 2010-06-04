@@ -139,7 +139,7 @@ while ($sn <= 500) {
   $collection->insert({sn => $sn++});
 }
 
-$cursor = $collection->query();
+$cursor = $collection->query;
 my $count = 0;
 while (my $doc = $cursor->next()) {
     $count++;
@@ -187,7 +187,7 @@ ok($@ =~ m/bad hint/);
 $MongoDB::Cursor::slave_okay = 1;
 $cursor = $collection->query->next;
 
-$MongoDB::Cursor::slave_okay = "invalid";
+$MongoDB::Cursor::slave_okay = 0;
 $cursor = $collection->query->next;
 
 $collection->drop;

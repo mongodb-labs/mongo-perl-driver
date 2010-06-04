@@ -156,7 +156,6 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
  */
 int mongo_link_say(SV *link_sv, buffer *buf) {
   int sock, sent;
-  mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
   if (!check_connection(link_sv)) {
     return -1;
@@ -179,6 +178,42 @@ int mongo_link_say(SV *link_sv, buffer *buf) {
 }
 
 
+static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
+  mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv);
+  mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
+
+  if (recv(sock, (char*)&cursor->header.length, INT_32, 0) == -1) {
+    SvREFCNT_dec(link_sv);
+    return 0;
+  }
+
+  cursor->header.length = MONGO_32(cursor->header.length);
+
+  // make sure we're not getting crazy data
+  if (cursor->header.length > MAX_RESPONSE_LEN ||
+      cursor->header.length < REPLY_HEADER_SIZE) {
+
+    set_disconnected(link);
+
+    if (!check_connection(link_sv)) {
+      croak("bad response length, did the db assert?");
+      return 0;
+    }
+  }
+
+  if (recv(sock, (char*)&cursor->header.request_id, INT_32, 0) == -1 ||
+      recv(sock, (char*)&cursor->header.response_to, INT_32, 0) == -1 ||
+      recv(sock, (char*)&cursor->header.op, INT_32, 0) == -1) {
+    return 0;
+  }
+
+  cursor->header.request_id = MONGO_32(cursor->header.request_id);
+  cursor->header.response_to = MONGO_32(cursor->header.response_to);
+  cursor->header.op = MONGO_32(cursor->header.op);
+
+  return 1;
+}
+
 /*
  * Gets a reply from the MongoDB server and
  * creates a cursor for it
@@ -188,8 +223,8 @@ int mongo_link_hear(SV *cursor_sv) {
   int num_returned = 0, timeout = -1;
   mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv);
   SV *link_sv = perl_mongo_call_reader(cursor_sv, "_connection");
+  SV *request_id_sv;
   SV *timeout_sv = get_sv("MongoDB::Cursor::timeout", GV_ADD);
-  mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
 
   if (!check_connection(link_sv)) {
     SvREFCNT_dec(link_sv);
@@ -215,47 +250,65 @@ int mongo_link_hear(SV *cursor_sv) {
     select(sock+1, &readfds, NULL, NULL, &t);
 
     if (!FD_ISSET(sock, &readfds)) {
+      SvREFCNT_dec(link_sv);
       croak("recv timed out");
       return 0;
     }
   }
 
-  // if this fails, we might be disconnected... but we're probably
-  // just out of results
-  if (recv(sock, (char*)&cursor->header.length, INT_32, 0) == -1) {
+  if (get_header(sock, cursor_sv, link_sv) == 0) {
     SvREFCNT_dec(link_sv);
     return 0;
   }
 
-  cursor->header.length = MONGO_32(cursor->header.length);
+  request_id_sv = perl_mongo_call_reader(cursor_sv, "_request_id");
+  while (SvIV(request_id_sv) != cursor->header.response_to) {
+    char temp[4096];
+    int len = cursor->header.length - 36;
 
-  // make sure we're not getting crazy data
-  if (cursor->header.length > MAX_RESPONSE_LEN ||
-      cursor->header.length < REPLY_HEADER_SIZE) {
-
-    set_disconnected(link);
-
-    if (!check_connection(link_sv)) {
+    if (SvIV(request_id_sv) < cursor->header.response_to) {
       SvREFCNT_dec(link_sv);
-      croak("bad response length: %d, max: %d, did the db assert?\n", cursor->header.length, MAX_RESPONSE_LEN);
+      SvREFCNT_dec(request_id_sv);
+      croak("missed the response we wanted, please try again");
+      return 0;
+    }
+
+    if (recv(sock, (char*)temp, 20, 0) == -1) {
+      SvREFCNT_dec(link_sv);
+      SvREFCNT_dec(request_id_sv);
+      croak("couldn't get header response to throw out");
+      return 0;
+    }
+
+    do {
+      int temp_len = len > 4096 ? 4096 : len;
+      len -= temp_len;
+
+      if (mongo_link_reader(sock, (void*)temp, temp_len) == -1) {
+        SvREFCNT_dec(link_sv);
+        SvREFCNT_dec(request_id_sv);
+        croak("couldn't get response to throw out");
+        return 0;
+      }
+    } while (len > 0);
+
+    if (get_header(sock, cursor_sv, link_sv) == 0) {
+      SvREFCNT_dec(link_sv);
+      SvREFCNT_dec(request_id_sv);
       return 0;
     }
   }
+  SvREFCNT_dec(request_id_sv);
   
-  if (recv(sock, (char*)&cursor->header.request_id, INT_32, 0) == -1 ||
-      recv(sock, (char*)&cursor->header.response_to, INT_32, 0) == -1 ||
-      recv(sock, (char*)&cursor->header.op, INT_32, 0) == -1 ||
-      recv(sock, (char*)&cursor->flag, INT_32, 0) == -1 ||
+  if (recv(sock, (char*)&cursor->flag, INT_32, 0) == -1 ||
       recv(sock, (char*)&cursor->cursor_id, INT_64, 0) == -1 ||
       recv(sock, (char*)&cursor->start, INT_32, 0) == -1 ||
       recv(sock, (char*)&num_returned, INT_32, 0) == -1) {
     SvREFCNT_dec(link_sv);
+    croak((const char*)strerror(errno));
     return 0;
   }
 
-  cursor->header.request_id = MONGO_32(cursor->header.request_id);
-  cursor->header.response_to = MONGO_32(cursor->header.response_to);
-  cursor->header.op = MONGO_32(cursor->header.op);
   cursor->flag = MONGO_32(cursor->flag);
   cursor->cursor_id = MONGO_64(cursor->cursor_id);
   cursor->start = MONGO_32(cursor->start);
@@ -295,26 +348,23 @@ int mongo_link_hear(SV *cursor_sv) {
  * Low-level func to get a response from the MongoDB server
  */
 static int mongo_link_reader(int socket, void *dest, int len) {
-  int num = 1, r = 0;
+  int num = 1, read = 0;
 
   // this can return FAILED if there is just no more data from db
-  while(r < len && num > 0) {
+  while(read < len && num > 0) {
+    int temp_len = (len - read) > 4096 ? 4096 : (len - read);
 
-#ifdef WIN32
     // windows gives a WSAEFAULT if you try to get more bytes
-    num = recv(socket, (char*)dest, 4096, 0);
-#else
-    num = recv(socket, (char*)dest, len, 0);
-#endif
+    num = recv(socket, (char*)dest, temp_len, 0);
 
     if (num < 0) {
       return -1;
     }
 
     dest = (char*)dest + num;
-    r += num;
+    read += num;
   }
-  return r;
+  return read;
 }
 
 static int check_connection(SV *link_sv) {

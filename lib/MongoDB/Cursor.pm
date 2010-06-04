@@ -39,6 +39,10 @@ MongoDB::Cursor - A cursor/iterator for Mongo query results
 
 Core documentation on cursors: L<http://dochub.mongodb.org/core/cursors>.
 
+=cut
+
+$MongoDB::Cursor::_request_id = int(rand(1000000));
+
 =head1 STATIC ATTRIBUTES
 
 =head2 slave_okay
@@ -181,6 +185,11 @@ has _grrrr => (
     default => 0,
 );
 
+has _request_id => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0,
+);
 
 =head1 METHODS
 
@@ -197,6 +206,26 @@ sub _ensure_special {
 
     $self->_grrrr(1);
     $self->_query({'query' => $self->_query})
+}
+
+# this does the query if it hasn't been done yet
+sub _do_query {
+    my ($self) = @_;
+
+    if ($self->started_iterating) {
+        return;
+    }
+
+    my $opts = $MongoDB::Cursor::slave_okay | ($self->tailable << 1) | 
+        ($self->slave_okay << 2) | ($self->immortal << 4);
+
+    my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit, $self->_query, $self->_fields);
+    $self->_request_id($info->{'request_id'});
+
+    $self->_connection->send($query);
+    $self->_connection->recv($self);
+
+    $self->started_iterating(1);
 }
 
 =head2 fields (\%f)

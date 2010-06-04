@@ -306,14 +306,14 @@ SKIP: {
     skip "multiple update won't work with db version $buildinfo->{version}", 5 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[12]\d*.\d+)/;
 
     $coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1}); 
-    is($coll->count({"x" => 3}), 2);
+    is($coll->count({"x" => 3}), 2, 'count');
     
     $cursor = $coll->query({"x" => 3})->sort({"y" => 1});
     
     $obj = $cursor->next();
-    is($obj->{'y'}, 3);
+    is($obj->{'y'}, 3, 'y == 3');
     $obj = $cursor->next();
-    is($obj->{'y'}, 4);
+    is($obj->{'y'}, 4, 'y == 4');
     
     # check with upsert if there are no matches
     $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multiple' => 1});
@@ -336,16 +336,34 @@ $coll->drop;
 # test PVNV with was float, now string
 my $val = 1.5;
 $val = 'foo';
-ok($id => $coll->insert({ data => $val }));
+ok($id = $coll->insert({ data => $val }));
 ok($obj = $coll->find_one({ data => $val }));
 is($obj->{data}, 'foo');
 
 # was string, now float
 my $f = 'abc';
 $f = 3.3;
-ok($id => $coll->insert({ data => $f }));
+ok($id = $coll->insert({ data => $f }), 'insert float');
 ok($obj = $coll->find_one({ data => $f }));
 is($obj->{data}, 3.3);
+
+# timeout
+{
+    my $timeout = $MongoDB::Cursor::timeout;
+    $MongoDB::Cursor::timeout = 0;
+
+    for (0 .. 10000) {
+        $coll->insert({"field1" => "foo", "field2" => "bar", 'x' => $_});
+    }
+
+    eval {
+        my $num = $coll->count({'x' => {'$lt' => 9000, '$gt' => 1233}});
+    };
+
+    ok($@ && $@ =~ /recv timed out/, 'count timeout');
+
+    $MongoDB::Cursor::timeout = $timeout;
+}
 
 # safe insert
 {
@@ -366,7 +384,7 @@ is($obj->{data}, 3.3);
     $coll->drop;
 
     $ok = $coll->remove;
-    is($ok, 1);
+    is($ok, 1, 'unsafe remove');
     is($db->last_error->{n}, 0);
 
     my $syscoll = $db->get_collection('system.indexes');
@@ -374,7 +392,7 @@ is($obj->{data}, 3.3);
         $ok = $syscoll->remove({}, {safe => 1});
     };
 
-    ok($@ && $@ =~ 'cannot delete from system namespace');
+    ok($@ && $@ =~ 'cannot delete from system namespace', 'safe remove');
 
     $coll->insert({x=>1});
     $ok = $coll->update({}, {'$inc' => {x => 1}});
@@ -390,7 +408,7 @@ is($obj->{data}, 3.3);
 
     my $x = {"hello" => "world"};
     $coll->save($x);
-    is($coll->count, 1);
+    is($coll->count, 1, 'save');
 
     my $y = $coll->find_one;
     $y->{"hello"} = 3;
@@ -418,7 +436,7 @@ is($obj->{data}, 3.3);
 
     my $cursor = $coll->find({x=>4});
     my $result = $cursor->next;
-    is($result->{'x'}, 4);
+    is($result->{'x'}, 4, 'find');
 
     $cursor = $coll->find({x=>{'$gt' => 1}})->sort({x => -1});
     $result = $cursor->next;
@@ -427,24 +445,6 @@ is($obj->{data}, 3.3);
     is($result->{'x'}, 4);
 }
 
-# count
-SKIP: {
-    skip "have to figure out a way of making this less machine-dependant", 1;
-    my $timeout = $MongoDB::Cursor::timeout;
-    $MongoDB::Cursor::timeout = 0;
-
-    for (0 .. 10000) {
-        $coll->insert({"field1" => "foo", "field2" => "bar", 'x' => $_});
-    }
-
-    eval {
-        my $num = $coll->count({'x' => {'$lt' => 9000, '$gt' => 1233}});
-    };
-
-    ok($@ && $@ =~ /recv timed out/, 'count timeout');
-
-    $MongoDB::Cursor::timeout = $timeout;
-}
 
 END {
     if ($db) {

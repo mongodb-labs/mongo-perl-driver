@@ -17,8 +17,6 @@
 #include "perl_mongo.h"
 #include "mongo_link.h"
 
-extern int request_id;
-
 MODULE = MongoDB::Connection  PACKAGE = MongoDB::Connection
 
 PROTOTYPES: DISABLE

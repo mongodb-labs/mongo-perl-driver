@@ -63,12 +63,14 @@
   header.response_to = rto;                                     \
   header.op = opcode;
 
-#define CREATE_RESPONSE_HEADER(buf, ns, rto, opcode)                    \
-  CREATE_MSG_HEADER(request_id++, rto, opcode);                         \
+#define CREATE_RESPONSE_HEADER(buf, ns, rto, opcode)    \
+  sv_setiv(request_id, SvIV(request_id)+1);             \
+  CREATE_MSG_HEADER(SvIV(request_id), rto, opcode);     \
   APPEND_HEADER_NS(buf, ns, 0);
 
 #define CREATE_HEADER_WITH_OPTS(buf, ns, opcode, opts)  \
-  CREATE_MSG_HEADER(request_id++, 0, opcode);           \
+  sv_setiv(request_id, SvIV(request_id)+1);             \
+  CREATE_MSG_HEADER(SvIV(request_id), 0, opcode);       \
   APPEND_HEADER_NS(buf, ns, opts);
 
 #define CREATE_HEADER(buf, ns, opcode)          \
