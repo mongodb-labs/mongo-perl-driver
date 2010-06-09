@@ -7,6 +7,7 @@ use MongoDB;
 use MongoDB::OID;
 use boolean;
 use DateTime;
+use Data::Types qw(:float);
 use Tie::IxHash;
 
 my $conn;
@@ -22,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 24;
+    plan tests => 25;
 }
 
 my $db = $conn->get_database('foo');
@@ -132,6 +133,23 @@ my $c = $db->get_collection('bar');
     ok(!$err->{err}, "undef");
     $err->{err} = "foo";
     is($err->{err}, "foo", "assign to undef");
+}
+
+# moose numbers
+package Person;
+use Moose;
+has 'name' => ( is=>'rw', isa=>'Str' );
+has 'age' => ( is=>'rw', isa=>'Int' );
+
+package main;
+{
+    $c->drop;
+
+    my $p = Person->new( name=>'jay', age=>22 );
+    $c->save($p);
+
+    my $person = $c->find_one;
+    ok(is_float($person->{'age'}));
 }
 
 

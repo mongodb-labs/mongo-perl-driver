@@ -1092,7 +1092,8 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
             /* int */
             case SVt_IV:
             case SVt_PVIV: 
-            case SVt_PVLV: {
+            case SVt_PVLV:
+            case SVt_PVMG: {
               if (SvIOK(sv)) {
 #if defined(USE_64_BIT_INT)
                 set_type(buf, BSON_LONG);
@@ -1109,7 +1110,6 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
             }
 	    /* string */
             case SVt_PV:
-            case SVt_PVMG:
                 if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
                     set_type(buf, BSON_BINARY);
                     perl_mongo_serialize_key(buf, key, ids);
