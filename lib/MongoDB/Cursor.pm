@@ -57,9 +57,14 @@ $MongoDB::Cursor::slave_okay = 0;
 
 =head2 timeout
 
+B<Deprecated, use MongoDB::Connection::query_timeout instead.>
+
 How many milliseconds to wait for a response from the server.  Set to 30000
 (30 seconds) by default.  -1 waits forever (or until TCP times out, which is
 usually a long time).
+
+This value is overridden by C<MongoDB::Connection::query_timeout> and never 
+used.
 
 =cut
 

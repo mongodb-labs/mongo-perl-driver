@@ -224,7 +224,7 @@ int mongo_link_hear(SV *cursor_sv) {
   mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv);
   SV *link_sv = perl_mongo_call_reader(cursor_sv, "_connection");
   SV *request_id_sv;
-  SV *timeout_sv = get_sv("MongoDB::Cursor::timeout", GV_ADD);
+  SV *timeout_sv = perl_mongo_call_reader(link_sv, "query_timeout");
 
   if (!check_connection(link_sv)) {
     SvREFCNT_dec(link_sv);
@@ -235,6 +235,7 @@ int mongo_link_hear(SV *cursor_sv) {
   sock = perl_mongo_master(link_sv);
 
   timeout = SvIV(timeout_sv);
+  SvREFCNT_dec(timeout_sv);
 
   // set a timeout
   if (timeout >= 0) {

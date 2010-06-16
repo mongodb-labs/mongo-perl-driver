@@ -312,6 +312,27 @@ has db_name => (
     default  => 'admin',
 );
 
+=head2 query_timeout
+
+This is equivalent to setting C<$MongoDB::Cursor::timeout>.  It will cause all
+queries (including C<find_one>s and C<run_command>s) to die after this period if
+the database has not responded.
+
+This value is in milliseconds and defaults to 5000 (5 seconds).
+
+A value of -1 will cause the driver to wait forever for responses and 0 will 
+cause it to die immediately.
+
+This value overrides C<MongoDB::Cursor::timeout>.
+
+=cut
+
+has query_timeout => (
+    is       => 'rw',
+    isa      => 'Int',
+    required => 1,
+    default  => 5000,
+);
 
 sub CLONE_SKIP { 1 }
 

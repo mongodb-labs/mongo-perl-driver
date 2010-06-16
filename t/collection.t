@@ -349,8 +349,8 @@ is($obj->{data}, 3.3);
 
 # timeout
 {
-    my $timeout = $MongoDB::Cursor::timeout;
-    $MongoDB::Cursor::timeout = 0;
+    my $timeout = $conn->query_timeout;
+    $conn->query_timeout(0);
 
     for (0 .. 10000) {
         $coll->insert({"field1" => "foo", "field2" => "bar", 'x' => $_});
@@ -362,7 +362,7 @@ is($obj->{data}, 3.3);
 
     ok($@ && $@ =~ /recv timed out/, 'count timeout');
 
-    $MongoDB::Cursor::timeout = $timeout;
+    $conn->query_timeout($timeout);
 }
 
 # safe insert

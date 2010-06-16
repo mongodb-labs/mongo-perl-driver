@@ -18,7 +18,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 14;
+    plan tests => 13;
 }
 
 isa_ok($conn, 'MongoDB::Connection');
@@ -50,12 +50,14 @@ is($db->run_command({ foo => 'bar' }), "no such cmd");
 SKIP: {
     my $admin = $conn->get_database('admin');
     my $buildinfo = $admin->run_command({buildinfo => 1});
-    skip "MongoDB 1.5+ needed", 3 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[1234]\d*.\d+)/;
 
-    my $result = $db->last_error({w => 20, wtimeout => 1});
-    is($result, 'timed out waiting for slaves', 'last error timeout');
+    #skip "MongoDB 1.5+ needed", 1 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[1234]\d*.\d+)/;
+    #my $result = $db->last_error({w => 20, wtimeout => 1});
+    #is($result, 'timed out waiting for slaves', 'last error timeout');
 
-    $result = $db->last_error({fsync => 1});
+    skip "MongoDB 1.5+ needed", 2 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[1234]\d*.\d+)/;
+
+    my $result = $db->last_error({fsync => 1});
     is($result->{ok}, 1);
     is($result->{err}, undef);
 }
