@@ -19,7 +19,6 @@ my $ccflags = "";
 if ($endianess == 4321) {
     $ccflags = " -DMONGO_BIG_ENDIAN=1 ";
 }
-$ccflags .= " -Wall ";
 
 sub mongo {
     my ($self, @mongo_vars) = @_;
