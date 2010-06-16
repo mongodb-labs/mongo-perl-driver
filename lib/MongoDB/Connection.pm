@@ -409,8 +409,9 @@ sub find_one {
     return $self->query($ns, $query)->limit(-1)->fields($fields)->next;
 }
 
-sub query {
+sub find {
     my ($self, $ns, $query, $attrs) = @_;
+    # old school options - these should be set with MongoDB::Cursor methods
     my ($limit, $skip, $sort_by) = @{ $attrs || {} }{qw/limit skip sort_by/};
     $limit   ||= 0;
     $skip    ||= 0;
@@ -435,10 +436,10 @@ sub query {
     return $cursor;
 }
 
-sub find {
+sub query {
     my ($self, $ns, $query, $attrs) = @_;
 
-    return $self->query($ns, $query, $attrs);
+    return $self->find($ns, $query, $attrs);
 }
 
 sub insert {
