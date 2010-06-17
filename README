@@ -1,0 +1,11 @@
+MongoDB Perl Driver
+
+This driver allows you to connect to MongoDB from Perl.
+
+To install, run:
+
+    $ perl Makefile.PL
+    $ make
+    $ sudo make install
+
+For full documentation, see the CPAN page (http://search.cpan.org/dist/MongoDB).

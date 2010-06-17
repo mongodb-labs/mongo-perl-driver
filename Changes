@@ -1,5 +1,10 @@
-0.34
+0.34 - 17 June 2010
 
+  - $conn->foo->bar->baz now gets the bar.baz collection in the foo database
+  - Slight speed improvements on inserts
+  - Added $conn->query_timeout option to control timeout lengths for all queries done over a given connection
+  - MongoDB::Cursor::tailable and MongoDB::Cursor::immortal
+  - added TO_JSON function to MongoDB::OID
   - Fixed safe save (Othello Maurer)
 
 0.33 26 April 2010
