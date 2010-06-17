@@ -641,11 +641,13 @@ void perl_mongo_serialize_bindata(buffer *buf, SV *sv)
   const char *bytes = SvPVbyte (sv, len);
 
   // length of length+bindata
-  perl_mongo_serialize_int(buf, len);
+  perl_mongo_serialize_int(buf, len+4);
   
   // TODO: type
-  perl_mongo_serialize_byte(buf, 0);
+  perl_mongo_serialize_byte(buf, 2);
   
+  // length
+  perl_mongo_serialize_int(buf, len);
   // bindata
   perl_mongo_serialize_bytes(buf, bytes, len);
 }
