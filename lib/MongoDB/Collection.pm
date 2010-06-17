@@ -74,6 +74,17 @@ sub _build_full_name {
     return "${db_name}.${name}";
 }
 
+
+sub AUTOLOAD {
+    my $self = shift @_;
+    our $AUTOLOAD;
+
+    my $coll = $AUTOLOAD;
+    $coll =~ s/.*:://;
+
+    return $self->_database->get_collection($self->name.'.'.$coll);
+}
+
 =head1 STATIC METHODS
 
 =head2 to_index_string ($keys)

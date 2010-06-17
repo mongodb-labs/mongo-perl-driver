@@ -51,6 +51,16 @@ has name => (
 );
 
 
+sub AUTOLOAD {
+    my $self = shift @_;
+    our $AUTOLOAD;
+
+    my $coll = $AUTOLOAD;
+    $coll =~ s/.*:://;
+
+    return $self->get_collection($coll);
+}
+
 sub BUILD {
     my ($self) = @_;
     Any::Moose::load_class("MongoDB::Collection");

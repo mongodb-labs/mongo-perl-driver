@@ -21,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 115;
+    plan tests => 117;
 }
 
 my $db = $conn->get_database('test_database');
@@ -445,6 +445,12 @@ is($obj->{data}, 3.3);
     is($result->{'x'}, 4);
 }
 
+# autoload
+{
+    my $coll1 = $conn->foo->bar->baz;
+    is($coll1->name, "bar.baz");
+    is($coll1->full_name, "foo.bar.baz");
+}
 
 END {
     if ($db) {

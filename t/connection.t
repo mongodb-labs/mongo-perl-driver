@@ -18,7 +18,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 15;
+    plan tests => 16;
 }
 
 throws_ok {
@@ -81,3 +81,8 @@ SKIP: {
     $db->drop;
 }
 
+# autoload
+{
+    my $db1 = $conn->foo;
+    is($db1->name, "foo");
+}

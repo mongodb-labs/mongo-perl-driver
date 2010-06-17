@@ -336,10 +336,14 @@ has query_timeout => (
 
 sub CLONE_SKIP { 1 }
 
-sub croak (@) {
-    # Mouse delegation is doing something weird here - and confess is overkill
-    local $Carp::CarpLevel = 4;
-    Carp::croak(@_);
+sub AUTOLOAD {
+    my $self = shift @_;
+    our $AUTOLOAD;
+
+    my $db = $AUTOLOAD;
+    $db =~ s/.*:://;
+
+    return $self->get_database($db);
 }
 
 sub _get_hosts {

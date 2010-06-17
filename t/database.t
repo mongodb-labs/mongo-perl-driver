@@ -18,7 +18,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 13;
+    plan tests => 15;
 }
 
 isa_ok($conn, 'MongoDB::Connection');
@@ -60,4 +60,11 @@ SKIP: {
     my $result = $db->last_error({fsync => 1});
     is($result->{ok}, 1);
     is($result->{err}, undef);
+}
+
+# autoload
+{
+    my $coll1 = $conn->foo->bar;
+    is($coll1->name, "bar");
+    is($coll1->full_name, "foo.bar");
 }
