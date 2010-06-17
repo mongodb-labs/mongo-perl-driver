@@ -26,7 +26,6 @@ has _connection => (
     is       => 'ro',
     isa      => 'MongoDB::Connection',
     required => 1,
-    handles  => [qw/query find_one insert update remove ensure_index batch_insert find/],
 );
 
 =head1 NAME
@@ -57,17 +56,6 @@ sub BUILD {
     Any::Moose::load_class("MongoDB::Collection");
 }
 
-around qw/query find_one insert update remove ensure_index batch_insert find/ => sub {
-    my ($next, $self, $ns, @args) = @_;
-    return $self->$next($self->_query_ns($ns), @args);
-};
-
-sub _query_ns {
-    my ($self, $ns) = @_;
-    my $name = $self->name;
-    return qq{${name}.${ns}};
-}
-
 =head1 METHODS
 
 =head2 collection_names
@@ -80,7 +68,7 @@ Returns the list of collections in this database.
 
 sub collection_names {
     my ($self) = @_;
-    my $it = $self->query('system.namespaces', {});
+    my $it = $self->get_collection('system.namespaces')->query({});
     return map {
         substr($_, length($self->name) + 1)
     } map { $_->{name} } $it->all;
@@ -204,7 +192,7 @@ L<http://dochub.mongodb.org/core/commands>.
 
 sub run_command {
     my ($self, $command) = @_;
-    my $obj = $self->find_one('$cmd', $command);
+    my $obj = $self->get_collection('$cmd')->find_one($command);
     return $obj if $obj->{ok};
     $obj->{'errmsg'};
 }

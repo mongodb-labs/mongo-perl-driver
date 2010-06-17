@@ -132,7 +132,7 @@ is(int $paging->has_next, 0);
 
 my $collection = $db->get_collection('test');
 $collection->drop;
-$collection->ensure_index(['sn']);
+$collection->ensure_index({'sn'=>1});
 
 my $sn = 0;
 while ($sn <= 500) {

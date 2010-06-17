@@ -133,7 +133,7 @@ $coll->drop;
 ok(!$coll->get_indexes, 'no indexes after dropping');
 
 # make sure this still works
-$coll->ensure_index(["foo"]);
+$coll->ensure_index({"foo" => 1});
 @indexes = $coll->get_indexes;
 is(scalar @indexes, 2, '1 custom index and the default _id_ index');
 $coll->drop;
@@ -192,7 +192,7 @@ is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
 
 $coll->drop;
 my $keys = tie(my %idx, 'Tie::IxHash');
-%idx = ('sn' => 'ascending', 'ts' => 'descending');
+%idx = ('sn' => 1, 'ts' => -1);
 
 $coll->ensure_index($keys);
 
