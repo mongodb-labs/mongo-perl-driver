@@ -120,7 +120,8 @@ SV *perl_mongo_construct_instance (const char *klass, ...);
 SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...);
 
-void perl_mongo_oid_create(char* twelve, char *twenty4);
+void perl_mongo_make_id(char *id);
+void perl_mongo_make_oid(char* twelve, char *twenty4);
 
 // serialization
 SV *perl_mongo_bson_to_sv (buffer *buf);

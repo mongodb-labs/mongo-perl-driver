@@ -27,6 +27,8 @@ static int isUTF8(const char*, int);
 static void serialize_regex(buffer*, const char*, REGEXP*, AV*);
 static void serialize_regex_flags(buffer*, SV*);
 
+int perl_mongo_inc = 0;
+
 void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark)
 {
@@ -237,7 +239,7 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...)
 
 static SV *bson_to_av (buffer *buf);
 
-void perl_mongo_oid_create(char *twelve, char *twenty4) {
+void perl_mongo_make_oid(char *twelve, char *twenty4) {
   int i;
   char *id_str = twelve;
   char *movable = twenty4;
@@ -258,7 +260,7 @@ static SV *
 oid_to_sv (buffer *buf)
 {
     char id[25];
-    perl_mongo_oid_create(buf->pos, id);
+    perl_mongo_make_oid(buf->pos, id);
     return perl_mongo_construct_instance ("MongoDB::OID", "value", sv_2mortal(newSVpvn (id, 24)), NULL);
 }
 
@@ -685,11 +687,64 @@ void perl_mongo_serialize_size(char *start, buffer *buf) {
 
 static void append_sv (buffer *buf, const char *key, SV *sv, AV *ids);
 
+void perl_mongo_make_id(char *id) {
+  //SV *temp;
+  char *data = id;
+
+  // the pid is stored in $$
+  SV *pid_s = get_sv("$", 0);
+  // ...but if it's not, don't crash
+  int pid = pid_s ? SvIV(pid_s) : rand();
+
+  int r1 = rand();
+  int inc = perl_mongo_inc++;
+
+  unsigned t = (unsigned) time(0);
+
+  char *T = (char*)&t,
+    *M = (char*)&r1,
+    *P = (char*)&pid,
+    *I = (char*)&inc;
+
+#if MONGO_BIG_ENDIAN
+  memcpy(data, T, 4);
+  memcpy(data+4, M+1, 3);
+  memcpy(data+7, P+2, 2);
+  memcpy(data+9, I+1, 3);
+#else
+  data[0] = T[3];
+  data[1] = T[2];
+  data[2] = T[1];
+  data[3] = T[0];
+
+  memcpy(data+4, M, 3);
+  memcpy(data+7, P, 2);
+  memcpy(data+9, I, 3);
+#endif
+}
+
+
 /* add an _id */
 static void
 perl_mongo_prep(buffer *buf, AV *ids) {
-  SV *id = perl_mongo_construct_instance ("MongoDB::OID", NULL);
-  append_sv(buf, "_id", id, NO_PREP);
+  //  SV *id = perl_mongo_construct_instance ("MongoDB::OID", NULL);
+  SV *id, *stash;
+  HV *id_hv;
+  char id_s[12], oid_s[25];
+
+  stash = gv_stashpv("MongoDB::OID", 0);
+
+  perl_mongo_make_id(id_s);
+  set_type(buf, BSON_OID);
+  perl_mongo_serialize_key(buf, "_id", 0);
+  perl_mongo_serialize_bytes(buf, id_s, 12);
+
+  perl_mongo_make_oid(id_s, oid_s);
+  id_hv = newHV();
+  hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
+
+  id = sv_bless(newRV_noinc((SV *)id_hv), stash);
+
   av_push(ids, id);
 }
 
