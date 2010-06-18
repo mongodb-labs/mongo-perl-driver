@@ -357,7 +357,7 @@ is($obj->{data}, 3.3);
     }
 
     eval {
-        my $num = $coll->count({'x' => {'$lt' => 9000, '$gt' => 1233}});
+        my $num = $db->eval('for (i=0;i<1000;i++) { print(.);}');
     };
 
     ok($@ && $@ =~ /recv timed out/, 'count timeout');
