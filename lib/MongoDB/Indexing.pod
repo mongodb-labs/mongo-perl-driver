@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-MongoDB::Indexing - indexing collections
+MongoDB::Indexing - Indexing collections
 
 =head1 CREATING AN INDEX
 

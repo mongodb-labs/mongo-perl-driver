@@ -44,13 +44,9 @@ listening on the default port:
 
 It can connect to a database server running anywhere, though:
 
-    my $connection = MongoDB::Connection->new(host => 'example.com', port => 12345);
+    my $connection = MongoDB::Connection->new(host => 'example.com:12345');
 
-It can also be used to connect to a replication pair of database servers:
-
-    my $connection = MongoDB::Connection->new(left_host => '192.0.2.0', right_host => '192.0.2.1');
-
-If ports aren't given, they default to C<27017>.
+See the L</"host"> section for more options for connecting to MongoDB.
 
 =head1 SEE ALSO
 

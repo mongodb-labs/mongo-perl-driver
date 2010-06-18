@@ -22,7 +22,7 @@ use Any::Moose;
 
 =head1 NAME
 
-MongoDB::OID - A Mongo Object ID
+MongoDB::OID - A Mongo ObjectId
 
 =head1 SYNOPSIS
 

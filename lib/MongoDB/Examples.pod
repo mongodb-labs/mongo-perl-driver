@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-MongoDB::Examples - some more advanced examples
+MongoDB::Examples - Some more advanced examples
 
 =head1 DATABASE COMMANDS
 

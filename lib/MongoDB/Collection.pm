@@ -21,7 +21,22 @@ our $VERSION = '0.33';
 
 =head1 NAME
 
-MongoDB::Collection - A Mongo Collection
+MongoDB::Collection - A Mongo collection
+
+=head1 SYNOPSIS
+
+An instance of a MongoDB collection.
+
+    # gets the foo collection
+    my $collection = $db->foo;
+
+Collection names can be chained together to access subcollections.  For 
+instance, the collection C<foo.bar> can be accessed with:
+
+    my $collection = $db->foo->bar;
+
+You can also access collections with the L<MongoDB::Database/get_collection> 
+method.
 
 =head1 SEE ALSO
 

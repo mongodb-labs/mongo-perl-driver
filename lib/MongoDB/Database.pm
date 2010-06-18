@@ -30,7 +30,17 @@ has _connection => (
 
 =head1 NAME
 
-MongoDB::Database - A Mongo Database
+MongoDB::Database - A Mongo database
+
+=head1 SYNOPSIS
+
+The MongoDB::Database class accesses to a database. 
+
+    # accesses the foo database
+    my $db = $connection->foo;
+
+You can also access databases with the L<MongoDB::Connection/get_database> 
+method.
 
 =head1 SEE ALSO
 

@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-MongoDB::DataTypes - the data types used with MongoDB
+MongoDB::DataTypes - The data types used with MongoDB
 
 =head1 DESCRIPTION
 
@@ -64,6 +64,11 @@ An example of querying for a range of dates:
     my $end = DateTime->from_epoch( epoch => 500000 );
 
     my $cursor = $collection->query({event => {'$gt' => $start, '$lt' => $end}});
+
+B<Warning: creating L<DateTime> objects is extremely slow.  They are very 
+complex and heavyweight.  For most applications, it may make more sense to save
+dates as numbers and the convert the numbers to L<DateTime>s when needed.  A single
+L<DateTime> field can make deserialization up to 10 times slower.>
 
 =head2 Regular Expressions
 
