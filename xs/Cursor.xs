@@ -27,7 +27,7 @@ static mongo_cursor* get_cursor(SV *self) {
 }
 
 static int has_next(SV *self, mongo_cursor *cursor) {
-  SV *link, *limit, *ns, *request_id;
+  SV *link, *limit, *ns, *request_id, *response_to;
   mongo_msg_header header;
   buffer buf;
   int size, heard;
@@ -55,9 +55,14 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   buf.pos = buf.start;
   buf.end = buf.start + size;
 
-  request_id = perl_mongo_call_reader (self, "_request_id");
-  CREATE_RESPONSE_HEADER(buf, SvPV_nolen(ns), SvIV(request_id), OP_GET_MORE);
-  SvREFCNT_dec(request_id);
+  response_to = perl_mongo_call_reader(self, "_request_id");
+  request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
+
+  CREATE_RESPONSE_HEADER(buf, SvPV_nolen(ns), SvIV(response_to), OP_GET_MORE);
+
+  // change this cursor's request id so we can match the response
+  perl_mongo_call_method(self, "_request_id", 1, request_id);
+  SvREFCNT_dec(response_to);
 
   perl_mongo_serialize_int(&buf, SvIV(limit));
   perl_mongo_serialize_long(&buf, cursor->cursor_id);
