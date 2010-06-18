@@ -259,9 +259,16 @@ void perl_mongo_make_oid(char *twelve, char *twenty4) {
 static SV *
 oid_to_sv (buffer *buf)
 {
-    char id[25];
-    perl_mongo_make_oid(buf->pos, id);
-    return perl_mongo_construct_instance ("MongoDB::OID", "value", sv_2mortal(newSVpvn (id, 24)), NULL);
+    SV *stash;
+    HV *id_hv;
+    char oid_s[25];
+    perl_mongo_make_oid(buf->pos, oid_s);
+
+    id_hv = newHV();
+    hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
+
+    stash = gv_stashpv("MongoDB::OID", 0);
+    return sv_bless(newRV_noinc((SV *)id_hv), stash);
 }
 
 static SV *
