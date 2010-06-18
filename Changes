@@ -2,10 +2,15 @@
 
   - $conn->foo->bar->baz now gets the bar.baz collection in the foo database
   - Slight speed improvements on inserts
-  - Added $conn->query_timeout option to control timeout lengths for all queries done over a given connection
+  - Added $conn->query_timeout option to control timeout lengths for all queries
+    done over a given connection
   - MongoDB::Cursor::tailable and MongoDB::Cursor::immortal
   - added TO_JSON function to MongoDB::OID
   - Fixed safe save (Othello Maurer)
+  - BACKWARD-BREAKING: removed old indexing syntax (if you started using the 
+    driver less than a year ago, this shouldn't affect you.  If you're an old-
+    timer, make sure you're not using the syntax that has been deprecated for a 
+    year).
 
 0.33 26 April 2010
 
@@ -13,7 +18,8 @@
 
 0.32 21 April 2010
 
-  - BACKWARD COMPATIBILITY BREAK: croak on failed safe update/insert/remove/ensure_index (Eric Wilhelm)
+  - BACKWARD COMPATIBILITY BREAK: croak on failed safe 
+    update/insert/remove/ensure_index (Eric Wilhelm)
   - w and wtimeout (see MongoDB::Connection::w)
   - die correctly on MongoCollection::count errors (help from Josh Rabinowitz)
   - added MongoDB::Collection::find (same as query)
