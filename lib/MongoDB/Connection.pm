@@ -459,7 +459,7 @@ sub find_master {
                 $conn = MongoDB::Connection->new("host" => $_->{host}, "port" => $_->{port}, timeout => $self->timeout);
             };
             if (!($@ =~ m/couldn't connect to server/)) {
-                my $master = $conn->find_one('admin.$cmd', {ismaster => 1});
+                my $master = $conn->admin->run_command({ismaster => 1});
                 if ($master->{'ismaster'}) {    
                     return $index;
                 }
