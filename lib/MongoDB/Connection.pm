@@ -287,7 +287,7 @@ has query_timeout => (
     is       => 'rw',
     isa      => 'Int',
     required => 1,
-    default  => $MongoDB::Cursor::timeout,
+    default  => sub { return $MongoDB::Cursor::timeout; },
 );
 
 

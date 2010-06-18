@@ -18,7 +18,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 16;
+    plan tests => 18;
 }
 
 throws_ok {
@@ -85,4 +85,18 @@ SKIP: {
 {
     my $db1 = $conn->foo;
     is($db1->name, "foo");
+}
+
+# query_timeout
+{
+    my $timeout = $MongoDB::Cursor::timeout;
+
+    my $conn2 = MongoDB::Connection->new(auto_connect => 0);
+    is($conn2->query_timeout, $timeout, 'query timeout');
+
+    $MongoDB::Cursor::timeout = 40;
+    $conn2 = MongoDB::Connection->new(auto_connect => 0);
+    is($conn2->query_timeout, 40, 'query timeout');
+
+    $MongoDB::Cursor::timeout = $timeout;
 }
