@@ -32,12 +32,14 @@ You can see in the output:
 
     "\x{c5}land Islands"
 
-Lovely, isn't it?  This is how Perl prints UTF-8.  To make it "pretty," you can
-do one of two things:
+Lovely, isn't it?  This is how Perl prints UTF-8.  To make it "pretty," there
+are a couple options:
 
     my $pretty_str = utf8::encode($str);
 
-which, unintuitively, clears the UTF-8 flag.  You can also just run
+This, unintuitively, clears the UTF-8 flag.  
+
+You can also just run
 
     binmode STDOUT, ':utf8';
 
@@ -65,9 +67,8 @@ An example of querying for a range of dates:
 
     my $cursor = $collection->query({event => {'$gt' => $start, '$lt' => $end}});
 
-B<Warning: creating L<DateTime> objects is extremely slow.  They are very 
-complex and heavyweight.  For most applications, it may make more sense to save
-dates as numbers and the convert the numbers to L<DateTime>s when needed.  A single
+B<Warning: creating L<DateTime> objects is extremely slow.  Consider saving 
+dates as numbers and converting the numbers to L<DateTime>s when needed.  A single
 L<DateTime> field can make deserialization up to 10 times slower.>
 
 =head2 Regular Expressions
@@ -91,7 +92,7 @@ from the database (this does not affect queries or Perl 5.10+).
 
 =head2 Booleans
 
-Use the L<boolean> pachage to get boolean values.  C<boolean::true> and 
+Use the L<boolean> package to get boolean values.  C<boolean::true> and 
 C<boolean::false> are the only parts of the package used, currently.
 
 An example of inserting boolean values:
@@ -210,7 +211,7 @@ is worth experimenting.
 
 =head2 MongoDB::Code
 
-C<MongoDB::Code> is used to represent JavaScript code and, optionally, scope.
+L<MongoDB::Code> is used to represent JavaScript code and, optionally, scope.
 To create one:
 
     use MongoDB::Code;
@@ -220,26 +221,26 @@ To create one:
 Or, with a scope:
 
     my $code = MongoDB::Code->new("code" => "function() { return 'hello, '+name; }",
-        "scope" => "Fred");
+        "scope" => {"name" => "Fred"});
 
 Which would then return "hello, Fred" when run.
 
 =head2 MongoDB::MinKey
 
-MongoDB::MinKey is "less than" any other value of any type.  This can be useful
+C<MongoDB::MinKey> is "less than" any other value of any type.  This can be useful
 for always returning certain documents first (or last).
 
-MongoDB::MinKey has no methods, fields, or string form.  To create one, it is
+C<MongoDB::MinKey> has no methods, fields, or string form.  To create one, it is
 sufficient to say:
 
     bless $minKey, "MongoDB::MinKey";
 
 =head2 MongoDB::MaxKey
 
-MongoDB::MaxKey is "greater than" any other value of any type.  This can be useful
+C<MongoDB::MaxKey> is "greater than" any other value of any type.  This can be useful
 for always returning certain documents last (or first).
 
-MongoDB::MaxKey has no methods, fields, or string form.  To create one, it is
+C<MongoDB::MaxKey> has no methods, fields, or string form.  To create one, it is
 sufficient to say:
 
     bless $minKey, "MongoDB::MaxKey";

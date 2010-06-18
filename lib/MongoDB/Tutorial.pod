@@ -59,12 +59,12 @@ Now we're connected to the database server.  Next we need a database to work
 with, we'll call it "tutorial".  You need not do anything special to create the 
 database, Mongo will create it on the fly.
 
-    my $db = $conn->get_database("tutorial");
+    my $db = $conn->tutorial;
 
 The last part of the preliminary setup is to choose a collection.  We'll be 
 using the "users" collection to start out.
 
-    my $users = $db->get_collection("users");
+    my $users = $db->users;
 
 Again, there is no need to create the collection in advance, it will be created
 as needed.

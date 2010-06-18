@@ -116,13 +116,13 @@ would like to learn more about authentication, see the C<authenticate> method.
 
 To connect to the database, create a new MongoDB Connection object:
 
-    $conn = MongoDB::Connection->new("host" => "localhost", "port" => 27017);
+    $conn = MongoDB::Connection->new("host" => "localhost:27017");
 
-As these are the defaults, we can use the equivalent shorthand:
+As this is the default, we can use the equivalent shorthand:
 
     $conn = MongoDB::Connection->new;
 
-Connecting is expensive, so try not to open superfluous connections.
+Connecting is relatively expensive, so try not to open superfluous connections.
 
 There is no way to explicitly disconnect from the database.  When C<$conn> goes
 out of scope, the connection will automatically be closed and cleaned up.
@@ -162,15 +162,6 @@ fully qualified namespace ("foo.bar").
 L<MongoDB::Connection> does the actual work and sends a message to the database.
 
 =back
-
-=head3 Error Reporting
-
-If something goes wrong, the database will send back an error message (unless 
-something went really wrong) and the command being called will return 0.  To see
-the error message, call C<MongoDB::Database::last_error>.  This will display the
-error message, if there is one.  If there is no error message, this function 
-will check with the database (so that you can see if an operation succeeded, 
-even if you didn't run it with the safe option).
 
 =head1 FUNCTIONS
 

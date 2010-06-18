@@ -39,7 +39,7 @@ The MongoDB::Database class accesses to a database.
     # accesses the foo database
     my $db = $connection->foo;
 
-You can also access databases with the L<MongoDB::Connection/get_database> 
+You can also access databases with the L<MongoDB::Connection/"get_database($name)"> 
 method.
 
 =head1 SEE ALSO
@@ -98,7 +98,7 @@ sub collection_names {
 
     my $collection = $database->get_collection('foo');
 
-Returns a C<MongoDB::Collection> for the collection called C<$name> within this
+Returns a L<MongoDB::Collection> for the collection called C<$name> within this
 database.
 
 =cut
@@ -115,9 +115,11 @@ sub get_collection {
 
     my $grid = $database->get_gridfs;
 
-Returns a C<MongoDB::GridFS> for storing and retrieving files from the database.
-Default prefix is "fs", making C<$grid->files> "fs.files" and C<$grid->chunks>
+Returns a L<MongoDB::GridFS> for storing and retrieving files from the database.
+Default prefix is "fs", making C<$grid-E<gt>files> "fs.files" and C<$grid-E<gt>chunks>
 "fs.chunks".
+
+See L<MongoDB::GridFS> for more information.
 
 =cut
 
@@ -180,6 +182,8 @@ If true, the database will fsync to disk before returning.
 
 =back
 
+See L<MongoDB::Connection/w> for more information.
+
 =cut
 
 sub last_error {
@@ -200,10 +204,11 @@ sub last_error {
 
     my $result = $database->run_command({ some_command => 1 });
 
-Runs a command for this database on the mongo server. Throws an exception with
-an error message if the command fails. Returns the result of the command on
-success.  For a list of possible database commands, see 
-L<http://www.mongodb.org/display/DOCS/Table+of+Database+Commands>.
+Runs a database command. Throws an exception with an error message if the 
+command fails. Returns the result of the command on success.  For a list of 
+possible database commands, run:
+
+    my $commands = $db->run_command({listCommands : 1});
 
 See also core documentation on database commands: 
 L<http://dochub.mongodb.org/core/commands>.
@@ -223,12 +228,12 @@ sub run_command {
     my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
 
 Evaluate a JavaScript expression on the Mongo server. The C<$code> argument can
-be a string or an instance of C<MongoDB::Code>.  The C<$args> are an optional 
-array of arguemnts to be passed to the C<$code> function.
+be a string or an instance of L<MongoDB::Code>.  The C<$args> are an optional 
+array of arguments to be passed to the C<$code> function.
 
 C<eval> is useful if you need to touch a lot of data lightly; in such a scenario
 the network transfer of the data could be a bottleneck. The C<$code> argument 
-must be a JavaScript function. $args is an array of parameters that will be 
+must be a JavaScript function. C<$args> is an array of parameters that will be 
 passed to the function.  For more examples of using eval see 
 L<http://www.mongodb.org/display/DOCS/Server-side+Code+Execution#Server-sideCodeExecution-Using{{db.eval%28%29}}>.
 

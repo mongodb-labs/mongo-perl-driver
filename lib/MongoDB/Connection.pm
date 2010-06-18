@@ -64,8 +64,8 @@ To connect to more than one database server, use the format:
 
 An arbitrary number of hosts can be specified.
 
-The connect method will return that it succeeded if it can connect to at least 
-one of the hosts listed.  If it cannot connect to any hosts, it will die. 
+The connect method will return success if it can connect to at least one of the 
+hosts listed.  If it cannot connect to any hosts, it will die. 
 
 If a port is not specified for a given host, it will default to 27017. For 
 example, to connecting to C<localhost:27017> and C<localhost:27018>:
@@ -76,8 +76,8 @@ This will succeed if either C<localhost:27017> or C<localhost:27018> are availab
 
 The connect method will also try to determine who is master if more than one 
 server is given.  It will try the hosts in order from left to right.  As soon as
-one of the hosts reports that it is master, the connect will return.  If no 
-hosts report themselves as masters, the connect will die, reporting that it 
+one of the hosts reports that it is master, the connect will return success.  If 
+no hosts report themselves as masters, the connect will die, reporting that it 
 could not find a master.
 
 If username and password are given, success is conditional on being able to log 
@@ -156,14 +156,6 @@ has wtimeout => (
     default => 1000,
 );
 
-=head2 port [deprecated]
-
-Use host instead.
-
-Port to use when connecting. Defaults to C<27017>.
-
-=cut
-
 has port => (
     is       => 'ro',
     isa      => 'Int',
@@ -171,26 +163,10 @@ has port => (
     default  => 27017,
 );
 
-=head2 left_host [deprecated]
-
-Use host instead.
-
-Paired connection host to connect to. Can be master or slave.
-
-=cut
-
 has left_host => (
     is       => 'ro',
     isa      => 'Str',
 );
-
-=head2 left_port [deprecated]
-
-Use host instead.
-
-Port to use when connecting to left_host. Defaults to C<27017>.
-
-=cut
 
 has left_port => (
     is       => 'ro',
@@ -198,26 +174,10 @@ has left_port => (
     default  => 27017,
 );
 
-=head2 right_host [deprecated]
-
-Use host instead.
-
-Paired connection host to connect to. Can be master or slave.
-
-=cut
-
 has right_host => (
     is       => 'ro',
     isa      => 'Str',
 );
-
-=head2 right_port [deprecated]
-
-Use host instead.
-
-Port to use when connecting to right_host. Defaults to C<27017>.
-
-=cut
 
 has right_port => (
     is       => 'ro',
@@ -310,16 +270,16 @@ has db_name => (
 
 =head2 query_timeout
 
-This is equivalent to setting C<$MongoDB::Cursor::timeout>.  It will cause all
-queries (including C<find_one>s and C<run_command>s) to die after this period if
-the database has not responded.
+This will cause all queries (including C<find_one>s and C<run_command>s) to die
+after this period if the database has not responded.
 
-This value is in milliseconds and defaults to 5000 (5 seconds).
+This value is in milliseconds and defaults to the value of 
+L<MongoDB::Cursor/timeout>.
 
 A value of -1 will cause the driver to wait forever for responses and 0 will 
 cause it to die immediately.
 
-This value overrides C<MongoDB::Cursor::timeout>.
+This value overrides L<MongoDB::Cursor/timeout>.
 
 =cut
 
@@ -327,8 +287,42 @@ has query_timeout => (
     is       => 'rw',
     isa      => 'Int',
     required => 1,
-    default  => 5000,
+    default  => $MongoDB::Cursor::timeout,
 );
+
+
+=head2 port [deprecated]
+
+B<Use L</host> instead.>
+
+Port to use when connecting. Defaults to C<27017>.
+
+=head2 left_host [deprecated]
+
+B<Use L</host> instead.>
+
+Paired connection host to connect to. Can be master or slave.
+
+=head2 left_port [deprecated]
+
+B<Use L</host> instead.>
+
+Port to use when connecting to left_host. Defaults to C<27017>.
+
+=head2 right_host [deprecated]
+
+B<Use L</host> instead.>
+
+Paired connection host to connect to. Can be master or slave.
+
+=head2 right_port [deprecated]
+
+B<Use L</host> instead.>
+
+Port to use when connecting to right_host. Defaults to C<27017>.
+
+=cut
+
 
 sub CLONE_SKIP { 1 }
 
@@ -414,11 +408,11 @@ sub database_names {
     return map { $_->{name} } @{ $ret->{databases} };
 }
 
-=head2 get_database ($name)
+=head2 get_database($name)
 
     my $database = $connection->get_database('foo');
 
-Returns a C<MongoDB::Database> instance for database with the given C<$name>.
+Returns a L<MongoDB::Database> instance for database with the given C<$name>.
 
 =cut
 
