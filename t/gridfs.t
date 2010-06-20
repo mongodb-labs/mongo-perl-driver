@@ -25,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 61;
+    plan tests => 62;
 }
 
 my $db = $m->get_database('foo');
@@ -105,6 +105,9 @@ is($file->info->{"filename"}, "t/input.txt", "compare filename");
 my $wfh = IO::File->new("t/output.txt", "+>") or die $!;
 my $written = $file->print($wfh);
 is($written, length "abc\n\nzyw\n");
+
+# slurp
+is($file->slurp,"abc\n\nzyw\n",'slurp');
 
 my $buf;
 $wfh->read($buf, 1000);

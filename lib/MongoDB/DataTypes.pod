@@ -45,6 +45,13 @@ You can also just run
 
 and then the string (and all future UTF-8 strings) will print "correctly."
 
+note:
+
+The 1.34 ns version, you also can turn off the utf8 flag,and dispaly in native encoding:
+
+    $MongoDB::BSON::utf8_flag_on = 0;
+
+
 =head2 Dates
 
 The L<DateTime> package can be used insert and query for dates. Dates stored in 

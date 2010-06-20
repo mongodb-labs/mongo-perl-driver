@@ -5,6 +5,7 @@ use Test::Exception;
 
 use Data::Types qw(:float);
 use Tie::IxHash;
+use Encode qw(encode decode);
 
 use MongoDB;
 
@@ -21,7 +22,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 117;
+    plan tests => 122;
 }
 
 my $db = $conn->get_database('test_database');
@@ -451,6 +452,63 @@ SKIP: {
     my $coll1 = $conn->foo->bar->baz;
     is($coll1->name, "bar.baz");
     is($coll1->full_name, "foo.bar.baz");
+}
+
+# ns hack
+# check insert utf8
+{
+    my $coll = $db->get_collection('test_collection');
+    $coll->drop;
+    # turn off utf8 flag now
+    $MongoDB::BSON::utf8_flag_on = 0;
+    $coll->insert({ foo => "\x{4e2d}\x{56fd}"});
+    $utfblah = $coll->find_one;
+    $coll->drop;
+    $coll->insert({foo2 => $utfblah->{foo}});
+    $utfblah = $coll->find_one;
+    # use utf8;
+    my $utfv2 = encode('utf8',"\x{4e2d}\x{56fd}");
+    # my $utfv2 = encode('utf8',"中国");
+    # diag(Dumper(\$utfv2));
+    is($utfblah->{foo2},$utfv2,'turn utf8 flag off,return perl internal form(bytes)');
+    # restore;
+    $MongoDB::BSON::utf8_flag_on = 1;
+    $coll->drop;
+}
+# find_and_modify
+{
+    my $coll = $db->get_collection('test_collection');
+    $coll->drop;
+    $coll->insert({x => 1});
+    
+    # my $result = $db->run_command({
+    #     findandmodify => 'test_collection',
+    #     update => { x => 3}
+    # });
+    # 
+    # use Data::Dumper;
+    # 
+    # die  Dumper(\$result);
+    
+    my $obj = $coll->find_and_modify({ update => {'$inc' => {'x' => 1}} });
+    my $obj2 = $coll->find_one();
+    ok($obj->{x}==1 && $obj2->{x} == 2,'find_and_modify update/inc');
+
+    $obj = $coll->find_and_modify({remove => 1});
+    
+    ok($obj->{x} == 2 && $coll->count() == 0,'find_and_modify /remove');
+    
+    $coll->insert({x => 1,idx => 1});
+    $coll->insert({x => 2,idx => 2});
+    $coll->insert({x => 3,idx => 3});
+    
+    $obj = $coll->find_and_modify({sort => {idx => -1}, remove => 1});
+    
+    is($obj->{x},3,'find_and_modify/sort');
+    
+    $obj = $coll->find_and_modify({query => { x => 1}, new => 1,update => { x => 1, idx => 200 }});
+    $obj2 = $coll->find_one({x => 1});
+    ok($obj->{idx} == $obj2->{idx} && $obj2->{idx} == 200,'find_and_modify/new option');
 }
 
 END {

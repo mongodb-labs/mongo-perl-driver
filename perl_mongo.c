@@ -276,6 +276,8 @@ static SV *
 elem_to_sv (int type, buffer *buf)
 {
   SV *value = 0;
+  
+  SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
 
   switch(type) {
   case BSON_OID: {
@@ -304,7 +306,17 @@ elem_to_sv (int type, buffer *buf)
     // this makes a copy of the buffer
     // len includes \0
     value = newSVpvn(buf->pos, len-1);
-    SvUTF8_on(value);
+    
+    //ns hack
+    if ( flag && SvIOK(flag) ) {
+        if ( SvIV(flag) != 0 ) {
+            SvUTF8_on(value);
+        }
+    }
+    //fallback for compatible
+    else {
+        SvUTF8_on(value);
+    }
 
     buf->pos += len; 
     break;

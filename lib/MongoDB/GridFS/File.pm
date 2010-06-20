@@ -119,6 +119,26 @@ sub print {
     return $written;
 }
 
+=head2 slurp ($length?, $offset?)
+
+    $bytes = $file->slurp(50, 200);
+    $all   = $file->slurp
+
+Return the number of bytes specified from the offset specified
+to the given file handle.  If no C<$length> or C<$offset> are
+given, the entire file is return.
+
+=cut
+
+
+sub slurp {
+    my ($self,$length,$offset) = @_;
+    my $bytes;
+    my $fh = new IO::File \$bytes,'>';
+    $self->print($fh,$length,$offset);
+    return $bytes;
+}
+
 1;
 
 =head1 AUTHOR

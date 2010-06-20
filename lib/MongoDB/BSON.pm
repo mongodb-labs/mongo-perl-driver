@@ -37,3 +37,24 @@ Can be used to set a character other than "$" to use for special operators.
 
 $MongoDB::BSON::char = '$';
 
+=head2 Turn on/off UTF8 flag when return strings
+
+    # turn off utf8 flag on strings
+    $MongoDB::BSON::utf8_flag_on = 0;
+
+Default is turn on, that compatible with version before 0.34.
+
+If set to 0, will turn of utf8 flag on string attribute and return on bytes mode, meant same as :
+
+    utf8::encode($str)
+
+Currently MongoDB return string with utf8 flag, on character mode , some people
+wish to turn off utf8 flag and return string on byte mode, it maybe help to display "pretty" strings.
+
+NOTE:
+
+If you turn off utf8 flag, the string  length will compute as bytes, and is_utf8 will return false.
+
+=cut
+
+$MongoDB::BSON::utf8_flag_on = 1;
