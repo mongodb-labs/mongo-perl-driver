@@ -105,6 +105,14 @@ typedef struct {
   char *end;
 } buffer;
 
+// struct for 
+typedef struct _stackette {
+  void *ptr;
+  struct _stackette *prev;
+} stackette;
+
+#define EMPTY_STACK 0
+
 #define BUF_REMAINING (buf->end-buf->pos)
 #define set_type(buf, type) perl_mongo_serialize_byte(buf, (char)type)
 #define perl_mongo_serialize_null(buf) perl_mongo_serialize_byte(buf, (char)0)

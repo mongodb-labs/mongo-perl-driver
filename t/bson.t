@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 25;
+    plan tests => 28;
 }
 
 my $db = $conn->get_database('foo');
@@ -133,6 +133,37 @@ my $c = $db->get_collection('bar');
     ok(!$err->{err}, "undef");
     $err->{err} = "foo";
     is($err->{err}, "foo", "assign to undef");
+}
+
+# circular references
+{
+    my $q = {};
+    $q->{'q'} = $q;
+
+    eval {
+        $c->insert($q);
+    };
+
+    ok($@ =~ /circular ref/);
+
+    my %test;
+    tie %test, 'Tie::IxHash'; 
+    $test{t} = \%test; 
+
+    eval {
+        $c->insert(\%test);
+    };
+
+    ok($@ =~ /circular ref/);
+
+    my $tie = Tie::IxHash->new;
+    $tie->Push("t" => $tie);
+
+    eval {
+        $c->insert($tie);
+    };
+
+    ok($@ =~ /circular ref/);
 }
 
 # moose numbers

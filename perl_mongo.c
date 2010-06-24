@@ -23,9 +23,11 @@
 
 #include "regcomp.h"
 
+static stackette* check_circular_ref(void *ptr, stackette *stack);
 static int isUTF8(const char*, int);
 static void serialize_regex(buffer*, const char*, REGEXP*, AV*);
 static void serialize_regex_flags(buffer*, SV*);
+static void append_sv (buffer *buf, const char *key, SV *sv, AV *ids, stackette *stack);
 
 int perl_mongo_inc = 0;
 
@@ -259,8 +261,7 @@ void perl_mongo_make_oid(char *twelve, char *twenty4) {
 static SV *
 oid_to_sv (buffer *buf)
 {
-    SV *stash;
-    HV *id_hv;
+    HV *stash, *id_hv;
     char oid_s[25];
     perl_mongo_make_oid(buf->pos, oid_s);
 
@@ -692,8 +693,6 @@ void perl_mongo_serialize_size(char *start, buffer *buf) {
   memcpy(start, &total, INT_32);
 }
 
-static void append_sv (buffer *buf, const char *key, SV *sv, AV *ids);
-
 void perl_mongo_make_id(char *id) {
   //SV *temp;
   char *data = id;
@@ -735,8 +734,8 @@ void perl_mongo_make_id(char *id) {
 static void
 perl_mongo_prep(buffer *buf, AV *ids) {
   //  SV *id = perl_mongo_construct_instance ("MongoDB::OID", NULL);
-  SV *id, *stash;
-  HV *id_hv;
+  SV *id;
+  HV *id_hv, *stash;
   char id_s[12], oid_s[25];
 
   stash = gv_stashpv("MongoDB::OID", 0);
@@ -755,8 +754,31 @@ perl_mongo_prep(buffer *buf, AV *ids) {
   av_push(ids, id);
 }
 
+/**
+ * checks if a ptr has been parsed already and, if not, adds it to the stack. If
+ * we do have a circular ref, this function returns 0.
+ */
+static stackette* check_circular_ref(void *ptr, stackette *stack) {
+  stackette *ette, *start = stack;
+
+  while (stack) {
+    if (ptr == stack->ptr) {
+      return 0;
+    }
+    stack = stack->prev;
+  }
+
+  // push this onto the circular ref stack
+  New(0, ette, 1, stackette);
+  ette->ptr = ptr;
+  // if stack has not been initialized, stack will be 0 so this will work out
+  ette->prev = start;
+
+  return ette;
+}
+
 static void
-hv_to_bson (buffer *buf, SV *sv, AV *ids)
+hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack)
 {
     int start;
     HE *he;
@@ -776,11 +798,15 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids)
     }
 
     hv = (HV*)SvRV(sv);
+    if (!(stack = check_circular_ref(hv, stack))) {
+      Safefree(buf->start);
+      croak("circular ref");
+    }
 
     if (ids) {
       if(hv_exists(hv, "_id", strlen("_id"))) {
         SV **id = hv_fetch(hv, "_id", strlen("_id"), 0);
-        append_sv(buf, "_id", *id, NO_PREP);
+        append_sv(buf, "_id", *id, NO_PREP, stack);
         SvREFCNT_inc(*id);
         av_push(ids, *id);
       }
@@ -806,7 +832,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids)
          * so we're using hv_fetch
          */
         hval = hv_fetch(hv, key, len, 0);
-        append_sv (buf, key, *hval, NO_PREP);
+        append_sv (buf, key, *hval, NO_PREP, stack);
     }
 
     perl_mongo_serialize_null(buf);
@@ -814,10 +840,15 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids)
 }
 
 static void
-av_to_bson (buffer *buf, AV *av)
+av_to_bson (buffer *buf, AV *av, stackette *stack)
 {
     I32 i;
     int start;
+
+    if (!(stack = check_circular_ref(av, stack))) {
+      Safefree(buf->start);
+      croak("circular ref");
+    }
 
     start = buf->pos-buf->start;
     buf->pos += INT_32;
@@ -826,9 +857,9 @@ av_to_bson (buffer *buf, AV *av)
         SV **sv;
         SV *key = newSViv (i);
         if (!(sv = av_fetch (av, i, 0)))
-            append_sv (buf, SvPV_nolen(key), newSV(0), NO_PREP);
+          append_sv (buf, SvPV_nolen(key), newSV(0), NO_PREP, stack);
         else
-            append_sv (buf, SvPV_nolen(key), *sv, NO_PREP);
+          append_sv (buf, SvPV_nolen(key), *sv, NO_PREP, stack);
 
         SvREFCNT_dec (key);
     }
@@ -838,7 +869,7 @@ av_to_bson (buffer *buf, AV *av)
 }
 
 static void
-ixhash_to_bson(buffer *buf, SV *sv, AV *ids) {
+ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack) {
     int start, i;
     SV **keys_sv, **values_sv;
     AV *array, *keys, *values;
@@ -852,6 +883,12 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids) {
      * [ {hash}, [keys], [order], 0 ]
      */
     array = (AV*)SvRV(sv);
+
+    // check if we're in an infinite loop
+    if (!(stack = check_circular_ref(array, stack))) {
+      Safefree(buf->start);
+      croak("circular ref");
+    }
 
     /* keys in order, from position 1 */
     keys_sv = av_fetch(array, 1, 0);
@@ -874,7 +911,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids) {
         /*
          * add it to the bson and the ids array
          */
-        append_sv(buf, "_id", *id, NO_PREP);
+        append_sv(buf, "_id", *id, NO_PREP, stack);
         av_push(ids, *id);
       }
       else {
@@ -898,7 +935,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids) {
           str = SvPVutf8(*k, len);
         }
 
-        append_sv(buf, str, *v, NO_PREP);
+        append_sv(buf, str, *v, NO_PREP, stack);
     }
 
     perl_mongo_serialize_null(buf);
@@ -936,7 +973,7 @@ static int isUTF8(const char *s, int len) {
 
 
 static void
-append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
+append_sv (buffer *buf, const char *key, SV *sv, AV *ids, stackette *stack)
 {
     if (!SvOK(sv)) {
       if (SvGMAGICAL(sv)) {
@@ -1032,7 +1069,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
             else if (sv_isa(sv, "Tie::IxHash")) {
               set_type(buf, BSON_OBJECT);
               perl_mongo_serialize_key(buf, key, ids);
-              ixhash_to_bson(buf, sv, NO_PREP);
+              ixhash_to_bson(buf, sv, NO_PREP, stack);
             }
 	    /* DateTime */
             else if (sv_isa(sv, "DateTime")) {
@@ -1071,7 +1108,7 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
               perl_mongo_serialize_string(buf, code_str, code_len);
 
               scope = perl_mongo_call_method (sv, "scope", 0);
-              hv_to_bson(buf, scope, 0);
+              hv_to_bson(buf, scope, NO_PREP, EMPTY_STACK);
 
               perl_mongo_serialize_size(buf->start+start, buf);
 
@@ -1120,13 +1157,13 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids)
                     set_type(buf, BSON_OBJECT);
                     perl_mongo_serialize_key(buf, key, ids);
                     /* don't add a _id to inner objs */
-                    hv_to_bson (buf, sv, NO_PREP);
+                    hv_to_bson (buf, sv, NO_PREP, stack);
                     break;
                 case SVt_PVAV:
                     /* array */
                     set_type(buf, BSON_ARRAY);
                     perl_mongo_serialize_key(buf, key, ids);
-                    av_to_bson (buf, (AV *)SvRV (sv));
+                    av_to_bson (buf, (AV *)SvRV (sv), stack);
                     break;
                 case SVt_PV:
                     /* binary */
@@ -1236,15 +1273,14 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids)
     }
 
     switch (SvTYPE (SvRV (sv))) {
-        case SVt_PVHV:
-            hv_to_bson (buf, sv, ids);
-            break;
-        case SVt_PVAV: {
-            /* TODO: figure out why this segfaults if given "Tie::Hash" */
-            if (sv_isa(sv, "Tie::IxHash")) {
-                ixhash_to_bson(buf, sv, ids);
-            }
-            else {
+    case SVt_PVHV:
+      hv_to_bson (buf, sv, ids, EMPTY_STACK);
+      break;
+    case SVt_PVAV: {
+      if (sv_isa(sv, "Tie::IxHash")) {
+        ixhash_to_bson(buf, sv, ids, EMPTY_STACK);
+      }
+      else {
                 /*
                  * this is a special case of array:
                  * ("foo" => "bar", "baz" => "bat")
@@ -1276,7 +1312,7 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids)
                         if (strcmp(SvPV_nolen(*key), "_id") == 0) {
                             SV **val = av_fetch(av, i+1, 0);
                             has_id = 1;
-                            append_sv(buf, "_id", *val, NO_PREP);
+                            append_sv(buf, "_id", *val, NO_PREP, EMPTY_STACK);
                             av_push(ids, *val);
                             break;
                         }
@@ -1300,7 +1336,7 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids)
                     if (!isUTF8(str, len)) {
                       str = SvPVutf8(*key, len);
                     }
-                    append_sv (buf, str, *val, NO_PREP);
+                    append_sv (buf, str, *val, NO_PREP, EMPTY_STACK);
                 }
 
                 perl_mongo_serialize_null(buf);
