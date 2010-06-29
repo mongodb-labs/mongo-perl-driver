@@ -837,6 +837,9 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack)
 
     perl_mongo_serialize_null(buf);
     perl_mongo_serialize_size(buf->start+start, buf);
+
+    // free the hv elem
+    Safefree(stack);
 }
 
 static void
@@ -866,6 +869,9 @@ av_to_bson (buffer *buf, AV *av, stackette *stack)
 
     perl_mongo_serialize_null(buf);
     perl_mongo_serialize_size(buf->start+start, buf);
+
+    // free the av elem
+    Safefree(stack);
 }
 
 static void
@@ -940,6 +946,9 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack) {
 
     perl_mongo_serialize_null(buf);
     perl_mongo_serialize_size(buf->start+start, buf);
+
+    // free the ixhash elem
+    Safefree(stack);
 }
 
 static int isUTF8(const char *s, int len) {
