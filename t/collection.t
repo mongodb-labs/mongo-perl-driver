@@ -475,41 +475,7 @@ SKIP: {
     $MongoDB::BSON::utf8_flag_on = 1;
     $coll->drop;
 }
-# find_and_modify
-{
-    my $coll = $db->get_collection('test_collection');
-    $coll->drop;
-    $coll->insert({x => 1});
-    
-    # my $result = $db->run_command({
-    #     findandmodify => 'test_collection',
-    #     update => { x => 3}
-    # });
-    # 
-    # use Data::Dumper;
-    # 
-    # die  Dumper(\$result);
-    
-    my $obj = $coll->find_and_modify({ update => {'$inc' => {'x' => 1}} });
-    my $obj2 = $coll->find_one();
-    ok($obj->{x}==1 && $obj2->{x} == 2,'find_and_modify update/inc');
 
-    $obj = $coll->find_and_modify({remove => 1});
-    
-    ok($obj->{x} == 2 && $coll->count() == 0,'find_and_modify /remove');
-    
-    $coll->insert({x => 1,idx => 1});
-    $coll->insert({x => 2,idx => 2});
-    $coll->insert({x => 3,idx => 3});
-    
-    $obj = $coll->find_and_modify({sort => {idx => -1}, remove => 1});
-    
-    is($obj->{x},3,'find_and_modify/sort');
-    
-    $obj = $coll->find_and_modify({query => { x => 1}, new => 1,update => { x => 1, idx => 200 }});
-    $obj2 = $coll->find_one({x => 1});
-    ok($obj->{idx} == $obj2->{idx} && $obj2->{idx} == 200,'find_and_modify/new option');
-}
 
 END {
     if ($db) {

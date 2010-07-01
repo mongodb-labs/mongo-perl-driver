@@ -307,15 +307,8 @@ elem_to_sv (int type, buffer *buf)
     // len includes \0
     value = newSVpvn(buf->pos, len-1);
     
-    //ns hack
-    if ( flag && SvIOK(flag) ) {
-        if ( SvIV(flag) != 0 ) {
-            SvUTF8_on(value);
-        }
-    }
-    //fallback for compatible
-    else {
-        SvUTF8_on(value);
+    if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
+      SvUTF8_on(value);
     }
 
     buf->pos += len; 

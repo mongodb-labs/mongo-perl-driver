@@ -15,8 +15,8 @@ build_requires:
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 0.99'
-license: apache
+generated_by: 'Module::Install version 0.91'
+license: Apache
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
@@ -36,6 +36,5 @@ requires:
   boolean: 0
   perl: 5.8.0
 resources:
-  license: http://apache.org/licenses/LICENSE-2.0
-  repository: git://github.com/nightsailer/mongo-perl-driver.git
+  repository: git://github.com/mongodb/mongo-perl-driver.git
 version: 0.34

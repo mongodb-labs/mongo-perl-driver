@@ -32,7 +32,7 @@ mongo;
 
 no_index directory => 'ext';
 
-repository 'git://github.com/nightsailer/mongo-perl-driver.git';
+repository 'git://github.com/mongodb/mongo-perl-driver.git';
 
 WriteAll;
 

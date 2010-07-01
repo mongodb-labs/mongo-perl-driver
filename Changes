@@ -1,3 +1,9 @@
+0.35 - 02 July 2010
+
+  - Added MongoDB::BSON::utf8_flag_on (nightsailer)
+  - Added MongoDB::GridFS::File::slurp (nightsailer)
+  - Fixed memory leak
+
 0.34 - 17 June 2010
 
   - $conn->foo->bar->baz now gets the bar.baz collection in the foo database

@@ -45,9 +45,8 @@ You can also just run
 
 and then the string (and all future UTF-8 strings) will print "correctly."
 
-note:
-
-The 1.34 ns version, you also can turn off the utf8 flag,and dispaly in native encoding:
+You can also turn off C<$MongoDB::BSON::utf_flag_on>, and the UTF-8 flag will 
+not be set when strings are decoded:
 
     $MongoDB::BSON::utf8_flag_on = 0;
 
