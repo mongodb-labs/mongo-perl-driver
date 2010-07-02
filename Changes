@@ -1,7 +1,7 @@
 0.35 - 02 July 2010
 
-  - Added MongoDB::BSON::utf8_flag_on (nightsailer)
-  - Added MongoDB::GridFS::File::slurp (nightsailer)
+  - Added MongoDB::BSON::utf8_flag_on (Pan Fan)
+  - Added MongoDB::GridFS::File::slurp (Pan Fan)
   - Fixed memory leak
 
 0.34 - 17 June 2010
