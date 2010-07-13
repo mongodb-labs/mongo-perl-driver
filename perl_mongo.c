@@ -475,8 +475,19 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_TIMESTAMP: {
-    value = newSViv(MONGO_64((long)*(int*)buf->pos));
-    buf->pos += INT_64;
+    SV *sec_sv, *inc_sv;
+    int sec, inc;
+    HV *hv = newHV();
+
+    sec = MONGO_32(*(int*)buf->pos);
+    buf->pos += INT_32;
+    inc = MONGO_32(*(int*)buf->pos);
+    buf->pos += INT_32;
+
+    sec_sv = sv_2mortal(newSViv(sec));
+    inc_sv = sv_2mortal(newSViv(inc));
+
+    value = perl_mongo_construct_instance("MongoDB::Timestamp", "sec", sec_sv, "inc", inc_sv, NULL);
     break;
   }
   case BSON_MINKEY: {
@@ -1128,6 +1139,19 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids, stackette *stack)
 
               SvREFCNT_dec(code);
               SvREFCNT_dec(scope);
+            }
+            else if (sv_isa(sv, "MongoDB::Timestamp")) {
+              SV *sec, *inc;
+              set_type(buf, BSON_TIMESTAMP);
+              perl_mongo_serialize_key(buf, key, ids);
+              
+              sec = perl_mongo_call_reader(sv, "sec");
+              perl_mongo_serialize_int(buf, SvIV(sec));
+              inc = perl_mongo_call_reader(sv, "inc");
+              perl_mongo_serialize_int(buf, SvIV(inc));
+
+              SvREFCNT_dec(sec);
+              SvREFCNT_dec(inc);
             }
             else if (sv_isa(sv, "MongoDB::MinKey")) {
               set_type(buf, BSON_MINKEY);

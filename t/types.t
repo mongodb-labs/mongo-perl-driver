@@ -6,6 +6,7 @@ use Test::Exception;
 use MongoDB;
 use MongoDB::OID;
 use MongoDB::Code;
+use MongoDB::Timestamp;
 use DateTime;
 use JSON;
 
@@ -22,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 44;
+    plan tests => 46;
 }
 
 my $db = $conn->get_database('x');
@@ -237,6 +238,19 @@ SKIP: {
 
     my $json = $j->encode($doc);
     is($json, '{"foo":{"$oid":"'.$doc->{'foo'}->value.'"}}');
+}
+
+# timestamp
+{
+    $coll->drop;
+
+    my $t = MongoDB::Timestamp->new("sec" => 12345678, "inc" => 9876543);
+    $coll->insert({"ts" => $t});
+
+    my $x = $coll->find_one;
+
+    is($x->{'ts'}->sec, $t->sec);
+    is($x->{'ts'}->inc, $t->inc);
 }
 
 END {
