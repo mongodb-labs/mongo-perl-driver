@@ -479,9 +479,9 @@ elem_to_sv (int type, buffer *buf)
     int sec, inc;
     HV *hv = newHV();
 
-    sec = MONGO_32(*(int*)buf->pos);
-    buf->pos += INT_32;
     inc = MONGO_32(*(int*)buf->pos);
+    buf->pos += INT_32;
+    sec = MONGO_32(*(int*)buf->pos);
     buf->pos += INT_32;
 
     sec_sv = sv_2mortal(newSViv(sec));
@@ -1145,10 +1145,10 @@ append_sv (buffer *buf, const char *key, SV *sv, AV *ids, stackette *stack)
               set_type(buf, BSON_TIMESTAMP);
               perl_mongo_serialize_key(buf, key, ids);
               
-              sec = perl_mongo_call_reader(sv, "sec");
-              perl_mongo_serialize_int(buf, SvIV(sec));
               inc = perl_mongo_call_reader(sv, "inc");
               perl_mongo_serialize_int(buf, SvIV(inc));
+              sec = perl_mongo_call_reader(sv, "sec");
+              perl_mongo_serialize_int(buf, SvIV(sec));
 
               SvREFCNT_dec(sec);
               SvREFCNT_dec(inc);
