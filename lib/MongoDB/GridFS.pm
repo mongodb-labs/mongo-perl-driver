@@ -251,7 +251,7 @@ sub insert {
         $id = MongoDB::OID->new;
     }
 
-    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1));
+    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
 
     my $n = 0;
     my $length = 0;

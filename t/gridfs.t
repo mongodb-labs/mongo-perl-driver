@@ -105,14 +105,17 @@ is($file->info->{"filename"}, "t/input.txt", "compare filename");
 my $wfh = IO::File->new("t/output.txt", "+>") or die $!;
 my $written = $file->print($wfh);
 is($written, length "abc\n\nzyw\n");
+$wfh->close();
 
 # slurp
 is($file->slurp,"abc\n\nzyw\n",'slurp');
 
 my $buf;
+$wfh = IO::File->new("t/output.txt", "<") or die $!;
 $wfh->read($buf, 1000);
+#$wfh->read($buf, length( "abc\n\nzyw\n"));
 
-is($buf, "abc\n\nzyw\n");
+is($buf, "abc\n\nzyw\n", "read chars from tmpfile");
 
 my $wh = IO::File->new("t/outsub.txt", "+>") or die $!;
 $written = $file->print($wh, 3, 2);

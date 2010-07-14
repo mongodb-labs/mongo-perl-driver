@@ -1,3 +1,7 @@
+0.36
+
+  - Fixed slurp tests (Josh Rabinowitz)
+
 0.35 - 02 July 2010
 
   - Added MongoDB::BSON::utf8_flag_on (Pan Fan)
