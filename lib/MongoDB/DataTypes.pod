@@ -251,3 +251,23 @@ sufficient to say:
 
     bless $minKey, "MongoDB::MaxKey";
 
+=head2 MongoDB::Timestamp
+
+    my $ts = MongoDB::Timestamp->new({sec => $seconds, inc => $increment});
+
+Timestamps are used internally by MongoDB's replication.  You can see them in
+their natural habitat by querying C<local.main.$oplog>.  Each entry looks 
+something like:
+
+    { "ts" : { "t" : 1278872990000, "i" : 1 }, "op" : "n", "ns" : "", "o" : { } }
+
+In the shell, timestamps are shown in milliseconds, although they are stored as
+seconds.  So, to represent this document in Perl, we would do:
+
+    my $oplog = {
+        "ts" => MongoDB::Timestamp->new("sec" => 1278872990, "inc" => 1),
+        "op" => "n",
+        "ns" => "",
+        "o" => {}
+    }
+

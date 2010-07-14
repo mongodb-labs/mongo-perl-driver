@@ -23,6 +23,13 @@ our $VERSION = '0.35';
 
 MongoDB::Timestamp - Timestamp used for replication
 
+=head1 SYNOPSIS
+
+This is an internal type used for replication.  It is not for storing dates,
+times, or timestamps in the traditional sense.  Unless you are looking to mess
+with MongoDB's replication internals, the class you are probably looking for is
+L<DateTime>.  See <MongoDB::DataTypes> for more information.
+
 =cut
 
 use Any::Moose;
