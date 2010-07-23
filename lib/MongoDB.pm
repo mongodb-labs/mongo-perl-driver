@@ -211,3 +211,10 @@ can be 1 for upsert and/or 2 for updating multiple documents.
 Creates a remove that can be used with C<MongoDB::Connection::send>.  C<$flags>
 can be 1 for removing just one matching document.
 
+=head1 SEE ALSO
+
+MongoDB main website L<http://www.mongodb.org/>
+
+Core documentation L<http://www.mongodb.org/display/DOCS/Manual>
+
+L<MongoDB::Tutorial>, L<MongoDB::Examples>
