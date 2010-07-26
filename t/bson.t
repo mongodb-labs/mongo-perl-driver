@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 28;
+    plan tests => 34;
 }
 
 my $db = $conn->get_database('foo');
@@ -165,6 +165,40 @@ my $c = $db->get_collection('bar');
 
     ok($@ =~ /circular ref/);
 }
+
+# no . in key names
+{
+    eval {
+        $c->insert({"x.y" => "foo"});
+    };
+    ok($@ =~ /inserts cannot contain/);
+
+    eval {
+        $c->insert({"x.y" => "foo", "bar" => "baz"});
+    };
+    ok($@ =~ /inserts cannot contain/);
+
+    eval {
+        $c->insert({"bar" => "baz", "x.y" => "foo"});
+    };
+    ok($@ =~ /inserts cannot contain/);
+
+    eval {
+        $c->insert({"bar" => {"x.y" => "foo"}});
+    };
+    ok($@ =~ /inserts cannot contain/);
+
+    eval {
+        $c->batch_insert([{"x" => "foo"}, {"x.y" => "foo"}, {"y" => "foo"}]);
+    };
+    ok($@ =~ /inserts cannot contain/);
+
+    eval {
+        $c->batch_insert([{"x" => "foo"}, {"foo" => ["x", {"x.y" => "foo"}]}, {"y" => "foo"}]);
+    };
+    ok($@ =~ /inserts cannot contain/);
+}
+
 
 # moose numbers
 package Person;
