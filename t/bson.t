@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 34;
+    plan tests => 35;
 }
 
 my $db = $conn->get_database('foo');
@@ -197,6 +197,14 @@ my $c = $db->get_collection('bar');
         $c->batch_insert([{"x" => "foo"}, {"foo" => ["x", {"x.y" => "foo"}]}, {"y" => "foo"}]);
     };
     ok($@ =~ /inserts cannot contain/);
+}
+
+# empty key name
+{
+    eval {
+        $c->insert({"" => "foo"});
+    };
+    ok($@ =~ /empty key name/);
 }
 
 
