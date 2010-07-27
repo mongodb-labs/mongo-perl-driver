@@ -38,8 +38,9 @@ MongoDB::GridFS - A file storage utility
 
 There are two interfaces for GridFS: a file-system/collection-like interface
 (insert, remove, drop, find_one) and a more general interface 
-(get, put, delete).  Their functionality is the same, using one over the other
-is a matter of preference.
+(get, put, delete).  Their functionality is the almost identical (get, put and 
+delete are always safe ops, insert, remove, and find_one are optionally safe), 
+using one over the other is a matter of preference.
 
 =head1 SEE ALSO
 
