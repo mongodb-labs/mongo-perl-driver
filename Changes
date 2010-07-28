@@ -1,5 +1,6 @@
 0.36
 
+  - Added background option for index creation (Graham Barr)
   - Fixed slurp tests (Josh Rabinowitz)
 
 0.35 - 02 July 2010
