@@ -252,7 +252,7 @@ int mongo_link_hear(SV *cursor_sv) {
 
     if (!FD_ISSET(sock, &readfds)) {
       SvREFCNT_dec(link_sv);
-      croak("recv timed out");
+      croak("recv timed out (%d ms)", timeout);
       return 0;
     }
   }
@@ -306,7 +306,7 @@ int mongo_link_hear(SV *cursor_sv) {
       recv(sock, (char*)&cursor->start, INT_32, 0) == -1 ||
       recv(sock, (char*)&num_returned, INT_32, 0) == -1) {
     SvREFCNT_dec(link_sv);
-    croak((const char*)strerror(errno));
+    croak("%s", strerror(errno));
     return 0;
   }
 
