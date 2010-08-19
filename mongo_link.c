@@ -394,6 +394,7 @@ inline void set_disconnected(mongo_link *link) {
   for (i = 0; i < link->num; i++) {
 
 #ifdef WIN32
+    shutdown(link->server[i]->socket, 2);
     closesocket(link->server[i]->socket);
 #else
     close(link->server[i]->socket);

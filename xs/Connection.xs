@@ -187,6 +187,7 @@ DESTROY (self)
          for (i = 0; i < link->num; i++) {
            if (link->server[i]->connected) {
 #ifdef WIN32
+             shutdown(link->server[i]->socket, 2);
              closesocket(link->server[i]->socket);
 #else
              close(link->server[i]->socket);
