@@ -60,5 +60,15 @@ sub const_cccmd {
         $inherited .= ' ';
     }
 
+    if ($Config{ccflags} =~ /-arch ppc/) {
+        $inherited .= ' -arch ppc';
+    }
+    if ($Config{ccflags} =~ /-arch i386/) {
+        $inherited .= ' -arch i386';
+    }
+    if ($Config{ccflags} =~ /-arch x86_64/) {
+        $inherited .= ' -arch x86_64';
+    }
+
     return $inherited;
 }
