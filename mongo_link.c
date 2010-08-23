@@ -301,8 +301,14 @@ int mongo_link_hear(SV *cursor_sv) {
     croak("%s", strerror(errno));
     return 0;
   }
+  SvREFCNT_dec(link_sv);
 
   cursor->flag = MONGO_32(cursor->flag);
+  if (cursor->flag == 0) {
+      cursor->num = 0;
+      croak("cursor not found");
+  }
+
   cursor->cursor_id = MONGO_64(cursor->cursor_id);
   cursor->start = MONGO_32(cursor->start);
   num_returned = MONGO_32(num_returned);
@@ -327,11 +333,9 @@ int mongo_link_hear(SV *cursor_sv) {
 #else
     croak("error getting database response: %s\n", strerror(errno));
 #endif 
-    SvREFCNT_dec(link_sv);
     return 0;
   }
   
-  SvREFCNT_dec(link_sv);
   cursor->num += num_returned;
   return num_returned > 0;
 }
