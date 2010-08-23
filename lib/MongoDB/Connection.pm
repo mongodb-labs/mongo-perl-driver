@@ -582,7 +582,8 @@ sub get_master {
 
     # a single server or list of servers
     if (!$self->find_master) {
-        $self->_master = $conn;
+        $self->_master($conn);
+        return $self->_master;
     }
     # auto-detect master
     else {
