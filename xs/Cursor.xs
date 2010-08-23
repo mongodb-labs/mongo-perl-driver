@@ -98,10 +98,9 @@ static void kill_cursor(SV *self) {
   buffer buf;
   mongo_msg_header header;
 
-  // we allocate a cursor even if no results are returned,
-  // but the database will throw an assertion if we try to
-  // kill a non-existant cursor
-  // non-cursors have ids of 0
+  // we allocate a cursor even if no results are returned, but the database will
+  // throw an assertion if we try to kill a non-existant cursor non-cursors have 
+  // ids of 0
   if (cursor->cursor_id == 0) {
     SvREFCNT_dec(link);
     SvREFCNT_dec(request_id_sv);
@@ -210,9 +209,18 @@ void
 DESTROY (self)
       SV *self
   PREINIT:
-     mongo_cursor *cursor;
+      mongo_cursor *cursor;
+      mongo_link *link;
+      SV *link_sv;
+      int auto_reconnect = 0;
   CODE:
-      kill_cursor(self);
+      link_sv = perl_mongo_call_reader(self, "_connection");
+      link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
+      // check if cursor is connected
+      if (link->master && link->master->connected) {
+          kill_cursor(self);
+      }
+      SvREFCNT_dec(link_sv);
 
       cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
 
