@@ -346,7 +346,29 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_BOOL: {
     char d = *buf->pos++;
-    value = newSViv(d);
+    int count;
+    dSP;
+    
+    SAVETMPS;
+    
+    PUSHMARK(SP);
+    PUTBACK;
+    if (d) {
+        count = call_pv("boolean::true", G_SCALAR);
+    }
+    else {
+        count = call_pv("boolean::false", G_SCALAR);
+    }
+    SPAGAIN;
+    if (count == 1)
+        value = newSVsv(POPs);
+    
+    if (count != 1 || !SvOK(value)) {
+        value = newSViv(d);
+    }
+    
+    PUTBACK;
+    FREETMPS;
     break;
   }
   case BSON_UNDEF:
