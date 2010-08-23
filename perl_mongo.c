@@ -347,6 +347,13 @@ elem_to_sv (int type, buffer *buf)
   case BSON_BOOL: {
     char d = *buf->pos++;
     int count;
+    SV *use_bool = get_sv("MongoDB::BSON::use_boolean", 0);
+
+    if (!use_bool) {
+      value = newSViv(d);
+      break;
+    }
+
     dSP;
     
     SAVETMPS;

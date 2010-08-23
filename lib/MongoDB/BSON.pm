@@ -58,3 +58,15 @@ If you turn off utf8 flag, the string  length will compute as bytes, and is_utf8
 =cut
 
 $MongoDB::BSON::utf8_flag_on = 1;
+
+=head2 Return boolean values as booleans instead of integers
+
+    $MongoDB::BSON::use_boolean = 1
+
+By default, booleans are deserialized as integers.  If you would like them to be
+deserialized as L<boolean/true> and L<boolean/false>, set 
+C<$MongoDB::BSON::use_boolean> to 1.
+
+=cut
+
+$MongoDB::BSON::use_boolean = 0;
