@@ -34,6 +34,13 @@ no_index directory => 'ext';
 
 repository 'git://github.com/mongodb/mongo-perl-driver.git';
 
+my @arch = $Config::Config{ccflags} =~ m/-arch\s+(\S+)/g;
+makemaker_args(
+    dynamic_lib => {
+        OTHERLDFLAGS => join '', map { " -arch $_ " } @arch
+    }
+);
+
 WriteAll;
 
 package MY;
