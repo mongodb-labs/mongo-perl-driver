@@ -122,13 +122,12 @@ typedef struct _mongo_server {
  * server is an array of pointers to connections
  */
 typedef struct {
-  int ts;
   int auto_reconnect;
   int timeout;
 
   int num;
-  int master;
-  mongo_server **server;
+  mongo_server *master;
+  int copy;
 } mongo_link;
 
 typedef struct {
