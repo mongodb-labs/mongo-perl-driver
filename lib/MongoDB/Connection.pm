@@ -450,20 +450,18 @@ sub BUILD {
     # multiple servers
     my $connected = 0;
     $opts->{find_master} = 0;
+    $opts->{auto_connect} = 0;
     foreach (@pairs) {
         $opts->{host} = "mongodb://$_";
 
+        $self->_servers->{$_} = MongoDB::Connection->new($opts);
         # it's okay if we can't connect, so long as someone can
         eval {
-            $self->_servers->{$_} = MongoDB::Connection->new($opts);
+            $self->_servers->{$_}->connect;
         };
 
-        # add anyone who failed to the hash
-        if ($@) {
-            $self->_servers->{$_} = 0;
-        }
         # at least one connection worked
-        else {
+        if (!$@) {
             $connected = 1;
         }
     }
@@ -524,21 +522,17 @@ sub get_database {
 sub _get_a_specific_connection {
     my ($self, $host) = @_;
 
-    if ($self->_servers->{$host} && $self->_servers->{$host}->connected) {
+    if ($self->_servers->{$host}->connected) {
         return $self->_servers->{$host};
     }
 
-    my $conn = 0;
     eval {
-        # todo: add auth stuff
-        $conn = MongoDB::Connection->new("host" => "mongodb://$host", timeout => $self->timeout);
+        $self->_servers->{$host}->connect;
     };
 
     if (!$@) {
-        $self->_servers->{$host} = $conn;
-        return $conn;
+        return $self->_servers->{$host};
     }
-
     return 0;
 }
 
@@ -551,6 +545,8 @@ sub _get_any_connection {
             return $conn;
         }
     }
+
+    return 0;
 }
 
 
@@ -599,7 +595,7 @@ sub get_master {
             # update (or set) rs list
             for (@{$master->{'hosts'}}) {
                 if (!$self->_servers->{$_}) {
-                    $self->_servers->{$_} = 0;
+                    $self->_servers->{$_} = MongoDB::Connection->new("host" => "mongodb://$_", auto_connect => 0);
                 }
             }
             $self->ts(time());

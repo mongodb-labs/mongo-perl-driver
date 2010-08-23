@@ -221,9 +221,9 @@ int mongo_link_hear(SV *cursor_sv) {
   timeout_sv = perl_mongo_call_reader(link_sv, "query_timeout");
 
   if ((sock = perl_mongo_master(link_sv)) == -1) {
-    croak("can't get db response, not connected");
+    set_disconnected(link_sv);
     SvREFCNT_dec(link_sv);
-    return 0;
+    croak("can't get db response, not connected");
   }
 
   timeout = SvIV(timeout_sv);

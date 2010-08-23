@@ -140,6 +140,8 @@ connected(self)
      else {
          RETVAL = 0;
      }
+  OUTPUT:
+     RETVAL
 
 
 int
