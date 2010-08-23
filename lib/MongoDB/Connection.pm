@@ -470,12 +470,12 @@ sub BUILD {
 
     # if we still aren't connected to anyone, give up
     if (!$connected) {
-        croak("couldn't connect to any servers listed: $opts->{host}");
+        die "couldn't connect to any servers listed: ".join(",", @pairs);
     }
 
     my $master = $self->get_master;
     if ($master == -1) {
-        croak("couldn't find master");
+        die "couldn't find master";
     }
 
     # create a struct that just points to the master's connection
