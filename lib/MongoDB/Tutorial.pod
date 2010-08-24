@@ -73,6 +73,12 @@ as needed.
 
 =head2 Creating Documents
 
+Before you get started with MongoDB, it is important to know that, by default,
+MongoDB does not return a response from writes (inserts, updates, and deletes).
+If you would like to know if the insert succeeded or failed, use the C<safe>
+option.  For more information on this, see 
+L<http://www.mongodb.org/display/DOCS/Last+Error+Commands> for details.
+
 =head3 Inserting
 
 To add a document to the collection, we use the C<insert> function.  It takes a

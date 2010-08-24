@@ -69,5 +69,5 @@ The update:
 
     $coll->update({"users.name" => "fred"}, {'users.$.name' => "george"});
 
-This will update the array so that the element containing C<"name" => "fred"> 
-now has C<"name" => "george">.
+This will update the array so that the element containing C<"name" =E<gt> "fred"> 
+now has C<"name" =E<gt> "george">.
