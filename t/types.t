@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 46;
+    plan tests => 54;
 }
 
 my $db = $conn->get_database('x');
@@ -251,6 +251,30 @@ SKIP: {
 
     is($x->{'ts'}->sec, $t->sec);
     is($x->{'ts'}->inc, $t->inc);
+}
+
+# use_boolean
+{
+    $coll->drop;
+
+    $MongoDB::BSON::use_boolean = 0;
+
+    $coll->insert({"x" => boolean::true, "y" => boolean::false});
+    my $x = $coll->find_one;
+
+    isa_ok($x->{x}, 'SCALAR');
+    isa_ok($x->{y}, 'SCALAR');
+    is($x->{x}, 1);
+    is($x->{y}, 0);
+
+    $MongoDB::BSON::use_boolean = 1;
+
+    $x = $coll->find_one;
+
+    isa_ok($x->{x}, 'boolean');
+    isa_ok($x->{y}, 'boolean');
+    is($x->{x}, boolean::true);
+    is($x->{y}, boolean::false);
 }
 
 END {

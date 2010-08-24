@@ -22,14 +22,17 @@ MODULE = MongoDB::Connection  PACKAGE = MongoDB::Connection
 PROTOTYPES: DISABLE
 
 void 
-_init_conn(self, hosts=0)
+_init_conn(self, host, port)
     SV *self
-    SV *hosts
+    char *host
+    int port
   PREINIT:
-    SV *auto_reconnect_sv = 0, *timeout_sv = 0;
+    SV *auto_reconnect_sv = 0, *timeout_sv = 0, *rs_sv;
     int i = 0;
     mongo_link *link;
     AV *av;
+    HV *hv;
+    SV **host_sv, **port_sv, **elem;
   CODE:
     New(0, link, 1, mongo_link);
     perl_mongo_attach_ptr_to_instance(self, link);
@@ -38,50 +41,37 @@ _init_conn(self, hosts=0)
      * hosts are of the form:
      * [{host => "host", port => 27017}, ...]
      */
-    av = (AV*)SvRV(hosts);
-    link->num = av_len(av)+1;
-    New(0, link->server, link->num, mongo_server*);
-
-    for (i=0; i<link->num; i++) {
-      STRLEN len;
-      const char *host;
-      int port;
-      HV *hv;
-      SV **host_sv, **port_sv, **elem = av_fetch(av, i, 0);
-
-      if (!elem) {
-        croak("could not extract host");
-        return;
-      }
-
-      hv = (HV*)SvRV(*elem);
-
-      host_sv = hv_fetch(hv, "host", strlen("host"), 0);
-      host = SvPV(*host_sv, len);
-
-      port_sv = hv_fetch(hv, "port", strlen("port"), 0);
-      port = (port_sv && SvOK(*port_sv)) ? SvIV(*port_sv) : 27017;
-
-      New(0, link->server[i], 1, mongo_server);
-      
-      Newz(0, link->server[i]->host, len+1, char);
-      memcpy(link->server[i]->host, host, len);
-      link->server[i]->port = port;
-      link->server[i]->connected = 0;
-    }
+    New(0, link->master, 1, mongo_server);      
+    Newz(0, link->master->host, strlen(host)+1, char);
+    memcpy(link->master->host, host, strlen(host));
+    link->master->port = port;
+    link->master->connected = 0;
 
     auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
     timeout_sv = perl_mongo_call_reader (ST(0), "timeout");
 
     link->auto_reconnect = SvIV(auto_reconnect_sv);
     link->timeout = SvIV(timeout_sv);
-
-    link->master = -1;
-    link->ts = time(0);
+    link->copy = 0;
 
   CLEANUP:
     SvREFCNT_dec (auto_reconnect_sv);
     SvREFCNT_dec (timeout_sv);
+
+void 
+_init_conn_holder(self, master)
+    SV *self
+    SV *master
+  PREINIT:
+    mongo_link *self_link, *master_link;
+  CODE:
+    New(0, self_link, 1, mongo_link);
+    perl_mongo_attach_ptr_to_instance(self, self_link);
+
+    master_link = (mongo_link*)perl_mongo_get_ptr_from_instance(master);
+
+    self_link->master = master_link->master;
+    self_link->copy = 1;
     
 
 void
@@ -90,61 +80,68 @@ connect (self)
    PREINIT:
      int i = 0, connected = 0;
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
+     SV *master;
    CODE:
-     for (i = 0; i < link->num; i++) {
-       link->server[i]->socket = perl_mongo_connect(link->server[i]->host, link->server[i]->port, link->timeout);
-       link->server[i]->connected = (link->server[i]->socket != -1);
+     link->master->socket = perl_mongo_connect(link->master->host, link->master->port, link->timeout);
+     link->master->connected = link->master->socket != -1;
 
-       connected |= link->server[i]->connected;
+     if (!link->master->connected) {
+       croak ("couldn't connect to server %s:%d", link->master->host, link->master->port);
      }
 
      // try authentication
-     if (connected) {
-       SV *username, *password;
+     SV *username, *password;
 
-       username = perl_mongo_call_reader (self, "username");
-       password = perl_mongo_call_reader (self, "password");
-       
-       if (SvPOK(username) && SvPOK(password)) {
-         SV *database, *result, **ok;
+     username = perl_mongo_call_reader (self, "username");
+     password = perl_mongo_call_reader (self, "password");
+
+     if (SvPOK(username) && SvPOK(password)) {
+       SV *database, *result, **ok;
          
-         database = perl_mongo_call_reader (self, "db_name");
-         result = perl_mongo_call_method(self, "authenticate", 3, database, username, password);
-         if (!result || SvTYPE(result) != SVt_RV) {
-           if (result && SvPOK(result)) {
-             croak(SvPV_nolen(result));
-             return;
-           }
-           else { 
-             sv_dump(result);
-             croak("something weird happened with authentication");
-             return;
-           }
+       database = perl_mongo_call_reader (self, "db_name");
+       result = perl_mongo_call_method(self, "authenticate", 3, database, username, password);
+       if (!result || SvTYPE(result) != SVt_RV) {
+         if (result && SvPOK(result)) {
+           croak("%s", SvPV_nolen(result));
          }
+         else { 
+           sv_dump(result);
+           croak("something weird happened with authentication");
+         }
+       }
          
-         ok = hv_fetch((HV*)SvRV(result), "ok", strlen("ok"), 0);
-         if (!ok || 1 != SvIV(*ok)) {
-           SvREFCNT_dec(database);
-           SvREFCNT_dec(username);
-           SvREFCNT_dec(password);
-
-           croak ("couldn't authenticate with server");
-           return;
-         }
-
+       ok = hv_fetch((HV*)SvRV(result), "ok", strlen("ok"), 0);
+       if (!ok || 1 != SvIV(*ok)) {
          SvREFCNT_dec(database);
+         SvREFCNT_dec(username);
+         SvREFCNT_dec(password);
+
+         croak ("couldn't authenticate with server");
        }
 
-       SvREFCNT_dec(username);
-       SvREFCNT_dec(password);
-     }
-     else {
-       croak ("couldn't connect to server");
-       return;
+       SvREFCNT_dec(database);
      }
 
-     // croaks on failure
-     perl_mongo_master(self);
+     SvREFCNT_dec(username);
+     SvREFCNT_dec(password);
+
+
+int
+connected(self)
+     SV *self
+  INIT:
+     mongo_link *link;
+  CODE:
+     link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
+
+     if (link->master && link->master->connected) {
+         RETVAL = 1;
+     }
+     else {
+         RETVAL = 0;
+     }
+  OUTPUT:
+     RETVAL
 
 
 int
@@ -184,22 +181,14 @@ DESTROY (self)
      CODE:
          link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 
-         for (i = 0; i < link->num; i++) {
-           if (link->server[i]->connected) {
-#ifdef WIN32
-             shutdown(link->server[i]->socket, 2);
-             closesocket(link->server[i]->socket);
-#else
-             close(link->server[i]->socket);
-#endif
+         if (!link->copy && link->master) {
+           set_disconnected(self);
+
+           if (link->master->host) {
+             Safefree(link->master->host);
            }
 
-           if (link->server[i]->host) {
-             Safefree(link->server[i]->host);
-           }
-
-           Safefree(link->server[i]);
+           Safefree(link->master);
          }
 
-         Safefree(link->server);
          Safefree(link);

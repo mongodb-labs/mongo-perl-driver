@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-our $VERSION = '0.35';
+our $VERSION = '0.36';
 
 # ABSTRACT: A connection to a Mongo server
 
@@ -304,6 +304,66 @@ has query_timeout => (
     default  => sub { return $MongoDB::Cursor::timeout; },
 );
 
+=head2 find_master
+
+If this is true, the driver will attempt to find a master given the list of 
+hosts.  The master-finding algorithm looks like:
+
+    for host in hosts
+
+        if host is master
+             return host
+
+        else if host is a replica set member
+            master := replica set's master
+            return master
+
+If no master is found, the connection will fail. 
+
+If this is not set (or set to the default, 0), the driver will simply use the
+first host in the host list for all connections.  This can be useful for 
+directly connecting to slaves for reads.
+
+If you are connecting to a slave, you should check out the 
+L<MongoDB::Cursor/slave_okay> documentation for information on reading from a
+slave.
+
+You can use the C<ismaster> command to find the members of a replica set:
+
+    my $result = $db->run_command({ismaster => 1});
+
+The primary and secondary hosts are listed in the C<hosts> field, the slaves are
+in the C<passives> field, and arbiters are in the C<arbiters> field.
+
+=cut
+
+has find_master => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
+# hash of servers in a set
+# call connected() to determine if a connection is enabled
+has _servers => (
+    is       => 'rw',
+    isa      => 'HashRef',
+    default => sub { {} },
+);
+
+# actual connection to a server in the set
+has _master => (
+    is       => 'rw',
+#    isa      => 'MongoDB::Connection',
+    required => 0,
+);
+
+has ts => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0
+);
 
 =head2 port [deprecated]
 
@@ -350,53 +410,74 @@ sub AUTOLOAD {
     return $self->get_database($db);
 }
 
-sub _get_hosts {
-    my ($self) = @_;
-    my @hosts;
+sub BUILD {
+    my ($self, $opts) = @_;
+    eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
+        for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID/;
+
+    my @pairs;
 
     # deprecated syntax
     if (!($self->host =~ /^mongodb:\/\//)) {
-        push @hosts, {host => $self->host, port => $self->port};
-        return @hosts;
+        push @pairs, $self->host.":".$self->port;
     }
+    # even more deprecated syntax
     elsif ($self->left_host && $self->right_host) {
-        push @hosts, {host => $self->left_host, port => $self->left_port};
-        push @hosts, {host => $self->right_host, port => $self->right_port};
-        return @hosts;
+        push @pairs, $self->left_host.":".$self->left_port;
+        push @pairs, $self->right_host.":".$self->right_port;
+    }
+    # supported syntax
+    else {
+        my $str = substr $self->host, 10;
+        @pairs = split ",", $str;
     }
 
-    my $str = substr $self->host, 10;
-
-    my @pairs = split ",", $str;
-
-    foreach (@pairs) {
-        my @hp = split ":", $_;
+    # a simple single server is special-cased (so we don't recurse forever)
+    if (@pairs == 1 && !$self->find_master) {
+        my @hp = split ":", $pairs[0];
 
         if (!exists $hp[1]) {
             $hp[1] = 27017;
         }
 
-        push @hosts, {host => $hp[0], port => $hp[1]};
+        $self->_init_conn($hp[0], $hp[1]);
+        if ($self->auto_connect) {
+            $self->connect;
+        }
+        return;
     }
 
-    return @hosts;
-}
+    # multiple servers
+    my $connected = 0;
+    $opts->{find_master} = 0;
+    $opts->{auto_connect} = 0;
+    foreach (@pairs) {
+        $opts->{host} = "mongodb://$_";
 
-sub BUILD {
-    my ($self) = @_;
-    eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
-        for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID/;
+        $self->_servers->{$_} = MongoDB::Connection->new($opts);
+        # it's okay if we can't connect, so long as someone can
+        eval {
+            $self->_servers->{$_}->connect;
+        };
 
-    my @hosts = $self->_get_hosts;
-    $self->_init_conn(\@hosts);
-
-    if ($self->auto_connect) {
-        $self->connect;
-
-        if (defined $self->username && defined $self->password) {
-            $self->authenticate($self->db_name, $self->username, $self->password);
+        # at least one connection worked
+        if (!$@) {
+            $connected = 1;
         }
     }
+
+    # if we still aren't connected to anyone, give up
+    if (!$connected) {
+        die "couldn't connect to any servers listed: ".join(",", @pairs);
+    }
+
+    my $master = $self->get_master;
+    if ($master == -1) {
+        die "couldn't find master";
+    }
+
+    # create a struct that just points to the master's connection
+    $self->_init_conn_holder($master);
 }
 
 =head1 METHODS
@@ -438,9 +519,41 @@ sub get_database {
     );
 }
 
-=head2 find_master
+sub _get_a_specific_connection {
+    my ($self, $host) = @_;
 
-    $master = $connection->find_master
+    if ($self->_servers->{$host}->connected) {
+        return $self->_servers->{$host};
+    }
+
+    eval {
+        $self->_servers->{$host}->connect;
+    };
+
+    if (!$@) {
+        return $self->_servers->{$host};
+    }
+    return 0;
+}
+
+sub _get_any_connection {
+    my ($self) = @_;
+
+    while ((my $key, my $value) = each(%{$self->_servers})) {
+        my $conn = $self->_get_a_specific_connection($key);
+        if ($conn) {
+            return $conn;
+        }
+    }
+
+    return 0;
+}
+
+
+
+=head2 get_master
+
+    $master = $connection->get_master
 
 Determines which host of a paired connection is master.  Does nothing for
 a non-paired connection.  This need never be invoked by a user, it is 
@@ -449,31 +562,70 @@ connection in the list of connections or -1 if it cannot be determined.
 
 =cut
 
-sub find_master {
+sub get_master {
     my ($self) = @_;
-    # return if the connection isn't paired
-    if (!(defined $self->left_host) || !(defined $self->right_host)) {
-        my @servers = $self->_get_hosts;
-        return -1 unless @servers;
 
-        my $index = 0;
-        foreach (@servers) {
-            my $conn;
-            eval {
-                $conn = MongoDB::Connection->new("host" => $_->{host}, "port" => $_->{port}, timeout => $self->timeout);
-            };
-            if (!($@ =~ m/couldn't connect to server/)) {
-                my $master = $conn->admin->run_command({ismaster => 1});
-                if ($master->{'ismaster'}) {    
-                    return $index;
-                }
-            }
+    # return if the connection is paired the stupid old way
+    if (defined $self->left_host && defined $self->right_host) {
+        return $self->_old_stupid_paired_conn;
+    }
 
-            $index++;
-        }
-
+    my $conn = $self->_get_any_connection();
+    # if we couldn't connect to anything, just return
+    if (!$conn) {
         return -1;
     }
+
+    # a single server or list of servers
+    if (!$self->find_master) {
+        $self->_master($conn);
+        return $self->_master;
+    }
+    # auto-detect master
+    else {
+        my $master = $conn->get_database('admin')->run_command({"ismaster" => 1});
+
+        # check for errors
+        if (ref($master) eq 'SCALAR') {
+            return -1;
+        }
+
+        # if this is a replica set & we haven't renewed the host list in 1 sec
+        if ($master->{'hosts'} && time() > $self->ts) {
+            # update (or set) rs list
+            for (@{$master->{'hosts'}}) {
+                if (!$self->_servers->{$_}) {
+                    $self->_servers->{$_} = MongoDB::Connection->new("host" => "mongodb://$_", auto_connect => 0);
+                }
+            }
+            $self->ts(time());
+        }
+
+        # if this is the master, whether or not it's a replica set, return it
+        if ($master->{'ismaster'}) {
+            $self->_master($conn);
+            return $self->_master;
+        }
+        elsif ($self->find_master && exists $master->{'primary'}) {
+            my $primary = $self->_get_a_specific_connection($master->{'primary'});
+            if (!$primary) {
+                return -1;
+            }
+
+            # double-check that this is master
+            my $result = $primary->get_database("admin")->run_command({"ismaster" => 1});
+            if ($result->{'ismaster'}) {
+                $self->_master($primary);
+                return $self->_master;
+            }
+        }
+    }
+
+    return -1;
+}
+
+sub _old_stupid_paired_conn {
+    my $self = shift;
 
     my ($left, $right, $master);
 

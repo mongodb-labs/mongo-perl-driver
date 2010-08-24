@@ -1,7 +1,11 @@
 0.36
 
+  - Replica set support
+  - Deserialize booleans as booleans (instead of ints) (Andrew Page)
+  - Fixed OS X build (Todd Caine)
   - Added background option for index creation (Graham Barr)
   - Fixed slurp tests (Josh Rabinowitz)
+  - Added MongoDB::Timestamp type
 
 0.35 - 02 July 2010
 
