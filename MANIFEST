@@ -12,6 +12,7 @@ lib/MongoDB/Database.pm
 lib/MongoDB/GridFS.pm
 lib/MongoDB/GridFS/File.pm
 lib/MongoDB/OID.pm
+lib/MongoDB/Timestamp.pm
 lib/MongoDB/Tutorial.pod
 lib/MongoDB/DataTypes.pod
 lib/MongoDB/Examples.pod
