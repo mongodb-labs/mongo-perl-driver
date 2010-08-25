@@ -81,6 +81,7 @@ connect (self)
      int i = 0, connected = 0;
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
      SV *master;
+     SV *username, *password;
    CODE:
      link->master->socket = perl_mongo_connect(link->master->host, link->master->port, link->timeout);
      link->master->connected = link->master->socket != -1;
@@ -90,8 +91,6 @@ connect (self)
      }
 
      // try authentication
-     SV *username, *password;
-
      username = perl_mongo_call_reader (self, "username");
      password = perl_mongo_call_reader (self, "password");
 

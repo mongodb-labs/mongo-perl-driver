@@ -20,7 +20,6 @@
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(int socket, void *dest, int len);
 static void check_connection(SV *link_sv);
-inline void set_disconnected(SV *link_sv);
 
 /*
  * Returns -1 on failure, the socket fh on success.  
@@ -368,7 +367,7 @@ static int mongo_link_reader(int socket, void *dest, int len) {
 /*
  * closes sockets and sets "connected" to 0
  */
-inline void set_disconnected(SV *link_sv) {
+void set_disconnected(SV *link_sv) {
   int i = 0;
   mongo_link *link;
 

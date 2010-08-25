@@ -152,5 +152,6 @@ int mongo_link_say(SV *self, buffer *buf);
 int mongo_link_hear(SV *self);
 int perl_mongo_master(SV *self);
 int perl_mongo_connect(char *host, int port, int timeout);
+void set_disconnected(SV *link_sv);
 
 #endif
