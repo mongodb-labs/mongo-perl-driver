@@ -3,6 +3,8 @@ use warnings;
 use Test::More;
 use Test::Exception;
 
+use MongoDB::Timestamp; # needed if db is being run as master
+
 use MongoDB;
 
 my $conn;

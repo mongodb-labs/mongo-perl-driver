@@ -6,6 +6,7 @@ use Test::Exception;
 use Data::Types qw(:float);
 use Tie::IxHash;
 use Encode qw(encode decode);
+use MongoDB::Timestamp; # needed if db is being run as master
 
 use MongoDB;
 

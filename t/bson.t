@@ -9,6 +9,7 @@ use boolean;
 use DateTime;
 use Data::Types qw(:float);
 use Tie::IxHash;
+use MongoDB::Timestamp; # needed if db is being run as master
 
 my $conn;
 eval {

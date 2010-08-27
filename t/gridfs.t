@@ -5,6 +5,7 @@ use Test::Exception;
 use IO::File;
 use File::Temp;
 use File::Slurp qw(read_file write_file);
+use MongoDB::Timestamp; # needed if db is being run as master
 
 use MongoDB;
 use MongoDB::GridFS;
