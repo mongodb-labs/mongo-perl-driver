@@ -134,8 +134,16 @@ given, the entire file is return.
 sub slurp {
     my ($self,$length,$offset) = @_;
     my $bytes;
-    my $fh = new IO::File \$bytes,'>';
-    $self->print($fh,$length,$offset);
+    my $fh = new IO::File \$bytes,'+>';
+    my $written = $self->print($fh,$length,$offset);
+
+    # some machines don't set $bytes
+    if (!$bytes) {
+       my $retval;
+       read $fh, $retval, $written;
+       return $retval;
+    }
+
     return $bytes;
 }
 
