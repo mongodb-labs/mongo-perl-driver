@@ -1,3 +1,9 @@
+0.37
+
+  - Fixed cursor not found error condition
+  - Fixed compile for old C compilers
+  - Fixed weird file behavoir on some machines
+
 0.36
 
   - Replica set support
