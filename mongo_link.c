@@ -303,7 +303,8 @@ int mongo_link_hear(SV *cursor_sv) {
   SvREFCNT_dec(link_sv);
 
   cursor->flag = MONGO_32(cursor->flag);
-  if (cursor->flag == 0) {
+  // if zero-th bit is set, cursor is invalid
+  if (cursor->flag & 1) {
       cursor->num = 0;
       croak("cursor not found");
   }
