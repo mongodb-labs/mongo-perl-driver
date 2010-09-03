@@ -70,3 +70,5 @@ C<$MongoDB::BSON::use_boolean> to 1.
 =cut
 
 $MongoDB::BSON::use_boolean = 0;
+
+1;
