@@ -62,6 +62,18 @@ has _database => (
     required => 1,
 );
 
+=head2 prefix
+
+The prefix used for the collections.  Defaults to "fs".
+
+=cut
+
+has prefix => (
+    is      => 'ro',
+    isa     => 'Str',
+    default => 'fs'
+);
+
 =head2 files
 
 Collection in which file metadata is stored.  Each document contains md5 and 
@@ -72,8 +84,15 @@ length fields, plus user-defined metadata (and an _id).
 has files => (
     is => 'ro',
     isa => 'MongoDB::Collection',
-    required => 1,
+    lazy_build => 1
 );
+sub _build_files {
+  my $self = shift;
+  my $coll = $self->_database->get_collection($self->prefix . '.files');
+  # ensure the necessary index is present (this may be first usage)
+  $coll->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
+  return $coll;
+}
 
 =head2 chunks
 
@@ -86,9 +105,15 @@ in the files collection it belongs to).
 has chunks => (
     is => 'ro',
     isa => 'MongoDB::Collection',
-    required => 1,
+    lazy_build => 1
 );
-
+sub _build_chunks {
+  my $self = shift;
+  my $coll = $self->_database->get_collection($self->prefix . '.chunks');
+  # ensure the necessary index is present (this may be first usage)
+  $coll->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
+  return $coll;
+}
 
 =head1 METHODS
 
@@ -242,6 +267,9 @@ sub insert {
     confess "not a file handle" unless $fh;
     $metadata = {} unless $metadata && ref $metadata eq 'HASH';
 
+    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), 
+                                {"safe" => 1});
+
     my $start_pos = $fh->getpos();
 
     my $id;
@@ -251,8 +279,6 @@ sub insert {
     else {
         $id = MongoDB::OID->new;
     }
-
-    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
 
     my $n = 0;
     my $length = 0;
@@ -267,7 +293,7 @@ sub insert {
 
     # get an md5 hash for the file
     my $result = $self->_database->run_command({"filemd5", $id, 
-                                                "root" => "fs"});
+                                                "root" => $self->prefix});
 
     # compare the md5 hashes
     if ($options->{safe}) {

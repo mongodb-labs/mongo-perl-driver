@@ -127,13 +127,9 @@ sub get_gridfs {
     my ($self, $prefix) = @_;
     $prefix = "fs" unless $prefix;
 
-    my $files = $self->get_collection("${prefix}.files");
-    my $chunks = $self->get_collection("${prefix}.chunks");
-
     return MongoDB::GridFS->new(
         _database => $self,
-        files => $files,
-        chunks => $chunks,
+        prefix => $prefix
     );
 }
 

@@ -1,3 +1,7 @@
+0.38
+
+  - Fixed GridFS to accept non-fs prefixes (Olly Stephens)
+
 0.37
 
   - Fixed cursor not found error condition
