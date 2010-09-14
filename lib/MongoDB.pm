@@ -211,6 +211,12 @@ can be 1 for upsert and/or 2 for updating multiple documents.
 Creates a remove that can be used with C<MongoDB::Connection::send>.  C<$flags>
 can be 1 for removing just one matching document.
 
+=head2 read_documents($buffer)
+
+  my @documents = MongoDB::read_documents($buffer);
+
+Decodes BSON documents from the given buffer
+
 =head1 SEE ALSO
 
 MongoDB main website L<http://www.mongodb.org/>
