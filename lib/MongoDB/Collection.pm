@@ -291,23 +291,28 @@ sub batch_insert {
     my ($self, $object, $options) = @_;
     confess 'not an array reference' unless ref $object eq 'ARRAY';
 
-     my $ns = $self->full_name;
-     my ($insert, $ids) = MongoDB::write_insert($ns, $object);
+    my $add_ids = 1;
+    if ($options->{'no_ids'}) {
+        $add_ids = 0;
+    }
 
-     my $conn = $self->_database->_connection;
+    my $ns = $self->full_name;
+    my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids);
 
-     if (defined($options) && $options->{safe}) {
-         my $ok = $self->_make_safe($insert);
-        
-         if (!$ok) {
-             return 0;
-         }
-     }
-     else {
-         $conn->send($insert);
-     }
+    my $conn = $self->_database->_connection;
     
-     return @$ids;
+    if (defined($options) && $options->{safe}) {
+        my $ok = $self->_make_safe($insert);
+        
+        if (!$ok) {
+            return 0;
+        }
+    }
+    else {
+        $conn->send($insert);
+    }
+    
+    return $ids ? @$ids : $ids;
 }
 
 
@@ -481,6 +486,7 @@ sub ensure_index {
     if (exists $options->{background}) {
         $obj->Push("background" => ($options->{background} ? boolean::true : boolean::false));
     }
+    $options->{'no_ids'} = 1;
 
     my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
 

@@ -78,15 +78,20 @@ write_query(ns, opts, skip, limit, query, fields = 0)
 
 
 void
-write_insert(ns, a)
+write_insert(ns, a, add_ids)
          char *ns
          AV *a
+         int add_ids
      PREINIT:
          buffer buf;
          mongo_msg_header header;
          int i;
-         AV *ids = newAV();
+         AV *ids = 0;
          SV *request_id;
+     INIT:
+         if (add_ids) {
+            ids = newAV();
+         }
      PPCODE:
          request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
 
@@ -106,7 +111,9 @@ write_insert(ns, a)
          perl_mongo_serialize_size(buf.start, &buf);
 
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
-         XPUSHs(sv_2mortal(newRV_noinc((SV*)ids)));
+         if (add_ids) {
+           XPUSHs(sv_2mortal(newRV_noinc((SV*)ids)));
+         }
 
          Safefree(buf.start);
 

@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 118;
+    plan tests => 121;
 }
 
 my $db = $conn->get_database('test_database');
@@ -94,20 +94,20 @@ ok(!$coll->get_indexes, 'no indexes yet');
 
 my $indexes = Tie::IxHash->new(foo => 1, bar => 1, baz => 1);
 my $ok = $coll->ensure_index($indexes);
-isa_ok($ok, 'MongoDB::OID');
+ok(!defined $ok);
 my $err = $db->last_error;
 is($err->{ok}, 1);
 is($err->{err}, undef);
 
 $indexes = Tie::IxHash->new(foo => 1, bar => 1);
 $ok = $coll->ensure_index($indexes);
-isa_ok($ok, 'MongoDB::OID');
+ok(!defined $ok);
 $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
 $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
 is($coll->count, 2);
 
 $ok = $coll->ensure_index({boo => 1}, {unique => 1});
-isa_ok($ok, 'MongoDB::OID');
+ok(!defined $ok);
 $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
 
 is($coll->count, 2, 'unique index');
@@ -143,9 +143,9 @@ $coll->drop;
 # test new form of ensure index
 {
     $ok = $coll->ensure_index({foo => 1, bar => -1, baz => 1});
-    ok($ok);
-    $ok = $coll->ensure_index({foo => 1, bar => 1});
-    ok($ok);
+    ok(!defined $ok);
+    $ok = $coll->ensure_index({foo => 1, bar => 1}); 
+    ok(!defined $ok);
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
     is($coll->count, 2);
@@ -474,6 +474,17 @@ SKIP: {
     is($utfblah->{foo2},$utfv2,'turn utf8 flag off,return perl internal form(bytes)');
     # restore;
     $MongoDB::BSON::utf8_flag_on = 1;
+    $coll->drop;
+}
+
+# test index names with "."s
+{
+
+    my $ok = $coll->ensure_index({"x.y" => 1}, {"name" => "foo"});
+    my $index = $coll->_database->get_collection("system.indexes")->find_one({"name" => "foo"});
+    ok($index);
+    ok($index->{'key'});
+    ok($index->{'key'}->{'x.y'});
     $coll->drop;
 }
 

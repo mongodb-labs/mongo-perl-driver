@@ -713,7 +713,7 @@ void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert) {
     perl_mongo_resize_buf(buf, strlen(str)+1);
   }
 
-  if (strlen(str) == 0) {
+  if (str[0] == '\0') {
       croak("empty key name, did you use a $ with double quotes?");
   }
 
