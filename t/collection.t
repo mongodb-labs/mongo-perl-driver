@@ -162,7 +162,8 @@ $coll->drop;
 my $pi = 3.14159265;
 ok($id = $coll->insert({ data => 'pi', pi => $pi }), "inserting float number value");
 ok($obj = $coll->find_one({ data => 'pi' }));
-is($obj->{pi}, $pi);
+# can't test exactly because floating point nums are weird
+ok(abs($obj->{pi} - $pi) < .000000001);
 
 $coll->drop;
 my $object = {};
@@ -171,7 +172,7 @@ $object->{'price'} = 123.19;
 $coll->insert($object);
 my $auto = $coll->find_one;
 ok(is_float($auto->{'price'}));
-is($auto->{'price'}, $object->{'price'});
+ok(abs($auto->{'price'} - $object->{'price'}) < .000000001);
 
 # test undefined values
 ok($id  = $coll->insert({ data => 'null', none => undef }), 'inserting undefined data');
@@ -347,7 +348,7 @@ my $f = 'abc';
 $f = 3.3;
 ok($id = $coll->insert({ data => $f }), 'insert float');
 ok($obj = $coll->find_one({ data => $f }));
-is($obj->{data}, 3.3);
+ok(abs($obj->{data} - 3.3) < .000000001);
 
 # timeout
 SKIP: {
