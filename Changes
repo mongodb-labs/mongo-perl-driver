@@ -1,6 +1,9 @@
 0.38
 
+  - Fixed indexing subdocuments (x.y.z)
   - Fixed GridFS to accept non-fs prefixes (Olly Stephens)
+  - Fixed compile for old C compilers (Taro Nishino)
+  - Added MongoDB::read_documents for handling db replies (Graham Barr)
 
 0.37
 
