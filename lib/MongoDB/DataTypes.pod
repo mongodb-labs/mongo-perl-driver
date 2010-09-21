@@ -50,6 +50,14 @@ not be set when strings are decoded:
 
     $MongoDB::BSON::utf8_flag_on = 0;
 
+=head2 Arrays
+
+Arrays must be saved as array references (C<\@foo>, not C<@foo>).
+
+=head2 Embedded Documents
+
+Embedded documents are of the same form as top-level documents: either hash
+references or L<Tie::IxHash>s.  
 
 =head2 Dates
 
