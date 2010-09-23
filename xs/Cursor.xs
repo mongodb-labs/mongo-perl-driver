@@ -22,12 +22,13 @@ static int has_next(SV *self, mongo_cursor *cursor);
 static void kill_cursor(SV *self);
 
 static mongo_cursor* get_cursor(SV *self) {
-  perl_mongo_call_method(self, "_do_query", 0);
+  SV *rubbish = perl_mongo_call_method(self, "_do_query", 0);
+  SvREFCNT_dec(rubbish);
   return (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
 }
 
 static int has_next(SV *self, mongo_cursor *cursor) {
-  SV *link, *limit, *ns, *request_id, *response_to;
+  SV *link, *limit, *ns, *request_id, *response_to, *rubbish;
   mongo_msg_header header;
   buffer buf;
   int size, heard;
@@ -61,7 +62,8 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   CREATE_RESPONSE_HEADER(buf, SvPV_nolen(ns), SvIV(response_to), OP_GET_MORE);
 
   // change this cursor's request id so we can match the response
-  perl_mongo_call_method(self, "_request_id", 1, request_id);
+  rubbish = perl_mongo_call_method(self, "_request_id", 1, request_id);
+  SvREFCNT_dec(rubbish);
   SvREFCNT_dec(response_to);
 
   perl_mongo_serialize_int(&buf, SvIV(limit));
