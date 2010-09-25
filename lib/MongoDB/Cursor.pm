@@ -34,6 +34,10 @@ MongoDB::Cursor - A cursor/iterator for Mongo query results
 
     my @objects = $cursor->all;
 
+=head2 Multithreading
+
+Cloning instances of this class is disabled in Perl 5.8.7+, so forked threads 
+will have to create their own database queries.
 
 =head1 SEE ALSO
 
