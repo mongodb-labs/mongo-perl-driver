@@ -1,3 +1,7 @@
+0.39
+
+  - Fixed memory leak
+
 0.38
 
   - Fixed indexing subdocuments (x.y.z)

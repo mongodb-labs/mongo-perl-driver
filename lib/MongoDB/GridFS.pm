@@ -15,7 +15,7 @@
 #
 
 package MongoDB::GridFS;
-our $VERSION = '0.38';
+our $VERSION = '0.39';
 
 # ABSTRACT: A file storage utility
 
