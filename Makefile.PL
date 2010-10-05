@@ -27,6 +27,7 @@ test_requires 'Data::Types';
 test_requires 'File::Slurp';
 test_requires 'FileHandle';
 test_requires 'JSON';
+test_requires 'File::Temp' => '0.17';
 
 mongo;
 
