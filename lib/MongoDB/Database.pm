@@ -178,6 +178,44 @@ If true, the database will fsync to disk before returning.
 
 =back
 
+The fields of the hash returned by C<last_error> vary depending on the previous 
+operation.  They include (but are not limited to):
+
+=over 4
+
+=item C<ok>
+
+This should always be 1 (unless C<last_error> itself failed).
+
+=item C<n>
+
+If the last operation was an insert, an update or a remove, the number of 
+objects affected will be returned.  
+
+=item C<code>
+
+If a database error occurred, the relevant error code will be passed back to the
+client.
+
+=item C<err> or C<errmsg>
+If there was an error, you'll get more information in one or both of these 
+fields.
+
+=item C<wtimeout>
+
+If the previous option timed out waiting for replication.
+
+=item C<waited>
+
+How long the operation waited before timing out.
+
+=tiem C<wtime>
+
+If C<w> was set and the operation succeeded, how long it took to replicate to
+C<w> servers.
+
+=back
+
 See L<MongoDB::Connection/w> for more information.
 
 =cut
