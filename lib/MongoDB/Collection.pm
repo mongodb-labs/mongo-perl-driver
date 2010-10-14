@@ -259,8 +259,8 @@ specified in the data or a L<MongoDB::OID>.
 
 The optional C<$options> parameter can be used to specify if this is a safe 
 insert.  A safe insert will check with the database if the insert succeeded and
-return 0 if it did not.  You should check C<MongoDB::Database::last_error> to see
-the reason that the insert failed.
+croak if it did not.  You can also check if the insert succeeded by doing an
+unsafe insert, then calling L<MongoDB::Database/"last_error($options?)">.
 
 See also core documentation on insert: L<http://dochub.mongodb.org/core/insert>.
 
@@ -282,8 +282,9 @@ array of their _id fields.
 
 The optional C<$options> parameter can be used to specify if this is a safe 
 insert.  A safe insert will check with the database if the insert succeeded and
-return 0 if it did not.  You should check C<$MongoDB::Database::last_error> to see
-the reason that the insert failed.
+croak if it did not. You can also check if the inserts succeeded by doing an
+unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
+
 
 =cut
 
@@ -322,7 +323,9 @@ sub batch_insert {
 
 Updates an existing C<$object> matching C<$criteria> in the database. 
 
-Returns 1 unless the C<safe> option is set. 
+Returns 1 unless the C<safe> option is set. If C<safe> is set and the update 
+fails, C<update> will croak. You can also check if the update succeeded by doing an
+unsafe update, then calling L<MongoDB::Database/"last_error($options?)">.
 
 C<update> can take a hash reference of options.  The options currently supported
 are:
@@ -338,8 +341,7 @@ the first document found. (Only available with database version 1.1.3 and
 newer.)
 
 =item C<safe>
-If the update fails and safe is set, this function will return 0.  You should 
-check C<MongoDB::Database::last_error> to find out why the update failed.
+If the update fails and safe is set, the update will croak.
 
 =back
 
@@ -390,7 +392,9 @@ Removes all objects matching the given C<$query> from the database. If no
 parameters are given, removes all objects from the collection (but does not
 delete indexes, as C<MongoDB::Collection::drop> does).  
 
-Returns 1 unless the safe option is set.
+Returns 1 unless the C<safe> option is set.  If C<safe> is set and the remove 
+fails, C<remove> will croak.  You can also check if the remove succeeded by doing 
+an unsafe remove, then calling L<MongoDB::Database/"last_error($options?)">.
 
 C<remove> can take a hash reference of options.  The options currently supported
 are 
@@ -401,8 +405,7 @@ are
 Only one matching document to be removed.
 
 =item C<safe>
-If the update fails and safe is set, this function will return 0.  You should 
-check C<MongoDB::Database::last_error> to find out why the update failed.
+If the update fails and safe is set, this function will croak.  
 
 =back
 
@@ -445,7 +448,10 @@ array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is prefered
 for multi-key indexes, so that the keys are in the correct order.  1 creates an 
 ascending index, -1 creates a descending index.  
 
-If the C<safe> option is not set, ensure_index will always return 1.
+If the C<safe> option is not set, ensure_index will always return 1.  If the
+C<safe> option is set and the index creation fails, this method will croak. You 
+can also check if the indexing succeeded by doing an unsafe index creation, then 
+calling  L<MongoDB::Database/"last_error($options?)">.
 
 See the L<MongoDB::Indexing> pod for more information on indexing.
 
@@ -539,14 +545,16 @@ it if it does have an _id field.
 
 =item C<safe => boolean>
 
-If the save fails and safe is set, this function will return 0.  You should 
-check C<MongoDB::Database::last_error> to find out why the update failed.
+If the save fails and safe is set, this function will croak.
 
 =back
 
 The return types for this function are a bit of a mess, as it will return the 
-_id if a new document was inserted, 1 if an upsert occurred, and 0 if the safe 
-option was set and an error occurred.
+_id if a new document was inserted, 1 if an upsert occurred, and croak if the 
+safe option was set and an error occurred.  You can also check if the save 
+succeeded by doing an unsafe save, then calling 
+L<MongoDB::Database/"last_error($options?)">.
+
 
 =cut
 

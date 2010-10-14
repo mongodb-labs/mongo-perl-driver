@@ -178,8 +178,8 @@ If true, the database will fsync to disk before returning.
 
 =back
 
-The fields of the hash returned by C<last_error> vary depending on the previous 
-operation.  They include (but are not limited to):
+C<last_error> returns a hash with fields that vary, depending on the previous
+operation.  These fields can include (but are not limited to):
 
 =over 4
 
