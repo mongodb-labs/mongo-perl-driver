@@ -1,3 +1,7 @@
+0.40
+
+  - Fixed doc spelling errors (Stefan Hornburg)
+
 0.39
 
   - Fixed memory leak
