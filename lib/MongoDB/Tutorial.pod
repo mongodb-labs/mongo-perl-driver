@@ -110,7 +110,7 @@ documents inserted.
 
 =head3 Queries
 
-To retrive documents that were saved to a collection, we can use the C<find> 
+To retrieve documents that were saved to a collection, we can use the C<find> 
 method.
 
     my $all_users = $users->find;
