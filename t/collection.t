@@ -403,7 +403,7 @@ SKIP: {
     is($ok, 1);
 
     $ok = $coll->update({}, {'$inc' => {x => 2}}, {safe => 1});
-    is($ok, 1);
+    is($ok->{ok}, 1);
 }
 
 # save

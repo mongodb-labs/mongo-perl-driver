@@ -323,9 +323,11 @@ sub batch_insert {
 
 Updates an existing C<$object> matching C<$criteria> in the database. 
 
-Returns 1 unless the C<safe> option is set. If C<safe> is set and the update 
-fails, C<update> will croak. You can also check if the update succeeded by doing an
-unsafe update, then calling L<MongoDB::Database/"last_error($options?)">.
+Returns 1 unless the C<safe> option is set. If C<safe> is set, this will return 
+a hash of information about the update, including number of documents updated
+(C<n>).  If C<safe> is set and the update fails, C<update> will croak. You can 
+also check if the update succeeded by doing an unsafe update, then calling 
+L<MongoDB::Database/"last_error($options?)">.
 
 C<update> can take a hash reference of options.  The options currently supported
 are:
@@ -393,8 +395,11 @@ parameters are given, removes all objects from the collection (but does not
 delete indexes, as C<MongoDB::Collection::drop> does).  
 
 Returns 1 unless the C<safe> option is set.  If C<safe> is set and the remove 
-fails, C<remove> will croak.  You can also check if the remove succeeded by doing 
-an unsafe remove, then calling L<MongoDB::Database/"last_error($options?)">.
+succeeds, C<remove> will return a hash of information about the remove, 
+including how many documents were removed (C<n>).  If the remove fails and 
+C<safe> is set, C<remove> will croak.  You can also check if the remove 
+succeeded by doing an unsafe remove, then calling 
+L<MongoDB::Database/"last_error($options?)">.
 
 C<remove> can take a hash reference of options.  The options currently supported
 are 
@@ -526,7 +531,7 @@ sub _make_safe {
         Carp::croak $ok->{errmsg};
     }
 
-    return 1;
+    return $ok;
 }
 
 =head2 save($doc, $options)
