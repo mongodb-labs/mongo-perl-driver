@@ -187,6 +187,8 @@ previous operation was and if it succeeded or failed.  If the last operation
 =item C<err> will be set or
 =item C<errmsg> will be set and C<ok> will be 0.
 
+=back
+
 If C<err> is C<null> and C<ok> is 1, the previous operation succeeded.
 
 The fields in the hash returned can include (but are not limited to):
