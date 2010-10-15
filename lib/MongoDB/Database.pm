@@ -178,28 +178,44 @@ If true, the database will fsync to disk before returning.
 
 =back
 
-C<last_error> returns a hash with fields that vary, depending on the previous
-operation.  These fields can include (but are not limited to):
+C<last_error> returns a hash with fields that vary, depending on what the 
+previous operation was and if it succeeded or failed.  If the last operation 
+(before the C<last_error> call) failed, either:
+
+=over 4
+
+=item C<err> will be set or
+=item C<errmsg> will be set and C<ok> will be 0.
+
+If C<err> is C<null> and C<ok> is 1, the previous operation succeeded.
+
+The fields in the hash returned can include (but are not limited to):
 
 =over 4
 
 =item C<ok>
 
-This should always be 1 (unless C<last_error> itself failed).
+This should almost be 1 (unless C<last_error> itself failed).
 
-=item C<n>
+=item C<err>
 
-If the last operation was an insert, an update or a remove, the number of 
-objects affected will be returned.  
+If this field is non-null, an error occurred on the previous operation. 
 
 =item C<code>
 
 If a database error occurred, the relevant error code will be passed back to the
 client.
 
-=item C<err> or C<errmsg>
-If there was an error, you'll get more information in one or both of these 
-fields.
+=item C<errmsg>
+
+This field is set if something goes wrong with a database command.  It is 
+coupled with C<ok> being 0.  For example, if C<w> is set and times out,  
+C<errmsg> will be set to "timed out waiting for slaves" and C<ok> will be 0.
+
+=item C<n>
+
+If the last operation was an insert, an update or a remove, the number of 
+objects affected will be returned.  
 
 =item C<wtimeout>
 
@@ -209,10 +225,22 @@ If the previous option timed out waiting for replication.
 
 How long the operation waited before timing out.
 
-=tiem C<wtime>
+=item C<wtime>
 
 If C<w> was set and the operation succeeded, how long it took to replicate to
 C<w> servers.
+
+=item C<upserted>
+
+If an upsert occured, this field will contain the new record's C<_id> field. For
+upserts, either this field or C<updatedExisting> will be present (unless an 
+error occurred).
+
+=item C<updatedExisting>
+
+If an upsert updated an existing element, this field will be C<true>.  For
+upserts, either this field or C<upserted> will be present (unless an error
+occurred).
 
 =back
 
