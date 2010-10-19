@@ -274,6 +274,9 @@ possible database commands, run:
 
     my $commands = $db->run_command({listCommands : 1});
 
+There are a few examples of database commands in the 
+L<MongoDB::Examples/"DATABASE COMMANDS"> section.
+
 See also core documentation on database commands: 
 L<http://dochub.mongodb.org/core/commands>.
 

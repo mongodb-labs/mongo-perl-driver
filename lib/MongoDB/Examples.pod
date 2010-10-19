@@ -7,6 +7,43 @@ MongoDB::Examples - Some more advanced examples
 
 =head1 DATABASE COMMANDS
 
+=head2 Distinct
+
+The distinct command returns all values for a given key in a collection.  For 
+example, suppose we had a collection with the following documents (C<_id> value
+ignored):
+
+    { 'name' => 'a', code => 1 }
+    { 'name' => 'b', code => 1 }
+    { 'name' => 'c', code => 2 }
+    { 'name' => 'd', code => "3" }
+
+If we wanted to see all of values in the "code" field, we could run:
+
+    my $result = $db->run_command([
+       "distinct" => "collection_name",
+       "key"      => "code",
+       "query"    => {}
+    ]);
+
+Notice that the arguments are in an array, to ensure that their order is 
+preserved.  You could also use a L<Tie::IxHash>.
+
+C<query> is an optional argument, which can be used to only run C<distinct> on
+specific documents.  It takes a hash (or L<Tie::IxHash> or array) in the same 
+form as L<MongoDB::Collection/"find($query)">.
+
+Running C<distinct> on the above collection would give you:
+
+    {
+        'ok' => '1',
+        'values' => [
+                      1,
+                      2,
+                      "3"
+                    ]
+    };
+
 =head2 MapReduce
 
 MapReduce is a powerful aggregation tool.  (For traditional queries, you should
