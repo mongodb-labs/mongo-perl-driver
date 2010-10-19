@@ -201,7 +201,8 @@ This should almost be 1 (unless C<last_error> itself failed).
 
 =item C<err>
 
-If this field is non-null, an error occurred on the previous operation. 
+If this field is non-null, an error occurred on the previous operation. If this
+field is set, it will be a string describing the error that occurred.
 
 =item C<code>
 
@@ -212,7 +213,8 @@ client.
 
 This field is set if something goes wrong with a database command.  It is 
 coupled with C<ok> being 0.  For example, if C<w> is set and times out,  
-C<errmsg> will be set to "timed out waiting for slaves" and C<ok> will be 0.
+C<errmsg> will be set to "timed out waiting for slaves" and C<ok> will be 0. If
+this field is set, it will be a string describing the error that occurred.
 
 =item C<n>
 
