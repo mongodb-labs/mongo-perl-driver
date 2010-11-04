@@ -453,10 +453,11 @@ array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is prefered
 for multi-key indexes, so that the keys are in the correct order.  1 creates an 
 ascending index, -1 creates a descending index.  
 
-If the C<safe> option is not set, ensure_index will always return 1.  If the
-C<safe> option is set and the index creation fails, this method will croak. You 
-can also check if the indexing succeeded by doing an unsafe index creation, then 
-calling  L<MongoDB::Database/"last_error($options?)">.
+If the C<safe> option is not set, C<ensure_index> will not return anything 
+unless there is a socket error (in which case it will croak).  If the C<safe> 
+option is set and the index creation fails, it will also croak. You can also 
+check if the indexing succeeded by doing an unsafe index creation, then calling 
+L<MongoDB::Database/"last_error($options?)">.
 
 See the L<MongoDB::Indexing> pod for more information on indexing.
 
