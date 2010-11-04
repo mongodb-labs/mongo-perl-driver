@@ -9,6 +9,28 @@ MongoDB::DataTypes - The data types used with MongoDB
 
 This goes over the types you can save to the database and use for queries.
 
+=head1 NOTES FOR SQL PROGRAMMERS
+
+=head2 You must query for data using the correct type.
+
+For example, it is perfectly valid to have some records where the field "foo" is 
+123 (integer) and other records where "foo" is "123" (string).  Thus, you must
+query for the correct type.  If you save C<{"foo" => "123"}>, you cannot query 
+for it with C<{"foo" => 123}>.  MongoDB is strict about types.
+
+If the type of a field is ambiguous and important to your application, you 
+should document what you expect the application to send to the database and 
+convert your data to those types before sending.  There are some object-document
+mappers that will enforce certain types for certain fields for you.
+
+You generally shouldn't save numbers as strings, as they will behave like 
+strings (e.g., range queries won't work correctly) and the data will take up 
+more space.
+
+Numbers are the only exception to the strict typing: all number types stored by 
+MongoDB (32-bit integers, 64-bit integers, 64-bit floating point numbers) will 
+match each other.
+
 =head1 TYPES
 
 =head2 Strings
