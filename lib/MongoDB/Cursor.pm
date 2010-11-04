@@ -379,6 +379,9 @@ This will tell you the type of cursor used, the number of records the DB had to
 examine as part of this query, the number of records returned by the query, and 
 the time in milliseconds the query took to execute.  Requires L<boolean> package.
 
+C<explain> resets the cursor, so calling C<next> or C<has_next> after an explain
+will requery the database.
+
 See also core documentation on explain: 
 L<http://dochub.mongodb.org/core/explain>.
 
@@ -396,6 +399,8 @@ sub explain {
 
     my $retval = $self->reset->next;
     $self->reset->limit($temp);
+
+    undef $self->_query->{'$explain'};
 
     return $retval;
 }
