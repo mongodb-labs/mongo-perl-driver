@@ -15,6 +15,7 @@
  */
 
 #include "perl_mongo.h"
+#include "mongo_link.h"
 
 MODULE = MongoDB::BSON  PACKAGE = MongoDB::BSON
 
