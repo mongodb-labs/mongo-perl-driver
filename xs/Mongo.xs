@@ -18,6 +18,7 @@
 #include "mongo_link.h"
 
 extern XS(boot_MongoDB__Connection);
+extern XS(boot_MongoDB__BSON);
 extern XS(boot_MongoDB__Cursor);
 extern XS(boot_MongoDB__OID);
 
@@ -27,6 +28,7 @@ PROTOTYPES: DISABLE
 
 BOOT:
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Connection);
+	PERL_MONGO_CALL_BOOT (boot_MongoDB__BSON);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Cursor);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__OID);
         gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV);
