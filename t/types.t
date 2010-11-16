@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 54;
+    plan tests => 55;
 }
 
 my $db = $conn->get_database('x');
@@ -275,6 +275,15 @@ SKIP: {
     isa_ok($x->{y}, 'boolean');
     is($x->{x}, boolean::true);
     is($x->{y}, boolean::false);
+}
+
+# unrecognized obj
+{
+    eval {
+        $coll->insert({"x" => $coll});
+    };
+
+    ok($@ =~ m/type \(MongoDB::Collection\) unhandled/, "can't insert a non-recognized obj: $@");
 }
 
 END {

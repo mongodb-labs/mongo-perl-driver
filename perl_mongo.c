@@ -1224,6 +1224,9 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
                 perl_mongo_serialize_bindata(buf, SvRV(sv));
               }
             }
+            else {
+                croak ("type (%s) unhandled", HvNAME(SvSTASH(SvRV(sv))));
+            }
         } else {
             switch (SvTYPE (SvRV (sv))) {
                 case SVt_PVHV:
