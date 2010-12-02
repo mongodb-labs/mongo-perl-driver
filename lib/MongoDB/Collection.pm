@@ -522,6 +522,7 @@ sub _make_safe {
     $cursor->_request_id($info->{'request_id'});
 
     $conn->recv($cursor);
+    $cursor->started_iterating(1);
 
     my $ok = $cursor->next();
 
