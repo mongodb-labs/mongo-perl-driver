@@ -33,6 +33,7 @@ t/gridfs.t
 t/img.png
 t/input.txt
 t/types.t
+xs/BSON.xs
 xs/Connection.xs
 xs/Cursor.xs
 xs/Mongo.xs

@@ -45,7 +45,7 @@ makemaker_args(
 WriteAll;
 
 package MY;
-our $VERSION = '0.39';
+our $VERSION = '0.40';
 
 use Config;
 

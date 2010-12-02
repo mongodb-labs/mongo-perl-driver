@@ -59,7 +59,7 @@ SKIP: {
 my $db = $conn->get_database('test_database');
 isa_ok($db, 'MongoDB::Database', 'get_database');
 
-$db->get_collection('test_collection')->insert({ foo => 42 });
+$db->get_collection('test_collection')->insert({ foo => 42 }, {safe => 1});
 
 ok((grep { $_ eq 'test_database' } $conn->database_names), 'database_names');
 

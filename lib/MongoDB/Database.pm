@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Database;
-our $VERSION = '0.39';
+our $VERSION = '0.40';
 
 # ABSTRACT: A Mongo Database
 

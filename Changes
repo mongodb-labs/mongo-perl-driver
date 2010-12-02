@@ -1,5 +1,10 @@
 0.40
 
+  - DateTime floating timezones now warn on serialization
+  - Attempting to serialize unrecognized object types now croaks
+  - MongoDB::Cursor::explain now resets cursor properly
+  - Added BSON::encode_bson and BSON::decode_bson (Jason Toffaletti)
+  - Improved last_error/safe docs
   - Fixed doc spelling errors (Stefan Hornburg)
 
 0.39

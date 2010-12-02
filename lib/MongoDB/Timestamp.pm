@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Timestamp;
-our $VERSION = '0.39';
+our $VERSION = '0.40';
 
 # ABSTRACT: Replication timestamp
 
