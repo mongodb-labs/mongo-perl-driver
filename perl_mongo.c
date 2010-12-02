@@ -1134,9 +1134,22 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
             }
 	    /* DateTime */
             else if (sv_isa(sv, "DateTime")) {
-              SV *sec, *ms;
+              SV *sec, *ms, *tz, *tz_name;
+              STRLEN len;
+              char *str;
               set_type(buf, BSON_DATE);
               perl_mongo_serialize_key(buf, key, is_insert);
+
+              // check for floating tz
+              tz = perl_mongo_call_reader (sv, "time_zone");
+              tz_name = perl_mongo_call_reader (tz, "name");
+              str = SvPV(tz_name, len);
+              if (len == 8 && strncmp("floating", str, 8) == 0) {
+                warn("saving floating timezone as UTC");
+              }
+              SvREFCNT_dec (tz);
+              SvREFCNT_dec (tz_name);
+              
               sec = perl_mongo_call_reader (sv, "epoch");
               ms = perl_mongo_call_method (sv, "millisecond", 0);
 

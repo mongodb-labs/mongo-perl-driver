@@ -226,6 +226,12 @@ package main;
     ok(is_float($person->{'age'}));
 }
 
+# warn on floating timezone
+{
+    my $date = DateTime->new(year => 2010, time_zone => "floating");
+    $c->insert({"date" => $date});
+}
+
 
 END {
     if ($db) {
