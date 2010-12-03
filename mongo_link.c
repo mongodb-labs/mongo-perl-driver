@@ -175,8 +175,8 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
 
   cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv);
 
-  if (recv(sock, (char*)&cursor->header.length, INT_32, 0) == -1) {
-    SvREFCNT_dec(link_sv);
+  if (recv(sock, (char*)&cursor->header.length, INT_32, 0) != INT_32) {
+    set_disconnected(link_sv);
     return 0;
   }
 
@@ -190,9 +190,9 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
     return 0;
   }
 
-  if (recv(sock, (char*)&cursor->header.request_id, INT_32, 0) == -1 ||
-      recv(sock, (char*)&cursor->header.response_to, INT_32, 0) == -1 ||
-      recv(sock, (char*)&cursor->header.op, INT_32, 0) == -1) {
+  if (recv(sock, (char*)&cursor->header.request_id, INT_32, 0) != INT_32 ||
+      recv(sock, (char*)&cursor->header.response_to, INT_32, 0) != INT_32 ||
+      recv(sock, (char*)&cursor->header.op, INT_32, 0) != INT_32) {
     return 0;
   }
 
@@ -250,6 +250,7 @@ int mongo_link_hear(SV *cursor_sv) {
 
   if (get_header(sock, cursor_sv, link_sv) == 0) {
     SvREFCNT_dec(link_sv);
+    croak("can't get db response, not connected");
     return 0;
   }
 
