@@ -460,6 +460,9 @@ sub BUILD {
         $opts->{host} = "mongodb://$_";
 
         $self->_servers->{$_} = MongoDB::Connection->new($opts);
+
+        next unless $self->auto_connect;
+
         # it's okay if we can't connect, so long as someone can
         eval {
             $self->_servers->{$_}->connect;
@@ -471,14 +474,23 @@ sub BUILD {
         }
     }
 
-    # if we still aren't connected to anyone, give up
-    if (!$connected) {
-        die "couldn't connect to any servers listed: ".join(",", @pairs);
-    }
+    my $master;
 
-    my $master = $self->get_master;
-    if ($master == -1) {
-        die "couldn't find master";
+    if ($self->auto_connect) {
+
+        # if we still aren't connected to anyone, give up
+        if (!$connected) {
+            die "couldn't connect to any servers listed: ".join(",", @pairs);
+        }
+
+        $master = $self->get_master;
+        if ($master == -1) {
+            die "couldn't find master";
+        }
+    }
+    else {
+        # no auto-connect so just pick one. if auto-reconnect is set then it will connect as needed
+        ($master) = values %{$self->_servers};
     }
 
     # create a struct that just points to the master's connection
