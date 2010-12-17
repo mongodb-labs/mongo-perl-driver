@@ -17,6 +17,8 @@
 #include "perl_mongo.h"
 #include "mongo_link.h"
 
+MGVTBL connection_vtbl;
+
 MODULE = MongoDB::Connection  PACKAGE = MongoDB::Connection
 
 PROTOTYPES: DISABLE
@@ -31,7 +33,7 @@ _init_conn(self, host, port)
     mongo_link *link;
   CODE:
     New(0, link, 1, mongo_link);
-    perl_mongo_attach_ptr_to_instance(self, link);
+    perl_mongo_attach_ptr_to_instance(self, link, &connection_vtbl);
 
     /*
      * hosts are of the form:
@@ -62,9 +64,9 @@ _init_conn_holder(self, master)
     mongo_link *self_link, *master_link;
   CODE:
     New(0, self_link, 1, mongo_link);
-    perl_mongo_attach_ptr_to_instance(self, self_link);
+    perl_mongo_attach_ptr_to_instance(self, self_link, &connection_vtbl);
 
-    master_link = (mongo_link*)perl_mongo_get_ptr_from_instance(master);
+    master_link = (mongo_link*)perl_mongo_get_ptr_from_instance(master, &connection_vtbl);
 
     self_link->master = master_link->master;
     self_link->copy = 1;
@@ -74,7 +76,7 @@ void
 connect (self)
      SV *self
    PREINIT:
-     mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
+     mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
      SV *username, *password;
    CODE:
      link->master->socket = perl_mongo_connect(link->master->host, link->master->port, link->timeout);
@@ -125,7 +127,7 @@ connected(self)
   INIT:
      mongo_link *link;
   CODE:
-     link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
+     link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
 
      if (link->master && link->master->connected) {
          RETVAL = 1;
@@ -170,7 +172,7 @@ DESTROY (self)
      PREINIT:
          mongo_link *link;
      CODE:
-         link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
+         link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
 
          if (!link->copy && link->master) {
            set_disconnected(self);

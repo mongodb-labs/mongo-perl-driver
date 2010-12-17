@@ -158,22 +158,26 @@ perl_mongo_call_function (const char *func, int num, ...)
 
 
 void
-perl_mongo_attach_ptr_to_instance (SV *self, void *ptr)
+perl_mongo_attach_ptr_to_instance (SV *self, void *ptr, MGVTBL *vtbl)
 {
-    sv_magic (SvRV (self), 0, PERL_MAGIC_ext, (const char *)ptr, 0);
+    sv_magicext (SvRV (self), 0, PERL_MAGIC_ext, vtbl, (const char *)ptr, 0);
 }
 
 void *
-perl_mongo_get_ptr_from_instance (SV *self)
+perl_mongo_get_ptr_from_instance (SV *self, MGVTBL *vtbl)
 {
     MAGIC *mg;
 
-    if (!self || !SvOK (self) || !SvROK (self)
-     || !(mg = mg_find (SvRV (self), PERL_MAGIC_ext))) {
-        croak ("invalid object");
+    if (!self || !SvOK (self) || !SvROK (self) || !sv_isobject (self)) {
+	croak ("not an object");
     }
 
-    return mg->mg_ptr;
+    for (mg = SvMAGIC (SvRV (self)); mg; mg = mg->mg_moremagic) {
+	if (mg->mg_type == PERL_MAGIC_ext && mg->mg_virtual == vtbl)
+	    return mg->mg_ptr;
+    }
+
+    croak ("invalid object");
 }
 
 SV *
@@ -225,16 +229,16 @@ perl_mongo_construct_instance_va (const char *klass, va_list ap)
 }
 
 SV *
-perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...)
+perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...)
 {
     SV *ret;
     va_list ap;
 
-    va_start (ap, ptr);
+    va_start (ap, vtbl);
     ret = perl_mongo_construct_instance_va (klass, ap);
     va_end (ap);
 
-    perl_mongo_attach_ptr_to_instance (ret, ptr);
+    perl_mongo_attach_ptr_to_instance (ret, ptr, vtbl);
 
     return ret;
 }

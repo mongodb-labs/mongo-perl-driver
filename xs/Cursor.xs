@@ -17,6 +17,8 @@
 #include "perl_mongo.h"
 #include "mongo_link.h"
 
+MGVTBL cursor_vtbl;
+
 static mongo_cursor* get_cursor(SV *self);
 static int has_next(SV *self, mongo_cursor *cursor);
 static void kill_cursor(SV *self);
@@ -24,7 +26,7 @@ static void kill_cursor(SV *self);
 static mongo_cursor* get_cursor(SV *self) {
   SV *rubbish = perl_mongo_call_method(self, "_do_query", 0);
   SvREFCNT_dec(rubbish);
-  return (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+  return (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
 }
 
 static int has_next(SV *self, mongo_cursor *cursor) {
@@ -93,7 +95,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
 
 
 static void kill_cursor(SV *self) {
-  mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+  mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
   SV *link = perl_mongo_call_reader (self, "_connection");
   SV *request_id_sv = perl_mongo_call_reader (self, "_request_id");
   char quickbuf[128];
@@ -151,7 +153,7 @@ _init (self)
         cursor->buf.end = 0;
 
         // attach a mongo_cursor* to the MongoDB::Cursor
-        perl_mongo_attach_ptr_to_instance(self, cursor);
+        perl_mongo_attach_ptr_to_instance(self, cursor, &cursor_vtbl);
 
 
 
@@ -197,7 +199,7 @@ reset (self)
         SV *rubbish;
         mongo_cursor *cursor;
     CODE:
-        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
         cursor->buf.pos = cursor->buf.start;
         cursor->at = 0;
         cursor->num = 0;
@@ -218,14 +220,14 @@ DESTROY (self)
       SV *link_sv;
   CODE:
       link_sv = perl_mongo_call_reader(self, "_connection");
-      link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
+      link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
       // check if cursor is connected
       if (link->master && link->master->connected) {
           kill_cursor(self);
       }
       SvREFCNT_dec(link_sv);
 
-      cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+      cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
 
       if (cursor) {
 

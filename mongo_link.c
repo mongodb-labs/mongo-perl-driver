@@ -172,7 +172,7 @@ int mongo_link_say(SV *link_sv, buffer *buf) {
 static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
   mongo_cursor *cursor;
 
-  cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv);
+  cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv, &cursor_vtbl);
 
   if (recv(sock, (char*)&cursor->header.length, INT_32, 0) != INT_32) {
     set_disconnected(link_sv);
@@ -213,9 +213,9 @@ int mongo_link_hear(SV *cursor_sv) {
   mongo_link *link;
   SV *link_sv, *request_id_sv, *timeout_sv;
 
-  cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv);
+  cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv, &cursor_vtbl);
   link_sv = perl_mongo_call_reader(cursor_sv, "_connection");
-  link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
+  link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
   timeout_sv = perl_mongo_call_reader(link_sv, "query_timeout");
 
   if ((sock = perl_mongo_master(link_sv, 0)) == -1) {
@@ -371,7 +371,7 @@ static int mongo_link_reader(int socket, void *dest, int len) {
 void set_disconnected(SV *link_sv) {
   mongo_link *link;
 
-  link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
+  link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
 
   // check if there's nothing to do
   if (link->master == 0 || link->master->connected == 0) {
@@ -403,7 +403,7 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
   SV *master;
   mongo_link *link;
 
-  link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
+  link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
 
   if (link->master && link->master->connected) {
       return link->master->socket;
@@ -427,7 +427,7 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
   if (SvROK(master)) {
     mongo_link *m_link;
 
-    m_link = (mongo_link*)perl_mongo_get_ptr_from_instance(master);
+    m_link = (mongo_link*)perl_mongo_get_ptr_from_instance(master, &connection_vtbl);
     link->copy = 1;
     link->master = m_link->master;
 

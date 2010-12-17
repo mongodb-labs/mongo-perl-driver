@@ -121,15 +121,17 @@ typedef struct _stackette {
 #define perl_mongo_serialize_null(buf) perl_mongo_serialize_byte(buf, (char)0)
 #define perl_mongo_serialize_bool(buf, b) perl_mongo_serialize_byte(buf, (char)b)
 
+extern MGVTBL connection_vtbl, cursor_vtbl;
+
 void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 SV *perl_mongo_call_reader (SV *self, const char *reader);
 SV *perl_mongo_call_method (SV *self, const char *method, int num, ...);
 SV *perl_mongo_call_function (const char *func, int num, ...);
-void perl_mongo_attach_ptr_to_instance (SV *self, void *ptr);
-void *perl_mongo_get_ptr_from_instance (SV *self);
+void perl_mongo_attach_ptr_to_instance (SV *self, void *ptr, MGVTBL *vtbl);
+void *perl_mongo_get_ptr_from_instance (SV *self, MGVTBL *vtbl);
 SV *perl_mongo_construct_instance (const char *klass, ...);
 SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
-SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, ...);
+SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
 
 void perl_mongo_make_id(char *id);
 void perl_mongo_make_oid(char* twelve, char *twenty4);
