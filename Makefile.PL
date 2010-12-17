@@ -43,6 +43,10 @@ makemaker_args(
     }
 );
 
+if ($Config::Config{useithreads}) {
+    tests 't/*.t t/threads/*.t';
+}
+
 WriteAll;
 
 package MY;
