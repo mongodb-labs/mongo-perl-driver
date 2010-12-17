@@ -160,7 +160,10 @@ perl_mongo_call_function (const char *func, int num, ...)
 void
 perl_mongo_attach_ptr_to_instance (SV *self, void *ptr, MGVTBL *vtbl)
 {
-    sv_magicext (SvRV (self), 0, PERL_MAGIC_ext, vtbl, (const char *)ptr, 0);
+    MAGIC *mg;
+
+    mg = sv_magicext (SvRV (self), 0, PERL_MAGIC_ext, vtbl, (const char *)ptr, 0);
+    mg->mg_flags |= MGf_DUP;
 }
 
 void *

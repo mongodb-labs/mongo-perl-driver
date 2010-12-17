@@ -403,8 +403,6 @@ Port to use when connecting to right_host. Defaults to C<27017>.
 =cut
 
 
-sub CLONE_SKIP { 1 }
-
 sub AUTOLOAD {
     my $self = shift @_;
     our $AUTOLOAD;
