@@ -170,7 +170,7 @@ connect (self)
        SV *database, *result, **ok;
          
        database = perl_mongo_call_reader (self, "db_name");
-       result = perl_mongo_call_method(self, "authenticate", 3, database, username, password);
+       result = perl_mongo_call_method(self, "authenticate", 0, 3, database, username, password);
        if (!result || SvTYPE(result) != SVt_RV) {
          if (result && SvPOK(result)) {
            croak("%s", SvPV_nolen(result));

@@ -390,12 +390,8 @@ void set_disconnected(SV *link_sv) {
 
   // TODO: set $self->_master to 0?
   if (link->copy) {
-      SV *rubbish;
-
       link->master = 0;
-
-      rubbish = perl_mongo_call_method(link_sv, "_master", 1, sv_2mortal(newSViv(0)));
-      SvREFCNT_dec(rubbish);
+      perl_mongo_call_method(link_sv, "_master", G_DISCARD, 1, sv_2mortal(newSViv(0)));
   }
 }
 
@@ -408,13 +404,11 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
   if (link->master && link->master->connected) {
       return link->master->socket;
   }
-  // if we didn't have a connection above and this isn't a connection holder 
+  // if we didn't have a connection above and this isn't a connection holder
   if (!link->copy) {
       // if this is a real connection, try to reconnect
       if (auto_reconnect && link->auto_reconnect) {
-          SV *rubbish;
-          rubbish = perl_mongo_call_method(link_sv, "connect", 0);
-          SvREFCNT_dec(rubbish);
+          perl_mongo_call_method(link_sv, "connect", G_DISCARD, 0);
           if (link->master && link->master->connected) {
               return link->master->socket;
           }
@@ -423,7 +417,7 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
       return -1;
   }
 
-  master = perl_mongo_call_method(link_sv, "get_master", 0);
+  master = perl_mongo_call_method(link_sv, "get_master", 0, 0);
   if (SvROK(master)) {
     mongo_link *m_link;
 

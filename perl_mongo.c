@@ -74,12 +74,16 @@ perl_mongo_call_reader (SV *self, const char *reader)
 
 
 SV *
-perl_mongo_call_method (SV *self, const char *method, int num, ...)
+perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...)
 {
     dSP;
-    SV *ret;
+    SV *ret = NULL;
     I32 count;
     va_list args;
+
+    if (flags & G_ARRAY) {
+        croak("perl_mongo_call_method doesn't support list context");
+    }
 
     ENTER;
     SAVETMPS;
@@ -88,25 +92,27 @@ perl_mongo_call_method (SV *self, const char *method, int num, ...)
     XPUSHs (self);
 
     va_start( args, num );
- 
+
     for( ; num > 0; num-- ) {
-      XPUSHs (va_arg( args, SV* ));
+        XPUSHs (va_arg( args, SV* ));
     }
- 
+
     va_end( args );
 
     PUTBACK;
 
-    count = call_method (method, G_SCALAR);
+    count = call_method (method, flags | G_SCALAR);
 
-    SPAGAIN;
+    if (!(flags & G_DISCARD)) {
+        SPAGAIN;
 
-    if (count != 1) {
-        croak ("method didn't return a value");
+        if (count != 1) {
+            croak ("method didn't return a value");
+        }
+
+        ret = POPs;
+        SvREFCNT_inc (ret);
     }
-
-    ret = POPs;
-    SvREFCNT_inc (ret);
 
     PUTBACK;
     FREETMPS;
@@ -1157,9 +1163,9 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
               }
               SvREFCNT_dec (tz);
               SvREFCNT_dec (tz_name);
-              
+
               sec = perl_mongo_call_reader (sv, "epoch");
-              ms = perl_mongo_call_method (sv, "millisecond", 0);
+              ms = perl_mongo_call_method (sv, "millisecond", 0, 0);
 
               perl_mongo_serialize_long(buf, (int64_t)SvIV(sec)*1000+SvIV(ms));
 
@@ -1189,7 +1195,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
               perl_mongo_serialize_int(buf, code_len+1);
               perl_mongo_serialize_string(buf, code_str, code_len);
 
-              scope = perl_mongo_call_method (sv, "scope", 0);
+              scope = perl_mongo_call_method (sv, "scope", 0, 0);
               hv_to_bson(buf, scope, NO_PREP, EMPTY_STACK, is_insert);
 
               perl_mongo_serialize_size(buf->start+start, buf);
