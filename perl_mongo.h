@@ -23,9 +23,7 @@
 #include "perl.h"
 #include "XSUB.h"
 
-#ifndef mXPUSHp
-#define mXPUSHp(p,l) STMT_START { EXTEND(sp,1); sv_setpvn(PUSHmort al, (p), (l)); } STMT_END
-#endif
+#include "ppport.h"
 
 #define PERL_MONGO_CALL_BOOT(name)  perl_mongo_call_xs (aTHX_ name, cv, mark)
 
