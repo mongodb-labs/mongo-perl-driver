@@ -35,6 +35,14 @@ connection_clone (pTHX_ MAGIC *mg, CLONE_PARAMS *params)
         Newx(new_master, 1, mongo_server);
         new_master->host = savepv(link->master->host);
         new_master->port = link->master->port;
+
+        /* Start out disconnected. When we have something to send, we'll
+         * reconnect automatically.
+         *
+         * If we actually wanted to reconnect here, we'd have to make mongo_link
+         * carry around a backref to the SV it's associated with so we could
+         * reconnect through perl space.
+         */
         new_master->connected = 0;
 
         new_link->master = new_master;
