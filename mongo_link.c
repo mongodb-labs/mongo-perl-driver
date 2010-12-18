@@ -391,7 +391,7 @@ void set_disconnected(SV *link_sv) {
   // TODO: set $self->_master to 0?
   if (link->copy) {
       link->master = 0;
-      perl_mongo_call_method(link_sv, "_master", G_DISCARD, 1, sv_2mortal(newSViv(0)));
+      perl_mongo_call_method(link_sv, "_master", G_DISCARD, 1, &PL_sv_no);
   }
 }
 

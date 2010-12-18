@@ -263,7 +263,7 @@ reset (self)
         cursor->at = 0;
         cursor->num = 0;
 
-        perl_mongo_call_method (self, "started_iterating", G_DISCARD, 1, sv_2mortal(newSViv(0)));
+        perl_mongo_call_method (self, "started_iterating", G_DISCARD, 1, &PL_sv_no);
 
 	RETVAL = SvREFCNT_inc(self);
     OUTPUT:
