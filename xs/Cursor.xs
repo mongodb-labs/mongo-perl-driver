@@ -17,7 +17,58 @@
 #include "perl_mongo.h"
 #include "mongo_link.h"
 
-MGVTBL cursor_vtbl;
+static int
+cursor_clone (pTHX_ MAGIC *mg, CLONE_PARAMS *params)
+{
+    mongo_cursor *cursor, *new_cursor;
+    size_t buflen;
+
+    PERL_UNUSED_ARG (params);
+
+    cursor = (mongo_cursor *)mg->mg_ptr;
+
+    Newxz(new_cursor, 1, mongo_cursor);
+
+    new_cursor->header.length = cursor->header.length;
+    new_cursor->header.request_id = cursor->header.request_id;
+    new_cursor->header.response_to = cursor->header.response_to;
+    new_cursor->header.op = cursor->header.op;
+
+    new_cursor->flag = cursor->flag;
+    new_cursor->cursor_id = cursor->cursor_id;
+    new_cursor->start = cursor->start;
+    new_cursor->at = cursor->at;
+    new_cursor->num = cursor->num;
+    new_cursor->started_iterating = cursor->started_iterating;
+
+    buflen = cursor->buf.end - cursor->buf.start;
+    Newx(new_cursor->buf.start, buflen, char);
+    Copy(cursor->buf.start, new_cursor->buf.start, buflen, char);
+    new_cursor->buf.end = new_cursor->buf.start + buflen;
+    new_cursor->buf.pos =
+	new_cursor->buf.start + (cursor->buf.pos - cursor->buf.start);
+
+    mg->mg_ptr = (char *)new_cursor;
+
+    return 0;
+}
+
+MGVTBL cursor_vtbl = {
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+#if MGf_COPY
+    NULL,
+#endif
+#if MGf_DUP
+    cursor_clone,
+#endif
+#if MGf_LOCAL
+    NULL,
+#endif
+};
 
 static mongo_cursor* get_cursor(SV *self);
 static int has_next(SV *self, mongo_cursor *cursor);
