@@ -108,15 +108,15 @@ _init_conn(self, host, port)
     SV *auto_reconnect_sv = 0, *timeout_sv = 0;
     mongo_link *link;
   CODE:
-    New(0, link, 1, mongo_link);
+    Newx(link, 1, mongo_link);
     perl_mongo_attach_ptr_to_instance(self, link, &connection_vtbl);
 
     /*
      * hosts are of the form:
      * [{host => "host", port => 27017}, ...]
      */
-    New(0, link->master, 1, mongo_server);      
-    Newz(0, link->master->host, strlen(host)+1, char);
+    Newx(link->master, 1, mongo_server);
+    Newxz(link->master->host, strlen(host)+1, char);
     memcpy(link->master->host, host, strlen(host));
     link->master->port = port;
     link->master->connected = 0;
@@ -139,7 +139,7 @@ _init_conn_holder(self, master)
   PREINIT:
     mongo_link *self_link, *master_link;
   CODE:
-    New(0, self_link, 1, mongo_link);
+    Newx(self_link, 1, mongo_link);
     perl_mongo_attach_ptr_to_instance(self, self_link, &connection_vtbl);
 
     master_link = (mongo_link*)perl_mongo_get_ptr_from_instance(master, &connection_vtbl);

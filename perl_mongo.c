@@ -836,7 +836,7 @@ static stackette* check_circular_ref(void *ptr, stackette *stack) {
   }
 
   // push this onto the circular ref stack
-  New(0, ette, 1, stackette);
+  Newx(ette, 1, stackette);
   ette->ptr = ptr;
   // if stack has not been initialized, stack will be 0 so this will work out
   ette->prev = start;

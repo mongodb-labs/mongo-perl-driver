@@ -318,7 +318,7 @@ int mongo_link_hear(SV *cursor_sv) {
 
   // point buf.start at buf's first char
   if (!cursor->buf.start) {
-    New(0, cursor->buf.start, cursor->header.length, char);
+    Newx(cursor->buf.start, cursor->header.length, char);
     cursor->buf.end = cursor->buf.start + cursor->header.length;
   }
   else if (cursor->buf.end - cursor->buf.start < cursor->header.length) { 
