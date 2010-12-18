@@ -1339,6 +1339,14 @@ static void serialize_regex_flags(buffer *buf, SV *sv) {
   STRLEN string_length;
   char *string = SvPV(sv, string_length);
 
+  /* In order to work on newer versions of perl, this will also have to handle
+   * (?^...:..)  I'm not sure what to do with that though. In the interest of
+   * portability of data between perl versions, it'd make sense to just
+   * denormalise ^ into regular flags, but that kind of defeats the purpose of ^.
+   *
+   * Also, this doesn't cover all the flags available on recent perls, and nor
+   * does the matching deserialisation routine.
+   */
   for(i = 2; i < string_length && string[i] != '-'; i++) {
     if (string[i] == 'i' ||
         string[i] == 'm' ||
