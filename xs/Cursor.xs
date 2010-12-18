@@ -18,6 +18,28 @@
 #include "mongo_link.h"
 
 static int
+cursor_free (pTHX_ SV *sv, MAGIC *mg)
+{
+    mongo_cursor *cursor;
+
+    PERL_UNUSED_ARG(sv);
+
+    cursor = (mongo_cursor *)mg->mg_ptr;
+
+    if (cursor) {
+        if (cursor->buf.start) {
+          Safefree(cursor->buf.start);
+        }
+
+        Safefree(cursor);
+    }
+
+    mg->mg_ptr = NULL;
+
+    return 0;
+}
+
+static int
 cursor_clone (pTHX_ MAGIC *mg, CLONE_PARAMS *params)
 {
     mongo_cursor *cursor, *new_cursor;
@@ -47,7 +69,7 @@ MGVTBL cursor_vtbl = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    cursor_free,
 #if MGf_COPY
     NULL,
 #endif
@@ -255,7 +277,6 @@ void
 DEMOLISH (self, in_global_destruction)
       SV *self
   PREINIT:
-      mongo_cursor *cursor;
       mongo_link *link;
       SV *link_sv;
   CODE:
@@ -266,15 +287,3 @@ DEMOLISH (self, in_global_destruction)
           kill_cursor(self);
       }
       SvREFCNT_dec(link_sv);
-
-      cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
-
-      if (cursor) {
-
-        if (cursor->buf.start) {
-          Safefree(cursor->buf.start);
-        }
-
-        Safefree(cursor);
-      }
-

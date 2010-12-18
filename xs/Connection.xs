@@ -18,6 +18,30 @@
 #include "mongo_link.h"
 
 static int
+connection_free (pTHX_ SV *sv, MAGIC *mg)
+{
+    mongo_link *link;
+
+    PERL_UNUSED_ARG(sv);
+
+    link = (mongo_link *)mg->mg_ptr;
+
+    if (!link->copy && link->master) {
+        if (link->master->host) {
+            Safefree(link->master->host);
+        }
+
+        Safefree(link->master);
+    }
+
+    Safefree(link);
+
+    mg->mg_ptr = NULL;
+
+    return 0;
+}
+
+static int
 connection_clone (pTHX_ MAGIC *mg, CLONE_PARAMS *params)
 {
     mongo_link *link, *new_link;
@@ -59,7 +83,7 @@ MGVTBL connection_vtbl = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    connection_free,
 #if MGf_COPY
     NULL,
 #endif
@@ -228,12 +252,4 @@ DEMOLISH (self, in_global_destruction)
 
          if (!link->copy && link->master) {
            set_disconnected(self);
-
-           if (link->master->host) {
-             Safefree(link->master->host);
-           }
-
-           Safefree(link->master);
          }
-
-         Safefree(link);
