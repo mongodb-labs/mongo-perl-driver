@@ -34,4 +34,25 @@ $col->drop;
     is $ret, $o->{_id}, 'we inserted and joined the OID back';
 }
 
+{
+    my @threads = map {
+        threads->create(sub {
+            my $col = $conn->get_database('moo')->get_collection('kooh');
+            $col->insert({ foo => threads->self->tid }, { safe => 1 });
+        })
+    } 0 .. 9;
+
+    my @vals = map { $_->tid } @threads;
+    my @ids = map { $_->join } @threads;
+
+    is scalar keys %{ { map { ($_ => 1) } @ids } }, scalar @ids,
+        'we got 10 unique OIDs';
+
+    is_deeply(
+        [map { $col->find_one({ _id => $_ })->{foo} } @ids],
+        [@vals],
+        'right values inserted from threads',
+    );
+}
+
 done_testing;
