@@ -36,7 +36,7 @@ requires:
   Tie::IxHash: 0
   XSLoader: 0
   boolean: 0
-  perl: 5.8.0
+  perl: 5.8.7
 resources:
   license: http://apache.org/licenses/LICENSE-2.0
   repository: git://github.com/mongodb/mongo-perl-driver.git
