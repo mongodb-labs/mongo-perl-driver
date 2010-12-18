@@ -59,4 +59,28 @@ $col->insert({ foo => 4,  bar => 9, shazbot => 1 });
         'joining back cursors works';
 }
 
+{
+    my @threads = map {
+        threads->create(sub {
+            my $cursor = $col->query;
+
+            # force start of retrieval before returning the cursor
+            $cursor->next;
+
+            return $cursor;
+        })
+    } 0 .. 9;
+
+    my @cursors = map { $_->join } @threads;
+
+    # cursor for comparison
+    my $comp_cursor = $col->query;
+
+    # seek as far ahead as we did within the thread
+    $comp_cursor->next;
+
+    is_deeply [map { $_->next } @cursors], [($comp_cursor->next) x 10],
+        'joining back cursors works';
+}
+
 done_testing;
