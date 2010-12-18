@@ -27,19 +27,8 @@ cursor_clone (pTHX_ MAGIC *mg, CLONE_PARAMS *params)
 
     cursor = (mongo_cursor *)mg->mg_ptr;
 
-    Newxz(new_cursor, 1, mongo_cursor);
-
-    new_cursor->header.length = cursor->header.length;
-    new_cursor->header.request_id = cursor->header.request_id;
-    new_cursor->header.response_to = cursor->header.response_to;
-    new_cursor->header.op = cursor->header.op;
-
-    new_cursor->flag = cursor->flag;
-    new_cursor->cursor_id = cursor->cursor_id;
-    new_cursor->start = cursor->start;
-    new_cursor->at = cursor->at;
-    new_cursor->num = cursor->num;
-    new_cursor->started_iterating = cursor->started_iterating;
+    Newx(new_cursor, 1, mongo_cursor);
+    Copy(cursor, new_cursor, 1, mongo_cursor);
 
     buflen = cursor->buf.end - cursor->buf.start;
     Newx(new_cursor->buf.start, buflen, char);

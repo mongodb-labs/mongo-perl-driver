@@ -21,26 +21,25 @@ static int
 connection_clone (pTHX_ MAGIC *mg, CLONE_PARAMS *params)
 {
     mongo_link *link, *new_link;
-    mongo_server *new_master = NULL;
 
     PERL_UNUSED_ARG (params);
 
     link = (mongo_link *)mg->mg_ptr;
 
     Newx(new_link, 1, mongo_link);
+    Copy(link, new_link, 1, mongo_link);
 
     if (link->master) {
+        mongo_server *new_master;
+
         Newx(new_master, 1, mongo_server);
         new_master->host = savepv(link->master->host);
         new_master->port = link->master->port;
         new_master->connected = 0;
+
+        new_link->master = new_master;
     }
 
-    new_link->auto_reconnect = link->auto_reconnect;
-    new_link->timeout = link->timeout;
-    new_link->num = link->num;
-    new_link->copy = link->copy;
-    new_link->master = new_master;
 
     mg->mg_ptr = (char *)new_link;
 
