@@ -485,7 +485,7 @@ sub all {
 }
 
 no Any::Moose;
-__PACKAGE__->meta->make_immutable (inline_destructor => 0);
+__PACKAGE__->meta->make_immutable;
 
 1;
 
