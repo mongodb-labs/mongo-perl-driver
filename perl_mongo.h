@@ -116,7 +116,7 @@ typedef struct _stackette {
 
 #define EMPTY_STACK 0
 
-#define BUF_REMAINING (buf->end-buf->pos)
+#define BUF_REMAINING ((size_t)(buf->end-buf->pos))
 #define set_type(buf, type) perl_mongo_serialize_byte(buf, (char)type)
 #define perl_mongo_serialize_null(buf) perl_mongo_serialize_byte(buf, (char)0)
 #define perl_mongo_serialize_bool(buf, b) perl_mongo_serialize_byte(buf, (char)b)
@@ -142,10 +142,10 @@ int perl_mongo_resize_buf (buffer*, int);
 void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert);
 void perl_mongo_serialize_size(char*, buffer*);
 void perl_mongo_serialize_double(buffer*, double);
-void perl_mongo_serialize_string(buffer*, const char*, int);
+void perl_mongo_serialize_string(buffer*, const char*, unsigned int);
 void perl_mongo_serialize_long(buffer*, int64_t);
 void perl_mongo_serialize_int(buffer*, int);
 void perl_mongo_serialize_byte(buffer*, char);
-void perl_mongo_serialize_bytes(buffer*, const char*, int);
+void perl_mongo_serialize_bytes(buffer*, const char*, unsigned int);
 
 #endif

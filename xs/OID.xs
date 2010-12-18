@@ -22,9 +22,8 @@ PROTOTYPES: DISABLE
 
 SV *
 _build_value (self, c_str)
-        SV *self
         const char *c_str;
-    PREINIT: 
+    PREINIT:
         char id[12], oid[25];
     CODE:
         if (c_str && strlen(c_str) == 24) {

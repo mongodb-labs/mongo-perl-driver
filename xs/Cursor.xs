@@ -205,7 +205,9 @@ reset (self)
 	rubbish = perl_mongo_call_method (self, "started_iterating", 1, sv_2mortal(newSViv(0)));
 	SvREFCNT_dec(rubbish);
 
-
+	RETVAL = SvREFCNT_inc(self);
+    OUTPUT:
+	RETVAL
 
 void
 DESTROY (self)
@@ -214,7 +216,6 @@ DESTROY (self)
       mongo_cursor *cursor;
       mongo_link *link;
       SV *link_sv;
-      int auto_reconnect = 0;
   CODE:
       link_sv = perl_mongo_call_reader(self, "_connection");
       link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);

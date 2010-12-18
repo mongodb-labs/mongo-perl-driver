@@ -266,7 +266,7 @@ oid_to_sv (buffer *buf)
     perl_mongo_make_oid(buf->pos, oid_s);
 
     id_hv = newHV();
-    hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
+    (void)hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
 
     stash = gv_stashpv("MongoDB::OID", 0);
     return sv_bless(newRV_noinc((SV *)id_hv), stash);
@@ -414,7 +414,10 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_REGEX: {
-    SV *pattern, *regex, *regex_ref;
+    SV *pattern, *regex_ref;
+#if PERL_REVISION==5 && PERL_VERSION<12
+    SV *regex;
+#endif
     HV *stash;
     U32 flags = 0;
     REGEXP *re;
@@ -505,7 +508,6 @@ elem_to_sv (int type, buffer *buf)
   case BSON_TIMESTAMP: {
     SV *sec_sv, *inc_sv;
     int sec, inc;
-    HV *hv = newHV();
 
     inc = MONGO_32(*(int*)buf->pos);
     buf->pos += INT_32;
@@ -612,7 +614,7 @@ void perl_mongo_serialize_byte(buffer *buf, char b) {
   buf->pos += 1;
 }
 
-void perl_mongo_serialize_bytes(buffer *buf, const char *str, int str_len) {
+void perl_mongo_serialize_bytes(buffer *buf, const char *str, unsigned int str_len) {
   if(BUF_REMAINING <= str_len) {
     perl_mongo_resize_buf(buf, str_len);
   }
@@ -620,7 +622,7 @@ void perl_mongo_serialize_bytes(buffer *buf, const char *str, int str_len) {
   buf->pos += str_len;
 }
 
-void perl_mongo_serialize_string(buffer *buf, const char *str, int str_len) {
+void perl_mongo_serialize_string(buffer *buf, const char *str, unsigned int str_len) {
   if(BUF_REMAINING <= str_len+1) {
     perl_mongo_resize_buf(buf, str_len+1);
   }
@@ -799,7 +801,7 @@ perl_mongo_prep(buffer *buf, AV *ids) {
 
   perl_mongo_make_oid(id_s, oid_s);
   id_hv = newHV();
-  hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
+  (void)hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
 
   id = sv_bless(newRV_noinc((SV *)id_hv), stash);
 
@@ -1112,8 +1114,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
                   big = big + temp;
                 }
                 else {
-                  STRLEN len;
-                  char *str = SvPV(*val, len);
+                  STRLEN len = sv_len(*val);
 
                   length += len;
                   big += ((int64_t)atoi(SvPV_nolen(*val))) * offset;
@@ -1334,10 +1335,10 @@ static void serialize_regex(buffer *buf, const char *key, REGEXP *re, int is_ins
 
 static void serialize_regex_flags(buffer *buf, SV *sv) {
   char flags[] = {0,0,0,0,0,0};
-  int i = 0, f = 0;
+  unsigned int i = 0, f = 0;
   STRLEN string_length;
   char *string = SvPV(sv, string_length);
-                
+
   for(i = 2; i < string_length && string[i] != '-'; i++) {
     if (string[i] == 'i' ||
         string[i] == 'm' ||

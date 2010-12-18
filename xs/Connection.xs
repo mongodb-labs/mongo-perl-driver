@@ -27,12 +27,8 @@ _init_conn(self, host, port)
     char *host
     int port
   PREINIT:
-    SV *auto_reconnect_sv = 0, *timeout_sv = 0, *rs_sv;
-    int i = 0;
+    SV *auto_reconnect_sv = 0, *timeout_sv = 0;
     mongo_link *link;
-    AV *av;
-    HV *hv;
-    SV **host_sv, **port_sv, **elem;
   CODE:
     New(0, link, 1, mongo_link);
     perl_mongo_attach_ptr_to_instance(self, link);
@@ -78,9 +74,7 @@ void
 connect (self)
      SV *self
    PREINIT:
-     int i = 0, connected = 0;
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
-     SV *master;
      SV *username, *password;
    CODE:
      link->master->socket = perl_mongo_connect(link->master->host, link->master->port, link->timeout);
@@ -165,7 +159,6 @@ send(self, str)
 
 void
 recv(self, cursor)
-         SV *self
          SV *cursor
      CODE:
          mongo_link_hear(cursor);
@@ -176,7 +169,6 @@ DESTROY (self)
           SV *self
      PREINIT:
          mongo_link *link;
-         int i = 0;
      CODE:
          link = (mongo_link*)perl_mongo_get_ptr_from_instance(self);
 

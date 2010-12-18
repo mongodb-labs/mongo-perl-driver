@@ -19,7 +19,6 @@
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(int socket, void *dest, int len);
-static void check_connection(SV *link_sv);
 
 /*
  * Returns -1 on failure, the socket fh on success.  
@@ -87,7 +86,7 @@ int perl_mongo_connect(char *host, int port, int timeout) {
   // connect
   status = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
   if (status == -1) {
-    int size;
+    socklen_t size;
 
 #ifdef WIN32
     errno = WSAGetLastError();
@@ -370,7 +369,6 @@ static int mongo_link_reader(int socket, void *dest, int len) {
  * closes sockets and sets "connected" to 0
  */
 void set_disconnected(SV *link_sv) {
-  int i = 0;
   mongo_link *link;
 
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
