@@ -200,17 +200,7 @@ _init (self)
     PREINIT:
         mongo_cursor *cursor;
     CODE:
-        Newx(cursor, 1, mongo_cursor);
-        cursor->started_iterating = 0;
-
-	// zero results fields
-	cursor->num = 0;
-	cursor->at = 0;
-
-        // clear the buf
-        cursor->buf.start = 0;
-        cursor->buf.pos = 0;
-        cursor->buf.end = 0;
+        Newxz(cursor, 1, mongo_cursor);
 
         // attach a mongo_cursor* to the MongoDB::Cursor
         perl_mongo_attach_ptr_to_instance(self, cursor, &cursor_vtbl);
