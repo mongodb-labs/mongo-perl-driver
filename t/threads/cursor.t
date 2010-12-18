@@ -60,6 +60,24 @@ $col->insert({ foo => 4,  bar => 9, shazbot => 1 });
 }
 
 {
+    my $cursor = $col->query;
+
+    # force start of retrieval before creating threads
+    $cursor->next;
+
+    my @threads = map {
+        threads->create(sub {
+            $cursor->next;
+        });
+    } 0 .. 9;
+
+    my @ret = map { $_->join } @threads;
+
+    is_deeply [@ret], [($cursor->next) x 10],
+        'cursors retain their position on thread cloning';
+}
+
+{
     my @threads = map {
         threads->create(sub {
             my $cursor = $col->query;
