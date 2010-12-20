@@ -1,6 +1,7 @@
 ---
 abstract: 'Mongo Driver for Perl'
 author:
+  - 'Florian Ragwitz <rafl@debian.org>'
   - 'Kristina Chodorow <kristina@10gen.com>'
 build_requires:
   Data::Types: 0
