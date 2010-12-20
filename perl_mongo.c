@@ -29,7 +29,8 @@ static void serialize_regex(buffer*, const char*, REGEXP*, int is_insert);
 static void serialize_regex_flags(buffer*, SV*);
 static void append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert);
 
-int perl_mongo_inc = 0;
+static perl_mutex inc_mutex;
+static int perl_mongo_inc = 0;
 
 void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark)
@@ -770,14 +771,20 @@ void perl_mongo_make_id(char *id) {
   int pid = pid_s ? SvIV(pid_s) : rand();
 
   int r1 = rand();
-  int inc = perl_mongo_inc++;
+  int inc;
+  unsigned t;
+  char *T, *M, *P, *I;
 
-  unsigned t = (unsigned) time(0);
+  MUTEX_LOCK(&inc_mutex);
+  inc = perl_mongo_inc++;
+  MUTEX_UNLOCK(&inc_mutex);
 
-  char *T = (char*)&t,
-    *M = (char*)&r1,
-    *P = (char*)&pid,
-    *I = (char*)&inc;
+  t = (unsigned) time(0);
+
+  T = (char*)&t;
+  M = (char*)&r1;
+  P = (char*)&pid;
+  I = (char*)&inc;
 
 #if MONGO_BIG_ENDIAN
   memcpy(data, T, 4);
