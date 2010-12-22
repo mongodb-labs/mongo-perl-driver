@@ -27,6 +27,11 @@ MODULE = MongoDB  PACKAGE = MongoDB
 PROTOTYPES: DISABLE
 
 BOOT:
+        if (items < 3)
+            croak("machine id required");
+
+        perl_mongo_machine_id = SvIV(ST(2));
+
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Connection);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__BSON);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Cursor);

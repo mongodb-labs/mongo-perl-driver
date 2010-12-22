@@ -120,6 +120,7 @@ typedef struct _stackette {
 #define perl_mongo_serialize_bool(buf, b) perl_mongo_serialize_byte(buf, (char)b)
 
 extern MGVTBL connection_vtbl, cursor_vtbl;
+extern int perl_mongo_machine_id;
 
 void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 SV *perl_mongo_call_reader (SV *self, const char *reader);

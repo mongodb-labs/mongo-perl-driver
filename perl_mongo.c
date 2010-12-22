@@ -32,6 +32,8 @@ static void append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, i
 static perl_mutex inc_mutex;
 static int perl_mongo_inc = 0;
 
+int perl_mongo_machine_id;
+
 void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark)
 {
@@ -770,7 +772,6 @@ void perl_mongo_make_id(char *id) {
   // ...but if it's not, don't crash
   int pid = pid_s ? SvIV(pid_s) : rand();
 
-  int r1 = rand();
   int inc;
   unsigned t;
   char *T, *M, *P, *I;
@@ -782,7 +783,7 @@ void perl_mongo_make_id(char *id) {
   t = (unsigned) time(0);
 
   T = (char*)&t;
-  M = (char*)&r1;
+  M = (char*)&perl_mongo_machine_id;
   P = (char*)&pid;
   I = (char*)&inc;
 
