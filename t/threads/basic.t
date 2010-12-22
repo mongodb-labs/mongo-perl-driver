@@ -25,7 +25,7 @@ $col->drop;
         })->join->value;
     }
     catch {
-        daig $_;
+        diag $_;
     };
 
     ok $ret, 'we survived destruction of a cloned connection';
