@@ -29,7 +29,10 @@ static void serialize_regex(buffer*, const char*, REGEXP*, int is_insert);
 static void serialize_regex_flags(buffer*, SV*);
 static void append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert);
 
+#ifdef USE_ITHREADS
 static perl_mutex inc_mutex;
+#endif
+
 static int perl_mongo_inc = 0;
 
 int perl_mongo_machine_id;
@@ -776,9 +779,13 @@ void perl_mongo_make_id(char *id) {
   unsigned t;
   char *T, *M, *P, *I;
 
+#ifdef USE_ITHREADS
   MUTEX_LOCK(&inc_mutex);
+#endif
   inc = perl_mongo_inc++;
+#ifdef USE_ITHREADS
   MUTEX_UNLOCK(&inc_mutex);
+#endif
 
   t = (unsigned) time(0);
 
