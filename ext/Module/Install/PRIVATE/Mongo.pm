@@ -16,7 +16,7 @@ BEGIN {
 # check for big-endian                                                                                                                                                                                                                
 my $endianess = $Config{byteorder};
 my $ccflags = "";
-if ($endianess == 4321) {
+if ($endianess == 4321 || $endianess == 87654321) {
     $ccflags = " -DMONGO_BIG_ENDIAN=1 ";
 }
 
