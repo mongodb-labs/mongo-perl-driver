@@ -21,13 +21,17 @@ MODULE = MongoDB::OID  PACKAGE = MongoDB::OID
 PROTOTYPES: DISABLE
 
 SV *
-_build_value (self, c_str)
-        const char *c_str;
+_build_value (self, oid_sv=NULL)
+        SV *oid_sv
     PREINIT:
         char id[12], oid[25];
     CODE:
-        if (c_str && strlen(c_str) == 24) {
-          memcpy(oid, c_str, 25);
+        if (oid_sv) {
+          if (sv_len(oid_sv) != 24)
+            croak("OIDs need to have a length of 24 bytes");
+
+          Copy(oid, SvPVX(oid_sv), 24, char);
+          oid[24] = '\0';
         }
         else {
           perl_mongo_make_id(id);

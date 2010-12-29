@@ -403,8 +403,6 @@ Port to use when connecting to right_host. Defaults to C<27017>.
 =cut
 
 
-sub CLONE_SKIP { 1 }
-
 sub AUTOLOAD {
     my $self = shift @_;
     our $AUTOLOAD;
@@ -737,7 +735,7 @@ C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
 =cut
 
 no Any::Moose;
-__PACKAGE__->meta->make_immutable (inline_destructor => 0);
+__PACKAGE__->meta->make_immutable;
 
 1;
 

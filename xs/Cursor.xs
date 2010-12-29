@@ -17,18 +17,81 @@
 #include "perl_mongo.h"
 #include "mongo_link.h"
 
+static int
+cursor_free (pTHX_ SV *sv, MAGIC *mg)
+{
+    mongo_cursor *cursor;
+
+    PERL_UNUSED_ARG(sv);
+
+    cursor = (mongo_cursor *)mg->mg_ptr;
+
+    if (cursor) {
+        if (cursor->buf.start) {
+          Safefree(cursor->buf.start);
+        }
+
+        Safefree(cursor);
+    }
+
+    mg->mg_ptr = NULL;
+
+    return 0;
+}
+
+static int
+cursor_clone (pTHX_ MAGIC *mg, CLONE_PARAMS *params)
+{
+    mongo_cursor *cursor, *new_cursor;
+    size_t buflen;
+
+    PERL_UNUSED_ARG (params);
+
+    cursor = (mongo_cursor *)mg->mg_ptr;
+
+    Newx(new_cursor, 1, mongo_cursor);
+    Copy(cursor, new_cursor, 1, mongo_cursor);
+
+    buflen = cursor->buf.end - cursor->buf.start;
+    Newx(new_cursor->buf.start, buflen, char);
+    Copy(cursor->buf.start, new_cursor->buf.start, buflen, char);
+    new_cursor->buf.end = new_cursor->buf.start + buflen;
+    new_cursor->buf.pos =
+	new_cursor->buf.start + (cursor->buf.pos - cursor->buf.start);
+
+    mg->mg_ptr = (char *)new_cursor;
+
+    return 0;
+}
+
+MGVTBL cursor_vtbl = {
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    cursor_free,
+#if MGf_COPY
+    NULL,
+#endif
+#if MGf_DUP
+    cursor_clone,
+#endif
+#if MGf_LOCAL
+    NULL,
+#endif
+};
+
 static mongo_cursor* get_cursor(SV *self);
 static int has_next(SV *self, mongo_cursor *cursor);
 static void kill_cursor(SV *self);
 
 static mongo_cursor* get_cursor(SV *self) {
-  SV *rubbish = perl_mongo_call_method(self, "_do_query", 0);
-  SvREFCNT_dec(rubbish);
-  return (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+  perl_mongo_call_method(self, "_do_query", G_DISCARD, 0);
+  return (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
 }
 
 static int has_next(SV *self, mongo_cursor *cursor) {
-  SV *link, *limit, *ns, *request_id, *response_to, *rubbish;
+  SV *link, *limit, *ns, *request_id, *response_to;
   mongo_msg_header header;
   buffer buf;
   int size, heard;
@@ -52,7 +115,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
 
   // we have to go and check with the db
   size = 34+strlen(SvPV_nolen(ns));
-  New(0, buf.start, size, char);
+  Newx(buf.start, size, char);
   buf.pos = buf.start;
   buf.end = buf.start + size;
 
@@ -62,8 +125,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   CREATE_RESPONSE_HEADER(buf, SvPV_nolen(ns), SvIV(response_to), OP_GET_MORE);
 
   // change this cursor's request id so we can match the response
-  rubbish = perl_mongo_call_method(self, "_request_id", 1, request_id);
-  SvREFCNT_dec(rubbish);
+  perl_mongo_call_method(self, "_request_id", G_DISCARD, 1, request_id);
   SvREFCNT_dec(response_to);
 
   perl_mongo_serialize_int(&buf, SvIV(limit));
@@ -93,7 +155,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
 
 
 static void kill_cursor(SV *self) {
-  mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+  mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
   SV *link = perl_mongo_call_reader (self, "_connection");
   SV *request_id_sv = perl_mongo_call_reader (self, "_request_id");
   char quickbuf[128];
@@ -138,20 +200,10 @@ _init (self)
     PREINIT:
         mongo_cursor *cursor;
     CODE:
-        New(0, cursor, 1, mongo_cursor);
-        cursor->started_iterating = 0;
-
-	// zero results fields
-	cursor->num = 0;
-	cursor->at = 0;
-
-        // clear the buf
-        cursor->buf.start = 0;
-        cursor->buf.pos = 0;
-        cursor->buf.end = 0;
+        Newxz(cursor, 1, mongo_cursor);
 
         // attach a mongo_cursor* to the MongoDB::Cursor
-        perl_mongo_attach_ptr_to_instance(self, cursor);
+        perl_mongo_attach_ptr_to_instance(self, cursor, &cursor_vtbl);
 
 
 
@@ -194,45 +246,30 @@ SV *
 reset (self)
         SV *self
     PREINIT:
-        SV *rubbish;
         mongo_cursor *cursor;
     CODE:
-        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
+        cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
         cursor->buf.pos = cursor->buf.start;
         cursor->at = 0;
         cursor->num = 0;
 
-	rubbish = perl_mongo_call_method (self, "started_iterating", 1, sv_2mortal(newSViv(0)));
-	SvREFCNT_dec(rubbish);
+        perl_mongo_call_method (self, "started_iterating", G_DISCARD, 1, &PL_sv_no);
 
 	RETVAL = SvREFCNT_inc(self);
     OUTPUT:
 	RETVAL
 
 void
-DESTROY (self)
+DEMOLISH (self, in_global_destruction)
       SV *self
   PREINIT:
-      mongo_cursor *cursor;
       mongo_link *link;
       SV *link_sv;
   CODE:
       link_sv = perl_mongo_call_reader(self, "_connection");
-      link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv);
+      link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
       // check if cursor is connected
       if (link->master && link->master->connected) {
           kill_cursor(self);
       }
       SvREFCNT_dec(link_sv);
-
-      cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self);
-
-      if (cursor) {
-
-        if (cursor->buf.start) {
-          Safefree(cursor->buf.start);
-        }
-
-        Safefree(cursor);
-      }
-

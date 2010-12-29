@@ -1,5 +1,4 @@
 Changes
-dist.ini
 ext/Module/Install/PRIVATE/Mongo.pm
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
@@ -33,6 +32,7 @@ mongo_link.c
 mongo_link.h
 perl_mongo.c
 perl_mongo.h
+ppport.h
 README
 t/auth.pl
 t/bson.t
@@ -47,6 +47,8 @@ t/input.txt
 t/memtest.pl
 t/paired.pl
 t/rs.pl
+t/threads/basic.t
+t/threads/cursor.t
 t/types.t
 xs/BSON.xs
 xs/Connection.xs

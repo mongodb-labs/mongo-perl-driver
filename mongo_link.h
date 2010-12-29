@@ -87,7 +87,7 @@
   perl_mongo_serialize_string(&buf, ns, strlen(ns));              
 
 #define CREATE_BUF(size)                                \
-  New(0, buf.start, size, char);                        \
+  Newx(buf.start, size, char);                          \
   buf.pos = buf.start;                                  \
   buf.end = buf.start + size;
 

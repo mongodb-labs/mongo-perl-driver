@@ -77,10 +77,9 @@ sub BUILDARGS {
 }
 
 sub build_value {
-    my ($self, $str) = @_;
-    $str = '' unless defined $str;
+    my $self = shift;
 
-    _build_value($self, $str);
+    _build_value($self, @_ ? @_ : ());
 }
 
 =head1 METHODS

@@ -204,8 +204,6 @@ has _request_id => (
 
 =cut
 
-sub CLONE_SKIP { 1 }
-
 sub _ensure_special {
     my ($self) = @_;
 
@@ -487,7 +485,7 @@ sub all {
 }
 
 no Any::Moose;
-__PACKAGE__->meta->make_immutable (inline_destructor => 0);
+__PACKAGE__->meta->make_immutable;
 
 1;
 
