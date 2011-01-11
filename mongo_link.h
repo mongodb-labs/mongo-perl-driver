@@ -21,6 +21,7 @@
 
 #ifdef WIN32
 #include <winsock2.h>
+#define socklen_t int
 #else
 #include <sys/types.h>
 #include <netinet/in.h>
