@@ -197,14 +197,7 @@ $coll->drop;
 my $keys = tie(my %idx, 'Tie::IxHash');
 %idx = ('sn' => 1, 'ts' => -1);
 
-eval {
-    $coll->ensure_index($keys, {safe => 1});
-};
-
-if ($@) {
-    use Data::Dumper;
-    ok(0, $@." ".Dumper($keys));
-}
+$coll->ensure_index($keys, {safe => 1});
 
 my @tied = $coll->get_indexes;
 is(scalar @tied, 2, 'num indexes');
