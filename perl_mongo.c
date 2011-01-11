@@ -1312,7 +1312,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
             case SVt_PVIV: 
             case SVt_PVLV:
             case SVt_PVMG: {
-              if (SvIOK(sv)) {
+              if (SvIOK(sv) || SvIOKp(sv)) {
 #if defined(USE_64_BIT_INT)
                 set_type(buf, BSON_LONG);
                 perl_mongo_serialize_key(buf, key, is_insert);
