@@ -147,17 +147,17 @@ the database C<foo>.  The calls made look like:
 
 =over
 
-=item C<$collection->insert($doc)>
+=item C<< $collection->insert($doc) >>
 
 Calls L<MongoDB::Database>'s implementation of C<insert>, passing along the
 collection name ("foo").
 
-=item C<$db->insert($name, $doc)>
+=item C<< $db->insert($name, $doc) >>
 
 Calls L<MongoDB::Connection>'s implementation of C<insert>, passing along the
 fully qualified namespace ("foo.bar").
 
-=item C<$connection->insert($ns, $doc)>
+=item C<< $connection->insert($ns, $doc) >>
 
 L<MongoDB::Connection> does the actual work and sends a message to the database.
 
