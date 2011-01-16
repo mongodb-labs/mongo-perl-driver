@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 55;
+    plan tests => 56;
 }
 
 my $db = $conn->get_database('x');
@@ -277,14 +277,27 @@ SKIP: {
     is($x->{y}, boolean::false);
 }
 
-# unrecognized obj
+# check blessed obj + attribute
 {
+    my $coll = $db->get_collection('test_collection');
+    $coll->drop;
+	# blessed hash
+	my $foo = bless { name=>'foo' }, 'Person';
+	$foo->{baz} = bless { name=>'boo', }, 'Something';
+	$coll->insert( $foo );
+	my $doc = $coll->find_one;
+	is( $doc->{baz}->{name}, 'boo', 'blessed hash-refs ok' );
+	$coll->drop;
+
+	# circularity
+	$foo->{circ} = $foo;
     eval {
-        $coll->insert({"x" => $coll});
+        $coll->insert( $foo );
     };
 
-    ok($@ =~ m/type \(MongoDB::Collection\) unhandled/, "can't insert a non-recognized obj: $@");
+    ok($@ =~ m/circular ref/, "can't insert a circular ref obj: $@");
 }
+
 
 END {
     if ($db) {

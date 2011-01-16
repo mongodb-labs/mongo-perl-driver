@@ -1266,6 +1266,12 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
                 perl_mongo_serialize_bindata(buf, SvRV(sv));
               }
             }
+            else if (SvTYPE (SvRV (sv)) == SVt_PVHV ) { /* blessed hash */
+				set_type(buf, BSON_OBJECT);
+				perl_mongo_serialize_key(buf, key, is_insert);
+				/* don't add a _id to inner objs */
+				hv_to_bson (buf, sv, NO_PREP, stack, is_insert);
+			}
             else {
                 croak ("type (%s) unhandled", HvNAME(SvSTASH(SvRV(sv))));
             }
