@@ -231,7 +231,17 @@ next (self)
 
           if (cursor->num == 1 &&
               hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))) {
-            SV **err = hv_fetch((HV*)SvRV(RETVAL), "$err", strlen("$err"), 0);
+            SV **err = 0, **code = 0;
+
+            err = hv_fetch((HV*)SvRV(RETVAL), "$err", strlen("$err"), 0);
+            code = hv_fetch((HV*)SvRV(RETVAL), "code", strlen("code"), 0);
+            
+            if (code && SvIOK(*code) &&
+                (SvIV(*code) == 10107 || SvIV(*code) == 13435 || SvIV(*code) == 13436)) {
+              SV *conn = perl_mongo_call_method (self, "_connection", 0, 0);
+              set_disconnected(conn);
+            }
+            
             croak("query error: %s", SvPV_nolen(*err));
           }
 	} else {
