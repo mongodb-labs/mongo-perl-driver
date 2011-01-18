@@ -665,7 +665,7 @@ void perl_mongo_serialize_int(buffer *buf, int num) {
 
 void perl_mongo_serialize_long(buffer *buf, int64_t num) {
   int64_t i = MONGO_64(num);
-
+ 
   if(BUF_REMAINING <= INT_64) {
     perl_mongo_resize_buf(buf, INT_64);
   }
@@ -866,6 +866,10 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
     HE *he;
     HV *hv;
 
+    if (BUF_REMAINING <= 5) {
+      perl_mongo_resize_buf(buf, 5);
+    }
+
     /* keep a record of the starting position
      * as an offset, in case the memory is resized */
     start = buf->pos-buf->start;
@@ -933,6 +937,10 @@ av_to_bson (buffer *buf, AV *av, stackette *stack, int is_insert)
     if (!(stack = check_circular_ref(av, stack))) {
         Safefree(buf->start);
         croak("circular ref");
+    }
+
+    if (BUF_REMAINING <= 5) {
+      perl_mongo_resize_buf(buf, 5);
     }
 
     start = buf->pos-buf->start;

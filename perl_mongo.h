@@ -114,7 +114,8 @@ typedef struct _stackette {
 
 #define EMPTY_STACK 0
 
-#define BUF_REMAINING ((size_t)(buf->end-buf->pos))
+// it's safer to leave this signed in case there are any other missing BUF_REMAININGs
+#define BUF_REMAINING (buf->end-buf->pos)
 #define set_type(buf, type) perl_mongo_serialize_byte(buf, (char)type)
 #define perl_mongo_serialize_null(buf) perl_mongo_serialize_byte(buf, (char)0)
 #define perl_mongo_serialize_bool(buf, b) perl_mongo_serialize_byte(buf, (char)b)
