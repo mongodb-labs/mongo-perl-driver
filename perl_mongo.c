@@ -970,6 +970,10 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
     SV **keys_sv, **values_sv;
     AV *array, *keys, *values;
     
+    if (BUF_REMAINING <= 5) {
+      perl_mongo_resize_buf(buf, 5);
+    }
+
     /* skip 4 bytes for size */
     start = buf->pos-buf->start;
     buf->pos += INT_32;
@@ -1210,6 +1214,10 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
               set_type(buf, BSON_CODE);
               perl_mongo_serialize_key(buf, key, is_insert);
 
+              if (BUF_REMAINING <= INT_32) {
+                perl_mongo_resize_buf(buf, INT_32);
+              }
+
               start = buf->pos-buf->start;
               buf->pos += INT_32;
 
@@ -1431,6 +1439,11 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids)
             
             if ((av_len (av) % 2) == 0) {
                 croak ("odd number of elements in structure");
+            }
+
+            // this should never come up
+            if (BUF_REMAINING <= 5) {
+                perl_mongo_resize_buf(buf, 5);
             }
             
             start = buf->pos-buf->start;
