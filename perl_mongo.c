@@ -37,6 +37,13 @@ static int perl_mongo_inc = 0;
 
 int perl_mongo_machine_id;
 
+#ifdef WIN32
+void
+perl_mongo_mutex_init() {
+  MUTEX_INIT(&inc_mutex);
+}
+#endif
+
 void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark)
 {
