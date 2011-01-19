@@ -40,4 +40,4 @@ requires:
 resources:
   license: http://apache.org/licenses/LICENSE-2.0
   repository: git://github.com/mongodb/mongo-perl-driver.git
-version: 0.40
+version: 0.41
