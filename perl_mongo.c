@@ -814,7 +814,10 @@ void perl_mongo_make_id(char *id) {
 
   memcpy(data+4, M, 3);
   memcpy(data+7, P, 2);
-  memcpy(data+9, I, 3);
+
+  data[9] = I[2];
+  data[10] = I[1];
+  data[11] = I[0];//  memcpy(data+9, I, 3);
 #endif
 }
 

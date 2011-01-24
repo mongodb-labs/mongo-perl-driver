@@ -17,8 +17,12 @@ my @oids = map { @{ $_->join } } @threads;
 
 my @inc = sort { $a <=> $b }  map {
     unpack 'v', (pack('H*', $_) . '\0')
-} map { substr $_, 18 } @oids;
+} map { substr $_, 20 } @oids;
 
-is_deeply [@inc], [0 .. 39], 'strictly ascending inc parts in OIDs';
+my $prev = -1;
+for (@inc) {
+    ok($prev < $_);
+    $prev = $_;
+}
 
 done_testing;
