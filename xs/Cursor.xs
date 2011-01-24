@@ -270,7 +270,7 @@ reset (self)
 	RETVAL
 
 void
-DEMOLISH (self, in_global_destruction)
+DESTROY (self)
       SV *self
   PREINIT:
       mongo_link *link;
