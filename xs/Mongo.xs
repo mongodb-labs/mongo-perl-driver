@@ -41,9 +41,7 @@ BOOT:
         gv_fetchpv("MongoDB::BSON::char",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::utf8_flag_on",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::use_boolean",  GV_ADDMULTI, SVt_IV);
-#ifdef WIN32
         perl_mongo_mutex_init();
-#endif
 
 void
 write_query(ns, opts, skip, limit, query, fields = 0)
