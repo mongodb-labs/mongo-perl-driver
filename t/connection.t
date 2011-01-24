@@ -28,7 +28,7 @@ throws_ok {
 } qr/couldn't connect to server/, 'exception on connection failure';
 
 SKIP: {
-    skip "connecting to default host/port won't work with a remote db", 7 if exists $ENV{MONGOD};
+    skip "connecting to default host/port won't work with a remote db", 6 if exists $ENV{MONGOD};
 
     lives_ok {
         $conn = MongoDB::Connection->new;
