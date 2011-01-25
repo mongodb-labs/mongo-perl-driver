@@ -24,7 +24,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 35;
+    plan tests => 36;
 }
 
 my $db = $conn->get_database('foo');
@@ -230,6 +230,21 @@ package main;
 {
     my $date = DateTime->new(year => 2010, time_zone => "floating");
     $c->insert({"date" => $date});
+}
+
+# half-conversion to int type
+{
+    $c->drop;
+
+    my $var = 'zzz';
+    # don't actually change it to an int, but add pIOK flag
+    $var = int($var) if (int($var) eq $var);
+
+    $c->insert({'key' => $var});
+    my $v = $c->find_one;
+    
+    # make sure it was saved as string
+    is($v->{'key'}, 'zzz');
 }
 
 
