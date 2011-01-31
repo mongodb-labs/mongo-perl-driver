@@ -39,3 +39,93 @@ then do:
 where example.com is the hostname for your machine running mongod.  The driver 
 will use the value of $ENV{MONGOD} as the host if you provide it, otherwise it 
 will try to connect to localhost.
+
+
+A Full List of Required Packages
+--------------------------------
+
+MongoDB
+ - Test::Exception
+ --- Sub::Uplevel
+ - Module::Build
+ --- CPAN::Meta::YAML
+ --- ExtUtils::ParseXS
+ ----- ExtUtils::CBuilder
+ ------- File::Spec
+ ------- IPC::Cmd
+ --------- Module::Load::Conditional
+ ----------- Module::CoreList
+ ----------- Module::Load
+ --------- Params::Check
+ ----------- Locale::Maketext::Simple
+ --- Perl::OSType
+ --- version
+ --- Module::Metadata
+ --- IO::File*
+ --- Archive::Tar*
+ ----- Compress::Zlib
+ ------- Compress::Raw::Bzip2
+ ------- Compress::Raw::Zlib
+ ----- IO::Compress::Base
+ ----- IO::Compress::Bzip2
+ ----- IO::Compress::Gzip
+ ----- IO::Zlib
+ ----- Package::Constants
+ ----- Text::Diff*
+ ------- Algorithm::Diff 1.9
+ --- Module::Signature*
+ ----- Crypt::OpenPGP*
+ --- Pod::Readme*
+ ----- Pod::Text
+ ------- Pod::Simple
+ --------- Pod::Escapes
+ --------- Test
+ ----- Regexp::Commmon
+ --- ExtUtils::Install*
+ --- ExtUtils::Installed*
+ - Any::Moose
+ --- Moose
+ ----- Class::MOP
+ ------- Data::OptList
+ ------- Devel::GlobalDestruction
+ --------- Scope::Guard
+ ------- MRO::Compat
+ --------- Class::C3
+ ----------- Algorithm::C3
+ ------- Package::Stash
+ --------- Dist::CheckConflicts
+ ----------- Sub::Exporter
+ ------------- Data::OpList
+ --------- Package::DeprecationManager
+ ----------- List::MoreUtils
+ ----------- Params::Util
+ ----------- Sub::Install
+ --------- Package::Stash::XS
+ ------- Sub::Name
+ ------- Task::Weaken
+ --------- Scalar::Util
+ ------- Test::Fatal
+ --------- Exporter
+ ------- Test::Requires
+ ------- Try::Tiny
+OR Any::Moose with Mouse:
+ --- Mouse
+ ----- Devel::PPPort
+ ----- XSLoader
+ --- Class::Method::Modifiers
+ - Digest::MD5
+ - Tie::IxHash
+ - DateTime
+ --- DateTime::Locale
+ --- DateTime::Timezone
+ ----- Class::Load
+ ----- Class:Singleton
+ ----- parent
+ --- Params::Validate
+ ----- Attribute::Handlers
+ - boolean
+ - Data::Types
+ --- Test::Pod
+ - File::Slurp
+ - JSON
+ - File::Temp .17
