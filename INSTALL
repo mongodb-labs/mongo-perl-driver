@@ -129,3 +129,14 @@ OR Any::Moose with Mouse:
  - File::Slurp
  - JSON
  - File::Temp .17
+ - inc::Module::Install
+ --- File::Remove
+ --- LWP::UserAgent
+ ----- HTML::Parser
+ ------- HTML::Tagset
+ ----- URI
+ --- Module::ScanDeps
+ --- PAR::Dist
+ --- Parse::CPAN::Meta
+ ----- JSON::PP
+ --- YAML::Tiny
