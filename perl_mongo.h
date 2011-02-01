@@ -47,11 +47,16 @@ typedef __int64 int64_t;
 #endif
 
 #if MONGO_BIG_ENDIAN
+
 #define BYTE1_32(b) ((b & 0xff000000) >> 24)
 #define BYTE2_32(b) ((b & 0x00ff0000) >> 8)
 #define BYTE3_32(b) ((b & 0x0000ff00) << 8)
 #define BYTE4_32(b) ((b & 0x000000ff) << 24)
+
 #define MONGO_32(b) (BYTE4_32(b) | BYTE3_32(b) | BYTE2_32(b) | BYTE1_32(b))
+
+#define MONGO_32p(b) (((int)((unsigned char)b[0])) | ((int)((unsigned char)b[1]) << 8) | \
+                      ((int)((unsigned char)b[2]) << 16) | ((int)((unsigned char)b[3]) << 24))
 
 #define BYTE1_64(b) ((b & 0xff00000000000000ll) >> 56)
 #define BYTE2_64(b) ((b & 0x00ff000000000000ll) >> 40)
@@ -61,11 +66,21 @@ typedef __int64 int64_t;
 #define BYTE6_64(b) ((b & 0x0000000000ff0000ll) << 24)
 #define BYTE7_64(b) ((b & 0x000000000000ff00ll) << 40)
 #define BYTE8_64(b) ((b & 0x00000000000000ffll) << 56)
-#define MONGO_64(b) (BYTE8_64(b) | BYTE7_64(b) | BYTE6_64(b) | BYTE5_64(b) | BYTE4_64(b) | BYTE3_64(b) | BYTE2_64(b) | BYTE1_64(b))
+
+#define MONGO_64(b) (BYTE8_64(b) | BYTE7_64(b) | BYTE6_64(b) | BYTE5_64(b) | \
+                     BYTE4_64(b) | BYTE3_64(b) | BYTE2_64(b) | BYTE1_64(b))
+
+#define MONGO_64p(b) (((int64_t)((unsigned char)b[0])) | ((int64_t)((unsigned char)b[1]) << 8) | \
+                      ((int64_t)((unsigned char)b[2]) << 16) | ((int64_t)((unsigned char)b[3]) << 24) | \
+                      ((int64_t)((unsigned char)b[4]) << 32) | ((int64_t)((unsigned char)b[5]) << 40) | \
+                      ((int64_t)((unsigned char)b[6]) << 48) | ((int64_t)((unsigned char)b[7]) << 56))
 
 #else
 #define MONGO_32(b) (b)
+#define MONGO_32p(b) *((int*)(b))
+
 #define MONGO_64(b) (b)
+#define MONGO_64p(b) *((int64_t*)(b))
 #endif
 
 

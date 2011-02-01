@@ -309,13 +309,10 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_DOUBLE: {
-    double d = *(double*)buf->pos;
-    int64_t i, *i_p;
-    i_p = &i;
+    int64_t i = MONGO_64p(buf->pos);
+    double d;
 
-    memcpy(i_p, &d, DOUBLE_64);
-    i = MONGO_64(i);
-    memcpy(&d, i_p, DOUBLE_64);
+    memcpy(&d, &i, DOUBLE_64);
  
     value = newSVnv(d);
     buf->pos += DOUBLE_64;
@@ -323,7 +320,7 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_SYMBOL:
   case BSON_STRING: {
-    int len = MONGO_32(*((int*)buf->pos));
+    int len = MONGO_32p(buf->pos);
     buf->pos += INT_32;
 
     // this makes a copy of the buffer
@@ -346,7 +343,7 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_BINARY: {
-    int len = MONGO_32(*(int*)buf->pos);
+    int len = MONGO_32p(buf->pos);
     char type;
 
     buf->pos += INT_32;
@@ -355,7 +352,7 @@ elem_to_sv (int type, buffer *buf)
     type = *buf->pos++;
 
     if (type == 2) {
-      int len2 = MONGO_32(*(int*)buf->pos);
+      int len2 = MONGO_32p(buf->pos);
       if (len2 == len - 4) {
         len = len2;
         buf->pos += INT_32;
@@ -406,21 +403,21 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_INT: {
-    value = newSViv(MONGO_32(*((int*)buf->pos)));
+    value = newSViv(MONGO_32p(buf->pos));
     buf->pos += INT_32;
     break;
   }
   case BSON_LONG: {
 #if defined(USE_64_BIT_INT)
-    value = newSViv(MONGO_64(*((int64_t*)buf->pos)));
+    value = newSViv(MONGO_64p(buf->pos));
 #else
-    value = newSVnv((double)MONGO_64(*((int64_t*)buf->pos)));
+    value = newSVnv((double)MONGO_64p(buf->pos)));
 #endif
     buf->pos += INT_64;
     break;
   }
   case BSON_DATE: {
-    int64_t ms_i = MONGO_64(*(int64_t*)buf->pos);
+    int64_t ms_i = MONGO_64p(buf->pos);
     SV *datetime, *ms, **heval;
     HV *named_params;
     buf->pos += INT_64;
@@ -511,7 +508,7 @@ elem_to_sv (int type, buffer *buf)
       buf->pos += INT_32;
     }
 
-    code_len = MONGO_32(*(int*)buf->pos);
+    code_len = MONGO_32p(buf->pos);
     buf->pos += INT_32;
 
     code = sv_2mortal(newSVpvn(buf->pos, code_len-1));
@@ -532,9 +529,9 @@ elem_to_sv (int type, buffer *buf)
     SV *sec_sv, *inc_sv;
     int sec, inc;
 
-    inc = MONGO_32(*(int*)buf->pos);
+    inc = MONGO_32p(buf->pos);
     buf->pos += INT_32;
-    sec = MONGO_32(*(int*)buf->pos);
+    sec = MONGO_32p(buf->pos);
     buf->pos += INT_32;
 
     sec_sv = sv_2mortal(newSViv(sec));
