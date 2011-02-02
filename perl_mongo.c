@@ -1317,8 +1317,8 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         }
     } else {
         int is_string = 0;
-#if PERL_REVISION==5 && PERL_VERSION<=8
-        /* Flags usage changed in Perl 5.10.  In Perl 5.8, there is no way to
+#if PERL_REVISION==5 && PERL_VERSION<=10
+        /* Flags usage changed in Perl 5.10.1.  In Perl 5.8, there is no way to
            tell from flags whether something is a string or an int!
            Therefore, for 5.8, we check:
            
