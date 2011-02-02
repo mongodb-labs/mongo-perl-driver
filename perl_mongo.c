@@ -1316,11 +1316,32 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
             }
         }
     } else {
+        int is_string = 0;
+#if PERL_REVISION==5 && PERL_VERSION<=8
+        /* Flags usage changed in Perl 5.10.  In Perl 5.8, there is no way to
+           tell from flags whether something is a string or an int!
+           Therefore, for 5.8, we check:
+           
+           if (isString(sv) and number(sv) == 0 and string(sv) != '0') {
+               return string;
+           }
+           else {
+               return number;
+           }
+           
+           This will incorrectly return '0' as a number in 5.8.
+        */
+        if (SvPOK(sv) && ((SvNOK(sv) && SvNV(sv) == 0) ||
+                          (SvIOK(sv) && SvIV(sv) == 0)) &&
+            strcmp(SvPV_nolen(sv), "0") != 0) {
+            is_string = 1;
+        }
+#endif
         switch (SvTYPE (sv)) {
 	    /* double */
             case SVt_NV: 
             case SVt_PVNV: {
-              if (SvNOK(sv)) {
+              if (!is_string && SvNOK(sv)) {
                 set_type(buf, BSON_DOUBLE);
                 perl_mongo_serialize_key(buf, key, is_insert);
                 perl_mongo_serialize_double(buf, (double)SvNV (sv));
@@ -1333,7 +1354,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
             case SVt_PVLV:
             case SVt_PVMG: {
               // if it's publicly an int OR (privately an int AND not publicly a string)
-              if (SvIOK(sv) || (SvIOKp(sv) && !SvPOK(sv))) {
+              if (!is_string && (SvIOK(sv) || (SvIOKp(sv) && !SvPOK(sv)))) {
 #if defined(USE_64_BIT_INT)
                 set_type(buf, BSON_LONG);
                 perl_mongo_serialize_key(buf, key, is_insert);
