@@ -411,7 +411,7 @@ elem_to_sv (int type, buffer *buf)
 #if defined(USE_64_BIT_INT)
     value = newSViv(MONGO_64p(buf->pos));
 #else
-    value = newSVnv((double)MONGO_64p(buf->pos)));
+    value = newSVnv((double)MONGO_64p(buf->pos));
 #endif
     buf->pos += INT_64;
     break;
