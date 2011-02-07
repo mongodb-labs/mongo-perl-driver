@@ -1,3 +1,8 @@
+0.42
+
+  - Fixes for Sparc architecture
+  - Fixed PVIV misinterpretations
+
 0.41
 
   - Re-discover master on "not master" errors
