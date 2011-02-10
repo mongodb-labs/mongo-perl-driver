@@ -107,12 +107,12 @@ MongoDB
  ------- Test::Fatal
  --------- Exporter
  ------- Test::Requires
- ------- Try::Tiny
 OR Any::Moose with Mouse:
  --- Mouse
  ----- Devel::PPPort
  ----- XSLoader
  --- Class::Method::Modifiers
+ - Try::Tiny
  - Digest::MD5
  - Tie::IxHash
  - DateTime
