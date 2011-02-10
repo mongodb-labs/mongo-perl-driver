@@ -141,11 +141,11 @@ As queries are hashes, they use a special syntax to express comparisons, such as
 "x < 4".  To make the query a valid hash, Mongo uses $-prefixed terms.  For 
 example, "x < 4" could be expressed by:
 
-    my $doc321 = $collection->query({'x' => { '$lt' => 4 }});
+    my $doc321 = $collection->find({'x' => { '$lt' => 4 }});
 
 Comparison operators can be combined to get a range:
 
-    my $doc32 = $collection->query({'x' => { '$gte' => 2, '$lt' => 4 }});
+    my $doc32 = $collection->find({'x' => { '$gte' => 2, '$lt' => 4 }});
 
 
 =head3 Cursors
