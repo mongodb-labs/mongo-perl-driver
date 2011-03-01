@@ -17,6 +17,7 @@
   - Attempting to serialize unrecognized object types now croaks
   - MongoDB::Cursor::explain now resets cursor properly
   - Added BSON::encode_bson and BSON::decode_bson (Jason Toffaletti)
+  - Safe writes return a hash of information instead of 1 (on success)
   - Improved last_error/safe docs
   - Fixed doc spelling errors (Stefan Hornburg)
 
