@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 64;
+    plan tests => 70;
 }
 
 my $db = $conn->get_database('test_database');
@@ -226,7 +226,6 @@ is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
 
 # explain
 {
-    use Data::Dumper;
     $coll->drop;
 
     $coll->insert({"x" => 1});
@@ -242,6 +241,25 @@ is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
     is($doc->{'x'}, 1);
 }
 
+# info
+{
+    my $cursor = $coll->find;
+    my $count = $coll->count;
+
+    my $info = $cursor->info;
+    is($info->{'num'}, 0);
+
+    $cursor->has_next;
+    $info = $cursor->info;
+    is($info->{'at'}, 0);
+    is($info->{'num'}, $count);
+    is($info->{'start'}, 0);
+    is($info->{'cursor_id'}, 0);
+
+    $cursor->next;
+    $info = $cursor->info;
+    is($info->{'at'}, 1);
+}
 
 END {
     if ($db) {

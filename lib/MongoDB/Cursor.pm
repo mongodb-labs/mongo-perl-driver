@@ -464,6 +464,37 @@ Checks if there is another result to fetch.
 Returns the next object in the cursor. Will automatically fetch more data from
 the server if necessary. Returns undef if no more data is available.
 
+=head2 info
+
+Returns a hash of information about this cursor.  Currently the fields are:
+
+=over 4
+
+=item C<cursor_id>
+
+The server-side id for this cursor.  A C<cursor_id> of 0 means that there are no
+more batches to be fetched.
+
+=item C<num>
+
+The number of results returned so far.
+
+=item C<at>
+
+The index of the result the cursor is currently at.
+
+=item C<flag>
+
+If the database could not find the cursor or another error occurred, C<flag> may
+be set (depending on the error).  
+See L<http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol#MongoWireProtocol-OPREPLY>
+for a full list of flag values.
+
+=item C<start>
+
+The index of the result that the current batch of results starts at.
+
+=back
 
 =head2 all
 
