@@ -231,7 +231,7 @@ To create a unique id:
 
 To create a MongoDB::OID from an existing 24-character hexidecimal string:
 
-    my $oid = MongoDB::OID->new("123456789012345678901234");
+    my $oid = MongoDB::OID->new("value" => "123456789012345678901234");
 
 =head2 Binary Data
 
