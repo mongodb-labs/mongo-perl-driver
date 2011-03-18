@@ -52,7 +52,7 @@ SKIP: {
     } 'extra comma';
 
     lives_ok {
-        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27018,localhost:27019,localhost");
+        my $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27018,localhost:27019,localhost");
     } 'last in line';
 }
 
