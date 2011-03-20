@@ -4,25 +4,16 @@ use Test::More;
 
 use MongoDB;
 
-my $port = 27272;
-my $started = start_mongod($port);
+use FindBin;
+use lib $FindBin::Bin;
+use MongoDB_TestUtils;
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::Connection->new(
-        host => $host,
-        port => $port,
-        auto_reconnect => 1
-    );
-};
+my $started = restart_mongod();
+my $conn    = mconnect();
 
 ($@ || !$started)
     ? plan skip_all => ($@ || "couldn't start mongod")
-    : plan tests => 4;
+    : plan tests => 7;
 
 isa_ok( $conn,'MongoDB::Connection' );
 
@@ -33,33 +24,19 @@ my $cl = $db->foo;
 isa_ok($cl, 'MongoDB::Collection', 'foo collection, initial connection');
 
 my $id = $cl->insert({ pre => 'stop' });
-note $id;
+inserted_ok($cl,$id);
 
-stop_mongod();
-start_mongod($port);
-
-$cl = $db->foo;
-isa_ok($db, 'MongoDB::Collection', 'bar collection, auto reconnected');
+restart_mongod();
 
 $id = $cl->insert({ post => 'reconnect' });
-note $id;
+inserted_ok($cl,$id);
 
-stop_mongod();
+fail $@ if $@;
 
-sub start_mongod {
+sub inserted_ok {
 
-    my ($port) = @_;
+    my ($cl, $id) = @_;
 
-    my $cmd = "mongod --dbpath . --port $port --fork --logpath mongod.log";
-    system $cmd;
-    sleep 3;
-    return !$?;
-}
-
-sub stop_mongod {
-
-    open(my $fh,'<','mongod.lock') || fail "couldn't open mongod.lock file";
-    my $pid = <$fh>;
-    system "kill $pid";
-    sleep 3;
+    ok($cl->find({_id => $id}), "$id inserted (find)");
+    ok($cl->find_one({_id => $id}), "$id inserted (find_one)");
 }
