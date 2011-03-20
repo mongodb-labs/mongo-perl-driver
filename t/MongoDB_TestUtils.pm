@@ -15,7 +15,7 @@ sub pidfilepath { dbpath() . '/md.pid' }
 
 sub restart_mongod {
 
-    stop_mongod() && start_mongod() && return 1;
+    stop_mongod(@_) && start_mongod(@_) && return 1;
     return 0;
 }
 
