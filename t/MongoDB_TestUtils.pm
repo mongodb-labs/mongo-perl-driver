@@ -55,10 +55,11 @@ sub stop_mongod {
 
 sub mconnect {
 
+    my $port = shift || port();
     return eval {
         MongoDB::Connection->new(
             host => $ENV{MONGOD} || host(),
-            port => port(),
+            port => $port,
             auto_reconnect => 1
         );
     };
