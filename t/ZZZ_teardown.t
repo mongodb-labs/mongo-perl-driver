@@ -8,8 +8,7 @@ use MongoDB_TestUtils;
 
 plan tests => 2;
 
-# if mongod isn't running then [try to] start it up, otherwise
-# all tests get skipped, which isn't much use
+# stop any mongod's we started
 for my $port ( 27017,port() ) {
 
     mconnect($port)
