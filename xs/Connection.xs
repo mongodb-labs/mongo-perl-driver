@@ -229,17 +229,17 @@ send(self, str)
      CODE:
          RETVAL = mongo_link_say(self, &buf);
          if (RETVAL == -1) {
-           die("can't get db response, not connected");
+           croak("can't get db response, not connected");
          }
      OUTPUT:
          RETVAL
 
 
 void
-recv(self, cursor)
+recv(self, cursor, int reconnect_fatal)
          SV *cursor
      CODE:
-         mongo_link_hear(cursor);
+         mongo_link_hear(cursor, reconnect_fatal);
 
 
 void

@@ -723,7 +723,7 @@ Low-level function to send a string directly to the database.  Use
 L<MongoDB::write_insert>, L<MongoDB::write_update>, L<MongoDB::write_remove>, or
 L<MongoDB::write_query> to create a valid string.
 
-=head2 recv(\%info)
+=head2 recv(\%info,$croak_on_reconnect)
 
     my $cursor = $conn->recv({ns => "foo.bar"});
 
@@ -731,6 +731,10 @@ Low-level function to receive a response from the database. Returns a
 C<MongoDB::Cursor>.  At the moment, the only required field for C<$info> is 
 "ns", although "request_id" is likely to be required in the future.  The 
 C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
+
+C<$croak_on_reconnect> does exactly that - if you have called send and then
+a reconnect needs to take place to recv, you probably want to croak on that
+reconnect because you will not receive any response and end up timing out
 
 =cut
 

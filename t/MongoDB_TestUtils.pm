@@ -30,7 +30,10 @@ sub start_mongod {
         . "--port $port "
         . "--pidfilepath $pidfile "
         . "--fork "
-        . "--logpath $dbpath/mongod.log";
+        . "--logpath $dbpath/mongod.log "
+        . "-vvvvv "
+        . " >/dev/null 2>&1"
+    ;
 
     #print $cmd;
     system $cmd;
@@ -43,6 +46,12 @@ sub start_mongod {
 sub stop_mongod {
 
     my $pidfilepath = shift || pidfilepath();
+    my $dbpath      = shift || dbpath();
+
+    $pidfilepath = "$dbpath/mongod.lock"
+        if -z $pidfilepath;
+
+    return 1 unless -e $pidfilepath;
 
     open(my $fh, '<', $pidfilepath) || return 0;
     my $pid = <$fh>;
