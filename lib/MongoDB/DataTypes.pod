@@ -17,8 +17,8 @@ documentation (L<http://api.mongodb.org>).
 
 For example, it is perfectly valid to have some records where the field "foo" is 
 123 (integer) and other records where "foo" is "123" (string).  Thus, you must
-query for the correct type.  If you save C<{"foo" =&gt; "123"}>, you cannot query 
-for it with C<{"foo" =&gt; 123}>.  MongoDB is strict about types.
+query for the correct type.  If you save C<{"foo" =E<gt>; "123"}>, you cannot query 
+for it with C<{"foo" =E<gt> 123}>.  MongoDB is strict about types.
 
 If the type of a field is ambiguous and important to your application, you 
 should document what you expect the application to send to the database and 
