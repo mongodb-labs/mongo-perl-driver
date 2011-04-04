@@ -7,7 +7,9 @@ MongoDB::DataTypes - The data types used with MongoDB
 
 =head1 DESCRIPTION
 
-This goes over the types you can save to the database and use for queries.
+This goes over the types you can save to the database and use for queries in the
+Perl driver.  If you are using another language, please refer to that language's
+documentation (L<http://api.mongodb.org>).
 
 =head1 NOTES FOR SQL PROGRAMMERS
 
@@ -15,8 +17,8 @@ This goes over the types you can save to the database and use for queries.
 
 For example, it is perfectly valid to have some records where the field "foo" is 
 123 (integer) and other records where "foo" is "123" (string).  Thus, you must
-query for the correct type.  If you save C<{"foo" => "123"}>, you cannot query 
-for it with C<{"foo" => 123}>.  MongoDB is strict about types.
+query for the correct type.  If you save C<{"foo" =&gt; "123"}>, you cannot query 
+for it with C<{"foo" =&gt; 123}>.  MongoDB is strict about types.
 
 If the type of a field is ambiguous and important to your application, you 
 should document what you expect the application to send to the database and 
@@ -103,7 +105,7 @@ An example of querying for a range of dates:
 
     my $cursor = $collection->query({event => {'$gt' => $start, '$lt' => $end}});
 
-B<Warning: creating L<DateTime> objects is extremely slow.  Consider saving 
+B<Warning: creating Perl L<DateTime> objects is extremely slow.  Consider saving 
 dates as numbers and converting the numbers to L<DateTime>s when needed.  A single
 L<DateTime> field can make deserialization up to 10 times slower.>
 
@@ -310,3 +312,6 @@ seconds.  So, to represent this document in Perl, we would do:
         "o" => {}
     }
 
+Timestamps are not dates.  You should not use them unless you are doing 
+something low-level with replication.  To save dates or times, use a number or
+L<DateTime>.
