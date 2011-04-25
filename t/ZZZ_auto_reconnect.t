@@ -42,6 +42,8 @@ $id = $cl->insert({ post => 'reconnect' },{ safe => 1 });
 restart_mongod();
 inserted_ok($cl,$id);
 
+stop_mongod();
+
 sub inserted_ok {
 
     my ($cl, $id) = @_;
