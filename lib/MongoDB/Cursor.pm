@@ -139,6 +139,15 @@ results have been fetched or it goes out of scope in Perl.
 
 Boolean value, defaults to 0.
 
+C<immortal> is not equivalent to setting a client-side timeout.  If you are 
+getting client-side timeouts (e.g., "recv timed out"), set C<query_timeout> on 
+your connection.
+
+    # wait forever for a query to return results
+    $connection->query_timeout(-1);
+
+See L<MongoDB::Connection/query_timeout>.
+
 =cut
 
 has immortal => (
