@@ -1,3 +1,7 @@
+0.43
+
+  - Added support for Perl 5.14 regexes (Chip Salzenberg)
+
 0.42
 
   - Fixes for Sparc architecture

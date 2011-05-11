@@ -448,7 +448,11 @@ elem_to_sv (int type, buffer *buf)
     while(*(buf->pos) != 0) {
       switch(*(buf->pos)) {
       case 'l':
+#if PERL_REVISION==5 && PERL_VERSION<=12
         flags |= PMf_LOCALE;
+#else
+        set_regex_charset(&flags, REGEX_LOCALE_CHARSET);
+#endif
         break;
       case 'm':
         flags |= PMf_MULTILINE;
