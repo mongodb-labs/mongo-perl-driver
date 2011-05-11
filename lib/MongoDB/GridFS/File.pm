@@ -21,6 +21,7 @@ our $VERSION = '0.42';
 
 use Any::Moose;
 use MongoDB::GridFS;
+use IO::File;
 
 =head1 NAME
 
