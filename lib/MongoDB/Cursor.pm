@@ -36,7 +36,7 @@ MongoDB::Cursor - A cursor/iterator for Mongo query results
 
 =head2 Multithreading
 
-Cloning instances of this class is disabled in Perl 5.8.7+, so forked threads 
+Cloning instances of this class is disabled in Perl 5.8.7+, so forked threads
 will have to create their own database queries.
 
 =head1 SEE ALSO
@@ -67,7 +67,7 @@ How many milliseconds to wait for a response from the server.  Set to 30000
 (30 seconds) by default.  -1 waits forever (or until TCP times out, which is
 usually a long time).
 
-This value is overridden by C<MongoDB::Connection::query_timeout> and never 
+This value is overridden by C<MongoDB::Connection::query_timeout> and never
 used.
 
 =cut
@@ -133,14 +133,14 @@ has _skip => (
     $cursor->immortal(1);
 
 Ordinarily, a cursor "dies" on the database server after a certain length of
-time (approximately 10 minutes), to prevent inactive cursors from hogging 
+time (approximately 10 minutes), to prevent inactive cursors from hogging
 resources.  This option sets that a cursor should not die until all of its
 results have been fetched or it goes out of scope in Perl.
 
 Boolean value, defaults to 0.
 
-C<immortal> is not equivalent to setting a client-side timeout.  If you are 
-getting client-side timeouts (e.g., "recv timed out"), set C<query_timeout> on 
+C<immortal> is not equivalent to setting a client-side timeout.  If you are
+getting client-side timeouts (e.g., "recv timed out"), set C<query_timeout> on
 your connection.
 
     # wait forever for a query to return results
@@ -163,7 +163,7 @@ has immortal => (
 
 If a cursor should be tailable.  Tailable cursors can only be used on capped
 collections and are similar to the C<tail -f> command: they never die and keep
-returning new results as more is added to a collection.  
+returning new results as more is added to a collection.
 
 They are often used for getting log messages.
 
@@ -269,7 +269,7 @@ sub _do_query {
     $obj->{name}; "Fred"
     $obj->{age}; # undef
 
-Selects which fields are returned. 
+Selects which fields are returned.
 The default is all fields.  _id is always returned.
 
 =cut
@@ -278,7 +278,7 @@ sub fields {
     my ($self, $f) = @_;
     confess "cannot set fields after querying"
 	if $self->started_iterating;
-    confess 'not a hash reference' 
+    confess 'not a hash reference'
 	unless ref $f eq 'HASH';
 
     $self->_fields($f);
@@ -301,7 +301,7 @@ sub sort {
     my ($self, $order) = @_;
     confess "cannot set sort after querying"
 	if $self->started_iterating;
-    confess 'not a hash reference' 
+    confess 'not a hash reference'
 	unless ref $order eq 'HASH' || ref $order eq 'Tie::IxHash';
 
     $self->_ensure_special;
@@ -354,13 +354,13 @@ sub skip {
 
     my $cursor = $coll->query->snapshot;
 
-Uses snapshot mode for the query.  Snapshot mode assures no 
-duplicates are returned, or objects missed, which were present 
-at both the start and end of the query's execution (if an object 
-is new during the query, or deleted during the query, it may or 
-may not be returned, even with snapshot mode).  Note that short 
-query responses (less than 1MB) are always effectively 
-snapshotted.  Currently, snapshot mode may not be used with 
+Uses snapshot mode for the query.  Snapshot mode assures no
+duplicates are returned, or objects missed, which were present
+at both the start and end of the query's execution (if an object
+is new during the query, or deleted during the query, it may or
+may not be returned, even with snapshot mode).  Note that short
+query responses (less than 1MB) are always effectively
+snapshotted.  Currently, snapshot mode may not be used with
 sorting or explicit hints.
 
 =cut
@@ -387,7 +387,7 @@ sub hint {
     my ($self, $index) = @_;
     confess "cannot set hint after querying"
 	if $self->started_iterating;
-    confess 'not a hash reference' 
+    confess 'not a hash reference'
 	unless ref $index eq 'HASH';
 
     $self->_ensure_special;
@@ -399,14 +399,14 @@ sub hint {
 
     my $explanation = $cursor->explain;
 
-This will tell you the type of cursor used, the number of records the DB had to 
-examine as part of this query, the number of records returned by the query, and 
+This will tell you the type of cursor used, the number of records the DB had to
+examine as part of this query, the number of records returned by the query, and
 the time in milliseconds the query took to execute.  Requires L<boolean> package.
 
 C<explain> resets the cursor, so calling C<next> or C<has_next> after an explain
 will requery the database.
 
-See also core documentation on explain: 
+See also core documentation on explain:
 L<http://dochub.mongodb.org/core/explain>.
 
 =cut
@@ -435,7 +435,7 @@ sub explain {
     my $num = $cursor->skip(20)->count(1);
 
 Returns the number of document this query will return.  Optionally takes a
-boolean parameter, indicating that the cursor's limit and skip fields should be 
+boolean parameter, indicating that the cursor's limit and skip fields should be
 used in calculating the count.
 
 =cut
@@ -512,7 +512,7 @@ The index of the result the cursor is currently at.
 =item C<flag>
 
 If the database could not find the cursor or another error occurred, C<flag> may
-be set (depending on the error).  
+be set (depending on the error).
 See L<http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol#MongoWireProtocol-OPREPLY>
 for a full list of flag values.
 
