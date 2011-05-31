@@ -24,7 +24,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 36;
+    plan tests => 37;
 }
 
 my $db = $conn->get_database('foo');
@@ -247,6 +247,15 @@ package main;
     is($v->{'key'}, 'zzz');
 }
 
+# make sure this doesn't segfault
+{
+    use utf8;
+
+    eval {
+        $c->insert({'_id' => 'bar', '上海' => 'ouch'});
+    };
+    ok($@ =~ /could not find hash value for key/, "error: ".$@);
+}
 
 END {
     if ($db) {

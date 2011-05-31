@@ -920,7 +920,9 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
      * HeVAL doesn't return the correct value for tie(%foo, 'Tie::IxHash')
      * so we're using hv_fetch
      */
-    hval = hv_fetch(hv, key, len, 0);
+    if ((hval = hv_fetch(hv, key, len, 0)) == 0) {
+      croak("could not find hash value for key %s", key);
+    }
     append_sv (buf, key, *hval, stack, is_insert);
   }
 
