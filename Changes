@@ -1,6 +1,25 @@
-0.43
+0.43 - May 31, 2011
 
-  - Added support for Perl 5.14 regexes (Chip Salzenberg)
+  This is a recommended upgrade.  There are no backwards-breaking changes, only
+  bug-fixes and enhancements.
+
+  [Enhancements]
+
+  - Auto-detects max BSON size for inserts, which means documents larger than
+    4MB can now be inserted.  See L<MongoDB::Connection/max_bson_size> for
+    details.
+
+  - Added the L<MongoDB::Cursor/info> method, which returns meta information
+    about the results being returned.
+
+  [Bug Fixes]
+
+  - When high UTF-8 values as hash keys, the driver now croaks instead of
+    segfaulting.
+
+  - Added 'use IO::File' before IO::File is used (Michael Langner)
+
+  - Fixed Perl 5.14 compile (Chip Salzenberg)
 
 0.42
 
@@ -66,9 +85,9 @@
   - MongoDB::Cursor::tailable and MongoDB::Cursor::immortal
   - added TO_JSON function to MongoDB::OID
   - Fixed safe save (Othello Maurer)
-  - BACKWARD-BREAKING: removed old indexing syntax (if you started using the 
+  - BACKWARD-BREAKING: removed old indexing syntax (if you started using the
     driver less than a year ago, this shouldn't affect you.  If you're an old-
-    timer, make sure you're not using the syntax that has been deprecated for a 
+    timer, make sure you're not using the syntax that has been deprecated for a
     year).
 
 0.33 26 April 2010
@@ -77,7 +96,7 @@
 
 0.32 21 April 2010
 
-  - BACKWARD COMPATIBILITY BREAK: croak on failed safe 
+  - BACKWARD COMPATIBILITY BREAK: croak on failed safe
     update/insert/remove/ensure_index (Eric Wilhelm)
   - w and wtimeout (see MongoDB::Connection::w)
   - die correctly on MongoCollection::count errors (help from Josh Rabinowitz)
