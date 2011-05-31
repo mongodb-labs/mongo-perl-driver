@@ -297,11 +297,15 @@ sub batch_insert {
         $add_ids = 0;
     }
 
-    my $ns = $self->full_name;
-    my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids);
-
     my $conn = $self->_database->_connection;
-    
+    my $ns = $self->full_name;
+
+    my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids);
+    if (length($insert) > $conn->max_bson_size) {
+        Carp::croak("insert is too large: ".length($insert)." max: ".$conn->max_bson_size);
+        return 0;
+    }
+
     if (defined($options) && $options->{safe}) {
         my $ok = $self->_make_safe($insert);
         
@@ -376,12 +380,12 @@ sub update {
     my $conn = $self->_database->_connection;
     my $ns = $self->full_name;
 
+    my $update = MongoDB::write_update($ns, $query, $object, $flags);
     if ($opts->{safe}) {
-        return $self->_make_safe(MongoDB::write_update($ns, $query, $object, $flags));
+        return $self->_make_safe($update);
     }
 
-    $conn->send(MongoDB::write_update($ns, $query, $object, $flags));
-
+    $conn->send($update);
     return 1;
 }
 
@@ -420,26 +424,26 @@ See also core documentation on remove: L<http://dochub.mongodb.org/core/remove>.
 
 sub remove {
     my ($self, $query, $options) = @_;
-    my $just_one;
-    my $conn = $self->_database->_connection;
-    my $ns = $self->full_name;
 
-    $query ||= {};
-
+    my ($just_one, $safe);
     if (defined $options && ref $options eq 'HASH') {
         $just_one = exists $options->{just_one} ? $options->{just_one} : 0;
-
-        if ($options->{safe}) {
-            my $ok = $self->_make_safe(MongoDB::write_remove($ns, $query, $just_one));
-            return $ok;
-        }
+        $safe = exists $options->{safe} ? $options->{safe} : 0;
     }
-    else { 
+    else {
         $just_one = $options || 0;
     }
 
-    $conn->send(MongoDB::write_remove($ns, $query, $just_one));
+    my $conn = $self->_database->_connection;
+    my $ns = $self->full_name;
+    $query ||= {};
 
+    my $remove = MongoDB::write_remove($ns, $query, $just_one);
+    if ($safe) {
+        return $self->_make_safe($remove);
+    }
+
+    $conn->send($remove);
     return 1;
 }
 

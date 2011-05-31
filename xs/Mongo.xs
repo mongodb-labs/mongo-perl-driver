@@ -109,11 +109,6 @@ write_insert(ns, a, add_ids)
            int start = buf.pos-buf.start;
            SV **obj = av_fetch(a, i, 0);
            perl_mongo_sv_to_bson(&buf, *obj, ids);
-
-           if (buf.pos - (buf.start + start) > MAX_OBJ_SIZE) {
-             croak("insert is larger than 4 MB: %d bytes", buf.pos - (buf.start + start));
-           }
-
          }
          perl_mongo_serialize_size(buf.start, &buf);
 

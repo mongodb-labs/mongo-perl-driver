@@ -309,6 +309,20 @@ has query_timeout => (
     default  => sub { return $MongoDB::Cursor::timeout; },
 );
 
+=head2 max_bson_size
+
+This is the largest document, in bytes, storable by MongoDB. The driver queries
+MongoDB on connection to determine this value.  It defaults to 4MB.
+
+=cut
+
+has max_bson_size => (
+    is       => 'ro',
+    isa      => 'Int',
+    lazy     => 1,
+    builder  => '_get_max_bson_size'
+);
+
 =head2 find_master
 
 If this is true, the driver will attempt to find a master given the list of 
@@ -493,6 +507,17 @@ sub BUILD {
 
     # create a struct that just points to the master's connection
     $self->_init_conn_holder($master);
+}
+
+sub _get_max_bson_size {
+    my $self = shift;
+    my $buildinfo = $self->get_database('admin')->run_command({buildinfo => 1});
+    my $max = $buildinfo->{'maxBsonObjectSize'};
+    if ($max) {
+        return $max;
+    }
+    # default: 4MB
+    return 4194304;
 }
 
 =head1 METHODS
