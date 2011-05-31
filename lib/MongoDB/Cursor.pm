@@ -178,6 +178,22 @@ has tailable => (
     default => 0,
 );
 
+=head2 partial
+
+If a shard is down, mongos will return an error when it tries to query that
+shard.  If this is set, mongos will just skip that shard, instead.
+
+Boolean value, defaults to 0.
+
+=cut
+
+has partial => (
+    is => 'rw',
+    isa => 'Bool',
+    required => 0,
+    default => 0,
+);
+
 =head2 slave_okay
 
     $cursor->slave_okay(1);
@@ -232,8 +248,9 @@ sub _do_query {
         return;
     }
 
-    my $opts = $MongoDB::Cursor::slave_okay | ($self->tailable << 1) | 
-        ($self->slave_okay << 2) | ($self->immortal << 4);
+    my $opts = $MongoDB::Cursor::slave_okay | ($self->tailable << 1) |
+        ($self->slave_okay << 2) | ($self->immortal << 4) |
+        ($self->partial << 7);
 
     my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit, $self->_query, $self->_fields);
     $self->_request_id($info->{'request_id'});
