@@ -162,12 +162,10 @@ L<http://dochub.mongodb.org/core/find>.
 
 Identical to C<MongoDB::Collection::find>, described above.
 
-    my $cursor = $collection->query({ }, { limit => 10, skip => 10 });
+    my $cursor = $collection->query->limit(10)->skip(10);
 
-    my $cursor = $collection->query(
-        { location => "Vancouver" },
-        { sort_by  => { age => 1 } },
-    );
+    my $cursor = $collection->query({ location => "Vancouver" })->sort({ age => 1 });
+
 
 Valid query attributes are:
 
@@ -197,15 +195,7 @@ sub find {
     $limit   ||= 0;
     $skip    ||= 0;
 
-    my $q = {};
-    if ($sort_by) {
-        $q->{'query'} = $query;
-	$q->{'orderby'} = $sort_by;
-    }
-    else {
-        $q = $query ? $query : {};
-    }
-
+    my $q = $query || {};
     my $conn = $self->_database->_connection;
     my $ns = $self->full_name;
     my $cursor = MongoDB::Cursor->new(
@@ -215,7 +205,11 @@ sub find {
 	_limit => $limit,
 	_skip => $skip
     );
+
     $cursor->_init;
+    if ($sort_by) {
+        $cursor->sort($sort_by);
+    }
     return $cursor;
 }
 

@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 70;
+    plan tests => 71;
 }
 
 my $db = $conn->get_database('test_database');
@@ -235,7 +235,7 @@ is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
     is($doc->{'x'}, 1);
 
     my $exp = $cursor->explain;
-    
+
     # cursor should be reset
     $doc = $cursor->next;
     is($doc->{'x'}, 1);
@@ -259,6 +259,18 @@ is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
     $cursor->next;
     $info = $cursor->info;
     is($info->{'at'}, 1);
+}
+
+# sort_by
+{
+    $coll->drop;
+
+    for (my $i=0; $i < 5; $i++) {
+        $coll->insert({x => $i});
+    }
+
+    my $cursor = $db->test_collection->query({}, { limit => 10, skip => 0, sort_by => {created => 1 }});
+    is($cursor->count(), 5);
 }
 
 END {
