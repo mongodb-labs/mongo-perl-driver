@@ -165,6 +165,28 @@ Running C<distinct> on the above collection would give you:
     };
 
 
+=head2 Find-and-modify
+
+The find-and-modify command is similar to update (or remove), but it will return
+the modified document.  It can be useful for implementing queues or locks.
+
+For example, suppose we had a list of things to do, and we wanted to remove the
+highest-priority item for processing.  We could do a L<MongoDB::Collection/find>
+and then a L<MongoDB::Collection/remove>, but that wouldn't be atomic (a write
+could occur between the query and the remove).  Instead, we can use find and
+modify.
+
+    my $next_task = $db->run_command({
+        findAndModify => "todo",
+        sort => {priority => -1},
+        remove => 1
+    });
+
+This will atomically find and pop the next-highest-priority task.
+
+See L<http://www.mongodb.org/display/DOCS/findAndModify+Command> for more
+details on find-and-modify.
+
 =head2 Group
 
 The group command is similar to "GROUP BY" in SQL.  You can use the
