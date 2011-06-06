@@ -164,6 +164,64 @@ Running C<distinct> on the above collection would give you:
                     ]
     };
 
+
+=head2 Group
+
+The group command is similar to "GROUP BY" in SQL.  You can use the
+L<MongoDB::Database/run_command> method to perform group-bys with MongoDB.
+
+For example, suppose we have a number of local businesses stored in a "business"
+collection.  If we wanted to find the number of coffeeshops in each neighborhood, we
+could do:
+
+    my $reduce = <<REDUCE;
+    function(doc, prev) {
+        for (var t in doc.tags) {
+            if (doc.tags[t] == "coffeeshop") {
+                prev["num coffeeshops"]++;
+                break;
+            }
+        }
+    }
+    REDUCE
+
+    my $result = $db->run_command({group => {
+        'ns' => "business",
+        'key' => {"neighborhood" => 1},
+        'initial' => {"num coffeeshops" => 0},
+        '$reduce' => MongoDB::Code->new(code => $reduce)
+
+This would return something like:
+
+    {
+          'ok' => '1',
+          'keys' => 4,
+          'count' => '487', # total number of documents
+          'retval' => [
+              {
+                          'neighborhood' => 'Soho',
+                          'num coffeeshops' => '23'
+              },
+              {
+                          'neighborhood' => 'Chinatown',
+                          'num coffeeshops' => '14'
+              },
+              {
+                          'neighborhood' => 'Upper East Side',
+                          'num coffeeshops' => '10'
+              },
+              {
+                          'neighborhood' => 'East Village',
+                          'num coffeeshops' => '87'
+              }
+            ]
+    };
+
+Thus, there are 23 coffeeshops in Soho, 14 in Chinatown, and so on.
+
+See L<http://www.mongodb.org/display/DOCS/Aggregation> for more details on
+grouping.
+
 =head2 MapReduce
 
 MapReduce is a powerful aggregation tool.  (For traditional queries, you should
