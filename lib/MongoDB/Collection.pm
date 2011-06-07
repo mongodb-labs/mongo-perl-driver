@@ -190,7 +190,7 @@ Order results.
 sub find {
     my ($self, $query, $attrs) = @_;
     # old school options - these should be set with MongoDB::Cursor methods
-    my ($limit, $skip, $sort_by) = @{ $attrs || {} }{qw/limit skip sort_by/};
+    my ($limit, $skip, $sort_by, $fields) = @{ $attrs || {} }{qw/limit skip sort_by fields/};
 
     $limit   ||= 0;
     $skip    ||= 0;
@@ -202,6 +202,7 @@ sub find {
 	_connection => $conn,
 	_ns => $ns,
 	_query => $q,
+	_fields => $fields,
 	_limit => $limit,
 	_skip => $skip
     );
