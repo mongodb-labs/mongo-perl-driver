@@ -86,12 +86,11 @@ has files => (
     isa => 'MongoDB::Collection',
     lazy_build => 1
 );
+
 sub _build_files {
-  my $self = shift;
-  my $coll = $self->_database->get_collection($self->prefix . '.files');
-  # ensure the necessary index is present (this may be first usage)
-  $coll->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
-  return $coll;
+    my $self = shift;
+    my $coll = $self->_database->get_collection($self->prefix . '.files');
+    return $coll;
 }
 
 =head2 chunks
@@ -107,12 +106,19 @@ has chunks => (
     isa => 'MongoDB::Collection',
     lazy_build => 1
 );
+
 sub _build_chunks {
-  my $self = shift;
-  my $coll = $self->_database->get_collection($self->prefix . '.chunks');
-  # ensure the necessary index is present (this may be first usage)
-  $coll->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
-  return $coll;
+    my $self = shift;
+    my $coll = $self->_database->get_collection($self->prefix . '.chunks');
+    return $coll;
+}
+
+sub _ensure_indexes {
+    my $self = shift;
+
+    # ensure the necessary index is present (this may be first usage)
+    $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
+    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
 }
 
 =head1 METHODS
@@ -217,6 +223,8 @@ sub remove {
         }
     }
 
+    $self->_ensure_indexes;
+
     if ($just_one) {
         my $meta = $self->files->find_one($criteria);
         $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
@@ -267,8 +275,7 @@ sub insert {
     confess "not a file handle" unless $fh;
     $metadata = {} unless $metadata && ref $metadata eq 'HASH';
 
-    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), 
-                                {"safe" => 1});
+    $self->_ensure_indexes;
 
     my $start_pos = $fh->getpos();
 
