@@ -271,9 +271,9 @@ sub last_error {
 
     my $result = $database->run_command({ some_command => 1 });
 
-Runs a database command. Throws an exception with an error message if the
-command fails. Returns the result of the command on success.  For a list of
-possible database commands, run:
+Runs a database command. Returns a string with the error message if the
+command fails. Returns the result of the command (a hash reference) on success.
+For a list of possible database commands, run:
 
     my $commands = $db->run_command({listCommands : 1});
 
