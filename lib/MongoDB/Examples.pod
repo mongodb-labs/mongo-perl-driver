@@ -41,7 +41,7 @@ Implicit, can be done explicitly.
 
 =item C<SELECT * FROM users WHERE age=33 ORDER BY name>
 
-    $db->users->find({age => 33}).sort({name => 1});
+    $db->users->find({age => 33})->sort({name => 1});
 
 =item C<<SELECT * FROM users WHERE age>33>>
 
