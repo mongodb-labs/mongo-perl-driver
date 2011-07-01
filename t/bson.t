@@ -24,7 +24,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 37;
+    plan tests => 39;
 }
 
 my $db = $conn->get_database('foo');
@@ -256,6 +256,21 @@ package main;
     };
     ok($@ =~ /could not find hash value for key/, "error: ".$@);
 }
+
+# make sure _ids aren't double freed
+{
+    $c->drop;
+
+    my $insert1 = ['_id' => 1];
+    my $insert2 = Tie::IxHash->new('_id' => 2);
+
+    my $id = $c->insert($insert1, {safe => 1});
+    is($id, 1);
+
+    $id = $c->insert($insert2, {safe => 1});
+    is($id, 2);
+}
+
 
 END {
     if ($db) {

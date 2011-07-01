@@ -1016,6 +1016,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
        * add it to the bson and the ids array
        */
       append_sv(buf, "_id", *id, stack, is_insert);
+      SvREFCNT_inc(*id);
       av_push(ids, *id);
     }
     else {
@@ -1487,6 +1488,7 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids) {
             SV **val = av_fetch(av, i+1, 0);
             has_id = 1;
             append_sv(buf, "_id", *val, EMPTY_STACK, ids != 0);
+            SvREFCNT_inc(*val);
             av_push(ids, *val);
             break;
           }
