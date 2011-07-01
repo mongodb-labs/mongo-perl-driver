@@ -64,7 +64,7 @@ my $c = $db->get_collection('bar');
                 "regex" => qr/xtz/,
                 "_id" => MongoDB::OID->new("49b6d9fb17330414a0c63101"),
                 "string" => "string"});
-      
+
     my $obj = $c->find_one;
 
     is($obj->{'n'}, undef);
@@ -130,7 +130,7 @@ my $c = $db->get_collection('bar');
 
 # undefined
 {
-    my $err = $db->last_error(); 
+    my $err = $db->last_error();
     ok(!$err->{err}, "undef");
     $err->{err} = "foo";
     is($err->{err}, "foo", "assign to undef");
@@ -148,8 +148,8 @@ my $c = $db->get_collection('bar');
     ok($@ =~ /circular ref/);
 
     my %test;
-    tie %test, 'Tie::IxHash'; 
-    $test{t} = \%test; 
+    tie %test, 'Tie::IxHash';
+    $test{t} = \%test;
 
     eval {
         $c->insert(\%test);
@@ -242,7 +242,7 @@ package main;
 
     $c->insert({'key' => $var});
     my $v = $c->find_one;
-    
+
     # make sure it was saved as string
     is($v->{'key'}, 'zzz');
 }

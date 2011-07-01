@@ -144,12 +144,12 @@ $coll->drop;
 {
     $ok = $coll->ensure_index({foo => 1, bar => -1, baz => 1});
     ok(!defined $ok);
-    $ok = $coll->ensure_index({foo => 1, bar => 1}); 
+    $ok = $coll->ensure_index({foo => 1, bar => 1});
     ok(!defined $ok);
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
     is($coll->count, 2);
-    
+
     # unique index
     $coll->ensure_index({boo => 1}, {unique => 1});
     $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
@@ -308,20 +308,20 @@ SKIP: {
     my $buildinfo = $admin->run_command({buildinfo => 1});
     skip "multiple update won't work with db version $buildinfo->{version}", 5 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[12]\d*.\d+)/;
 
-    $coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1}); 
+    $coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1});
     is($coll->count({"x" => 3}), 2, 'count');
-    
+
     $cursor = $coll->query({"x" => 3})->sort({"y" => 1});
-    
+
     $obj = $cursor->next();
     is($obj->{'y'}, 3, 'y == 3');
     $obj = $cursor->next();
     is($obj->{'y'}, 4, 'y == 4');
-    
+
     # check with upsert if there are no matches
     $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multiple' => 1});
     ok($coll->find_one({"z" => 4}));
-    
+
     is($coll->count(), 5);
 }
 

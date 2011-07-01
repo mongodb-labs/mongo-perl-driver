@@ -140,11 +140,11 @@ perl_mongo_call_function (const char *func, int num, ...) {
   PUSHMARK (SP);
 
   va_start( args, num );
- 
+
   for( ; num > 0; num-- ) {
     XPUSHs (va_arg( args, SV* ));
   }
- 
+
   va_end( args );
 
   PUTBACK;
@@ -294,7 +294,7 @@ static SV *
 elem_to_sv (int type, buffer *buf)
 {
   SV *value = 0;
-  
+
   SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
 
   switch(type) {
@@ -308,7 +308,7 @@ elem_to_sv (int type, buffer *buf)
     double d;
 
     memcpy(&d, &i, DOUBLE_64);
- 
+
     value = newSVnv(d);
     buf->pos += DOUBLE_64;
     break;
@@ -321,12 +321,12 @@ elem_to_sv (int type, buffer *buf)
     // this makes a copy of the buffer
     // len includes \0
     value = newSVpvn(buf->pos, len-1);
-    
+
     if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
       SvUTF8_on(value);
     }
 
-    buf->pos += len; 
+    buf->pos += len;
     break;
   }
   case BSON_OBJECT: {
@@ -371,7 +371,7 @@ elem_to_sv (int type, buffer *buf)
     }
 
     SAVETMPS;
-    
+
     PUSHMARK(SP);
     PUTBACK;
     if (d) {
@@ -383,11 +383,11 @@ elem_to_sv (int type, buffer *buf)
     SPAGAIN;
     if (count == 1)
       value = newSVsv(POPs);
-    
+
     if (count != 1 || !SvOK(value)) {
       value = newSViv(d);
     }
-    
+
     PUTBACK;
     FREETMPS;
     break;
@@ -424,7 +424,7 @@ elem_to_sv (int type, buffer *buf)
     named_params = newHV();
     heval = hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
 
-    value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime, 
+    value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
                                      sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
     break;
   }
@@ -566,10 +566,10 @@ bson_to_av (buffer *buf)
 
   // for size
   buf->pos += INT_32;
-  
+
   while ((type = *buf->pos++) != 0) {
     SV *sv;
-    
+
     // get past field name
     buf->pos += strlen(buf->pos) + 1;
 
@@ -591,11 +591,11 @@ perl_mongo_bson_to_sv (buffer *buf)
 
   // for size
   buf->pos += INT_32;
-  
+
   while ((type = *buf->pos++) != 0) {
     char *name;
     SV *value;
-    
+
     name = buf->pos;
     // get past field name
     buf->pos += strlen(buf->pos) + 1;
@@ -665,7 +665,7 @@ void perl_mongo_serialize_int(buffer *buf, int num) {
 
 void perl_mongo_serialize_long(buffer *buf, int64_t num) {
   int64_t i = MONGO_64(num);
- 
+
   if(BUF_REMAINING <= INT_64) {
     perl_mongo_resize_buf(buf, INT_64);
   }
@@ -679,11 +679,11 @@ void perl_mongo_serialize_double(buffer *buf, double num) {
   dest_p = &dest;
   memcpy(dest_p, &num, 8);
   dest = MONGO_64(dest);
- 
+
   if(BUF_REMAINING <= DOUBLE_64) {
     perl_mongo_resize_buf(buf, DOUBLE_64);
   }
- 
+
   memcpy(buf->pos, dest_p, DOUBLE_64);
   buf->pos += DOUBLE_64;
 }
@@ -717,10 +717,10 @@ void perl_mongo_serialize_bindata(buffer *buf, SV *sv)
 
   // length of length+bindata
   perl_mongo_serialize_int(buf, len+4);
-  
+
   // TODO: type
   perl_mongo_serialize_byte(buf, 2);
-  
+
   // length
   perl_mongo_serialize_int(buf, len);
   // bindata
@@ -916,7 +916,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
       continue;
     }
 
-    /* 
+    /*
      * HeVAL doesn't return the correct value for tie(%foo, 'Tie::IxHash')
      * so we're using hv_fetch
      */
@@ -973,7 +973,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
   int start, i;
   SV **keys_sv, **values_sv;
   AV *array, *keys, *values;
-    
+
   if (BUF_REMAINING <= 5) {
     perl_mongo_resize_buf(buf, 5);
   }
@@ -981,7 +981,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
   /* skip 4 bytes for size */
   start = buf->pos-buf->start;
   buf->pos += INT_32;
-    
+
   /*
    * a Tie::IxHash is of the form:
    * [ {hash}, [keys], [order], 0 ]
@@ -1023,7 +1023,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
       perl_mongo_prep(buf, ids);
     }
   }
-    
+
   for (i=0; i<=av_len(keys); i++) {
     SV **k, **v;
     STRLEN len;
@@ -1061,7 +1061,7 @@ static int isUTF8(const char *s, int len) {
         (s[i+3] & 192) == 128) {
       i += 3;
     }
-    else if (i+2 < len && 
+    else if (i+2 < len &&
              (s[i] & 240) == 224 &&
              (s[i+1] & 192) == 128 &&
              (s[i+2] & 192) == 128) {
@@ -1113,7 +1113,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         int i = 0, length = 0, sign = 1;
         SV **av_ref, **sign_ref;
         AV *av;
- 
+
         set_type(buf, BSON_LONG);
         perl_mongo_serialize_key(buf, key, is_insert);
 
@@ -1141,7 +1141,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         for (i = 0; i <= av_len( av ); i++) {
           int j = 0;
           SV **val;
-                
+
           if ( !(val = av_fetch (av, i, 0)) || !(SvPOK(*val) || SvIOK(*val)) ) {
             sv_dump( sv );
             croak ("failed to fetch BigInt element");
@@ -1243,7 +1243,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         SV *sec, *inc;
         set_type(buf, BSON_TIMESTAMP);
         perl_mongo_serialize_key(buf, key, is_insert);
-              
+
         inc = perl_mongo_call_reader(sv, "inc");
         perl_mongo_serialize_int(buf, SvIV(inc));
         sec = perl_mongo_call_reader(sv, "sec");
@@ -1264,7 +1264,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
       // Perl 5.12 regexes
       else if (sv_isa(sv, "Regexp")) {
         REGEXP * re = SvRX(sv);
-              
+
         serialize_regex(buf, key, re, is_insert);
         serialize_regex_flags(buf, sv);
       }
@@ -1278,7 +1278,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
           REGEXP *re = (REGEXP *) remg->mg_obj;
 
           serialize_regex(buf, key, re, is_insert);
-          serialize_regex_flags(buf, sv);                
+          serialize_regex_flags(buf, sv);
         }
         else {
           /* binary */
@@ -1322,14 +1322,14 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
     /* Flags usage changed in Perl 5.10.1.  In Perl 5.8, there is no way to
        tell from flags whether something is a string or an int!
        Therefore, for 5.8, we check:
-           
+
        if (isString(sv) and number(sv) == 0 and string(sv) != '0') {
        return string;
        }
        else {
        return number;
        }
-           
+
        This will incorrectly return '0' as a number in 5.8.
     */
     if (SvPOK(sv) && ((SvNOK(sv) && SvNV(sv) == 0) ||
@@ -1340,7 +1340,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
 #endif
     switch (SvTYPE (sv)) {
       /* double */
-    case SVt_NV: 
+    case SVt_NV:
     case SVt_PVNV: {
       if (!is_string && SvNOK(sv)) {
         set_type(buf, BSON_DOUBLE);
@@ -1351,7 +1351,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
     }
       /* int */
     case SVt_IV:
-    case SVt_PVIV: 
+    case SVt_PVIV:
     case SVt_PVLV:
     case SVt_PVMG: {
       // if it's publicly an int OR (privately an int AND not publicly a string)
@@ -1462,7 +1462,7 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids) {
       I32 i;
       AV *av = (AV *)SvRV (sv);
       int start;
-            
+
       if ((av_len (av) % 2) == 0) {
         croak ("odd number of elements in structure");
       }
@@ -1471,12 +1471,12 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids) {
       if (BUF_REMAINING <= 5) {
         perl_mongo_resize_buf(buf, 5);
       }
-            
+
       start = buf->pos-buf->start;
       buf->pos += INT_32;
-            
-      /* 
-       * the best (and not very good) way i can think of for 
+
+      /*
+       * the best (and not very good) way i can think of for
        * checking for ids is to go through the array once
        * looking for them... blah
        */
