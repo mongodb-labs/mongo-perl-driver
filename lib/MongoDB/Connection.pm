@@ -317,10 +317,10 @@ MongoDB on connection to determine this value.  It defaults to 4MB.
 =cut
 
 has max_bson_size => (
-    is       => 'ro',
+    is       => 'rw',
     isa      => 'Int',
-    lazy     => 1,
-    builder  => '_get_max_bson_size'
+    required => 1,
+    default  => 4194304
 );
 
 =head2 find_master
@@ -460,6 +460,7 @@ sub BUILD {
         $self->_init_conn($hp[0], $hp[1]);
         if ($self->auto_connect) {
             $self->connect;
+            $self->max_bson_size($self->_get_max_bson_size);
         }
         return;
     }
@@ -478,6 +479,7 @@ sub BUILD {
         # it's okay if we can't connect, so long as someone can
         eval {
             $self->_servers->{$_}->connect;
+            $self->_servers->{$_}->max_bson_size($self->_servers->{$_}->_get_max_bson_size);
         };
 
         # at least one connection worked
@@ -498,6 +500,9 @@ sub BUILD {
         $master = $self->get_master;
         if ($master == -1) {
             die "couldn't find master";
+        }
+        else {
+            $self->max_bson_size($master->max_bson_size);
         }
     }
     else {
