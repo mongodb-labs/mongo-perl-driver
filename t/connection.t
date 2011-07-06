@@ -114,3 +114,12 @@ SKIP: {
         is($size, 4*1024*1024);
     }
 }
+
+END {
+    if ($conn) {
+        $conn->foo->drop;
+    }
+    if ($db) {
+        $db->drop;
+    }
+}

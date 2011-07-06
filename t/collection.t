@@ -491,6 +491,9 @@ SKIP: {
 
 
 END {
+    if ($conn) {
+        $conn->foo->drop;
+    }
     if ($db) {
         $db->drop;
     }
