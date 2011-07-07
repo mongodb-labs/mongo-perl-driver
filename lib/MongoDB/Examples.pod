@@ -85,7 +85,7 @@ Implicit, can be done explicitly.
 
 =item C<SELECT * FROM users WHERE a=1 or b=2>
 
-    $db->users->find({'$or' => ({a => 1}, {b => 2})});
+    $db->users->find({'$or' => [{a => 1}, {b => 2}]});
 
 =item C<SELECT * FROM users LIMIT 1>
 
