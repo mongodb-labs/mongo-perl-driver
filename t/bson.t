@@ -24,7 +24,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 39;
+    plan tests => 42;
 }
 
 my $db = $conn->get_database('foo');
@@ -271,6 +271,28 @@ package main;
     is($id, 2);
 }
 
+# aggressively convert numbers
+{
+    print "Agg\n";
+
+    $MongoDB::BSON::looks_like_number = 1;
+
+    $c->drop;
+
+    $c->insert({num => "4"});
+    $c->insert({num => "5"});
+    $c->insert({num => "6"});
+
+    $c->insert({num => 4});
+    $c->insert({num => 5});
+    $c->insert({num => 6});
+
+    is($c->count({num => {'$gt' => 4}}), 4);
+    is($c->count({num => {'$gte' => "5"}}), 4);
+    is($c->count({num => {'$gte' => "4.1"}}), 4);
+
+    $MongoDB::BSON::looks_like_number = 0;
+}
 
 END {
     if ($db) {

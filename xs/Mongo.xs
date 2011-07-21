@@ -38,6 +38,7 @@ BOOT:
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__OID);
         gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::Cursor::slave_okay",  GV_ADDMULTI, SVt_IV);
+        gv_fetchpv("MongoDB::BSON::looks_like_number",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::char",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::utf8_flag_on",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::use_boolean",  GV_ADDMULTI, SVt_IV);

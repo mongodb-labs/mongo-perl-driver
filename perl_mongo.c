@@ -1317,7 +1317,9 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
       }
     }
   } else {
-    int is_string = 0;
+    int is_string = 0, aggressively_number = 0;
+    SV *look_for_numbers = 0;
+
 #if PERL_REVISION==5 && PERL_VERSION<=10
     /* Flags usage changed in Perl 5.10.1.  In Perl 5.8, there is no way to
        tell from flags whether something is a string or an int!
@@ -1338,11 +1340,18 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
       is_string = 1;
     }
 #endif
+
+    look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
+    if (look_for_numbers && SvIOK(look_for_numbers) && SvIV(look_for_numbers)) {
+      aggressively_number = looks_like_number(sv);
+    }
+
     switch (SvTYPE (sv)) {
       /* double */
+    case SVt_PV:
     case SVt_NV:
     case SVt_PVNV: {
-      if (!is_string && SvNOK(sv)) {
+      if ((aggressively_number & IS_NUMBER_NOT_INT) || (!is_string && SvNOK(sv))) {
         set_type(buf, BSON_DOUBLE);
         perl_mongo_serialize_key(buf, key, is_insert);
         perl_mongo_serialize_double(buf, (double)SvNV (sv));
@@ -1355,7 +1364,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
     case SVt_PVLV:
     case SVt_PVMG: {
       // if it's publicly an int OR (privately an int AND not publicly a string)
-      if (!is_string && (SvIOK(sv) || (SvIOKp(sv) && !SvPOK(sv)))) {
+      if (aggressively_number || (!is_string && (SvIOK(sv) || (SvIOKp(sv) && !SvPOK(sv))))) {
 #if defined(USE_64_BIT_INT)
         set_type(buf, BSON_LONG);
         perl_mongo_serialize_key(buf, key, is_insert);
@@ -1368,9 +1377,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         break;
       }
 
-    }
       /* string */
-    case SVt_PV:
       if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
         set_type(buf, BSON_BINARY);
         perl_mongo_serialize_key(buf, key, is_insert);
@@ -1391,6 +1398,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         perl_mongo_serialize_string(buf, str, len);
       }
       break;
+    }
     default:
       sv_dump(sv);
       croak ("type (sv) unhandled");

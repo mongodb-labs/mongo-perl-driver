@@ -220,6 +220,38 @@ then look at it in the shell, we see:
 This doesn't mean that we saved a float, it just means that the float value of 
 a 64-bit integer may not be exact.
 
+=head4 Dealing with numbers and strings in Perl
+
+Perl is very flexible about whether something is number or a string: it
+generally infers the type from context.  Unfortunately, the driver doesn't have
+any context when it has to choose how to serialize a variable.  Therefore, the
+default behavior is to introspect the flags that are set on that variable and
+decide what the user meant, which are generally affected by the last operation.
+
+    my $var = "4";
+    # stored as the string "4"
+    $collection->insert({myVar => $var});
+
+    $var = int($var) if (int($var) eq $var);
+    # stored as the int 4
+    $collection->insert({myVar => $var});
+
+Because of this, users often find that they end up with more strings than they
+wanted in their database.
+
+If you would like to have everything that looks like a number saved as a number,
+set the L<MongoDB::BSON#looks_like_number> option.
+
+    $MongoDB::BSON::looks_like_number = 1;
+
+    my $var = "4";
+    # stored as the int 4
+    $collection->insert({myVar => $var});
+
+This will send anything that "looks like" a number as a number.  It can
+recognize anything that L<Scalar::Util>'s C<looks_like_number> function can
+recognize.
+
 =head2 MongoDB::OID
 
 "OID" stands for "Object ID", and is a unique id that is automatically added to 
