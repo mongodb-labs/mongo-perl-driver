@@ -24,7 +24,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 42;
+    plan tests => 45;
 }
 
 my $db = $conn->get_database('foo');
@@ -273,8 +273,6 @@ package main;
 
 # aggressively convert numbers
 {
-    print "Agg\n";
-
     $MongoDB::BSON::looks_like_number = 1;
 
     $c->drop;
@@ -292,6 +290,24 @@ package main;
     is($c->count({num => {'$gte' => "4.1"}}), 4);
 
     $MongoDB::BSON::looks_like_number = 0;
+}
+
+# MongoDB::BSON::String type
+{
+    $MongoDB::BSON::looks_like_number = 1;
+
+    $c->drop;
+
+    my $num = "001";
+
+    $c->insert({num => $num}, {safe => 1});
+    $c->insert({num => bless(\$num, "MongoDB::BSON::String")}, {safe => 1});
+
+    $MongoDB::BSON::looks_like_number = 0;
+
+    is($c->count({num => 1}), 1);
+    is($c->count({num => "001"}), 1);
+    is($c->count, 2);
 }
 
 END {

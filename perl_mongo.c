@@ -1260,6 +1260,25 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         set_type(buf, BSON_MAXKEY);
         perl_mongo_serialize_key(buf, key, is_insert);
       }
+      else if (sv_isa(sv, "MongoDB::BSON::String")) {
+        SV *str_sv;
+        char *str;
+        STRLEN str_len;
+
+        str_sv = SvRV(sv);
+
+        // check type ok
+        if (!SvPOK(str_sv)) {
+          croak("MongoDB::BSON::String must be a blessed string reference");
+        }
+
+        str = SvPV(str_sv, str_len);
+
+        set_type(buf, BSON_STRING);
+        perl_mongo_serialize_key(buf, key, is_insert);
+        perl_mongo_serialize_int(buf, str_len+1);
+        perl_mongo_serialize_string(buf, str, str_len);
+      }
 #if PERL_REVISION==5 && PERL_VERSION>=12
       // Perl 5.12 regexes
       else if (sv_isa(sv, "Regexp")) {
