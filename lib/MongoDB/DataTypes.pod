@@ -15,22 +15,24 @@ documentation (L<http://api.mongodb.org>).
 
 =head2 You must query for data using the correct type.
 
-For example, it is perfectly valid to have some records where the field "foo" is 
+For example, it is perfectly valid to have some records where the field "foo" is
 123 (integer) and other records where "foo" is "123" (string).  Thus, you must
-query for the correct type.  If you save C<{"foo" =E<gt>; "123"}>, you cannot query 
+query for the correct type.  If you save C<{"foo" =E<gt>; "123"}>, you cannot query
 for it with C<{"foo" =E<gt> 123}>.  MongoDB is strict about types.
 
-If the type of a field is ambiguous and important to your application, you 
-should document what you expect the application to send to the database and 
+If the type of a field is ambiguous and important to your application, you
+should document what you expect the application to send to the database and
 convert your data to those types before sending.  There are some object-document
 mappers that will enforce certain types for certain fields for you.
 
-You generally shouldn't save numbers as strings, as they will behave like 
-strings (e.g., range queries won't work correctly) and the data will take up 
-more space.
+You generally shouldn't save numbers as strings, as they will behave like
+strings (e.g., range queries won't work correctly) and the data will take up
+more space.  If you set L<MongoDB::BSON#looks_like_number>, the driver will
+automatically convert everything that looks like a number to a number before
+sending it to the database.
 
-Numbers are the only exception to the strict typing: all number types stored by 
-MongoDB (32-bit integers, 64-bit integers, 64-bit floating point numbers) will 
+Numbers are the only exception to the strict typing: all number types stored by
+MongoDB (32-bit integers, 64-bit integers, 64-bit floating point numbers) will
 match each other.
 
 =head1 TYPES
@@ -38,8 +40,8 @@ match each other.
 =head2 Strings
 
 All strings must be valid UTF-8 to be sent to the database.  If a string is not
-valid, it will not be saved.  If you need to save a non-UTF-8 string, you can 
-save it as a binary blob (see the Binary Data section below).  
+valid, it will not be saved.  If you need to save a non-UTF-8 string, you can
+save it as a binary blob (see the Binary Data section below).
 
 All strings returned from the database have the UTF-8 flag set.
 
@@ -61,7 +63,7 @@ are a couple options:
 
     my $pretty_str = utf8::encode($str);
 
-This, unintuitively, clears the UTF-8 flag.  
+This, unintuitively, clears the UTF-8 flag.
 
 You can also just run
 
@@ -69,7 +71,7 @@ You can also just run
 
 and then the string (and all future UTF-8 strings) will print "correctly."
 
-You can also turn off C<$MongoDB::BSON::utf_flag_on>, and the UTF-8 flag will 
+You can also turn off C<$MongoDB::BSON::utf_flag_on>, and the UTF-8 flag will
 not be set when strings are decoded:
 
     $MongoDB::BSON::utf8_flag_on = 0;
@@ -81,11 +83,11 @@ Arrays must be saved as array references (C<\@foo>, not C<@foo>).
 =head2 Embedded Documents
 
 Embedded documents are of the same form as top-level documents: either hash
-references or L<Tie::IxHash>s.  
+references or L<Tie::IxHash>s.
 
 =head2 Dates
 
-The L<DateTime> package can be used insert and query for dates. Dates stored in 
+The L<DateTime> package can be used insert and query for dates. Dates stored in
 the database will be returned as instances of DateTime.
 
 An example of storing and retrieving a date:
@@ -105,7 +107,7 @@ An example of querying for a range of dates:
 
     my $cursor = $collection->query({event => {'$gt' => $start, '$lt' => $end}});
 
-B<Warning: creating Perl L<DateTime> objects is extremely slow.  Consider saving 
+B<Warning: creating Perl L<DateTime> objects is extremely slow.  Consider saving
 dates as numbers and converting the numbers to L<DateTime>s when needed.  A single
 L<DateTime> field can make deserialization up to 10 times slower.>
 
@@ -131,12 +133,12 @@ You can also save and retrieve regular expressions themselves:
         print "hooray\n";
     }
 
-Note for Perl 5.8 users: flags are lost when regular expressions are retrieved 
+Note for Perl 5.8 users: flags are lost when regular expressions are retrieved
 from the database (this does not affect queries or Perl 5.10+).
 
 =head2 Booleans
 
-Use the L<boolean> package to get boolean values.  C<boolean::true> and 
+Use the L<boolean> package to get boolean values.  C<boolean::true> and
 C<boolean::false> are the only parts of the package used, currently.
 
 An example of inserting boolean values:
@@ -151,10 +153,10 @@ where the name field exists):
     my $cursor = $collection->query({"name" => {'$exists' => boolean::true}});
 
 Most of the time, you can just use 1 or 0 instead of C<true> and C<false>, such
-as for specifying fields to return.  L<boolean> is the only way to save 
+as for specifying fields to return.  L<boolean> is the only way to save
 booleans to the database, though.
 
-By default, booleans are returned from the database as integers.  To return 
+By default, booleans are returned from the database as integers.  To return
 booleans as L<boolean>s, set C<$MongoDB::BSON::use_boolean> to 1.
 
 =head2 Numbers
@@ -163,14 +165,14 @@ By default, numbers with a decimal point will be saved as doubles (64-bit).
 
 =head3 32-bit Platforms
 
-Numbers without decimal points will be saved as 32-bit integers.  To save a 
+Numbers without decimal points will be saved as 32-bit integers.  To save a
 number as a 64-bit integer, use bigint:
 
     use bigint;
 
     $collection->insert({"user_id" => 28347197234178})
 
-The driver will die if you try to insert a number beyond the signed 64-bit 
+The driver will die if you try to insert a number beyond the signed 64-bit
 range: -9,223,372,036,854,775,808 to +9,223,372,036,854,775,807.
 
 Numbers that are saved as 64-bit integers will be decoded as doubles.
@@ -178,7 +180,7 @@ Numbers that are saved as 64-bit integers will be decoded as doubles.
 =head3 64-bit Platforms
 
 Numbers without a decimal point will be saved and returned as 64-bit integers.
-Note that there is no way to save a 32-bit int on a 64-bit machine.  
+Note that there is no way to save a 32-bit int on a 64-bit machine.
 
 Keep in mind that this can cause some weirdness to ensue if some machines are
 32-bit and others are 64-bit.  Take the following example:
@@ -190,7 +192,7 @@ Keep in mind that this can cause some weirdness to ensue if some machines are
 =item * Programmer 2 retrieves the document on a 64-bit platform and re-saves
 it, effectively converting it to a 64-bit int.
 
-=item * Programmer 1 retrieves the document on their 32-bit machine, which 
+=item * Programmer 1 retrieves the document on their 32-bit machine, which
 decodes the 64-bit int as a double.
 
 =back
@@ -199,10 +201,10 @@ Nothing drastic, but good to be aware of.
 
 =head4 64-bit integers in the shell
 
-The Mongo shell has one numeric type: the 8-byte float.  This means that it 
+The Mongo shell has one numeric type: the 8-byte float.  This means that it
 cannot always represent an 8-byte integer exactly.  Thus, when you display a
 64-bit integer in the shell, it will be wrapped in a subobject that indicates
-it might be an approximate value.  For instance, if we run this Perl on a 
+it might be an approximate value.  For instance, if we run this Perl on a
 64-bit machine:
 
     $coll->insert({_id => 1});
@@ -211,13 +213,13 @@ then look at it in the shell, we see:
 
     > db.whatever.findOne()
     {
-        "_id" : 
+        "_id" :
             {
                 "floatApprox" : 1
             }
     }
 
-This doesn't mean that we saved a float, it just means that the float value of 
+This doesn't mean that we saved a float, it just means that the float value of
 a 64-bit integer may not be exact.
 
 =head4 Dealing with numbers and strings in Perl
@@ -254,9 +256,9 @@ recognize.
 
 =head2 MongoDB::OID
 
-"OID" stands for "Object ID", and is a unique id that is automatically added to 
-documents if they do not already have an C<_id> field before they are saved to 
-the database.  They are 12 bytes which are guarenteed to be unique.  Their 
+"OID" stands for "Object ID", and is a unique id that is automatically added to
+documents if they do not already have an C<_id> field before they are saved to
+the database.  They are 12 bytes which are guarenteed to be unique.  Their
 string form is a 24-character string of hexidecimal digits.
 
 To create a unique id:
@@ -270,7 +272,7 @@ To create a MongoDB::OID from an existing 24-character hexidecimal string:
 =head2 Binary Data
 
 By default, all database strings are UTF8.  To save images, binaries, and other
-non-UTF8 data, you can pass the string as a reference to the database.  For 
+non-UTF8 data, you can pass the string as a reference to the database.  For
 example:
 
     # non-utf8 string
@@ -280,7 +282,7 @@ example:
 
 This will save the variable as binary data, bypassing the UTF8 check.
 
-Binary data can be matched exactly by the database, so this query will match 
+Binary data can be matched exactly by the database, so this query will match
 the object we inserted above:
 
     $collection->find({"photo" => \$string});
@@ -329,7 +331,7 @@ sufficient to say:
     my $ts = MongoDB::Timestamp->new({sec => $seconds, inc => $increment});
 
 Timestamps are used internally by MongoDB's replication.  You can see them in
-their natural habitat by querying C<local.main.$oplog>.  Each entry looks 
+their natural habitat by querying C<local.main.$oplog>.  Each entry looks
 something like:
 
     { "ts" : { "t" : 1278872990000, "i" : 1 }, "op" : "n", "ns" : "", "o" : { } }
@@ -344,6 +346,6 @@ seconds.  So, to represent this document in Perl, we would do:
         "o" => {}
     }
 
-Timestamps are not dates.  You should not use them unless you are doing 
+Timestamps are not dates.  You should not use them unless you are doing
 something low-level with replication.  To save dates or times, use a number or
 L<DateTime>.

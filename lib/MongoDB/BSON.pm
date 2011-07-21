@@ -83,7 +83,7 @@ $MongoDB::BSON::utf8_flag_on = 1;
     $MongoDB::BSON::use_boolean = 1
 
 By default, booleans are deserialized as integers.  If you would like them to be
-deserialized as L<boolean/true> and L<boolean/false>, set 
+deserialized as L<boolean/true> and L<boolean/false>, set
 C<$MongoDB::BSON::use_boolean> to 1.
 
 =cut
