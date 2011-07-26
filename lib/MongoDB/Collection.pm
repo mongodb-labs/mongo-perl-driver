@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Collection;
-our $VERSION = '0.43';
+our $VERSION = '0.44';
 
 # ABSTRACT: A Mongo Collection
 
@@ -379,7 +379,11 @@ sub update {
         return $self->_make_safe($update);
     }
 
-    $conn->send($update);
+    if ($conn->send($update) == -1) {
+        $conn->connect;
+        die("can't get db response, not connected");
+    }
+
     return 1;
 }
 
@@ -437,7 +441,11 @@ sub remove {
         return $self->_make_safe($remove);
     }
 
-    $conn->send($remove);
+    if ($conn->send($remove) == -1) {
+        $conn->connect;
+        die("can't get db response, not connected");
+    }
+
     return 1;
 }
 

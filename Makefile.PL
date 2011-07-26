@@ -58,7 +58,7 @@ if ($Config::Config{useithreads}) {
 WriteAll;
 
 package MY;
-our $VERSION = '0.43';
+our $VERSION = '0.44';
 
 use Config;
 

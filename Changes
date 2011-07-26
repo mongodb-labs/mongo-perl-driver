@@ -1,3 +1,38 @@
+0.44 - July 26, 2011
+
+  This is a recommended upgrade.  There are no backwards-breaking changes, only
+  bug-fixes and enhancements.
+
+  [Enhancements]
+
+  - Added MongoDB::BSON::looks_like_number flag.
+
+    The Perl driver has always been coy about turning strings into numbers.  If
+    you would like aggressive number parsing (if it looks like a number, send it
+    to the DB as a number), you can set MongoDB::BSON::looks_like_number to 1
+    (defaults to 0, the previous behavior).  See the MongoDB::DataTypes pod for
+    more info.
+
+  - Tests should now clean up after themselves, leaving no test databases
+    behind.
+
+  [Bug Fixes]
+
+  - Setting a sort in the arguments to MongoDB::Collection::find is now passed
+    through correctly to the cursor.
+
+  - Fixed segmentation fault in array serialization: caused by specifying an _id
+    field on insert and using an array (not a hash or Tie::IxHash).
+
+  - Fixed segmentation fault in threading: if Mouse was used instead of Moose,
+    version 0.43 of the driver would segfault if multiple threads were used.
+
+  - MongoDB::Cursor now inherits the $Mongo::Cursor::slave_okay global setting,
+    as well as checking if slave_okay is set on the cursor instance.
+
+  - Fix GridFS functions to only ensure GridFS indexes on writes, allowing
+    GridFS API usage on slaves.
+
 0.43 - May 31, 2011
 
   This is a recommended upgrade.  There are no backwards-breaking changes, only
