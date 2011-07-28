@@ -121,7 +121,7 @@ with the key/value pair you wish to match:
 
     my $some_users = $users->find({"name" => "Joe"});
 
-You can match array elements in your querys; for example, to find all users who
+You can match array elements in your queries; for example, to find all users who
 like math:
 
     my $geeks = $users->find({"likes" => "math"});
@@ -151,7 +151,7 @@ Comparison operators can be combined to get a range:
 
 =head3 Cursors
 
-C<query> returns a L<MongoDB::Cursor>, which can be iterated over.  It lazily
+C<find> returns a L<MongoDB::Cursor>, which can be iterated over.  It lazily
 loads results from the database.  The following prints all of the users' names:
 
     while (my $doc = $all_users->next) {
