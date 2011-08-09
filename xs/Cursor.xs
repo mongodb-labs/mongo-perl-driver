@@ -273,9 +273,9 @@ reset (self)
 SV *
 info (self)
         SV *self
-        HV *hv;
     PREINIT:
         mongo_cursor *cursor;
+        HV *hv;
     CODE:
         cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
         
