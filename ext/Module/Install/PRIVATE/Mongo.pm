@@ -13,22 +13,42 @@ BEGIN {
     @ISA     = qw{Module::Install::Base};
 }
 
-# check for big-endian                                                                                                                                                                                                                
-my $endianess = $Config{byteorder};
-my $ccflags = "";
-if ($endianess == 4321 || $endianess == 87654321) {
-    $ccflags = " -DMONGO_BIG_ENDIAN=1 ";
-}
-
 sub mongo {
     my ($self, @mongo_vars) = @_;
+    my $custom_cflags = 0;
+    my $ccflags = makemaker_args->{CCFLAGS};
 
     if ($Config{osname} eq 'darwin') {
+        my @arch = $Config::Config{ccflags} =~ m/-arch\s+(\S+)/g;
+        my $archStr = join '', map { " -arch $_ " } @arch;
+
+        $ccflags = $ccflags . $archStr;
+        makemaker_args(CCFLAGS => $ccflags);
+
+        makemaker_args(
+            dynamic_lib => {
+                OTHERLDFLAGS => $archStr
+            }
+        );
+
         $ccflags = $ccflags . ' -g -pipe -fno-common -DPERL_DARWIN -no-cpp-precomp -fno-strict-aliasing -Wdeclaration-after-statement -I/usr/local/include';
         $self->makemaker_args( LDDLFLAGS => ' -bundle -undefined dynamic_lookup -L/usr/local/lib');
+
+        $custom_cflags = 1;
     }
 
-    $self->makemaker_args( CCFLAGS => $ccflags);
+    # check for big-endian
+    my $endianess = $Config{byteorder};
+    if ($endianess == 4321 || $endianess == 87654321) {
+        $ccflags .= " -DMONGO_BIG_ENDIAN=1 ";
+
+        $custom_cflags = 1;
+    }
+
+    if ($custom_cflags) {
+        $self->makemaker_args( CCFLAGS => $ccflags);
+    }
+
     $self->xs_files;
 
     $self->makemaker_args( INC   => '-I. ' );

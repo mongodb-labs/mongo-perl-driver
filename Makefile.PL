@@ -37,19 +37,6 @@ no_index directory => 'ext';
 
 repository 'git://github.com/mongodb/mongo-perl-driver.git';
 
-my @arch = $Config::Config{ccflags} =~ m/-arch\s+(\S+)/g;
-my $archStr = join '', map { " -arch $_ " } @arch;
-
-my $ccflags = makemaker_args->{CCFLAGS};
-$ccflags = $ccflags . $archStr;
-makemaker_args(CCFLAGS => $ccflags);
-
-makemaker_args(
-    dynamic_lib => {
-        OTHERLDFLAGS => $archStr
-    }
-);
-
 
 if ($Config::Config{useithreads}) {
     tests 't/*.t t/threads/*.t';
