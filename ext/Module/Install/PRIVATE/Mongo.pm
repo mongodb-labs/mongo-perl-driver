@@ -16,16 +16,16 @@ BEGIN {
 sub mongo {
     my ($self, @mongo_vars) = @_;
     my $custom_cflags = 0;
-    my $ccflags = makemaker_args->{CCFLAGS};
+    my $ccflags = $self->makemaker_args->{CCFLAGS};
 
     if ($Config{osname} eq 'darwin') {
         my @arch = $Config::Config{ccflags} =~ m/-arch\s+(\S+)/g;
         my $archStr = join '', map { " -arch $_ " } @arch;
 
         $ccflags = $ccflags . $archStr;
-        makemaker_args(CCFLAGS => $ccflags);
+        $self->makemaker_args(CCFLAGS => $ccflags);
 
-        makemaker_args(
+        $self->makemaker_args(
             dynamic_lib => {
                 OTHERLDFLAGS => $archStr
             }
