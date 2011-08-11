@@ -29,7 +29,6 @@ static int mongo_link_reader(int socket, void *dest, int len);
 int perl_mongo_connect(char *host, int port, int timeout) {
   int sock, status, connected = 0;
   struct sockaddr_in addr, check_connect;
-  fd_set rset, wset;
 
   // timeout
   struct timeval timeout_struct;
@@ -78,11 +77,6 @@ int perl_mongo_connect(char *host, int port, int timeout) {
   fcntl(sock, F_SETFL, O_NONBLOCK);
 #endif
 
-  FD_ZERO(&rset);
-  FD_SET(sock, &rset);
-  FD_ZERO(&wset);
-  FD_SET(sock, &wset);
-
   // connect
   status = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
   if (status == -1) {
@@ -103,8 +97,27 @@ int perl_mongo_connect(char *host, int port, int timeout) {
     timeout_struct.tv_sec = timeout > 0 ? (timeout / 1000) : 20;
     timeout_struct.tv_usec = timeout > 0 ? ((timeout % 1000) * 1000) : 0;
 
-    if (!select(sock+1, &rset, &wset, 0, &timeout_struct)) {
-      return -1;
+    while (1) {
+      fd_set rset, wset, eset;
+
+      FD_ZERO(&rset);
+      FD_SET(sock, &rset);
+      FD_ZERO(&wset);
+      FD_SET(sock, &wset);
+      FD_ZERO(&eset);
+      FD_SET(sock, &eset);
+
+      if (!select(sock+1, &rset, &wset, &eset, &timeout_struct)) {
+        return -1;
+      }
+
+      if (FD_ISSET(sock, &eset)) {
+        return -1;
+      }
+
+      if (FD_ISSET(sock, &wset) || FD_ISSET(sock, &rset)) {
+        break;
+      }
     }
 
     size = sizeof(check_connect);
