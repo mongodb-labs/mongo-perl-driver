@@ -99,6 +99,7 @@ int perl_mongo_connect(char *host, int port, int timeout) {
 
     while (1) {
       fd_set rset, wset, eset;
+      int sock_status;
 
       FD_ZERO(&rset);
       FD_SET(sock, &rset);
@@ -107,7 +108,15 @@ int perl_mongo_connect(char *host, int port, int timeout) {
       FD_ZERO(&eset);
       FD_SET(sock, &eset);
 
-      if (!select(sock+1, &rset, &wset, &eset, &timeout_struct)) {
+      sock_status = select(sock+1, &rset, &wset, &eset, &timeout_struct);
+
+      // error
+      if (sock_status == -1) {
+        return -1;
+      }
+
+      // timeout
+      if (sock_status == 0 && !FD_ISSET(sock, &wset) && !FD_ISSET(sock, &rset)) {
         return -1;
       }
 
