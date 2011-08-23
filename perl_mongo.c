@@ -540,12 +540,12 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_MINKEY: {
-    HV *stash = gv_stashpv("MongoDB::MinKey", 0);
+    HV *stash = gv_stashpv("MongoDB::MinKey", GV_ADD);
     value = sv_bless(newRV((SV*)newHV()), stash);
     break;
   }
   case BSON_MAXKEY: {
-    HV *stash = gv_stashpv("MongoDB::MaxKey", 0);
+    HV *stash = gv_stashpv("MongoDB::MaxKey", GV_ADD);
     value = sv_bless(newRV((SV*)newHV()), stash);
     break;
   }
