@@ -20,18 +20,21 @@
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(int socket, void *dest, int len);
 
+/**
+ * Waits "timeout" ms for the socket to be ready.  Returns 1 on success, 0 on
+ * failure.
+ */
+static int mongo_link_timeout(int socket, time_t timeout);
+
 /*
- * Returns -1 on failure, the socket fh on success.  
+ * Returns -1 on failure, the socket fh on success.
  *
  * Note: this cannot return 0 on failure, because reconnecting sometimes makes
  * the fh 0 (briefly).
  */
 int perl_mongo_connect(char *host, int port, int timeout) {
   int sock, status, connected = 0;
-  struct sockaddr_in addr, check_connect;
-
-  // timeout
-  struct timeval timeout_struct;
+  struct sockaddr_in addr;
 
 #ifdef WIN32
   WORD version;
@@ -94,42 +97,11 @@ int perl_mongo_connect(char *host, int port, int timeout) {
       return -1;
     }
 
-    timeout_struct.tv_sec = timeout > 0 ? (timeout / 1000) : 20;
-    timeout_struct.tv_usec = timeout > 0 ? ((timeout % 1000) * 1000) : 0;
-
-    while (1) {
-      fd_set rset, wset, eset;
-      int sock_status;
-
-      FD_ZERO(&rset);
-      FD_SET(sock, &rset);
-      FD_ZERO(&wset);
-      FD_SET(sock, &wset);
-      FD_ZERO(&eset);
-      FD_SET(sock, &eset);
-
-      sock_status = select(sock+1, &rset, &wset, &eset, &timeout_struct);
-
-      // error
-      if (sock_status == -1) {
-        return -1;
-      }
-
-      // timeout
-      if (sock_status == 0 && !FD_ISSET(sock, &wset) && !FD_ISSET(sock, &rset)) {
-        return -1;
-      }
-
-      if (FD_ISSET(sock, &eset)) {
-        return -1;
-      }
-
-      if (FD_ISSET(sock, &wset) || FD_ISSET(sock, &rset)) {
-        break;
-      }
+    if (!mongo_link_timeout(sock, timeout)) {
+      return -1;
     }
 
-    size = sizeof(check_connect);
+    size = sizeof(addr);
 
     connected = getpeername(sock, (struct sockaddr*)&addr, &size);
     if (connected == -1) {
@@ -139,7 +111,7 @@ int perl_mongo_connect(char *host, int port, int timeout) {
   else if (status == 0) {
     connected = 1;
   }
-  
+
 // reset flags
 #ifdef WIN32
   ioctlsocket(sock, FIONBIO, &no);
@@ -149,6 +121,98 @@ int perl_mongo_connect(char *host, int port, int timeout) {
   return sock;
 }
 
+static int mongo_link_timeout(int sock, time_t to) {
+  struct timeval timeout, now, prev;
+
+  if (to <= 0) {
+    return 1;
+  }
+
+  timeout.tv_sec = to > 0 ? (to / 1000) : 20;
+  timeout.tv_usec = to > 0 ? ((to % 1000) * 1000) : 0;
+
+  // initialize prev, in case we get interrupted
+  if (gettimeofday(&prev, 0) == -1) {
+    return 0;
+  }
+
+  while (1) {
+    fd_set rset, wset, eset;
+    int sock_status;
+
+    FD_ZERO(&rset);
+    FD_SET(sock, &rset);
+    FD_ZERO(&wset);
+    FD_SET(sock, &wset);
+    FD_ZERO(&eset);
+    FD_SET(sock, &eset);
+
+    sock_status = select(sock+1, &rset, &wset, &eset, &timeout);
+
+    // error
+    if (sock_status == -1) {
+
+#ifdef WIN32
+      errno = WSAGetLastError();
+#endif
+
+      if (errno == EINTR) {
+        if (gettimeofday(&now, 0) == -1) {
+          return 0;
+        }
+
+        // update timeout
+        timeout.tv_sec -= (now.tv_sec - prev.tv_sec);
+        timeout.tv_usec -= (now.tv_usec - prev.tv_usec);
+
+        // update prev
+        prev.tv_sec = now.tv_sec;
+        prev.tv_usec = now.tv_usec;
+      }
+
+      // check if we have an invalid timeout before continuing
+      if (timeout.tv_sec >= 0 || timeout.tv_usec >= 0) {
+        continue;
+      }
+
+      // if this isn't a EINTR, it's a fatal error
+      return 0;
+    }
+
+    // timeout
+    if (sock_status == 0 && !FD_ISSET(sock, &wset) && !FD_ISSET(sock, &rset)) {
+      return 0;
+    }
+
+    if (FD_ISSET(sock, &eset)) {
+      return 0;
+    }
+
+    if (FD_ISSET(sock, &wset) || FD_ISSET(sock, &rset)) {
+      break;
+    }
+  }
+
+  return 1;
+}
+
+#ifdef WIN32
+int gettimeofday(struct timeval *t, void *tz) {
+  FILETIME ft;
+
+  if (t != 0) {
+    GetSystemTimeAsFileTime(&ft);
+
+    t->tv_sec = ft.wSecond;
+    t->tv_usec = ft.wMilliseconds*1000;
+  }
+  else {
+    return -1;
+  }
+
+  return 0;
+}
+#endif
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
   struct hostent *hostinfo;

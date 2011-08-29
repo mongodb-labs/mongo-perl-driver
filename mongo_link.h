@@ -20,8 +20,17 @@
 #include "perl_mongo.h"
 
 #ifdef WIN32
+
 #include <winsock2.h>
+
 #define socklen_t int
+
+/**
+ * This immitates the glibc function gettimeofday() for Windows. It does not set
+ * the timezone. Returns 0 on success, -1 on failure (if t==0).
+ */
+int gettimeofday(struct timeval *t, void *tz);
+
 #else
 #include <sys/types.h>
 #include <netinet/in.h>
