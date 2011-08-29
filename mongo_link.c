@@ -196,24 +196,6 @@ static int mongo_link_timeout(int sock, time_t to) {
   return 1;
 }
 
-#ifdef WIN32
-int gettimeofday(struct timeval *t, void *tz) {
-  FILETIME ft;
-
-  if (t != 0) {
-    GetSystemTimeAsFileTime(&ft);
-
-    t->tv_sec = ft.wSecond;
-    t->tv_usec = ft.wMilliseconds*1000;
-  }
-  else {
-    return -1;
-  }
-
-  return 0;
-}
-#endif
-
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
   struct hostent *hostinfo;
 
