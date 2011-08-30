@@ -127,7 +127,6 @@ sub to_index_string {
         my @ks = $keys->Keys;
         my @vs = $keys->Values;
 
-        @vs = $keys->Values;
         for (my $i=0; $i<$keys->Length; $i++) {
             push @name, $ks[$i];
             push @name, $vs[$i];
