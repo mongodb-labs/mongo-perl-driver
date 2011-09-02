@@ -4,7 +4,7 @@ use lib 'ext';
 use inc::Module::Install;
 
 name 'MongoDB';
-perl_version '5.8.7';
+perl_version '5.8.4';
 author 'Florian Ragwitz <rafl@debian.org>';
 author 'Kristina Chodorow <kristina@10gen.com>';
 license 'Apache';
