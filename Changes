@@ -1,3 +1,26 @@
+0.45 - September 7, 2011
+
+  This is a recommended upgrade.  There are no backwards-breaking changes, only
+  bug fixes and enhancements.
+
+  [Enhancements]
+
+  - Perl 5.8.4 and higher is now officially supported (5.8.7 was the previous
+    minimum version).
+
+  - Improved the way that connecting handles an interrupt signal.  The driver
+    now continues to attempt connection for the remaining duration of the
+    timeout, instead of erroring out immediately.
+
+  [Bug Fixes]
+
+  - Fixed MaxKey and MinKey deserialization. Deserializing these types would seg
+    fault if they hadn't been serialized previously.
+
+  - Fixed Windows compilation (Taro Nishino)
+
+  - Fixed MakeMaker arguments which were causing build problems on 5.14.
+
 0.44 - July 26, 2011
 
   This is a recommended upgrade.  There are no backwards-breaking changes, only

@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Code;
-our $VERSION = '0.44';
+our $VERSION = '0.45';
 
 # ABSTRACT: JavaScript Code
 
