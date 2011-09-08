@@ -430,7 +430,7 @@ sub AUTOLOAD {
 sub BUILD {
     my ($self, $opts) = @_;
     eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
-        for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID MongoDB::Timestamp/;
+        for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID MongoDB::Timestamp MongoDB::DateTime/;
 
     my @pairs;
 

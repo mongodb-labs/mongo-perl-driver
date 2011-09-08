@@ -90,4 +90,18 @@ C<$MongoDB::BSON::use_boolean> to 1.
 
 $MongoDB::BSON::use_boolean = 0;
 
+=head Deserialize datetime objects as MongoDB::DateTime
+
+    $MongoDB::BSON::use_mongodb_datetime = 0;
+
+By default MongoDB deserializes datetime objects as L<DateTime>. While convenient,
+this comes with a significant speed penalty as DateTime is heavy and creates slowly.
+
+Set this option to C<1> to deserialize datetime objects as L<MongoDB::DateTime> for
+increased speed.
+
+=cut
+
+$MongoDB::BSON::use_mongodb_datetime = 0;
+
 1;

@@ -417,14 +417,23 @@ elem_to_sv (int type, buffer *buf)
     HV *named_params;
     buf->pos += INT_64;
     ms_i /= 1000;
+    SV *use_mongo_datetime = get_sv("MongoDB::BSON::use_mongodb_datetime", 0);
+    char dt_module[50] = "DateTime";
 
-    datetime = sv_2mortal(newSVpv("DateTime", 0));
+    if ( use_mongo_datetime
+         && SvIOK(use_mongo_datetime)
+         && SvIV(use_mongo_datetime)) {
+         strcpy(dt_module, "MongoDB::DateTime");
+    }
+
+    datetime = sv_2mortal(newSVpv(dt_module, 0));
+
     ms = newSViv(ms_i);
 
     named_params = newHV();
     heval = hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
 
-    value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
+    value = perl_mongo_call_function(strcat(dt_module, "::from_epoch"), 2, datetime,
                                      sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
     break;
   }
@@ -1179,7 +1188,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         ixhash_to_bson(buf, sv, NO_PREP, stack, is_insert);
       }
       /* DateTime */
-      else if (sv_isa(sv, "DateTime")) {
+      else if (sv_isa(sv, "MongoDB::DateTime") || sv_isa(sv, "DateTime")) {
         SV *sec, *ms, *tz, *tz_name;
         STRLEN len;
         char *str;
@@ -1187,14 +1196,16 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         perl_mongo_serialize_key(buf, key, is_insert);
 
         // check for floating tz
-        tz = perl_mongo_call_reader (sv, "time_zone");
-        tz_name = perl_mongo_call_reader (tz, "name");
-        str = SvPV(tz_name, len);
-        if (len == 8 && strncmp("floating", str, 8) == 0) {
-          warn("saving floating timezone as UTC");
+        if ( sv_isa(sv, "DateTime") ) {
+            tz = perl_mongo_call_reader (sv, "time_zone");
+            tz_name = perl_mongo_call_reader (tz, "name");
+            str = SvPV(tz_name, len);
+            if (len == 8 && strncmp("floating", str, 8) == 0) {
+              warn("saving floating timezone as UTC");
+            }
+            SvREFCNT_dec (tz);
+            SvREFCNT_dec (tz_name);
         }
-        SvREFCNT_dec (tz);
-        SvREFCNT_dec (tz_name);
 
         sec = perl_mongo_call_reader (sv, "epoch");
         ms = perl_mongo_call_method (sv, "millisecond", 0, 0);
