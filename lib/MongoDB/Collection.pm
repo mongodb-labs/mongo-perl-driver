@@ -454,7 +454,7 @@ sub remove {
     $collection->ensure_index({"foo" => 1, "bar" => -1}, { unique => true });
 
 Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be an
-array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is prefered
+array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is preferred
 for multi-key indexes, so that the keys are in the correct order.  1 creates an
 ascending index, -1 creates a descending index.
 
