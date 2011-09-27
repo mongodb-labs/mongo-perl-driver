@@ -127,6 +127,43 @@ Implicit, can be done explicitly.
 
 =head1 DATABASE COMMANDS
 
+If you do something in the MongoDB shell and you would like to translate it to
+Perl, the best way is to run the function in the shell without parentheses, which
+will print the source.  You can then generally translate the source into Perl
+fairly easily.
+
+For example, suppose we want to use C<db.foo.validate> in Perl.  We could
+run:
+
+    > db.foo.validate
+    function (full) {
+        var cmd = {validate:this.getName()};
+        if (typeof full == "object") {
+            Object.extend(cmd, full);
+        } else {
+            cmd.full = full;
+        }
+        var res = this._db.runCommand(cmd);
+        if (typeof res.valid == "undefined") {
+            res.valid = false;
+            var raw = res.result || res.raw;
+            if (raw) {
+                var str = "-" + tojson(raw);
+                res.valid = !(str.match(/exception/) || str.match(/corrupt/));
+                var p = /lastExtentSize:(\d+)/;
+                var r = p.exec(str);
+                if (r) {
+                    res.lastExtentSize = Number(r[1]);
+                }
+            }
+        }
+        return res;
+    }
+
+Thus, we can translate the important parts into Perl:
+
+    $db->run_command({validate => "foo"});
+
 =head2 Distinct
 
 The distinct command returns all values for a given key in a collection.  For
