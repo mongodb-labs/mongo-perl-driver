@@ -78,7 +78,7 @@ Before you get started with MongoDB, it is important to know that, by default,
 MongoDB does not return a response from writes (inserts, updates, and deletes).
 If you would like to know if the insert succeeded or failed, use the C<safe>
 option.  For more information on this, see
-L<http://www.mongodb.org/display/DOCS/Last+Error+Commands> for details.
+L<http://www.mongodb.org/display/DOCS/getLastError+Command> for details.
 
 =head3 Inserting
 
