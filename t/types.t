@@ -237,7 +237,7 @@ SKIP: {
     $j->convert_blessed;
 
     my $json = $j->encode($doc);
-    is($json, $doc->{'foo'}->value);
+    is($json, '{"foo:"' . $doc->{'foo'}->value . '"}');
 }
 
 # timestamp
