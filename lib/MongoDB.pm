@@ -46,7 +46,7 @@ MongoDB - Mongo Driver for Perl
 =head1 INTRO TO MONGODB
 
 This is the Perl driver for MongoDB, a document-oriented database.  This section
-introduces some of the basic concepts of MongoDB.  There's also a L<Tutorial>
+introduces some of the basic concepts of MongoDB.  There's also a L<MongoDB::Tutorial/"Tutorial">
 pod that introduces using the driver.  For more documentation on MongoDB in
 general, check out L<http://www.mongodb.org>.
 
