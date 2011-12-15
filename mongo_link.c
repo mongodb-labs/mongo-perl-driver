@@ -355,6 +355,7 @@ int mongo_link_hear(SV *cursor_sv) {
     if (get_header(sock, cursor_sv, link_sv) == 0) {
       SvREFCNT_dec(link_sv);
       SvREFCNT_dec(request_id_sv);
+      croak("invalid header received");
       return 0;
     }
   }
