@@ -26,6 +26,14 @@ static int mongo_link_reader(int socket, void *dest, int len);
  */
 static int mongo_link_timeout(int socket, time_t timeout);
 
+static void set_timeout(int socket, time_t timeout) {
+  struct timeval tv;
+  tv.tv_sec = 1;
+  tv.tv_usec = 0;
+  setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+  setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+}
+
 /*
  * Returns -1 on failure, the socket fh on success.
  *
@@ -73,6 +81,7 @@ int perl_mongo_connect(char *host, int port, int timeout) {
 
   setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &yes, INT_32);
   setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, INT_32);
+  set_timeout(sock, timeout);
 
 #ifdef WIN32
   ioctlsocket(sock, FIONBIO, (u_long*)&yes);
