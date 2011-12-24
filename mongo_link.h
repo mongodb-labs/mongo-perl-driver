@@ -102,6 +102,23 @@ typedef struct {
 } mongo_msg_header;
 
 /*
+ *  Connection Obj.
+ *
+ * sslHandle
+ * sslContext
+ * socket is the actual socket the connection is using
+ * connected is a boolean indicating if the socket is connected or not
+ */
+
+ typedef struct {
+     int socket;
+     SSL *sslHandle;
+     SSL_CTX *sslContext;
+     int connected;
+ } connection;
+
+
+/*
  * a connection to the database
  *
  * host is hostname
@@ -112,8 +129,7 @@ typedef struct {
 typedef struct _mongo_server {
   char *host;
   int port;
-  int socket;
-  int connected;
+  connection conn;
 } mongo_server;
 
 /*
@@ -129,6 +145,7 @@ typedef struct {
 
   int num;
   mongo_server *master;
+  bool ssl;
   int copy;
 } mongo_link;
 
@@ -153,7 +170,10 @@ typedef struct {
 int mongo_link_say(SV *self, buffer *buf);
 int mongo_link_hear(SV *self);
 int perl_mongo_master(SV *self, int auto_reconnect);
-int perl_mongo_connect(char *host, int port, int timeout);
+connection perl_mongo_connect(char *host, int port, int timeout);
 void set_disconnected(SV *link_sv);
+
+connection non_ssl_connect(char *host, int port, int timeout);
+connection ssl_connect(char *host, int port, int timeout);
 
 #endif
