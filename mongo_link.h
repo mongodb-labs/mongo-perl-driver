@@ -29,6 +29,19 @@
 #include <netinet/tcp.h>
 #include <fcntl.h>
 #include <netdb.h>
+
+//ssl
+#include <sys/socket.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <openssl/rand.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+//end ssl
+
 #endif
 #include <errno.h>
 
