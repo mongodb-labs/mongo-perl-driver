@@ -41,7 +41,7 @@ static void set_timeout(int socket, time_t timeout) {
  * the fh 0 (briefly).
  */
  //TODO: make function pointer to wrap send/recieve calls
- //TODO: change functions return conncetions vs sockets
+ //TODO: change functions return conncetions vs sockets 
 connection* perl_mongo_connect(char *host, int port, int timeout, bool ssl) {
     connection* _conn;
     _conn = malloc(sizeof (connection));
