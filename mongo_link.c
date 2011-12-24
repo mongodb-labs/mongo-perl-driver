@@ -40,94 +40,106 @@ static void set_timeout(int socket, time_t timeout) {
  * Note: this cannot return 0 on failure, because reconnecting sometimes makes
  * the fh 0 (briefly).
  */
-int perl_mongo_connect(char *host, int port, int timeout) {
-  int sock, status, connected = 0;
-  struct sockaddr_in addr;
+connection perl_mongo_connect(char *host, int port, int timeout, int ssl) {
+    connection _conn;
+    if(ssl)
+        _conn = ssl_connect(host, port, timeout);
+    else
+        _conn.socket = non_ssl_connect(host, port, timeout);
+    return _conn;
+}
 
-#ifdef WIN32
-  WORD version;
-  WSADATA wsaData;
-  int error;
-  u_long no = 0;
-  const char yes = 1;
+connection non_ssl_connect(char *host, int port, int timeout){
+    int sock, status, connected = 0;
+      struct sockaddr_in addr;
 
-  version = MAKEWORD(2,2);
-  error = WSAStartup(version, &wsaData);
+    #ifdef WIN32
+      WORD version;
+      WSADATA wsaData;
+      int error;
+      u_long no = 0;
+      const char yes = 1;
 
-  if (error != 0) {
-    return -1;
-  }
+      version = MAKEWORD(2,2);
+      error = WSAStartup(version, &wsaData);
 
-  // create socket
-  sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (sock == INVALID_SOCKET) {
-    return -1;
-  }
+      if (error != 0) {
+        return -1;
+      }
 
-#else
-  int yes = 1;
+      // create socket
+      sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+      if (sock == INVALID_SOCKET) {
+        return -1;
+      }
 
-  // create socket
-  if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-    croak("couldn't create socket: %s\n", strerror(errno));
-    return -1;
-  }
-#endif
+    #else
+      int yes = 1;
 
-  // get addresses
-  if (!mongo_link_sockaddr(&addr, host, port)) {
-    return -1;
-  }
+      // create socket
+      if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
+        croak("couldn't create socket: %s\n", strerror(errno));
+        return -1;
+      }
+    #endif
 
-  setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &yes, INT_32);
-  setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, INT_32);
-  set_timeout(sock, timeout);
+      // get addresses
+      if (!mongo_link_sockaddr(&addr, host, port)) {
+        return -1;
+      }
 
-#ifdef WIN32
-  ioctlsocket(sock, FIONBIO, (u_long*)&yes);
-#else
-  fcntl(sock, F_SETFL, O_NONBLOCK);
-#endif
+      setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &yes, INT_32);
+      setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, INT_32);
+      set_timeout(sock, timeout);
 
-  // connect
-  status = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
-  if (status == -1) {
-    socklen_t size;
+    #ifdef WIN32
+      ioctlsocket(sock, FIONBIO, (u_long*)&yes);
+    #else
+      fcntl(sock, F_SETFL, O_NONBLOCK);
+    #endif
 
-#ifdef WIN32
-    errno = WSAGetLastError();
+      // connect
+      status = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
+      if (status == -1) {
+        socklen_t size;
 
-    if (errno != WSAEINPROGRESS &&
-        errno != WSAEWOULDBLOCK)
-#else
-    if (errno != EINPROGRESS)
-#endif
-    {
-      return -1;
-    }
+    #ifdef WIN32
+        errno = WSAGetLastError();
 
-    if (!mongo_link_timeout(sock, timeout)) {
-      return -1;
-    }
+        if (errno != WSAEINPROGRESS &&
+            errno != WSAEWOULDBLOCK)
+    #else
+        if (errno != EINPROGRESS)
+    #endif
+        {
+          return -1;
+        }
 
-    size = sizeof(addr);
+        if (!mongo_link_timeout(sock, timeout)) {
+          return -1;
+        }
 
-    connected = getpeername(sock, (struct sockaddr*)&addr, &size);
-    if (connected == -1) {
-      return -1;
-    }
-  }
-  else if (status == 0) {
-    connected = 1;
-  }
+        size = sizeof(addr);
 
-// reset flags
-#ifdef WIN32
-  ioctlsocket(sock, FIONBIO, &no);
-#else
-  fcntl(sock, F_SETFL, 0);
-#endif
-  return sock;
+        connected = getpeername(sock, (struct sockaddr*)&addr, &size);
+        if (connected == -1) {
+          return -1;
+        }
+      }
+      else if (status == 0) {
+        connected = 1;
+      }
+
+    // reset flags
+    #ifdef WIN32
+      ioctlsocket(sock, FIONBIO, &no);
+    #else
+      fcntl(sock, F_SETFL, 0);
+    #endif
+      return sock;
+}
+connection ssl_connect(char *host, int port, int timeout){
+    
 }
 
 static int mongo_link_timeout(int sock, time_t to) {
