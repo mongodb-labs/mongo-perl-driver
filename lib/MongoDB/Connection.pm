@@ -356,6 +356,14 @@ in the C<passives> field, and arbiters are in the C<arbiters> field.
 
 =cut
 
+has ssl => (
+    is       => 'rw',
+    is       => 'Bool', 
+    required => 0,
+    default  => 0,
+);
+
+
 has find_master => (
     is       => 'ro',
     isa      => 'Bool',
@@ -368,7 +376,7 @@ has find_master => (
 has _servers => (
     is       => 'rw',
     isa      => 'HashRef',
-    default => sub { {} },
+    default  => sub { {} },
 );
 
 # actual connection to a server in the set
@@ -457,7 +465,7 @@ sub BUILD {
             $hp[1] = 27017;
         }
 
-        $self->_init_conn($hp[0], $hp[1]);
+        $self->_init_conn($hp[0], $hp[1], $hp[2]);
         if ($self->auto_connect) {
             $self->connect;
             $self->max_bson_size($self->_get_max_bson_size);
