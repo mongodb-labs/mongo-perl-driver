@@ -18,7 +18,7 @@
 #include "perl_mongo.h"
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
-static int mongo_link_reader(int socket, void *dest, int len);
+static int mongo_link_reader(connection* conn, void *dest, int len);
 
 /**
  * Waits "timeout" ms for the socket to be ready.  Returns 1 on success, 0 on
@@ -248,12 +248,13 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
  */
 int mongo_link_say(SV *link_sv, buffer *buf) {
   int sock, sent;
+  connection* conn;
 
-  if ((sock = perl_mongo_master(link_sv, 1)) == -1) {
+  if ((conn = perl_mongo_master(link_sv, 1)) == NULL) {
     return -1;
   }
   
-  sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
+  sent = send(conn->socket, (const char*)buf->start, buf->pos-buf->start, 0);
   
   if (sent == -1) {
     set_disconnected(link_sv);
@@ -263,12 +264,12 @@ int mongo_link_say(SV *link_sv, buffer *buf) {
 }
 
 
-static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
+static int get_header(connection* conn, SV *cursor_sv, SV *link_sv) {
   mongo_cursor *cursor;
 
   cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv, &cursor_vtbl);
 
-  if (recv(sock, (char*)&cursor->header.length, INT_32, 0) != INT_32) {
+  if (recv(conn->socket, (char*)&cursor->header.length, INT_32, 0) != INT_32) {
     set_disconnected(link_sv);
     return 0;
   }
@@ -283,9 +284,9 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
     return 0;
   }
 
-  if (recv(sock, (char*)&cursor->header.request_id, INT_32, 0) != INT_32 ||
-      recv(sock, (char*)&cursor->header.response_to, INT_32, 0) != INT_32 ||
-      recv(sock, (char*)&cursor->header.op, INT_32, 0) != INT_32) {
+  if (recv(conn->socket, (char*)&cursor->header.request_id, INT_32, 0) != INT_32 ||
+      recv(conn->socket, (char*)&cursor->header.response_to, INT_32, 0) != INT_32 ||
+      recv(conn->socket, (char*)&cursor->header.op, INT_32, 0) != INT_32) {
     return 0;
   }
 
@@ -301,7 +302,7 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
  * creates a cursor for it
  */
 int mongo_link_hear(SV *cursor_sv) {
-  int sock;
+  connection* conn;
   int num_returned = 0, timeout = -1;
   mongo_cursor *cursor;
   mongo_link *link;
@@ -312,7 +313,7 @@ int mongo_link_hear(SV *cursor_sv) {
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
   timeout_sv = perl_mongo_call_reader(link_sv, "query_timeout");
 
-  if ((sock = perl_mongo_master(link_sv, 0)) == -1) {
+  if ((conn->socket = perl_mongo_master(link_sv, 0)) == NULL) {
     set_disconnected(link_sv);
     SvREFCNT_dec(link_sv);
     croak("can't get db response, not connected");
@@ -330,18 +331,18 @@ int mongo_link_hear(SV *cursor_sv) {
     t.tv_usec = (timeout % 1000) * 1000;
 
     FD_ZERO(&readfds);
-    FD_SET(sock, &readfds);
+    FD_SET(conn->socket, &readfds);
 
-    select(sock+1, &readfds, NULL, NULL, &t);
+    select(conn->socket+1, &readfds, NULL, NULL, &t);
 
-    if (!FD_ISSET(sock, &readfds)) {
+    if (!FD_ISSET(conn->socket, &readfds)) {
       SvREFCNT_dec(link_sv);
       croak("recv timed out (%d ms)", timeout);
       return 0;
     }
   }
 
-  if (get_header(sock, cursor_sv, link_sv) == 0) {
+  if (get_header(conn->socket, cursor_sv, link_sv) == 0) {
     SvREFCNT_dec(link_sv);
     croak("can't get db response, not connected");
     return 0;
@@ -359,7 +360,7 @@ int mongo_link_hear(SV *cursor_sv) {
       return 0;
     }
 
-    if (recv(sock, (char*)temp, 20, 0) == -1) {
+    if (recv(conn->socket, (char*)temp, 20, 0) == -1) {
       SvREFCNT_dec(link_sv);
       SvREFCNT_dec(request_id_sv);
       croak("couldn't get header response to throw out");
@@ -370,7 +371,7 @@ int mongo_link_hear(SV *cursor_sv) {
       int temp_len = len > 4096 ? 4096 : len;
       len -= temp_len;
 
-      if (mongo_link_reader(sock, (void*)temp, temp_len) == -1) {
+      if (mongo_link_reader(conn->socket, (void*)temp, temp_len) == -1) {
         SvREFCNT_dec(link_sv);
         SvREFCNT_dec(request_id_sv);
         croak("couldn't get response to throw out");
@@ -378,7 +379,7 @@ int mongo_link_hear(SV *cursor_sv) {
       }
     } while (len > 0);
 
-    if (get_header(sock, cursor_sv, link_sv) == 0) {
+    if (get_header(conn->socket, cursor_sv, link_sv) == 0) {
       SvREFCNT_dec(link_sv);
       SvREFCNT_dec(request_id_sv);
       croak("invalid header received");
@@ -387,10 +388,10 @@ int mongo_link_hear(SV *cursor_sv) {
   }
   SvREFCNT_dec(request_id_sv);
   
-  if (recv(sock, (char*)&cursor->flag, INT_32, 0) == -1 ||
-      recv(sock, (char*)&cursor->cursor_id, INT_64, 0) == -1 ||
-      recv(sock, (char*)&cursor->start, INT_32, 0) == -1 ||
-      recv(sock, (char*)&num_returned, INT_32, 0) == -1) {
+  if (recv(conn->socket, (char*)&cursor->flag, INT_32, 0) == -1 ||
+      recv(conn->socket, (char*)&cursor->cursor_id, INT_64, 0) == -1 ||
+      recv(conn->socket, (char*)&cursor->start, INT_32, 0) == -1 ||
+      recv(conn->socket, (char*)&num_returned, INT_32, 0) == -1) {
     SvREFCNT_dec(link_sv);
     croak("%s", strerror(errno));
     return 0;
@@ -422,7 +423,7 @@ int mongo_link_hear(SV *cursor_sv) {
   }
   cursor->buf.pos = cursor->buf.start;
 
-  if (mongo_link_reader(sock, cursor->buf.pos, cursor->header.length) == -1) {
+  if (mongo_link_reader(conn->socket, cursor->buf.pos, cursor->header.length) == -1) {
 #ifdef WIN32
     croak("WSA error getting database response: %d\n", WSAGetLastError());
 #else
@@ -439,7 +440,7 @@ int mongo_link_hear(SV *cursor_sv) {
 /*
  * Low-level func to get a response from the MongoDB server
  */
-static int mongo_link_reader(int socket, void *dest, int len) {
+static int mongo_link_reader(connection* conn, void *dest, int len) {
   int num = 1, read = 0;
 
   // this can return FAILED if there is just no more data from db
@@ -447,7 +448,7 @@ static int mongo_link_reader(int socket, void *dest, int len) {
     int temp_len = (len - read) > 4096 ? 4096 : (len - read);
 
     // windows gives a WSAEFAULT if you try to get more bytes
-    num = recv(socket, (char*)dest, temp_len, 0);
+    num = recv(conn->socket, (char*)dest, temp_len, 0);
 
     if (num < 0) {
       return -1;
@@ -490,14 +491,14 @@ void set_disconnected(SV *link_sv) {
   }
 }
 
-int perl_mongo_master(SV *link_sv, int auto_reconnect) {
+connection* perl_mongo_master(SV *link_sv, int auto_reconnect) {
   SV *master;
   mongo_link *link;
 
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
 
   if (link->master && link->master->conn->connected) {
-      return link->master->conn->socket;
+      return link->master->conn;
   }
   // if we didn't have a connection above and this isn't a connection holder
   if (!link->copy) {
@@ -505,7 +506,7 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
       if (auto_reconnect && link->auto_reconnect) {
           perl_mongo_call_method(link_sv, "connect", G_DISCARD, 0);
           if (link->master && link->master->conn->connected) {
-              return link->master->conn->socket;
+              return link->master->conn;
           }
       }
 
@@ -520,11 +521,11 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
     link->copy = 1;
     link->master = m_link->master;
 
-    return link->master->conn->socket;
+    return link->master->conn;
   }
 
   link->master = 0;
-  return -1;
+  return NULL;
 }
 
 
