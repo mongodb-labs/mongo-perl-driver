@@ -40,17 +40,17 @@ static void set_timeout(int socket, time_t timeout) {
  * Note: this cannot return 0 on failure, because reconnecting sometimes makes
  * the fh 0 (briefly).
  */
-connection perl_mongo_connect(char *host, int port, int timeout, int ssl) {
+connection* perl_mongo_connect(char *host, int port, int timeout, bool ssl) {
     connection* _conn;
     _conn = malloc(sizeof (connection));
     if(ssl)
         _conn = ssl_connect(host, port, timeout);
     else
         _conn->socket = non_ssl_connect(host, port, timeout);
-    return *_conn;
+    return _conn;
 }
 
-connection non_ssl_connect(char *host, int port, int timeout){
+int non_ssl_connect(char *host, int port, int timeout){
     int sock, status, connected = 0;
       struct sockaddr_in addr;
 
@@ -139,7 +139,7 @@ connection non_ssl_connect(char *host, int port, int timeout){
     #endif
       return sock;
 }
-connection ssl_connect(char *host, int port, int timeout){
+connection* ssl_connect(char *host, int port, int timeout){
     return sslConnect(host, port, timeout);
 }
 
@@ -465,19 +465,19 @@ void set_disconnected(SV *link_sv) {
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
 
   // check if there's nothing to do
-  if (link->master == 0 || link->master->connected == 0) {
+  if (link->master == 0 || link->master->conn->connected == 0) {
       return;
   }
 
 #ifdef WIN32
-  shutdown(link->master->socket, 2);
-  closesocket(link->master->socket);
+  shutdown(link->master->conn->socket, 2);
+  closesocket(link->master->conn->socket);
   WSACleanup();
 #else
-  close(link->master->socket);
+  close(link->master->conn->socket);
 #endif
 
-  link->master->connected = 0;
+  link->master->conn->connected = 0;
 
   // TODO: set $self->_master to 0?
   if (link->copy) {
@@ -492,16 +492,16 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
 
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
 
-  if (link->master && link->master->connected) {
-      return link->master->socket;
+  if (link->master && link->master->conn->connected) {
+      return link->master->conn->socket;
   }
   // if we didn't have a connection above and this isn't a connection holder
   if (!link->copy) {
       // if this is a real connection, try to reconnect
       if (auto_reconnect && link->auto_reconnect) {
           perl_mongo_call_method(link_sv, "connect", G_DISCARD, 0);
-          if (link->master && link->master->connected) {
-              return link->master->socket;
+          if (link->master && link->master->conn->connected) {
+              return link->master->conn->socket;
           }
       }
 
@@ -516,7 +516,7 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
     link->copy = 1;
     link->master = m_link->master;
 
-    return link->master->socket;
+    return link->master->conn->socket;
   }
 
   link->master = 0;
@@ -526,13 +526,13 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
 
 //ssl
 // Establish a regular tcp connection
-int tcpConnect(char *host, int port, int timout)
+int tcpConnect(char *hostname, int port, int timout)
 {
     int error, handle;
     struct hostent *host;
     struct sockaddr_in server;
     
-    host = gethostbyname (SERVER);
+    host = gethostbyname (hostname);
     handle = socket (AF_INET, SOCK_STREAM, 0);
     if (handle == -1){
         perror ("Socket");
@@ -540,7 +540,7 @@ int tcpConnect(char *host, int port, int timout)
     }
     else{
         server.sin_family = AF_INET;
-        server.sin_port = htons (PORT);
+        server.sin_port = htons (port);
         server.sin_addr = *((struct in_addr *) host->h_addr);
         bzero (&(server.sin_zero), 8);
     
@@ -555,7 +555,7 @@ int tcpConnect(char *host, int port, int timout)
 }
 
 // Establish a connection using an SSL layer
-connection *sslConnect(char *host, int port, int timout)
+connection *sslConnect(char *host, int port, int timeout)
 {
     connection *c;
     

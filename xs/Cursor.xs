@@ -302,7 +302,7 @@ DESTROY (self)
       link_sv = perl_mongo_call_reader(self, "_connection");
       link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
       // check if cursor is connected
-      if (link->master && link->master->connected) {
+      if (link->master && link->master->conn->connected) {
           kill_cursor(self);
       }
       SvREFCNT_dec(link_sv);
