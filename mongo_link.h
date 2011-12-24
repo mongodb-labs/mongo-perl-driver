@@ -183,10 +183,16 @@ typedef struct {
 int mongo_link_say(SV *self, buffer *buf);
 int mongo_link_hear(SV *self);
 int perl_mongo_master(SV *self, int auto_reconnect);
-connection perl_mongo_connect(char *host, int port, int timeout, bool ssl);
+connection* perl_mongo_connect(char *host, int port, int timeout, bool ssl);
 void set_disconnected(SV *link_sv);
 
-connection non_ssl_connect(char *host, int port, int timeout);
-connection ssl_connect(char *host, int port, int timeout);
+int non_ssl_connect(char *host, int port, int timeout);
+connection* ssl_connect(char *host, int port, int timeout);
+
+int tcpConnect(char *hostname, int port, int timout);
+connection *sslConnect(char *host, int port, int timeout);
+void sslDisconnect(connection *c);
+char *sslRead (connection *c);
+void sslWrite (connection *c, char *text);
 
 #endif
