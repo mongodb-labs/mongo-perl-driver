@@ -30,17 +30,17 @@
 #include <fcntl.h>
 #include <netdb.h>
 
-//ssl
+//
 #include <sys/socket.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-
+#include <errno.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-//end ssl
+//
 
 #endif
 #include <errno.h>
@@ -115,23 +115,6 @@ typedef struct {
 } mongo_msg_header;
 
 /*
- *  Connection Obj.
- *
- * sslHandle
- * sslContext
- * socket is the actual socket the connection is using
- * connected is a boolean indicating if the socket is connected or not
- */
-
- typedef struct {
-     int socket;
-     SSL *sslHandle;
-     SSL_CTX *sslContext;
-     int connected;
- } connection;
-
-
-/*
  * a connection to the database
  *
  * host is hostname
@@ -142,7 +125,8 @@ typedef struct {
 typedef struct _mongo_server {
   char *host;
   int port;
-  connection *conn;
+  int socket;
+  int connected;
 } mongo_server;
 
 /*
@@ -158,8 +142,11 @@ typedef struct {
 
   int num;
   mongo_server *master;
-  bool ssl;
   int copy;
+  
+  bool ssl;
+  SSL *sslHandle;
+  SSL_CTX *sslContext;
 } mongo_link;
 
 typedef struct {
@@ -182,17 +169,8 @@ typedef struct {
 
 int mongo_link_say(SV *self, buffer *buf);
 int mongo_link_hear(SV *self);
-connection* perl_mongo_master(SV *self, int auto_reconnect);
-connection* perl_mongo_connect(char *host, int port, int timeout, bool ssl);
+int perl_mongo_master(SV *self, int auto_reconnect);
+int perl_mongo_connect(char *host, int port, int timeout, bool ssl);
 void set_disconnected(SV *link_sv);
-
-int non_ssl_connect(char *host, int port, int timeout);
-connection* ssl_connect(char *host, int port, int timeout);
-
-int tcpConnect(char *hostname, int port, int timout);
-connection *sslConnect(char *host, int port, int timeout);
-void sslDisconnect(connection *c);
-char *sslRead (connection *c);
-void sslWrite (connection *c, char *text);
 
 #endif

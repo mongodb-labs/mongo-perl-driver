@@ -18,7 +18,7 @@
 #include "perl_mongo.h"
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
-static int mongo_link_reader(connection* conn, void *dest, int len);
+static int mongo_link_reader(int socket, void *dest, int len);
 
 /**
  * Waits "timeout" ms for the socket to be ready.  Returns 1 on success, 0 on
@@ -40,111 +40,94 @@ static void set_timeout(int socket, time_t timeout) {
  * Note: this cannot return 0 on failure, because reconnecting sometimes makes
  * the fh 0 (briefly).
  */
- //TODO: make function pointer to wrap send/recieve calls
- //TODO: change functions return conncetions vs sockets 
-connection* perl_mongo_connect(char *host, int port, int timeout, bool ssl) {
-    connection* _conn;
-    _conn = malloc(sizeof (connection));
-    if(ssl)
-        _conn = ssl_connect(host, port, timeout);
-    else
-        _conn->socket = non_ssl_connect(host, port, timeout);
-    return _conn;
-}
+int perl_mongo_connect(char *host, int port, int timeout, bool ssl) {
+  int sock, status, connected = 0;
+  struct sockaddr_in addr;
 
-int non_ssl_connect(char *host, int port, int timeout){
-    int sock, status, connected = 0;
-      struct sockaddr_in addr;
+#ifdef WIN32
+  WORD version;
+  WSADATA wsaData;
+  int error;
+  u_long no = 0;
+  const char yes = 1;
 
-    #ifdef WIN32
-      WORD version;
-      WSADATA wsaData;
-      int error;
-      u_long no = 0;
-      const char yes = 1;
+  version = MAKEWORD(2,2);
+  error = WSAStartup(version, &wsaData);
 
-      version = MAKEWORD(2,2);
-      error = WSAStartup(version, &wsaData);
+  if (error != 0) {
+    return -1;
+  }
 
-      if (error != 0) {
-        return -1;
-      }
+  // create socket
+  sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (sock == INVALID_SOCKET) {
+    return -1;
+  }
 
-      // create socket
-      sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-      if (sock == INVALID_SOCKET) {
-        return -1;
-      }
+#else
+  int yes = 1;
 
-    #else
-      int yes = 1;
+  // create socket
+  if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
+    croak("couldn't create socket: %s\n", strerror(errno));
+    return -1;
+  }
+#endif
 
-      // create socket
-      if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-        croak("couldn't create socket: %s\n", strerror(errno));
-        return -1;
-      }
-    #endif
+  // get addresses
+  if (!mongo_link_sockaddr(&addr, host, port)) {
+    return -1;
+  }
 
-      // get addresses
-      if (!mongo_link_sockaddr(&addr, host, port)) {
-        return -1;
-      }
+  setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &yes, INT_32);
+  setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, INT_32);
+  set_timeout(sock, timeout);
 
-      setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &yes, INT_32);
-      setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, INT_32);
-      set_timeout(sock, timeout);
+#ifdef WIN32
+  ioctlsocket(sock, FIONBIO, (u_long*)&yes);
+#else
+  fcntl(sock, F_SETFL, O_NONBLOCK);
+#endif
 
-    #ifdef WIN32
-      ioctlsocket(sock, FIONBIO, (u_long*)&yes);
-    #else
-      fcntl(sock, F_SETFL, O_NONBLOCK);
-    #endif
+  // connect
+  status = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
+  if (status == -1) {
+    socklen_t size;
 
-      // connect
-      status = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
-      if (status == -1) {
-        socklen_t size;
+#ifdef WIN32
+    errno = WSAGetLastError();
 
-    #ifdef WIN32
-        errno = WSAGetLastError();
+    if (errno != WSAEINPROGRESS &&
+        errno != WSAEWOULDBLOCK)
+#else
+    if (errno != EINPROGRESS)
+#endif
+    {
+      return -1;
+    }
 
-        if (errno != WSAEINPROGRESS &&
-            errno != WSAEWOULDBLOCK)
-    #else
-        if (errno != EINPROGRESS)
-    #endif
-        {
-          return -1;
-        }
+    if (!mongo_link_timeout(sock, timeout)) {
+      return -1;
+    }
 
-        if (!mongo_link_timeout(sock, timeout)) {
-          return -1;
-        }
+    size = sizeof(addr);
 
-        size = sizeof(addr);
+    connected = getpeername(sock, (struct sockaddr*)&addr, &size);
+    if (connected == -1) {
+      return -1;
+    }
+  }
+  else if (status == 0) {
+    connected = 1;
+  }
 
-        connected = getpeername(sock, (struct sockaddr*)&addr, &size);
-        if (connected == -1) {
-          return -1;
-        }
-      }
-      else if (status == 0) {
-        connected = 1;
-      }
-
-    // reset flags
-    #ifdef WIN32
-      ioctlsocket(sock, FIONBIO, &no);
-    #else
-      fcntl(sock, F_SETFL, 0);
-    #endif
-      return sock;
-}
-
-//TODO: timeout...not sure if its different for ssl
-connection* ssl_connect(char *host, int port, int timeout){
-    return sslConnect(host, port, timeout);
+// reset flags
+#ifdef WIN32
+  ioctlsocket(sock, FIONBIO, &no);
+#else
+  fcntl(sock, F_SETFL, 0);
+#endif
+  return sock;
 }
 
 static int mongo_link_timeout(int sock, time_t to) {
@@ -248,13 +231,12 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
  */
 int mongo_link_say(SV *link_sv, buffer *buf) {
   int sock, sent;
-  connection* conn;
 
-  if ((conn = perl_mongo_master(link_sv, 1)) == NULL) {
+  if ((sock = perl_mongo_master(link_sv, 1)) == -1) {
     return -1;
   }
   
-  sent = send(conn->socket, (const char*)buf->start, buf->pos-buf->start, 0);
+  sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
   
   if (sent == -1) {
     set_disconnected(link_sv);
@@ -264,12 +246,12 @@ int mongo_link_say(SV *link_sv, buffer *buf) {
 }
 
 
-static int get_header(connection* conn, SV *cursor_sv, SV *link_sv) {
+static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
   mongo_cursor *cursor;
 
   cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv, &cursor_vtbl);
 
-  if (recv(conn->socket, (char*)&cursor->header.length, INT_32, 0) != INT_32) {
+  if (recv(sock, (char*)&cursor->header.length, INT_32, 0) != INT_32) {
     set_disconnected(link_sv);
     return 0;
   }
@@ -284,9 +266,9 @@ static int get_header(connection* conn, SV *cursor_sv, SV *link_sv) {
     return 0;
   }
 
-  if (recv(conn->socket, (char*)&cursor->header.request_id, INT_32, 0) != INT_32 ||
-      recv(conn->socket, (char*)&cursor->header.response_to, INT_32, 0) != INT_32 ||
-      recv(conn->socket, (char*)&cursor->header.op, INT_32, 0) != INT_32) {
+  if (recv(sock, (char*)&cursor->header.request_id, INT_32, 0) != INT_32 ||
+      recv(sock, (char*)&cursor->header.response_to, INT_32, 0) != INT_32 ||
+      recv(sock, (char*)&cursor->header.op, INT_32, 0) != INT_32) {
     return 0;
   }
 
@@ -302,7 +284,7 @@ static int get_header(connection* conn, SV *cursor_sv, SV *link_sv) {
  * creates a cursor for it
  */
 int mongo_link_hear(SV *cursor_sv) {
-  connection* conn;
+  int sock;
   int num_returned = 0, timeout = -1;
   mongo_cursor *cursor;
   mongo_link *link;
@@ -313,7 +295,7 @@ int mongo_link_hear(SV *cursor_sv) {
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
   timeout_sv = perl_mongo_call_reader(link_sv, "query_timeout");
 
-  if ((conn->socket = perl_mongo_master(link_sv, 0)) == NULL) {
+  if ((sock = perl_mongo_master(link_sv, 0)) == -1) {
     set_disconnected(link_sv);
     SvREFCNT_dec(link_sv);
     croak("can't get db response, not connected");
@@ -331,18 +313,18 @@ int mongo_link_hear(SV *cursor_sv) {
     t.tv_usec = (timeout % 1000) * 1000;
 
     FD_ZERO(&readfds);
-    FD_SET(conn->socket, &readfds);
+    FD_SET(sock, &readfds);
 
-    select(conn->socket+1, &readfds, NULL, NULL, &t);
+    select(sock+1, &readfds, NULL, NULL, &t);
 
-    if (!FD_ISSET(conn->socket, &readfds)) {
+    if (!FD_ISSET(sock, &readfds)) {
       SvREFCNT_dec(link_sv);
       croak("recv timed out (%d ms)", timeout);
       return 0;
     }
   }
 
-  if (get_header(conn->socket, cursor_sv, link_sv) == 0) {
+  if (get_header(sock, cursor_sv, link_sv) == 0) {
     SvREFCNT_dec(link_sv);
     croak("can't get db response, not connected");
     return 0;
@@ -360,7 +342,7 @@ int mongo_link_hear(SV *cursor_sv) {
       return 0;
     }
 
-    if (recv(conn->socket, (char*)temp, 20, 0) == -1) {
+    if (recv(sock, (char*)temp, 20, 0) == -1) {
       SvREFCNT_dec(link_sv);
       SvREFCNT_dec(request_id_sv);
       croak("couldn't get header response to throw out");
@@ -371,7 +353,7 @@ int mongo_link_hear(SV *cursor_sv) {
       int temp_len = len > 4096 ? 4096 : len;
       len -= temp_len;
 
-      if (mongo_link_reader(conn->socket, (void*)temp, temp_len) == -1) {
+      if (mongo_link_reader(sock, (void*)temp, temp_len) == -1) {
         SvREFCNT_dec(link_sv);
         SvREFCNT_dec(request_id_sv);
         croak("couldn't get response to throw out");
@@ -379,7 +361,7 @@ int mongo_link_hear(SV *cursor_sv) {
       }
     } while (len > 0);
 
-    if (get_header(conn->socket, cursor_sv, link_sv) == 0) {
+    if (get_header(sock, cursor_sv, link_sv) == 0) {
       SvREFCNT_dec(link_sv);
       SvREFCNT_dec(request_id_sv);
       croak("invalid header received");
@@ -388,10 +370,10 @@ int mongo_link_hear(SV *cursor_sv) {
   }
   SvREFCNT_dec(request_id_sv);
   
-  if (recv(conn->socket, (char*)&cursor->flag, INT_32, 0) == -1 ||
-      recv(conn->socket, (char*)&cursor->cursor_id, INT_64, 0) == -1 ||
-      recv(conn->socket, (char*)&cursor->start, INT_32, 0) == -1 ||
-      recv(conn->socket, (char*)&num_returned, INT_32, 0) == -1) {
+  if (recv(sock, (char*)&cursor->flag, INT_32, 0) == -1 ||
+      recv(sock, (char*)&cursor->cursor_id, INT_64, 0) == -1 ||
+      recv(sock, (char*)&cursor->start, INT_32, 0) == -1 ||
+      recv(sock, (char*)&num_returned, INT_32, 0) == -1) {
     SvREFCNT_dec(link_sv);
     croak("%s", strerror(errno));
     return 0;
@@ -423,7 +405,7 @@ int mongo_link_hear(SV *cursor_sv) {
   }
   cursor->buf.pos = cursor->buf.start;
 
-  if (mongo_link_reader(conn->socket, cursor->buf.pos, cursor->header.length) == -1) {
+  if (mongo_link_reader(sock, cursor->buf.pos, cursor->header.length) == -1) {
 #ifdef WIN32
     croak("WSA error getting database response: %d\n", WSAGetLastError());
 #else
@@ -440,7 +422,7 @@ int mongo_link_hear(SV *cursor_sv) {
 /*
  * Low-level func to get a response from the MongoDB server
  */
-static int mongo_link_reader(connection* conn, void *dest, int len) {
+static int mongo_link_reader(int socket, void *dest, int len) {
   int num = 1, read = 0;
 
   // this can return FAILED if there is just no more data from db
@@ -448,7 +430,7 @@ static int mongo_link_reader(connection* conn, void *dest, int len) {
     int temp_len = (len - read) > 4096 ? 4096 : (len - read);
 
     // windows gives a WSAEFAULT if you try to get more bytes
-    num = recv(conn->socket, (char*)dest, temp_len, 0);
+    num = recv(socket, (char*)dest, temp_len, 0);
 
     if (num < 0) {
       return -1;
@@ -470,19 +452,19 @@ void set_disconnected(SV *link_sv) {
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
 
   // check if there's nothing to do
-  if (link->master == 0 || link->master->conn->connected == 0) {
+  if (link->master == 0 || link->master->connected == 0) {
       return;
   }
 
 #ifdef WIN32
-  shutdown(link->master->conn->socket, 2);
-  closesocket(link->master->conn->socket);
+  shutdown(link->master->socket, 2);
+  closesocket(link->master->socket);
   WSACleanup();
 #else
-  close(link->master->conn->socket);
+  close(link->master->socket);
 #endif
 
-  link->master->conn->connected = 0;
+  link->master->connected = 0;
 
   // TODO: set $self->_master to 0?
   if (link->copy) {
@@ -491,22 +473,22 @@ void set_disconnected(SV *link_sv) {
   }
 }
 
-connection* perl_mongo_master(SV *link_sv, int auto_reconnect) {
+int perl_mongo_master(SV *link_sv, int auto_reconnect) {
   SV *master;
   mongo_link *link;
 
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
 
-  if (link->master && link->master->conn->connected) {
-      return link->master->conn;
+  if (link->master && link->master->connected) {
+      return link->master->socket;
   }
   // if we didn't have a connection above and this isn't a connection holder
   if (!link->copy) {
       // if this is a real connection, try to reconnect
       if (auto_reconnect && link->auto_reconnect) {
           perl_mongo_call_method(link_sv, "connect", G_DISCARD, 0);
-          if (link->master && link->master->conn->connected) {
-              return link->master->conn;
+          if (link->master && link->master->connected) {
+              return link->master->socket;
           }
       }
 
@@ -521,158 +503,9 @@ connection* perl_mongo_master(SV *link_sv, int auto_reconnect) {
     link->copy = 1;
     link->master = m_link->master;
 
-    return link->master->conn;
+    return link->master->socket;
   }
 
   link->master = 0;
-  return NULL;
+  return -1;
 }
-
-
-//ssl
-// Establish a regular tcp connection
-int tcpConnect(char *hostname, int port, int timout)
-{
-    int error, handle;
-    struct hostent *host;
-    struct sockaddr_in server;
-    
-    host = gethostbyname (hostname);
-    handle = socket (AF_INET, SOCK_STREAM, 0);
-    if (handle == -1){
-        perror ("Socket");
-        handle = 0;
-    }
-    else{
-        server.sin_family = AF_INET;
-        server.sin_port = htons (port);
-        server.sin_addr = *((struct in_addr *) host->h_addr);
-        bzero (&(server.sin_zero), 8);
-    
-        error = connect (handle, (struct sockaddr *) &server, sizeof (struct sockaddr));
-        if (error == -1){
-            perror ("Connect");
-            handle = 0;
-        }
-    }
-    
-    return handle;
-}
-
-// Establish a connection using an SSL layer
-connection *sslConnect(char *host, int port, int timeout)
-{
-    connection *c;
-    
-    c = malloc (sizeof (connection));
-    c->sslHandle = NULL;
-    c->sslContext = NULL;
-    
-    c->socket = tcpConnect(host, port, timeout);
-    if (c->socket){
-        //Register the error strings for libcrypto & libssl
-        SSL_load_error_strings();
-        
-        //Register the available ciphers and digests
-        SSL_library_init();
-    
-        //New context saying we are a client, and using SSL 2 or 3
-        c->sslContext = SSL_CTX_new(SSLv23_client_method ());
-        if (c->sslContext == NULL)
-            ERR_print_errors_fp(stderr);
-    
-        //Create an SSL struct for the connection
-        c->sslHandle = SSL_new(c->sslContext);
-        if(c->sslHandle == NULL)
-            ERR_print_errors_fp(stderr);
-    
-        //Connect the SSL struct to our connection
-        if(!SSL_set_fd(c->sslHandle, c->socket))
-            ERR_print_errors_fp(stderr);
-    
-        //Initiate SSL handshake
-        if(SSL_connect(c->sslHandle) != 1)
-            ERR_print_errors_fp(stderr);
-    }
-    else
-        perror("Connect failed");
-    
-    return c;
-}
-
-// Disconnect & free connection struct
-void sslDisconnect(connection *c)
-{
-    if(c->socket)
-      close(c->socket);
-      
-    if(c->sslHandle){
-        SSL_shutdown(c->sslHandle);
-        SSL_free(c->sslHandle);
-    }
-    
-    if(c->sslContext)
-      SSL_CTX_free(c->sslContext);
-    
-    free(c);
-}
-
-// Read all available text from the connection
-char *sslRead (connection *c)
-{
-  const int readSize = 1024;
-  char *rc = NULL;
-  int received, count = 0;
-  char buffer[1024];
-
-  if (c)
-    {
-      while (1)
-        {
-          if (!rc)
-            rc = malloc (readSize * sizeof (char) + 1);
-          else
-            rc = realloc (rc, (count + 1) *
-                          readSize * sizeof (char) + 1);
-
-          received = SSL_read (c->sslHandle, buffer, readSize);
-          buffer[received] = '\0';
-
-          if (received > 0)
-            strcat (rc, buffer);
-
-          if (received < readSize)
-            break;
-          count++;
-        }
-    }
-
-  return rc;
-}
-
-// Write text to the connection
-void sslWrite (connection *c, char *text)
-{
-  if (c)
-    SSL_write (c->sslHandle, text, strlen (text));
-}
-
-// Very basic main: we send GET / and print the response.
-//int main (int argc, char **argv)
-//{
-//  connection *c;
-//  char *response;
-//
-//  c = sslConnect ();
-//
-//  sslWrite (c, "GET /\r\n\r\n");
-//  response = sslRead (c);
-//
-//  printf ("%s\n", response);
-//
-//  sslDisconnect (c);
-//  free (response);
-//
-//  return 0;
-//}
-//

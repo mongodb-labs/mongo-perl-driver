@@ -67,7 +67,7 @@ connection_clone (pTHX_ MAGIC *mg, CLONE_PARAMS *params)
          * carry around a backref to the SV it's associated with so we could
          * reconnect through perl space.
          */
-        new_master->conn->connected = 0;
+        new_master->connected = 0;
 
         new_link->master = new_master;
     }
@@ -120,7 +120,7 @@ _init_conn(self, host, port, ssl)
     Newxz(link->master->host, strlen(host)+1, char);
     memcpy(link->master->host, host, strlen(host));
     link->master->port = port;
-    link->master->conn->connected = 0;
+    link->master->connected = 0;
     link->ssl = ssl;
 
     auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
@@ -157,10 +157,10 @@ connect (self)
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
      SV *username, *password;
    CODE:
-     link->master->conn = perl_mongo_connect(link->master->host, link->master->port, link->timeout, link->ssl);
-     //link->master->connected = link->master->socket != -1;
+     link->master->socket = perl_mongo_connect(link->master->host, link->master->port, link->timeout, link->ssl);
+     link->master->connected = link->master->socket != -1;
 
-     if (!link->master->conn->connected) {
+     if (!link->master->connected) {
        croak ("couldn't connect to server %s:%d", link->master->host, link->master->port);
      }
 
@@ -207,7 +207,7 @@ connected(self)
   CODE:
      link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
 
-     if (link->master && link->master->conn->connected) {
+     if (link->master && link->master->connected) {
          RETVAL = 1;
      }
      else {
