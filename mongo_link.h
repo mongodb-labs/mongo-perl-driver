@@ -170,7 +170,12 @@ typedef struct {
 int mongo_link_say(SV *self, buffer *buf);
 int mongo_link_hear(SV *self);
 int perl_mongo_master(SV *self, int auto_reconnect);
-int perl_mongo_connect(char *host, int port, int timeout, bool ssl);
+//int perl_mongo_connect(char *host, int port, int timeout, bool ssl);
 void set_disconnected(SV *link_sv);
+
+//ss
+void perl_mongo_connect(mongo_link* link);
+void non_ssl_connect(mongo_link* link);
+void tcpConnect(mongo_link* link);
 
 #endif

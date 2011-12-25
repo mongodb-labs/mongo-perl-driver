@@ -157,8 +157,9 @@ connect (self)
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
      SV *username, *password;
    CODE:
-     link->master->socket = perl_mongo_connect(link->master->host, link->master->port, link->timeout, link->ssl);
-     link->master->connected = link->master->socket != -1;
+     //link->master->socket = perl_mongo_connect(link->master->host, link->master->port, link->timeout, link->ssl);
+     //link->master->connected = link->master->socket != -1;
+    perl_mongo_connect(link);
 
      if (!link->master->connected) {
        croak ("couldn't connect to server %s:%d", link->master->host, link->master->port);
