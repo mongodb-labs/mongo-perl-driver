@@ -10,6 +10,8 @@ author 'Kristina Chodorow <kristina@10gen.com>';
 license 'Apache';
 all_from 'lib/MongoDB.pm';
 
+cc_lib_links('ssl', 'crypto');
+
 requires 'Any::Moose';
 # C::M::Modifiers isn't always needed. It'll be used only if Any::Moose decides
 # to use Mouse instead of Moose. We depend on it anyway to make sure it's there
