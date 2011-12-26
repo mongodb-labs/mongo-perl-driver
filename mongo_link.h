@@ -173,9 +173,10 @@ int perl_mongo_master(SV *self, int auto_reconnect);
 //int perl_mongo_connect(char *host, int port, int timeout, bool ssl);
 void set_disconnected(SV *link_sv);
 
-//ss
+//ssl
 void perl_mongo_connect(mongo_link* link);
 void non_ssl_connect(mongo_link* link);
-void tcpConnect(mongo_link* link);
+void tcp_setup(mongo_link* link);
+void ssl_connect(mongo_link* link);
 
 #endif
