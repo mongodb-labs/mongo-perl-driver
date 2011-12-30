@@ -300,6 +300,7 @@ sub batch_insert {
     }
 
     if (defined($options) && $options->{safe}) {
+        $DB::single=1;
         my $ok = $self->_make_safe($insert);
 
         if (!$ok) {

@@ -465,7 +465,7 @@ sub BUILD {
             $hp[1] = 27017;
         }
 
-        $self->_init_conn($hp[0], $hp[1], $opts->{ssl});
+        $self->_init_conn($hp[0], $hp[1], $self->ssl);
         if ($self->auto_connect) {
             $self->connect;
             $self->max_bson_size($self->_get_max_bson_size);

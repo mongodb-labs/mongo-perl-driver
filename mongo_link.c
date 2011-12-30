@@ -123,7 +123,7 @@ void non_ssl_connect(mongo_link* link) {
         
         connected = getpeername(sock, (struct sockaddr*)&addr, &size);
         if (connected == -1){ 
-            return -1;
+            return;
         }
     }
     else if (status == 0) {
@@ -136,11 +136,16 @@ void non_ssl_connect(mongo_link* link) {
 #else
     fcntl(sock, F_SETFL, 0);
 #endif
-    //return sock;
     link->master->socket = sock;
     link->master->connected = 1;
+    
     return;
 }
+
+int non_ssl_send(mongo_link* link, const char* buffer, size_t len){
+    return send(link->master->socket, buffer, len, 0);
+}
+int non_ssl_recv(void* link, const char* buffer, size_t len){return 0;}
 
 static int mongo_link_timeout(int sock, time_t to) {
     struct timeval timeout, now, prev;
@@ -241,12 +246,19 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
  */
 int mongo_link_say(SV *link_sv, buffer *buf) {
     int sock, sent;
+    mongo_link *link;
+    link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
     
     if ((sock = perl_mongo_master(link_sv, 1)) == -1) {
         return -1;
     }
     
-    sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
+    if (link != NULL  && link->ssl != NULL && link->ssl == true && link->sslHandle != NULL) {
+        sent = SSL_write(link->sslHandle, (const char*)buf->start, buf->pos-buf->start);
+        //sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
+    }
+    else
+        sent = send(sock, (const char*)buf->start, buf->pos-buf->start, 0);
     
     if (sent == -1) {
         set_disconnected(link_sv);
