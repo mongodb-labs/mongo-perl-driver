@@ -136,6 +136,7 @@ typedef struct _mongo_server {
  * master is the index of the master server, if there is more than 1 server
  * server is an array of pointers to connections
  */
+ 
 typedef struct {
   int auto_reconnect;
   int timeout;
@@ -170,7 +171,6 @@ typedef struct {
 int mongo_link_say(SV *self, buffer *buf);
 int mongo_link_hear(SV *self);
 int perl_mongo_master(SV *self, int auto_reconnect);
-//int perl_mongo_connect(char *host, int port, int timeout, bool ssl);
 void set_disconnected(SV *link_sv);
 
 //ssl
