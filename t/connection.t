@@ -1,6 +1,8 @@
 use strict;
 use warnings;
+
 use lib qw(../blib/lib ../blib/arch);
+
 use Test::More;
 use Test::Exception;
 
@@ -14,7 +16,7 @@ eval {
     if (exists $ENV{MONGOD}) {
         $host = $ENV{MONGOD};
     }
-    #$conn = MongoDB::Connection->new(host => $host);
+    $conn = MongoDB::Connection->new(host => $host);
 };
 
 if ($@) {
@@ -35,19 +37,19 @@ SKIP: {
         $conn = MongoDB::Connection->new;
     } 'successful connection';
     isa_ok($conn, 'MongoDB::Connection');
-    
+
     is($conn->host, 'mongodb://localhost:27017', 'host default value');
-    
-    #just make sure a couple timeouts work
+
+    # just make sure a couple timeouts work
     my $to = MongoDB::Connection->new('timeout' => 1);
     $to = MongoDB::Connection->new('timeout' => 123);
     $to = MongoDB::Connection->new('timeout' => 2000000);
-    
-    #test conn format
+
+    # test conn format
     lives_ok {
         $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27017");
     } 'connected';
-    
+
     lives_ok {
         $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27017,");
     } 'extra comma';

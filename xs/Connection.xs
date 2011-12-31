@@ -148,6 +148,9 @@ _init_conn_holder(self, master)
 
     self_link->master = master_link->master;
     self_link->copy = 1;
+    self_link->ssl = master_link->ssl;
+    self_link->sslHandle = master_link->sslHandle;
+    self_link->sslContext = master_link->sslContext;
     
 
 void
