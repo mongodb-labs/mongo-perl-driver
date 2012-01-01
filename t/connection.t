@@ -1,8 +1,6 @@
 use strict;
 use warnings;
 
-use lib qw(../blib/lib ../blib/arch);
-
 use Test::More;
 use Test::Exception;
 
@@ -16,7 +14,7 @@ eval {
     if (exists $ENV{MONGOD}) {
         $host = $ENV{MONGOD};
     }
-    $conn = MongoDB::Connection->new(host => $host);
+    $conn = MongoDB::Connection->new(host => $host, ssl => $ENV{SSL});
 };
 
 if ($@) {
@@ -27,35 +25,35 @@ else {
 }
 
 throws_ok {
-    MongoDB::Connection->new(host => 'localhost', port => 1);
+    MongoDB::Connection->new(host => 'localhost', port => 1, ssl => $ENV{SSL});
 } qr/couldn't connect to server/, 'exception on connection failure';
 
 SKIP: {
     skip "connecting to default host/port won't work with a remote db", 6 if exists $ENV{MONGOD};
 
     lives_ok {
-        $conn = MongoDB::Connection->new;
+        $conn = MongoDB::Connection->new(ssl => $ENV{SSL});
     } 'successful connection';
     isa_ok($conn, 'MongoDB::Connection');
 
     is($conn->host, 'mongodb://localhost:27017', 'host default value');
 
     # just make sure a couple timeouts work
-    my $to = MongoDB::Connection->new('timeout' => 1);
-    $to = MongoDB::Connection->new('timeout' => 123);
-    $to = MongoDB::Connection->new('timeout' => 2000000);
+    my $to = MongoDB::Connection->new('timeout' => 1, ssl => $ENV{SSL});
+    $to = MongoDB::Connection->new('timeout' => 123, ssl => $ENV{SSL});
+    $to = MongoDB::Connection->new('timeout' => 2000000, ssl => $ENV{SSL});
 
     # test conn format
     lives_ok {
-        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27017");
+        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27017", ssl => $ENV{SSL});
     } 'connected';
 
     lives_ok {
-        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27017,");
+        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27017,", ssl => $ENV{SSL});
     } 'extra comma';
 
     lives_ok {
-        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27018,localhost:27019,localhost");
+        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27018,localhost:27019,localhost", ssl => $ENV{SSL});
     } 'last in line';
 }
 
@@ -96,11 +94,11 @@ SKIP: {
 {
     my $timeout = $MongoDB::Cursor::timeout;
 
-    my $conn2 = MongoDB::Connection->new(auto_connect => 0);
+    my $conn2 = MongoDB::Connection->new(auto_connect => 0, ssl => $ENV{SSL});
     is($conn2->query_timeout, $timeout, 'query timeout');
 
     $MongoDB::Cursor::timeout = 40;
-    $conn2 = MongoDB::Connection->new(auto_connect => 0);
+    $conn2 = MongoDB::Connection->new(auto_connect => 0, ssl => $ENV{SSL});
     is($conn2->query_timeout, 40, 'query timeout');
 
     $MongoDB::Cursor::timeout = $timeout;

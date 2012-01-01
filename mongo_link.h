@@ -32,11 +32,6 @@
 
 //
 #include <sys/socket.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
