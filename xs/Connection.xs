@@ -122,6 +122,8 @@ _init_conn(self, host, port, ssl)
     link->master->port = port;
     link->master->connected = 0;
     link->ssl = ssl;
+    link->sslHandle = NULL;
+    link->sslContext = NULL;
 
     auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
     timeout_sv = perl_mongo_call_reader (ST(0), "timeout");
@@ -160,8 +162,6 @@ connect (self)
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
      SV *username, *password;
    CODE:
-     //link->master->socket = perl_mongo_connect(link->master->host, link->master->port, link->timeout, link->ssl);
-     //link->master->connected = link->master->socket != -1;
     perl_mongo_connect(link);
 
      if (!link->master->connected) {

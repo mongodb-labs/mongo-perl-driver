@@ -16,7 +16,7 @@ use File::Slurp;
 use Tie::IxHash;
 use FileHandle;
 
-my $conn = MongoDB::Connection->new("username" => "kristina", "password" => "foo", "db_name" => "bar");
+my $conn = MongoDB::Connection->new("username" => "kristina", "password" => "foo", "db_name" => "bar", "ssl" => $ENV{SSL});
 
 my $db = $conn->get_database("bar");
 my $c = $db->get_collection("x");

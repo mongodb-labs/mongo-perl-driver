@@ -7,7 +7,7 @@ use DateTime;
 
 use MongoDB;
 
-my $conn = MongoDB::Connection->new;
+my $conn = MongoDB::Connection->new(ssl => $ENV{SSL});
 my $db   = $conn->get_database('test_database');
 my $coll = $db->get_collection('test_collection');
 

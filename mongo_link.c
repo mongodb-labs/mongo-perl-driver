@@ -35,8 +35,7 @@ static void set_timeout(int socket, time_t timeout) {
 }
 
 
-void perl_mongo_connect(mongo_link* link) {
-    
+void perl_mongo_connect(mongo_link* link) {    
     if(link->ssl){
         ssl_connect(link);
     }
@@ -145,20 +144,57 @@ void non_ssl_connect(mongo_link* link) {
     return;
 }
 
+// Establish a connection using an SSL layer
+void ssl_connect(mongo_link* link) {
+    tcp_setup(link);
+    
+    if (link->master->socket){
+        // Register the error strings for libcrypto & libssl
+        SSL_load_error_strings();
+
+        // Register the available ciphers and digests
+        SSL_library_init();
+    
+        // New context saying we are a client, and using SSL 2 or 3
+        link->sslContext = SSL_CTX_new(SSLv23_client_method());
+        if(link->sslContext == NULL)
+            ERR_print_errors_fp(stderr);
+    
+        // Create an SSL struct for the connection
+        link->sslHandle = SSL_new(link->sslContext);
+        if(link->sslHandle == NULL)
+            ERR_print_errors_fp(stderr);
+    
+        // Connect the SSL struct to our connection
+        if(!SSL_set_fd(link->sslHandle, link->master->socket))
+            ERR_print_errors_fp(stderr);
+    
+        // Initiate SSL handshake
+        if(SSL_connect (link->sslHandle) != 1)
+            ERR_print_errors_fp(stderr);
+        
+        link->master->connected = 1;
+    }
+}
+
 int SEND(mongo_link* link, const char* buffer, size_t len)
 {    
-    if(link->ssl)
+    if(link->ssl){
         return SSL_write(link->sslHandle, buffer, len);
-    else
+    }
+    else{
         return send(link->master->socket, buffer, len, 0);
+    }
 }
 
 int RECV(mongo_link* link, const char* buffer, size_t len)
 {
-    if(link->ssl)
+    if(link->ssl){
         return SSL_read(link->sslHandle, buffer, len);
-    else
+    }
+    else{
         return recv(link->master->socket, buffer, len, 0);
+    }
 }
 
 
@@ -557,7 +593,6 @@ void tcp_setup(mongo_link* link){
     host = gethostbyname (link->master->host);
     handle = socket (AF_INET, SOCK_STREAM, 0);
     if (handle == -1){
-        perror ("Socket");
         handle = 0;
     }
     else {
@@ -568,46 +603,11 @@ void tcp_setup(mongo_link* link){
 
         error = connect(handle, (struct sockaddr *) &server, sizeof (struct sockaddr));
         if (error == -1){
-          perror ("Connect");
           handle = 0;
         }
     }
 
     link->master->socket = handle;
-}
-
-// Establish a connection using an SSL layer
-void ssl_connect(mongo_link* link) {
-    tcp_setup(link);
-    
-    if (link->master->socket){
-        // Register the error strings for libcrypto & libssl
-        SSL_load_error_strings();
-
-        // Register the available ciphers and digests
-        SSL_library_init();
-    
-        // New context saying we are a client, and using SSL 2 or 3
-        link->sslContext = SSL_CTX_new(SSLv23_client_method());
-        if(link->sslContext == NULL)
-            ERR_print_errors_fp(stderr);
-    
-        // Create an SSL struct for the connection
-        link->sslHandle = SSL_new(link->sslContext);
-        if(link->sslHandle == NULL)
-            ERR_print_errors_fp(stderr);
-    
-        // Connect the SSL struct to our connection
-        if(!SSL_set_fd(link->sslHandle, link->master->socket))
-            ERR_print_errors_fp(stderr);
-    
-        // Initiate SSL handshake
-        if(SSL_connect (link->sslHandle) != 1)
-            ERR_print_errors_fp(stderr);
-    }
-    else{
-        perror ("Connect failed");
-    }
 }
 
 // Disconnect & free connection struct
@@ -623,62 +623,3 @@ void ssl_disconnect (mongo_link *link){
     if (link->sslContext)
         SSL_CTX_free (link->sslContext);
 }
-
-//// Read all available text from the connection
-//char *sslRead (connection *c)
-//{
-//  const int readSize = 1024;
-//  char *rc = NULL;
-//  int received, count = 0;
-//  char buffer[1024];
-//
-//  if (c)
-//    {
-//      while (1)
-//        {
-//          if (!rc)
-//            rc = malloc (readSize * sizeof (char) + 1);
-//          else
-//            rc = realloc (rc, (count + 1) *
-//                          readSize * sizeof (char) + 1);
-//
-//          received = SSL_read (c->sslHandle, buffer, readSize);
-//          buffer[received] = '\0';
-//
-//          if (received > 0)
-//            strcat (rc, buffer);
-//
-//          if (received < readSize)
-//            break;
-//          count++;
-//        }
-//    }
-//
-//  return rc;
-//}
-//
-//// Write text to the connection
-//void sslWrite (connection *c, char *text)
-//{
-//  if (c)
-//    SSL_write (c->sslHandle, text, strlen (text));
-//}
-
-// Very basic main: we send GET / and print the response.
-//int main (int argc, char **argv)
-//{
-//  connection *c;
-//  char *response;
-//
-//  c = sslConnect ();
-//
-//  sslWrite (c, "GET /\r\n\r\n");
-//  response = sslRead (c);
-//
-//  printf ("%s\n", response);
-//
-//  sslDisconnect (c);
-//  free (response);
-//
-//  return 0;
-//}
