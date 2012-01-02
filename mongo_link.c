@@ -526,15 +526,20 @@ void set_disconnected(SV *link_sv) {
     if (link->master == 0 || link->master->connected == 0) {
         return;
     }
+    
+    if(link->ssl){
+        ssl_disconnect(link);
+    }
+    else{
 
 #ifdef WIN32
-    shutdown(link->master->socket, 2);
-    closesocket(link->master->socket);
-    WSACleanup();
+        shutdown(link->master->socket, 2);
+        closesocket(link->master->socket);
+        WSACleanup();
 #else
-    close(link->master->socket);
+        close(link->master->socket);
 #endif
-
+    }
     link->master->connected = 0;
     
     // TODO: set $self->_master to 0?
