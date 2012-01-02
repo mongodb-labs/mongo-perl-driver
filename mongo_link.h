@@ -173,5 +173,6 @@ void perl_mongo_connect(mongo_link* link);
 void non_ssl_connect(mongo_link* link);
 void tcp_setup(mongo_link* link);
 void ssl_connect(mongo_link* link);
+void ssl_disconnect (mongo_link *link);
 
 #endif
