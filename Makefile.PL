@@ -11,7 +11,6 @@ license 'Apache';
 all_from 'lib/MongoDB.pm';
 
 cc_lib_links('ssl', 'crypto');
-cc_optimize_flags('-g');
 
 requires 'Any::Moose';
 # C::M::Modifiers isn't always needed. It'll be used only if Any::Moose decides

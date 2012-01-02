@@ -41,8 +41,6 @@ void perl_mongo_connect(mongo_link* link) {
     }
     else{
         non_ssl_connect(link);
-        link->sslHandle = NULL;
-        link->sslContext = NULL;
     }
 }
 
@@ -173,11 +171,13 @@ void ssl_connect(mongo_link* link) {
         if(SSL_connect (link->sslHandle) != 1)
             ERR_print_errors_fp(stderr);
         
+        SSL_CTX_set_timeout(link->sslContext, link->timeout);
+        
         link->master->connected = 1;
     }
 }
 
-int SEND(mongo_link* link, const char* buffer, size_t len)
+int _send(mongo_link* link, const char* buffer, size_t len)
 {    
     if(link->ssl){
         return SSL_write(link->sslHandle, buffer, len);
@@ -187,13 +187,13 @@ int SEND(mongo_link* link, const char* buffer, size_t len)
     }
 }
 
-int RECV(mongo_link* link, const char* buffer, size_t len)
+int _recv(mongo_link* link, const char* buffer, size_t len)
 {
     if(link->ssl){
-        return SSL_read(link->sslHandle, buffer, len);
+        return SSL_read(link->sslHandle, (void*)buffer, len);
     }
     else{
-        return recv(link->master->socket, buffer, len, 0);
+        return recv(link->master->socket, (void*)buffer, len, 0);
     }
 }
 
@@ -304,7 +304,7 @@ int mongo_link_say(SV *link_sv, buffer *buf) {
         return -1;
     }
     
-    sent = SEND(link, (const char*)buf->start, buf->pos-buf->start);
+    sent = _send(link, (const char*)buf->start, buf->pos-buf->start);
     
     if (sent == -1) {
         set_disconnected(link_sv);
@@ -316,12 +316,14 @@ int mongo_link_say(SV *link_sv, buffer *buf) {
 
 static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
     mongo_cursor *cursor;
-    cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv, &cursor_vtbl);
     mongo_link *link;
-    link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
-    int size = 0;
+    int size;
     
-    size = RECV(link, (char*)&cursor->header.length, INT_32);
+    cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv, &cursor_vtbl);
+    link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
+    size = 0;
+    
+    size = _recv(link, (char*)&cursor->header.length, INT_32);
     if(size != INT_32){
         set_disconnected(link_sv);
         return 0;
@@ -335,9 +337,9 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
         return 0;
     }
     
-    if (RECV(link, (char*)&cursor->header.request_id, INT_32)  != INT_32  ||
-        RECV(link, (char*)&cursor->header.response_to, INT_32) != INT_32  ||
-        RECV(link, (char*)&cursor->header.op, INT_32)          != INT_32) {
+    if (_recv(link, (char*)&cursor->header.request_id, INT_32)  != INT_32  ||
+        _recv(link, (char*)&cursor->header.response_to, INT_32) != INT_32  ||
+        _recv(link, (char*)&cursor->header.op, INT_32)          != INT_32) {
       return 0;
     }
     
@@ -411,7 +413,7 @@ int mongo_link_hear(SV *cursor_sv) {
             return 0;
         }
     
-        if(RECV(link, (char*)temp, 20) == -1) {
+        if(_recv(link, (char*)temp, 20) == -1) {
           SvREFCNT_dec(link_sv);
           SvREFCNT_dec(request_id_sv);
           croak("couldn't get header response to throw out");
@@ -439,10 +441,10 @@ int mongo_link_hear(SV *cursor_sv) {
     }
     SvREFCNT_dec(request_id_sv);
     
-    if (RECV(link, (char*)&cursor->flag, INT_32)      == -1 ||
-        RECV(link, (char*)&cursor->cursor_id, INT_64) == -1 ||
-        RECV(link, (char*)&cursor->start, INT_32)     == -1 ||
-        RECV(link, (char*)&num_returned, INT_32)      == -1) {
+    if (_recv(link, (char*)&cursor->flag, INT_32)      == -1 ||
+        _recv(link, (char*)&cursor->cursor_id, INT_64) == -1 ||
+        _recv(link, (char*)&cursor->start, INT_32)     == -1 ||
+        _recv(link, (char*)&num_returned, INT_32)      == -1) {
         SvREFCNT_dec(link_sv);
         croak("%s", strerror(errno));
         return 0;
@@ -500,7 +502,7 @@ static int mongo_link_reader(mongo_link* link, void *dest, int len) {
         int temp_len = (len - read) > 4096 ? 4096 : (len - read);
         
         // windows gives a WSAEFAULT if you try to get more bytes
-        num = RECV(link, (char*)dest, temp_len);
+        num = _recv(link, (char*)dest, temp_len);
     
         if (num < 0) {
           return -1;
