@@ -174,5 +174,7 @@ void non_ssl_connect(mongo_link* link);
 void tcp_setup(mongo_link* link);
 void ssl_connect(mongo_link* link);
 void ssl_disconnect (mongo_link *link);
+int _send(mongo_link* link, const char* buffer, size_t len);
+int _recv(mongo_link* link, const char* buffer, size_t len);
 
 #endif
