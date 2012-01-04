@@ -20,24 +20,19 @@
 #include "perl_mongo.h"
 
 #ifdef WIN32
-
 #include <winsock2.h>
 #define socklen_t int
 #else
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <fcntl.h>
 #include <netdb.h>
-
-//
-#include <sys/socket.h>
+#endif
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-//
-
-#endif
 #include <errno.h>
 
 
@@ -141,8 +136,8 @@ typedef struct {
   int copy;
   
   bool ssl;
-  SSL *sslHandle;
-  SSL_CTX *sslContext;
+  SSL *ssl_handle;
+  SSL_CTX *ssl_context;
   
   int (*send)(void* link, const char* buffer, size_t len);
   int (*recv)(void* link, const char* buffer, size_t len);

@@ -6,6 +6,7 @@ To install, run:
 
     $ perl Makefile.PL
     $ make
+	$ make test (export MONGO_SSl=1 if your using mongodb with ssl)
     $ sudo make install
 
 For full documentation, see the CPAN page (http://search.cpan.org/dist/MongoDB).
