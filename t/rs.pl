@@ -7,7 +7,7 @@ use MongoDB::OID;
 use Devel::Peek;
 use Data::Dump;
 
-my $m = MongoDB::Connection->new(host => "mongodb://localhost:27018", find_master => 1, ssl => $ENV{SSL});
+my $m = MongoDB::Connection->new(host => "mongodb://localhost:27018", find_master => 1, ssl => $ENV{MONGO_SSL});
 
 my $db = $m->get_database("admin");
 my $c = $db->get_collection("bar");

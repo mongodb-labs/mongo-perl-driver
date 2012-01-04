@@ -158,35 +158,35 @@ void ssl_connect(mongo_link* link) {
         SSL_library_init();
     
         // New context saying we are a client, and using SSL 2 or 3
-        link->sslContext = SSL_CTX_new(SSLv23_client_method());
-        if(link->sslContext == NULL)
+        link->ssl_context = SSL_CTX_new(SSLv23_client_method());
+        if(link->ssl_context == NULL)
             ERR_print_errors_fp(stderr);
     
         // Create an SSL struct for the connection
-        link->sslHandle = SSL_new(link->sslContext);
-        if(link->sslHandle == NULL)
+        link->ssl_handle = SSL_new(link->ssl_context);
+        if(link->ssl_handle == NULL)
             ERR_print_errors_fp(stderr);
     
         // Connect the SSL struct to our connection
-        if(!SSL_set_fd(link->sslHandle, link->master->socket))
+        if(!SSL_set_fd(link->ssl_handle, link->master->socket))
             ERR_print_errors_fp(stderr);
     
         // Initiate SSL handshake
-        if(SSL_connect (link->sslHandle) != 1)
+        if(SSL_connect (link->ssl_handle) != 1)
             ERR_print_errors_fp(stderr);
         
-        SSL_CTX_set_timeout(link->sslContext, link->timeout);
+        SSL_CTX_set_timeout(link->ssl_context, link->timeout);
         
         link->master->connected = 1;
     }
 }
 
 int ssl_send(void* link, const char* buffer, size_t len){
-    return SSL_write(((mongo_link*)link)->sslHandle, buffer, len);
+    return SSL_write(((mongo_link*)link)->ssl_handle, buffer, len);
 }
 
 int ssl_recv(void* link, const char* buffer, size_t len){
-    return SSL_read(((mongo_link*)link)->sslHandle, (void*)buffer, len);
+    return SSL_read(((mongo_link*)link)->ssl_handle, (void*)buffer, len);
 }
 
 int non_ssl_send(void* link, const char* buffer, size_t len){
@@ -581,8 +581,8 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
         link->copy = 1;
         link->master = m_link->master;
         link->ssl = m_link->ssl;
-        link->sslHandle = m_link->sslHandle;
-        link->sslContext = m_link->sslContext;
+        link->ssl_handle = m_link->ssl_handle;
+        link->ssl_context = m_link->ssl_context;
         link->send = m_link->send;
         link->recv = m_link->recv;
         
@@ -624,11 +624,11 @@ void ssl_disconnect (mongo_link *link){
     if (link->master->socket)
         close (link->master->socket);
     
-    if(link->sslHandle){
-      SSL_shutdown (link->sslHandle);
-      SSL_free (link->sslHandle);
+    if(link->ssl_handle){
+      SSL_shutdown (link->ssl_handle);
+      SSL_free (link->ssl_handle);
     }
     
-    if (link->sslContext)
-        SSL_CTX_free (link->sslContext);
+    if (link->ssl_context)
+        SSL_CTX_free (link->ssl_context);
 }
