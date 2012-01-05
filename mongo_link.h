@@ -35,7 +35,6 @@
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include <errno.h>
 #endif
 
 // db ops
