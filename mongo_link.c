@@ -633,9 +633,6 @@ void tcp_setup(mongo_link* link){
 
 // Disconnect & free connection struct
 void ssl_disconnect (mongo_link *link){
-  //if (link->master->socket)
-  //  close (link->master->socket);
-
   if(link->ssl_handle){
     SSL_shutdown (link->ssl_handle);
     SSL_free (link->ssl_handle);
