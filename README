@@ -4,9 +4,9 @@ This driver allows you to connect to MongoDB from Perl.
 
 To install, run:
 
-    $ perl Makefile.PL
+    $ perl Makefile.PL [--ssl] (if you're using mongodb with ssl)
     $ make
-	$ make test (export MONGO_SSl=1 if your using mongodb with ssl)
+	$ make test (export MONGO_SSl=1 if you're using mongodb with ssl)
     $ sudo make install
 
 For full documentation, see the CPAN page (http://search.cpan.org/dist/MongoDB).

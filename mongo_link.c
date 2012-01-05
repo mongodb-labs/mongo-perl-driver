@@ -35,17 +35,19 @@ static void set_timeout(int socket, time_t timeout) {
 }
 
 
-void perl_mongo_connect(mongo_link* link) {    
+void perl_mongo_connect(mongo_link* link) {
+#ifdef MONGO_SSL    
   if(link->ssl){
     ssl_connect(link);
     link->send = ssl_send;
     link->recv = ssl_recv;
+    return;
   }
-  else{
-    non_ssl_connect(link);
-    link->send = non_ssl_send;
-    link->recv = non_ssl_recv;
-  }
+#endif
+
+  non_ssl_connect(link);
+  link->send = non_ssl_send;
+  link->recv = non_ssl_recv;
 }
 
 /*
@@ -146,6 +148,7 @@ void non_ssl_connect(mongo_link* link) {
   return;
 }
 
+#ifdef MONGO_SSL 
 // Establish a connection using an SSL layer
 void ssl_connect(mongo_link* link) {
   tcp_setup(link);
@@ -192,6 +195,7 @@ int ssl_send(void* link, const char* buffer, size_t len){
 int ssl_recv(void* link, const char* buffer, size_t len){
   return SSL_read(((mongo_link*)link)->ssl_handle, (void*)buffer, len);
 }
+#endif
 
 int non_ssl_send(void* link, const char* buffer, size_t len){
   return send(((mongo_link*)link)->master->socket, buffer, len, 0);
@@ -531,12 +535,7 @@ void set_disconnected(SV *link_sv) {
   if (link->master == 0 || link->master->connected == 0) {
     return;
   }
-
-  if(link->ssl){
-    ssl_disconnect(link);
-  }
-  else{
-
+  
 #ifdef WIN32
     shutdown(link->master->socket, 2);
     closesocket(link->master->socket);
@@ -544,7 +543,13 @@ void set_disconnected(SV *link_sv) {
 #else
     close(link->master->socket);
 #endif
+
+#ifdef MONGO_SSL 
+  if(link->ssl){
+    ssl_disconnect(link);
   }
+#endif
+
   link->master->connected = 0;
 
   // TODO: set $self->_master to 0?
@@ -585,8 +590,10 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
     link->copy = 1;
     link->master = m_link->master;
     link->ssl = m_link->ssl;
+#ifdef MONGO_SSL 
     link->ssl_handle = m_link->ssl_handle;
     link->ssl_context = m_link->ssl_context;
+#endif
     link->send = m_link->send;
     link->recv = m_link->recv;
 
@@ -597,6 +604,7 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
   return -1;
 }
 
+#ifdef MONGO_SSL 
 // Establish a regular tcp connection
 void tcp_setup(mongo_link* link){
   int error, handle;
@@ -625,8 +633,8 @@ void tcp_setup(mongo_link* link){
 
 // Disconnect & free connection struct
 void ssl_disconnect (mongo_link *link){
-  if (link->master->socket)
-    close (link->master->socket);
+  //if (link->master->socket)
+  //  close (link->master->socket);
 
   if(link->ssl_handle){
     SSL_shutdown (link->ssl_handle);
@@ -636,3 +644,4 @@ void ssl_disconnect (mongo_link *link){
   if (link->ssl_context)
     SSL_CTX_free (link->ssl_context);
 }
+#endif
