@@ -369,7 +369,6 @@ This tell the driver that you are connectin to an SSL mongodb.
 
 =cut
 
-
 has ssl => (
     is       => 'ro',
     isa      => 'Bool',
