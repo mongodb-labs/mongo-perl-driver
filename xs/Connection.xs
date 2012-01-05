@@ -122,9 +122,10 @@ _init_conn(self, host, port, ssl)
     link->master->port = port;
     link->master->connected = 0;
     link->ssl = ssl;
+#ifdef MONGO_SSL 
     link->ssl_handle = NULL;
     link->ssl_context = NULL;
-
+#endif
     auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
     timeout_sv = perl_mongo_call_reader (ST(0), "timeout");
 
@@ -151,8 +152,10 @@ _init_conn_holder(self, master)
     self_link->master = master_link->master;
     self_link->copy = 1;
     self_link->ssl = master_link->ssl;
+#ifdef MONGO_SSL 
     self_link->ssl_handle = master_link->ssl_handle;
     self_link->ssl_context = master_link->ssl_context;
+#endif
     self_link->send = master_link->send;
     self_link->recv = master_link->recv;    
 

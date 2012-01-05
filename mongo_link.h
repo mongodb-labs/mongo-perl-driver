@@ -30,11 +30,13 @@
 #include <fcntl.h>
 #include <netdb.h>
 #endif
+
+#ifdef MONGO_SSL
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <errno.h>
-
+#endif
 
 // db ops
 #define OP_REPLY 1
@@ -136,8 +138,11 @@ typedef struct {
   int copy;
   
   bool ssl;
+  
+  #ifdef MONGO_SSL
   SSL *ssl_handle;
   SSL_CTX *ssl_context;
+  #endif
   
   int (*send)(void* link, const char* buffer, size_t len);
   int (*recv)(void* link, const char* buffer, size_t len);
@@ -169,12 +174,15 @@ void set_disconnected(SV *link_sv);
 //ssl
 void perl_mongo_connect(mongo_link* link);
 void non_ssl_connect(mongo_link* link);
+
+#ifdef MONGO_SSL
 void tcp_setup(mongo_link* link);
 void ssl_connect(mongo_link* link);
 void ssl_disconnect (mongo_link *link);
-
 int ssl_send(void* link, const char* buffer, size_t len);
 int ssl_recv(void* link, const char* buffer, size_t len);
+#endif
+
 int non_ssl_send(void* link, const char* buffer, size_t len);
 int non_ssl_recv(void* link, const char* buffer, size_t len);
 
