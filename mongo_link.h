@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 #endif
+#include <errno.h>
 
 #ifdef MONGO_SSL
 #include <openssl/rand.h>
