@@ -1,12 +1,19 @@
 Installation Instructions
 -------------------------
 
-If they aren't already installed, you will need the following modules:
+If they aren't already installed, you will need to install* the following modules:
   sudo cpan Module::Install
   sudo cpan Test::Exception
   sudo cpan Any::Moose
   sudo cpan Class::Method::Modifiers
   sudo cpan Tie::IxHash (most db commands, MongoDBensure_index)
+
+    * If you have a reasonably "modern" Perl installation (~5.10+) then the CPAN distribution can do this for you (Make sure "Module::Install" is available via `sudo cpan Module::Install` first):
+
+        cd <place where you checked out or untarred the Perl driver>
+        sudo cpan .
+
+    This will resolve and install the dependencies, then compile and install the MongoDB Driver.
 
 A couple methods (that you might not run into) require:
   sudo cpan boolean (MongoDB::Collection::ensure_index)
