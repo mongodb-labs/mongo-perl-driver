@@ -9,6 +9,7 @@ use threads;
 my $conn = try {
     MongoDB::Connection->new({
         host => exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost',
+        ssl => $ENV{MONGO_SSL}
     });
 }
 catch {

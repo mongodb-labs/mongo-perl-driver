@@ -363,6 +363,21 @@ has find_master => (
     default  => 0,
 );
 
+=head2 ssl
+
+This tell the driver that you are connectin to an SSL mongodb.
+(This option will be ignored if not compiled with ssl.)
+
+=cut
+
+has ssl => (
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0,
+);
+
+
 # hash of servers in a set
 # call connected() to determine if a connection is enabled
 has _servers => (
@@ -457,7 +472,7 @@ sub BUILD {
             $hp[1] = 27017;
         }
 
-        $self->_init_conn($hp[0], $hp[1]);
+        $self->_init_conn($hp[0], $hp[1], $self->ssl);
         if ($self->auto_connect) {
             $self->connect;
             $self->max_bson_size($self->_get_max_bson_size);

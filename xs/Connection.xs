@@ -100,10 +100,11 @@ MODULE = MongoDB::Connection  PACKAGE = MongoDB::Connection
 PROTOTYPES: DISABLE
 
 void 
-_init_conn(self, host, port)
+_init_conn(self, host, port, ssl)
     SV *self
     char *host
     int port
+    bool ssl
   PREINIT:
     SV *auto_reconnect_sv = 0, *timeout_sv = 0;
     mongo_link *link;
@@ -120,7 +121,11 @@ _init_conn(self, host, port)
     memcpy(link->master->host, host, strlen(host));
     link->master->port = port;
     link->master->connected = 0;
-
+    link->ssl = ssl;
+#ifdef MONGO_SSL 
+    link->ssl_handle = NULL;
+    link->ssl_context = NULL;
+#endif
     auto_reconnect_sv = perl_mongo_call_reader (ST(0), "auto_reconnect");
     timeout_sv = perl_mongo_call_reader (ST(0), "timeout");
 
@@ -146,7 +151,13 @@ _init_conn_holder(self, master)
 
     self_link->master = master_link->master;
     self_link->copy = 1;
-    
+    self_link->ssl = master_link->ssl;
+#ifdef MONGO_SSL 
+    self_link->ssl_handle = master_link->ssl_handle;
+    self_link->ssl_context = master_link->ssl_context;
+#endif
+    self_link->send = master_link->send;
+    self_link->recv = master_link->recv;    
 
 void
 connect (self)
@@ -155,8 +166,7 @@ connect (self)
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
      SV *username, *password;
    CODE:
-     link->master->socket = perl_mongo_connect(link->master->host, link->master->port, link->timeout);
-     link->master->connected = link->master->socket != -1;
+    perl_mongo_connect(link);
 
      if (!link->master->connected) {
        croak ("couldn't connect to server %s:%d", link->master->host, link->master->port);

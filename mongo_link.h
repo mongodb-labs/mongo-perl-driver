@@ -20,10 +20,10 @@
 #include "perl_mongo.h"
 
 #ifdef WIN32
-
 #include <winsock2.h>
 #define socklen_t int
 #else
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -32,6 +32,11 @@
 #endif
 #include <errno.h>
 
+#ifdef MONGO_SSL
+#include <openssl/rand.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#endif
 
 // db ops
 #define OP_REPLY 1
@@ -123,6 +128,7 @@ typedef struct _mongo_server {
  * master is the index of the master server, if there is more than 1 server
  * server is an array of pointers to connections
  */
+ 
 typedef struct {
   int auto_reconnect;
   int timeout;
@@ -130,6 +136,16 @@ typedef struct {
   int num;
   mongo_server *master;
   int copy;
+  
+  bool ssl;
+  
+  #ifdef MONGO_SSL
+  SSL *ssl_handle;
+  SSL_CTX *ssl_context;
+  #endif
+  
+  int (*send)(void* link, const char* buffer, size_t len);
+  int (*recv)(void* link, const char* buffer, size_t len);
 } mongo_link;
 
 typedef struct {
@@ -153,7 +169,21 @@ typedef struct {
 int mongo_link_say(SV *self, buffer *buf);
 int mongo_link_hear(SV *self);
 int perl_mongo_master(SV *self, int auto_reconnect);
-int perl_mongo_connect(char *host, int port, int timeout);
 void set_disconnected(SV *link_sv);
+
+//ssl
+void perl_mongo_connect(mongo_link* link);
+void non_ssl_connect(mongo_link* link);
+
+#ifdef MONGO_SSL
+void tcp_setup(mongo_link* link);
+void ssl_connect(mongo_link* link);
+void ssl_disconnect (mongo_link *link);
+int ssl_send(void* link, const char* buffer, size_t len);
+int ssl_recv(void* link, const char* buffer, size_t len);
+#endif
+
+int non_ssl_send(void* link, const char* buffer, size_t len);
+int non_ssl_recv(void* link, const char* buffer, size_t len);
 
 #endif
