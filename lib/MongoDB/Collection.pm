@@ -526,7 +526,8 @@ sub _make_safe {
     $cursor->_init;
     $cursor->_request_id($info->{'request_id'});
 
-    $conn->recv($cursor);
+    # a reconnect is fatal here, because it's (by definition) not safe
+    $conn->recv($cursor,1);
     $cursor->started_iterating(1);
 
     my $ok = $cursor->next();

@@ -283,7 +283,7 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
  * Gets a reply from the MongoDB server and
  * creates a cursor for it
  */
-int mongo_link_hear(SV *cursor_sv) {
+int mongo_link_hear(SV *cursor_sv, int reconnect_fatal) {
   int sock;
   int num_returned = 0, timeout = -1;
   mongo_cursor *cursor;
@@ -295,10 +295,20 @@ int mongo_link_hear(SV *cursor_sv) {
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
   timeout_sv = perl_mongo_call_reader(link_sv, "query_timeout");
 
-  if ((sock = perl_mongo_master(link_sv, 0)) == -1) {
+  if ((sock = perl_mongo_master(link_sv, 1)) == -1) {
     set_disconnected(link_sv);
     SvREFCNT_dec(link_sv);
     croak("can't get db response, not connected");
+  }
+
+  if (link->master->reconnected) {
+    // because we have reconnected we should return as we
+    // will just sit around waiting for no response
+    SvREFCNT_dec(link_sv);
+    if (reconnect_fatal) {
+      croak("can't get db response, reconnected");
+    }
+    return 0;
   }
 
   timeout = SvIV(timeout_sv);
@@ -478,16 +488,25 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
   mongo_link *link;
 
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
+  link->master->reconnected = 0;
 
   if (link->master && link->master->connected) {
+    int size, connected;
+    struct sockaddr_in addr, check_connect;
+    size = sizeof(check_connect);
+    connected = getpeername(link->master->socket, (struct sockaddr*)&addr, &size);
+    if (connected != -1) {
       return link->master->socket;
+    }
   }
+
   // if we didn't have a connection above and this isn't a connection holder
   if (!link->copy) {
       // if this is a real connection, try to reconnect
       if (auto_reconnect && link->auto_reconnect) {
           perl_mongo_call_method(link_sv, "connect", G_DISCARD, 0);
           if (link->master && link->master->connected) {
+              link->master->reconnected = 1;
               return link->master->socket;
           }
       }

@@ -257,7 +257,7 @@ sub _do_query {
     $self->_request_id($info->{'request_id'});
 
     $self->_connection->send($query);
-    $self->_connection->recv($self);
+    $self->_connection->recv($self,0);
 
     $self->started_iterating(1);
 }

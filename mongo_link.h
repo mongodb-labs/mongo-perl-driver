@@ -114,6 +114,7 @@ typedef struct _mongo_server {
   int port;
   int socket;
   int connected;
+  int reconnected;
 } mongo_server;
 
 /*
@@ -151,7 +152,7 @@ typedef struct {
 } mongo_cursor;
 
 int mongo_link_say(SV *self, buffer *buf);
-int mongo_link_hear(SV *self);
+int mongo_link_hear(SV *self, int reconnect_fatal);
 int perl_mongo_master(SV *self, int auto_reconnect);
 int perl_mongo_connect(char *host, int port, int timeout);
 void set_disconnected(SV *link_sv);

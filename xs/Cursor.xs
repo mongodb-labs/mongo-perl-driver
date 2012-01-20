@@ -139,7 +139,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   if(mongo_link_say(link, &buf) == -1) {
     SvREFCNT_dec(link);
     Safefree(buf.start);
-    die("can't get db response, not connected");
+    croak("can't get db response, not connected (has_next)");
     return 0;
   }
 
@@ -148,7 +148,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   // if we have cursor->at == cursor->num && recv fails,
   // we're probably just out of results
   // mongo_link_hear returns 1 on success, 0 on failure
-  heard = mongo_link_hear(self);
+  heard = mongo_link_hear(self,0);
   SvREFCNT_dec(link);
   return heard > 0;
 }
