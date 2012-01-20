@@ -24,7 +24,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 36;
+    plan tests => 45;
 }
 
 my $db = $conn->get_database('foo');
@@ -64,7 +64,7 @@ my $c = $db->get_collection('bar');
                 "regex" => qr/xtz/,
                 "_id" => MongoDB::OID->new("49b6d9fb17330414a0c63101"),
                 "string" => "string"});
-      
+
     my $obj = $c->find_one;
 
     is($obj->{'n'}, undef);
@@ -130,7 +130,7 @@ my $c = $db->get_collection('bar');
 
 # undefined
 {
-    my $err = $db->last_error(); 
+    my $err = $db->last_error();
     ok(!$err->{err}, "undef");
     $err->{err} = "foo";
     is($err->{err}, "foo", "assign to undef");
@@ -148,8 +148,8 @@ my $c = $db->get_collection('bar');
     ok($@ =~ /circular ref/);
 
     my %test;
-    tie %test, 'Tie::IxHash'; 
-    $test{t} = \%test; 
+    tie %test, 'Tie::IxHash';
+    $test{t} = \%test;
 
     eval {
         $c->insert(\%test);
@@ -242,11 +242,73 @@ package main;
 
     $c->insert({'key' => $var});
     my $v = $c->find_one;
-    
+
     # make sure it was saved as string
     is($v->{'key'}, 'zzz');
 }
 
+# make sure this doesn't segfault
+{
+    use utf8;
+
+    eval {
+        $c->insert({'_id' => 'bar', '上海' => 'ouch'});
+    };
+    ok($@ =~ /could not find hash value for key/, "error: ".$@);
+}
+
+# make sure _ids aren't double freed
+{
+    $c->drop;
+
+    my $insert1 = ['_id' => 1];
+    my $insert2 = Tie::IxHash->new('_id' => 2);
+
+    my $id = $c->insert($insert1, {safe => 1});
+    is($id, 1);
+
+    $id = $c->insert($insert2, {safe => 1});
+    is($id, 2);
+}
+
+# aggressively convert numbers
+{
+    $MongoDB::BSON::looks_like_number = 1;
+
+    $c->drop;
+
+    $c->insert({num => "4"});
+    $c->insert({num => "5"});
+    $c->insert({num => "6"});
+
+    $c->insert({num => 4});
+    $c->insert({num => 5});
+    $c->insert({num => 6});
+
+    is($c->count({num => {'$gt' => 4}}), 4);
+    is($c->count({num => {'$gte' => "5"}}), 4);
+    is($c->count({num => {'$gte' => "4.1"}}), 4);
+
+    $MongoDB::BSON::looks_like_number = 0;
+}
+
+# MongoDB::BSON::String type
+{
+    $MongoDB::BSON::looks_like_number = 1;
+
+    $c->drop;
+
+    my $num = "001";
+
+    $c->insert({num => $num}, {safe => 1});
+    $c->insert({num => bless(\$num, "MongoDB::BSON::String")}, {safe => 1});
+
+    $MongoDB::BSON::looks_like_number = 0;
+
+    is($c->count({num => 1}), 1);
+    is($c->count({num => "001"}), 1);
+    is($c->count, 2);
+}
 
 END {
     if ($db) {

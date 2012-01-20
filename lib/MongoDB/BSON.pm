@@ -15,7 +15,7 @@
 #
 
 package MongoDB::BSON;
-our $VERSION = '0.42';
+our $VERSION = '0.45';
 
 # ABSTRACT: Tools for serializing and deserializing data in BSON form
 use Any::Moose;
@@ -25,6 +25,25 @@ use Any::Moose;
 MongoDB::BSON - Encoding and decoding utilities (more to come)
 
 =head1 ATTRIBUTES
+
+=head2 C<looks_like_number>
+
+    $MongoDB::BSON::looks_like_number = 1;
+    $collection->insert({age => "4"}); # stores 4 as an int
+
+If this is set, the driver will be more aggressive about converting strings into
+numbers.  Anything that L<Scalar::Util>'s looks_like_number would approve as a
+number will be sent to MongoDB as its numeric value.
+
+Defaults to 0 (for backwards compatibility).
+
+If you do not set this, you may be using strings more often than you intend to.
+See the L<MongoDB::DataTypes> section for more info on the behavior of strings
+vs. numbers.
+
+=cut
+
+$MongoDB::BSON::looks_like_number = 0;
 
 =head2 char
 
@@ -64,7 +83,7 @@ $MongoDB::BSON::utf8_flag_on = 1;
     $MongoDB::BSON::use_boolean = 1
 
 By default, booleans are deserialized as integers.  If you would like them to be
-deserialized as L<boolean/true> and L<boolean/false>, set 
+deserialized as L<boolean/true> and L<boolean/false>, set
 C<$MongoDB::BSON::use_boolean> to 1.
 
 =cut

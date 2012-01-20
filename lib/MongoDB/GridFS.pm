@@ -15,7 +15,7 @@
 #
 
 package MongoDB::GridFS;
-our $VERSION = '0.42';
+our $VERSION = '0.45';
 
 # ABSTRACT: A file storage utility
 
@@ -37,9 +37,9 @@ MongoDB::GridFS - A file storage utility
     $grid->insert($fh, {"filename" => "mydbfile"});
 
 There are two interfaces for GridFS: a file-system/collection-like interface
-(insert, remove, drop, find_one) and a more general interface 
-(get, put, delete).  Their functionality is the almost identical (get, put and 
-delete are always safe ops, insert, remove, and find_one are optionally safe), 
+(insert, remove, drop, find_one) and a more general interface
+(get, put, delete).  Their functionality is the almost identical (get, put and
+delete are always safe ops, insert, remove, and find_one are optionally safe),
 using one over the other is a matter of preference.
 
 =head1 SEE ALSO
@@ -76,8 +76,8 @@ has prefix => (
 
 =head2 files
 
-Collection in which file metadata is stored.  Each document contains md5 and 
-length fields, plus user-defined metadata (and an _id). 
+Collection in which file metadata is stored.  Each document contains md5 and
+length fields, plus user-defined metadata (and an _id).
 
 =cut
 
@@ -86,19 +86,18 @@ has files => (
     isa => 'MongoDB::Collection',
     lazy_build => 1
 );
+
 sub _build_files {
-  my $self = shift;
-  my $coll = $self->_database->get_collection($self->prefix . '.files');
-  # ensure the necessary index is present (this may be first usage)
-  $coll->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
-  return $coll;
+    my $self = shift;
+    my $coll = $self->_database->get_collection($self->prefix . '.files');
+    return $coll;
 }
 
 =head2 chunks
 
-Actual content of the files stored.  Each chunk contains up to 4Mb of data, as 
-well as a number (its order within the file) and a files_id (the _id of the file 
-in the files collection it belongs to).  
+Actual content of the files stored.  Each chunk contains up to 4Mb of data, as
+well as a number (its order within the file) and a files_id (the _id of the file
+in the files collection it belongs to).
 
 =cut
 
@@ -107,12 +106,19 @@ has chunks => (
     isa => 'MongoDB::Collection',
     lazy_build => 1
 );
+
 sub _build_chunks {
-  my $self = shift;
-  my $coll = $self->_database->get_collection($self->prefix . '.chunks');
-  # ensure the necessary index is present (this may be first usage)
-  $coll->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
-  return $coll;
+    my $self = shift;
+    my $coll = $self->_database->get_collection($self->prefix . '.chunks');
+    return $coll;
+}
+
+sub _ensure_indexes {
+    my $self = shift;
+
+    # ensure the necessary index is present (this may be first usage)
+    $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
+    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
 }
 
 =head1 METHODS
@@ -135,9 +141,9 @@ sub get {
 
     my $id = $grid->put($fh, {filename => "pic.jpg"});
 
-Inserts a file into GridFS, adding a L<MongoDB::OID> as the _id field if the 
+Inserts a file into GridFS, adding a L<MongoDB::OID> as the _id field if the
 field is not already defined.  This is a wrapper for C<MongoDB::GridFS::insert>,
-see that method below for more information.  
+see that method below for more information.
 
 Returns the _id field.
 
@@ -217,6 +223,8 @@ sub remove {
         }
     }
 
+    $self->_ensure_indexes;
+
     if ($just_one) {
         my $meta = $self->files->find_one($criteria);
         $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
@@ -236,16 +244,16 @@ sub remove {
 
     my $id = $gridfs->insert($fh, {"content-type" => "text/html"});
 
-Reads from a file handle into the database.  Saves the file with the given 
-metadata.  The file handle must be readable.  C<$options> can be 
+Reads from a file handle into the database.  Saves the file with the given
+metadata.  The file handle must be readable.  C<$options> can be
 C<{"safe" => true}>, which will do safe inserts and check the MD5 hash
-calculated by the database against an MD5 hash calculated by the local 
+calculated by the database against an MD5 hash calculated by the local
 filesystem.  If the two hashes do not match, then the chunks already inserted
 will be removed and the program will die.
 
 Because C<MongoDB::GridFS::insert> takes a file handle, it can be used to insert
-very long strings into the database (as well as files).  C<$fh> must be a 
-FileHandle (not just the native file handle type), so you can insert a string 
+very long strings into the database (as well as files).  C<$fh> must be a
+FileHandle (not just the native file handle type), so you can insert a string
 with:
 
     # open the string like a file
@@ -267,8 +275,7 @@ sub insert {
     confess "not a file handle" unless $fh;
     $metadata = {} unless $metadata && ref $metadata eq 'HASH';
 
-    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), 
-                                {"safe" => 1});
+    $self->_ensure_indexes;
 
     my $start_pos = $fh->getpos();
 
@@ -292,7 +299,7 @@ sub insert {
     $fh->setpos($start_pos);
 
     # get an md5 hash for the file
-    my $result = $self->_database->run_command({"filemd5", $id, 
+    my $result = $self->_database->run_command({"filemd5", $id,
                                                 "root" => $self->prefix});
 
     # compare the md5 hashes
@@ -346,8 +353,8 @@ sub all {
     my $cursor = $self->files->query;
     while (my $meta = $cursor->next) {
         push @ret, MongoDB::GridFS::File->new(
-            _grid => $self, 
-            info => $meta); 
+            _grid => $self,
+            info => $meta);
     }
     return @ret;
 }

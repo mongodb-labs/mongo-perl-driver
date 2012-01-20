@@ -4,7 +4,7 @@ use lib 'ext';
 use inc::Module::Install;
 
 name 'MongoDB';
-perl_version '5.8.7';
+perl_version '5.8.4';
 author 'Florian Ragwitz <rafl@debian.org>';
 author 'Kristina Chodorow <kristina@10gen.com>';
 license 'Apache';
@@ -37,19 +37,6 @@ no_index directory => 'ext';
 
 repository 'git://github.com/mongodb/mongo-perl-driver.git';
 
-my @arch = $Config::Config{ccflags} =~ m/-arch\s+(\S+)/g;
-my $archStr = join '', map { " -arch $_ " } @arch;
-
-my $ccflags = makemaker_args->{CCFLAGS};
-$ccflags = $ccflags . $archStr;
-makemaker_args(CCFLAGS => $ccflags);
-
-makemaker_args(
-    dynamic_lib => {
-        OTHERLDFLAGS => $archStr
-    }
-);
-
 
 if ($Config::Config{useithreads}) {
     tests 't/*.t t/threads/*.t';
@@ -58,7 +45,7 @@ if ($Config::Config{useithreads}) {
 WriteAll;
 
 package MY;
-our $VERSION = '0.42';
+our $VERSION = '0.45';
 
 use Config;
 

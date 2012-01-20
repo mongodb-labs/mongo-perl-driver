@@ -71,3 +71,12 @@ SKIP: {
     is($coll1->name, "bar");
     is($coll1->full_name, "foo.bar");
 }
+
+END {
+    if ($conn) {
+        $conn->foo->drop;
+    }
+    if ($db) {
+        $db->drop;
+    }
+}

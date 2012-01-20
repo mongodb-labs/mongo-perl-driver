@@ -39,7 +39,7 @@ options.  Available options are:
 =item C<< unique =E<gt> boolean >>
 
 By default, indexes are not unique. To create a unique index, pass 
-C<< unique =<gt> true >>.  C<true> can be L<boolean::true> or any other true value.
+C<< unique =E<gt> true >>.  C<true> can be L<boolean::true> or any other true value.
 
 =item C<< drop_dups => boolean >>
 

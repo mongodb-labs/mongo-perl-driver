@@ -55,4 +55,10 @@ $col->drop;
     );
 }
 
-done_testing;
+END {
+    if ($conn) {
+        $conn->moo->drop;
+    }
+}
+
+done_testing();

@@ -101,4 +101,10 @@ $col->insert({ foo => 4,  bar => 9, shazbot => 1 });
         'joining back cursors works';
 }
 
-done_testing;
+END {
+    if ($conn) {
+        $conn->affe->drop;
+    }
+}
+
+done_testing();

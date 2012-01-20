@@ -25,4 +25,4 @@ for (@inc) {
     $prev = $_;
 }
 
-done_testing;
+done_testing();

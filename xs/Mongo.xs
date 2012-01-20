@@ -38,6 +38,7 @@ BOOT:
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__OID);
         gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::Cursor::slave_okay",  GV_ADDMULTI, SVt_IV);
+        gv_fetchpv("MongoDB::BSON::looks_like_number",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::char",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::utf8_flag_on",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::use_boolean",  GV_ADDMULTI, SVt_IV);
@@ -109,11 +110,6 @@ write_insert(ns, a, add_ids)
            int start = buf.pos-buf.start;
            SV **obj = av_fetch(a, i, 0);
            perl_mongo_sv_to_bson(&buf, *obj, ids);
-
-           if (buf.pos - (buf.start + start) > MAX_OBJ_SIZE) {
-             croak("insert is larger than 4 MB: %d bytes", buf.pos - (buf.start + start));
-           }
-
          }
          perl_mongo_serialize_size(buf.start, &buf);
 

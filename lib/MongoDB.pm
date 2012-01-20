@@ -20,7 +20,7 @@ use warnings;
 package MongoDB;
 # ABSTRACT: A Mongo Driver for Perl
 
-our $VERSION = '0.42';
+our $VERSION = '0.45';
 
 use XSLoader;
 use MongoDB::Connection;
@@ -43,10 +43,17 @@ MongoDB - Mongo Driver for Perl
     my $id         = $collection->insert({ some => 'data' });
     my $data       = $collection->find_one({ _id => $id });
 
+=head1 INTRO TO MONGODB
+
+This is the Perl driver for MongoDB, a document-oriented database.  This section
+introduces some of the basic concepts of MongoDB.  There's also a L<MongoDB::Tutorial/"Tutorial">
+pod that introduces using the driver.  For more documentation on MongoDB in
+general, check out L<http://www.mongodb.org>.
+
 =head1 GETTING HELP
 
-If you have any questions, comments, or complaints, you can get through to the 
-developers most dependably via the MongoDB user list: 
+If you have any questions, comments, or complaints, you can get through to the
+developers most dependably via the MongoDB user list:
 I<mongodb-user@googlegroups.com>.  You might be able to get someone quicker
 through the MongoDB IRC channel, I<irc.freenode.net#mongodb>.
 
@@ -67,15 +74,15 @@ This is free software, licensed under:
 
 MongoDB is a database access module.
 
-MongoDB (the database) store all strings as UTF-8.  Non-UTF-8 strings will be 
-forcibly converted to UTF-8.  To convert something from another encoding to 
+MongoDB (the database) store all strings as UTF-8.  Non-UTF-8 strings will be
+forcibly converted to UTF-8.  To convert something from another encoding to
 UTF-8, you can use L<Encode>:
-    
+
     use Encode;
-    
+
     my $name = decode('cp932', "\x90\xbc\x96\xec\x81\x40\x91\xbe\x98\x59");
     my $id = $coll->insert( { name => $name, } );
-    
+
     my $object = $coll->find_one( { name => $name } );
 
 Thanks to taronishino for this example.
@@ -102,15 +109,15 @@ To use MongoDB, first you need to load the MongoDB module:
     use strict;
     use warnings;
 
-(The C<use strict;> and C<use warnings;> isn't required, but it's strongly 
+(The C<use strict;> and C<use warnings;> isn't required, but it's strongly
 recommended.)
 
 Then you need to connect to a Mongo database server.  By default, Mongo listens
-for connections on port 27017.  Unless otherwise noted, this documentation 
-assumes you are running MongoDB locally on the default port.  
+for connections on port 27017.  Unless otherwise noted, this documentation
+assumes you are running MongoDB locally on the default port.
 
 Mongo can be started in I<authentication mode>, which requires clients to log in
-before manipulating data.  By default, Mongo does not start in this mode, so no 
+before manipulating data.  By default, Mongo does not start in this mode, so no
 username or password is required to make a fully functional connection.  If you
 would like to learn more about authentication, see the C<authenticate> method.
 
@@ -131,14 +138,14 @@ out of scope, the connection will automatically be closed and cleaned up.
 
 =head3 Class Hierarchy
 
-The classes are arranged in a hierarchy: you cannot create a 
+The classes are arranged in a hierarchy: you cannot create a
 L<MongoDB::Collection> instance before you create L<MongoDB::Database> instance,
 for example.  The full hierarchy is:
 
     MongoDB::Connection -> MongoDB::Database -> MongoDB::Collection
 
-This is because L<MongoDB::Database> has a field that is a 
-L<MongoDB::Connection> and L<MongoDB::Collection> has a L<MongoDB::Database> 
+This is because L<MongoDB::Database> has a field that is a
+L<MongoDB::Connection> and L<MongoDB::Collection> has a L<MongoDB::Database>
 field.
 
 When you call a L<MongoDB::Collection> function, it "trickles up" the chain of
@@ -165,7 +172,7 @@ L<MongoDB::Connection> does the actual work and sends a message to the database.
 
 =head1 FUNCTIONS
 
-These functions should generally not be used.  They are very low level and have 
+These functions should generally not be used.  They are very low level and have
 nice wrappers in L<MongoDB::Collection>.
 
 =head2 write_insert($ns, \@objs)
@@ -173,12 +180,12 @@ nice wrappers in L<MongoDB::Collection>.
     my ($insert, $ids) = MongoDB::write_insert("foo.bar", [{foo => 1}, {bar => -1}, {baz => 1}]);
 
 Creates an insert string to be used by C<MongoDB::Connection::send>.  The second
-argument is an array of hashes to insert.  To imitate the behavior of 
+argument is an array of hashes to insert.  To imitate the behavior of
 C<MongoDB::Collection::insert>, pass a single hash, for example:
 
     my ($insert, $ids) = MongoDB::write_insert("foo.bar", [{foo => 1}]);
 
-Passing multiple hashes imitates the behavior of 
+Passing multiple hashes imitates the behavior of
 C<MongoDB::Collection::batch_insert>.
 
 This function returns the string and an array of the the _id fields that the
@@ -189,12 +196,12 @@ inserted hashes will contain.
     my ($query, $info) = MongoDB::write_query('foo.$cmd', 0, 0, -1, {getlasterror => 1});
 
 Creates a database query to be used by C<MongoDB::Connection::send>.  C<$flags>
-are query flags to use (see C<MongoDB::Cursor::Flags> for possible values). 
-C<$skip> is the number of results to skip, C<$limit> is the number of results to 
-return, C<$query> is the query hash, and C<$fields> is the optional fields to 
+are query flags to use (see C<MongoDB::Cursor::Flags> for possible values).
+C<$skip> is the number of results to skip, C<$limit> is the number of results to
+return, C<$query> is the query hash, and C<$fields> is the optional fields to
 return.
 
-This returns the query string and a hash of information about the query that is 
+This returns the query string and a hash of information about the query that is
 used by C<MongoDB::Connection::recv> to get the database response to the query.
 
 =head2 write_update($ns, $criteria, $obj, $flags)

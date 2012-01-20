@@ -3,13 +3,170 @@
 
 =head1 NAME
 
-MongoDB::Examples - Some more advanced examples
+MongoDB::Examples - Some examples of MongoDB syntax
+
+=head1 MAPPING SQL TO MONGODB
+
+For developers familiar with SQL, the following chart should help you see how
+many common SQL queries could be expressed in MongoDB.
+
+These are Perl-specific examples of translating SQL queries to MongoDB's query
+language.  To see the JavaScript (or other languages') mappings, see
+L<http://dochub.mongodb.org/core/sqlToMongo>.
+
+=over
+
+=item C<CREATE TABLE USERS (a Number, b Number)>
+Implicit, can be done explicitly.
+
+=item C<INSERT INTO USERS VALUES(1,1)>
+
+    $db->users->insert({a => 1, b => 1});
+
+=item C<SELECT a,b FROM users>
+
+    $db->users->find({}, {a => 1, b => 1});
+
+=item C<SELECT * FROM users>
+
+    $db->users->find;
+
+=item C<SELECT * FROM users WHERE age=33>
+
+    $db->users->find({age => 33})
+
+=item C<SELECT a,b FROM users WHERE age=33>
+
+    $db->users->find({age => 33}, {a => 1, b => 1});
+
+=item C<SELECT * FROM users WHERE age=33 ORDER BY name>
+
+    $db->users->find({age => 33})->sort({name => 1});
+
+=item C<<SELECT * FROM users WHERE age>33>>
+
+    $db->users->find({age => {'$gt' => 33}})
+
+=item C<<SELECT * FROM users WHERE age<33>>
+
+    $db->users->find({age => {'$lt' => 33}})
+
+=item C<SELECT * FROM users WHERE name LIKE "%Joe%">
+
+    $db->users->find({name => qr/Joe/});
+
+=item C<SELECT * FROM users WHERE name LIKE "Joe%">
+
+    $db->users->find({name => qr/^Joe/});
+
+=item C<<SELECT * FROM users WHERE age>33 AND age<=40>>
+
+    $db->users->find({age => {'$gt' => 33, '$lte' => 40}});
+
+=item C<SELECT * FROM users ORDER BY name DESC>
+
+    $db->users->find->sort({name => -1});
+
+=item C<CREATE INDEX myindexname ON users(name)>
+
+    $db->users->ensure_index({name => 1});
+
+=item C<CREATE INDEX myindexname ON users(name,ts DESC)>
+
+    $db->users->ensure_index(Tie::IxHash->new(name => 1, ts => -1));
+
+=item C<SELECT * FROM users WHERE a=1 and b='q'>
+
+    $db->users->find({a => 1, b => "q"});
+
+=item C<SELECT * FROM users LIMIT 10 SKIP 20>
+
+    $db->users->find->limit(10)->skip(20);
+
+=item C<SELECT * FROM users WHERE a=1 or b=2>
+
+    $db->users->find({'$or' => [{a => 1}, {b => 2}]});
+
+=item C<SELECT * FROM users LIMIT 1>
+
+    $db->users->find->limit(1);
+
+=item C<EXPLAIN SELECT * FROM users WHERE z=3>
+
+    $db->users->find({z => 3})->explain;
+
+=item C<SELECT DISTINCT last_name FROM users>
+
+    $db->run_command({distinct => "users", key => "last_name"});
+
+=item C<SELECT COUNT(*y) FROM users>
+
+    $db->users->count;
+
+=item C<<SELECT COUNT(*y) FROM users where age > 30>>
+
+    $db->users->find({"age" => {'$gt' => 30}})->count;
+
+=item C<SELECT COUNT(age) from users>
+
+    $db->users->find({age => {'$exists' => 1}})->count;
+
+=item C<UPDATE users SET a=1 WHERE b='q'>
+
+    $db->users->update({b => "q"}, {'$set' => {a => 1}});
+
+=item C<UPDATE users SET a=a+2 WHERE b='q'>
+
+    $db->users->update({b => "q"}, {'$inc' => {a => 2}});
+
+=item C<DELETE FROM users WHERE z="abc">
+
+    $db->users->remove({z => "abc"});
+
+=back
 
 =head1 DATABASE COMMANDS
 
+If you do something in the MongoDB shell and you would like to translate it to
+Perl, the best way is to run the function in the shell without parentheses, which
+will print the source.  You can then generally translate the source into Perl
+fairly easily.
+
+For example, suppose we want to use C<db.foo.validate> in Perl.  We could
+run:
+
+    > db.foo.validate
+    function (full) {
+        var cmd = {validate:this.getName()};
+        if (typeof full == "object") {
+            Object.extend(cmd, full);
+        } else {
+            cmd.full = full;
+        }
+        var res = this._db.runCommand(cmd);
+        if (typeof res.valid == "undefined") {
+            res.valid = false;
+            var raw = res.result || res.raw;
+            if (raw) {
+                var str = "-" + tojson(raw);
+                res.valid = !(str.match(/exception/) || str.match(/corrupt/));
+                var p = /lastExtentSize:(\d+)/;
+                var r = p.exec(str);
+                if (r) {
+                    res.lastExtentSize = Number(r[1]);
+                }
+            }
+        }
+        return res;
+    }
+
+Thus, we can translate the important parts into Perl:
+
+    $db->run_command({validate => "foo"});
+
 =head2 Distinct
 
-The distinct command returns all values for a given key in a collection.  For 
+The distinct command returns all values for a given key in a collection.  For
 example, suppose we had a collection with the following documents (C<_id> value
 ignored):
 
@@ -26,11 +183,11 @@ If we wanted to see all of values in the "code" field, we could run:
        "query"    => {}
     ]);
 
-Notice that the arguments are in an array, to ensure that their order is 
+Notice that the arguments are in an array, to ensure that their order is
 preserved.  You could also use a L<Tie::IxHash>.
 
 C<query> is an optional argument, which can be used to only run C<distinct> on
-specific documents.  It takes a hash (or L<Tie::IxHash> or array) in the same 
+specific documents.  It takes a hash (or L<Tie::IxHash> or array) in the same
 form as L<MongoDB::Collection/"find($query)">.
 
 Running C<distinct> on the above collection would give you:
@@ -44,10 +201,90 @@ Running C<distinct> on the above collection would give you:
                     ]
     };
 
+
+=head2 Find-and-modify
+
+The find-and-modify command is similar to update (or remove), but it will return
+the modified document.  It can be useful for implementing queues or locks.
+
+For example, suppose we had a list of things to do, and we wanted to remove the
+highest-priority item for processing.  We could do a L<MongoDB::Collection/find>
+and then a L<MongoDB::Collection/remove>, but that wouldn't be atomic (a write
+could occur between the query and the remove).  Instead, we can use find and
+modify.
+
+    my $next_task = $db->run_command({
+        findAndModify => "todo",
+        sort => {priority => -1},
+        remove => 1
+    });
+
+This will atomically find and pop the next-highest-priority task.
+
+See L<http://www.mongodb.org/display/DOCS/findAndModify+Command> for more
+details on find-and-modify.
+
+=head2 Group
+
+The group command is similar to "GROUP BY" in SQL.  You can use the
+L<MongoDB::Database/run_command> method to perform group-bys with MongoDB.
+
+For example, suppose we have a number of local businesses stored in a "business"
+collection.  If we wanted to find the number of coffeeshops in each neighborhood, we
+could do:
+
+    my $reduce = <<REDUCE;
+    function(doc, prev) {
+        for (var t in doc.tags) {
+            if (doc.tags[t] == "coffeeshop") {
+                prev["num coffeeshops"]++;
+                break;
+            }
+        }
+    }
+    REDUCE
+
+    my $result = $db->run_command({group => {
+        'ns' => "business",
+        'key' => {"neighborhood" => 1},
+        'initial' => {"num coffeeshops" => 0},
+        '$reduce' => MongoDB::Code->new(code => $reduce)
+
+This would return something like:
+
+    {
+          'ok' => '1',
+          'keys' => 4,
+          'count' => '487', # total number of documents
+          'retval' => [
+              {
+                          'neighborhood' => 'Soho',
+                          'num coffeeshops' => '23'
+              },
+              {
+                          'neighborhood' => 'Chinatown',
+                          'num coffeeshops' => '14'
+              },
+              {
+                          'neighborhood' => 'Upper East Side',
+                          'num coffeeshops' => '10'
+              },
+              {
+                          'neighborhood' => 'East Village',
+                          'num coffeeshops' => '87'
+              }
+            ]
+    };
+
+Thus, there are 23 coffeeshops in Soho, 14 in Chinatown, and so on.
+
+See L<http://www.mongodb.org/display/DOCS/Aggregation> for more details on
+grouping.
+
 =head2 MapReduce
 
 MapReduce is a powerful aggregation tool.  (For traditional queries, you should
-use C<MongoDB::Collection::query>.)  
+use C<MongoDB::Collection::query>.)
 
 This example counts the number of occurences of each tag in a collection.  Each
 document contains a "tags" array that contains zero or more strings.
@@ -59,7 +296,7 @@ document contains a "tags" array that contains zero or more strings.
         });
     }
     MAP
-    
+
     my $reduce = <<REDUCE;
     function(prev, current) {
         result = {count : 0};
@@ -69,11 +306,11 @@ document contains a "tags" array that contains zero or more strings.
         return result;
     }
     REDUCE
-    
+
     my $cmd = Tie::IxHash->new("mapreduce" => "foo",
         "map" => $map,
         "reduce" => $reduce);
-    
+
     my $result = $db->run_command($cmd);
 
 See the MongoDB documentation on MapReduce for more information
@@ -83,8 +320,8 @@ See the MongoDB documentation on MapReduce for more information
 
 =head2 Positional Operator
 
-In MongoDB 1.3.4 and later, you can use positional operator, C<$>, to update 
-elements of an array.  For instance, suppose you have an array of user 
+In MongoDB 1.3.4 and later, you can use positional operator, C<$>, to update
+elements of an array.  For instance, suppose you have an array of user
 information and you want to update a user's name.
 
 A sample document in JavaScript:
@@ -106,5 +343,5 @@ The update:
 
     $coll->update({"users.name" => "fred"}, {'users.$.name' => "george"});
 
-This will update the array so that the element containing C<"name" =E<gt> "fred"> 
+This will update the array so that the element containing C<"name" =E<gt> "fred">
 now has C<"name" =E<gt> "george">.

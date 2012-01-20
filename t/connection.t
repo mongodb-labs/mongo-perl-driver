@@ -20,7 +20,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 18;
+    plan tests => 19;
 }
 
 throws_ok {
@@ -34,7 +34,7 @@ SKIP: {
         $conn = MongoDB::Connection->new;
     } 'successful connection';
     isa_ok($conn, 'MongoDB::Connection');
-    
+
     is($conn->host, 'mongodb://localhost:27017', 'host default value');
 
     # just make sure a couple timeouts work
@@ -101,4 +101,25 @@ SKIP: {
     is($conn2->query_timeout, 40, 'query timeout');
 
     $MongoDB::Cursor::timeout = $timeout;
+}
+
+# max_bson_size
+{
+    my $size = $conn->max_bson_size;
+    my $result = $conn->admin->run_command({buildinfo => 1});
+    if (exists $result->{'maxBsonObjectSize'}) {
+        is($size, $result->{'maxBsonObjectSize'});
+    }
+    else {
+        is($size, 4*1024*1024);
+    }
+}
+
+END {
+    if ($conn) {
+        $conn->foo->drop;
+    }
+    if ($db) {
+        $db->drop;
+    }
 }

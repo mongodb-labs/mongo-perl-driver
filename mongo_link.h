@@ -20,6 +20,7 @@
 #include "perl_mongo.h"
 
 #ifdef WIN32
+
 #include <winsock2.h>
 #define socklen_t int
 #else

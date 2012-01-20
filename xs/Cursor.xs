@@ -275,10 +275,11 @@ info (self)
         SV *self
     PREINIT:
         mongo_cursor *cursor;
+        HV *hv;
     CODE:
         cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
         
-        HV *hv = newHV();
+        hv = newHV();
         hv_store(hv, "flag", strlen("flag"), newSViv(cursor->flag), 0);
         hv_store(hv, "cursor_id", strlen("cursor_id"),
                  newSViv(cursor->cursor_id), 0);

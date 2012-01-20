@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Collection;
-our $VERSION = '0.42';
+our $VERSION = '0.45';
 
 # ABSTRACT: A Mongo Collection
 
@@ -30,12 +30,12 @@ An instance of a MongoDB collection.
     # gets the foo collection
     my $collection = $db->foo;
 
-Collection names can be chained together to access subcollections.  For 
+Collection names can be chained together to access subcollections.  For
 instance, the collection C<foo.bar> can be accessed with:
 
     my $collection = $db->foo->bar;
 
-You can also access collections with the L<MongoDB::Database/get_collection> 
+You can also access collections with the L<MongoDB::Database/get_collection>
 method.
 
 =head1 SEE ALSO
@@ -117,7 +117,7 @@ sub to_index_string {
     my @name;
     if (ref $keys eq 'ARRAY' ||
         ref $keys eq 'HASH' ) {
-        
+
         while ((my $idx, my $d) = each(%$keys)) {
             push @name, $idx;
             push @name, $d;
@@ -127,7 +127,6 @@ sub to_index_string {
         my @ks = $keys->Keys;
         my @vs = $keys->Values;
 
-        @vs = $keys->Values;
         for (my $i=0; $i<$keys->Length; $i++) {
             push @name, $ks[$i];
             push @name, $vs[$i];
@@ -148,26 +147,24 @@ sub to_index_string {
 
 Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
 C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).  
+even number of elements).
 
 The set of fields returned can be limited through the use of the
 C<MongoDB::Cursor::fields> method on the resulting L<MongoDB::Cursor> object.
-Other commonly used cursor methods are C<MongoDB::Cursor::limit>, 
+Other commonly used cursor methods are C<MongoDB::Cursor::limit>,
 C<MongoDB::Cursor::skip>, and C<MongoDB::Cursor::sort>.
 
-See also core documentation on querying: 
+See also core documentation on querying:
 L<http://dochub.mongodb.org/core/find>.
 
 =head2 query($query, $attrs?)
 
 Identical to C<MongoDB::Collection::find>, described above.
 
-    my $cursor = $collection->query({ }, { limit => 10, skip => 10 });
+    my $cursor = $collection->query->limit(10)->skip(10);
 
-    my $cursor = $collection->query(
-        { location => "Vancouver" },
-        { sort_by  => { age => 1 } },
-    );
+    my $cursor = $collection->query({ location => "Vancouver" })->sort({ age => 1 });
+
 
 Valid query attributes are:
 
@@ -197,25 +194,21 @@ sub find {
     $limit   ||= 0;
     $skip    ||= 0;
 
-    my $q = {};
-    if ($sort_by) {
-        $q->{'query'} = $query;
-	$q->{'orderby'} = $sort_by;
-    }
-    else {
-        $q = $query ? $query : {};
-    }
-
+    my $q = $query || {};
     my $conn = $self->_database->_connection;
     my $ns = $self->full_name;
     my $cursor = MongoDB::Cursor->new(
 	_connection => $conn,
-	_ns => $ns, 
-	_query => $q, 
-	_limit => $limit, 
+	_ns => $ns,
+	_query => $q,
+	_limit => $limit,
 	_skip => $skip
     );
+
     $cursor->_init;
+    if ($sort_by) {
+        $cursor->sort($sort_by);
+    }
     return $cursor;
 }
 
@@ -232,7 +225,7 @@ sub query {
 
 Executes the given C<$query> and returns the first object matching it.
 C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).  If C<$fields> is specified, the resulting document 
+even number of elements).  If C<$fields> is specified, the resulting document
 will only include the fields given (and the C<_id> field) which can cut down on
 wire traffic.
 
@@ -254,10 +247,10 @@ sub find_one {
 
 Inserts the given C<$object> into the database and returns it's id
 value. C<$object> can be a hash reference, a reference to an array with an
-even number of elements, or a L<Tie::IxHash>.  The id is the C<_id> value 
+even number of elements, or a L<Tie::IxHash>.  The id is the C<_id> value
 specified in the data or a L<MongoDB::OID>.
 
-The optional C<$options> parameter can be used to specify if this is a safe 
+The optional C<$options> parameter can be used to specify if this is a safe
 insert.  A safe insert will check with the database if the insert succeeded and
 croak if it did not.  You can also check if the insert succeeded by doing an
 unsafe insert, then calling L<MongoDB::Database/"last_error($options?)">.
@@ -280,7 +273,7 @@ sub insert {
 Inserts each of the documents in the array into the database and returns an
 array of their _id fields.
 
-The optional C<$options> parameter can be used to specify if this is a safe 
+The optional C<$options> parameter can be used to specify if this is a safe
 insert.  A safe insert will check with the database if the insert succeeded and
 croak if it did not. You can also check if the inserts succeeded by doing an
 unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
@@ -297,14 +290,18 @@ sub batch_insert {
         $add_ids = 0;
     }
 
-    my $ns = $self->full_name;
-    my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids);
-
     my $conn = $self->_database->_connection;
-    
+    my $ns = $self->full_name;
+
+    my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids);
+    if (length($insert) > $conn->max_bson_size) {
+        Carp::croak("insert is too large: ".length($insert)." max: ".$conn->max_bson_size);
+        return 0;
+    }
+
     if (defined($options) && $options->{safe}) {
         my $ok = $self->_make_safe($insert);
-        
+
         if (!$ok) {
             return 0;
         }
@@ -312,7 +309,7 @@ sub batch_insert {
     else {
         $conn->send($insert);
     }
-    
+
     return $ids ? @$ids : $ids;
 }
 
@@ -321,25 +318,25 @@ sub batch_insert {
 
     $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
 
-Updates an existing C<$object> matching C<$criteria> in the database. 
+Updates an existing C<$object> matching C<$criteria> in the database.
 
-Returns 1 unless the C<safe> option is set. If C<safe> is set, this will return 
+Returns 1 unless the C<safe> option is set. If C<safe> is set, this will return
 a hash of information about the update, including number of documents updated
-(C<n>).  If C<safe> is set and the update fails, C<update> will croak. You can 
-also check if the update succeeded by doing an unsafe update, then calling 
+(C<n>).  If C<safe> is set and the update fails, C<update> will croak. You can
+also check if the update succeeded by doing an unsafe update, then calling
 L<MongoDB::Database/"last_error($options?)">.
 
 C<update> can take a hash reference of options.  The options currently supported
 are:
 
-=over 
+=over
 
-=item C<upsert> 
+=item C<upsert>
 If no object matching C<$criteria> is found, C<$object> will be inserted.
 
 =item C<multiple>
-All of the documents that match C<$criteria> will be updated, not just 
-the first document found. (Only available with database version 1.1.3 and 
+All of the documents that match C<$criteria> will be updated, not just
+the first document found. (Only available with database version 1.1.3 and
 newer.)
 
 =item C<safe>
@@ -376,11 +373,15 @@ sub update {
     my $conn = $self->_database->_connection;
     my $ns = $self->full_name;
 
+    my $update = MongoDB::write_update($ns, $query, $object, $flags);
     if ($opts->{safe}) {
-        return $self->_make_safe(MongoDB::write_update($ns, $query, $object, $flags));
+        return $self->_make_safe($update);
     }
 
-    $conn->send(MongoDB::write_update($ns, $query, $object, $flags));
+    if ($conn->send($update) == -1) {
+        $conn->connect;
+        die("can't get db response, not connected");
+    }
 
     return 1;
 }
@@ -392,25 +393,25 @@ sub update {
 
 Removes all objects matching the given C<$query> from the database. If no
 parameters are given, removes all objects from the collection (but does not
-delete indexes, as C<MongoDB::Collection::drop> does).  
+delete indexes, as C<MongoDB::Collection::drop> does).
 
-Returns 1 unless the C<safe> option is set.  If C<safe> is set and the remove 
-succeeds, C<remove> will return a hash of information about the remove, 
-including how many documents were removed (C<n>).  If the remove fails and 
-C<safe> is set, C<remove> will croak.  You can also check if the remove 
-succeeded by doing an unsafe remove, then calling 
+Returns 1 unless the C<safe> option is set.  If C<safe> is set and the remove
+succeeds, C<remove> will return a hash of information about the remove,
+including how many documents were removed (C<n>).  If the remove fails and
+C<safe> is set, C<remove> will croak.  You can also check if the remove
+succeeded by doing an unsafe remove, then calling
 L<MongoDB::Database/"last_error($options?)">.
 
 C<remove> can take a hash reference of options.  The options currently supported
-are 
+are
 
 =over
 
-=item C<just_one> 
+=item C<just_one>
 Only one matching document to be removed.
 
 =item C<safe>
-If the update fails and safe is set, this function will croak.  
+If the update fails and safe is set, this function will croak.
 
 =back
 
@@ -420,25 +421,29 @@ See also core documentation on remove: L<http://dochub.mongodb.org/core/remove>.
 
 sub remove {
     my ($self, $query, $options) = @_;
-    my $just_one;
-    my $conn = $self->_database->_connection;
-    my $ns = $self->full_name;
 
-    $query ||= {};
-
+    my ($just_one, $safe);
     if (defined $options && ref $options eq 'HASH') {
         $just_one = exists $options->{just_one} ? $options->{just_one} : 0;
-
-        if ($options->{safe}) {
-            my $ok = $self->_make_safe(MongoDB::write_remove($ns, $query, $just_one));
-            return $ok;
-        }
+        $safe = exists $options->{safe} ? $options->{safe} : 0;
     }
-    else { 
+    else {
         $just_one = $options || 0;
     }
 
-    $conn->send(MongoDB::write_remove($ns, $query, $just_one));
+    my $conn = $self->_database->_connection;
+    my $ns = $self->full_name;
+    $query ||= {};
+
+    my $remove = MongoDB::write_remove($ns, $query, $just_one);
+    if ($safe) {
+        return $self->_make_safe($remove);
+    }
+
+    if ($conn->send($remove) == -1) {
+        $conn->connect;
+        die("can't get db response, not connected");
+    }
 
     return 1;
 }
@@ -449,14 +454,14 @@ sub remove {
     $collection->ensure_index({"foo" => 1, "bar" => -1}, { unique => true });
 
 Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be an
-array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is prefered
-for multi-key indexes, so that the keys are in the correct order.  1 creates an 
-ascending index, -1 creates a descending index.  
+array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is preferred
+for multi-key indexes, so that the keys are in the correct order.  1 creates an
+ascending index, -1 creates a descending index.
 
-If the C<safe> option is not set, C<ensure_index> will not return anything 
-unless there is a socket error (in which case it will croak).  If the C<safe> 
-option is set and the index creation fails, it will also croak. You can also 
-check if the indexing succeeded by doing an unsafe index creation, then calling 
+If the C<safe> option is not set, C<ensure_index> will not return anything
+unless there is a socket error (in which case it will croak).  If the C<safe>
+option is set and the index creation fails, it will also croak. You can also
+check if the indexing succeeded by doing an unsafe index creation, then calling
 L<MongoDB::Database/"last_error($options?)">.
 
 See the L<MongoDB::Indexing> pod for more information on indexing.
@@ -470,11 +475,11 @@ sub ensure_index {
     # we need to use the crappy old api if...
     #  - $options isn't a hash, it's a string like "ascending"
     #  - $keys is a one-element array: [foo]
-    #  - $keys is an array with more than one element and the second 
+    #  - $keys is an array with more than one element and the second
     #    element isn't a direction (or at least a good one)
     #  - Tie::IxHash has values like "ascending"
     if (($options && ref $options ne 'HASH') ||
-        (ref $keys eq 'ARRAY' && 
+        (ref $keys eq 'ARRAY' &&
          ($#$keys == 0 || $#$keys >= 1 && !($keys->[1] =~ /-?1/))) ||
         (ref $keys eq 'Tie::IxHash' && $keys->[2][0] =~ /(de|a)scending/)) {
         Carp::croak("you're using the old ensure_index format, please upgrade");
@@ -557,10 +562,10 @@ If the save fails and safe is set, this function will croak.
 
 =back
 
-The return types for this function are a bit of a mess, as it will return the 
-_id if a new document was inserted, 1 if an upsert occurred, and croak if the 
-safe option was set and an error occurred.  You can also check if the save 
-succeeded by doing an unsafe save, then calling 
+The return types for this function are a bit of a mess, as it will return the
+_id if a new document was inserted, 1 if an upsert occurred, and croak if the
+safe option was set and an error occurred.  You can also check if the save
+succeeded by doing an unsafe save, then calling
 L<MongoDB::Database/"last_error($options?)">.
 
 
@@ -589,7 +594,7 @@ sub save {
 
     my $n_objects = $collection->count({ name => 'Bob' });
 
-Counts the number of objects in this collection that match the given C<$query>. 
+Counts the number of objects in this collection that match the given C<$query>.
 If no query is given, the total number of objects in the collection is returned.
 
 =cut
@@ -634,7 +639,7 @@ Returns a hash of the form:
         'result' => info
     }
 
-where C<info> is a string of information 
+where C<info> is a string of information
 about the collection.
 
 =cut

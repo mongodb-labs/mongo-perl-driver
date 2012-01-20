@@ -15,12 +15,13 @@
 #
 
 package MongoDB::GridFS::File;
-our $VERSION = '0.42';
+our $VERSION = '0.45';
 
 # ABSTRACT: A Mongo GridFS file
 
 use Any::Moose;
 use MongoDB::GridFS;
+use IO::File;
 
 =head1 NAME
 
