@@ -20,6 +20,7 @@
 #include "perl_mongo.h"
 
 #ifdef WIN32
+
 #include <winsock2.h>
 #define socklen_t int
 #else
@@ -128,7 +129,6 @@ typedef struct _mongo_server {
  * master is the index of the master server, if there is more than 1 server
  * server is an array of pointers to connections
  */
- 
 typedef struct {
   int auto_reconnect;
   int timeout;
@@ -136,14 +136,14 @@ typedef struct {
   int num;
   mongo_server *master;
   int copy;
-  
+
   bool ssl;
-  
+
   #ifdef MONGO_SSL
   SSL *ssl_handle;
   SSL_CTX *ssl_context;
   #endif
-  
+
   int (*send)(void* link, const char* buffer, size_t len);
   int (*recv)(void* link, const char* buffer, size_t len);
 } mongo_link;

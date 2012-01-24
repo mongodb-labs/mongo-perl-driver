@@ -21,9 +21,9 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(mongo_link* link, void *dest, int len);
 
 /**
-* Waits "timeout" ms for the socket to be ready.  Returns 1 on success, 0 on
-* failure.
-*/
+ * Waits "timeout" ms for the socket to be ready.  Returns 1 on success, 0 on
+ * failure.
+ */
 static int mongo_link_timeout(int socket, time_t timeout);
 
 static void set_timeout(int socket, time_t timeout) {
@@ -36,7 +36,7 @@ static void set_timeout(int socket, time_t timeout) {
 
 
 void perl_mongo_connect(mongo_link* link) {
-#ifdef MONGO_SSL    
+#ifdef MONGO_SSL
   if(link->ssl){
     ssl_connect(link);
     link->send = ssl_send;
@@ -51,11 +51,11 @@ void perl_mongo_connect(mongo_link* link) {
 }
 
 /*
-* Returns -1 on failure, the socket fh on success.
-*
-* Note: this cannot return 0 on failure, because reconnecting sometimes makes
-* the fh 0 (briefly).
-*/
+ * Returns -1 on failure, the socket fh on success.
+ *
+ * Note: this cannot return 0 on failure, because reconnecting sometimes makes
+ * the fh 0 (briefly).
+ */
 void non_ssl_connect(mongo_link* link) {
   int sock, status, connected = 0;
   struct sockaddr_in addr;
@@ -76,7 +76,7 @@ void non_ssl_connect(mongo_link* link) {
 
   // create socket
   sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (sock == INVALID_SOCKET){
+  if (sock == INVALID_SOCKET) {
     return -1;
   }
 
@@ -113,9 +113,10 @@ void non_ssl_connect(mongo_link* link) {
 #ifdef WIN32
     errno = WSAGetLastError();
 
-    if (errno != WSAEINPROGRESS && errno != WSAEWOULDBLOCK)
+    if (errno != WSAEINPROGRESS &&
+        errno != WSAEWOULDBLOCK)
 #else
-      if (errno != EINPROGRESS)
+    if (errno != EINPROGRESS)
 #endif
     {
       return;
@@ -128,7 +129,7 @@ void non_ssl_connect(mongo_link* link) {
     size = sizeof(addr);
 
     connected = getpeername(sock, (struct sockaddr*)&addr, &size);
-    if (connected == -1){ 
+    if (connected == -1){
       return;
     }
   }
@@ -148,7 +149,7 @@ void non_ssl_connect(mongo_link* link) {
   return;
 }
 
-#ifdef MONGO_SSL 
+#ifdef MONGO_SSL
 // Establish a connection using an SSL layer
 void ssl_connect(mongo_link* link) {
   tcp_setup(link);
@@ -165,18 +166,18 @@ void ssl_connect(mongo_link* link) {
     if(link->ssl_context == NULL){
       ERR_print_errors_fp(stderr);
     }
-    
+
     // Create an SSL struct for the connection
     link->ssl_handle = SSL_new(link->ssl_context);
     if(link->ssl_handle == NULL){
       ERR_print_errors_fp(stderr);
     }
-    
+
     // Connect the SSL struct to our connection
     if(!SSL_set_fd(link->ssl_handle, link->master->socket)){
       ERR_print_errors_fp(stderr);
     }
-    
+
     // Initiate SSL handshake
     if(SSL_connect (link->ssl_handle) != 1){
       ERR_print_errors_fp(stderr);
@@ -216,8 +217,9 @@ static int mongo_link_timeout(int sock, time_t to) {
   timeout.tv_usec = to > 0 ? ((to % 1000) * 1000) : 0;
 
   // initialize prev, in case we get interrupted
-  if (gettimeofday(&prev, 0) == -1)
+  if (gettimeofday(&prev, 0) == -1) {
     return 0;
+  }
 
   while (1) {
     fd_set rset, wset, eset;
@@ -240,8 +242,9 @@ static int mongo_link_timeout(int sock, time_t to) {
 #endif
 
       if (errno == EINTR) {
-        if(gettimeofday(&now, 0) == -1) 
-          return 0;                
+        if (gettimeofday(&now, 0) == -1) {
+          return 0;
+        }
 
         // update timeout
         timeout.tv_sec -= (now.tv_sec - prev.tv_sec);
@@ -253,7 +256,7 @@ static int mongo_link_timeout(int sock, time_t to) {
       }
 
       // check if we have an invalid timeout before continuing
-      if (timeout.tv_sec >= 0 || timeout.tv_usec >= 0){ 
+      if (timeout.tv_sec >= 0 || timeout.tv_usec >= 0) {
         continue;
       }
 
@@ -413,14 +416,14 @@ int mongo_link_hear(SV *cursor_sv) {
     char temp[4096];
     int len = cursor->header.length - 36;
 
-    if(SvIV(request_id_sv) < cursor->header.response_to) {
+    if (SvIV(request_id_sv) < cursor->header.response_to) {
       SvREFCNT_dec(link_sv);
       SvREFCNT_dec(request_id_sv);
       croak("missed the response we wanted, please try again");
       return 0;
     }
 
-    if(link->recv(link, (char*)temp, 20) == -1) {
+    if (link->recv(link, (char*)temp, 20) == -1) {
       SvREFCNT_dec(link_sv);
       SvREFCNT_dec(request_id_sv);
       croak("couldn't get header response to throw out");
@@ -431,7 +434,7 @@ int mongo_link_hear(SV *cursor_sv) {
       int temp_len = len > 4096 ? 4096 : len;
       len -= temp_len;
 
-      if(mongo_link_reader(link, (void*)temp, temp_len) == -1) {
+      if (mongo_link_reader(link, (void*)temp, temp_len) == -1) {
         SvREFCNT_dec(link_sv);
         SvREFCNT_dec(request_id_sv);
         croak("couldn't get response to throw out");
@@ -439,7 +442,7 @@ int mongo_link_hear(SV *cursor_sv) {
       }
     } while (len > 0);
 
-    if(get_header(sock, cursor_sv, link_sv) == 0) {
+    if (get_header(sock, cursor_sv, link_sv) == 0) {
       SvREFCNT_dec(link_sv);
       SvREFCNT_dec(request_id_sv);
       croak("invalid header received");
@@ -449,9 +452,9 @@ int mongo_link_hear(SV *cursor_sv) {
   SvREFCNT_dec(request_id_sv);
 
   if (link->recv(link, (char*)&cursor->flag, INT_32)      == -1 ||
-    link->recv(link, (char*)&cursor->cursor_id, INT_64) == -1 ||
-    link->recv(link, (char*)&cursor->start, INT_32)     == -1 ||
-  link->recv(link, (char*)&num_returned, INT_32)      == -1) {
+      link->recv(link, (char*)&cursor->cursor_id, INT_64) == -1 ||
+      link->recv(link, (char*)&cursor->start, INT_32)     == -1 ||
+      link->recv(link, (char*)&num_returned, INT_32)      == -1) {
     SvREFCNT_dec(link_sv);
     croak("%s", strerror(errno));
     return 0;
@@ -461,8 +464,8 @@ int mongo_link_hear(SV *cursor_sv) {
   cursor->flag = MONGO_32(cursor->flag);
   // if zero-th bit is set, cursor is invalid
   if (cursor->flag & 1) {
-    cursor->num = 0;
-    croak("cursor not found");
+      cursor->num = 0;
+      croak("cursor not found");
   }
 
   cursor->cursor_id = MONGO_64(cursor->cursor_id);
@@ -477,11 +480,10 @@ int mongo_link_hear(SV *cursor_sv) {
     Newx(cursor->buf.start, cursor->header.length, char);
     cursor->buf.end = cursor->buf.start + cursor->header.length;
   }
-  else if (cursor->buf.end - cursor->buf.start < cursor->header.length) { 
+  else if (cursor->buf.end - cursor->buf.start < cursor->header.length) {
     Renew(cursor->buf.start, cursor->header.length, char);
     cursor->buf.end = cursor->buf.start + cursor->header.length;
   }
-
   cursor->buf.pos = cursor->buf.start;
 
   if (mongo_link_reader(link, cursor->buf.pos, cursor->header.length) == -1) {
@@ -489,7 +491,7 @@ int mongo_link_hear(SV *cursor_sv) {
     croak("WSA error getting database response: %d\n", WSAGetLastError());
 #else
     croak("error getting database response: %s\n", strerror(errno));
-#endif 
+#endif
     return 0;
   }
 
@@ -499,8 +501,8 @@ int mongo_link_hear(SV *cursor_sv) {
 
 
 /*
-* Low-level func to get a response from the MongoDB server
-*/
+ * Low-level func to get a response from the MongoDB server
+ */
 static int mongo_link_reader(mongo_link* link, void *dest, int len) {
   int num = 1, read = 0;
 
@@ -518,14 +520,13 @@ static int mongo_link_reader(mongo_link* link, void *dest, int len) {
     dest = (char*)dest + num;
     read += num;
   }
-
   return read;
 }
 
 
 /*
-* closes sockets and sets "connected" to 0
-*/
+ * closes sockets and sets "connected" to 0
+ */
 void set_disconnected(SV *link_sv) {
   mongo_link *link;
 
@@ -533,18 +534,18 @@ void set_disconnected(SV *link_sv) {
 
   // check if there's nothing to do
   if (link->master == 0 || link->master->connected == 0) {
-    return;
+      return;
   }
-  
+
 #ifdef WIN32
-    shutdown(link->master->socket, 2);
-    closesocket(link->master->socket);
-    WSACleanup();
+  shutdown(link->master->socket, 2);
+  closesocket(link->master->socket);
+  WSACleanup();
 #else
-    close(link->master->socket);
+  close(link->master->socket);
 #endif
 
-#ifdef MONGO_SSL 
+#ifdef MONGO_SSL
   if(link->ssl){
     ssl_disconnect(link);
   }
@@ -554,8 +555,8 @@ void set_disconnected(SV *link_sv) {
 
   // TODO: set $self->_master to 0?
   if (link->copy) {
-    link->master = 0;
-    perl_mongo_call_method(link_sv, "_master", G_DISCARD, 1, &PL_sv_no);
+      link->master = 0;
+      perl_mongo_call_method(link_sv, "_master", G_DISCARD, 1, &PL_sv_no);
   }
 }
 
@@ -566,20 +567,19 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
 
   if (link->master && link->master->connected) {
-    return link->master->socket;
+      return link->master->socket;
   }
-  
   // if we didn't have a connection above and this isn't a connection holder
   if (!link->copy) {
-    // if this is a real connection, try to reconnect
-    if (auto_reconnect && link->auto_reconnect) {
-      perl_mongo_call_method(link_sv, "connect", G_DISCARD, 0);
-      if (link->master && link->master->connected) {
-        return link->master->socket;
+      // if this is a real connection, try to reconnect
+      if (auto_reconnect && link->auto_reconnect) {
+          perl_mongo_call_method(link_sv, "connect", G_DISCARD, 0);
+          if (link->master && link->master->connected) {
+              return link->master->socket;
+          }
       }
-    }
 
-    return -1;
+      return -1;
   }
 
   master = perl_mongo_call_method(link_sv, "get_master", 0, 0);
@@ -590,7 +590,7 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
     link->copy = 1;
     link->master = m_link->master;
     link->ssl = m_link->ssl;
-#ifdef MONGO_SSL 
+#ifdef MONGO_SSL
     link->ssl_handle = m_link->ssl_handle;
     link->ssl_context = m_link->ssl_context;
 #endif
@@ -604,7 +604,7 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
   return -1;
 }
 
-#ifdef MONGO_SSL 
+#ifdef MONGO_SSL
 // Establish a regular tcp connection
 void tcp_setup(mongo_link* link){
   int error, handle;
