@@ -1,3 +1,7 @@
+0.46
+
+  - Added SSL support (Casey Rojas)
+
 0.45 - September 7, 2011
 
   This is a recommended upgrade.  There are no backwards-breaking changes, only
