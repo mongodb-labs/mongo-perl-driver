@@ -45,10 +45,10 @@ is($id."", $id->value);
     for (0..8) {
         ok((@$ids[$_]."") lt (@$ids[$_+1].""));
     }
-    
+
     my $now = DateTime->now;
     $id = MongoDB::OID->new;
-    
+
     is($now->epoch, $id->get_time);
 }
 
@@ -127,10 +127,10 @@ isa_ok($x->{max}, 'MongoDB::MaxKey');
     $coll->remove;
 
     my %test;
-    tie %test, 'Tie::IxHash'; 
-    $test{one} = "on"; 
-    $test{two} = 2; 
-    
+    tie %test, 'Tie::IxHash';
+    $test{one} = "on";
+    $test{two} = 2;
+
     $coll->insert(\%test);
 
     my $doc = $coll->find_one;
@@ -237,7 +237,7 @@ SKIP: {
     $j->convert_blessed;
 
     my $json = $j->encode($doc);
-    is($json, '{"foo":{"$oid":"'.$doc->{'foo'}->value.'"}}');
+    is($json, '{"foo":"' . $doc->{'foo'}->value . '"}');
 }
 
 # timestamp
