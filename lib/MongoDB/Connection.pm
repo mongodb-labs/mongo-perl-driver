@@ -561,7 +561,7 @@ Lists all databases on the mongo server.
 sub database_names {
     my ($self) = @_;
     my $ret = $self->get_database('admin')->run_command({ listDatabases => 1 });
-    if (ref($ret) eq 'HASH' && exists $ret->{database}) {
+    if (ref($ret) eq 'HASH' && exists $ret->{databases}) {
         return map { $_->{name} } @{ $ret->{databases} };
     }
     else {
