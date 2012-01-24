@@ -9,4 +9,4 @@ To install, run:
     $ make test (export MONGO_SSL=1 if you're using mongodb with ssl)
     $ sudo make install
 
-For full documentation, see the CPAN page (http://search.cpan.org/dist/MongoDB).
+For full documentation, see the CPAN page <http://search.cpan.org/dist/MongoDB>.
