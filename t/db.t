@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 11;
+    plan tests => 10;
 }
 
 my $db   = $conn->get_database('test_database');
@@ -32,8 +32,7 @@ is($result->{ok}, 1, 'last_error1');
 is($result->{n}, 0, 'last_error2');
 is($result->{err}, undef, 'last_error3');
 
-$result = $db->run_command({forceerror => 1});
-ok($result =~ /asser[st]ion/, 'forced error: '.$result);
+$db->run_command({forceerror => 1});
 
 $result = $db->last_error;
 is($result->{ok}, 1, 'last_error1');
