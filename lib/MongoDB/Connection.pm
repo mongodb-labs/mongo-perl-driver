@@ -463,16 +463,12 @@ sub BUILD {
     # supported syntax
     else {
         my $str = substr $self->host, 10;
-        @pairs = split ",", $str;
+        @pairs =  map { $_ .= ":27017" unless $_ =~ /:/ ; $_ } split ",", $str;
     }
 
     # a simple single server is special-cased (so we don't recurse forever)
     if (@pairs == 1 && !$self->find_master) {
         my @hp = split ":", $pairs[0];
-
-        if (!exists $hp[1]) {
-            $hp[1] = 27017;
-        }
 
         $self->_init_conn($hp[0], $hp[1], $self->ssl);
         if ($self->auto_connect) {
@@ -659,9 +655,15 @@ sub get_master {
         # if this is a replica set & we haven't renewed the host list in 1 sec
         if ($master->{'hosts'} && time() > $self->ts) {
             # update (or set) rs list
+            my %opts = ( auto_connect => 0 );
+            if ($self->username && $self->password) {
+                $opts{username} = $self->username;
+                $opts{password} = $self->password;
+                $opts{db_name}  = $self->db_name;
+            }
             for (@{$master->{'hosts'}}) {
                 if (!$self->_servers->{$_}) {
-                    $self->_servers->{$_} = MongoDB::Connection->new("host" => "mongodb://$_", auto_connect => 0);
+                    $self->_servers->{$_} = MongoDB::Connection->new("host" => "mongodb://$_", %opts);
                 }
             }
             $self->ts(time());
