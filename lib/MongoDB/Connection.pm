@@ -534,9 +534,8 @@ sub BUILD {
 sub _get_max_bson_size {
     my $self = shift;
     my $buildinfo = $self->get_database('admin')->run_command({buildinfo => 1});
-    my $max = $buildinfo->{'maxBsonObjectSize'};
-    if ($max) {
-        return $max;
+    if (ref($buildinfo) eq 'HASH' && exists $buildinfo->{'maxBsonObjectSize'}) {
+        return $buildinfo->{'maxBsonObjectSize'};
     }
     # default: 4MB
     return 4194304;
@@ -562,7 +561,12 @@ Lists all databases on the mongo server.
 sub database_names {
     my ($self) = @_;
     my $ret = $self->get_database('admin')->run_command({ listDatabases => 1 });
-    return map { $_->{name} } @{ $ret->{databases} };
+    if (ref($ret) eq 'HASH' && exists $ret->{database}) {
+        return map { $_->{name} } @{ $ret->{databases} };
+    }
+    else {
+        die ($ret);
+    }
 }
 
 =head2 get_database($name)
@@ -645,7 +649,7 @@ sub get_master {
     }
     # auto-detect master
     else {
-        my $master = $conn->get_database('admin')->run_command({"ismaster" => 1});
+        my $master = $conn->get_database($self->db_name)->run_command({"ismaster" => 1});
 
         # check for errors
         if (ref($master) eq 'SCALAR') {

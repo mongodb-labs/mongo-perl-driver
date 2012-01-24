@@ -2,6 +2,8 @@
 
   - Added SSL support (Casey Rojas)
 
+  - Fix auth (Olly Stephens)
+
 0.45 - September 7, 2011
 
   This is a recommended upgrade.  There are no backwards-breaking changes, only
