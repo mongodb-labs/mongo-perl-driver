@@ -7,6 +7,10 @@
   - Fix driver creating duplicate connections when port isn't specified (Olly
     Stephens)
 
+  - Added MongoDB::BSON::Binary type and MongoDB::BSON::use_binary option. See
+    the Data Types documentation on using the Binary type instead of string refs
+    for binary data.
+
 0.45 - September 7, 2011
 
   This is a recommended upgrade.  There are no backwards-breaking changes, only

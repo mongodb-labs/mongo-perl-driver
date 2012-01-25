@@ -90,4 +90,17 @@ C<$MongoDB::BSON::use_boolean> to 1.
 
 $MongoDB::BSON::use_boolean = 0;
 
+=head2 Return binary data as instances of L<MongoDB::BSON::Binary> instead of
+string refs.
+
+    $MongoDB::BSON::use_binary = 1
+
+For backwards compatibility, binary data is deserialized as a string ref.  If
+you would like to have it deserialized as instances of L<MongoDB::BSON::Binary>
+(to, say, preserve the subtype), set C<$MongoDB::BSON::use_binary> to 1.
+
+=cut
+
+$MongoDB::BSON::use_binary = 0;
+
 1;

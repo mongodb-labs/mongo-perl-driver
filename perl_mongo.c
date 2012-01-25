@@ -339,14 +339,15 @@ elem_to_sv (int type, buffer *buf)
   }
   case BSON_BINARY: {
     int len = MONGO_32p(buf->pos);
-    char type;
+    unsigned char type;
+    SV *use_binary = get_sv("MongoDB::BSON::use_binary", 0);
 
     buf->pos += INT_32;
 
     // we should do something with type
     type = *buf->pos++;
 
-    if (type == 2) {
+    if (type == SUBTYPE_BINARY_DEPRECATED) {
       int len2 = MONGO_32p(buf->pos);
       if (len2 == len - 4) {
         len = len2;
@@ -354,9 +355,16 @@ elem_to_sv (int type, buffer *buf)
       }
     }
 
-    value = newSVpvn(buf->pos, len);
-    buf->pos += len;
+    if (use_binary && SvTRUE(use_binary)) {
+      SV *data = sv_2mortal(newSVpvn(buf->pos, len));
+      SV *subtype = sv_2mortal(newSViv(type));
+      value = perl_mongo_construct_instance("MongoDB::BSON::Binary", "data", data, "subtype", subtype, NULL);
+    }
+    else {
+      value = newSVpvn(buf->pos, len);
+    }
 
+    buf->pos += len;
     break;
   }
   case BSON_BOOL: {
@@ -710,19 +718,22 @@ void perl_mongo_serialize_oid(buffer *buf, char *id) {
   buf->pos += OID_SIZE;
 }
 
-void perl_mongo_serialize_bindata(buffer *buf, SV *sv)
+void perl_mongo_serialize_bindata(buffer *buf, const int subtype, SV *sv)
 {
   STRLEN len;
   const char *bytes = SvPVbyte (sv, len);
 
-  // length of length+bindata
-  perl_mongo_serialize_int(buf, len+4);
+  if (subtype == SUBTYPE_BINARY_DEPRECATED) {
+    // length of length+bindata
+    perl_mongo_serialize_int(buf, len+4);
+    perl_mongo_serialize_byte(buf, subtype);
+    perl_mongo_serialize_int(buf, len);
+  }
+  else {
+    perl_mongo_serialize_int(buf, len);
+    perl_mongo_serialize_byte(buf, subtype);
+  }
 
-  // TODO: type
-  perl_mongo_serialize_byte(buf, 2);
-
-  // length
-  perl_mongo_serialize_int(buf, len);
   // bindata
   perl_mongo_serialize_bytes(buf, bytes, len);
 }
@@ -1279,6 +1290,19 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         perl_mongo_serialize_int(buf, str_len+1);
         perl_mongo_serialize_string(buf, str, str_len);
       }
+      else if (sv_isa(sv, "MongoDB::BSON::Binary")) {
+        SV *data, *subtype;
+
+        set_type(buf, BSON_BINARY);
+        perl_mongo_serialize_key(buf, key, is_insert);
+
+        subtype = perl_mongo_call_reader(sv, "subtype");
+        data = perl_mongo_call_reader(sv, "data");
+        perl_mongo_serialize_bindata(buf, SvIV(subtype), data);
+
+        SvREFCNT_dec(subtype);
+        SvREFCNT_dec(data);
+      }
 #if PERL_REVISION==5 && PERL_VERSION>=12
       // Perl 5.12 regexes
       else if (sv_isa(sv, "Regexp")) {
@@ -1303,7 +1327,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
           /* binary */
           set_type(buf, BSON_BINARY);
           perl_mongo_serialize_key(buf, key, is_insert);
-          perl_mongo_serialize_bindata(buf, SvRV(sv));
+          perl_mongo_serialize_bindata(buf, SUBTYPE_BINARY, SvRV(sv));
         }
       }
       else {
@@ -1328,7 +1352,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         /* binary */
         set_type(buf, BSON_BINARY);
         perl_mongo_serialize_key(buf, key, is_insert);
-        perl_mongo_serialize_bindata(buf, SvRV(sv));
+        perl_mongo_serialize_bindata(buf, SUBTYPE_BINARY, SvRV(sv));
         break;
       default:
         sv_dump(SvRV(sv));
@@ -1400,7 +1424,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
       if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
         set_type(buf, BSON_BINARY);
         perl_mongo_serialize_key(buf, key, is_insert);
-        perl_mongo_serialize_bindata(buf, sv);
+        perl_mongo_serialize_bindata(buf, SUBTYPE_BINARY, sv);
       }
       else {
         STRLEN len;

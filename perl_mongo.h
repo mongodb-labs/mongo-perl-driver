@@ -46,6 +46,9 @@ typedef __int64 int64_t;
 #define RX_PRELEN(re) ((re)->prelen)
 #endif
 
+#define SUBTYPE_BINARY_DEPRECATED 2
+#define SUBTYPE_BINARY 0
+
 #if MONGO_BIG_ENDIAN
 
 #define BYTE1_32(b) ((b & 0xff000000) >> 24)

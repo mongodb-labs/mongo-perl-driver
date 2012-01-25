@@ -291,8 +291,11 @@ To create a MongoDB::OID from an existing 24-character hexidecimal string:
 =head2 Binary Data
 
 By default, all database strings are UTF8.  To save images, binaries, and other
-non-UTF8 data, you can pass the string as a reference to the database.  For
-example:
+non-UTF8 data, you need to store it as binary data.  There are two ways to do this.
+
+=head3 String Refs
+
+In general, you can pass the string as a reference.  For example:
 
     # non-utf8 string
     my $string = "\xFF\xFE\xFF";
@@ -305,6 +308,22 @@ Binary data can be matched exactly by the database, so this query will match
 the object we inserted above:
 
     $collection->find({"photo" => \$string});
+
+=head3 L<MongoDB::BSON::Binary> type
+
+You can also use the L<MongoDB::BSON::Binary> class.  This allows you to
+preserve the I<subtype> of your data.  Binary data in MongoDB stores a "type"
+field, which can be any integer between 0 and 255.  Identical data will only
+match if the subtype is the same.
+
+Perl uses the default subtype of C<SUBTYPE_GENERIC>.
+
+The driver defaults to returning binary data as strings, not instances of
+L<MongoDB::BSON::Binary> (or even string references) for backwards compatibility
+reasons.  If you need to round-trip binary data, set the
+C<MongoDB::BSON::use_binary> flag:
+
+    $MongoDB::BSON::use_binary = 1;
 
 Comparisons (e.g., $gt, $lt) may not work as you expect with binary data, so it
 is worth experimenting.
