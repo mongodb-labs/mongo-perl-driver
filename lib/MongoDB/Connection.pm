@@ -401,36 +401,6 @@ has ts => (
     default => 0
 );
 
-=head2 port [deprecated]
-
-B<Use L</host> instead.>
-
-Port to use when connecting. Defaults to C<27017>.
-
-=head2 left_host [deprecated]
-
-B<Use L</host> instead.>
-
-Paired connection host to connect to. Can be master or slave.
-
-=head2 left_port [deprecated]
-
-B<Use L</host> instead.>
-
-Port to use when connecting to left_host. Defaults to C<27017>.
-
-=head2 right_host [deprecated]
-
-B<Use L</host> instead.>
-
-Paired connection host to connect to. Can be master or slave.
-
-=head2 right_port [deprecated]
-
-B<Use L</host> instead.>
-
-Port to use when connecting to right_host. Defaults to C<27017>.
-
 =cut
 
 
