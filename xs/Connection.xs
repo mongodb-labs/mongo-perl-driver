@@ -178,26 +178,35 @@ connect (self)
 
      if (SvPOK(username) && SvPOK(password)) {
        SV *database, *result, **ok;
-         
+
        database = perl_mongo_call_reader (self, "db_name");
        result = perl_mongo_call_method(self, "authenticate", 0, 3, database, username, password);
-       if (!result || SvTYPE(result) != SVt_RV) {
-         if (result && SvPOK(result)) {
-           croak("%s", SvPV_nolen(result));
-         }
-         else { 
-           sv_dump(result);
-           croak("something weird happened with authentication");
-         }
-       }
-         
-       ok = hv_fetch((HV*)SvRV(result), "ok", strlen("ok"), 0);
-       if (!ok || 1 != SvIV(*ok)) {
+       if (!result) {
          SvREFCNT_dec(database);
          SvREFCNT_dec(username);
          SvREFCNT_dec(password);
-
-         croak ("couldn't authenticate with server");
+         croak("authentication returned no result");
+       }
+       // we're expecting either a string (failure) or a hash (success hopefully)
+       if (SvPOK(result)) {
+         SvREFCNT_dec(database);
+         SvREFCNT_dec(username);
+         SvREFCNT_dec(password);
+         croak("%s", SvPV_nolen(result));
+       } else if (SvROK(result)) {
+         ok = hv_fetch((HV*)SvRV(result), "ok", strlen("ok"), 0);
+         if (!ok || 1 != SvIV(*ok)) {
+           SvREFCNT_dec(database);
+           SvREFCNT_dec(username);
+           SvREFCNT_dec(password);
+           croak ("couldn't authenticate with server");
+         }
+       } else {
+         sv_dump(result);
+         SvREFCNT_dec(database);
+         SvREFCNT_dec(username);
+         SvREFCNT_dec(password);
+         croak("something weird happened with authentication");
        }
 
        SvREFCNT_dec(database);
