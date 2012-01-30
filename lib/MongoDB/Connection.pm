@@ -401,8 +401,6 @@ has ts => (
     default => 0
 );
 
-=cut
-
 
 sub AUTOLOAD {
     my $self = shift @_;
