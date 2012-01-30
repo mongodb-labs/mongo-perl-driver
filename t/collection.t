@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 121;
+    plan tests => 124;
 }
 
 my $db = $conn->get_database('test_database');
@@ -489,6 +489,24 @@ SKIP: {
     $coll->drop;
 }
 
+# sparse indexes
+{
+    for (1..10) {
+        $coll->insert({x => $_, y => $_}, {safe => 1});
+        $coll->insert({x => $_}, {safe => 1});
+    }
+    is($coll->count, 20);
+
+    $coll->ensure_index({"y" => 1}, {"unique" => 1, "name" => "foo"});
+    my $index = $coll->_database->get_collection("system.indexes")->find_one({"name" => "foo"});
+    ok(!$index);
+
+    $coll->ensure_index({"y" => 1}, {"unique" => 1, "sparse" => 1, "name" => "foo"});
+    $index = $coll->_database->get_collection("system.indexes")->find_one({"name" => "foo"});
+    ok($index);
+
+    $coll->drop;
+}
 
 END {
     if ($conn) {
