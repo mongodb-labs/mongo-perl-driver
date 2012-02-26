@@ -197,7 +197,7 @@ sub find {
     my $q = $query || {};
     my $conn = $self->_database->_connection;
     my $ns = $self->full_name;
-    my $cursor = MongoDB::Cursor->new(
+    my $cursor = MongoDB::Cursor::->new(
 	_connection => $conn,
 	_ns => $ns,
 	_query => $q,
@@ -485,7 +485,7 @@ sub ensure_index {
         Carp::croak("you're using the old ensure_index format, please upgrade");
     }
 
-    my $obj = Tie::IxHash->new("ns" => $ns, "key" => $keys);
+    my $obj = Tie::IxHash::->new("ns" => $ns, "key" => $keys);
 
     if (exists $options->{name}) {
         $obj->Push("name" => $options->{name});
@@ -513,12 +513,12 @@ sub _make_safe {
     my $conn = $self->_database->_connection;
     my $db = $self->_database->name;
 
-    my $last_error = Tie::IxHash->new(getlasterror => 1, w => $conn->w, wtimeout => $conn->wtimeout);
+    my $last_error = Tie::IxHash::->new(getlasterror => 1, w => $conn->w, wtimeout => $conn->wtimeout);
     my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
 
     $conn->send("$req$query");
 
-    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _connection => $conn, _query => {});
+    my $cursor = MongoDB::Cursor::->new(_ns => $info->{ns}, _connection => $conn, _query => {});
     $cursor->_init;
     $cursor->_request_id($info->{'request_id'});
 

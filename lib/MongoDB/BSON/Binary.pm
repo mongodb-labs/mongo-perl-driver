@@ -34,12 +34,12 @@ Creates an instance of binary data with a specific subtype.
 
 For example, suppose we wanted to store a profile pic.
 
-    my $pic = MongoDB::BSON::Binary->new(data => $pic_bytes);
+    my $pic = MongoDB::BSON::Binary::->new(data => $pic_bytes);
     $collection->insert({name => "profile pic", pic => $pic});
 
 You can also, optionally, specify a subtype:
 
-    my $pic = MongoDB::BSON::Binary->new(data => $pic_bytes,
+    my $pic = MongoDB::BSON::Binary::->new(data => $pic_bytes,
         subtype => MongoDB::BSON::Binary->SUBTYPE_GENERIC);
     $collection->insert({name => "profile pic", pic => $pic});
 

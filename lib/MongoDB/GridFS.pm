@@ -33,7 +33,7 @@ MongoDB::GridFS - A file storage utility
     use MongoDB::GridFS;
 
     my $grid = $database->get_gridfs;
-    my $fh = IO::File->new("myfile", "r");
+    my $fh = IO::File::->new("myfile", "r");
     $grid->insert($fh, {"filename" => "mydbfile"});
 
 There are two interfaces for GridFS: a file-system/collection-like interface
@@ -117,8 +117,8 @@ sub _ensure_indexes {
     my $self = shift;
 
     # ensure the necessary index is present (this may be first usage)
-    $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
-    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
+    $self->files->ensure_index(Tie::IxHash::->new(filename => 1), {"safe" => 1});
+    $self->chunks->ensure_index(Tie::IxHash::->new(files_id => 1, n => 1), {"safe" => 1});
 }
 
 =head1 METHODS
@@ -183,7 +183,7 @@ sub find_one {
 
     my $file = $self->files->find_one($criteria, $fields);
     return undef unless $file;
-    return MongoDB::GridFS::File->new({_grid => $self,info => $file});
+    return MongoDB::GridFS::File::->new({_grid => $self,info => $file});
 }
 
 =head2 remove ($criteria?, $options?)
@@ -261,7 +261,7 @@ with:
     open($basic_fh, '<', \$very_long_string);
 
     # turn the file handle into a FileHandle
-    my $fh = FileHandle->new;
+    my $fh = FileHandle::->new;
     $fh->fdopen($basic_fh, 'r');
 
     $gridfs->insert($fh);
@@ -284,7 +284,7 @@ sub insert {
         $id = $metadata->{"_id"};
     }
     else {
-        $id = MongoDB::OID->new;
+        $id = MongoDB::OID::->new;
     }
 
     my $n = 0;
@@ -304,7 +304,7 @@ sub insert {
 
     # compare the md5 hashes
     if ($options->{safe}) {
-        my $md5 = Digest::MD5->new;
+        my $md5 = Digest::MD5::->new;
         $md5->addfile($fh);
         my $digest = $md5->hexdigest;
         if ($digest ne $result->{md5}) {
@@ -352,7 +352,7 @@ sub all {
 
     my $cursor = $self->files->query;
     while (my $meta = $cursor->next) {
-        push @ret, MongoDB::GridFS::File->new(
+        push @ret, MongoDB::GridFS::File::->new(
             _grid => $self,
             info => $meta);
     }

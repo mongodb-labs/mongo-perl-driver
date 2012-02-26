@@ -7,9 +7,9 @@ use MongoDB::OID;
 use Devel::Peek;
 use Data::Dump;
 
-my $m = MongoDB::Connection->new(left_host => "localhost", left_port => 27017, 
-                                 right_host => "localhost", right_port => 27018,
-                                 ssl => $ENV{MONGO_SSL});
+my $m = MongoDB::Connection::->new(left_host => "localhost", left_port => 27017, 
+                                   right_host => "localhost", right_port => 27018,
+                                   ssl => $ENV{MONGO_SSL});
 
 my $db = $m->get_database("foo");
 my $c = $db->get_collection("bar");

@@ -40,11 +40,11 @@ By default, it connects to a single server running on the local machine
 listening on the default port:
 
     # connects to localhost:27017
-    my $connection = MongoDB::Connection->new;
+    my $connection = MongoDB::Connection::->new;
 
 It can connect to a database server running anywhere, though:
 
-    my $connection = MongoDB::Connection->new(host => 'example.com:12345');
+    my $connection = MongoDB::Connection::->new(host => 'example.com:12345');
 
 See the L</"host"> section for more options for connecting to MongoDB.
 
@@ -75,7 +75,7 @@ hosts listed.  If it cannot connect to any hosts, it will die.
 If a port is not specified for a given host, it will default to 27017. For
 example, to connecting to C<localhost:27017> and C<localhost:27018>:
 
-    $conn = MongoDB::Connection->new("host" => "mongodb://localhost,localhost:27018");
+    $conn = MongoDB::Connection::->new("host" => "mongodb://localhost,localhost:27018");
 
 This will succeed if either C<localhost:27017> or C<localhost:27018> are available.
 
@@ -276,7 +276,7 @@ has db_name => (
 =head2 query_timeout
 
     # set query timeout to 1 second
-    my $conn = MongoDB::Connection->new(query_timeout => 1000);
+    my $conn = MongoDB::Connection::->new(query_timeout => 1000);
 
     # set query timeout to 6 seconds
     $conn->query_timeout(6000);
@@ -289,7 +289,7 @@ L<MongoDB::Cursor/timeout>.
 
     $MongoDB::Cursor::timeout = 5000;
     # query timeout for $conn will be 5 seconds
-    my $conn = MongoDB::Connection->new;
+    my $conn = MongoDB::Connection::->new;
 
 A value of -1 will cause the driver to wait forever for responses and 0 will
 cause it to die immediately.
@@ -297,7 +297,7 @@ cause it to die immediately.
 This value overrides L<MongoDB::Cursor/timeout>.
 
     $MongoDB::Cursor::timeout = 1000;
-    my $conn = MongoDB::Connection->new(query_timeout => 10);
+    my $conn = MongoDB::Connection::->new(query_timeout => 10);
     # timeout for $conn is 10 milliseconds
 
 =cut
@@ -453,7 +453,7 @@ sub BUILD {
     foreach (@pairs) {
         $opts->{host} = "mongodb://$_";
 
-        $self->_servers->{$_} = MongoDB::Connection->new($opts);
+        $self->_servers->{$_} = MongoDB::Connection::->new($opts);
 
         next unless $self->auto_connect;
 
@@ -543,7 +543,7 @@ Returns a L<MongoDB::Database> instance for database with the given C<$name>.
 
 sub get_database {
     my ($self, $database_name) = @_;
-    return MongoDB::Database->new(
+    return MongoDB::Database::->new(
         _connection => $self,
         name        => $database_name,
     );
@@ -631,7 +631,7 @@ sub get_master {
             }
             for (@{$master->{'hosts'}}) {
                 if (!$self->_servers->{$_}) {
-                    $self->_servers->{$_} = MongoDB::Connection->new("host" => "mongodb://$_", %opts);
+                    $self->_servers->{$_} = MongoDB::Connection::->new("host" => "mongodb://$_", %opts);
                 }
             }
             $self->ts(time());
@@ -667,7 +667,7 @@ sub _old_stupid_paired_conn {
 
     # check the left host
     eval {
-        $left = MongoDB::Connection->new("host" => $self->left_host, "port" => $self->left_port, timeout => $self->timeout);
+        $left = MongoDB::Connection::->new("host" => $self->left_host, "port" => $self->left_port, timeout => $self->timeout);
     };
     if (!($@ =~ m/couldn't connect to server/)) {
         $master = $left->find_one('admin.$cmd', {ismaster => 1});
@@ -678,7 +678,7 @@ sub _old_stupid_paired_conn {
 
     # check the right_host
     eval {
-        $right = MongoDB::Connection->new("host" => $self->right_host, "port" => $self->right_port, timeout => $self->timeout);
+        $right = MongoDB::Connection::->new("host" => $self->right_host, "port" => $self->right_port, timeout => $self->timeout);
     };
     if (!($@ =~ m/couldn't connect to server/)) {
         $master = $right->find_one('admin.$cmd', {ismaster => 1});
