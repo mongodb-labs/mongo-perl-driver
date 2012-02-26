@@ -131,8 +131,10 @@ As this is the default, we can use the equivalent shorthand:
 
 Connecting is relatively expensive, so try not to open superfluous connections.
 
-There is no way to explicitly disconnect from the database.  When C<$conn> goes
-out of scope, the connection will automatically be closed and cleaned up.
+There is no way to explicitly disconnect from the database.  However, the
+connection will automatically be closed and cleaned up when no references to
+the C<MongoDB::Connection> object exist, which occurs when C<$conn> goes out of
+scope (or earlier if you undefine it with C<undef>).
 
 =head2 INTERNALS
 
