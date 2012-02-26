@@ -222,7 +222,7 @@ can be 1 for removing just one matching document.
 
   my @documents = MongoDB::read_documents($buffer);
 
-Decodes BSON documents from the given buffer
+Decodes BSON documents from the given buffer.
 
 =head1 SEE ALSO
 
