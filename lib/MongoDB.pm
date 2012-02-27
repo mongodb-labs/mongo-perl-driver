@@ -109,7 +109,7 @@ To use MongoDB, first you need to load the MongoDB module:
     use strict;
     use warnings;
 
-(The C<use strict;> and C<use warnings;> isn't required, but it's strongly
+(The C<use strict;> and C<use warnings;> aren't required, but they're strongly
 recommended.)
 
 Then you need to connect to a Mongo database server.  By default, Mongo listens
