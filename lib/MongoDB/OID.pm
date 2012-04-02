@@ -45,7 +45,7 @@ constructor.  For example:
 
 Now C<$id1> and C<$id2> will have the same value.
 
-Warning: at the moment, OID generation is not thread safe.
+OID generation is thread safe.
 
 =head1 SEE ALSO
 
