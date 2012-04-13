@@ -52,7 +52,12 @@ SKIP: {
     } 'extra comma';
 
     lives_ok {
-        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27018,localhost:27019,localhost", ssl => $ENV{MONGO_SSL});
+        my $ip = 27020;
+        while ((exists $ENV{DB_PORT} && $ip eq $ENV{DB_PORT}) ||
+               (exists $ENV{DB_PORT2} && $ip eq $ENV{DB_PORT2})) {
+            $ip++;
+        }
+        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:".$ip.",localhost:".($ip+1).",localhost", ssl => $ENV{MONGO_SSL});
     } 'last in line';
 }
 
