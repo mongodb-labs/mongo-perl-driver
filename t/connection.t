@@ -20,7 +20,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 19;
+    plan tests => 20;
 }
 
 throws_ok {
@@ -68,9 +68,9 @@ $db->get_collection('test_collection')->insert({ foo => 42 }, {safe => 1});
 
 ok((grep { $_ eq 'test_database' } $conn->database_names), 'database_names');
 
-lives_ok {
-    $db->drop;
-} 'drop database';
+my $result = $db->drop;
+is(ref $result, 'HASH', $result);
+is($result->{'ok'}, 1, 'db was dropped');
 
 ok(!(grep { $_ eq 'test_database' } $conn->database_names), 'database got dropped');
 
