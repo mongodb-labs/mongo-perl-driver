@@ -20,7 +20,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 20;
+    plan tests => 19;
 }
 
 throws_ok {
@@ -72,7 +72,8 @@ my $result = $db->drop;
 is(ref $result, 'HASH', $result);
 is($result->{'ok'}, 1, 'db was dropped');
 
-ok(!(grep { $_ eq 'test_database' } $conn->database_names), 'database got dropped');
+# TODO: won't work on master/slave until SERVER-2329 is fixed
+# ok(!(grep { $_ eq 'test_database' } $conn->database_names), 'database got dropped');
 
 
 # w
