@@ -25,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 72;
+    plan tests => 73;
 }
 
 my $db = $conn->get_database('foo');
@@ -214,7 +214,8 @@ my $c = $db->get_collection('bar');
 package Person;
 use Any::Moose;
 has 'name' => ( is=>'rw', isa=>'Str' );
-has 'age' => ( is=>'rw', isa=>'Int' );
+has 'age'  => ( is=>'rw', isa=>'Int' );
+has 'size' => ( is=>'rw', isa=>'Num' );
 
 package main;
 {
@@ -246,6 +247,23 @@ package main;
 
     # make sure it was saved as string
     is($v->{'key'}, 'zzz');
+}
+
+# store a scalar with magic that's both a float and int (PVMG w/pIOK set)
+{
+    $c->drop;
+
+    # PVMG (NV is 11.5)
+    my $size = Person->new( size => 11.5 )->size;
+
+    # add pIOK flag (IV is 11)
+    int($size);
+
+    $c->insert({'key' => $size});
+    my $v = $c->find_one;
+
+    # make sure it was saved as float
+    is(($v->{'key'}), $size);
 }
 
 # make sure this doesn't segfault
