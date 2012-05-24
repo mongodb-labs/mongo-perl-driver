@@ -1406,6 +1406,13 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
     case SVt_PVIV:
     case SVt_PVLV:
     case SVt_PVMG: {
+      if ((aggressively_number & IS_NUMBER_NOT_INT) || (!is_string && SvNOK(sv))) {
+        set_type(buf, BSON_DOUBLE);
+        perl_mongo_serialize_key(buf, key, is_insert);
+        perl_mongo_serialize_double(buf, (double)SvNV (sv));
+        break;
+      }
+
       // if it's publicly an int OR (privately an int AND not publicly a string)
       if (aggressively_number || (!is_string && (SvIOK(sv) || (SvIOKp(sv) && !SvPOK(sv))))) {
 #if defined(USE_64_BIT_INT)
