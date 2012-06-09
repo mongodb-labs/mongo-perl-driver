@@ -386,6 +386,28 @@ sub update {
     return 1;
 }
 
+=head2 rename ("newcollectionname")
+
+    $collection->rename("mynewcollection");
+
+Renames the collection.  It expects that the new name is currently not in use.  
+
+Returns 1 on success.  Returns an error response otherwise.
+
+
+=cut
+
+sub rename {
+  my ($self, $collectionname) = @_;
+
+  my $conn = $self->_database->_connection;
+  my $database = $conn->admin;
+  my $fullname = $self->full_name;
+
+  my ($db, $collection) = split(/\./, $fullname); 
+  my $output = $database->run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
+  return $output->{'ok'} || $output;
+}
 
 =head2 remove ($query?, $options?)
 
