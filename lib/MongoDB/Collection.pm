@@ -386,6 +386,35 @@ sub update {
     return 1;
 }
 
+=head2 rename ("newcollectionname")
+
+    my $newcollection = $collection->rename("mynewcollection");
+
+Renames the collection.  It expects that the new name is currently not in use.  
+
+Returns the new collection.  If a collection already exists with that new collection name this will
+die.
+
+=cut
+
+sub rename {
+    my ($self, $collectionname) = @_;
+
+    my $conn = $self->_database->_connection;
+    my $database = $conn->admin;
+    my $fullname = $self->full_name;
+  
+    my ($db, @collection_bits) = split(/\./, $fullname);
+    my $collection = join('.', @collection_bits);
+    my $obj = $database->run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
+
+    if(ref($obj) eq "HASH"){
+      return $conn->$db->$collectionname;
+    }
+    else {
+      die $obj;
+    }
+}
 
 =head2 remove ($query?, $options?)
 
