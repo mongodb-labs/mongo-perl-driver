@@ -17,7 +17,8 @@ L<http://dochub.mongodb.org/core/sqlToMongo>.
 =over
 
 =item C<CREATE TABLE USERS (a Number, b Number)>
-Implicit, can be done explicitly.
+
+    Implicit, can be done explicitly.
 
 =item C<INSERT INTO USERS VALUES(1,1)>
 
@@ -315,6 +316,31 @@ document contains a "tags" array that contains zero or more strings.
 
 See the MongoDB documentation on MapReduce for more information
 (L<http://dochub.mongodb.org/core/mapreduce>).
+
+=head1 QUERYING
+
+=head2 Nested Fields
+
+MongoDB allows you to store deeply nested structures and then query for fields
+within them using I<dot-notation>.  For example, suppose we have a users
+collection with documents that look like:
+
+    {
+        "userId" => 12345,
+        "address" => {
+            "street" => "123 Main St",
+            "city" => "Springfield",
+            "state" => "MN",
+            "zip" => "43213"
+        }
+    }
+
+If we want to query for all users from Springfield, we can do:
+
+    my $cursor = $users->find({"address.city" => "Springfield"});
+
+This will search documents for an "address" field that is a subdocument and a
+"city" field within the subdocument.
 
 =head1 UPDATING
 

@@ -274,6 +274,4 @@ Now that you know the basic syntax used by the Perl driver, you should be able
 to translate the JavaScript examples in the main MongoDB documentation
 (L<http://www.mongodb.org>) into Perl.
 
-If there's anything else you'd like to see as part of the tutorial or
-documentation in general, please contact kristina@mongodb.org.
-
+Check out L<MongoDB::Examples> for more examples.
