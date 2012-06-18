@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 124;
+    plan tests => 130;
 }
 
 my $db = $conn->get_database('test_database');
@@ -62,6 +62,15 @@ $coll->update({ _id => $id }, {
     and => [qw/an array reference/],
 });
 is($coll->count, 1);
+# rename 
+my $newcoll = $coll->rename('test_collection.rename');
+is($newcoll->name, 'test_collection.rename', 'rename');
+is($coll->count, 0, 'rename');
+is($newcoll->count, 1, 'rename');
+$coll = $newcoll->rename('test_collection');
+is($coll->name, 'test_collection', 'rename');
+is($coll->count, 1, 'rename');
+is($newcoll->count, 0, 'rename');
 
 is($coll->count({ mongo => 'programmer' }), 0, 'count = 0');
 is($coll->count({ mongo => 'hacker'     }), 1, 'count = 1');
