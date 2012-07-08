@@ -17,6 +17,15 @@
 #include "mongo_link.h"
 #include "perl_mongo.h"
 
+#ifdef WIN32
+#define poll(fds,nfds,tm) WSAPoll((fds),(nfds),(tm))
+/* strerror not implemented on WIN32 (may be we can use FormatMessage, but in future) */
+#define strerror(err) "-"
+#else /* WIN32 */
+#include <poll.h>
+#include <string.h>
+#endif
+
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(mongo_link* link, void *dest, int len);
 
@@ -207,14 +216,12 @@ int non_ssl_recv(void* link, const char* buffer, size_t len){
 }
 
 static int mongo_link_timeout(int sock, time_t to) {
-  struct timeval timeout, now, prev;
+  struct timeval now, prev;
+  int timeout;
 
-  if (to <= 0) {
-    return 1;
-  }
+  if (to <= 0) return 1;
 
-  timeout.tv_sec = to > 0 ? (to / 1000) : 20;
-  timeout.tv_usec = to > 0 ? ((to % 1000) * 1000) : 0;
+  timeout = to;
 
   // initialize prev, in case we get interrupted
   if (gettimeofday(&prev, 0) == -1) {
@@ -222,20 +229,17 @@ static int mongo_link_timeout(int sock, time_t to) {
   }
 
   while (1) {
-    fd_set rset, wset, eset;
-    int sock_status;
+    struct pollfd fds[1];
+    int ret;
 
-    FD_ZERO(&rset);
-    FD_SET(sock, &rset);
-    FD_ZERO(&wset);
-    FD_SET(sock, &wset);
-    FD_ZERO(&eset);
-    FD_SET(sock, &eset);
+    fds[0].fd = sock;
+    fds[0].events = POLLIN|POLLOUT|POLLERR;
+    fds[0].revents = 0;
 
-    sock_status = select(sock+1, &rset, &wset, &eset, &timeout);
+    ret = poll(fds, 1, timeout);
 
     // error
-    if (sock_status == -1) {
+    if (ret == -1) {
 
 #ifdef WIN32
       errno = WSAGetLastError();
@@ -247,17 +251,13 @@ static int mongo_link_timeout(int sock, time_t to) {
         }
 
         // update timeout
-        timeout.tv_sec -= (now.tv_sec - prev.tv_sec);
-        timeout.tv_usec -= (now.tv_usec - prev.tv_usec);
+        timeout -= (now.tv_sec - prev.tv_sec) * 1000 + (now.tv_usec - prev.tv_usec);
 
         // update prev
         prev.tv_sec = now.tv_sec;
         prev.tv_usec = now.tv_usec;
-      }
-
-      // check if we have an invalid timeout before continuing
-      if (timeout.tv_sec >= 0 || timeout.tv_usec >= 0) {
-        continue;
+        
+        if (timeout >= 0) continue;
       }
 
       // if this isn't a EINTR, it's a fatal error
@@ -265,15 +265,15 @@ static int mongo_link_timeout(int sock, time_t to) {
     }
 
     // timeout
-    if (sock_status == 0 && !FD_ISSET(sock, &wset) && !FD_ISSET(sock, &rset)) {
+    if (ret == 0 && (fds[0].revents & (POLLOUT|POLLIN|POLLPRI)) == 0) {
       return 0;
     }
 
-    if (FD_ISSET(sock, &eset)) {
+    if (fds[0].revents & (POLLERR|POLLHUP|POLLNVAL)) {
       return 0;
     }
 
-    if (FD_ISSET(sock, &wset) || FD_ISSET(sock, &rset)) {
+    if (fds[0].revents & (POLLOUT|POLLIN|POLLPRI)) {
       break;
     }
   }
@@ -387,20 +387,22 @@ int mongo_link_hear(SV *cursor_sv) {
 
   // set a timeout
   if (timeout >= 0) {
-    struct timeval t;
-    fd_set readfds;
+    struct pollfd fds[1];
 
-    t.tv_sec = timeout / 1000 ;
-    t.tv_usec = (timeout % 1000) * 1000;
+    fds[0].fd = sock;
+    fds[0].events = POLLIN;
+    fds[0].revents = 0;
 
-    FD_ZERO(&readfds);
-    FD_SET(sock, &readfds);
+    int ret = poll(fds, 1, timeout);
 
-    select(sock+1, &readfds, NULL, NULL, &t);
-
-    if (!FD_ISSET(sock, &readfds)) {
+    if (ret <= 0) {
       SvREFCNT_dec(link_sv);
-      croak("recv timed out (%d ms)", timeout);
+      if (ret == 0 || errno == EINTR) {
+          croak("recv timed out (%d ms)", timeout);
+      }
+      else {
+          croak("fail: poll return '%s' (%d)", strerror(errno), errno);
+      }
       return 0;
     }
   }
