@@ -16,7 +16,13 @@
 
 #include "mongo_link.h"
 #include "perl_mongo.h"
+
+#ifdef WIN32
+#define poll(fds,nfds,tm) WSAPoll((fds),(nfds),(tm))
+#else /* WIN32 */
 #include <poll.h>
+#endif
+
 #include <string.h>
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
@@ -226,7 +232,7 @@ static int mongo_link_timeout(int sock, time_t to) {
     int ret;
 
     fds[0].fd = sock;
-    fds[0].events = POLLIN|POLLPRI|POLLOUT|POLLERR;
+    fds[0].events = POLLIN|POLLOUT|POLLERR;
     fds[0].revents = 0;
 
     ret = poll(fds, 1, timeout);
@@ -383,7 +389,7 @@ int mongo_link_hear(SV *cursor_sv) {
     struct pollfd fds[1];
 
     fds[0].fd = sock;
-    fds[0].events = POLLIN|POLLPRI;
+    fds[0].events = POLLIN;
     fds[0].revents = 0;
 
     int ret = poll(fds, 1, timeout);
