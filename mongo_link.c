@@ -19,11 +19,12 @@
 
 #ifdef WIN32
 #define poll(fds,nfds,tm) WSAPoll((fds),(nfds),(tm))
+/* strerror not implemented on WIN32 (may be we can use FormatMessage, but in future) */
+#define strerror(err) "-"
 #else /* WIN32 */
 #include <poll.h>
-#endif
-
 #include <string.h>
+#endif
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port);
 static int mongo_link_reader(mongo_link* link, void *dest, int len);
