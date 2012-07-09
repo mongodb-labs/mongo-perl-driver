@@ -208,10 +208,10 @@ is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
 {
     my $cursor = $coll->find();
 
-    $cursor->tailable(1);
-    is($cursor->tailable, 1);
-    $cursor->tailable(0);
-    is($cursor->tailable, 0);
+    $cursor = $coll->find()->tailable(1);
+    is($cursor->_tailable, 1);
+    $cursor = $coll->find()->tailable(0);
+    is($cursor->_tailable, 0);
 
     $cursor->immortal(1);
     is($cursor->immortal, 1);
