@@ -128,14 +128,6 @@ has _skip => (
     default => 0,
 );
 
-
-has immortal => (
-    is => 'rw',
-    isa => 'Bool',
-    required => 0,
-    default => 0,
-);
-
 has _tailable => (
     is => 'rw',
     isa => 'Bool',
@@ -165,9 +157,12 @@ See L<MongoDB::Connection/query_timeout>.
 
 =cut
 
-
-
-
+has immortal => (
+    is => 'rw',
+    isa => 'Bool',
+    required => 0,
+    default => 0,
+);
 
 
 =head2 partial
@@ -338,11 +333,11 @@ Boolean value, defaults to 0.
 =cut
 
 sub tailable {
-	my($self, $num) = @_;
+	my($self, $bool) = @_;
 	confess "Cannot set tailable state"
 	if $self->started_iterating;
 	
-	$self->_tailable($num);
+	$self->_tailable($bool);
 	return $self;
 }
 
