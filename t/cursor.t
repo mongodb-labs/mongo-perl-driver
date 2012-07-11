@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 71;
+    plan tests => 74;
 }
 
 my $db = $conn->get_database('test_database');
@@ -208,10 +208,24 @@ is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
 {
     my $cursor = $coll->find();
 
+	$cursor = $cursor->tailable(1);
+	is($cursor->_tailable, 1);
+	$cursor = $cursor->tailable(0);
+	is($cursor->_tailable, 0);
+
     $cursor = $coll->find()->tailable(1);
     is($cursor->_tailable, 1);
     $cursor = $coll->find()->tailable(0);
     is($cursor->_tailable, 0);
+    
+    #test is actual cursor
+    $coll->drop;
+    $coll->insert({"x" => 1});
+    $cursor = $coll->find()->tailable(0);
+    my $doc = $cursor->next;
+    is($doc->{'x'}, 1);
+    
+	$cursor = $coll->find();
 
     $cursor->immortal(1);
     is($cursor->immortal, 1);

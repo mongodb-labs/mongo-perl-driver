@@ -135,6 +135,7 @@ has _tailable => (
     default => 0,
 );
 
+
 =head2 immortal
 
     $cursor->immortal(1);
@@ -318,7 +319,7 @@ sub limit {
 }
 
 
-=head2 tailable ($num)
+=head2 tailable ($bool)
 
     $cursor->query->tailable(1);
 
@@ -329,6 +330,8 @@ returning new results as more is added to a collection.
 They are often used for getting log messages.
 
 Boolean value, defaults to 0.
+
+Returns this cursor for chaining operations.
 
 =cut
 
