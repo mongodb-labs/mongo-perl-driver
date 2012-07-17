@@ -128,6 +128,14 @@ has _skip => (
     default => 0,
 );
 
+has _tailable => (
+    is => 'rw',
+    isa => 'Bool',
+    required => 0,
+    default => 0,
+);
+
+
 =head2 immortal
 
     $cursor->immortal(1);
@@ -157,26 +165,6 @@ has immortal => (
     default => 0,
 );
 
-=head2 tailable
-
-    $cursor->tailable(1);
-
-If a cursor should be tailable.  Tailable cursors can only be used on capped
-collections and are similar to the C<tail -f> command: they never die and keep
-returning new results as more is added to a collection.
-
-They are often used for getting log messages.
-
-Boolean value, defaults to 0.
-
-=cut
-
-has tailable => (
-    is => 'rw',
-    isa => 'Bool',
-    required => 0,
-    default => 0,
-);
 
 =head2 partial
 
@@ -248,7 +236,7 @@ sub _do_query {
         return;
     }
 
-    my $opts = ($self->tailable << 1) |
+    my $opts = ($self->_tailable() << 1) |
         (($MongoDB::Cursor::slave_okay | $self->slave_okay) << 2) |
         ($self->immortal << 4) |
         ($self->partial << 7);
@@ -329,6 +317,34 @@ sub limit {
     $self->_limit($num);
     return $self;
 }
+
+
+=head2 tailable ($bool)
+
+    $cursor->query->tailable(1);
+
+If a cursor should be tailable.  Tailable cursors can only be used on capped
+collections and are similar to the C<tail -f> command: they never die and keep
+returning new results as more is added to a collection.
+
+They are often used for getting log messages.
+
+Boolean value, defaults to 0.
+
+Returns this cursor for chaining operations.
+
+=cut
+
+sub tailable {
+	my($self, $bool) = @_;
+	confess "Cannot set tailable state"
+	if $self->started_iterating;
+	
+	$self->_tailable($bool);
+	return $self;
+}
+
+
 
 =head2 skip ($num)
 
