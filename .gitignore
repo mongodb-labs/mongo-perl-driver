@@ -4,6 +4,9 @@
 !perl_mongo.c
 !mongo_link.c
 *.o
+*.obj
+vc90.pdb
+MongoDB.def
 Makefile*
 !Makefile.PL
 blib
