@@ -27,11 +27,17 @@ static int mongo_link_reader(mongo_link* link, void *dest, int len);
 static int mongo_link_timeout(int socket, time_t timeout);
 
 static void set_timeout(int socket, time_t timeout) {
+#ifdef WIN32
+  DWORD tv = (DWORD)timeout * 1000;
+  const char *tv_ptr = (const char*)&tv;
+#else
   struct timeval tv;
   tv.tv_sec = 1;
   tv.tv_usec = 0;
-  setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-  setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+  const void *tv_ptr = (void*)&tv;
+#endif
+  setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, tv_ptr, sizeof(tv));
+  setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, tv_ptr, sizeof(tv));
 }
 
 
@@ -39,15 +45,15 @@ void perl_mongo_connect(mongo_link* link) {
 #ifdef MONGO_SSL
   if(link->ssl){
     ssl_connect(link);
-    link->send = ssl_send;
-    link->recv = ssl_recv;
+    link->sender = ssl_send;
+    link->receiver = ssl_recv;
     return;
   }
 #endif
 
   non_ssl_connect(link);
-  link->send = non_ssl_send;
-  link->recv = non_ssl_recv;
+  link->sender = non_ssl_send;
+  link->receiver = non_ssl_recv;
 }
 
 /*
@@ -77,7 +83,7 @@ void non_ssl_connect(mongo_link* link) {
   // create socket
   sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sock == INVALID_SOCKET) {
-    return -1;
+    return;
   }
 
 #else
@@ -183,7 +189,7 @@ void ssl_connect(mongo_link* link) {
       ERR_print_errors_fp(stderr);
     }
 
-    SSL_CTX_set_timeout(link->ssl_context, link->timeout);
+    SSL_CTX_set_timeout(link->ssl_context, (long)link->timeout);
 
     link->master->connected = 1;
   }
@@ -213,7 +219,7 @@ static int mongo_link_timeout(int sock, time_t to) {
     return 1;
   }
 
-  timeout.tv_sec = to > 0 ? (to / 1000) : 20;
+  timeout.tv_sec = to > 0 ? ((long)to / 1000) : 20;
   timeout.tv_usec = to > 0 ? ((to % 1000) * 1000) : 0;
 
   // initialize prev, in case we get interrupted
@@ -314,7 +320,7 @@ int mongo_link_say(SV *link_sv, buffer *buf) {
     return -1;
   }
 
-  sent = link->send(link, (const char*)buf->start, buf->pos-buf->start);
+  sent = link->sender(link, (const char*)buf->start, buf->pos-buf->start);
 
   if (sent == -1) {
     set_disconnected(link_sv);
@@ -333,7 +339,7 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
   size = 0;
 
-  size = link->recv(link, (char*)&cursor->header.length, INT_32);
+  size = link->receiver(link, (char*)&cursor->header.length, INT_32);
   if(size != INT_32){
     set_disconnected(link_sv);
     return 0;
@@ -347,9 +353,9 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
     return 0;
   }
 
-  if (link->recv(link, (char*)&cursor->header.request_id, INT_32)  != INT_32  ||
-      link->recv(link, (char*)&cursor->header.response_to, INT_32) != INT_32  ||
-      link->recv(link, (char*)&cursor->header.op, INT_32)          != INT_32) {
+  if (link->receiver(link, (char*)&cursor->header.request_id, INT_32)  != INT_32  ||
+      link->receiver(link, (char*)&cursor->header.response_to, INT_32) != INT_32  ||
+      link->receiver(link, (char*)&cursor->header.op, INT_32)          != INT_32) {
     return 0;
   }
 
@@ -423,7 +429,7 @@ int mongo_link_hear(SV *cursor_sv) {
       return 0;
     }
 
-    if (link->recv(link, (char*)temp, 20) == -1) {
+    if (link->receiver(link, (char*)temp, 20) == -1) {
       SvREFCNT_dec(link_sv);
       SvREFCNT_dec(request_id_sv);
       croak("couldn't get header response to throw out");
@@ -451,10 +457,10 @@ int mongo_link_hear(SV *cursor_sv) {
   }
   SvREFCNT_dec(request_id_sv);
 
-  if (link->recv(link, (char*)&cursor->flag, INT_32)      == -1 ||
-      link->recv(link, (char*)&cursor->cursor_id, INT_64) == -1 ||
-      link->recv(link, (char*)&cursor->start, INT_32)     == -1 ||
-      link->recv(link, (char*)&num_returned, INT_32)      == -1) {
+  if (link->receiver(link, (char*)&cursor->flag, INT_32)      == -1 ||
+      link->receiver(link, (char*)&cursor->cursor_id, INT_64) == -1 ||
+      link->receiver(link, (char*)&cursor->start, INT_32)     == -1 ||
+      link->receiver(link, (char*)&num_returned, INT_32)      == -1) {
     SvREFCNT_dec(link_sv);
     croak("%s", strerror(errno));
     return 0;
@@ -511,7 +517,7 @@ static int mongo_link_reader(mongo_link* link, void *dest, int len) {
     int temp_len = (len - read) > 4096 ? 4096 : (len - read);
 
     // windows gives a WSAEFAULT if you try to get more bytes
-    num = link->recv(link, (char*)dest, temp_len);
+    num = link->receiver(link, (char*)dest, temp_len);
 
     if (num < 0) {
       return -1;
@@ -594,8 +600,8 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
     link->ssl_handle = m_link->ssl_handle;
     link->ssl_context = m_link->ssl_context;
 #endif
-    link->send = m_link->send;
-    link->recv = m_link->recv;
+    link->sender = m_link->sender;
+    link->receiver = m_link->receiver;
 
     return link->master->socket;
   }

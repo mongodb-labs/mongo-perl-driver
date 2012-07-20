@@ -144,8 +144,8 @@ typedef struct {
   SSL_CTX *ssl_context;
   #endif
 
-  int (*send)(void* link, const char* buffer, size_t len);
-  int (*recv)(void* link, const char* buffer, size_t len);
+  int (*sender)(void* link, const char* buffer, size_t len);
+  int (*receiver)(void* link, const char* buffer, size_t len);
 } mongo_link;
 
 typedef struct {
