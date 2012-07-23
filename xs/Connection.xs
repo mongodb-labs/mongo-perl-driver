@@ -156,8 +156,8 @@ _init_conn_holder(self, master)
     self_link->ssl_handle = master_link->ssl_handle;
     self_link->ssl_context = master_link->ssl_context;
 #endif
-    self_link->send = master_link->send;
-    self_link->recv = master_link->recv;    
+    self_link->sender = master_link->sender;
+    self_link->receiver = master_link->receiver;
 
 void
 connect (self)
