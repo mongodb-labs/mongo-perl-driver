@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 use Test::Exception;
 
+use utf8;
 use Data::Types qw(:float);
 use Tie::IxHash;
 use Encode qw(encode decode);
@@ -23,7 +24,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 130;
+    plan tests => 132;
 }
 
 my $db = $conn->get_database('test_database');
@@ -516,6 +517,25 @@ SKIP: {
 
     $coll->drop;
 }
+
+# utf8 test, croak when null key is inserted
+{
+	my $kanji = "漢\0字";
+	utf8::encode($kanji);
+	my %foo  = ( $kanji => 1);
+	is($coll->insert({ $kanji => 1}),0,"Null Char Detect in Key so failure to insert.");
+	
+	my $kanji_a = "漢\000字a";
+	my $kanji_b = "漢\000字b";
+	my $kanji_c = "漢\000字c";
+	utf8::encode($kanji_a);
+	utf8::encode($kanji_b);
+	utf8::encode($kanji_c);
+	my $ids = $coll->batch_insert([{ $kanji_a => 1} , { $kanji_b => 1}, { $kanji_c => 1}]);
+	is($coll->count, 0, 'batch_insert Null Char in Key Failed');
+	
+}
+
 
 END {
     if ($conn) {

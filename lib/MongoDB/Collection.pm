@@ -17,6 +17,8 @@
 package MongoDB::Collection;
 our $VERSION = '0.45';
 
+use Data::Dumper;
+
 # ABSTRACT: A Mongo Collection
 
 =head1 NAME
@@ -43,11 +45,11 @@ method.
 Core documentation on collections: L<http://dochub.mongodb.org/core/collections>.
 
 =cut
-
+use Carp qw( croak );
 use Tie::IxHash;
 use Any::Moose;
 use boolean;
-
+use Data::Dumper;
 has _database => (
     is       => 'ro',
     isa      => 'MongoDB::Database',
@@ -261,9 +263,49 @@ See also core documentation on insert: L<http://dochub.mongodb.org/core/insert>.
 
 sub insert {
     my ($self, $object, $options) = @_;
+    
+    print Dumper($object);
+   # if(!test_Hash_Keys_for_Null($object))
+    if(!scan_Array($object))
+    {
+    	return 0;
+    }
     my ($id) = $self->batch_insert([$object], $options);
 
     return $id;
+}
+
+sub hash_keys {
+	my $hash = shift;
+	
+	if (ref $hash eq 'HASH') {
+		my ($key,$value);
+		my $result = {};
+		while (($key,$value) = each %$hash) {
+				if($key =~ m/\0/) {
+					return 0;
+				}
+		}
+	}
+	
+	return 1;
+}
+
+sub scan_Array {
+	my $values = shift;
+	if(ref $values eq 'HASH') {		
+		if(!hash_keys($values)){
+			return 0;
+		}
+	} elsif(ref $values eq 'ARRAY') {
+		foreach my $item  (@{$values}){
+			if(!scan_Array($item)){
+				return 0;
+			}
+		}
+	}
+	
+	return 1;
 }
 
 =head2 batch_insert (\@array, $options)
@@ -281,10 +323,15 @@ unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
 
 =cut
 
+
 sub batch_insert {
     my ($self, $object, $options) = @_;
     confess 'not an array reference' unless ref $object eq 'ARRAY';
-
+     if(!scan_Array($_[1]))
+    {
+    	return 0;
+    }
+    
     my $add_ids = 1;
     if ($options->{'no_ids'}) {
         $add_ids = 0;
