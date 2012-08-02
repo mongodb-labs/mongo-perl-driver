@@ -523,7 +523,6 @@ elem_to_sv (int type, buffer *buf)
 
     if (type == BSON_CODE) {
       scope = perl_mongo_bson_to_sv(buf);
-
       value = perl_mongo_construct_instance("MongoDB::Code", "code", code, "scope", scope, NULL);
     }
     else {
@@ -739,9 +738,6 @@ void perl_mongo_serialize_bindata(buffer *buf, const int subtype, SV *sv)
 }
 
 void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert) {
-
-
-
   SV *c = get_sv("MongoDB::BSON::char", 0);
 
   if(BUF_REMAINING <= strlen(str)+1) {
@@ -880,6 +876,7 @@ static void
 hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
 {
   int start;
+  int i = 0;
   HE *he;
   HV *hv;
 
@@ -924,13 +921,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
     SV **hval;
     STRLEN len;
     const char *key = HePV (he, len);
-
-	int i = 0;
-	for(i = 0; i < len; i++) {
-	if(key[i] == '\0') {
-			croak("key contains null char");
-		}
-    }
+	containsNullChar(key, len);
 
     /* if we've already added the oid field, continue */
     if (ids && strcmp(key, "_id") == 0) {
@@ -1057,6 +1048,8 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
 
     str = SvPV(*k, len);
 
+	containsNullChar(str,len);
+
     if (isUTF8(str, len)) {
       str = SvPVutf8(*k, len);
     }
@@ -1069,6 +1062,11 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
 
   // free the ixhash elem
   Safefree(stack);
+}
+
+void containsNullChar(const char* str, int len) {
+  if(strlen(str)  < len)
+    croak("key contains null char");
 }
 
 static int isUTF8(const char *s, int len) {
