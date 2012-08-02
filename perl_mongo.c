@@ -739,6 +739,9 @@ void perl_mongo_serialize_bindata(buffer *buf, const int subtype, SV *sv)
 }
 
 void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert) {
+
+
+
   SV *c = get_sv("MongoDB::BSON::char", 0);
 
   if(BUF_REMAINING <= strlen(str)+1) {
@@ -921,6 +924,13 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
     SV **hval;
     STRLEN len;
     const char *key = HePV (he, len);
+
+	int i = 0;
+	for(i = 0; i < len; i++) {
+	if(key[i] == '\0') {
+			croak("key contains null char");
+		}
+    }
 
     /* if we've already added the oid field, continue */
     if (ids && strcmp(key, "_id") == 0) {
