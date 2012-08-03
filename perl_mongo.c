@@ -28,6 +28,7 @@ static int isUTF8(const char*, int);
 static void serialize_regex(buffer*, const char*, REGEXP*, int is_insert);
 static void serialize_regex_flags(buffer*, SV*);
 static void append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert);
+static void containsNullChar(const char* str, int len);
 
 #ifdef USE_ITHREADS
 static perl_mutex inc_mutex;
@@ -523,7 +524,6 @@ elem_to_sv (int type, buffer *buf)
 
     if (type == BSON_CODE) {
       scope = perl_mongo_bson_to_sv(buf);
-
       value = perl_mongo_construct_instance("MongoDB::Code", "code", code, "scope", scope, NULL);
     }
     else {
@@ -921,7 +921,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
     SV **hval;
     STRLEN len;
     const char *key = HePV (he, len);
-
+    containsNullChar(key, len);
     /* if we've already added the oid field, continue */
     if (ids && strcmp(key, "_id") == 0) {
       continue;
@@ -1046,7 +1046,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
     }
 
     str = SvPV(*k, len);
-
+    containsNullChar(str,len);
     if (isUTF8(str, len)) {
       str = SvPVutf8(*k, len);
     }
@@ -1059,6 +1059,11 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
 
   // free the ixhash elem
   Safefree(stack);
+}
+
+static void containsNullChar(const char* str, int len) {
+  if(strlen(str)  < len)
+    croak("key contains null char");
 }
 
 static int isUTF8(const char *s, int len) {
