@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 use Test::Exception;
 
+use utf8;
 use Data::Types qw(:float);
 use Tie::IxHash;
 use Encode qw(encode decode);
@@ -23,7 +24,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 130;
+    plan tests => 136;
 }
 
 my $db = $conn->get_database('test_database');
@@ -516,6 +517,44 @@ SKIP: {
 
     $coll->drop;
 }
+
+# utf8 test, croak when null key is inserted
+{
+    $MongoDB::BSON::utf8_flag_on = 1;
+    my $ok = 0;
+    my $kanji = "漢\0字";
+    utf8::encode($kanji);
+    eval{
+     $ok = $coll->insert({ $kanji => 1});
+    };
+    is($ok,0,"Insert key with Null Char Operation Failed");
+    is($coll->count, 0, "Insert key with Null Char in Key Failed");
+    $coll->drop;
+    $ok = 0;
+    my $kanji_a = "漢\0字";
+    my $kanji_b = "漢\0字中";
+    my $kanji_c = "漢\0字国";
+    utf8::encode($kanji_a);
+    utf8::encode($kanji_b);
+    utf8::encode($kanji_c);
+    eval {
+     $ok = $coll->batch_insert([{ $kanji_a => "some data"} , { $kanji_b => "some more data"}, { $kanji_c => "even more data"}]);
+    };
+    is($ok,0, "batch_insert key with Null Char in Key Operation Failed");
+    is($coll->count, 0, "batch_insert key with Null Char in Key Failed");
+    $coll->drop;
+
+    #test ixhash
+    my $hash = Tie::IxHash->new("f\0f" => 1);
+    eval {
+     $ok = $coll->insert($hash);
+    };
+    is($ok,0, "ixHash Insert key with Null Char in Key Operation Failed");
+    is($coll->count, 0, "ixHash key with Null Char in Key Operation Failed");
+    my $tied = $coll->find_one;
+    $coll->drop;
+}
+
 
 END {
     if ($conn) {
