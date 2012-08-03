@@ -28,6 +28,7 @@ static int isUTF8(const char*, int);
 static void serialize_regex(buffer*, const char*, REGEXP*, int is_insert);
 static void serialize_regex_flags(buffer*, SV*);
 static void append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert);
+static void containsNullChar(const char* str, int len);
 
 #ifdef USE_ITHREADS
 static perl_mutex inc_mutex;
@@ -876,7 +877,6 @@ static void
 hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
 {
   int start;
-  int i = 0;
   HE *he;
   HV *hv;
 
@@ -921,7 +921,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
     SV **hval;
     STRLEN len;
     const char *key = HePV (he, len);
-	containsNullChar(key, len);
+    containsNullChar(key, len);
 
     /* if we've already added the oid field, continue */
     if (ids && strcmp(key, "_id") == 0) {
@@ -1047,9 +1047,8 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
     }
 
     str = SvPV(*k, len);
-
-	containsNullChar(str,len);
-
+    containsNullChar(str,len);
+    
     if (isUTF8(str, len)) {
       str = SvPVutf8(*k, len);
     }
@@ -1064,7 +1063,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
   Safefree(stack);
 }
 
-void containsNullChar(const char* str, int len) {
+static void containsNullChar(const char* str, int len) {
   if(strlen(str)  < len)
     croak("key contains null char");
 }
