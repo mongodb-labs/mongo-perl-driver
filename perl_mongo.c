@@ -168,6 +168,29 @@ perl_mongo_call_function (const char *func, int num, ...) {
   return ret;
 }
 
+static int perl_mongo_regex_flags( char **flags_ptr, SV *re ) {
+  dSP;
+  ENTER;
+  SAVETMPS;
+  PUSHMARK (SP);
+  XPUSHs (re);
+  PUTBACK;
+
+  int ret_count = call_pv( "re::regexp_pattern", G_ARRAY );
+  SPAGAIN;
+
+  if ( ret_count != 2 ) { 
+    croak( "error introspecting regex" );
+  }
+
+  // regexp_pattern returns two items (in list context), the pattern and a list of flags
+  SV *flags_sv = POPs;
+  SV *pat_sv   = POPs;
+
+  char *flags = SvPVutf8_nolen(flags_sv);
+
+  *flags_ptr = strdup(flags);
+}
 
 void
 perl_mongo_attach_ptr_to_instance (SV *self, void *ptr, MGVTBL *vtbl)
@@ -1485,6 +1508,8 @@ static void serialize_regex_flags(buffer *buf, SV *sv) {
    * any non-conforming flags and emit a warning if they should appear.
    *
    */
+
+  /* 
   for(i = 2; i < string_length && string[i] != '-'; i++) {
     if (string[i] == 'i' ||
         string[i] == 'm' ||
@@ -1501,6 +1526,25 @@ static void serialize_regex_flags(buffer *buf, SV *sv) {
     }
     else { 
       warn( "stripped unsupported regex flag %c from MongoDB regex", string[i] );
+    }
+  }
+
+  */
+
+  char *flags_str;
+  perl_mongo_regex_flags( &flags_str, sv );
+  fprintf( stderr, "got flags %s\n", flags_str );
+
+  for ( i = 0; i < sizeof( flags_str ); i++ ) { 
+    if ( flags_str[i] == NULL ) break;
+
+    if ( flags_str[i] == 'i' ||
+         flags_str[i] == 'm' ||
+         flags_str[i] == 'x' ||
+         flags_str[i] == 's' ) { 
+      fprintf( stderr, "got valid flag %c\n", flags_str[i] );
+    } else { 
+      fprintf( stderr, "got invalid flag %c\n", flags_str[i] );
     }
   }
 
