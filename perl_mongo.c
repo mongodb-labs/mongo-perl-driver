@@ -1480,18 +1480,27 @@ static void serialize_regex_flags(buffer *buf, SV *sv) {
    *
    * Also, this doesn't cover all the flags available on recent perls, and nor
    * does the matching deserialisation routine.
+   *
+   * However, since Mongo only supports the PCRE flags /imsx, we will strip
+   * any non-conforming flags and emit a warning if they should appear.
+   *
    */
   for(i = 2; i < string_length && string[i] != '-'; i++) {
     if (string[i] == 'i' ||
         string[i] == 'm' ||
         string[i] == 'x' ||
-        string[i] == 'l' ||
-        string[i] == 's' ||
-        string[i] == 'u') {
+        string[i] == 's' ) {
       flags[f++] = string[i];
     }
+    else if(string[i] == '^') { 
+      continue;
+    }
     else if(string[i] == ':') {
+      // end of flags
       break;
+    }
+    else { 
+      warn( "stripped unsupported regex flag %c from MongoDB regex", string[i] );
     }
   }
 
