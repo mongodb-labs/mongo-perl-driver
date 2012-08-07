@@ -30,7 +30,7 @@ my $coll = $db->get_collection('test_collection');
 
 warning_like { 
     $coll->insert( { name => 'foo', test_regex => qr/foo/iu } )
-} qr/unsupported regex flag u/, 'unsupported flag warning';
+} qr{unsupported regex flag /u}, 'unsupported flag warning';
 
 my ( $doc ) = $coll->find_one( { name => 'foo' } );
 is $doc->{test_regex}, qr/foo/i;
