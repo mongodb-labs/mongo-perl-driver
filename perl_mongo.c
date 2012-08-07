@@ -1493,58 +1493,21 @@ static void serialize_regex(buffer *buf, const char *key, REGEXP *re, int is_ins
 static void serialize_regex_flags(buffer *buf, SV *sv) {
   char flags[] = {0,0,0,0,0,0};
   unsigned int i = 0, f = 0;
-  STRLEN string_length;
-  char *string = SvPV(sv, string_length);
-
-  /* In order to work on newer versions of perl, this will also have to handle
-   * (?^...:..)  I'm not sure what to do with that though. In the interest of
-   * portability of data between perl versions, it'd make sense to just
-   * denormalise ^ into regular flags, but that kind of defeats the purpose of ^.
-   *
-   * Also, this doesn't cover all the flags available on recent perls, and nor
-   * does the matching deserialisation routine.
-   *
-   * However, since Mongo only supports the PCRE flags /imsx, we will strip
-   * any non-conforming flags and emit a warning if they should appear.
-   *
-   */
-
-  /* 
-  for(i = 2; i < string_length && string[i] != '-'; i++) {
-    if (string[i] == 'i' ||
-        string[i] == 'm' ||
-        string[i] == 'x' ||
-        string[i] == 's' ) {
-      flags[f++] = string[i];
-    }
-    else if(string[i] == '^') { 
-      continue;
-    }
-    else if(string[i] == ':') {
-      // end of flags
-      break;
-    }
-    else { 
-      warn( "stripped unsupported regex flag %c from MongoDB regex", string[i] );
-    }
-  }
-
-  */
 
   char *flags_str;
   perl_mongo_regex_flags( &flags_str, sv );
-  fprintf( stderr, "got flags %s\n", flags_str );
 
   for ( i = 0; i < sizeof( flags_str ); i++ ) { 
     if ( flags_str[i] == NULL ) break;
 
+    // MongoDB supports only flags /imxs, so warn if we get anything else and discard them.
     if ( flags_str[i] == 'i' ||
          flags_str[i] == 'm' ||
          flags_str[i] == 'x' ||
          flags_str[i] == 's' ) { 
-      fprintf( stderr, "got valid flag %c\n", flags_str[i] );
+      flags[f++] = flags_str[i];
     } else { 
-      fprintf( stderr, "got invalid flag %c\n", flags_str[i] );
+      warn( "stripped unsupported regex flag /%c from MongoDB regex\n", flags_str[i] );
     }
   }
 
