@@ -24,7 +24,6 @@
 #include "regcomp.h"
 
 static stackette* check_circular_ref(void *ptr, stackette *stack);
-static int isUTF8(const char*, int);
 static void serialize_regex(buffer*, const char*, REGEXP*, int is_insert);
 static void serialize_regex_flags(buffer*, SV*);
 static void append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert);
@@ -1089,7 +1088,7 @@ static void containsNullChar(const char* str, int len) {
     croak("key contains null char");
 }
 
-static int isUTF8(const char *s, int len) {
+int isUTF8(const char *s, int len) {
   int i;
 
   for (i=0; i<len; i++) {
