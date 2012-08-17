@@ -30,11 +30,11 @@ MongoDB::GridFS - A file storage utility
 
 =head1 SYNOPSIS
 
-    use MongoDB::GridFS;
+   use MongoDB::GridFS;
 
-    my $grid = $database->get_gridfs;
-    my $fh = IO::File->new("myfile", "r");
-    $grid->insert($fh, {"filename" => "mydbfile"});
+   my $grid = $database->get_gridfs;
+   my $fh = IO::File->new("myfile", "r");
+   $grid->insert($fh, {"filename" => "mydbfile"});
 
 There are two interfaces for GridFS: a file-system/collection-like interface
 (insert, remove, drop, find_one) and a more general interface
@@ -57,9 +57,9 @@ The number of bytes per chunk.  Defaults to 1048576.
 $MongoDB::GridFS::chunk_size = 1048576;
 
 has _database => (
-    is       => 'ro',
-    isa      => 'MongoDB::Database',
-    required => 1,
+   is       => 'ro',
+   isa      => 'MongoDB::Database',
+   required => 1,
 );
 
 =head2 prefix
@@ -69,9 +69,9 @@ The prefix used for the collections.  Defaults to "fs".
 =cut
 
 has prefix => (
-    is      => 'ro',
-    isa     => 'Str',
-    default => 'fs'
+   is      => 'ro',
+   isa     => 'Str',
+   default => 'fs'
 );
 
 =head2 files
@@ -82,15 +82,15 @@ length fields, plus user-defined metadata (and an _id).
 =cut
 
 has files => (
-    is => 'ro',
-    isa => 'MongoDB::Collection',
-    lazy_build => 1
+   is => 'ro',
+   isa => 'MongoDB::Collection',
+   lazy_build => 1
 );
 
 sub _build_files {
-    my $self = shift;
-    my $coll = $self->_database->get_collection($self->prefix . '.files');
-    return $coll;
+   my $self = shift;
+   my $coll = $self->_database->get_collection($self->prefix . '.files');
+   return $coll;
 }
 
 =head2 chunks
@@ -102,44 +102,76 @@ in the files collection it belongs to).
 =cut
 
 has chunks => (
-    is => 'ro',
-    isa => 'MongoDB::Collection',
-    lazy_build => 1
+   is => 'ro',
+   isa => 'MongoDB::Collection',
+   lazy_build => 1
 );
 
 sub _build_chunks {
-    my $self = shift;
-    my $coll = $self->_database->get_collection($self->prefix . '.chunks');
-    return $coll;
+   my $self = shift;
+   my $coll = $self->_database->get_collection($self->prefix . '.chunks');
+   return $coll;
 }
 
-sub _ensure_indexes {
-    my $self = shift;
+has _indexes => (
+  is   => 'rw',
+  isa  => 'Bool',
+  default  => 0
+);
 
-    # ensure the necessary index is present (this may be first usage)
-    $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
-    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
+
+sub BUILD {
+  my $self = shift;
+  
+  my $count = $self->_database->_connection->get_collection('system.indexes')->count({filename => 1});
+  $count += $self->_database->_connection->get_collection('system.indexes')->count({files_id => 1, n => 1});
+  
+  $self->_ensure_indexes unless($count == 2);
+}
+
+#sub BUILD {
+#  my ($self, $opts) = @_;
+#
+#  my $count = $self->_database->_connection->get_collection('system.indexes')->count({filename => 1});
+#  $count += $self->_database->_connection->get_collection('system.indexes')->count({files_id => 1, n => 1});
+#
+#
+#  $self->_ensure_indexes() unless($count == 2);
+#
+#  $self->_indexes(!!$count);
+#}
+#
+
+
+sub _ensure_indexes {
+   my $self = shift;
+
+   # ensure the necessary index is present (this may be first usage)
+   $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
+   $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
+
+   $self->_indexes(1);
 }
 
 =head1 METHODS
 
 =head2 get($id)
 
-    my $file = $grid->get("my file");
+   my $file = $grid->get("my file");
 
 Get a file from GridFS based on its _id.  Returns a L<MongoDB::GridFS::File>.
 
 =cut
 
 sub get {
-    my ($self, $id) = @_;
+   my ($self, $id) = @_;
 
-    return $self->find_one({_id => $id});
+   return $self->find_one({_id => $id});
 }
 
 =head2 put($fh, $metadata)
 
-    my $id = $grid->put($fh, {filename => "pic.jpg"});
+   my $id = $grid->put($fh, {filename => "pic.jpg"});
 
 Inserts a file into GridFS, adding a L<MongoDB::OID> as the _id field if the
 field is not already defined.  This is a wrapper for C<MongoDB::GridFS::insert>,
@@ -150,14 +182,14 @@ Returns the _id field.
 =cut
 
 sub put {
-    my ($self, $fh, $metadata) = @_;
+   my ($self, $fh, $metadata) = @_;
 
-    return $self->insert($fh, $metadata, {safe => 1});
+   return $self->insert($fh, $metadata, {safe => 1});
 }
 
 =head2 delete($id)
 
-    $grid->delete($id)
+   $grid->delete($id)
 
 Removes the file with the given _id.  Will die if the remove is unsuccessful.
 Does not return anything on success.
@@ -165,30 +197,30 @@ Does not return anything on success.
 =cut
 
 sub delete {
-    my ($self, $id) = @_;
+   my ($self, $id) = @_;
 
-    $self->remove({_id => $id}, {safe => 1});
+   $self->remove({_id => $id}, {safe => 1});
 }
 
 =head2 find_one ($criteria?, $fields?)
 
-    my $file = $grid->find_one({"filename" => "foo.txt"});
+   my $file = $grid->find_one({"filename" => "foo.txt"});
 
 Returns a matching MongoDB::GridFS::File or undef.
 
 =cut
 
 sub find_one {
-    my ($self, $criteria, $fields) = @_;
+   my ($self, $criteria, $fields) = @_;
 
-    my $file = $self->files->find_one($criteria, $fields);
-    return undef unless $file;
-    return MongoDB::GridFS::File->new({_grid => $self,info => $file});
+   my $file = $self->files->find_one($criteria, $fields);
+   return undef unless $file;
+   return MongoDB::GridFS::File->new({_grid => $self,info => $file});
 }
 
 =head2 remove ($criteria?, $options?)
 
-    $grid->remove({"filename" => "foo.txt"});
+   $grid->remove({"filename" => "foo.txt"});
 
 Cleanly removes files from the database.  C<$options> is a hash of options for
 the remove.  Possible options are:
@@ -208,41 +240,41 @@ This method doesn't return anything.
 =cut
 
 sub remove {
-    my ($self, $criteria, $options) = @_;
+   my ($self, $criteria, $options) = @_;
 
-    my $just_one = 0;
-    my $safe = 0;
+   my $just_one = 0;
+   my $safe = 0;
 
-    if (defined $options) {
-        if (ref $options eq 'HASH') {
-            $just_one = $options->{just_one} && 1;
-            $safe = $options->{safe} && 1;
-        }
-        elsif ($options) {
-            $just_one = $options && 1;
-        }
-    }
+   if (defined $options) {
+      if (ref $options eq 'HASH') {
+        $just_one = $options->{just_one} && 1;
+        $safe = $options->{safe} && 1;
+      }
+      elsif ($options) {
+        $just_one = $options && 1;
+      }
+   }
 
-    $self->_ensure_indexes;
+   $self->_ensure_indexes unless ($self->_indexes);
 
-    if ($just_one) {
-        my $meta = $self->files->find_one($criteria);
+   if ($just_one) {
+      my $meta = $self->files->find_one($criteria);
+      $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
+      $self->files->remove({"_id" => $meta->{'_id'}}, {safe => $safe});
+   }
+   else {
+      my $cursor = $self->files->query($criteria);
+      while (my $meta = $cursor->next) {
         $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
-        $self->files->remove({"_id" => $meta->{'_id'}}, {safe => $safe});
-    }
-    else {
-        my $cursor = $self->files->query($criteria);
-        while (my $meta = $cursor->next) {
-            $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
-        }
-        $self->files->remove($criteria, {safe => $safe});
-    }
+      }
+      $self->files->remove($criteria, {safe => $safe});
+   }
 }
 
 
 =head2 insert ($fh, $metadata?, $options?)
 
-    my $id = $gridfs->insert($fh, {"content-type" => "text/html"});
+   my $id = $gridfs->insert($fh, {"content-type" => "text/html"});
 
 Reads from a file handle into the database.  Saves the file with the given
 metadata.  The file handle must be readable.  C<$options> can be
@@ -256,107 +288,109 @@ very long strings into the database (as well as files).  C<$fh> must be a
 FileHandle (not just the native file handle type), so you can insert a string
 with:
 
-    # open the string like a file
-    my $basic_fh;
-    open($basic_fh, '<', \$very_long_string);
+   # open the string like a file
+   my $basic_fh;
+   open($basic_fh, '<', \$very_long_string);
 
-    # turn the file handle into a FileHandle
-    my $fh = FileHandle->new;
-    $fh->fdopen($basic_fh, 'r');
+   # turn the file handle into a FileHandle
+   my $fh = FileHandle->new;
+   $fh->fdopen($basic_fh, 'r');
 
-    $gridfs->insert($fh);
+   $gridfs->insert($fh);
 
 =cut
 
 sub insert {
-    my ($self, $fh, $metadata, $options) = @_;
-    $options ||= {};
+   my ($self, $fh, $metadata, $options) = @_;
+   $options ||= {};
 
-    confess "not a file handle" unless $fh;
-    $metadata = {} unless $metadata && ref $metadata eq 'HASH';
+   confess "not a file handle" unless $fh;
+   $metadata = {} unless $metadata && ref $metadata eq 'HASH';
 
-    $self->_ensure_indexes;
+   $self->_ensure_indexes unless ($self->_indexes);
 
-    my $start_pos = $fh->getpos();
+   my $start_pos = $fh->getpos();
 
-    my $id;
-    if (exists $metadata->{"_id"}) {
-        $id = $metadata->{"_id"};
-    }
-    else {
-        $id = MongoDB::OID->new;
-    }
+   my $id;
+   if (exists $metadata->{"_id"}) {
+      $id = $metadata->{"_id"};
+   }
+   else {
+      $id = MongoDB::OID->new;
+   }
 
-    my $n = 0;
-    my $length = 0;
-    while ((my $len = $fh->read(my $data, $MongoDB::GridFS::chunk_size)) != 0) {
-        $self->chunks->insert({"files_id" => $id,
-                               "n" => $n,
-                               "data" => bless(\$data)}, $options);
-        $n++;
-        $length += $len;
-    }
-    $fh->setpos($start_pos);
+   my $n = 0;
+   my $length = 0;
+   while ((my $len = $fh->read(my $data, $MongoDB::GridFS::chunk_size)) != 0) {
+      $self->chunks->insert({"files_id" => $id,
+                     "n" => $n,
+                     "data" => bless(\$data)}, $options);
+      $n++;
+      $length += $len;
+   }
+   $fh->setpos($start_pos);
 
-    # get an md5 hash for the file
-    my $result = $self->_database->run_command({"filemd5", $id,
-                                                "root" => $self->prefix});
+   # get an md5 hash for the file
+   my $result = $self->_database->run_command({"filemd5", $id,
+                                "root" => $self->prefix});
 
-    # compare the md5 hashes
-    if ($options->{safe}) {
-        my $md5 = Digest::MD5->new;
-        $md5->addfile($fh);
-        my $digest = $md5->hexdigest;
-        if ($digest ne $result->{md5}) {
-            # cleanup and die
-            $self->chunks->remove({files_id => $id});
-            die "md5 hashes don't match: database got $result->{md5}, fs got $digest";
-        }
-    }
+   # compare the md5 hashes
+   if ($options->{safe}) {
+      my $md5 = Digest::MD5->new;
+      $md5->addfile($fh);
+      my $digest = $md5->hexdigest;
+      if ($digest ne $result->{md5}) {
+        # cleanup and die
+        $self->chunks->remove({files_id => $id});
+        die "md5 hashes don't match: database got $result->{md5}, fs got $digest";
+      }
+   }
 
-    my %copy = %{$metadata};
-    $copy{"_id"} = $id;
-    $copy{"md5"} = $result->{"md5"};
-    $copy{"chunkSize"} = $MongoDB::GridFS::chunk_size;
-    $copy{"uploadDate"} = DateTime->now;
-    $copy{"length"} = $length;
-    return $self->files->insert(\%copy, $options);
+   my %copy = %{$metadata};
+   $copy{"_id"} = $id;
+   $copy{"md5"} = $result->{"md5"};
+   $copy{"chunkSize"} = $MongoDB::GridFS::chunk_size;
+   $copy{"uploadDate"} = DateTime->now;
+   $copy{"length"} = $length;
+   return $self->files->insert(\%copy, $options);
 }
 
 =head2 drop
 
-    @files = $grid->drop;
+   @files = $grid->drop;
 
 Removes all files' metadata and contents.
 
 =cut
 
 sub drop {
-    my ($self) = @_;
+   my ($self) = @_;
 
-    $self->files->drop;
-    $self->chunks->drop;
+   $self->files->drop;
+   $self->chunks->drop;
+
+   $self->_indexes(0);
 }
 
 =head2 all
 
-    @files = $grid->all;
+   @files = $grid->all;
 
 Returns a list of the files in the database.
 
 =cut
 
 sub all {
-    my ($self) = @_;
-    my @ret;
+   my ($self) = @_;
+   my @ret;
 
-    my $cursor = $self->files->query;
-    while (my $meta = $cursor->next) {
-        push @ret, MongoDB::GridFS::File->new(
-            _grid => $self,
-            info => $meta);
-    }
-    return @ret;
+   my $cursor = $self->files->query;
+   while (my $meta = $cursor->next) {
+      push @ret, MongoDB::GridFS::File->new(
+        _grid => $self,
+        info => $meta);
+   }
+   return @ret;
 }
 
 1;
