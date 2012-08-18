@@ -113,44 +113,38 @@ sub _build_chunks {
    return $coll;
 }
 
-has _indexes => (
-  is   => 'rw',
-  isa  => 'Bool',
+
+
+has indexes => (
+  is       => 'rw',
+  isa      => 'Bool',
+  required => 1,
   default  => 0
 );
 
 
 sub BUILD {
-  my $self = shift;
-  
-  my $count = $self->_database->_connection->get_collection('system.indexes')->count({filename => 1});
-  $count += $self->_database->_connection->get_collection('system.indexes')->count({files_id => 1, n => 1});
-  
-  $self->_ensure_indexes unless($count == 2);
+   my ($self) = @_;
+   
+   # check for the required indexs
+   my $count = $self->_database->_connection->get_collection('system.indexes')->count({filename => 1});
+   $count += $self->_database->_connection->get_collection('system.indexes')->count({files_id => 1, n => 1});
+   
+   # if we dont have the, create them now.
+   if ($count < 2){
+      $self->_ensure_indexes();
+   }
 }
-
-#sub BUILD {
-#  my ($self, $opts) = @_;
-#
-#  my $count = $self->_database->_connection->get_collection('system.indexes')->count({filename => 1});
-#  $count += $self->_database->_connection->get_collection('system.indexes')->count({files_id => 1, n => 1});
-#
-#
-#  $self->_ensure_indexes() unless($count == 2);
-#
-#  $self->_indexes(!!$count);
-#}
-#
 
 
 sub _ensure_indexes {
-   my $self = shift;
+   my ($self) = @_;
 
    # ensure the necessary index is present (this may be first usage)
    $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
-   $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
+   $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1, "unique" => 1});
 
-   $self->_indexes(1);
+   $self->indexes(1);
 }
 
 =head1 METHODS
@@ -255,8 +249,6 @@ sub remove {
       }
    }
 
-   $self->_ensure_indexes unless ($self->_indexes);
-
    if ($just_one) {
       my $meta = $self->files->find_one($criteria);
       $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
@@ -307,7 +299,7 @@ sub insert {
    confess "not a file handle" unless $fh;
    $metadata = {} unless $metadata && ref $metadata eq 'HASH';
 
-   $self->_ensure_indexes unless ($self->_indexes);
+   #$self->_ensure_indexes unless ($self->indexes);
 
    my $start_pos = $fh->getpos();
 
@@ -331,8 +323,13 @@ sub insert {
    $fh->setpos($start_pos);
 
    # get an md5 hash for the file
-   my $result = $self->_database->run_command({"filemd5", $id,
-                                "root" => $self->prefix});
+   my $result = $self->_database->run_command({"filemd5", $id, "root" => $self->prefix});
+
+   # if the indexes don't exist for some stupid reason, create them then retry the md5 calc
+   if ($result eq 'need an index on { files_id : 1 , n : 1 }') {
+      $self->_ensure_indexes();
+      $result = $self->_database->run_command({"filemd5", $id, "root" => $self->prefix});
+   }
 
    # compare the md5 hashes
    if ($options->{safe}) {
@@ -369,7 +366,7 @@ sub drop {
    $self->files->drop;
    $self->chunks->drop;
 
-   $self->_indexes(0);
+   $self->indexes(0);
 }
 
 =head2 all
