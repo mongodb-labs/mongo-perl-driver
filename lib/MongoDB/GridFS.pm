@@ -114,21 +114,12 @@ sub _build_chunks {
 }
 
 
-
-has indexes => (
-  is       => 'rw',
-  isa      => 'Bool',
-  required => 1,
-  default  => 0
-);
-
-
 sub BUILD {
    my ($self) = @_;
    
    # check for the required indexs
    my $count = $self->_database->_connection->get_collection('system.indexes')->count({filename => 1});
-   $count += $self->_database->_connection->get_collection('system.indexes')->count({files_id => 1, n => 1});
+   $count   += $self->_database->_connection->get_collection('system.indexes')->count({files_id => 1, n => 1});
    
    # if we dont have the, create them now.
    if ($count < 2){
@@ -143,8 +134,6 @@ sub _ensure_indexes {
    # ensure the necessary index is present (this may be first usage)
    $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1, "unique" => 1});
-
-   $self->indexes(1);
 }
 
 =head1 METHODS
@@ -323,7 +312,6 @@ sub insert {
    # get an md5 hash for the file and retry if there are missing indexes
    my $result = $self->_calc_md5($id, $self->prefix, 1);
 
-
    # compare the md5 hashes
    if ($options->{safe}) {
       my $md5 = Digest::MD5->new;
@@ -345,24 +333,27 @@ sub insert {
    return $self->files->insert(\%copy, $options);
 }
 
-
+# Calculates the md5 of the file on the server
+# $id    : reference to the object we want to hash
+# $root  : the namespace the file resides in
+# $retry : a flag which controls whether or not to retry the md5 calc. 
+#         (which is currently only if we are missing our indexes)
 sub _calc_md5 {
    my ($self, $id, $root, $retry) = @_;
    
-   # get an md5 hash for the file
+   # Try to get an md5 hash for the file
    my $result = $self->_database->run_command({"filemd5", $id, "root" => $self->prefix});
    
-   $DB::single=1;
-   
-   # If we didn't get a hash back, it means something is wrong (probably to 
-   # do with gridfs indexes because its currently the only error that is thown from the md5 class)
+   # If we didn't get a hash back, it means something is wrong (probably to do with gridfs's 
+   # indexes because its currently the only error that is thown from the md5 class)
    if (ref($result) ne 'HASH') {
-      # Yep, indexes are missing. So lets create them calc the md5 again
-      if ($retry == 1 &&$result eq 'need an index on { files_id : 1 , n : 1 }'){
+      # Yep, indexes are missing. If we have the $retry flag, lets create them calc the md5 again
+      # but we wont pass set the $retry flag again. we dont want an infinate loop for any reason. 
+      if ($retry == 1 && $result eq 'need an index on { files_id : 1 , n : 1 }'){
          $self->_ensure_indexes();
          $result = $self->_calc_md5($id, $root, 0);
       }
-      # Well, something else happened so lets just cleanup and die
+      # Well, something bad is happening, so lets clean up and die. 
       else{
         $self->chunks->remove({files_id => $id});
         die "recieve an unexpected error from the server: $result";
@@ -386,8 +377,6 @@ sub drop {
 
    $self->files->drop;
    $self->chunks->drop;
-
-   $self->indexes(0);
 }
 
 =head2 all
