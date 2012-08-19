@@ -299,8 +299,6 @@ sub insert {
    confess "not a file handle" unless $fh;
    $metadata = {} unless $metadata && ref $metadata eq 'HASH';
 
-   #$self->_ensure_indexes unless ($self->indexes);
-
    my $start_pos = $fh->getpos();
 
    my $id;
@@ -322,14 +320,9 @@ sub insert {
    }
    $fh->setpos($start_pos);
 
-   # get an md5 hash for the file
-   my $result = $self->_database->run_command({"filemd5", $id, "root" => $self->prefix});
+   # get an md5 hash for the file and retry if there are missing indexes
+   my $result = $self->_calc_md5($id, $self->prefix, 1);
 
-   # if the indexes don't exist for some stupid reason, create them then retry the md5 calc
-   if ($result eq 'need an index on { files_id : 1 , n : 1 }') {
-      $self->_ensure_indexes();
-      $result = $self->_database->run_command({"filemd5", $id, "root" => $self->prefix});
-   }
 
    # compare the md5 hashes
    if ($options->{safe}) {
@@ -351,6 +344,34 @@ sub insert {
    $copy{"length"} = $length;
    return $self->files->insert(\%copy, $options);
 }
+
+
+sub _calc_md5 {
+   my ($self, $id, $root, $retry) = @_;
+   
+   # get an md5 hash for the file
+   my $result = $self->_database->run_command({"filemd5", $id, "root" => $self->prefix});
+   
+   $DB::single=1;
+   
+   # If we didn't get a hash back, it means something is wrong (probably to 
+   # do with gridfs indexes because its currently the only error that is thown from the md5 class)
+   if (ref($result) ne 'HASH') {
+      # Yep, indexes are missing. So lets create them calc the md5 again
+      if ($retry == 1 &&$result eq 'need an index on { files_id : 1 , n : 1 }'){
+         $self->_ensure_indexes();
+         $result = $self->_calc_md5($id, $root, 0);
+      }
+      # Well, something else happened so lets just cleanup and die
+      else{
+        $self->chunks->remove({files_id => $id});
+        die "recieve an unexpected error from the server: $result";
+      }
+   }
+   
+   return $result;
+}
+
 
 =head2 drop
 
