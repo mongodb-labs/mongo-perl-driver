@@ -1091,46 +1091,52 @@ static void containsNullChar(const char* str, int len) {
 int isUTF8(const char *s, int len) {
   int i;
 
-  unsigned int y[len];
   for (i=0; i<len; i++) {
-    if ((s[i] & 128) != 0) {
-        y[i] = (s[i] & 127) + 128;
-    } else {
-        y[i] = s[i];
+    if ((s[i] & 128) == 128) {
+      if ( i+3 < len                                                  &&    /* valid 4-byte:            */
+           (
+             ( (s[i] & 127) == 112 &&                                       /* byte 1 == F0 and         */
+               ( (s[i+1] & 240) == 144 || (s[i+1] & 224) == 160 )) ||       /* byte 2 >= 90 and <= BF   */
+             ( (s[i] & 127) >= 113 && (s[i] & 127) <= 115                   /* byte 1 >= F1 and <= F3   */
+                                   && (s[i+1] & 192) == 128 )      ||       /* byte 2 start bits 10     */
+             ( (s[i] & 127) == 116 && (s[i+1] & 128) == 128                 /* byte 1 == F4 and         */
+                                   && (s[i+1] & 127) <= 15  )               /* byte 2 >= 80 and <= 8F   */
+           )                                                          &&
+           (s[i+2] & 192) == 128                                      &&    /* byte 3 start bits 10     */
+           (s[i+3] & 192) == 128                                            /* byte 4 start bits 10     */
+         ) {
+        i += 3;
+      }
+      else if ( i+2 < len                                             &&    /* valid 3-byte:            */
+           (
+             ( (s[i] & 127) == 96  && (s[i+1] & 224) == 160 )      ||       /* byte 1 == E0 and byte 2 >= A0 and <= BF */
+             ( (s[i] & 127) == 109 && (s[i+1] & 224) == 128 )      ||       /* byte 1 == ED and byte 2 >= 80 and <= 9F */
+             (
+               ( (s[i] & 127) >= 97  && (s[i] & 127) <= 108 ||              /* byte 1 >= E1 and <= EC   */
+                 (s[i] & 127) == 110 || (s[i] & 127) == 111                 /* or byte 1 == EE or == EF */
+               ) && (s[i+1] & 192) == 128                                   /* and byte 2 start bits 10 */
+             )
+           )                                                          &&
+           (s[i+2] & 192) == 128                                            /* byte 3 start bits 10     */
+         ) {
+        i += 2;
+      }
+      else if ( i+1 < len                                             &&    /* valid 2-byte:            */
+           (s[i] & 127) >= 66                                         &&    /* byte 1 >= C2             */
+           (s[i] & 127) <= 95                                         &&    /* byte 1 <= DF             */
+           (s[i+1] & 192) == 128                                            /* byte 2 start bits 10     */
+         ) {
+        i += 1;
+      }
+      else {
+        return 0;
+      }
     }
   }
-
-  for (i=0; i<len; i++) {
-    if ( i+3 < len &&                                                              /* 4-byte: byte 1 and 2 */
-         ( ( y[i] == 0xf0               && (y[i+1] & 240) == 144 )             ||  /* b1 == F0 */
-           ( y[i] > 0xf1 && y[i] < 0xf3 && (y[i+1] & 192) == 128 )             ||  /* b1 >= F1 and <= F3 */
-           ( y[i] == 0xf4               && y[i+1] >= 0x80 && y[i+1] <= 0x8f )) &&  /* b1 == F4 */ 
-         ( y[i+2] & 192 ) == 128                                               &&  /* byte 3 */
-         ( y[i+3] & 192 ) == 128                                                   /* byte 4 */
-       ) {
-      i += 3;
-    }
-    else 
-    if ( i+2 < len &&                                                              /* 3-byte: byte 1 and 2 */
-         ( ( y[i] == 0xe0 && (y[i+1] & 224) == 160 )                           ||  /* b1 == E0 */
-           ( y[i] == 0xed && (y[i+1] & 224) == 128 )                           ||  /* b1 == ED */
-           ( ((y[i] >= 0xe1 && y[i] <= 0xec) || y[i] == 0xee || y[i] == 0xef)      /* b1 >= E1 and <= EC or == EE or == EF */
-                            && (y[i+1] & 192) == 128 ) )                       &&
-             (y[i+2] & 192) == 128) {                                              /* byte 3 */
-      i += 2;
-    }
-    else if (i+1 < len &&                                                          /* 2-byte: byte 1 */
-             y[i] >= 0xc2 && y[i] <= 0xdf                                      &&  /* b1 >= C2 and <= DF */
-               (y[i+1] & 192) == 128) {                                            /* byte 2 */
-      i += 1;
-    }
-    else if ((y[i] & 128) != 0) {
-      return 0;
-    }
-  }
-  return 1; 
-
+  return 1;
 }
+
+
 
 
 static void
