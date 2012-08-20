@@ -113,15 +113,16 @@ sub _build_chunks {
     return $coll;
 }
 
-
+# This checks if the required indexes for GridFS exist in for the current database.
+# If they are not found, they will be created.
 sub BUILD {
     my ($self) = @_;
    
-    # check for the required indexs
+    # check for the required indexs in the system.indexes colleciton
     my $count = $self->_database->_connection->get_collection('system.indexes')->count({filename => 1});
     $count   += $self->_database->_connection->get_collection('system.indexes')->count({files_id => 1, n => 1});
     
-    # if we dont have the required, create them now.
+    # if we dont have the required indexes, create them now.
     if ($count < 2){
        $self->_ensure_indexes();
     }
@@ -309,7 +310,9 @@ sub insert {
     }
     $fh->setpos($start_pos);
 
-    # get an md5 hash for the file and retry if there are missing indexes
+    # get an md5 hash for the file. set the retry flag to 'true' incase the 
+    # database, collection, or indexes are missing. That way we can recreate them 
+    # retry the md5 calc.
     my $result = $self->_calc_md5($id, $self->prefix, 1);
 
     # compare the md5 hashes
