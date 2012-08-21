@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Collection;
-our $VERSION = '0.45';
+our $VERSION = '0.46_RC2';
 
 # ABSTRACT: A Mongo Collection
 
