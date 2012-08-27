@@ -25,7 +25,7 @@ package MongoDB;
 use XSLoader;
 use MongoDB::Connection;
 
-XSLoader::load(__PACKAGE__, $VERSION, int rand(2 ** 24));
+XSLoader::load(__PACKAGE__, $MongoDB::VERSION, int rand(2 ** 24));
 
 1;
 
