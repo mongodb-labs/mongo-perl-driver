@@ -15,7 +15,7 @@
 #
 
 package MongoDB::Connection;
-
+our $VERSION = '0.46_RC2';
 
 # ABSTRACT: A connection to a Mongo server
 
@@ -90,7 +90,9 @@ into the database as well as connect.  By default, the driver will attempt to
 authenticate with the admin database.  If a different database is specified
 using the C<db_name> property, it will be used instead.
 
+
 =cut
+
 
 has host => (
     is       => 'ro',
@@ -136,7 +138,9 @@ safe insert times out and croaks.
 
 =back
 
+
 =cut
+
 
 has w => (
     is      => 'rw',
@@ -300,7 +304,9 @@ This value overrides L<MongoDB::Cursor/timeout>.
     my $conn = MongoDB::Connection->new(query_timeout => 10);
     # timeout for $conn is 10 milliseconds
 
+
 =cut
+
 
 has query_timeout => (
     is       => 'rw',
@@ -354,7 +360,9 @@ You can use the C<ismaster> command to find the members of a replica set:
 The primary and secondary hosts are listed in the C<hosts> field, the slaves are
 in the C<passives> field, and arbiters are in the C<arbiters> field.
 
+
 =cut
+
 
 has find_master => (
     is       => 'ro',
