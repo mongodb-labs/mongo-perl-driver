@@ -365,9 +365,9 @@ has find_master => (
 
 =head2 ssl
 
-This tell the driver that you are connectin to an SSL mongodb.
+This tells the driver that you are connecting to an SSL mongodb instance.
 
-This option will be ignored if the driver was not compiled with SSL. You must
+This option will be ignored if the driver was not compiled with the SSL flag. You must
 also be using a database server that supports SSL.
 
 =cut
