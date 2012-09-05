@@ -61,6 +61,7 @@ through the MongoDB IRC channel, I<irc.freenode.net#mongodb>.
 
   Florian Ragwitz <rafl@debian.org>
   Kristina Chodorow <kristina@mongodb.org>
+  Mike Friedman <mike.friedman@10gen.com>
 
 =head1 COPYRIGHT AND LICENSE
 
