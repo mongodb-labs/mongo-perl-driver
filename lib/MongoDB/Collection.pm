@@ -542,7 +542,7 @@ sub _make_safe {
     my $conn = $self->_database->_connection;
     my $db = $self->_database->name;
 
-    my $last_error = Tie::IxHash->new(getlasterror => 1, w => $conn->w, wtimeout => $conn->wtimeout);
+    my $last_error = Tie::IxHash->new(getlasterror => 1, w => $conn->w, wtimeout => $conn->wtimeout, j => $conn->j);
     my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
 
     $conn->send("$req$query");
