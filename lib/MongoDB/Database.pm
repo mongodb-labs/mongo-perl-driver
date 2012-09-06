@@ -176,6 +176,10 @@ C<w> copies cannot be made.
 
 If true, the database will fsync to disk before returning.
 
+=item j
+
+If true, awaits the journal commit before returning. If the server is running without journaling, it returns immediately, and successfully.
+
 =back
 
 C<last_error> returns a hash with fields that vary, depending on what the
@@ -258,11 +262,12 @@ sub last_error {
 
     my $cmd = Tie::IxHash->new("getlasterror" => 1);
     if ($options) {
-        $cmd->Push("w", $options->{w}) if $options->{w};
-        $cmd->Push("wtimeout", $options->{wtimeout}) if $options->{wtimeout};
-        $cmd->Push("fsync", $options->{fsync}) if $options->{fsync};
+        $cmd->Push("w", $options->{w})                  if $options->{w};
+        $cmd->Push("wtimeout", $options->{wtimeout})    if $options->{wtimeout};
+        $cmd->Push("fsync", $options->{fsync})          if $options->{fsync};
+        $cmd->Push("j", 1)                              if $options->{j};
     }
-
+                                                        
     return $self->run_command($cmd);
 }
 
