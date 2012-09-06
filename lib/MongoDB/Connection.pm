@@ -161,6 +161,20 @@ has wtimeout => (
     default => 1000,
 );
 
+
+=head2 j
+
+If true, awaits the journal commit before returning. If the server is running without journaling, it returns immediately, and successfully.
+
+=cut
+
+has j => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0
+);
+
+
 has port => (
     is       => 'ro',
     isa      => 'Int',
