@@ -69,7 +69,12 @@ SKIP: {
 # autoload
 {
     my $coll1;
-    warning_like { $coll1 = $conn->foo->bar } qr/database method names are deprecated/i, 'AUTOLOAD warning';
+    warnings_like { $coll1 = $conn->foo->bar } 
+      [ qr/database method names are deprecated/i,
+        qr/collection method names are deprecated/i
+      ],
+      'AUTOLOAD warning';
+
     is($coll1->name, "bar");
     is($coll1->full_name, "foo.bar");
 }

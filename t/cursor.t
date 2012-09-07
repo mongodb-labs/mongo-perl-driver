@@ -283,7 +283,7 @@ is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
         $coll->insert({x => $i});
     }
 
-    my $cursor = $db->test_collection->query({}, { limit => 10, skip => 0, sort_by => {created => 1 }});
+    my $cursor = $db->get_collection( 'test_collection' )->query({}, { limit => 10, skip => 0, sort_by => {created => 1 }});
     is($cursor->count(), 5);
 }
 

@@ -409,7 +409,7 @@ sub rename {
     my $obj = $database->run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
 
     if(ref($obj) eq "HASH"){
-      return $conn->get_database( $db )->$collectionname;
+      return $conn->get_database( $db )->get_collection( $collectionname );
     }
     else {
       die $obj;
