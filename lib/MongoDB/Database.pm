@@ -21,6 +21,7 @@ package MongoDB::Database;
 
 use Any::Moose;
 use MongoDB::GridFS;
+use Carp 'carp';
 
 has _connection => (
     is       => 'ro',
@@ -67,6 +68,8 @@ sub AUTOLOAD {
 
     my $coll = $AUTOLOAD;
     $coll =~ s/.*:://;
+
+    carp sprintf q{AUTOLOADed collection method names are deprecated and will be removed in a future release. Use $db->get_collection( '%s' ) instead.}, $coll;
 
     return $self->get_collection($coll);
 }
