@@ -26,6 +26,7 @@ use Any::Moose;
 use Any::Moose 'Util::TypeConstraints';
 use Digest::MD5;
 use Tie::IxHash;
+use Carp 'carp';
 use boolean;
 
 =head1 NAME
@@ -422,6 +423,8 @@ sub AUTOLOAD {
 
     my $db = $AUTOLOAD;
     $db =~ s/.*:://;
+
+    carp sprintf q{AUTOLOADed database method names are deprecated and will be removed in a future release. Use $conn->get_database( '%s' ) instead.}, $db;
 
     return $self->get_database($db);
 }
