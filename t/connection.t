@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
+use Test::Warn;
 
 use MongoDB::Timestamp; # needed if db is being run as master
 
@@ -20,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 19;
+    plan tests => 20;
 }
 
 throws_ok {
@@ -91,7 +92,8 @@ SKIP: {
 
 # autoload
 {
-    my $db1 = $conn->foo;
+    my $db1;
+    warning_like { $db1 = $conn->foo; } qr/database method names are deprecated/i, 'AUTOLOAD warning';
     is($db1->name, "foo");
 }
 
@@ -112,7 +114,7 @@ SKIP: {
 # max_bson_size
 {
     my $size = $conn->max_bson_size;
-    my $result = $conn->admin->run_command({buildinfo => 1});
+    my $result = $conn->get_database( 'admin' )->run_command({buildinfo => 1});
     if (exists $result->{'maxBsonObjectSize'}) {
         is($size, $result->{'maxBsonObjectSize'});
     }
@@ -123,7 +125,7 @@ SKIP: {
 
 END {
     if ($conn) {
-        $conn->foo->drop;
+        $conn->get_database( 'foo' )->drop;
     }
     if ($db) {
         $db->drop;

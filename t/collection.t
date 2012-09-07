@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
+use Test::Warn;
 
 use utf8;
 use Data::Types qw(:float);
@@ -24,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 136;
+    plan tests => 137;
 }
 
 my $db = $conn->get_database('test_database');
@@ -461,7 +462,8 @@ SKIP: {
 
 # autoload
 {
-    my $coll1 = $conn->foo->bar->baz;
+    my $coll1;
+    warning_like { $coll1 = $conn->foo->bar->baz } qr/database method names are deprecated/i, 'AUTOLOAD warning';
     is($coll1->name, "bar.baz");
     is($coll1->full_name, "foo.bar.baz");
 }
@@ -558,7 +560,7 @@ SKIP: {
 
 END {
     if ($conn) {
-        $conn->foo->drop;
+        $conn->get_database( 'foo' )->drop;
     }
     if ($db) {
         $db->drop;

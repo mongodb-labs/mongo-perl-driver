@@ -401,7 +401,7 @@ sub rename {
     my ($self, $collectionname) = @_;
 
     my $conn = $self->_database->_connection;
-    my $database = $conn->admin;
+    my $database = $conn->get_database( 'admin' );
     my $fullname = $self->full_name;
   
     my ($db, @collection_bits) = split(/\./, $fullname);
@@ -409,7 +409,7 @@ sub rename {
     my $obj = $database->run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
 
     if(ref($obj) eq "HASH"){
-      return $conn->$db->$collectionname;
+      return $conn->get_database( $db )->$collectionname;
     }
     else {
       die $obj;

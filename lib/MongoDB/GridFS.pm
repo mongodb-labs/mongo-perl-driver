@@ -119,8 +119,8 @@ sub BUILD {
     my ($self) = @_;
    
     # check for the required indexs in the system.indexes colleciton
-    my $count = $self->_database->_connection->get_collection('system.indexes')->count({filename => 1});
-    $count   += $self->_database->_connection->get_collection('system.indexes')->count({files_id => 1, n => 1});
+    my $count = $self->_database->get_collection('system.indexes')->count({filename => 1});
+    $count   += $self->_database->get_collection('system.indexes')->count({files_id => 1, n => 1});
     
     # if we dont have the required indexes, create them now.
     if ($count < 2){
