@@ -465,6 +465,7 @@ SKIP: {
     my $coll1;
     warnings_like { $coll1 = $conn->foo->bar->baz } 
       [ qr/database method names are deprecated/i,
+        qr/collection method names are deprecated/i,
         qr/collection method names are deprecated/i 
       ],
       'AUTOLOAD warning';

@@ -46,6 +46,7 @@ Core documentation on collections: L<http://dochub.mongodb.org/core/collections>
 
 use Tie::IxHash;
 use Any::Moose;
+use Carp 'carp';
 use boolean;
 
 has _database => (
@@ -96,6 +97,8 @@ sub AUTOLOAD {
 
     my $coll = $AUTOLOAD;
     $coll =~ s/.*:://;
+
+    carp sprintf q{AUTOLOADed collection method names are deprecated and will be removed in a future release. Use $db->get_collection( '%s' ) instead.}, $coll;
 
     return $self->_database->get_collection($self->name.'.'.$coll);
 }
