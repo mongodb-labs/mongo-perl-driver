@@ -20,8 +20,6 @@ use warnings;
 package MongoDB;
 # ABSTRACT: A Mongo Driver for Perl
 
-
-
 use XSLoader;
 use MongoDB::Connection;
 
@@ -29,9 +27,10 @@ XSLoader::load(__PACKAGE__, $MongoDB::VERSION, int rand(2 ** 24));
 
 1;
 
-=head1 NAME
 
-MongoDB - Mongo Driver for Perl
+__END__
+
+
 
 =head1 SYNOPSIS
 
@@ -56,20 +55,6 @@ If you have any questions, comments, or complaints, you can get through to the
 developers most dependably via the MongoDB user list:
 I<mongodb-user@googlegroups.com>.  You might be able to get someone quicker
 through the MongoDB IRC channel, I<irc.freenode.net#mongodb>.
-
-=head1 AUTHORS
-
-  Florian Ragwitz <rafl@debian.org>
-  Kristina Chodorow <kristina@mongodb.org>
-  Mike Friedman <mike.friedman@10gen.com>
-
-=head1 COPYRIGHT AND LICENSE
-
-This software is Copyright (c) 2009 by 10Gen.
-
-This is free software, licensed under:
-
-  The Apache License, Version 2.0, January 2004
 
 =head1 DESCRIPTION
 
@@ -106,9 +91,10 @@ all references to them are deleted.
 
 To use MongoDB, first you need to load the MongoDB module:
 
-    use MongoDB;
     use strict;
     use warnings;
+    use MongoDB;
+
 
 (The C<use strict;> and C<use warnings;> aren't required, but they're strongly
 recommended.)
