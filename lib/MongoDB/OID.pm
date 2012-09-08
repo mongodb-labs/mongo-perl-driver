@@ -40,8 +40,8 @@ saved document:
 To create a copy of an existing OID, you must set the value attribute in the
 constructor.  For example:
 
-    my $id1 = MongoDB::OID->new;
-    my $id2 = MongoDB::OID->new(value => $id1->value);
+    my $id1 = MongoDB::OID::->new;
+    my $id2 = MongoDB::OID::->new(value => $id1->value);
 
 Now C<$id1> and C<$id2> will have the same value.
 
@@ -118,11 +118,11 @@ sub get_time {
 
 =head2 TO_JSON
 
-    my $json = JSON->new;
+    my $json = JSON::->new;
     $json->allow_blessed;
     $json->convert_blessed;
 
-    $json->encode(MongoDB::OID->new);
+    $json->encode(MongoDB::OID::->new);
 
 Returns a JSON string for this OID.  This is compatible with the strict JSON
 representation used by MongoDB, that is, an OID with the value 

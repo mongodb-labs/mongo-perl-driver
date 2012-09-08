@@ -37,7 +37,7 @@ MongoDB - Mongo Driver for Perl
 
     use MongoDB;
 
-    my $connection = MongoDB::Connection->new(host => 'localhost', port => 27017);
+    my $connection = MongoDB::Connection::->new(host => 'localhost', port => 27017);
     my $database   = $connection->foo;
     my $collection = $database->bar;
     my $id         = $collection->insert({ some => 'data' });
@@ -124,11 +124,11 @@ would like to learn more about authentication, see the C<authenticate> method.
 
 To connect to the database, create a new MongoDB Connection object:
 
-    $conn = MongoDB::Connection->new("host" => "localhost:27017");
+    $conn = MongoDB::Connection::->new("host" => "localhost:27017");
 
 As this is the default, we can use the equivalent shorthand:
 
-    $conn = MongoDB::Connection->new;
+    $conn = MongoDB::Connection::->new;
 
 Connecting is relatively expensive, so try not to open superfluous connections.
 

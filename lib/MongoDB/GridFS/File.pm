@@ -31,7 +31,7 @@ MongoDB::GridFS::File - A Mongo GridFS file
 
     use MongoDB::GridFS::File;
 
-    my $outfile = IO::File->new("outfile", "w");
+    my $outfile = IO::File::->new("outfile", "w");
     my $file = $grid->find_one;
     $file->print($outfile);
 
@@ -77,7 +77,7 @@ sub print {
     my ($written, $pos) = (0, 0);
     my $start_pos = $fh->getpos();
 
-    $self->_grid->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1));
+    $self->_grid->chunks->ensure_index(Tie::IxHash::->new(files_id => 1, n => 1));
 
     my $cursor = $self->_grid->chunks->query({"files_id" => $self->info->{"_id"}})->sort({"n" => 1});
 

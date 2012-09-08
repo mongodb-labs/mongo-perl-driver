@@ -105,7 +105,7 @@ database.
 
 sub get_collection {
     my ($self, $collection_name) = @_;
-    return MongoDB::Collection->new(
+    return MongoDB::Collection::->new(
         _database => $self,
         name      => $collection_name,
     );
@@ -127,7 +127,7 @@ sub get_gridfs {
     my ($self, $prefix) = @_;
     $prefix = "fs" unless $prefix;
 
-    return MongoDB::GridFS->new(
+    return MongoDB::GridFS::->new(
         _database => $self,
         prefix => $prefix
     );
@@ -256,7 +256,7 @@ See L<MongoDB::Connection/w> for more information.
 sub last_error {
     my ($self, $options) = @_;
 
-    my $cmd = Tie::IxHash->new("getlasterror" => 1);
+    my $cmd = Tie::IxHash::->new("getlasterror" => 1);
     if ($options) {
         $cmd->Push("w", $options->{w}) if $options->{w};
         $cmd->Push("wtimeout", $options->{wtimeout}) if $options->{wtimeout};
