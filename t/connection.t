@@ -58,7 +58,7 @@ SKIP: {
                (exists $ENV{DB_PORT2} && $ip eq $ENV{DB_PORT2})) {
             $ip++;
         }
-        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:".$ip.",localhost:".($ip+1).",localhost", ssl => $ENV{MONGO_SSL});
+        my $conn2 = MongoDB::Connection->new("host" => "mongodb://localhost:".$ip.",localhost:".($ip+1).",localhost", ssl => $ENV{MONGO_SSL});
     } 'last in line';
 }
 
