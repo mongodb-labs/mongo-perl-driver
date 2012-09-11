@@ -16,7 +16,6 @@
 
 package MongoDB::Connection;
 
-
 # ABSTRACT: A connection to a Mongo server
 
 use MongoDB;
@@ -39,7 +38,7 @@ has host => (
 
 has w => (
     is      => 'rw',
-    isa     => 'Int',
+    isa     => 'Int|Str',
     default => 1,
 );
 
@@ -535,7 +534,6 @@ into the database as well as connect.  By default, the driver will attempt to
 authenticate with the admin database.  If a different database is specified
 using the C<db_name> property, it will be used instead.
 
-
 =head2 w
 
 I<Only supported in MongoDB server version 1.5+.>
@@ -572,6 +570,14 @@ operation within 100 milliseconds.  The safe insert returns success.
 safe insert times out and croaks.
 
 =back
+
+I<MongoDB server version 2.0+: "majority" and Data Center Awareness>
+
+As of MongoDB 2.0+, the 'w' parameter can be passed strings. This can be done by passing it the string "majority" this will wait till the B<majority> of 
+of the nodes in the relica set have recieved the data. For more information see: http://www.mongodb.org/display/DOCS/getLastError+Command#getLastErrorCommand-majority
+
+This can be useful for "Data Center Awareness." In v2.0+, you can "tag" replica members. With "tagging" you can specify a new "getLastErrorMode" where you can create new
+rules on how your data is replicated. To used you getLastErrorMode, you pass in the name of the mode to the 'w' parameter. For more infomation see: http://www.mongodb.org/display/DOCS/Data+Center+Awareness
 
 =head2 wtimeout
 

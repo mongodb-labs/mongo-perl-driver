@@ -21,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 20;
+    plan tests => 22;
 }
 
 throws_ok {
@@ -78,10 +78,15 @@ is($result->{'ok'}, 1, 'db was dropped');
 
 
 # w
-SKIP: {
+{
     is($conn->w, 1, "get w");
     $conn->w(3);
     is($conn->w, 3, "set w");
+
+    $conn->w("tag");
+    is($conn->w, "tag", "set w to string");
+
+    dies_ok { $conn->w({tag => 1});} "Setting w to anything but a string or int dies.";
 
     is($conn->wtimeout, 1000, "get wtimeout");
     $conn->wtimeout(100);
