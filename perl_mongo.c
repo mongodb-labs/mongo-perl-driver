@@ -954,7 +954,10 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
      * so we're using hv_fetch
      */
     if ((hval = hv_fetch(hv, key, len, 0)) == 0) {
-      croak("could not find hash value for key %s", key);
+	/* May be it's an unicode string? */
+    	if ((hval = hv_fetch(hv, key, -len, 0)) == 0) {
+      		croak("could not find hash value for key %s, len:%d", key, len);
+	}
     }
     append_sv (buf, key, *hval, stack, is_insert);
   }
