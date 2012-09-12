@@ -176,6 +176,13 @@ has ts => (
 );
 
 
+has dt_type => (
+    is      => 'rw',
+    required => 0,
+    default  => 'DateTime'
+);
+
+
 sub AUTOLOAD {
     my $self = shift @_;
     our $AUTOLOAD;

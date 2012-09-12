@@ -223,9 +223,14 @@ next (self)
         SV *self
     PREINIT:
         mongo_cursor *cursor;
+        SV *dt_type_sv;
     CODE:
         cursor = get_cursor(self);
         if (has_next(self, cursor)) {
+          dt_type_sv = perl_mongo_call_reader( self, "_dt_type" );
+          char *dt_type = SvPV( dt_type_sv, SvLEN( dt_type_sv ) );
+          fprintf( stderr, "dt type is [%s]\n", dt_type );
+
           RETVAL = perl_mongo_bson_to_sv(&cursor->buf);
           cursor->at++;
 

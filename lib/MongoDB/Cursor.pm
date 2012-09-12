@@ -136,6 +136,8 @@ has _tailable => (
 );
 
 
+
+
 =head2 immortal
 
     $cursor->immortal(1);
@@ -157,6 +159,7 @@ your connection.
 See L<MongoDB::Connection/query_timeout>.
 
 =cut
+
 
 has immortal => (
     is => 'rw',
@@ -481,6 +484,15 @@ sub count {
     return 0 unless ref $result eq 'HASH';
     return $result->{'n'};
 }
+
+
+# shortcut to make some XS code saner
+sub _dt_type { 
+    my $self = shift;
+    return $self->_connection->dt_type;
+}
+
+
 
 =head2 reset
 
