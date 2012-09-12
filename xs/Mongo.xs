@@ -176,7 +176,7 @@ read_documents(sv)
          buf.end = buf.start + SvCUR(sv);
 
          while(buf.pos < buf.end) {
-             XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf)));
+             XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf, "DateTime")));
          }
 
 
