@@ -449,14 +449,20 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
     buf->pos += INT_64;
     ms_i /= 1000;
 
-    datetime = sv_2mortal(newSVpv("DateTime", 0));
-    ms = newSViv(ms_i);
+    if ( dt_type == NULL ) { 
+      // raw epoch
+      value = newSViv(ms_i);
+    } else if ( strcmp( dt_type, "DateTime" ) == 0 ) { 
+      datetime = sv_2mortal(newSVpv("DateTime", 0));
+      ms = newSViv(ms_i);
 
-    named_params = newHV();
-    heval = hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
+      named_params = newHV();
+      heval = hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
 
-    value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
-                                     sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
+      value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
+                                       sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
+    }
+
     break;
   }
   case BSON_REGEX: {
@@ -616,7 +622,6 @@ SV *
 perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
 {
   HV *ret = newHV();
-  fprintf( stderr, "bson->sv, dt type = [%s]\n", dt_type );
   char type;
 
   // for size
