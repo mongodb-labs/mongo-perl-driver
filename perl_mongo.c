@@ -484,8 +484,9 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
       value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
                                        sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
 
+    } else {
+      croak( "Invalid dt_type \"%s\"", dt_type );
     }
-
 
     break;
   }

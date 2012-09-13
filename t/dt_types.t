@@ -22,7 +22,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 6;
+    plan tests => 7;
 }
 
 my $db = $conn->get_database('test_database');
@@ -56,3 +56,13 @@ my $now = DateTime->now;
     is $date2->DateTime->epoch, $now->epoch;
     $db->drop;
 }
+
+{
+    $db->get_collection( 'test_collection' )->insert( { date => $now } );
+    $conn->dt_type( 'DateTime::Bad' );
+    throws_ok { 
+        my $date4 = $db->get_collection( 'test_collection' )->find_one->{date};
+    } qr/Invalid dt_type "DateTime::Bad"/i;
+
+}
+
