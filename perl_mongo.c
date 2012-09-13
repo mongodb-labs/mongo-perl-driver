@@ -452,6 +452,28 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
     if ( dt_type == NULL ) { 
       // raw epoch
       value = newSViv(ms_i);
+    } else if ( strcmp( dt_type, "DateTime::Tiny" ) == 0 ) {
+      datetime = sv_2mortal(newSVpv("DateTime::Tiny", 0));
+      time_t epoch = (time_t)ms_i;
+      struct tm *dt = gmtime( &epoch );
+
+      value = 
+        perl_mongo_call_function("DateTime::Tiny::new", 13, datetime,
+                                 newSVpvn("year",     strlen("year")),  
+                                 newSViv( dt->tm_year + 1900 ),
+                                 newSVpvn("month",    strlen("month")),
+                                 newSViv( dt->tm_mon  +    1 ),
+                                 newSVpvn("day",      strlen("day")),
+                                 newSViv( dt->tm_mday ),
+                                 newSVpvn("hour",     strlen("hour")),
+                                 newSViv( dt->tm_hour ),
+                                 newSVpvn("minute",   strlen("minute")),
+                                 newSViv( dt->tm_min ),
+                                 newSVpvn("second",   strlen("second")),
+                                 newSViv( dt->tm_sec )
+                                 );
+
+
     } else if ( strcmp( dt_type, "DateTime" ) == 0 ) { 
       datetime = sv_2mortal(newSVpv("DateTime", 0));
       ms = newSViv(ms_i);
@@ -461,7 +483,9 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
 
       value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
                                        sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
+
     }
+
 
     break;
   }
