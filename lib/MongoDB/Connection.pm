@@ -702,6 +702,13 @@ This option will be ignored if the driver was not compiled with the SSL flag. Yo
 also be using a database server that supports SSL.
 
 
+=head2 dt_type
+
+Sets the type of object which is returned for DateTime fields. The default is L<DateTime>. Other
+acceptable values are L<DateTime::Tiny> and C<undef>. The latter will give you the raw epoch value
+rather than an object.
+
+
 =head1 METHODS
 
 =head2 connect
