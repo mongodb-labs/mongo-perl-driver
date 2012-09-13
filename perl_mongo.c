@@ -352,7 +352,7 @@ elem_to_sv (int type, buffer *buf)
     buf->pos += len;
     break;
   }
-  case BSON_OBJECT: {
+  case BSON_OBJECT: { 
     value = perl_mongo_bson_to_sv(buf);
     break;
   }
@@ -616,6 +616,7 @@ SV *
 perl_mongo_bson_to_sv (buffer *buf)
 {
   HV *ret = newHV();
+  SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
 
   char type;
 
@@ -632,8 +633,14 @@ perl_mongo_bson_to_sv (buffer *buf)
 
     // get value
     value = elem_to_sv(type, buf);
-    if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
-      croak ("failed storing value in hash");
+    if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
+    	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
+     	 croak ("failed storing value in hash");
+    	}
+    } else {
+    	if (!hv_store (ret, name, strlen (name), value, 0)) {
+     	 croak ("failed storing value in hash");
+    	}
     }
   }
 
