@@ -198,11 +198,12 @@ $coll->insert({foo => "\x9F" });
 my $utfblah = $coll->find_one;
 is(ord($utfblah->{'foo'}), 159, 'translate non-utf8 to utf8 char');
 
+$MongoDB::BSON::utf8_flag_on = 0;
 $coll->drop;
 $coll->insert({"\x9F" => "hi"});
 $utfblah = $coll->find_one;
 is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
-
+$MongoDB::BSON::utf8_flag_on = 1;
 
 $coll->drop;
 my $keys = tie(my %idx, 'Tie::IxHash');

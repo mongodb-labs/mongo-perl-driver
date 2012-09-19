@@ -647,6 +647,8 @@ SV *
 perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
 {
   HV *ret = newHV();
+  SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
+
   char type;
 
   // for size
@@ -662,8 +664,14 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
 
     // get value
     value = elem_to_sv(type, buf, dt_type);
-    if (!hv_store (ret, name, strlen (name), value, 0)) {
-      croak ("failed storing value in hash");
+    if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
+    	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
+     	 croak ("failed storing value in hash");
+    	}
+    } else {
+    	if (!hv_store (ret, name, strlen (name), value, 0)) {
+     	 croak ("failed storing value in hash");
+    	}
     }
   }
 
@@ -984,7 +992,10 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
      * so we're using hv_fetch
      */
     if ((hval = hv_fetch(hv, key, len, 0)) == 0) {
-      croak("could not find hash value for key %s", key);
+    /* May be it's an unicode string? */
+        if ((hval = hv_fetch(hv, key, -len, 0)) == 0) {
+	    croak("could not find hash value for key %s, len:%d", key, len);
+	}
     }
     append_sv (buf, key, *hval, stack, is_insert);
   }
