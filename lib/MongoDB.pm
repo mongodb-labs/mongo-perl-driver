@@ -37,8 +37,8 @@ __END__
     use MongoDB;
 
     my $connection = MongoDB::Connection->new(host => 'localhost', port => 27017);
-    my $database   = $connection->foo;
-    my $collection = $database->bar;
+    my $database   = $connection->get_database( 'foo' );
+    my $collection = $database->get_collection( 'bar' );
     my $id         = $collection->insert({ some => 'data' });
     my $data       = $collection->find_one({ _id => $id });
 
