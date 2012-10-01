@@ -7,11 +7,8 @@ use Module::Install::Base;
 use Config;
 use File::Spec::Functions qw/catdir/;
 
-use vars qw{$VERSION @ISA};
-BEGIN {
-    $VERSION = '0.45';
-    @ISA     = qw{Module::Install::Base};
-}
+use vars qw{@ISA};
+BEGIN { @ISA= qw{Module::Install::Base} }
 
 sub mongo {
     my ($self, @mongo_vars) = @_;

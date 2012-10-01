@@ -4,6 +4,7 @@ use lib 'ext';
 use inc::Module::Install;
 
 name 'MongoDB';
+version '0.45';
 perl_version '5.8.4';
 author 'Florian Ragwitz <rafl@debian.org>';
 author 'Kristina Chodorow <kristina@10gen.com>';
@@ -47,7 +48,6 @@ no_index directory => 'ext';
 
 repository 'git://github.com/mongodb/mongo-perl-driver.git';
 
-
 if ($Config::Config{useithreads}) {
     tests 't/*.t t/threads/*.t';
 }
@@ -55,7 +55,6 @@ if ($Config::Config{useithreads}) {
 WriteAll;
 
 package MY;
-our $VERSION = '0.45';
 
 use Config;
 
