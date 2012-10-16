@@ -405,7 +405,7 @@ sub hint {
     confess "cannot set hint after querying"
 	if $self->started_iterating;
     confess 'not a hash reference'
-	unless ref $index eq 'HASH';
+	unless ref $index eq 'HASH' || ref $index eq 'Tie::IxHash';
 
     $self->_ensure_special;
     $self->_query->{'$hint'} = $index;
