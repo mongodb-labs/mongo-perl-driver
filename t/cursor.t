@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 76;
+    plan tests => 77;
 }
 
 my $db = $conn->get_database('test_database');
@@ -194,12 +194,20 @@ $collection->insert({'num' => 1, 'foo' => 1});
 
 $aok = 1;
 eval {
-    $collection->query->hint(Tie::IxHash->new('num' => 1, foo => 1))->explain;
+    $collection->query->hint(Tie::IxHash->new('num' => 1, 'foo' => 1))->explain;
     $aok = 0;
 };
 
 ok($@ =~ m/bad hint/);
 
+$collection->ensure_index(Tie::IxHash->new('num' => 1, 'foo' => 1));
+$aok = 1;
+eval {
+    $collection->find({num => 0, foo => 0})->hint(Tie::IxHash->new('num' => 1, 'foo' => 1))->explain;
+    $aok = 0;
+};
+
+ok($aok == 0);
 
 # MongoDB::Cursor::slave_okay
 $MongoDB::Cursor::slave_okay = 1;
