@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 74;
+    plan tests => 76;
 }
 
 my $db = $conn->get_database('test_database');
@@ -166,7 +166,7 @@ $cursor->reset;
 $exp = $cursor->limit(-20)->explain;
 is(20, $exp->{'n'});
 
-#hint
+# hint
 $cursor->reset;
 my $hinted = $cursor->hint({'x' => 1});
 is($hinted, $cursor);
@@ -182,6 +182,24 @@ eval {
 };
 
 ok($@ =~ m/bad hint/);
+
+# ordered hint
+$cursor->reset;
+$hinted = $cursor->hint(Tie::IxHash->new('x' => 1));
+is($hinted, $cursor);
+
+$collection->drop;
+
+$collection->insert({'num' => 1, 'foo' => 1});
+
+$aok = 1;
+eval {
+    $collection->query->hint(Tie::IxHash->new('num' => 1, foo => 1))->explain;
+    $aok = 0;
+};
+
+ok($@ =~ m/bad hint/);
+
 
 # MongoDB::Cursor::slave_okay
 $MongoDB::Cursor::slave_okay = 1;
