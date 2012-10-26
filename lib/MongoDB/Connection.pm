@@ -470,6 +470,20 @@ sub authenticate {
 }
 
 
+sub fsync {
+	my ($self, $args) = @_;
+	
+	# Pass this in as array-ref to ensure that 'fsync => 1' is the first argument.
+	$self->get_database('admin')->run_command([fsync => 1, %$args]);
+}
+
+sub unlock { 
+	my ($self) = @_;
+	
+	retrun $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one()
+}
+	
+
 no Any::Moose;
 __PACKAGE__->meta->make_immutable (inline_destructor => 0);
 
