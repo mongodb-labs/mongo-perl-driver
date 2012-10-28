@@ -40,6 +40,7 @@ test_requires 'FileHandle';
 test_requires 'JSON';
 test_requires 'File::Temp' => '0.17';
 test_requires 'Try::Tiny';
+test_requires 'DateTime::Tiny';
 
 mongo;
 
