@@ -471,16 +471,19 @@ sub authenticate {
 
 
 sub fsync {
-	my ($self, $args) = @_;
+    my ($self, $args) = @_;
 	
-	# Pass this in as array-ref to ensure that 'fsync => 1' is the first argument.
-	$self->get_database('admin')->run_command([fsync => 1, %$args]);
+	$args //= {};
+	
+    # Pass this in as array-ref to ensure that 'fsync => 1' is the first argument.
+    return $self->get_database('admin')->run_command([fsync => 1, %$args]);
 }
 
-sub unlock { 
-	my ($self) = @_;
+sub fsync_unlock { 
+    my ($self) = @_;
 	
-	retrun $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one()
+    # Have to fetch from a special collection to unlock.
+    return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
 	
 
