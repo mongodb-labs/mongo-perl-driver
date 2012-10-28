@@ -470,6 +470,23 @@ sub authenticate {
 }
 
 
+sub fsync {
+    my ($self, $args) = @_;
+	
+	$args //= {};
+	
+    # Pass this in as array-ref to ensure that 'fsync => 1' is the first argument.
+    return $self->get_database('admin')->run_command([fsync => 1, %$args]);
+}
+
+sub fsync_unlock { 
+    my ($self) = @_;
+	
+    # Have to fetch from a special collection to unlock.
+    return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
+}
+	
+
 no Any::Moose;
 __PACKAGE__->meta->make_immutable (inline_destructor => 0);
 
@@ -772,3 +789,23 @@ C<MongoDB::Cursor>.  At the moment, the only required field for C<$info> is
 C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
 
 
+=head fsync(\%args)
+
+    $conn->fsync();
+    
+A function that will forces the server to flush all pending writes to the storage layer.
+
+The fsync operation is synchronous by default, to run fsync asynchronously, use the following form:
+
+    $conn->fsync({async => 1});
+
+The primary use of fsync is to lock the database during backup operations. This will flush all data to the data storage layer and block all write operations until you unlock the database. Note: you can still read while the database is locked. 
+    
+    $conn->fsync({lock => 1});
+    
+    
+=head fsync_unlock()
+
+    $conn->fsync_unlock();
+
+Unlocks a database server to allow writes and reverses the operation of a $conn->fsync({lock => 1}); operation. 
