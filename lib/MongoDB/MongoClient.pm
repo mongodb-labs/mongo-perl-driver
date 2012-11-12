@@ -172,11 +172,6 @@ sub BUILD {
     if (!($self->host =~ /^mongodb:\/\//)) {
         push @pairs, $self->host.":".$self->port;
     }
-    # even more deprecated syntax
-    elsif ($self->left_host && $self->right_host) {
-        push @pairs, $self->left_host.":".$self->left_port;
-        push @pairs, $self->right_host.":".$self->right_port;
-    }
     # supported syntax
     else {
         my $str = substr $self->host, 10;
@@ -307,11 +302,6 @@ sub _get_any_connection {
 
 sub get_master {
     my ($self) = @_;
-
-    # return if the connection is paired the stupid old way
-    if (defined $self->left_host && defined $self->right_host) {
-        return $self->_old_stupid_paired_conn;
-    }
 
     my $conn = $self->_get_any_connection();
     # if we couldn't connect to anything, just return
