@@ -23,9 +23,9 @@ use Moose;
 use MongoDB::GridFS;
 use Carp 'carp';
 
-has _connection => (
+has _client => ( 
     is       => 'ro',
-    isa      => 'MongoDB::Connection',
+    isa      => 'MongoDB::MongoClient',
     required => 1,
 );
 
