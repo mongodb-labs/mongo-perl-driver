@@ -95,7 +95,7 @@ MGVTBL connection_vtbl = {
 #endif
 };
 
-MODULE = MongoDB::Connection  PACKAGE = MongoDB::Connection
+MODULE = MongoDB::MongoClient  PACKAGE = MongoDB::MongoClient
 
 PROTOTYPES: DISABLE
 
