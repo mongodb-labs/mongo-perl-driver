@@ -18,7 +18,7 @@ package MongoDB::BSON;
 
 
 # ABSTRACT: Tools for serializing and deserializing data in BSON form
-use Any::Moose;
+use Moose;
 
 =head1 NAME
 

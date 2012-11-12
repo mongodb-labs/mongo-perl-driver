@@ -45,7 +45,7 @@ Core documentation on collections: L<http://dochub.mongodb.org/core/collections>
 =cut
 
 use Tie::IxHash;
-use Any::Moose;
+use Moose;
 use Carp 'carp';
 use boolean;
 
@@ -753,7 +753,6 @@ sub drop {
 
 
 
-no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;

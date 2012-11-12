@@ -52,7 +52,6 @@ sub AUTOLOAD {
 
 	
 
-no Any::Moose;
 __PACKAGE__->meta->make_immutable (inline_destructor => 0);
 
 1;

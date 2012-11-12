@@ -19,7 +19,7 @@ package MongoDB::BSON::Binary;
 
 # ABSTRACT: Binary type
 
-use Any::Moose;
+use Moose;
 
 =head1 NAME
 

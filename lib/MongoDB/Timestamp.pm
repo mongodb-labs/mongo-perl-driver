@@ -32,7 +32,7 @@ L<DateTime>.  See <MongoDB::DataTypes> for more information.
 
 =cut
 
-use Any::Moose;
+use Moose;
 
 =head1 ATTRIBUTES
 

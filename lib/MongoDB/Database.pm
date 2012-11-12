@@ -19,7 +19,7 @@ package MongoDB::Database;
 
 # ABSTRACT: A Mongo Database
 
-use Any::Moose;
+use Moose;
 use MongoDB::GridFS;
 use Carp 'carp';
 
@@ -50,7 +50,7 @@ sub AUTOLOAD {
 
 sub BUILD {
     my ($self) = @_;
-    Any::Moose::load_class("MongoDB::Collection");
+    Moose::load_class("MongoDB::Collection");
 }
 
 
@@ -128,7 +128,6 @@ sub eval {
     }
 }
 
-no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 1;

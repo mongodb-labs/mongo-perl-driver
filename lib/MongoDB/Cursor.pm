@@ -18,7 +18,7 @@ package MongoDB::Cursor;
 
 
 # ABSTRACT: A cursor/iterator for Mongo query results
-use Any::Moose;
+use Moose;
 use boolean;
 use Tie::IxHash;
 
@@ -570,7 +570,7 @@ sub all {
     return @ret;
 }
 
-no Any::Moose;
+
 __PACKAGE__->meta->make_immutable (inline_destructor => 0);
 
 1;

@@ -19,7 +19,7 @@ package MongoDB::GridFS;
 
 # ABSTRACT: A file storage utility
 
-use Any::Moose;
+use Moose;
 use MongoDB::GridFS::File;
 use DateTime;
 use Digest::MD5;
