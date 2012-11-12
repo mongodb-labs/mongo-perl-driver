@@ -33,7 +33,7 @@ has '_client' => (
     isa         => 'MongoDB::MongoClient', 
     is          => 'ro',
     lazy_build  => 1,
-    handles     => qr/.+/;
+    handles     => qr/.+/
 );
 
 sub _build__client { 
