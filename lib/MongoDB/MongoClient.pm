@@ -161,18 +161,6 @@ has dt_type => (
 );
 
 
-sub AUTOLOAD {
-    my $self = shift @_;
-    our $AUTOLOAD;
-
-    my $db = $AUTOLOAD;
-    $db =~ s/.*:://;
-
-    carp sprintf q{AUTOLOADed database method names are deprecated and will be removed in a future release. Use $conn->get_database( '%s' ) instead.}, $db;
-
-    return $self->get_database($db);
-}
-
 sub BUILD {
     my ($self, $opts) = @_;
     eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
