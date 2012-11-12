@@ -48,11 +48,6 @@ sub AUTOLOAD {
     return $self->get_collection($coll);
 }
 
-sub BUILD {
-    my ($self) = @_;
-    Moose::load_class("MongoDB::Collection");
-}
-
 
 sub collection_names {
     my ($self) = @_;
