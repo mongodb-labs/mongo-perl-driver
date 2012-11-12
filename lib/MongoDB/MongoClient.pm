@@ -17,12 +17,11 @@
 package MongoDB::MongoClient;
 
 # ABSTRACT: A connection to a Mongo server
-
+use Moose;
+use Moose::Util::TypeConstraints;
 use MongoDB;
 use MongoDB::Cursor;
 
-use Any::Moose;
-use Any::Moose 'Util::TypeConstraints';
 use Digest::MD5;
 use Tie::IxHash;
 use Carp 'carp';
@@ -62,27 +61,6 @@ has port => (
     default  => 27017,
 );
 
-has left_host => (
-    is       => 'ro',
-    isa      => 'Str',
-);
-
-has left_port => (
-    is       => 'ro',
-    isa      => 'Int',
-    default  => 27017,
-);
-
-has right_host => (
-    is       => 'ro',
-    isa      => 'Str',
-);
-
-has right_port => (
-    is       => 'ro',
-    isa      => 'Int',
-    default  => 27017,
-);
 
 has auto_reconnect => (
     is       => 'ro',
