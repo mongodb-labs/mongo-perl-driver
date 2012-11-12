@@ -14,7 +14,7 @@ eval {
     if (exists $ENV{MONGOD}) {
         $host = $ENV{MONGOD};
     }
-    $conn = MongoDB::Connection->new(host => $host, ssl => $ENV{MONGO_SSL});
+    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
 };
 
 if ($@) {
@@ -24,7 +24,7 @@ else {
     plan tests => 16;
 }
 
-isa_ok($conn, 'MongoDB::Connection');
+isa_ok($conn, 'MongoDB::MongoClient');
 
 my $db = $conn->get_database('test_database');
 $db->drop;
