@@ -264,7 +264,7 @@ sub database_names {
 sub get_database {
     my ($self, $database_name) = @_;
     return MongoDB::Database->new(
-        _connection => $self,
+        _client     => $self,
         name        => $database_name,
     );
 }
