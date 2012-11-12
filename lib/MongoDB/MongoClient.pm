@@ -363,37 +363,6 @@ sub get_master {
     return -1;
 }
 
-sub _old_stupid_paired_conn {
-    my $self = shift;
-
-    my ($left, $right, $master);
-
-    # check the left host
-    eval {
-        $left = MongoDB::Connection->new("host" => $self->left_host, "port" => $self->left_port, timeout => $self->timeout);
-    };
-    if (!($@ =~ m/couldn't connect to server/)) {
-        $master = $left->find_one('admin.$cmd', {ismaster => 1});
-        if ($master->{'ismaster'}) {
-            return 0;
-        }
-    }
-
-    # check the right_host
-    eval {
-        $right = MongoDB::Connection->new("host" => $self->right_host, "port" => $self->right_port, timeout => $self->timeout);
-    };
-    if (!($@ =~ m/couldn't connect to server/)) {
-        $master = $right->find_one('admin.$cmd', {ismaster => 1});
-        if ($master->{'ismaster'}) {
-            return 1;
-        }
-    }
-
-    # something went wrong
-    return -1;
-}
-
 
 sub authenticate {
     my ($self, $dbname, $username, $password, $is_digest) = @_;
