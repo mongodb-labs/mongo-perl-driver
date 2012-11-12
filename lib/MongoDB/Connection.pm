@@ -33,21 +33,12 @@ has '_client' => (
     isa         => 'MongoDB::MongoClient', 
     is          => 'ro',
     lazy_build  => 1,
-    handles     => [ MongoDB::MongoClient->meta->get_method_list ]
+    handles     => qr/.+/;
 );
 
-
-
-sub AUTOLOAD {
-    my $self = shift @_;
-    our $AUTOLOAD;
-
-    my $db = $AUTOLOAD;
-    $db =~ s/.*:://;
-
-    carp sprintf q{AUTOLOADed database method names are deprecated and will be removed in a future release. Use $conn->get_database( '%s' ) instead.}, $db;
-
-    return $self->get_database($db);
+sub _build__client { 
+    shift;
+    return MongoDB::MongoClient->new( @_ );
 }
 
 	
