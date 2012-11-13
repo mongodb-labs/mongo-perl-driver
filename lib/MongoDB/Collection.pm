@@ -198,10 +198,10 @@ sub find {
     $skip    ||= 0;
 
     my $q = $query || {};
-    my $conn = $self->_database->_connection;
+    my $conn = $self->_database->_client;
     my $ns = $self->full_name;
     my $cursor = MongoDB::Cursor->new(
-	_connection => $conn,
+	_client => $conn,
 	_ns => $ns,
 	_query => $q,
 	_limit => $limit,
@@ -293,7 +293,7 @@ sub batch_insert {
         $add_ids = 0;
     }
 
-    my $conn = $self->_database->_connection;
+    my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
     my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids);
@@ -373,7 +373,7 @@ sub update {
         $flags = !(!$opts);
     }
 
-    my $conn = $self->_database->_connection;
+    my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
     my $update = MongoDB::write_update($ns, $query, $object, $flags);
@@ -403,7 +403,7 @@ die.
 sub rename {
     my ($self, $collectionname) = @_;
 
-    my $conn = $self->_database->_connection;
+    my $conn = $self->_database->_client;
     my $database = $conn->get_database( 'admin' );
     my $fullname = $self->full_name;
   
@@ -463,7 +463,7 @@ sub remove {
         $just_one = $options || 0;
     }
 
-    my $conn = $self->_database->_connection;
+    my $conn = $self->_database->_client;
     my $ns = $self->full_name;
     $query ||= {};
 
@@ -542,7 +542,7 @@ sub ensure_index {
 
 sub _make_safe {
     my ($self, $req) = @_;
-    my $conn = $self->_database->_connection;
+    my $conn = $self->_database->_client;
     my $db = $self->_database->name;
 
     my $last_error = Tie::IxHash->new(getlasterror => 1, w => $conn->w, wtimeout => $conn->wtimeout, j => $conn->j);
@@ -550,7 +550,7 @@ sub _make_safe {
 
     $conn->send("$req$query");
 
-    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _connection => $conn, _query => {});
+    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _client => $conn, _query => {});
     $cursor->_init;
     $cursor->_request_id($info->{'request_id'});
 
