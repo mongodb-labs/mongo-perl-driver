@@ -53,7 +53,12 @@ __END__
 
 =head1 NAME
 
-MongoDB::Connection - A connection to a Mongo server
+MongoDB::Connection - A connection to a MongoDB server
+
+=head1 DEPRECATED
+
+NOTE: C<MongoDB::Connection> is DEPRECATED as of version 0.502.0 of the MongoDB CPAN distribution. 
+It is no longer maintained and will be removed in a future version. Use L<MongoDB::MongoClient> instead. 
 
 =head1 SYNOPSIS
 
