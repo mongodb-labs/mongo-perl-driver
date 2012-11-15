@@ -437,21 +437,21 @@ __END__
 
 =head1 NAME
 
-MongoDB::Connection - A connection to a Mongo server
+MongoDB::MongoClient - A client object for a MongoDB server
 
 =head1 SYNOPSIS
 
-The MongoDB::Connection class creates a connection to the MongoDB server.
+The MongoDB::MongoClient class creates a client connection to the MongoDB server.
 
 By default, it connects to a single server running on the local machine
 listening on the default port:
 
     # connects to localhost:27017
-    my $connection = MongoDB::Connection->new;
+    my $client = MongoDB::MongoClient->new;
 
 It can connect to a database server running anywhere, though:
 
-    my $connection = MongoDB::Connection->new(host => 'example.com:12345');
+    my $client = MongoDB::MongoClient->new(host => 'example.com:12345');
 
 See the L</"host"> section for more options for connecting to MongoDB.
 
@@ -482,15 +482,14 @@ hosts listed.  If it cannot connect to any hosts, it will die.
 If a port is not specified for a given host, it will default to 27017. For
 example, to connecting to C<localhost:27017> and C<localhost:27018>:
 
-    $conn = MongoDB::Connection->new("host" => "mongodb://localhost,localhost:27018");
+    my $client = MongoDB::MongoClient->new("host" => "mongodb://localhost,localhost:27018");
 
 This will succeed if either C<localhost:27017> or C<localhost:27018> are available.
 
-The connect method will also try to determine who is master if more than one
+The connect method will also try to determine who is the primary if more than one
 server is given.  It will try the hosts in order from left to right.  As soon as
-one of the hosts reports that it is master, the connect will return success.  If
-no hosts report themselves as masters, the connect will die, reporting that it
-could not find a master.
+one of the hosts reports that it is the primary, the connect will return success.  If
+no hosts report themselves as a primary, the connect will die.
 
 If username and password are given, success is conditional on being able to log
 into the database as well as connect.  By default, the driver will attempt to
@@ -499,48 +498,29 @@ using the C<db_name> property, it will be used instead.
 
 =head2 w
 
-I<Only supported in MongoDB server version 1.5+.>
-
-The default number of mongod slaves to replicate a change to before reporting
-success for all operations on this collection.
-
-Defaults to 1 (just the current master).
-
-If this is not set, a safe insert will wait for 1 machine (the master) to
-ack the operation, then return that it was successful.  If the master has
-slaves, the slaves may not yet have a record of the operation when success is
-reported.  Thus, if the master goes down, the slaves will never get this
-operation.
-
-To prevent this, you can set C<w> to a value greater than 1.  If you set C<w> to
-<N>, it means that safe operations must have succeeded on the master and C<N-1>
-slaves before the client is notified that the operation succeeded.  If the
-operation did not succeed or could not be replicated to C<N-1> slaves within the
-timeout (see C<wtimeout> below), the safe operation will fail (croak).
-
-Some examples of a safe insert with C<w> set to 3 and C<wtimeout> set to 100:
+The client I<write concern>. 
 
 =over 4
 
-=item The master inserts the document, but 100 milliseconds pass before the
-slaves have a chance to replicate it.  The master returns failure and the client
-croaks.
+=item C<-1> Errors ignored. Do not use this.
+=item C<0> Unacknowledged. MongoClient will B<NOT> wait for an acknowledgment that 
+the server has received and processed the request. Older documentation may refer
+to this as "fire-and-forget" mode. You must call C<getLastError> manually to check
+if a request succeeds. This option is not recommended.
+=item C<1> Acknowledged. This is the default. MongoClient will wait until the 
+primary MongoDB acknowledges the write.
+=item C<2> Replica acknowledged. MongoClient will wait until at least two 
+replicas (primary and one secondary) acknowledge the write. You can set a higher 
+number for more replicas.
+=item C<all> All replicas acknowledged.
+=item C<majority> A majority of replicas acknowledged.
 
-=item The master inserts the document and two or more slaves replicate the
-operation within 100 milliseconds.  The safe insert returns success.
 
-=item The master inserts the document but there is only one slave up.  The
-safe insert times out and croaks.
-
-=back
-
-I<MongoDB server version 2.0+: "majority" and Data Center Awareness>
-
-As of MongoDB 2.0+, the 'w' parameter can be passed strings. This can be done by passing it the string "majority" this will wait till the B<majority> of 
-of the nodes in the relica set have recieved the data. For more information see: http://www.mongodb.org/display/DOCS/getLastError+Command#getLastErrorCommand-majority
-
-This can be useful for "Data Center Awareness." In v2.0+, you can "tag" replica members. With "tagging" you can specify a new "getLastErrorMode" where you can create new
-rules on how your data is replicated. To used you getLastErrorMode, you pass in the name of the mode to the 'w' parameter. For more infomation see: http://www.mongodb.org/display/DOCS/Data+Center+Awareness
+In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can specify a 
+new "getLastErrorMode" where you can create new
+rules on how your data is replicated. To used you getLastErrorMode, you pass in the 
+name of the mode to the C<w> parameter. For more infomation see: 
+http://www.mongodb.org/display/DOCS/Data+Center+Awareness
 
 =head2 wtimeout
 
@@ -553,7 +533,8 @@ See C<w> above for more information.
 
 =head2 j
 
-If true, awaits the journal commit before returning. If the server is running without journaling, it returns immediately, and successfully.
+If true, awaits the journal commit before returning. If the server is running without 
+journaling, it returns immediately, and successfully.
 
 
 =head2 auto_reconnect
@@ -572,28 +553,28 @@ Connection timeout in milliseconds. Defaults to C<20000>.
 
 =head2 username
 
-Username for this connection.  Optional.  If this and the password field are
-set, the connection will attempt to authenticate on connection/reconnection.
+Username for this client connection.  Optional.  If this and the password field are
+set, the client will attempt to authenticate on connection/reconnection.
 
 =head2 password
 
 Password for this connection.  Optional.  If this and the username field are
-set, the connection will attempt to authenticate on connection/reconnection.
+set, the client will attempt to authenticate on connection/reconnection.
 
 =head2 db_name
 
 Database to authenticate on for this connection.  Optional.  If this, the
-username, and the password fields are set, the connection will attempt to
+username, and the password fields are set, the client will attempt to
 authenticate against this database on connection/reconnection.  Defaults to
 "admin".
 
 =head2 query_timeout
 
     # set query timeout to 1 second
-    my $conn = MongoDB::Connection->new(query_timeout => 1000);
+    my $client = MongoDB::MongoClient->new(query_timeout => 1000);
 
     # set query timeout to 6 seconds
-    $conn->query_timeout(6000);
+    $client->query_timeout(6000);
 
 This will cause all queries (including C<find_one>s and C<run_command>s) to die
 after this period if the database has not responded.
@@ -603,7 +584,7 @@ L<MongoDB::Cursor/timeout>.
 
     $MongoDB::Cursor::timeout = 5000;
     # query timeout for $conn will be 5 seconds
-    my $conn = MongoDB::Connection->new;
+    my $client = MongoDB::MongoClient->new;
 
 A value of -1 will cause the driver to wait forever for responses and 0 will
 cause it to die immediately.
@@ -611,7 +592,7 @@ cause it to die immediately.
 This value overrides L<MongoDB::Cursor/timeout>.
 
     $MongoDB::Cursor::timeout = 1000;
-    my $conn = MongoDB::Connection->new(query_timeout => 10);
+    my $client = MongoDB::MongoClient->new(query_timeout => 10);
     # timeout for $conn is 10 milliseconds
 
 =head2 max_bson_size
@@ -621,27 +602,26 @@ MongoDB on connection to determine this value.  It defaults to 4MB.
 
 =head2 find_master
 
-If this is true, the driver will attempt to find a master given the list of
-hosts.  The master-finding algorithm looks like:
+If this is true, the driver will attempt to find a primary given the list of
+hosts.  The primary-finding algorithm looks like:
 
     for host in hosts
 
-        if host is master
+        if host is the primary
              return host
 
         else if host is a replica set member
-            master := replica set's master
-            return master
+            primary := replica set's primary
+            return primary
 
-If no master is found, the connection will fail.
+If no primary is found, the connection will fail.
 
 If this is not set (or set to the default, 0), the driver will simply use the
 first host in the host list for all connections.  This can be useful for
-directly connecting to slaves for reads.
+directly connecting to secondaries for reads.
 
-If you are connecting to a slave, you should check out the
-L<MongoDB::Cursor/slave_okay> documentation for information on reading from a
-slave.
+If you are connecting to a secondary, you should read
+L<MongoDB::Cursor/slave_okay>.
 
 You can use the C<ismaster> command to find the members of a replica set:
 
@@ -669,27 +649,27 @@ rather than an object.
 
 =head2 connect
 
-    $connection->connect;
+    $client->connect;
 
-Connects to the mongo server. Called automatically on object construction if
+Connects to the MongoDB server. Called automatically on object construction if
 C<auto_connect> is true.
 
 =head2 database_names
 
-    my @dbs = $connection->database_names;
+    my @dbs = $client->database_names;
 
 Lists all databases on the mongo server.
 
 =head2 get_database($name)
 
-    my $database = $connection->get_database('foo');
+    my $database = $client->get_database('foo');
 
 Returns a L<MongoDB::Database> instance for database with the given C<$name>.
 
 
 =head2 get_master
 
-    $master = $connection->get_master
+    $master = $client->get_master
 
 Determines which host of a paired connection is master.  Does nothing for
 a non-paired connection.  This need never be invoked by a user, it is
@@ -698,7 +678,7 @@ connection in the list of connections or -1 if it cannot be determined.
 
 =head2 authenticate ($dbname, $username, $password, $is_digest?)
 
-    $connection->authenticate('foo', 'username', 'secret');
+    $client->authenticate('foo', 'username', 'secret');
 
 Attempts to authenticate for use of the C<$dbname> database with C<$username>
 and C<$password>. Passwords are expected to be cleartext and will be
@@ -712,7 +692,7 @@ L<http://dochub.mongodb.org/core/authentication>.
 =head2 send($str)
 
     my ($insert, $ids) = MongoDB::write_insert('foo.bar', [{name => "joe", age => 40}]);
-    $conn->send($insert);
+    $client->send($insert);
 
 Low-level function to send a string directly to the database.  Use
 L<MongoDB::write_insert>, L<MongoDB::write_update>, L<MongoDB::write_remove>, or
@@ -720,7 +700,7 @@ L<MongoDB::write_query> to create a valid string.
 
 =head2 recv(\%info)
 
-    my $cursor = $conn->recv({ns => "foo.bar"});
+    my $cursor = $client->recv({ns => "foo.bar"});
 
 Low-level function to receive a response from the database. Returns a
 C<MongoDB::Cursor>.  At the moment, the only required field for C<$info> is
@@ -730,13 +710,13 @@ C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
 
 =head fsync(\%args)
 
-    $conn->fsync();
+    $client->fsync();
     
 A function that will forces the server to flush all pending writes to the storage layer.
 
 The fsync operation is synchronous by default, to run fsync asynchronously, use the following form:
 
-    $conn->fsync({async => 1});
+    $client->fsync({async => 1});
 
 The primary use of fsync is to lock the database during backup operations. This will flush all data to the data storage layer and block all write operations until you unlock the database. Note: you can still read while the database is locked. 
     
