@@ -12,7 +12,7 @@ MongoDB::Tutorial - Getting started with MongoDB
 The tutorial runs through the basic functionality of the MongoDB package.  This
 is a good starting point if you have never used MongoDB before.
 
-The tutorial assumes that you are running a Mongo database server locally on the
+The tutorial assumes that you are running a MongoDB database server locally on the
 default port.  You can download Mongo from L<http://www.mongodb.org>.
 
 =head1 TERMINOLOGY
@@ -42,7 +42,7 @@ Autoincrementing primary key
 =head1 PREAMBLE
 
 C<use MongoDB> loads most of the packages you'll need to interact with MongoDB:
-L<MongoDB::Connection>, L<MongoDB::Database>, L<MongoDB::Collection>, and
+L<MongoDB::MongoClient>, L<MongoDB::Database>, L<MongoDB::Collection>, and
 L<MongoDB::Cursor>.  To use special Mongo data types (see
 L<MongoDB::DataTypes>), you have to include them separately.  So, usually, to
 use Mongo, you'll start with at least:
@@ -54,20 +54,20 @@ use Mongo, you'll start with at least:
 
 To get started, we have to connect to the database server.  Because it's running
 locally on the default port, we need not pass any parameters to the
-L<MongoDB::Connection> constructor:
+L<MongoDB::MongoClient> constructor:
 
-    my $conn = MongoDB::Connection->new;
+    my $client = MongoDB::MongoClient->new;
 
 Now we're connected to the database server.  Next we need a database to work
 with, we'll call it "tutorial".  You need not do anything special to create the
 database, Mongo will create it on the fly.
 
-    my $db = $conn->tutorial;
+    my $db = $client->get_database( 'tutorial' );
 
 The last part of the preliminary setup is to choose a collection.  We'll be
 using the "users" collection to start out.
 
-    my $users = $db->users;
+    my $users = $db->get_collection( 'users' );
 
 Again, there is no need to create the collection in advance, it will be created
 as needed.
@@ -76,16 +76,10 @@ as needed.
 
 =head2 Creating Documents
 
-Before you get started with MongoDB, it is important to know that, by default,
-MongoDB does not return a response from writes (inserts, updates, and deletes).
-If you would like to know if the insert succeeded or failed, use the C<safe>
-option.  For more information on this, see
-L<http://www.mongodb.org/display/DOCS/getLastError+Command> for details.
-
 =head3 Inserting
 
 To add a document to the collection, we use the C<insert> function.  It takes a
-hash which is saved to the collection.
+hash reference which is saved to the collection.
 
     $users->insert({"name" => "Joe",
         "age" => 52,
@@ -106,7 +100,7 @@ An efficient way to insert documents is to send many at a time to the database
 by using C<batch_insert>, which returns an array of the C<_id> fields of the
 documents inserted.
 
-    @ids = $users->batch_insert(\@fifty_users);
+    my @ids = $users->batch_insert(\@many_users);
 
 
 =head2 Retrieving Documents
@@ -189,7 +183,7 @@ the C<"likes"> array, we write:
 To add a new field or change the type or value of an existing field, we use
 C<$set>.  For example, to change the _id field to a username, we would say:
 
-    $users->update({"_id" => $id}, {'$set' => {'_id' => 'joe_schmoe'}});
+    $users->update({"_id" => $id}, {'$set' => {'name' => 'joe_schmoe'}});
 
 =head3 Options
 
@@ -212,7 +206,7 @@ optional third parameter with C<update>:
 
 (This functionality was added in version 1.1.3 of the database and will not work
 in earlier versions.) Sometimes we may want update to create an element if it
-does not already exist.  This is called an 'upsert' (as it is a combination of
+does not already exist.  This is called an 'upsert' (a combination of
 an update and an insert).  For example, the same code could be used for creating
 and updating a log document:
 
@@ -242,7 +236,7 @@ C<drop> can also be used for whole databases:
 
     $db->drop;
 
-=head1 MONGO BASICS
+=head1 MONGODB BASICS
 
 =head2 Database Commands
 
