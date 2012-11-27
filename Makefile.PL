@@ -18,8 +18,8 @@ foreach (@ARGV){
     last;
 }
 
-requires 'inc::Module::Install';
-requires 'Any::Moose';
+requires 'Module::Install';
+requires 'Moose';
 # C::M::Modifiers isn't always needed. It'll be used only if Any::Moose decides
 # to use Mouse instead of Moose. We depend on it anyway to make sure it's there
 # when it's needed.
