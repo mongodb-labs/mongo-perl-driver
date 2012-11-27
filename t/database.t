@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
+use Test::Warn;
 
 use MongoDB::Timestamp; # needed if db is being run as master
 
@@ -13,17 +14,17 @@ eval {
     if (exists $ENV{MONGOD}) {
         $host = $ENV{MONGOD};
     }
-    $conn = MongoDB::Connection->new(host => $host, ssl => $ENV{MONGO_SSL});
+    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
 };
 
 if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 15;
+    plan tests => 16;
 }
 
-isa_ok($conn, 'MongoDB::Connection');
+isa_ok($conn, 'MongoDB::MongoClient');
 
 my $db = $conn->get_database('test_database');
 $db->drop;
@@ -67,14 +68,20 @@ SKIP: {
 
 # autoload
 {
-    my $coll1 = $conn->foo->bar;
+    my $coll1;
+    warnings_like { $coll1 = $conn->foo->bar } 
+      [ qr/database method names are deprecated/i,
+        qr/collection method names are deprecated/i
+      ],
+      'AUTOLOAD warning';
+
     is($coll1->name, "bar");
     is($coll1->full_name, "foo.bar");
 }
 
 END {
     if ($conn) {
-        $conn->foo->drop;
+        $conn->get_database( 'foo' )->drop;
     }
     if ($db) {
         $db->drop;

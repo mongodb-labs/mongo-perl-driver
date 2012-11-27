@@ -280,7 +280,7 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *
   return ret;
 }
 
-static SV *bson_to_av (buffer *buf);
+static SV *bson_to_av (buffer *buf, char *dt_type);
 
 void perl_mongo_make_oid(char *twelve, char *twenty4) {
   int i;
@@ -314,7 +314,7 @@ oid_to_sv (buffer *buf)
 }
 
 static SV *
-elem_to_sv (int type, buffer *buf)
+elem_to_sv (int type, buffer *buf, char *dt_type)
 {
   SV *value = 0;
 
@@ -353,11 +353,11 @@ elem_to_sv (int type, buffer *buf)
     break;
   }
   case BSON_OBJECT: {
-    value = perl_mongo_bson_to_sv(buf);
+    value = perl_mongo_bson_to_sv(buf, dt_type);
     break;
   }
   case BSON_ARRAY: {
-    value = bson_to_av(buf);
+    value = bson_to_av(buf, dt_type);
     break;
   }
   case BSON_BINARY: {
@@ -449,14 +449,45 @@ elem_to_sv (int type, buffer *buf)
     buf->pos += INT_64;
     ms_i /= 1000;
 
-    datetime = sv_2mortal(newSVpv("DateTime", 0));
-    ms = newSViv(ms_i);
+    if ( dt_type == NULL ) { 
+      // raw epoch
+      value = newSViv(ms_i);
+    } else if ( strcmp( dt_type, "DateTime::Tiny" ) == 0 ) {
+      datetime = sv_2mortal(newSVpv("DateTime::Tiny", 0));
+      time_t epoch = (time_t)ms_i;
+      struct tm *dt = gmtime( &epoch );
 
-    named_params = newHV();
-    heval = hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
+      value = 
+        perl_mongo_call_function("DateTime::Tiny::new", 13, datetime,
+                                 newSVpvn("year",     strlen("year")),  
+                                 newSViv( dt->tm_year + 1900 ),
+                                 newSVpvn("month",    strlen("month")),
+                                 newSViv( dt->tm_mon  +    1 ),
+                                 newSVpvn("day",      strlen("day")),
+                                 newSViv( dt->tm_mday ),
+                                 newSVpvn("hour",     strlen("hour")),
+                                 newSViv( dt->tm_hour ),
+                                 newSVpvn("minute",   strlen("minute")),
+                                 newSViv( dt->tm_min ),
+                                 newSVpvn("second",   strlen("second")),
+                                 newSViv( dt->tm_sec )
+                                 );
 
-    value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
-                                     sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
+
+    } else if ( strcmp( dt_type, "DateTime" ) == 0 ) { 
+      datetime = sv_2mortal(newSVpv("DateTime", 0));
+      ms = newSViv(ms_i);
+
+      named_params = newHV();
+      heval = hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
+
+      value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
+                                       sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
+
+    } else {
+      croak( "Invalid dt_type \"%s\"", dt_type );
+    }
+
     break;
   }
   case BSON_REGEX: {
@@ -545,7 +576,7 @@ elem_to_sv (int type, buffer *buf)
     buf->pos += code_len;
 
     if (type == BSON_CODE) {
-      scope = perl_mongo_bson_to_sv(buf);
+      scope = perl_mongo_bson_to_sv(buf, dt_type);
       value = perl_mongo_construct_instance("MongoDB::Code", "code", code, "scope", scope, NULL);
     }
     else {
@@ -588,7 +619,7 @@ elem_to_sv (int type, buffer *buf)
 }
 
 static SV *
-bson_to_av (buffer *buf)
+bson_to_av (buffer *buf, char *dt_type)
 {
   AV *ret = newAV ();
 
@@ -604,7 +635,7 @@ bson_to_av (buffer *buf)
     buf->pos += strlen(buf->pos) + 1;
 
     // get value
-    if ((sv = elem_to_sv (type, buf))) {
+    if ((sv = elem_to_sv (type, buf, dt_type))) {
       av_push (ret, sv);
     }
   }
@@ -613,9 +644,10 @@ bson_to_av (buffer *buf)
 }
 
 SV *
-perl_mongo_bson_to_sv (buffer *buf)
+perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
 {
   HV *ret = newHV();
+  SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
 
   char type;
 
@@ -631,9 +663,15 @@ perl_mongo_bson_to_sv (buffer *buf)
     buf->pos += strlen(buf->pos) + 1;
 
     // get value
-    value = elem_to_sv(type, buf);
-    if (!hv_store (ret, name, strlen (name), value, 0)) {
-      croak ("failed storing value in hash");
+    value = elem_to_sv(type, buf, dt_type);
+    if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
+    	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
+     	 croak ("failed storing value in hash");
+    	}
+    } else {
+    	if (!hv_store (ret, name, strlen (name), value, 0)) {
+     	 croak ("failed storing value in hash");
+    	}
     }
   }
 
@@ -954,7 +992,10 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
      * so we're using hv_fetch
      */
     if ((hval = hv_fetch(hv, key, len, 0)) == 0) {
-      croak("could not find hash value for key %s", key);
+    /* May be it's an unicode string? */
+        if ((hval = hv_fetch(hv, key, -len, 0)) == 0) {
+	    croak("could not find hash value for key %s, len:%d", key, len);
+	}
     }
     append_sv (buf, key, *hval, stack, is_insert);
   }

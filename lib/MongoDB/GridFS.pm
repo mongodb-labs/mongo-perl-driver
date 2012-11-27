@@ -19,7 +19,7 @@ package MongoDB::GridFS;
 
 # ABSTRACT: A file storage utility
 
-use Any::Moose;
+use Moose;
 use MongoDB::GridFS::File;
 use DateTime;
 use Digest::MD5;
@@ -113,12 +113,28 @@ sub _build_chunks {
     return $coll;
 }
 
+# This checks if the required indexes for GridFS exist in for the current database.
+# If they are not found, they will be created.
+sub BUILD {
+    my ($self) = @_;
+   
+    # check for the required indexs in the system.indexes colleciton
+    my $count = $self->_database->get_collection('system.indexes')->count({filename => 1});
+    $count   += $self->_database->get_collection('system.indexes')->count({files_id => 1, n => 1});
+    
+    # if we dont have the required indexes, create them now.
+    if ($count < 2){
+       $self->_ensure_indexes();
+    }
+}
+
+
 sub _ensure_indexes {
-    my $self = shift;
+    my ($self) = @_;
 
     # ensure the necessary index is present (this may be first usage)
     $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
-    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1});
+    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1, "unique" => 1});
 }
 
 =head1 METHODS
@@ -223,8 +239,6 @@ sub remove {
         }
     }
 
-    $self->_ensure_indexes;
-
     if ($just_one) {
         my $meta = $self->files->find_one($criteria);
         $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
@@ -275,8 +289,6 @@ sub insert {
     confess "not a file handle" unless $fh;
     $metadata = {} unless $metadata && ref $metadata eq 'HASH';
 
-    $self->_ensure_indexes;
-
     my $start_pos = $fh->getpos();
 
     my $id;
@@ -291,16 +303,17 @@ sub insert {
     my $length = 0;
     while ((my $len = $fh->read(my $data, $MongoDB::GridFS::chunk_size)) != 0) {
         $self->chunks->insert({"files_id" => $id,
-                               "n" => $n,
-                               "data" => bless(\$data)}, $options);
+                               "n"        => $n,
+                               "data"     => bless(\$data)}, $options);
         $n++;
         $length += $len;
     }
     $fh->setpos($start_pos);
 
-    # get an md5 hash for the file
-    my $result = $self->_database->run_command({"filemd5", $id,
-                                                "root" => $self->prefix});
+    # get an md5 hash for the file. set the retry flag to 'true' incase the 
+    # database, collection, or indexes are missing. That way we can recreate them 
+    # retry the md5 calc.
+    my $result = $self->_calc_md5($id, $self->prefix, 1);
 
     # compare the md5 hashes
     if ($options->{safe}) {
@@ -322,6 +335,37 @@ sub insert {
     $copy{"length"} = $length;
     return $self->files->insert(\%copy, $options);
 }
+
+# Calculates the md5 of the file on the server
+# $id    : reference to the object we want to hash
+# $root  : the namespace the file resides in
+# $retry : a flag which controls whether or not to retry the md5 calc. 
+#         (which is currently only if we are missing our indexes)
+sub _calc_md5 {
+    my ($self, $id, $root, $retry) = @_;
+   
+    # Try to get an md5 hash for the file
+    my $result = $self->_database->run_command({"filemd5", $id, "root" => $self->prefix});
+    
+    # If we didn't get a hash back, it means something is wrong (probably to do with gridfs's 
+    # indexes because its currently the only error that is thown from the md5 class)
+    if (ref($result) ne 'HASH') {
+        # Yep, indexes are missing. If we have the $retry flag, lets create them calc the md5 again
+        # but we wont pass set the $retry flag again. we dont want an infinate loop for any reason. 
+        if ($retry == 1 && $result eq 'need an index on { files_id : 1 , n : 1 }'){
+            $self->_ensure_indexes();
+            $result = $self->_calc_md5($id, $root, 0);
+        }
+        # Well, something bad is happening, so lets clean up and die. 
+        else{
+            $self->chunks->remove({files_id => $id});
+            die "recieve an unexpected error from the server: $result";
+        }
+    }
+    
+    return $result;
+}
+
 
 =head2 drop
 

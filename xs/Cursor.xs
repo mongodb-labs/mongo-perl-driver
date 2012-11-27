@@ -110,7 +110,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   }
 
 
-  link = perl_mongo_call_reader (self, "_connection");
+  link = perl_mongo_call_reader (self, "_client");
   ns = perl_mongo_call_reader (self, "_ns");
 
   // we have to go and check with the db
@@ -156,7 +156,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
 
 static void kill_cursor(SV *self) {
   mongo_cursor *cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
-  SV *link = perl_mongo_call_reader (self, "_connection");
+  SV *link = perl_mongo_call_reader (self, "_client");
   SV *request_id_sv = perl_mongo_call_reader (self, "_request_id");
   char quickbuf[128];
   buffer buf;
@@ -223,10 +223,18 @@ next (self)
         SV *self
     PREINIT:
         mongo_cursor *cursor;
+        SV *dt_type_sv;
     CODE:
         cursor = get_cursor(self);
         if (has_next(self, cursor)) {
-          RETVAL = perl_mongo_bson_to_sv(&cursor->buf);
+          dt_type_sv = perl_mongo_call_reader( self, "_dt_type" );
+          if ( SvOK( dt_type_sv ) ) { 
+            char *dt_type = SvPV( dt_type_sv, SvLEN( dt_type_sv ) );
+            RETVAL = perl_mongo_bson_to_sv(&cursor->buf, dt_type);
+          } else { 
+            // dt type is undef
+            RETVAL = perl_mongo_bson_to_sv(&cursor->buf, NULL);
+          }
           cursor->at++;
 
           if (cursor->num == 1 &&
@@ -238,7 +246,7 @@ next (self)
             
             if (code && SvIOK(*code) &&
                 (SvIV(*code) == 10107 || SvIV(*code) == 13435 || SvIV(*code) == 13436)) {
-              SV *conn = perl_mongo_call_method (self, "_connection", 0, 0);
+              SV *conn = perl_mongo_call_method (self, "_client", 0, 0);
               set_disconnected(conn);
             }
             
@@ -299,7 +307,7 @@ DESTROY (self)
       mongo_link *link;
       SV *link_sv;
   CODE:
-      link_sv = perl_mongo_call_reader(self, "_connection");
+      link_sv = perl_mongo_call_reader(self, "_client");
       link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
       // check if cursor is connected
       if (link->master && link->master->connected) {

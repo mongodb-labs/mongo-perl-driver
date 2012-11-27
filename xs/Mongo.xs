@@ -17,7 +17,7 @@
 #include "perl_mongo.h"
 #include "mongo_link.h"
 
-extern XS(boot_MongoDB__Connection);
+extern XS(boot_MongoDB__MongoClient);
 extern XS(boot_MongoDB__BSON);
 extern XS(boot_MongoDB__Cursor);
 extern XS(boot_MongoDB__OID);
@@ -32,7 +32,7 @@ BOOT:
 
         perl_mongo_machine_id = SvIV(ST(2));
 
-	PERL_MONGO_CALL_BOOT (boot_MongoDB__Connection);
+	PERL_MONGO_CALL_BOOT (boot_MongoDB__MongoClient);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__BSON);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Cursor);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__OID);
@@ -176,7 +176,7 @@ read_documents(sv)
          buf.end = buf.start + SvCUR(sv);
 
          while(buf.pos < buf.end) {
-             XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf)));
+             XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf, "DateTime")));
          }
 
 

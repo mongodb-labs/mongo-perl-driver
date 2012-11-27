@@ -378,7 +378,7 @@ int mongo_link_hear(SV *cursor_sv) {
   SV *link_sv, *request_id_sv, *timeout_sv;
 
   cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv, &cursor_vtbl);
-  link_sv = perl_mongo_call_reader(cursor_sv, "_connection");
+  link_sv = perl_mongo_call_reader(cursor_sv, "_client");
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
   timeout_sv = perl_mongo_call_reader(link_sv, "query_timeout");
 

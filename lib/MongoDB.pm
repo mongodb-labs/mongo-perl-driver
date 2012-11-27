@@ -21,26 +21,29 @@ use warnings;
 package MongoDB;
 # ABSTRACT: A Mongo Driver for Perl
 
-
-
 use XSLoader;
 use MongoDB::Connection;
+use MongoDB::MongoClient;
+use MongoDB::Database;
+use MongoDB::Collection;
+
 
 XSLoader::load(__PACKAGE__, $MongoDB::VERSION, int rand(2 ** 24));
 
 1;
 
-=head1 NAME
 
-MongoDB - Mongo Driver for Perl
+__END__
+
+
 
 =head1 SYNOPSIS
 
     use MongoDB;
 
-    my $connection = MongoDB::Connection->new(host => 'localhost', port => 27017);
-    my $database   = $connection->foo;
-    my $collection = $database->bar;
+    my $client     = MongoDB::MongoClient->new(host => 'localhost', port => 27017);
+    my $database   = $client->get_database( 'foo' );
+    my $collection = $database->get_collection( 'bar' );
     my $id         = $collection->insert({ some => 'data' });
     my $data       = $collection->find_one({ _id => $id });
 
@@ -48,7 +51,7 @@ MongoDB - Mongo Driver for Perl
 
 This is the Perl driver for MongoDB, a document-oriented database.  This section
 introduces some of the basic concepts of MongoDB.  There's also a L<MongoDB::Tutorial/"Tutorial">
-pod that introduces using the driver.  For more documentation on MongoDB in
+POD that introduces using the driver.  For more documentation on MongoDB in
 general, check out L<http://www.mongodb.org>.
 
 =head1 GETTING HELP
@@ -57,20 +60,6 @@ If you have any questions, comments, or complaints, you can get through to the
 developers most dependably via the MongoDB user list:
 I<mongodb-user@googlegroups.com>.  You might be able to get someone quicker
 through the MongoDB IRC channel, I<irc.freenode.net#mongodb>.
-
-=head1 AUTHORS
-
-  Florian Ragwitz <rafl@debian.org>
-  Kristina Chodorow <kristina@mongodb.org>
-  Mike Friedman <mike.friedman@10gen.com>
-
-=head1 COPYRIGHT AND LICENSE
-
-This software is Copyright (c) 2009 by 10Gen.
-
-This is free software, licensed under:
-
-  The Apache License, Version 2.0, January 2004
 
 =head1 DESCRIPTION
 
@@ -93,10 +82,10 @@ Thanks to taronishino for this example.
 
 The following conventions are used in this document:
 
-    $conn   Database connection
+    $client Database client object
     $db     Database
     $coll   Collection
-    undef   NULL values are represented by undefined values in Perl
+    undef   C<null> values are represented by undefined values in Perl
     \@arr   Reference to an array passed to methods
     \%attr  Reference to a hash of attribute values passed to methods
 
@@ -107,35 +96,33 @@ all references to them are deleted.
 
 To use MongoDB, first you need to load the MongoDB module:
 
-    use MongoDB;
     use strict;
     use warnings;
+    use MongoDB;
 
-(The C<use strict;> and C<use warnings;> aren't required, but they're strongly
-recommended.)
 
-Then you need to connect to a Mongo database server.  By default, Mongo listens
+Then you need to connect to a MongoDB database server.  By default, MongoDB listens
 for connections on port 27017.  Unless otherwise noted, this documentation
 assumes you are running MongoDB locally on the default port.
 
-Mongo can be started in I<authentication mode>, which requires clients to log in
-before manipulating data.  By default, Mongo does not start in this mode, so no
+MongoDB can be started in I<authentication mode>, which requires clients to log in
+before manipulating data.  By default, MongoDB does not start in this mode, so no
 username or password is required to make a fully functional connection.  If you
 would like to learn more about authentication, see the C<authenticate> method.
 
-To connect to the database, create a new MongoDB Connection object:
+To connect to the database, create a new MongoClient object:
 
-    $conn = MongoDB::Connection->new("host" => "localhost:27017");
+    my $client = MongoDB::MongoClient->new("host" => "localhost:27017");
 
 As this is the default, we can use the equivalent shorthand:
 
-    $conn = MongoDB::Connection->new;
+    my $client = MongoDB::MongoClient->new;
 
 Connecting is relatively expensive, so try not to open superfluous connections.
 
 There is no way to explicitly disconnect from the database.  However, the
 connection will automatically be closed and cleaned up when no references to
-the C<MongoDB::Connection> object exist, which occurs when C<$conn> goes out of
+the C<MongoDB::MongoClient> object exist, which occurs when C<$client> goes out of
 scope (or earlier if you undefine it with C<undef>).
 
 =head2 INTERNALS
@@ -146,10 +133,10 @@ The classes are arranged in a hierarchy: you cannot create a
 L<MongoDB::Collection> instance before you create L<MongoDB::Database> instance,
 for example.  The full hierarchy is:
 
-    MongoDB::Connection -> MongoDB::Database -> MongoDB::Collection
+    MongoDB::MongoClient -> MongoDB::Database -> MongoDB::Collection
 
 This is because L<MongoDB::Database> has a field that is a
-L<MongoDB::Connection> and L<MongoDB::Collection> has a L<MongoDB::Database>
+L<MongoDB::MongoClient> and L<MongoDB::Collection> has a L<MongoDB::Database>
 field.
 
 When you call a L<MongoDB::Collection> function, it "trickles up" the chain of
@@ -165,12 +152,12 @@ collection name ("foo").
 
 =item C<< $db->insert($name, $doc) >>
 
-Calls L<MongoDB::Connection>'s implementation of C<insert>, passing along the
+Calls L<MongoDB::MongoClient>'s implementation of C<insert>, passing along the
 fully qualified namespace ("foo.bar").
 
-=item C<< $connection->insert($ns, $doc) >>
+=item C<< $client->insert($ns, $doc) >>
 
-L<MongoDB::Connection> does the actual work and sends a message to the database.
+L<MongoDB::MongoClient> does the actual work and sends a message to the database.
 
 =back
 
@@ -183,7 +170,7 @@ nice wrappers in L<MongoDB::Collection>.
 
     my ($insert, $ids) = MongoDB::write_insert("foo.bar", [{foo => 1}, {bar => -1}, {baz => 1}]);
 
-Creates an insert string to be used by C<MongoDB::Connection::send>.  The second
+Creates an insert string to be used by C<MongoDB::MongoClient::send>.  The second
 argument is an array of hashes to insert.  To imitate the behavior of
 C<MongoDB::Collection::insert>, pass a single hash, for example:
 
@@ -199,27 +186,27 @@ inserted hashes will contain.
 
     my ($query, $info) = MongoDB::write_query('foo.$cmd', 0, 0, -1, {getlasterror => 1});
 
-Creates a database query to be used by C<MongoDB::Connection::send>.  C<$flags>
+Creates a database query to be used by C<MongoDB::MongoClient::send>.  C<$flags>
 are query flags to use (see C<MongoDB::Cursor::Flags> for possible values).
 C<$skip> is the number of results to skip, C<$limit> is the number of results to
 return, C<$query> is the query hash, and C<$fields> is the optional fields to
 return.
 
 This returns the query string and a hash of information about the query that is
-used by C<MongoDB::Connection::recv> to get the database response to the query.
+used by C<MongoDB::MongoClient::recv> to get the database response to the query.
 
 =head2 write_update($ns, $criteria, $obj, $flags)
 
     my ($update) = MongoDB::write_update("foo.bar", {age => {'$lt' => 20}}, {'$set' => {young => true}}, 0);
 
-Creates an update that can be used with C<MongoDB::Connection::send>.  C<$flags>
+Creates an update that can be used with C<MongoDB::MongoClient::send>.  C<$flags>
 can be 1 for upsert and/or 2 for updating multiple documents.
 
 =head2 write_remove($ns, $criteria, $flags)
 
     my ($remove) = MongoDB::write_remove("foo.bar", {name => "joe"}, 0);
 
-Creates a remove that can be used with C<MongoDB::Connection::send>.  C<$flags>
+Creates a remove that can be used with C<MongoDB::MongoClient::send>.  C<$flags>
 can be 1 for removing just one matching document.
 
 =head2 read_documents($buffer)

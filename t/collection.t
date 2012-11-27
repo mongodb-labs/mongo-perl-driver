@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
+use Test::Warn;
 
 use utf8;
 use Data::Types qw(:float);
@@ -17,14 +18,14 @@ eval {
     if (exists $ENV{MONGOD}) {
         $host = $ENV{MONGOD};
     }
-    $conn = MongoDB::Connection->new(host => $host, ssl => $ENV{MONGO_SSL});
+    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
 };
 
 if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 136;
+    plan tests => 137;
 }
 
 my $db = $conn->get_database('test_database');
@@ -197,11 +198,12 @@ $coll->insert({foo => "\x9F" });
 my $utfblah = $coll->find_one;
 is(ord($utfblah->{'foo'}), 159, 'translate non-utf8 to utf8 char');
 
+$MongoDB::BSON::utf8_flag_on = 0;
 $coll->drop;
 $coll->insert({"\x9F" => "hi"});
 $utfblah = $coll->find_one;
 is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
-
+$MongoDB::BSON::utf8_flag_on = 1;
 
 $coll->drop;
 my $keys = tie(my %idx, 'Tie::IxHash');
@@ -461,7 +463,14 @@ SKIP: {
 
 # autoload
 {
-    my $coll1 = $conn->foo->bar->baz;
+    my $coll1;
+    warnings_like { $coll1 = $conn->foo->bar->baz } 
+      [ qr/database method names are deprecated/i,
+        qr/collection method names are deprecated/i,
+        qr/collection method names are deprecated/i 
+      ],
+      'AUTOLOAD warning';
+
     is($coll1->name, "bar.baz");
     is($coll1->full_name, "foo.bar.baz");
 }
@@ -558,7 +567,7 @@ SKIP: {
 
 END {
     if ($conn) {
-        $conn->foo->drop;
+        $conn->get_database( 'foo' )->drop;
     }
     if ($db) {
         $db->drop;

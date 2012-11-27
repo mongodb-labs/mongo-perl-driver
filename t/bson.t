@@ -18,14 +18,14 @@ eval {
     if (exists $ENV{MONGOD}) {
         $host = $ENV{MONGOD};
     }
-    $conn = MongoDB::Connection->new(host => $host, ssl => $ENV{MONGO_SSL});
+    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
 };
 
 if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 73;
+    plan tests => 74;
 }
 
 my $db = $conn->get_database('foo');
@@ -266,16 +266,6 @@ package main;
     is(($v->{'key'}), $size);
 }
 
-# make sure this doesn't segfault
-{
-    use utf8;
-
-    eval {
-        $c->insert({'_id' => 'bar', '上海' => 'ouch'});
-    };
-    ok($@ =~ /could not find hash value for key/, "error: ".$@);
-}
-
 # make sure _ids aren't double freed
 {
     $c->drop;
@@ -373,6 +363,21 @@ package main;
     }
 
     $MongoDB::BSON::use_binary = $old;
+}
+
+# Checking hash key unicode support
+{
+    use utf8;
+    $c->drop;
+    
+    my $testkey = 'юникод';
+    my $hash = { $testkey => 1 };
+
+    my $oid;
+    eval { $oid = $c->insert( $hash, {safe => 1}); };
+    is ( $@, '' );
+    my $obj = $c->find_one( { _id => $oid } );
+    is ( $obj->{$testkey}, 1 );
 }
 
 END {

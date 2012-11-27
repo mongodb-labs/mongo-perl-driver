@@ -19,7 +19,7 @@ eval {
     if (exists $ENV{MONGOD}) {
         $host = $ENV{MONGOD};
     }
-    $m = MongoDB::Connection->new(host => $host, ssl => $ENV{MONGO_SSL});
+    $m = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
 };
 
 if ($@) {

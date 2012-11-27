@@ -157,7 +157,7 @@ void perl_mongo_make_id(char *id);
 void perl_mongo_make_oid(char* twelve, char *twenty4);
 
 // serialization
-SV *perl_mongo_bson_to_sv (buffer *buf);
+SV *perl_mongo_bson_to_sv (buffer *buf, char *dt_type);
 void perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids);
 
 int perl_mongo_resize_buf (buffer*, int);

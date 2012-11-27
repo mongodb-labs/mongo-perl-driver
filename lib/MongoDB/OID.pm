@@ -18,7 +18,7 @@ package MongoDB::OID;
 
 # ABSTRACT: A Mongo Object ID
 
-use Any::Moose;
+use Moose;
 
 =head1 NAME
 
@@ -140,7 +140,7 @@ use overload
     '""' => \&to_string,
     'fallback' => 1;
 
-no Any::Moose;
+
 __PACKAGE__->meta->make_immutable;
 
 1;

@@ -19,7 +19,7 @@ package MongoDB::GridFS::File;
 
 # ABSTRACT: A Mongo GridFS file
 
-use Any::Moose;
+use Moose;
 use MongoDB::GridFS;
 use IO::File;
 

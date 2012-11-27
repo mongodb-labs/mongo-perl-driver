@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
+use Test::Warn;
 
 use MongoDB::Timestamp; # needed if db is being run as master
 
@@ -13,42 +14,42 @@ eval {
     if (exists $ENV{MONGOD}) {
         $host = $ENV{MONGOD};
     }
-    $conn = MongoDB::Connection->new(host => $host, ssl => $ENV{MONGO_SSL});
+    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
 };
 
 if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 19;
+    plan tests => 22;
 }
 
 throws_ok {
-    MongoDB::Connection->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL});
+    MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL});
 } qr/couldn't connect to server/, 'exception on connection failure';
 
 SKIP: {
     skip "connecting to default host/port won't work with a remote db", 6 if exists $ENV{MONGOD};
 
     lives_ok {
-        $conn = MongoDB::Connection->new(ssl => $ENV{MONGO_SSL});
+        $conn = MongoDB::MongoClient->new(ssl => $ENV{MONGO_SSL});
     } 'successful connection';
-    isa_ok($conn, 'MongoDB::Connection');
+    isa_ok($conn, 'MongoDB::MongoClient');
 
     is($conn->host, 'mongodb://localhost:27017', 'host default value');
 
     # just make sure a couple timeouts work
-    my $to = MongoDB::Connection->new('timeout' => 1, ssl => $ENV{MONGO_SSL});
-    $to = MongoDB::Connection->new('timeout' => 123, ssl => $ENV{MONGO_SSL});
-    $to = MongoDB::Connection->new('timeout' => 2000000, ssl => $ENV{MONGO_SSL});
+    my $to = MongoDB::MongoClient->new('timeout' => 1, ssl => $ENV{MONGO_SSL});
+    $to = MongoDB::MongoClient->new('timeout' => 123, ssl => $ENV{MONGO_SSL});
+    $to = MongoDB::MongoClient->new('timeout' => 2000000, ssl => $ENV{MONGO_SSL});
 
     # test conn format
     lives_ok {
-        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27017", ssl => $ENV{MONGO_SSL});
+        $conn = MongoDB::MongoClient->new("host" => "mongodb://localhost:27017", ssl => $ENV{MONGO_SSL});
     } 'connected';
 
     lives_ok {
-        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:27017,", ssl => $ENV{MONGO_SSL});
+        $conn = MongoDB::MongoClient->new("host" => "mongodb://localhost:27017,", ssl => $ENV{MONGO_SSL});
     } 'extra comma';
 
     lives_ok {
@@ -57,7 +58,7 @@ SKIP: {
                (exists $ENV{DB_PORT2} && $ip eq $ENV{DB_PORT2})) {
             $ip++;
         }
-        $conn = MongoDB::Connection->new("host" => "mongodb://localhost:".$ip.",localhost:".($ip+1).",localhost", ssl => $ENV{MONGO_SSL});
+        my $conn2 = MongoDB::MongoClient->new("host" => "mongodb://localhost:".$ip.",localhost:".($ip+1).",localhost", ssl => $ENV{MONGO_SSL});
     } 'last in line';
 }
 
@@ -77,10 +78,15 @@ is($result->{'ok'}, 1, 'db was dropped');
 
 
 # w
-SKIP: {
+{
     is($conn->w, 1, "get w");
     $conn->w(3);
     is($conn->w, 3, "set w");
+
+    $conn->w("tag");
+    is($conn->w, "tag", "set w to string");
+
+    dies_ok { $conn->w({tag => 1});} "Setting w to anything but a string or int dies.";
 
     is($conn->wtimeout, 1000, "get wtimeout");
     $conn->wtimeout(100);
@@ -91,7 +97,8 @@ SKIP: {
 
 # autoload
 {
-    my $db1 = $conn->foo;
+    my $db1;
+    warning_like { $db1 = $conn->foo; } qr/database method names are deprecated/i, 'AUTOLOAD warning';
     is($db1->name, "foo");
 }
 
@@ -99,11 +106,11 @@ SKIP: {
 {
     my $timeout = $MongoDB::Cursor::timeout;
 
-    my $conn2 = MongoDB::Connection->new(auto_connect => 0, ssl => $ENV{MONGO_SSL});
+    my $conn2 = MongoDB::MongoClient->new(auto_connect => 0, ssl => $ENV{MONGO_SSL});
     is($conn2->query_timeout, $timeout, 'query timeout');
 
     $MongoDB::Cursor::timeout = 40;
-    $conn2 = MongoDB::Connection->new(auto_connect => 0, ssl => $ENV{MONGO_SSL});
+    $conn2 = MongoDB::MongoClient->new(auto_connect => 0, ssl => $ENV{MONGO_SSL});
     is($conn2->query_timeout, 40, 'query timeout');
 
     $MongoDB::Cursor::timeout = $timeout;
@@ -112,7 +119,7 @@ SKIP: {
 # max_bson_size
 {
     my $size = $conn->max_bson_size;
-    my $result = $conn->admin->run_command({buildinfo => 1});
+    my $result = $conn->get_database( 'admin' )->run_command({buildinfo => 1});
     if (exists $result->{'maxBsonObjectSize'}) {
         is($size, $result->{'maxBsonObjectSize'});
     }
@@ -123,7 +130,7 @@ SKIP: {
 
 END {
     if ($conn) {
-        $conn->foo->drop;
+        $conn->get_database( 'foo' )->drop;
     }
     if ($db) {
         $db->drop;

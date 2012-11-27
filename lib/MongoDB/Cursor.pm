@@ -18,7 +18,7 @@ package MongoDB::Cursor;
 
 
 # ABSTRACT: A cursor/iterator for Mongo query results
-use Any::Moose;
+use Moose;
 use boolean;
 use Tie::IxHash;
 
@@ -91,9 +91,9 @@ has started_iterating => (
     default => 0,
 );
 
-has _connection => (
+has _client => (
     is => 'ro',
-    isa => 'MongoDB::Connection',
+    isa => 'MongoDB::MongoClient',
     required => 1,
 );
 
@@ -136,6 +136,8 @@ has _tailable => (
 );
 
 
+
+
 =head2 immortal
 
     $cursor->immortal(1);
@@ -157,6 +159,7 @@ your connection.
 See L<MongoDB::Connection/query_timeout>.
 
 =cut
+
 
 has immortal => (
     is => 'rw',
@@ -244,8 +247,8 @@ sub _do_query {
     my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit, $self->_query, $self->_fields);
     $self->_request_id($info->{'request_id'});
 
-    $self->_connection->send($query);
-    $self->_connection->recv($self);
+    $self->_client->send($query);
+    $self->_client->recv($self);
 
     $self->started_iterating(1);
 }
@@ -475,12 +478,21 @@ sub count {
         $cmd->Push(skip => $self->_skip) if $self->_skip;
     }
 
-    my $result = $self->_connection->get_database($db)->run_command($cmd);
+    my $result = $self->_client->get_database($db)->run_command($cmd);
 
     # returns "ns missing" if collection doesn't exist
     return 0 unless ref $result eq 'HASH';
     return $result->{'n'};
 }
+
+
+# shortcut to make some XS code saner
+sub _dt_type { 
+    my $self = shift;
+    return $self->_client->dt_type;
+}
+
+
 
 =head2 reset
 
@@ -558,7 +570,7 @@ sub all {
     return @ret;
 }
 
-no Any::Moose;
+
 __PACKAGE__->meta->make_immutable (inline_destructor => 0);
 
 1;
