@@ -1,11 +1,8 @@
 
-# PODNAME: MongoDB Data Types
+# PODNAME: MongoDB::DataTypes
+# ABSTRACT: The data types used with MongoDB
 
 =pod
-
-=head1 NAME
-
-MongoDB::DataTypes - The data types used with MongoDB
 
 =head1 DESCRIPTION
 

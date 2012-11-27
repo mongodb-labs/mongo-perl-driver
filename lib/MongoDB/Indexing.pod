@@ -1,11 +1,8 @@
 
-# PODNAME: MongoDB Indexing
+# PODNAME: MongoDB::Indexing
+# ABSTRACT: Indexing collections
 
 =pod
-
-=head1 NAME
-
-MongoDB::Indexing - Indexing collections
 
 =head1 CREATING AN INDEX
 

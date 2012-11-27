@@ -1,11 +1,8 @@
 
-# PODNAME: MongoDB Examples
+# PODNAME: MongoDB::Examples
+# ABSTRACT: Some examples of MongoDB syntax
 
 =pod
-
-=head1 NAME
-
-MongoDB::Examples - Some examples of MongoDB syntax
 
 =head1 MAPPING SQL TO MONGODB
 
