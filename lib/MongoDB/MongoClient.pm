@@ -197,7 +197,7 @@ sub BUILD {
     foreach (@pairs) {
         $opts->{host} = "mongodb://$_";
 
-        $self->_servers->{$_} = MongoDB::Connection->new($opts);
+        $self->_servers->{$_} = MongoDB::MongoClient->new($opts);
 
         next unless $self->auto_connect;
 
@@ -334,7 +334,7 @@ sub get_master {
             }
             for (@{$master->{'hosts'}}) {
                 if (!$self->_servers->{$_}) {
-                    $self->_servers->{$_} = MongoDB::Connection->new("host" => "mongodb://$_", %opts);
+                    $self->_servers->{$_} = MongoDB::MongoClient->new("host" => "mongodb://$_", %opts);
                 }
             }
             $self->ts(time());
@@ -411,19 +411,6 @@ sub fsync_unlock {
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
 	
-
-
-sub AUTOLOAD {
-    my $self = shift @_;
-    our $AUTOLOAD;
-
-    my $db = $AUTOLOAD;
-    $db =~ s/.*:://;
-
-    carp sprintf q{AUTOLOADed database method names are deprecated and will be removed in a future release. Use $client->get_database( '%s' ) instead.}, $db;
-
-    return $self->get_database($db);
-}
 
 
 

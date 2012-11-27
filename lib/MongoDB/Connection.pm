@@ -23,6 +23,7 @@ use MongoDB;
 use MongoDB::Cursor;
 use MongoDB::MongoClient;
 
+use Class::MOP::Class;
 use Digest::MD5;
 use Tie::IxHash;
 use Carp 'carp';
@@ -33,7 +34,9 @@ has '_client' => (
     isa         => 'MongoDB::MongoClient', 
     is          => 'ro',
     lazy_build  => 1,
-    handles     => qr/.+/
+    handles     => [ grep { $_ !~ /^meta$/ } 
+                     map { $_->name } Class::MOP::Class->initialize( 'MongoDB::MongoClient' )->get_all_methods 
+                   ]
 );
 
 sub _build__client { 
@@ -46,6 +49,21 @@ sub _build__client {
 __PACKAGE__->meta->make_immutable (inline_destructor => 0);
 
 1;
+
+
+
+sub AUTOLOAD {
+    my $self = shift @_;
+    our $AUTOLOAD;
+
+    my $db = $AUTOLOAD;
+    $db =~ s/.*:://;
+
+    carp sprintf q{AUTOLOADed database method names are deprecated and will be removed in a future release. Use $client->get_database( '%s' ) instead.}, $db;
+
+    return $self->get_database($db);
+}
+
 
 
 
