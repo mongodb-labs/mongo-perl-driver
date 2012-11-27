@@ -18,14 +18,14 @@ eval {
     if (exists $ENV{MONGOD}) {
         $host = $ENV{MONGOD};
     }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
+    $conn = MongoDB::Connection->new(host => $host, ssl => $ENV{MONGO_SSL});
 };
 
 if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 134;
+    plan tests => 137;
 }
 
 my $db = $conn->get_database('test_database');
@@ -461,6 +461,19 @@ SKIP: {
     is($result->{'x'}, 4);
 }
 
+# autoload
+{
+    my $coll1;
+    warnings_like { $coll1 = $conn->foo->bar->baz } 
+      [ qr/database method names are deprecated/i,
+        qr/collection method names are deprecated/i,
+        qr/collection method names are deprecated/i 
+      ],
+      'AUTOLOAD warning';
+
+    is($coll1->name, "bar.baz");
+    is($coll1->full_name, "foo.bar.baz");
+}
 
 # ns hack
 # check insert utf8
