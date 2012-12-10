@@ -1304,6 +1304,28 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         SvREFCNT_dec (sec);
         SvREFCNT_dec (ms);
       }
+      /* DateTime::TIny */
+      else if (sv_isa(sv, "DateTime::Tiny")) { 
+        struct tm t;
+        time_t epoch_secs = time(NULL);
+        int64_t epoch_ms;
+
+        t.tm_year   = SvIV( perl_mongo_call_reader( sv, "year"    ) ) - 1900;
+        t.tm_mon    = SvIV( perl_mongo_call_reader( sv, "month"   ) ) -    1;
+        t.tm_mday   = SvIV( perl_mongo_call_reader( sv, "day"     ) )       ;
+        t.tm_hour   = SvIV( perl_mongo_call_reader( sv, "hour"    ) )       ;
+        t.tm_min    = SvIV( perl_mongo_call_reader( sv, "minute"  ) ) -     1;
+        t.tm_sec    = SvIV( perl_mongo_call_reader( sv, "second"  ) )       ;
+        t.tm_isdst  = -1;     // no dst/tz info in DateTime::Tiny
+
+        epoch_secs = timegm( &t );
+
+        // no miliseconds in DateTime::Tiny, so just multiply by 1000
+        epoch_ms = (int64_t)epoch_secs*1000;
+        set_type( buf, BSON_DATE );
+        perl_mongo_serialize_key( buf, key, is_insert );
+        perl_mongo_serialize_long( buf, epoch_ms );
+      }
       /* boolean */
       else if (sv_isa(sv, "boolean")) {
         set_type(buf, BSON_BOOL);

@@ -22,7 +22,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 7;
+    plan tests => 9;
 }
 
 my $db = $conn->get_database('test_database');
@@ -64,5 +64,37 @@ my $now = DateTime->now;
         my $date4 = $db->get_collection( 'test_collection' )->find_one->{date};
     } qr/Invalid dt_type "DateTime::Bad"/i;
 
+}
+
+# roundtrips
+
+{
+    $conn->dt_type( 'DateTime' );
+    my $coll = $db->get_collection( 'test_collection' );
+    $coll->insert( { date => $now } );
+    my $doc = $coll->find_one;
+
+    $doc->{date}->add( seconds => 60 );
+
+    $coll->update( { _id => $doc->{_id} }, { date => $doc->{date} } );
+
+    my $doc2 = $coll->find_one;
+    is( $doc2->{date}->epoch, ( $now->epoch + 60 ) );
+}
+
+
+{
+    $conn->dt_type( 'DateTime::Tiny' );
+    my $dtt_now = DateTime::Tiny->now;
+    my $coll = $db->get_collection( 'test_collection' );
+    $coll->insert( { date => $dtt_now } );
+    my $doc = $coll->find_one;
+
+    $doc->{date} = DateTime::Tiny->from_string( $doc->{date}->DateTime->add( seconds => 60 )->iso8601 );
+    $coll->update( { _id => $doc->{_id} }, $doc );
+
+    my $doc2 = $coll->find_one( { _id => $doc->{_id} } );
+
+    is( $doc2->{date}->DateTime->epoch, ( $now->epoch + 60 ) );
 }
 
