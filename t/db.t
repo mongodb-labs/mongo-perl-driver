@@ -43,7 +43,7 @@ my $hello = $db->eval('function(x) { return "hello, "+x; }', ["world"]);
 is('hello, world', $hello, 'db eval');
 
 my $err = $db->eval('function(x) { xreturn "hello, "+x; }', ["world"]);
-ok($err =~ /compile failed: JS Error/, 'js err');
+like($err, qr/compile failed/, 'js err');
 
 # tie
 {
