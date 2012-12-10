@@ -45,11 +45,6 @@ around 'new' => sub {
 };
 
 
-__PACKAGE__->meta->make_immutable ( inline_destructor => 0, inline_constructor => 0 );
-
-1;
-
-
 
 sub AUTOLOAD {
     my $self = shift @_;
@@ -62,6 +57,13 @@ sub AUTOLOAD {
 
     return $self->get_database($db);
 }
+
+
+
+__PACKAGE__->meta->make_immutable ( inline_destructor => 0, inline_constructor => 0 );
+
+1;
+
 
 
 
