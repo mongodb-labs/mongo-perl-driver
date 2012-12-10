@@ -171,19 +171,24 @@ sub BUILD {
     # supported syntax (see http://docs.mongodb.org/manual/reference/connection-string/)
     if ($self->host =~ m{ ^
             mongodb://
-            (?: ([^:]+) : ([^@]+) @ )? # [username:password@]
-            ([^/]+) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
+            (?: ([^:]*) : ([^@]*) @ )? # [username:password@]
+            ([^/]*) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
             (?:
                 / ([^?]*) # /[database]
                 (?: [?] (.*) )? # [?options]
             )?
             $ }x) {
         my ($username, $password, $hostpairs, $database, $options) = ($1, $2, $3, $4, $5);
-        $self->username($username) if $username;
-        $self->password($password) if $password;
-        $self->db_name($database) if $database;
-        # TODO handle standard options from $options
+
+        # we add these things to $opts as well as self so that they get propagated when we recurse for multiple servers
+        $self->username($opts->{username} = $username) if $username;
+        $self->password($opts->{password} = $password) if $password;
+        $self->db_name($opts->{db_name} = $database) if $database;
+
+        $hostpairs = 'localhost' unless $hostpairs;
         @pairs =  map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $hostpairs;
+
+        # TODO handle standard options from $options
     }
     # deprecated syntax
     else {
