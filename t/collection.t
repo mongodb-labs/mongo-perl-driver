@@ -25,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 137;
+    plan tests => 140;
 }
 
 my $db = $conn->get_database('test_database');
@@ -576,6 +576,24 @@ SKIP: {
     $coll->drop;
 }
 
+# aggregate 
+{
+    $coll->batch_insert( [ { wanted => 1, score => 56 },
+                           { wanted => 1, score => 72 },
+                           { wanted => 1, score => 96 },
+                           { wanted => 1, score => 32 },
+                           { wanted => 1, score => 61 },
+                           { wanted => 1, score => 33 },
+                           { wanted => 0, score => 1000 } ] );
+
+    my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
+                                  { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
+
+    is( ref( $res ), ref [ ] );
+    ok $res->[0]{avgScore} < 59;
+    ok $res->[0]{avgScore} > 57;
+
+}
 
 END {
     if ($conn) {
