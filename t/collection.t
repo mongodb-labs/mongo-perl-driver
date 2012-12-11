@@ -25,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 134;
+    plan tests => 135;
 }
 
 my $db = $conn->get_database('test_database');
@@ -548,6 +548,15 @@ SKIP: {
     is($ok,0, "ixHash Insert key with Null Char in Key Operation Failed");
     is($coll->count, 0, "ixHash key with Null Char in Key Operation Failed");
     my $tied = $coll->find_one;
+    $coll->drop;
+}
+
+# findAndModify
+{
+    $coll->insert( { name => "find_and_modify_test", value => 42 } );
+    $coll->find_and_modify( { query => { name => "find_and_modify_test" }, update => { '$set' => { value => 43 } } } );
+    my $doc = $coll->find_one( { name => "find_and_modify_test" } );
+    is( $doc->{value}, 43 );
     $coll->drop;
 }
 
