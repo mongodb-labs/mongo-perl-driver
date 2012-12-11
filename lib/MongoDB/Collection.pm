@@ -389,14 +389,16 @@ sub update {
     return 1;
 }
 
-=head2 rename ("newcollectionname")
 
-    my $newcollection = $collection->rename("mynewcollection");
+=head2 find_and_modify
 
-Renames the collection.  It expects that the new name is currently not in use.  
+    my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
 
-Returns the new collection.  If a collection already exists with that new collection name this will
-die.
+Perform an atomic update. C<find_and_modify> guarantees that nothing else will come along
+and change the queried documents before the update is performed. 
+
+Returns the old version of the document, unless C<new => 1> is specified. If no documents
+match the query, it returns nothing.
 
 =cut
 
@@ -415,6 +417,20 @@ sub find_and_modify {
 
     return $result->{value};
 }
+
+
+=head2 rename ("newcollectionname")
+
+    my $newcollection = $collection->rename("mynewcollection");
+
+Renames the collection.  It expects that the new name is currently not in use.  
+
+Returns the new collection.  If a collection already exists with that new collection name this will
+die.
+
+=cut
+
+
 
 sub rename {
     my ($self, $collectionname) = @_;
