@@ -419,6 +419,29 @@ sub find_and_modify {
 }
 
 
+=head2 aggregate
+
+    my $result = $collection->aggregate( [ ... ] );
+
+Run a query using the MongoDB 2.2+ aggregation framework. The argument is an array-ref of 
+aggregation pipeline operators. Returns an array-ref containing the results of 
+the query. See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
+for more information on how to construct aggregation queries.
+
+=cut
+
+sub aggregate { 
+    my ( $self, $pipeline ) = @_;
+
+    my $db   = $self->_database;
+
+    my $result = $db->run_command( { aggregate => $self->name, pipeline => $pipeline } );
+
+    # TODO: handle errors?
+
+    return $result->{result};
+}
+
 =head2 rename ("newcollectionname")
 
     my $newcollection = $collection->rename("mynewcollection");
