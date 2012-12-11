@@ -400,6 +400,22 @@ die.
 
 =cut
 
+
+sub find_and_modify { 
+    my ( $self, $opts ) = @_;
+
+    my $conn = $self->_database->_client;
+    my $db   = $self->_database;
+
+    my $result = $db->run_command( { findAndModify => $self->name, %$opts } );
+
+    if ( not $result->{ok} ) { 
+        return if ( $result->{errmsg} eq 'No matching object found' );
+    }
+
+    return $result->{value};
+}
+
 sub rename {
     my ($self, $collectionname) = @_;
 
