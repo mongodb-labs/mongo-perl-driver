@@ -1318,7 +1318,21 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         t.tm_sec    = SvIV( perl_mongo_call_reader( sv, "second"  ) )       ;
         t.tm_isdst  = -1;     // no dst/tz info in DateTime::Tiny
 
-        epoch_secs = timegm( &t );
+        /* this dumb hack is necessary because Windows and some other
+           OSes do not have support for the timegm() function, so 
+           we will get the UTC time by temporarily poking the environment
+           table. */
+        char *old_tz = getenv( "TZ" );
+        setenv( "TZ", "", 1 );
+        tzset();
+        epoch_secs = mktime( &t );
+
+        if ( old_tz ) { 
+          setenv( "TZ", old_tz, 1 );
+        } else { 
+          unsetenv( "TZ" );
+        }
+        tzset();
 
         // no miliseconds in DateTime::Tiny, so just multiply by 1000
         epoch_ms = (int64_t)epoch_secs*1000;
