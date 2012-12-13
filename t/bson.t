@@ -212,7 +212,7 @@ my $c = $db->get_collection('bar');
 
 # moose numbers
 package Person;
-use Any::Moose;
+use Moose;
 has 'name' => ( is=>'rw', isa=>'Str' );
 has 'age'  => ( is=>'rw', isa=>'Int' );
 has 'size' => ( is=>'rw', isa=>'Num' );
