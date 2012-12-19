@@ -104,7 +104,7 @@ $col->insert({ foo => 4,  bar => 9, shazbot => 1 });
 
 END {
     if ($conn) {
-        $conn->affe->drop;
+        $conn->get_database('affe')->drop;
     }
 }
 

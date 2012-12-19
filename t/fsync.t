@@ -31,8 +31,12 @@ is(exists $ret->{numFiles}, 1, "fsync returned 'numFiles'");
 
 # Test async fsync.
 $ret = $conn->fsync({async => 1});
-is($ret->{ok},              1, "fsync + async returned 'ok' => 1");
-is(exists $ret->{numFiles}, 1, "fsync + async returned 'numFiles'");
+SKIP: { 
+    $ret =~ s/exception: //, warn($ret), skip $ret, 2 if $ret =~ /not supported/;
+
+    is($ret->{ok},              1, "fsync + async returned 'ok' => 1");
+    is(exists $ret->{numFiles}, 1, "fsync + async returned 'numFiles'");
+}
 
 # Test fsync with lock.
 $ret = $conn->fsync({lock => 1});

@@ -25,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 74;
+    plan tests => 75;
 }
 
 my $db = $conn->get_database('foo');
@@ -230,8 +230,11 @@ package main;
 
 # warn on floating timezone
 {
+    my $warned = 0;
+    local $SIG{__WARN__} = sub { if ($_[0] =~ /floating/) { $warned = 1; } else { warn(@_); } };
     my $date = DateTime->new(year => 2010, time_zone => "floating");
     $c->insert({"date" => $date});
+    is($warned, 1, "warn on floating timezone");
 }
 
 # half-conversion to int type
@@ -240,7 +243,9 @@ package main;
 
     my $var = 'zzz';
     # don't actually change it to an int, but add pIOK flag
+    { no warnings 'numeric';
     $var = int($var) if (int($var) eq $var);
+    }
 
     $c->insert({'key' => $var});
     my $v = $c->find_one;
@@ -257,7 +262,9 @@ package main;
     my $size = Person->new( size => 11.5 )->size;
 
     # add pIOK flag (IV is 11)
+    { no warnings 'void';
     int($size);
+    }
 
     $c->insert({'key' => $size});
     my $v = $c->find_one;
