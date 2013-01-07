@@ -1178,6 +1178,44 @@ int isUTF8(const char *s, int len) {
 }
 
 
+#ifdef WIN32
+
+/* 
+ * Some C libraries (e.g. MSVCRT) do not have a "timegm" function.
+ * Here is a surrogate implementation.
+ *
+ */
+
+static int is_leap_year(unsigned year)
+{
+    year += 1900;
+    return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0);
+}
+
+time_t timegm (struct tm *tm)
+{
+  static const unsigned month_start[2][12] = {
+	{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 },
+	{ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 },
+	};
+  time_t ret = 0;
+  int i;
+
+  for (i = 70; i < tm->tm_year; ++i)
+    ret += is_leap_year(i) ? 366 : 365;
+
+  ret += month_start[is_leap_year(tm->tm_year)][tm->tm_mon];
+  ret += tm->tm_mday - 1;
+  ret *= 24;
+  ret += tm->tm_hour;
+  ret *= 60;
+  ret += tm->tm_min;
+  ret *= 60;
+  ret += tm->tm_sec;
+  return ret;
+}
+
+#endif /* WIN32 */
 
 
 static void
@@ -1318,21 +1356,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         t.tm_sec    = SvIV( perl_mongo_call_reader( sv, "second"  ) )       ;
         t.tm_isdst  = -1;     // no dst/tz info in DateTime::Tiny
 
-        /* this dumb hack is necessary because Windows and some other
-           OSes do not have support for the timegm() function, so 
-           we will get the UTC time by temporarily poking the environment
-           table. */
-        char *old_tz = getenv( "TZ" );
-        setenv( "TZ", "", 1 );
-        tzset();
-        epoch_secs = mktime( &t );
-
-        if ( old_tz ) { 
-          setenv( "TZ", old_tz, 1 );
-        } else { 
-          unsetenv( "TZ" );
-        }
-        tzset();
+        epoch_secs = timegm( &t );
 
         // no miliseconds in DateTime::Tiny, so just multiply by 1000
         epoch_ms = (int64_t)epoch_secs*1000;
