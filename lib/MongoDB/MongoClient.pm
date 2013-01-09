@@ -506,19 +506,25 @@ The client I<write concern>.
 
 =over 4
 
-=item C<-1> Errors ignored. Do not use this.
-=item C<0> Unacknowledged. MongoClient will B<NOT> wait for an acknowledgment that 
+=item * C<-1> Errors ignored. Do not use this.
+
+=item * C<0> Unacknowledged. MongoClient will B<NOT> wait for an acknowledgment that 
 the server has received and processed the request. Older documentation may refer
 to this as "fire-and-forget" mode. You must call C<getLastError> manually to check
 if a request succeeds. This option is not recommended.
-=item C<1> Acknowledged. This is the default. MongoClient will wait until the 
+
+=item * C<1> Acknowledged. This is the default. MongoClient will wait until the 
 primary MongoDB acknowledges the write.
-=item C<2> Replica acknowledged. MongoClient will wait until at least two 
+
+=item * C<2> Replica acknowledged. MongoClient will wait until at least two 
 replicas (primary and one secondary) acknowledge the write. You can set a higher 
 number for more replicas.
-=item C<all> All replicas acknowledged.
-=item C<majority> A majority of replicas acknowledged.
 
+=item * C<all> All replicas acknowledged.
+
+=item * C<majority> A majority of replicas acknowledged.
+
+=back
 
 In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can specify a 
 new "getLastErrorMode" where you can create new
