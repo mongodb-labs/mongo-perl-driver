@@ -33,22 +33,16 @@ use boolean;
 has '_client' => (
     isa         => 'MongoDB::MongoClient', 
     is          => 'ro',
-    lazy_build  => 1,
-    handles     => [ grep { $_ !~ /^meta$/ } 
+    handles     => [ grep { $_ !~ /^(meta|new)$/ } 
                      map { $_->name } Class::MOP::Class->initialize( 'MongoDB::MongoClient' )->get_all_methods 
                    ]
 );
 
-sub _build__client { 
-    shift;
-    return MongoDB::MongoClient->new( @_ );
-}
 
-	
-
-__PACKAGE__->meta->make_immutable (inline_destructor => 0);
-
-1;
+around 'new' => sub { 
+    my ( $orig, $self, @args ) = @_;
+    return $self->$orig( _client => MongoDB::MongoClient->new( @args ) );
+};
 
 
 
@@ -63,6 +57,13 @@ sub AUTOLOAD {
 
     return $self->get_database($db);
 }
+
+
+
+__PACKAGE__->meta->make_immutable ( inline_destructor => 0, inline_constructor => 0 );
+
+1;
+
 
 
 

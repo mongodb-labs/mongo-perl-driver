@@ -25,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 134;
+    plan tests => 140;
 }
 
 my $db = $conn->get_database('test_database');
@@ -551,6 +551,49 @@ SKIP: {
     $coll->drop;
 }
 
+# findAndModify
+{
+    $coll->insert( { name => "find_and_modify_test", value => 42 } );
+    $coll->find_and_modify( { query => { name => "find_and_modify_test" }, update => { '$set' => { value => 43 } } } );
+    my $doc = $coll->find_one( { name => "find_and_modify_test" } );
+    is( $doc->{value}, 43 );
+
+    $coll->drop;
+
+    $coll->insert( { name => "find_and_modify_test", value => 46 } );
+    my $new = $coll->find_and_modify( { query  => { name => "find_and_modify_test" }, 
+                                        update => { '$set' => { value => 57 } },
+                                        new    => 1 } );
+
+    is ( $new->{value}, 57 );
+
+    $coll->drop;
+
+    my $nothing = $coll->find_and_modify( { query => { name => "does not exist" }, update => { name => "barf" } } );
+
+    is ( $nothing, undef );
+
+    $coll->drop;
+}
+
+# aggregate 
+{
+    $coll->batch_insert( [ { wanted => 1, score => 56 },
+                           { wanted => 1, score => 72 },
+                           { wanted => 1, score => 96 },
+                           { wanted => 1, score => 32 },
+                           { wanted => 1, score => 61 },
+                           { wanted => 1, score => 33 },
+                           { wanted => 0, score => 1000 } ] );
+
+    my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
+                                  { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
+
+    is( ref( $res ), ref [ ] );
+    ok $res->[0]{avgScore} < 59;
+    ok $res->[0]{avgScore} > 57;
+
+}
 
 END {
     if ($conn) {

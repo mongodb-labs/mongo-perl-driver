@@ -389,6 +389,59 @@ sub update {
     return 1;
 }
 
+
+=head2 find_and_modify
+
+    my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
+
+Perform an atomic update. C<find_and_modify> guarantees that nothing else will come along
+and change the queried documents before the update is performed. 
+
+Returns the old version of the document, unless C<new => 1> is specified. If no documents
+match the query, it returns nothing.
+
+=cut
+
+
+sub find_and_modify { 
+    my ( $self, $opts ) = @_;
+
+    my $conn = $self->_database->_client;
+    my $db   = $self->_database;
+
+    my $result = $db->run_command( { findAndModify => $self->name, %$opts } );
+
+    if ( not $result->{ok} ) { 
+        return if ( $result->{errmsg} eq 'No matching object found' );
+    }
+
+    return $result->{value};
+}
+
+
+=head2 aggregate
+
+    my $result = $collection->aggregate( [ ... ] );
+
+Run a query using the MongoDB 2.2+ aggregation framework. The argument is an array-ref of 
+aggregation pipeline operators. Returns an array-ref containing the results of 
+the query. See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
+for more information on how to construct aggregation queries.
+
+=cut
+
+sub aggregate { 
+    my ( $self, $pipeline ) = @_;
+
+    my $db   = $self->_database;
+
+    my $result = $db->run_command( { aggregate => $self->name, pipeline => $pipeline } );
+
+    # TODO: handle errors?
+
+    return $result->{result};
+}
+
 =head2 rename ("newcollectionname")
 
     my $newcollection = $collection->rename("mynewcollection");
@@ -399,6 +452,8 @@ Returns the new collection.  If a collection already exists with that new collec
 die.
 
 =cut
+
+
 
 sub rename {
     my ($self, $collectionname) = @_;

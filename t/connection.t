@@ -21,7 +21,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 20;
+    plan tests => 27;
 }
 
 throws_ok {
@@ -29,7 +29,7 @@ throws_ok {
 } qr/couldn't connect to server/, 'exception on connection failure';
 
 SKIP: {
-    skip "connecting to default host/port won't work with a remote db", 6 if exists $ENV{MONGOD};
+    skip "connecting to default host/port won't work with a remote db", 14 if exists $ENV{MONGOD};
 
     lives_ok {
         $conn = MongoDB::MongoClient->new(ssl => $ENV{MONGO_SSL});
@@ -37,6 +37,7 @@ SKIP: {
     isa_ok($conn, 'MongoDB::MongoClient');
 
     is($conn->host, 'mongodb://localhost:27017', 'host default value');
+    is($conn->db_name, 'admin', 'db_name default value');
 
     # just make sure a couple timeouts work
     my $to = MongoDB::MongoClient->new('timeout' => 1, ssl => $ENV{MONGO_SSL});
@@ -60,6 +61,13 @@ SKIP: {
         }
         my $conn2 = MongoDB::MongoClient->new("host" => "mongodb://localhost:".$ip.",localhost:".($ip+1).",localhost", ssl => $ENV{MONGO_SSL});
     } 'last in line';
+
+    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/example_db')->db_name, 'example_db', 'connection uri database');
+    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost,/example_db')->db_name, 'example_db', 'connection uri database trailing comma');
+    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/example_db?')->db_name, 'example_db', 'connection uri database trailing question');
+    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost:27020,localhost:27021,localhost/example_db')->db_name, 'example_db', 'connection uri database, many hosts');
+    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/?')->db_name, 'admin', 'connection uri no database');
+    is(MongoDB::MongoClient->new('host' => 'mongodb://:@localhost/?')->db_name, 'admin', 'connection uri empty extras');
 }
 
 my $db = $conn->get_database('test_database');
