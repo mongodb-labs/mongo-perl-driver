@@ -26,7 +26,7 @@ mappers that will enforce certain types for certain fields for you.
 
 You generally shouldn't save numbers as strings, as they will behave like
 strings (e.g., range queries won't work correctly) and the data will take up
-more space.  If you set L<MongoDB::BSON#looks_like_number>, the driver will
+more space.  If you set L<MongoDB::BSON/looks_like_number>, the driver will
 automatically convert everything that looks like a number to a number before
 sending it to the database.
 
@@ -119,7 +119,7 @@ Because of this, users often find that they end up with more strings than they
 wanted in their database.
 
 If you would like to have everything that looks like a number saved as a number,
-set the L<MongoDB::BSON#looks_like_number> option.
+set the L<MongoDB::BSON/looks_like_number> option.
 
     $MongoDB::BSON::looks_like_number = 1;
 

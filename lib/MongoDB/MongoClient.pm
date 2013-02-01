@@ -718,10 +718,10 @@ C<MongoDB::Cursor>.  At the moment, the only required field for C<$info> is
 C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
 
 
-=head fsync(\%args)
+=head2 fsync(\%args)
 
     $client->fsync();
-    
+
 A function that will forces the server to flush all pending writes to the storage layer.
 
 The fsync operation is synchronous by default, to run fsync asynchronously, use the following form:
@@ -729,11 +729,10 @@ The fsync operation is synchronous by default, to run fsync asynchronously, use 
     $client->fsync({async => 1});
 
 The primary use of fsync is to lock the database during backup operations. This will flush all data to the data storage layer and block all write operations until you unlock the database. Note: you can still read while the database is locked. 
-    
+
     $conn->fsync({lock => 1});
-    
-    
-=head fsync_unlock()
+
+=head2 fsync_unlock
 
     $conn->fsync_unlock();
 
