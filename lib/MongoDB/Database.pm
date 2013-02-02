@@ -307,7 +307,7 @@ Runs a database command. Returns a string with the error message if the
 command fails. Returns the result of the command (a hash reference) on success.
 For a list of possible database commands, run:
 
-    my $commands = $db->run_command({listCommands : 1});
+    my $commands = $db->run_command({listCommands => 1});
 
 There are a few examples of database commands in the
 L<MongoDB::Examples/"DATABASE COMMANDS"> section.
