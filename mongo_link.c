@@ -32,7 +32,7 @@ static void set_timeout(int socket, time_t timeout) {
   const char *tv_ptr = (const char*)&tv;
 #else
   struct timeval tv;
-  tv.tv_sec = 1;
+  tv.tv_sec = timeout;
   tv.tv_usec = 0;
   const void *tv_ptr = (void*)&tv;
 #endif
