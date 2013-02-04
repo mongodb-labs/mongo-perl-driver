@@ -267,7 +267,7 @@ this field is set, it will be a string describing the error that occurred.
 
 =item C<n>
 
-If the last operation was an insert, an update or a remove, the number of
+If the last operation was an update, upsert, or a remove, the number of
 objects affected will be returned.
 
 =item C<wtimeout>
