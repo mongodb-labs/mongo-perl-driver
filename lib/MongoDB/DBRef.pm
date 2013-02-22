@@ -40,7 +40,7 @@ has db => (
 );
 
 has client => (
-    is        => 'ro',
+    is        => 'rw',
     isa       => 'MongoDB::MongoClient',
     required  => 0
 );
