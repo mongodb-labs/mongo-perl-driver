@@ -26,7 +26,8 @@ use MongoDB::Connection;
 use MongoDB::MongoClient;
 use MongoDB::Database;
 use MongoDB::Collection;
-
+use MongoDB::DBRef;
+use MongoDB::OID;
 
 XSLoader::load(__PACKAGE__, $MongoDB::VERSION, int rand(2 ** 24));
 
