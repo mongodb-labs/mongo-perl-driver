@@ -3,7 +3,11 @@ package MongoDB::DBRef;
 # ABSTRACT: Native DBRef support
 
 use Moose;
+use Moose::Util::TypeConstraints;
 use Carp 'croak';
+
+union 'DatabaseOrName',  [ 'MongoDB::Database',   'Str' ];
+union 'CollectionOrName',[ 'MongoDB::Collection', 'Str' ];
 
 # no type constraint since an _id can be anything
 has id => (
@@ -36,14 +40,14 @@ has verify_db => (
     isa       => 'Bool',
     required  => 0,
     default   => 1
-)
+);
 
 has verify_coll => ( 
     is        => 'rw',
     isa       => 'Bool',
     required  => 0,
     default   => 1
-)
+);
 
 coerce 'DatabaseOrName' 
   => from 'MongoDB::Database'
