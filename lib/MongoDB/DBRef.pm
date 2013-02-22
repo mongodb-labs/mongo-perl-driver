@@ -6,8 +6,18 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use Carp 'croak';
 
-union 'DatabaseOrName',  [ 'MongoDB::Database',   'Str' ];
-union 'CollectionOrName',[ 'MongoDB::Collection', 'Str' ];
+
+subtype DBRefColl => as 'Str';
+subtype DBRefDB   => as 'Str';
+
+coerce 'DBRefColl'
+  => from 'MongoDB::Collection'
+  => via  { $_->name };
+
+coerce 'DBRefDB' 
+  => from 'MongoDB::Database'
+  => via  { $_->name };
+
 
 # no type constraint since an _id can be anything
 has id => (
@@ -17,16 +27,16 @@ has id => (
 
 has ref => (
     is        => 'rw',
-    isa       => 'Str',
+    isa       => 'DBRefColl',
     required  => 1,
-    builder   => '_build_ref',
+    coerce    => 1,
 );
 
 has db => ( 
     is        => 'rw',
-    isa       => 'Str',
+    isa       => 'DBRefDB',
     required  => 1,
-    builder   => '_build_db',
+    coerce    => 1,
 );
 
 has client => (
@@ -48,14 +58,6 @@ has verify_coll => (
     required  => 0,
     default   => 1
 );
-
-coerce 'DatabaseOrName' 
-  => from 'MongoDB::Database'
-  => via  { $_->name };
-
-coerce 'CollectionOrName'
-  => from 'MongoDB::Collection'
-  => via  { $_->name };
 
 
 sub fetch { 
