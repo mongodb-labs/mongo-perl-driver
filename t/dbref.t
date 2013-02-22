@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 8;
+    plan tests => 13;
 }
 
 {
@@ -42,4 +42,26 @@ else {
     is $ref->db, 'test';
     is $ref->ref, 'test_collection';
     is $ref->id, 123;
+}
+
+# test fetch
+{ 
+    $conn->get_database( 'test' )->get_collection( 'test_coll' )->insert( { _id => 123, foo => 'bar' } );
+
+    my $ref = MongoDB::DBRef->new( db => 'fake_db_does_not_exist', 'ref', 'fake_coll_does_not_exist', id => 123 );
+    throws_ok { $ref->fetch } qr/Can't fetch DBRef without a MongoClient/;
+
+    $ref->client( $conn );
+    throws_ok { $ref->fetch } qr/No such database fake_db_does_not_exist/;
+
+    $ref->db( 'test' );
+    throws_ok { $ref->fetch } qr/No such collection fake_coll_does_not_exist/;
+
+    $ref->ref( 'test_coll' );
+    
+    my $doc = $ref->fetch;
+    is $doc->{_id}, 123;
+    is $doc->{foo}, 'bar';
+
+    $conn->get_database( 'test' )->drop;
 }
