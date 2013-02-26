@@ -354,6 +354,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
   }
   case BSON_OBJECT: {
     value = perl_mongo_bson_to_sv(buf, dt_type);
+
     break;
   }
   case BSON_ARRAY: {
@@ -650,6 +651,8 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
   SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
 
   char type;
+  int is_dbref = 1;
+  int key_num  = 0;
 
   // for size
   buf->pos += INT_32;
@@ -659,6 +662,13 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
     SV *value;
 
     name = buf->pos;
+    key_num++;
+    /* check if this is a DBref. We must see the keys
+       $ref, $id, and $db in that order, with no extra keys */
+    if ( key_num == 1 && strcmp( name, "$ref" ) ) is_dbref = 0;
+    if ( key_num == 2 && is_dbref == 1 && strcmp( name, "$id" ) ) is_dbref = 0;
+    if ( key_num == 3 && is_dbref == 1 && strcmp( name, "$db" ) ) is_dbref = 0;
+
     // get past field name
     buf->pos += strlen(buf->pos) + 1;
 
@@ -673,6 +683,21 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
      	 croak ("failed storing value in hash");
     	}
     }
+  }
+
+  if ( key_num == 3 && is_dbref == 1 ) { 
+    SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
+    SV *dbref = 
+      perl_mongo_call_method( dbr_class, "new", 0, 6,
+                                   newSVpvn("ref",     strlen("ref")),  
+                                   *hv_fetch( ret, "$ref", 4, FALSE ),
+                                   newSVpvn("id",      strlen("id")),
+                                   *hv_fetch( ret, "$id", 3, FALSE ),
+                                   newSVpvn("db",      strlen("db")),
+                                   *hv_fetch( ret, "$db", 3, FALSE )
+                                 );
+
+    return dbref;
   }
 
   return newRV_noinc ((SV *)ret);
