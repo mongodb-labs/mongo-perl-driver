@@ -577,7 +577,14 @@ SKIP: {
 }
 
 # aggregate 
-{
+SKIP: {
+    my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
+
+    # skip aggregation tests if we're running against MongoDB < 2.2.
+    unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 2 ) {
+        skip "Aggregation framework unsupported on MongoDB $build->{version}", 3;
+    }
+ 
     $coll->batch_insert( [ { wanted => 1, score => 56 },
                            { wanted => 1, score => 72 },
                            { wanted => 1, score => 96 },
