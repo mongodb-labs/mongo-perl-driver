@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 13;
+    plan tests => 18;
 }
 
 {
@@ -63,5 +63,25 @@ else {
     is $doc->{_id}, 123;
     is $doc->{foo}, 'bar';
 
-    $conn->get_database( 'test' )->drop;
+    $conn->get_database( 'test' )->get_collection( 'test_coll' )->drop;
+}
+
+# test roundtrip
+{
+    my $dbref = MongoDB::DBRef->new( db => 'some_db', ref => 'some_coll', id => 123 );
+    my $coll = $conn->get_database( 'test' )->get_collection( 'test_coll' );
+
+    $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
+
+    my $doc = $coll->find_one( { _id => 'wut wut wut' } );
+    ok exists $doc->{thing};
+
+    my $thing = $doc->{thing};
+
+    isa_ok $thing, 'MongoDB::DBRef';
+    is $thing->ref, 'some_coll';
+    is $thing->id,  123;
+    is $thing->db,  'some_db';
+
+    $coll->drop;
 }
