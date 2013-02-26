@@ -1364,6 +1364,15 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         perl_mongo_serialize_key( buf, key, is_insert );
         perl_mongo_serialize_long( buf, epoch_ms );
       }
+      /* DBRef */
+      else if (sv_isa(sv, "MongoDB::DBRef")) { 
+        SV *dbref;
+        set_type(buf, BSON_OBJECT);
+        perl_mongo_serialize_key(buf, key, is_insert);
+        dbref = perl_mongo_call_reader(sv, "_ordered");
+        ixhash_to_bson(buf, dbref, NO_PREP, stack, is_insert);
+      }
+
       /* boolean */
       else if (sv_isa(sv, "boolean")) {
         set_type(buf, BSON_BOOL);
