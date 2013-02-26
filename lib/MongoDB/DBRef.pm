@@ -5,6 +5,7 @@ package MongoDB::DBRef;
 use Moose;
 use Moose::Util::TypeConstraints;
 use Carp 'croak';
+use Tie::IxHash;
 
 
 subtype DBRefColl => as 'Str';
@@ -87,6 +88,12 @@ sub fetch {
     return $client->get_database( $db )->get_collection( $ref )->find_one( { _id => $id } );
 }
 
+sub _ordered {
+    my $self = shift;
+    
+    return Tie::IxHash->new( '$ref' => $self->ref, '$id' => $self->id, '$db' => $self->db );
+}
+
 1;
 
 
@@ -116,7 +123,7 @@ a DBRef may point to a document that no longer exists (or never existed.)
 =head2 db
 
 Required. The database in which the referenced document lives. Either a L<MongoDB::Database>
-object or a string containing the collection name. The object will be coerced to string form.
+object or a string containing the database name. The object will be coerced to string form.
 
 =head2 ref
 
