@@ -280,7 +280,7 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *
   return ret;
 }
 
-static SV *bson_to_av (buffer *buf, char *dt_type);
+static SV *bson_to_av (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client );
 
 void perl_mongo_make_oid(char *twelve, char *twenty4) {
   int i;
@@ -314,7 +314,7 @@ oid_to_sv (buffer *buf)
 }
 
 static SV *
-elem_to_sv (int type, buffer *buf, char *dt_type)
+elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
 {
   SV *value = 0;
 
@@ -353,12 +353,12 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
     break;
   }
   case BSON_OBJECT: {
-    value = perl_mongo_bson_to_sv(buf, dt_type);
+    value = perl_mongo_bson_to_sv(buf, dt_type, inflate_dbrefs, client );
 
     break;
   }
   case BSON_ARRAY: {
-    value = bson_to_av(buf, dt_type);
+    value = bson_to_av(buf, dt_type, inflate_dbrefs, client );
     break;
   }
   case BSON_BINARY: {
@@ -577,7 +577,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
     buf->pos += code_len;
 
     if (type == BSON_CODE) {
-      scope = perl_mongo_bson_to_sv(buf, dt_type);
+      scope = perl_mongo_bson_to_sv(buf, dt_type, inflate_dbrefs, client );
       value = perl_mongo_construct_instance("MongoDB::Code", "code", code, "scope", scope, NULL);
     }
     else {
@@ -620,7 +620,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
 }
 
 static SV *
-bson_to_av (buffer *buf, char *dt_type)
+bson_to_av (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
 {
   AV *ret = newAV ();
 
@@ -636,7 +636,7 @@ bson_to_av (buffer *buf, char *dt_type)
     buf->pos += strlen(buf->pos) + 1;
 
     // get value
-    if ((sv = elem_to_sv (type, buf, dt_type))) {
+    if ((sv = elem_to_sv (type, buf, dt_type, inflate_dbrefs, client ))) {
       av_push (ret, sv);
     }
   }
@@ -645,7 +645,7 @@ bson_to_av (buffer *buf, char *dt_type)
 }
 
 SV *
-perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
+perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
 {
   HV *ret = newHV();
   SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
@@ -673,7 +673,7 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
     buf->pos += strlen(buf->pos) + 1;
 
     // get value
-    value = elem_to_sv(type, buf, dt_type);
+    value = elem_to_sv(type, buf, dt_type, inflate_dbrefs, client );
     if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
     	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
      	 croak ("failed storing value in hash");

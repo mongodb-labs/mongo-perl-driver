@@ -225,14 +225,17 @@ next (self)
         mongo_cursor *cursor;
         SV *dt_type_sv;
         SV *inflate_dbrefs_sv;
+        SV *client_sv;
     CODE:
         cursor = get_cursor(self);
         if (has_next(self, cursor)) {
-          dt_type_sv         = perl_mongo_call_reader( self, "_dt_type" );
-          inflate_dbrefs_sv  = perl_mongo_call_reader( self, "_inflate_dbrefs" );
-          char *dt_type = SvOK( dt_type_sv ) ? SvPV( dt_type_sv, SvLEN( dt_type_sv ) ) : NULL;
+          dt_type_sv          = perl_mongo_call_reader( self, "_dt_type" );
+          inflate_dbrefs_sv   = perl_mongo_call_reader( self, "_inflate_dbrefs" );
+          client_sv           = perl_mongo_call_reader( self, "_client" );
+          char *dt_type       = SvOK( dt_type_sv ) ? SvPV( dt_type_sv, SvLEN( dt_type_sv ) ) : NULL;
+          int  inflate_dbrefs = SvIV( inflate_dbrefs_sv );
 
-          RETVAL = perl_mongo_bson_to_sv(&cursor->buf, dt_type);
+          RETVAL = perl_mongo_bson_to_sv( &cursor->buf, dt_type, inflate_dbrefs, client_sv );
 
           cursor->at++;
 
