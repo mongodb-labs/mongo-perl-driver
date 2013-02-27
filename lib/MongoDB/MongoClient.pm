@@ -160,6 +160,12 @@ has dt_type => (
     default  => 'DateTime'
 );
 
+has inflate_dbrefs => (
+    is        => 'rw',
+    isa       => 'Bool',
+    required  => 0,
+    default   => 1
+);
 
 sub BUILD {
     my ($self, $opts) = @_;
@@ -653,6 +659,12 @@ also be using a database server that supports SSL.
 Sets the type of object which is returned for DateTime fields. The default is L<DateTime>. Other
 acceptable values are L<DateTime::Tiny> and C<undef>. The latter will give you the raw epoch value
 rather than an object.
+
+=head2 inflate_dbrefs
+
+Controls whether L<DBRef|http://docs.mongodb.org/manual/applications/database-references/#dbref>s 
+are automatically inflated into L<MongoDB::DBRef> objects. Defaults to true.
+Set this to C<0> if you don't want to auto-inflate them.
 
 
 =head1 METHODS
