@@ -688,13 +688,15 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *clien
   if ( key_num == 3 && is_dbref == 1 ) { 
     SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
     SV *dbref = 
-      perl_mongo_call_method( dbr_class, "new", 0, 6,
-                                   newSVpvn("ref",     strlen("ref")),  
-                                   *hv_fetch( ret, "$ref", 4, FALSE ),
-                                   newSVpvn("id",      strlen("id")),
-                                   *hv_fetch( ret, "$id", 3, FALSE ),
-                                   newSVpvn("db",      strlen("db")),
-                                   *hv_fetch( ret, "$db", 3, FALSE )
+      perl_mongo_call_method( dbr_class, "new", 0, 8,
+                              newSVpvn("ref",     strlen("ref")),  
+                              *hv_fetch( ret, "$ref", 4, FALSE ),
+                              newSVpvn("id",      strlen("id")),
+                              *hv_fetch( ret, "$id", 3, FALSE ),
+                              newSVpvn("db",      strlen("db")),
+                              *hv_fetch( ret, "$db", 3, FALSE ),
+                              newSVpvn("client",  strlen("client")),
+                              client
                                  );
 
     return dbref;
