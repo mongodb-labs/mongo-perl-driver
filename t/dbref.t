@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 18;
+    plan tests => 21;
 }
 
 {
@@ -84,4 +84,20 @@ else {
     is $thing->db,  'some_db';
 
     $coll->drop;
+}
+
+# test fetch via find
+{
+    $conn->get_database( 'test' )->get_collection( 'some_coll' )->insert( { _id => 123, value => 'foobar' } );
+    my $dbref = MongoDB::DBRef->new( db => 'test', ref => 'some_coll', id => 123 );
+
+    my $coll = $conn->get_database( 'test' )->get_collection( 'test_coll' );
+    $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
+
+    my $ref_doc = $coll->find_one( { _id => 'wut wut wut' } )->{thing}->fetch;
+
+    ok $ref_doc;
+    is $ref_doc->{_id}, 123;
+    is $ref_doc->{value}, 'foobar';
+
 }
