@@ -685,7 +685,7 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *clien
     }
   }
 
-  if ( key_num == 3 && is_dbref == 1 ) { 
+  if ( key_num == 3 && is_dbref == 1 && inflate_dbrefs == 1 ) { 
     SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
     SV *dbref = 
       perl_mongo_call_method( dbr_class, "new", 0, 8,
