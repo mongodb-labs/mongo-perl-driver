@@ -4,7 +4,7 @@ use Test::More;
 use Test::Exception;
 
 use MongoDB;
-use Scalar::Util 'blessed';
+use Scalar::Util 'blessed', 'reftype';
 
 my $conn;
 eval {
@@ -19,7 +19,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 21;
+    plan tests => 28;
 }
 
 {
@@ -100,4 +100,25 @@ else {
     is $ref_doc->{_id}, 123;
     is $ref_doc->{value}, 'foobar';
 
+    $coll->drop;
+}
+
+# test inflate_dbrefs flag
+{
+    $conn->inflate_dbrefs( 0 );
+    my $dbref = MongoDB::DBRef->new( db => 'test', ref => 'some_coll', id => 123 );
+
+    my $coll = $conn->get_database( 'test' )->get_collection( 'test_coll' );
+    $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
+
+    my $doc = $coll->find_one( { _id => 'wut wut wut' } );
+    ok exists $doc->{thing};
+    ok ref $doc->{thing};
+    ok reftype $doc->{thing} eq reftype { };
+    ok not blessed $doc->{thing};
+    is $doc->{thing}{'$db'}, 'test';
+    is $doc->{thing}{'$ref'}, 'some_coll';
+    is $doc->{thing}{'$id'}, 123;
+
+    $coll->drop;
 }
