@@ -105,7 +105,7 @@ MongoDB::DBRef - A MongoDB database reference
 
 =head1 SYNOPSIS
 
-    my $dbref = MongoDB::DBRef->new( ref => 'my_collection', id => 123 );
+    my $dbref = MongoDB::DBRef->new( db => 'my_db', ref => 'my_collection', id => 123 );
     $coll->insert( { foo => 'bar', other_doc => $dbref } );
 
     my $other_doc = $coll->find_one( { foo => 'bar' } )->{other_doc}->fetch;
