@@ -110,7 +110,6 @@ has _query => (
 
 has _fields => (
     is => 'rw',
-    isa => 'HashRef',
     required => 0,
 );
 
@@ -271,7 +270,7 @@ sub fields {
     confess "cannot set fields after querying"
 	if $self->started_iterating;
     confess 'not a hash reference'
-	unless ref $f eq 'HASH';
+	    unless ref $f eq 'HASH' || ref $f eq 'Tie::IxHash';
 
     $self->_fields($f);
     return $self;
@@ -294,7 +293,7 @@ sub sort {
     confess "cannot set sort after querying"
 	if $self->started_iterating;
     confess 'not a hash reference'
-	unless ref $order eq 'HASH' || ref $order eq 'Tie::IxHash';
+	    unless ref $order eq 'HASH' || ref $order eq 'Tie::IxHash';
 
     $self->_ensure_special;
     $self->_query->{'orderby'} = $order;
@@ -340,7 +339,7 @@ Returns this cursor for chaining operations.
 
 sub tailable {
 	my($self, $bool) = @_;
-	confess "Cannot set tailable state"
+	confess "cannot set tailable after querying"
 	if $self->started_iterating;
 	
 	$self->_tailable($bool);
