@@ -155,3 +155,15 @@ from it. The default is C<1>. Set to C<0> to disable checking.
 
 Optional. Check that the referenced collection exists before trying to fetch a document
 from it. The default is C<1>. Set to C<0> to disable checking.
+
+=head1 METHODS
+
+=head2 fetch
+
+Retrieve the referenced document from the database. If the document does not exist, you'll
+get back C<undef>. You must populate the C<client> attribute of the DBRef object in order
+to use this method. If there's no C<client>, C<fetch> will throw a fatal error.
+
+If C<verify_db> or <verify_coll> are on, C<fetch> will throw a fatal error if the 
+database or collection concerned does not exist.
+
