@@ -175,6 +175,32 @@ static int perl_mongo_regex_flags( char **flags_ptr, SV *re ) {
   XPUSHs (re);
   PUTBACK;
 
+#if PERL_REVISION == 5 && PERL_VERSION < 10
+  // pre-5.10 doesn't have the re API
+  char flags[] = {0,0,0,0,0};
+  unsigned int i = 0, f = 0;
+  STRLEN string_length;
+  char *re_string = SvPV( re, string_length );
+  
+  /* pre-5.14 regexes are stringified in the format: (?ix-sm:foo) where
+     everything between ? and - are the current flags. The format changed
+     around 5.14, but for everything after 5.10 we use the re API anyway. */
+  for( i = 2; i < string_length && re_string[i] != '-'; i++ ) { 
+    if ( re_string[i] == 'i'  ||
+         re_string[i] == 'm'  ||
+         re_string[i] == 'x'  ||
+         re_string[i] == 's' ) { 
+      flags[f++] = re_string[i];
+    } else if ( re_string[i] == ':' ) {
+      break;
+    }
+  }
+
+  *flags_ptr = flags;
+
+  fprintf(stderr, "    flags is %s", flags_ptr );
+
+#else
   int ret_count = call_pv( "re::regexp_pattern", G_ARRAY );
   SPAGAIN;
 
@@ -189,6 +215,7 @@ static int perl_mongo_regex_flags( char **flags_ptr, SV *re ) {
   char *flags = SvPVutf8_nolen(flags_sv);
 
   *flags_ptr = strdup(flags);
+#endif
 }
 
 void

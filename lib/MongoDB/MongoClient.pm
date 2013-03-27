@@ -180,7 +180,7 @@ sub BUILD {
             (?: ([^:]*) : ([^@]*) @ )? # [username:password@]
             ([^/]*) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
             (?:
-                / ([^?]*) # /[database]
+               / ([^?]*) # /[database]
                 (?: [?] (.*) )? # [?options]
             )?
             $ }x) {
@@ -390,7 +390,7 @@ sub get_master {
 sub authenticate {
     my ($self, $dbname, $username, $password, $is_digest) = @_;
     my $hash = $password;
-
+    
     # create a hash if the password isn't yet encrypted
     if (!$is_digest) {
         $hash = Digest::MD5::md5_hex("${username}:mongo:${password}");
@@ -413,7 +413,7 @@ sub authenticate {
              nonce => $nonce,
              key => $digest);
     $result = $db->run_command($login);
-
+    
     return $result;
 }
 
@@ -421,8 +421,8 @@ sub authenticate {
 sub fsync {
     my ($self, $args) = @_;
 	
-	$args //= {};
-	
+	$args ||= {};
+
     # Pass this in as array-ref to ensure that 'fsync => 1' is the first argument.
     return $self->get_database('admin')->run_command([fsync => 1, %$args]);
 }
@@ -433,11 +433,9 @@ sub fsync_unlock {
     # Have to fetch from a special collection to unlock.
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
-	
 
 
-
-__PACKAGE__->meta->make_immutable (inline_destructor => 0);
+__PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
 1;
 
