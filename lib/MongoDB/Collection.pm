@@ -588,6 +588,10 @@ sub ensure_index {
     }
     $options->{'no_ids'} = 1;
 
+	if (exists $options->{expire_after_seconds}) {
+        $obj->Push("expireAfterSeconds" => int($options->{expire_after_seconds}));
+	}
+
     my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
 
     my $indexes = $self->_database->get_collection("system.indexes");
