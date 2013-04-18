@@ -167,7 +167,7 @@ perl_mongo_call_function (const char *func, int num, ...) {
   return ret;
 }
 
-static int perl_mongo_regex_flags( char **flags_ptr, SV *re ) {
+static int perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
   dSP;
   ENTER;
   SAVETMPS;
@@ -175,32 +175,6 @@ static int perl_mongo_regex_flags( char **flags_ptr, SV *re ) {
   XPUSHs (re);
   PUTBACK;
 
-#if PERL_REVISION == 5 && PERL_VERSION < 10
-  // pre-5.10 doesn't have the re API
-  char flags[] = {0,0,0,0,0};
-  unsigned int i = 0, f = 0;
-  STRLEN string_length;
-  char *re_string = SvPV( re, string_length );
-  
-  /* pre-5.14 regexes are stringified in the format: (?ix-sm:foo) where
-     everything between ? and - are the current flags. The format changed
-     around 5.14, but for everything after 5.10 we use the re API anyway. */
-  for( i = 2; i < string_length && re_string[i] != '-'; i++ ) { 
-    if ( re_string[i] == 'i'  ||
-         re_string[i] == 'm'  ||
-         re_string[i] == 'x'  ||
-         re_string[i] == 's' ) { 
-      flags[f++] = re_string[i];
-    } else if ( re_string[i] == ':' ) {
-      break;
-    }
-  }
-
-  *flags_ptr = flags;
-
-  fprintf(stderr, "    flags is %s", flags_ptr );
-
-#else
   int ret_count = call_pv( "re::regexp_pattern", G_ARRAY );
   SPAGAIN;
 
@@ -214,8 +188,7 @@ static int perl_mongo_regex_flags( char **flags_ptr, SV *re ) {
 
   char *flags = SvPVutf8_nolen(flags_sv);
 
-  *flags_ptr = strdup(flags);
-#endif
+  strncpy( flags_ptr, flags, 7 );
 }
 
 void
@@ -1675,23 +1648,45 @@ static void serialize_regex(buffer *buf, const char *key, REGEXP *re, int is_ins
 }
 
 static void serialize_regex_flags(buffer *buf, SV *sv) {
-  char flags[] = {0,0,0,0,0,0};
+  char flags[]     = {0,0,0,0,0};
+  char flags_tmp[] = {0,0,0,0,0,0,0,0};
   unsigned int i = 0, f = 0;
 
-  char *flags_str;
-  perl_mongo_regex_flags( &flags_str, sv );
+#if PERL_REVISION == 5 && PERL_VERSION < 10
+  // pre-5.10 doesn't have the re API
+  STRLEN string_length;
+  char *re_string = SvPV( sv, string_length );
+  
+  /* pre-5.14 regexes are stringified in the format: (?ix-sm:foo) where
+     everything between ? and - are the current flags. The format changed
+     around 5.14, but for everything after 5.10 we use the re API anyway. */
+  for( i = 2; i < string_length && re_string[i] != '-'; i++ ) { 
+    if ( re_string[i] == 'i'  ||
+         re_string[i] == 'm'  ||
+         re_string[i] == 'x'  ||
+         re_string[i] == 's' ) { 
+      flags[f++] = re_string[i];
+    } else if ( re_string[i] == ':' ) {
+      break;
+    }
+  }
 
-  for ( i = 0; i < sizeof( flags_str ); i++ ) { 
-    if ( flags_str[i] == NULL ) break;
+
+#else
+  perl_mongo_regex_flags( &flags_tmp, sv );
+#endif
+
+  for ( i = 0; i < sizeof( flags_tmp ); i++ ) { 
+    if ( flags_tmp[i] == NULL ) break;
 
     // MongoDB supports only flags /imxs, so warn if we get anything else and discard them.
-    if ( flags_str[i] == 'i' ||
-         flags_str[i] == 'm' ||
-         flags_str[i] == 'x' ||
-         flags_str[i] == 's' ) { 
-      flags[f++] = flags_str[i];
+    if ( flags_tmp[i] == 'i' ||
+         flags_tmp[i] == 'm' ||
+         flags_tmp[i] == 'x' ||
+         flags_tmp[i] == 's' ) { 
+      flags[f++] = flags_tmp[i];
     } else { 
-      warn( "stripped unsupported regex flag /%c from MongoDB regex\n", flags_str[i] );
+      warn( "stripped unsupported regex flag /%c from MongoDB regex\n", flags_tmp[i] );
     }
   }
 
