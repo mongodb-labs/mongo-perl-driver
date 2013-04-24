@@ -24,7 +24,7 @@
 
   - Support for fsyncLock/unlock (Casey Rojas)
 
-  - Support for dt_type param, DataTime::Tiny and raw epoch times
+  - Support for dt_type param, DateTime::Tiny and raw epoch times
 
   - Support for UTF8 hash keys (Roman Yerin)
 
