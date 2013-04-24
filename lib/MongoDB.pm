@@ -19,7 +19,7 @@ use strict;
 use warnings;
 
 package MongoDB;
-# ABSTRACT: A Mongo Driver for Perl
+# ABSTRACT: A MongoDB Driver for Perl
 
 use XSLoader;
 use MongoDB::Connection;
