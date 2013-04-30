@@ -150,6 +150,20 @@ on, bless the string as a C<MongoDB::BSON::String> type:
     $collection->insert({city => "Portland",
         zip => bless(\$zip, "MongoDB::BSON::String")});
 
+Additionally, there are two utility functions, C<force_int> and
+c<force_double>, to explicitly set Perl's internal type flags to
+Integer (C<IV>) and Double (C<NV>) respectively, thus triggering
+MongoDB's recognition of the values as Int32/Int64 (depending on the
+platform) or Double:
+
+    my $x = 1.0;
+    MongoDB::force_int($x);
+    $coll->insert({x => $x}); # Inserts an integer
+
+    MongoDB::force_double($x);
+    $coll->insert({x => $x}); # Inserts a double
+
+
 =head2 Strings
 
 All strings must be valid UTF-8 to be sent to the database.  If a string is not

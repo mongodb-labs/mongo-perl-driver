@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 55;
+    plan tests => 59;
 }
 
 my $db = $conn->get_database('x');
@@ -40,7 +40,7 @@ is($id."", $id->value);
     my $ids = [];
     for (0..9) {
         push @$ids, new MongoDB::OID;
-        sleep 1;
+        select undef, undef, undef, 0.1;  # Sleep 0.1 seconds
     }
     for (0..8) {
         ok((@$ids[$_]."") lt (@$ids[$_+1].""));
@@ -284,6 +284,32 @@ SKIP: {
     };
 
     ok($@ =~ m/type \(MongoDB::Collection\) unhandled/, "can't insert a non-recognized obj: $@");
+}
+
+
+# forcing types
+{
+    $coll->drop;
+
+    my $x = 1.0;
+    my ($double_type, $int_type) = ({x => {'$type' => 1}},
+				    {'$or' => [{x => {'$type' => 16}},
+					       {x => {'$type' => 18}}]});
+
+    MongoDB::force_double($x);
+    $coll->insert({x => $x});
+    my $result = $coll->find_one($double_type);
+    is($result->{x}, 1);
+    $result = $coll->find_one($int_type);
+    is($result, undef);
+    $coll->remove({});
+
+    MongoDB::force_int($x);
+    $coll->insert({x => $x});
+    $result = $coll->find_one($double_type);
+    is($result, undef);
+    $result = $coll->find_one($int_type);
+    is($result->{x}, 1);
 }
 
 END {
