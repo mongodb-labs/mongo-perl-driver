@@ -283,20 +283,15 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *
 static SV *bson_to_av (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client );
 
 void perl_mongo_make_oid(char *twelve, char *twenty4) {
+  static char ra_hex[] = "0123456789abcdef";
+  unsigned int x;
   int i;
-  char *id_str = twelve;
-  char *movable = twenty4;
-
   for(i=0; i<12; i++) {
-    int x = *id_str;
-    if (*id_str < 0) {
-      x = 256 + *id_str;
-    }
-    sprintf(movable, "%02x", x);
-    movable += 2;
-    id_str++;
+    x = *(unsigned char *)twelve++;
+    *twenty4++ = ra_hex[x >> 4];
+    *twenty4++ = ra_hex[x & 0x0f];
   }
-  twenty4[24] = '\0';
+  *twenty4++ = '\0';
 }
 
 static SV *
