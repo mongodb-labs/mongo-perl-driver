@@ -409,7 +409,7 @@ sub find_and_modify {
     my $conn = $self->_database->_client;
     my $db   = $self->_database;
 
-    my $result = $db->run_command( { findAndModify => $self->name, %$opts } );
+    my $result = $db->run_command( [ findAndModify => $self->name, %$opts ] );
 
     if ( not $result->{ok} ) { 
         return if ( $result->{errmsg} eq 'No matching object found' );
@@ -435,7 +435,7 @@ sub aggregate {
 
     my $db   = $self->_database;
 
-    my $result = $db->run_command( { aggregate => $self->name, pipeline => $pipeline } );
+    my $result = $db->run_command( [ aggregate => $self->name, pipeline => $pipeline ] );
 
     # TODO: handle errors?
 
@@ -691,10 +691,10 @@ sub count {
 
     my $obj;
     eval {
-        $obj = $self->_database->run_command({
+        $obj = $self->_database->run_command([
             count => $self->name,
             query => $query,
-        });
+        ]);
     };
 
     # if there was an error, check if it was the "ns missing" one that means the
@@ -760,9 +760,10 @@ Use C<MongoDB::Collection::get_indexes> to find the index name.
 
 sub drop_index {
     my ($self, $index_name) = @_;
-    my $t = tie(my %myhash, 'Tie::IxHash');
-    %myhash = ("deleteIndexes" => $self->name, "index" => $index_name);
-    return $self->_database->run_command($t);
+    return $self->_database->run_command([
+        deleteIndexes => $self->name,
+        index => $index_name,
+    ]);
 }
 
 =head2 get_indexes
