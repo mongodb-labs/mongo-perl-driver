@@ -863,10 +863,7 @@ void perl_mongo_make_id(char *id) {
   //SV *temp;
   char *data = id;
 
-  // the pid is stored in $$
-  SV *pid_s = get_sv("$", 0);
-  // ...but if it's not, don't crash
-  int pid = pid_s ? SvIV(pid_s) : rand();
+  Pid_t pid = PerlProc_getpid();
 
   int inc;
   unsigned t;
