@@ -39,6 +39,10 @@
 #include <openssl/err.h>
 #endif
 
+#ifdef MONGO_SASL
+#include <gsasl.h>
+#endif
+
 // db ops
 #define OP_REPLY 1
 #define OP_MSG 1000
