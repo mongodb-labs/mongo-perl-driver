@@ -40,6 +40,49 @@ static void set_timeout(int socket, time_t timeout) {
   setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, tv_ptr, sizeof(tv));
 }
 
+#ifdef MONGO_SASL
+static void sasl_authenticate( mongo_link *link ) { 
+  Gsasl *ctx = NULL;
+  int rc;  
+
+  if ( ( rc = gsasl_init( &ctx ) ) != GSASL_OK ) { 
+    croak( "Cannot initialize libgsasl (%d): %s", rc, gsasl_strerror(rc) );  
+  }
+
+  Gsasl_session *session;
+
+  if ( ( rc = gsasl_client_start( ctx, "GSSAPI", &session ) ) != GSASL_OK ) { 
+    croak( "Cannot initialize SASL client (%d): %s\n", rc, gsasl_strerror(rc) );
+  }
+
+  gsasl_property_set( session, GSASL_SERVICE,  "mongodb" );
+  gsasl_property_set( session, GSASL_HOSTNAME, link->master->host );
+
+  char buf[8192] = "";
+  char *p;
+
+  do { 
+    rc = gsasl_step64( session, buf, &p );
+
+    if ( rc == GSASL_NEEDS_MORE || rc == GSASL_OK ) {
+      gsasl_free( p );
+    }
+
+    if ( rc == GSASL_NEEDS_MORE ) {
+      send( link->master->socket, buf, sizeof( buf ), 0 );
+      recv( link->master->socket, buf, sizeof( buf ), 0 );
+    }
+  } while( rc == GSASL_NEEDS_MORE );
+
+  if ( rc != GSASL_OK ) { 
+    croak( "SASL Authentication error (%d): %s\n", rc, gsasl_strerror(rc) );
+  }
+
+  gsasl_finish( session );
+
+  gsasl_done( ctx );
+}
+#endif
 
 void perl_mongo_connect(mongo_link* link) {
 #ifdef MONGO_SSL
@@ -54,6 +97,10 @@ void perl_mongo_connect(mongo_link* link) {
   non_ssl_connect(link);
   link->sender = non_ssl_send;
   link->receiver = non_ssl_recv;
+
+#ifdef MONGO_SASL
+  sasl_authenticate( link );
+#endif
 }
 
 /*
