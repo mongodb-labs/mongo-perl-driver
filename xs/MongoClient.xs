@@ -117,8 +117,7 @@ _init_conn(self, host, port, ssl)
      * [{host => "host", port => 27017}, ...]
      */
     Newx(link->master, 1, mongo_server);
-    Newxz(link->master->host, strlen(host)+1, char);
-    memcpy(link->master->host, host, strlen(host));
+    link->master->host = savepv(host);
     link->master->port = port;
     link->master->connected = 0;
     link->ssl = ssl;
@@ -194,7 +193,7 @@ connect (self)
          SvREFCNT_dec(password);
          croak("%s", SvPV_nolen(result));
        } else if (SvROK(result)) {
-         ok = hv_fetch((HV*)SvRV(result), "ok", strlen("ok"), 0);
+         ok = hv_fetchs((HV*)SvRV(result), "ok", 0);
          if (!ok || 1 != SvIV(*ok)) {
            SvREFCNT_dec(database);
            SvREFCNT_dec(username);

@@ -302,7 +302,7 @@ oid_to_sv (buffer *buf)
   perl_mongo_make_oid(buf->pos, oid_s);
 
   id_hv = newHV();
-  (void)hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
+  (void)hv_stores(id_hv, "value", newSVpvn(oid_s, 24));
 
   stash = gv_stashpv("MongoDB::OID", 0);
   return sv_bless(newRV_noinc((SV *)id_hv), stash);
@@ -455,17 +455,17 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
 
       value = 
         perl_mongo_call_function("DateTime::Tiny::new", 13, datetime,
-                                 newSVpvn("year",     strlen("year")),  
+                                 newSVpvs("year"),
                                  newSViv( dt->tm_year + 1900 ),
-                                 newSVpvn("month",    strlen("month")),
+                                 newSVpvs("month"),
                                  newSViv( dt->tm_mon  +    1 ),
-                                 newSVpvn("day",      strlen("day")),
+                                 newSVpvs("day"),
                                  newSViv( dt->tm_mday ),
-                                 newSVpvn("hour",     strlen("hour")),
+                                 newSVpvs("hour"),
                                  newSViv( dt->tm_hour ),
-                                 newSVpvn("minute",   strlen("minute")),
+                                 newSVpvs("minute"),
                                  newSViv( dt->tm_min ),
-                                 newSVpvn("second",   strlen("second")),
+                                 newSVpvs("second"),
                                  newSViv( dt->tm_sec )
                                  );
 
@@ -475,7 +475,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
       ms = newSViv(ms_i);
 
       named_params = newHV();
-      heval = hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
+      heval = hv_stores(named_params, "epoch", ms);
 
       value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
                                        sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
@@ -684,13 +684,13 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *clien
     SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
     SV *dbref = 
       perl_mongo_call_method( dbr_class, "new", 0, 8,
-                              newSVpvn("ref",     strlen("ref")),  
+                              newSVpvs("ref"),
                               *hv_fetch( ret, "$ref", 4, FALSE ),
-                              newSVpvn("id",      strlen("id")),
+                              newSVpvs("id"),
                               *hv_fetch( ret, "$id", 3, FALSE ),
-                              newSVpvn("db",      strlen("db")),
+                              newSVpvs("db"),
                               *hv_fetch( ret, "$db", 3, FALSE ),
-                              newSVpvn("client",  strlen("client")),
+                              newSVpvs("client"),
                               client
                                  );
 
@@ -822,9 +822,9 @@ void perl_mongo_serialize_bindata(buffer *buf, const int subtype, SV *sv)
 
 void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert) {
   SV *c = get_sv("MongoDB::BSON::char", 0);
-
-  if(BUF_REMAINING <= strlen(str)+1) {
-    perl_mongo_resize_buf(buf, strlen(str)+1);
+  STRLEN len = strlen(str);
+  if(BUF_REMAINING <= len+1) {
+    perl_mongo_resize_buf(buf, len+1);
   }
 
   if (str[0] == '\0') {
@@ -837,15 +837,15 @@ void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert) {
 
   if (c && SvPOK(c) && SvPV_nolen(c)[0] == str[0]) {
     *(buf->pos) = '$';
-    memcpy(buf->pos+1, str+1, strlen(str)-1);
+    memcpy(buf->pos+1, str+1, len-1);
   }
   else {
-    memcpy(buf->pos, str, strlen(str));
+    memcpy(buf->pos, str, len);
   }
 
   // add \0 at the end of the string
-  buf->pos[strlen(str)] = 0;
-  buf->pos += strlen(str) + 1;
+  buf->pos[len] = 0;
+  buf->pos += len + 1;
 }
 
 
@@ -922,7 +922,7 @@ perl_mongo_prep(buffer *buf, AV *ids) {
 
   perl_mongo_make_oid(id_s, oid_s);
   id_hv = newHV();
-  (void)hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
+  (void)hv_stores(id_hv, "value", newSVpvn(oid_s, 24));
 
   id = sv_bless(newRV_noinc((SV *)id_hv), stash);
 
@@ -984,7 +984,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
 
   if (ids) {
     if(hv_exists(hv, "_id", strlen("_id"))) {
-      SV **id = hv_fetch(hv, "_id", strlen("_id"), 0);
+      SV **id = hv_fetchs(hv, "_id", 0);
       append_sv(buf, "_id", *id, stack, is_insert);
       SvREFCNT_inc(*id);
       av_push(ids, *id);
@@ -1103,7 +1103,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
        * if so, the value of the _id key is its index
        * in the values array.
        */
-      SV **index = hv_fetch((HV*)SvRV(*hash_sv), "_id", strlen("_id"), 0);
+      SV **index = hv_fetchs((HV*)SvRV(*hash_sv), "_id", 0);
       SV **id = av_fetch(values, SvIV(*index), 0);
       /*
        * add it to the bson and the ids array
@@ -1275,7 +1275,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         perl_mongo_serialize_key(buf, key, is_insert);
 
         // get sign
-        sign_ref = hv_fetch((HV*)SvRV(sv), "sign", strlen("sign"), 0);
+        sign_ref = hv_fetchs((HV*)SvRV(sv), "sign", 0);
         if (!sign_ref) {
           croak( "couldn't get BigInt sign" );
         }
@@ -1284,7 +1284,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         }
 
         // get value
-        av_ref = hv_fetch((HV*)SvRV(sv), "value", strlen("value"), 0);
+        av_ref = hv_fetchs((HV*)SvRV(sv), "value", 0);
         if (!av_ref) {
           croak( "couldn't get BigInt value" );
         }

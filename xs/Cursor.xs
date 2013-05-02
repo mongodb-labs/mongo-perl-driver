@@ -243,8 +243,8 @@ next (self)
               hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))) {
             SV **err = 0, **code = 0;
 
-            err = hv_fetch((HV*)SvRV(RETVAL), "$err", strlen("$err"), 0);
-            code = hv_fetch((HV*)SvRV(RETVAL), "code", strlen("code"), 0);
+            err = hv_fetchs((HV*)SvRV(RETVAL), "$err", 0);
+            code = hv_fetchs((HV*)SvRV(RETVAL), "code", 0);
             
             if (code && SvIOK(*code) &&
                 (SvIV(*code) == 10107 || SvIV(*code) == 13435 || SvIV(*code) == 13436)) {
@@ -290,12 +290,11 @@ info (self)
         cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
         
         hv = newHV();
-        hv_store(hv, "flag", strlen("flag"), newSViv(cursor->flag), 0);
-        hv_store(hv, "cursor_id", strlen("cursor_id"),
-                 newSViv(cursor->cursor_id), 0);
-        hv_store(hv, "start", strlen("start"), newSViv(cursor->start), 0);
-        hv_store(hv, "at", strlen("at"), newSViv(cursor->at), 0);
-        hv_store(hv, "num", strlen("num"), newSViv(cursor->num), 0);
+        hv_stores(hv, "flag", newSViv(cursor->flag));
+        hv_stores(hv, "cursor_id", newSViv(cursor->cursor_id));
+        hv_stores(hv, "start", newSViv(cursor->start));
+        hv_stores(hv, "at", newSViv(cursor->at));
+        hv_stores(hv, "num", newSViv(cursor->num));
         
         RETVAL = newRV_noinc((SV*)hv);
     OUTPUT:
