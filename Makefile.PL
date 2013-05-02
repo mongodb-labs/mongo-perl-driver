@@ -11,11 +11,16 @@ author 'Mike Friedman <mike.friedman@10gen.com>';
 license 'Apache';
 all_from 'lib/MongoDB.pm';
 
-foreach (@ARGV){
-    next unless($_ eq '--ssl');
-    cc_lib_links('ssl', 'crypto');
-    cc_optimize_flags("-DMONGO_SSL");
-    last;
+foreach my $arg ( @ARGV ) { 
+    if ( $arg eq '--ssl' ) { 
+        cc_lib_links( 'ssl', 'crypto' );
+        cc_optimize_flags( '-DMONGO_SSL' );
+    }
+
+    if ( $arg eq '--sasl' ) { 
+        cc_lib_links( 'gsasl' );
+        cc_optimize_flags( '-DMONGO_SASL' );
+    }
 }
 
 requires 'Module::Install';
