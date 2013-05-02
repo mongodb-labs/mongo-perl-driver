@@ -22,6 +22,8 @@ extern XS(boot_MongoDB__BSON);
 extern XS(boot_MongoDB__Cursor);
 extern XS(boot_MongoDB__OID);
 
+static SV *request_id;
+
 MODULE = MongoDB  PACKAGE = MongoDB
 
 PROTOTYPES: DISABLE
@@ -36,14 +38,15 @@ BOOT:
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__BSON);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Cursor);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__OID);
-        gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV);
+        request_id =
+          GvSV(gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV));
         gv_fetchpv("MongoDB::Cursor::slave_okay",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::looks_like_number",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::char",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::utf8_flag_on",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::use_boolean",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::use_binary",  GV_ADDMULTI, SVt_IV);
-        perl_mongo_mutex_init();
+        perl_mongo_init();
 
 void
 write_query(ns, opts, skip, limit, query, fields = 0)
@@ -57,9 +60,8 @@ write_query(ns, opts, skip, limit, query, fields = 0)
          buffer buf;
          mongo_msg_header header;
          HV *info = newHV();
-         SV **heval, *request_id;
+         SV **heval;
      PPCODE:
-         request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
          heval = hv_stores(info, "ns", newSVpv(ns, strlen(ns)));
          heval = hv_stores(info, "opts", newSViv(opts));
          heval = hv_stores(info, "skip", newSViv(skip));
@@ -96,14 +98,11 @@ write_insert(ns, a, add_ids)
          mongo_msg_header header;
          int i;
          AV *ids = 0;
-         SV *request_id;
      INIT:
          if (add_ids) {
             ids = newAV();
          }
      PPCODE:
-         request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
-
          CREATE_BUF(INITIAL_BUF_SIZE);
          CREATE_HEADER(buf, ns, OP_INSERT);
 
@@ -129,10 +128,7 @@ write_remove(ns, criteria, flags)
      PREINIT:
          buffer buf;
          mongo_msg_header header;
-         SV *request_id;
      PPCODE:
-         request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
-
          CREATE_BUF(INITIAL_BUF_SIZE);
          CREATE_HEADER(buf, ns, OP_DELETE);
          perl_mongo_serialize_int(&buf, flags);
@@ -151,10 +147,7 @@ write_update(ns, criteria, obj, flags)
     PREINIT:
          buffer buf;
          mongo_msg_header header;
-         SV *request_id;
     PPCODE:
-         request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
-
          CREATE_BUF(INITIAL_BUF_SIZE);
          CREATE_HEADER(buf, ns, OP_UPDATE);
          perl_mongo_serialize_int(&buf, flags);

@@ -36,8 +36,19 @@ static perl_mutex inc_mutex;
 static int perl_mongo_inc = 0;
 int perl_mongo_machine_id;
 
-void perl_mongo_mutex_init() {
+static SV *utf8_flag_on;
+static SV *use_binary;
+static SV *use_boolean;
+static SV *special_char;
+static SV *look_for_numbers;
+
+void perl_mongo_init() {
   MUTEX_INIT(&inc_mutex);
+  utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
+  use_binary = get_sv("MongoDB::BSON::use_binary", 0);
+  use_boolean = get_sv("MongoDB::BSON::use_boolean", 0);
+  special_char = get_sv("MongoDB::BSON::char", 0);
+  look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
 }
 
 void
@@ -313,8 +324,6 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
 {
   SV *value = 0;
 
-  SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
-
   switch(type) {
   case BSON_OID: {
     value = oid_to_sv(buf);
@@ -340,7 +349,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
     // len includes \0
     value = newSVpvn(buf->pos, len-1);
 
-    if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
+    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
       SvUTF8_on(value);
     }
 
@@ -359,7 +368,6 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
   case BSON_BINARY: {
     int len = MONGO_32p(buf->pos);
     unsigned char type;
-    SV *use_binary = get_sv("MongoDB::BSON::use_binary", 0);
 
     buf->pos += INT_32;
 
@@ -390,9 +398,8 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
     dSP;
     char d = *buf->pos++;
     int count;
-    SV *use_bool = get_sv("MongoDB::BSON::use_boolean", 0);
 
-    if (!use_bool) {
+    if (!use_boolean) {
       value = newSViv(d);
       break;
     }
@@ -643,7 +650,6 @@ SV *
 perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
 {
   HV *ret = newHV();
-  SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
 
   char type;
   int is_dbref = 1;
@@ -669,7 +675,7 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *clien
 
     // get value
     value = elem_to_sv(type, buf, dt_type, inflate_dbrefs, client );
-    if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
+    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
     	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
      	 croak ("failed storing value in hash");
     	}
@@ -821,7 +827,6 @@ void perl_mongo_serialize_bindata(buffer *buf, const int subtype, SV *sv)
 }
 
 void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert) {
-  SV *c = get_sv("MongoDB::BSON::char", 0);
   STRLEN len = strlen(str);
   if(BUF_REMAINING <= len+1) {
     perl_mongo_resize_buf(buf, len+1);
@@ -835,7 +840,7 @@ void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert) {
     croak("inserts cannot contain the . character");
   }
 
-  if (c && SvPOK(c) && SvPV_nolen(c)[0] == str[0]) {
+  if (special_char && SvPOK(special_char) && SvPV_nolen(special_char)[0] == str[0]) {
     *(buf->pos) = '$';
     memcpy(buf->pos+1, str+1, len-1);
   }
@@ -1538,7 +1543,6 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
     }
   } else {
     int is_string = 0, aggressively_number = 0;
-    SV *look_for_numbers = 0;
 
 #if PERL_REVISION==5 && PERL_VERSION<=10
     /* Flags usage changed in Perl 5.10.1.  In Perl 5.8, there is no way to
@@ -1561,7 +1565,6 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
     }
 #endif
 
-    look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
     if (look_for_numbers && SvIOK(look_for_numbers) && SvIV(look_for_numbers)) {
       aggressively_number = looks_like_number(sv);
     }

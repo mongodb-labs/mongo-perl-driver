@@ -90,8 +90,10 @@ static mongo_cursor* get_cursor(SV *self) {
   return (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
 }
 
+static SV *request_id;
+
 static int has_next(SV *self, mongo_cursor *cursor) {
-  SV *link, *limit, *ns, *request_id, *response_to;
+  SV *link, *limit, *ns, *response_to;
   mongo_msg_header header;
   buffer buf;
   int size, heard;
@@ -120,7 +122,6 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   buf.end = buf.start + size;
 
   response_to = perl_mongo_call_reader(self, "_request_id");
-  request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
 
   CREATE_RESPONSE_HEADER(buf, SvPV_nolen(ns), SvIV(response_to), OP_GET_MORE);
 
@@ -189,10 +190,12 @@ static void kill_cursor(SV *self) {
   SvREFCNT_dec(link);
 }
 
-
 MODULE = MongoDB::Cursor  PACKAGE = MongoDB::Cursor
 
 PROTOTYPES: DISABLE
+
+BOOT:
+    request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
 
 void
 _init (self)
