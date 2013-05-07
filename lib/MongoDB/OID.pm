@@ -116,11 +116,7 @@ extracts the timestamp.
 sub get_time {
     my ($self) = @_;
 
-    my $ts = 0;
-    for (my $i = 0; $i<4; $i++) {
-        $ts = ($ts * 256) + hex(substr($self->value, $i*2, 2));
-    }
-    return $ts;
+    return hex(substr($self->value, 0, 8));
 }
 
 =head2 TO_JSON
