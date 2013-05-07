@@ -1008,6 +1008,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
     SV **hval;
     STRLEN len;
     const char *key = HePV (he, len);
+    const char *utf8 = HeUTF8(he);
     containsNullChar(key, len);
     /* if we've already added the oid field, continue */
     if (ids && strcmp(key, "_id") == 0) {
@@ -1018,13 +1019,16 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
      * HeVAL doesn't return the correct value for tie(%foo, 'Tie::IxHash')
      * so we're using hv_fetch
      */
-    if ((hval = hv_fetch(hv, key, len, 0)) == 0) {
-    /* May be it's an unicode string? */
-        if ((hval = hv_fetch(hv, key, -len, 0)) == 0) {
-	    croak("could not find hash value for key %s, len:%d", key, len);
-	}
+    if ((hval = hv_fetch(hv, key, utf8 ? -len : len, 0)) == 0) {
+      croak("could not find hash value for key %s, len:%d", key, len);
+    }
+    if (!utf8) {
+      key = bytes_to_utf8(key, &len);
     }
     append_sv (buf, key, *hval, stack, is_insert);
+    if (!utf8) {
+      Safefree(key);
+    }
   }
 
   perl_mongo_serialize_null(buf);
@@ -1135,12 +1139,8 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
       croak ("failed to fetch associative array value");
     }
 
-    str = SvPV(*k, len);
+    str = SvPVutf8(*k, len);
     containsNullChar(str,len);
-    if (isUTF8(str, len)) {
-      str = SvPVutf8(*k, len);
-    }
-
     append_sv(buf, str, *v, stack, is_insert);
   }
 
@@ -1620,12 +1620,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
       }
       else {
         STRLEN len;
-        const char *str = SvPV(sv, len);
-
-        if (!isUTF8(str, len)) {
-          str = SvPVutf8(sv, len);
-        }
-
+        const char *str = SvPVutf8(sv, len);
 
         set_type(buf, BSON_STRING);
         perl_mongo_serialize_key(buf, key, is_insert);
@@ -1765,11 +1760,8 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids) {
           croak ("failed to fetch array element");
         }
 
-        str = SvPV(*key, len);
+        str = SvPVutf8(*key, len);
 
-        if (!isUTF8(str, len)) {
-          str = SvPVutf8(*key, len);
-        }
         append_sv (buf, str, *val, EMPTY_STACK, ids != 0);
       }
 

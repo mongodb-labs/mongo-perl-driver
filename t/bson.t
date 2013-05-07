@@ -109,18 +109,15 @@ my $c = $db->get_collection('bar');
 {
     $c->drop;
 
-    # should convert invalid utf8 to valid
-    my $invalid = "\xFE";
-    $c->insert({char => $invalid});
+    # latin1
+    $c->insert({char => "\xFE"});
     my $x =$c->find_one;
-    # now that the utf8 flag is set, it converts it back to a single char for
-    # unknown reasons
     is($x->{char}, "\xFE");
 
     $c->remove;
 
-    # should be the same with valid utf8
-    my $valid = "\xE6\xB5\x8B\xE8\xAF\x95";
+    # non-latin1
+    my $valid = "\x{8D4B}\x{8BD5}";
     $c->insert({char => $valid});
     $x = $c->find_one;
 
