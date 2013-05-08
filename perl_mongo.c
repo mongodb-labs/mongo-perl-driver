@@ -1379,7 +1379,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         t.tm_mon    = SvIV( perl_mongo_call_reader( sv, "month"   ) ) -    1;
         t.tm_mday   = SvIV( perl_mongo_call_reader( sv, "day"     ) )       ;
         t.tm_hour   = SvIV( perl_mongo_call_reader( sv, "hour"    ) )       ;
-        t.tm_min    = SvIV( perl_mongo_call_reader( sv, "minute"  ) ) -     1;
+        t.tm_min    = SvIV( perl_mongo_call_reader( sv, "minute"  ) )       ;
         t.tm_sec    = SvIV( perl_mongo_call_reader( sv, "second"  ) )       ;
         t.tm_isdst  = -1;     // no dst/tz info in DateTime::Tiny
 
