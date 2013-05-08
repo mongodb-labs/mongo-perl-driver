@@ -53,7 +53,7 @@ is(0, $chunk->{'n'});
 is("$id", $chunk->{'files_id'}."", "compare returned id");
 is($dumb_str, $chunk->{'data'}, "compare file content");
 
-my $md5 = $db->run_command({"filemd5" => $chunk->{'files_id'}, "root" => "fs"});
+my $md5 = $db->run_command(["filemd5" => $chunk->{'files_id'}, "root" => "fs"]);
 my $file = $grid->files->find_one();
 ok($file->{'md5'} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->{'md5'});
 is($file->{'md5'}, $md5->{'md5'}, $md5->{'md5'});
