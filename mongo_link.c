@@ -54,16 +54,20 @@ static void sasl_authenticate( mongo_link *link ) {
   if ( ( rc = gsasl_client_start( ctx, "GSSAPI", &session ) ) != GSASL_OK ) { 
     croak( "Cannot initialize SASL client (%d): %s\n", rc, gsasl_strerror(rc) );
   }
-
-  gsasl_property_set( session, GSASL_SERVICE,  "mongodb" );
-  gsasl_property_set( session, GSASL_HOSTNAME, link->master->host );
+ 
+  gsasl_property_set( session, GSASL_SERVICE,          "mongodb" );
+  gsasl_property_set( session, GSASL_HOSTNAME,         link->master->host );
+  gsasl_property_set( session, GSASL_VALIDATE_GSSAPI,  1 );
+  
 
   char buf[8192] = "";
-  char *p;
+  char **p;
 
   do { 
-    rc = gsasl_step64( session, buf, &p );
+    rc = gsasl_step64( session, buf, p );
 
+    fprintf( stderr, "SASL step = buf[%s], p=[%s] \n", buf, &p );
+ 
     if ( rc == GSASL_NEEDS_MORE || rc == GSASL_OK ) {
       gsasl_free( p );
     }
