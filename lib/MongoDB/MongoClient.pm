@@ -434,6 +434,40 @@ sub fsync_unlock {
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
 
+sub _sasl_check { 
+    my ( $self, $res ) = @_;
+
+    if ( $res->{ok} != 1 ) { 
+        die "SASL authentication error: $res->{errmsg}";
+    }
+
+    return $res->{conversationId};
+}
+
+sub _sasl_start { 
+    my ( $self, $payload ) = @_;
+
+    my $res = $self->get_database( '$external' )->run_command( { 
+        saslStart     => 1,
+        mechanism     => 'GSSAPI',
+        payload       => $payload,
+        autoAuthorize => 1 } );
+
+    return $self->_sasl_check( $res );
+}
+
+
+sub _sasl_continue { 
+    my ( $self, $payload, $conv_id ) = @_;
+
+    my $res = $self->_get_database( '$external' )->run_command( { 
+        saslContinue     => 1,
+        conversationId   => $conv_id,
+        payload          => $payload
+    } );
+
+    return $self->_sasl_check( $res );
+}
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
