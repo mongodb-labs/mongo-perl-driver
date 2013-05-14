@@ -28,6 +28,7 @@ static void serialize_regex(buffer*, const char*, REGEXP*, int is_insert);
 static void serialize_regex_flags(buffer*, SV*);
 static void append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert);
 static void containsNullChar(const char* str, int len);
+static SV *bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client);
 
 #ifdef USE_ITHREADS
 static perl_mutex inc_mutex;
@@ -357,7 +358,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
     break;
   }
   case BSON_OBJECT: {
-    value = perl_mongo_bson_to_sv(buf, dt_type, inflate_dbrefs, client );
+    value = bson_to_sv(buf, dt_type, inflate_dbrefs, client );
 
     break;
   }
@@ -579,7 +580,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
     buf->pos += code_len;
 
     if (type == BSON_CODE) {
-      scope = perl_mongo_bson_to_sv(buf, dt_type, inflate_dbrefs, client );
+      scope = bson_to_sv(buf, dt_type, inflate_dbrefs, client );
       value = perl_mongo_construct_instance("MongoDB::Code", "code", code, "scope", scope, NULL);
     }
     else {
@@ -648,6 +649,15 @@ bson_to_av (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
 
 SV *
 perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
+{
+  utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
+  use_binary = get_sv("MongoDB::BSON::use_binary", 0);
+
+  return bson_to_sv(buf, dt_type, inflate_dbrefs, client);
+}
+
+static SV *
+bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
 {
   HV *ret = newHV();
 
@@ -1694,6 +1704,9 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids) {
   if (!SvROK (sv)) {
     croak ("not a reference");
   }
+
+  special_char = get_sv("MongoDB::BSON::char", 0);
+  look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
 
   switch (SvTYPE (SvRV (sv))) {
   case SVt_PVHV:

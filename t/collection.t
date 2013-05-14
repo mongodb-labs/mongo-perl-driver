@@ -198,12 +198,13 @@ $coll->insert({foo => "\x9F" });
 my $utfblah = $coll->find_one;
 is(ord($utfblah->{'foo'}), 159, 'translate non-utf8 to utf8 char');
 
-$MongoDB::BSON::utf8_flag_on = 0;
+{
+local $MongoDB::BSON::utf8_flag_on = 0;
 $coll->drop;
 $coll->insert({"\x9F" => "hi"});
 $utfblah = $coll->find_one;
 is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
-$MongoDB::BSON::utf8_flag_on = 1;
+}
 
 $coll->drop;
 my $keys = tie(my %idx, 'Tie::IxHash');
@@ -468,7 +469,7 @@ SKIP: {
     my $coll = $db->get_collection('test_collection');
     $coll->drop;
     # turn off utf8 flag now
-    $MongoDB::BSON::utf8_flag_on = 0;
+    local $MongoDB::BSON::utf8_flag_on = 0;
     $coll->insert({ foo => "\x{4e2d}\x{56fd}"});
     $utfblah = $coll->find_one;
     $coll->drop;
@@ -479,8 +480,6 @@ SKIP: {
     # my $utfv2 = encode('utf8',"中国");
     # diag(Dumper(\$utfv2));
     is($utfblah->{foo2},$utfv2,'turn utf8 flag off,return perl internal form(bytes)');
-    # restore;
-    $MongoDB::BSON::utf8_flag_on = 1;
     $coll->drop;
 }
 
@@ -516,7 +515,7 @@ SKIP: {
 
 # utf8 test, croak when null key is inserted
 {
-    $MongoDB::BSON::utf8_flag_on = 1;
+    local $MongoDB::BSON::utf8_flag_on = 1;
     my $ok = 0;
     my $kanji = "漢\0字";
     utf8::encode($kanji);
