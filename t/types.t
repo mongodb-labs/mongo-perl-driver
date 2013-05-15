@@ -23,7 +23,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 59;
+    plan tests => 61;
 }
 
 my $db = $conn->get_database('x');
@@ -59,8 +59,14 @@ is($id."", $id->value);
     is($id->value, $value);
 
     my $id_orig = MongoDB::OID->new;
-    my $id_copy = MongoDB::OID->new(value => $id_orig->value);
-    is($id_orig->value, $id_copy->value);
+    foreach my $args (
+        [value => $id_orig->value],
+        [$id_orig->value],
+        [$id_orig],
+    ) {
+        my $id_copy = MongoDB::OID->new(@{$args});
+        is($id_orig->value, $id_copy->value);
+    }
 }
 
 #regexes
