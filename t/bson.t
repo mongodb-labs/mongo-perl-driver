@@ -84,7 +84,7 @@ my $c = $db->get_collection('bar');
 }
 
 {
-    $MongoDB::BSON::char = "=";
+    local $MongoDB::BSON::char = "=";
     $c->drop;
     $c->update({x => 1}, {"=inc" => {x => 1}}, {upsert => true});
 
@@ -93,7 +93,7 @@ my $c = $db->get_collection('bar');
 }
 
 {
-    $MongoDB::BSON::char = ":";
+    local $MongoDB::BSON::char = ":";
     $c->drop;
     $c->batch_insert([{x => 1}, {x => 2}, {x => 3}, {x => 4}, {x => 5}]);
     my $cursor = $c->query({x => {":gt" => 2, ":lte" => 4}})->sort({x => 1});
@@ -327,8 +327,7 @@ package main;
 {
     $c->drop;
 
-    my $old = $MongoDB::BSON::use_binary;
-    $MongoDB::BSON::use_binary = 0;
+    local $MongoDB::BSON::use_binary = 0;
 
     my $str = "foo";
     my $bin = {bindata => [
@@ -365,8 +364,6 @@ package main;
         is($arr[$i]->subtype, $bin->{'bindata'}->[$i]->subtype);
         is($arr[$i]->data, $bin->{'bindata'}->[$i]->data);
     }
-
-    $MongoDB::BSON::use_binary = $old;
 }
 
 # Checking hash key unicode support

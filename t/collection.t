@@ -25,7 +25,7 @@ if ($@) {
     plan skip_all => $@;
 }
 else {
-    plan tests => 141;
+    plan tests => 140;
 }
 
 my $db = $conn->get_database('test_database');
@@ -204,24 +204,13 @@ $coll->drop;
     delete $utfblah->{_id};
     is_deeply($utfblah, $copy, 'non-ascii values');
 
-    $coll->drop;
-
-    $insert = { $down => "down", $up => "up", $non_latin => "non_latin" };
-    $copy = +{ %{$insert} };
-    $coll->insert($insert);
-    $utfblah = $coll->find_one;
-    delete $utfblah->{_id};
-    is_deeply($utfblah, $copy, 'non-ascii keys');
+{
+local $MongoDB::BSON::utf8_flag_on = 0;
+$coll->drop;
+$coll->insert({"\x9F" => "hi"});
+$utfblah = $coll->find_one;
+is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
 }
-
-$coll->drop;
-
-$MongoDB::BSON::utf8_flag_on = 0;
-$coll->drop;
-$coll->insert({"\xe9" => "hi"});
-my $utfblah = $coll->find_one;
-is($utfblah->{"\xC3\xA9"}, "hi", 'byte key');
-$MongoDB::BSON::utf8_flag_on = 1;
 
 $coll->drop;
 my $keys = tie(my %idx, 'Tie::IxHash');
@@ -486,16 +475,14 @@ SKIP: {
     my $coll = $db->get_collection('test_collection');
     $coll->drop;
     # turn off utf8 flag now
-    $MongoDB::BSON::utf8_flag_on = 0;
+    local $MongoDB::BSON::utf8_flag_on = 0;
     $coll->insert({ foo => "\x{4e2d}\x{56fd}"});
     $utfblah = $coll->find_one;
     # use utf8;
     my $utfv2 = encode('utf8',"\x{4e2d}\x{56fd}");
     # my $utfv2 = encode('utf8',"中国");
     # diag(Dumper(\$utfv2));
-    is($utfblah->{foo},$utfv2,'turn utf8 flag off,return perl internal form(bytes)');
-    # restore;
-    $MongoDB::BSON::utf8_flag_on = 1;
+    is($utfblah->{foo2},$utfv2,'turn utf8 flag off,return perl internal form(bytes)');
     $coll->drop;
 }
 
@@ -531,7 +518,7 @@ SKIP: {
 
 # utf8 test, croak when null key is inserted
 {
-    $MongoDB::BSON::utf8_flag_on = 1;
+    local $MongoDB::BSON::utf8_flag_on = 1;
     my $ok = 0;
     my $kanji = "漢\0字";
     utf8::encode($kanji);

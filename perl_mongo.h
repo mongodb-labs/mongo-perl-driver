@@ -141,7 +141,8 @@ typedef struct _stackette {
 extern MGVTBL connection_vtbl, cursor_vtbl;
 extern int perl_mongo_machine_id;
 
-void perl_mongo_mutex_init();
+int isUTF8(const char*, int);
+void perl_mongo_init();
 void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 SV *perl_mongo_call_reader (SV *self, const char *reader);
 SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
