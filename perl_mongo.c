@@ -1008,6 +1008,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
     SV **hval;
     STRLEN len;
     const char *key = HePV (he, len);
+    const char *utf8 = HeUTF8(he);
     containsNullChar(key, len);
     /* if we've already added the oid field, continue */
     if (ids && strcmp(key, "_id") == 0) {
@@ -1018,13 +1019,16 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
      * HeVAL doesn't return the correct value for tie(%foo, 'Tie::IxHash')
      * so we're using hv_fetch
      */
-    if ((hval = hv_fetch(hv, key, len, 0)) == 0) {
-    /* May be it's an unicode string? */
-        if ((hval = hv_fetch(hv, key, -len, 0)) == 0) {
-	    croak("could not find hash value for key %s, len:%d", key, len);
-	}
+    if ((hval = hv_fetch(hv, key, utf8 ? -len : len, 0)) == 0) {
+      croak("could not find hash value for key %s, len:%d", key, len);
+    }
+    if (!utf8) {
+      key = bytes_to_utf8(key, &len);
     }
     append_sv (buf, key, *hval, stack, is_insert);
+    if (!utf8) {
+      Safefree(key);
+    }
   }
 
   perl_mongo_serialize_null(buf);
@@ -1135,12 +1139,8 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
       croak ("failed to fetch associative array value");
     }
 
-    str = SvPV(*k, len);
+    str = SvPVutf8(*k, len);
     containsNullChar(str,len);
-    if (isUTF8(str, len)) {
-      str = SvPVutf8(*k, len);
-    }
-
     append_sv(buf, str, *v, stack, is_insert);
   }
 
@@ -1155,55 +1155,6 @@ static void containsNullChar(const char* str, int len) {
   if(strlen(str)  < len)
     croak("key contains null char");
 }
-
-int isUTF8(const char *s, int len) {
-  int i;
-
-  for (i=0; i<len; i++) {
-    if ((s[i] & 128) == 128) {
-      if ( i+3 < len                                                  &&    /* valid 4-byte:            */
-           (
-             ( (s[i] & 127) == 112 &&                                       /* byte 1 == F0 and         */
-               ( (s[i+1] & 240) == 144 || (s[i+1] & 224) == 160 )) ||       /* byte 2 >= 90 and <= BF   */
-             ( (s[i] & 127) >= 113 && (s[i] & 127) <= 115                   /* byte 1 >= F1 and <= F3   */
-                                   && (s[i+1] & 192) == 128 )      ||       /* byte 2 start bits 10     */
-             ( (s[i] & 127) == 116 && (s[i+1] & 128) == 128                 /* byte 1 == F4 and         */
-                                   && (s[i+1] & 127) <= 15  )               /* byte 2 >= 80 and <= 8F   */
-           )                                                          &&
-           (s[i+2] & 192) == 128                                      &&    /* byte 3 start bits 10     */
-           (s[i+3] & 192) == 128                                            /* byte 4 start bits 10     */
-         ) {
-        i += 3;
-      }
-      else if ( i+2 < len                                             &&    /* valid 3-byte:            */
-           (
-             ( (s[i] & 127) == 96  && (s[i+1] & 224) == 160 )      ||       /* byte 1 == E0 and byte 2 >= A0 and <= BF */
-             ( (s[i] & 127) == 109 && (s[i+1] & 224) == 128 )      ||       /* byte 1 == ED and byte 2 >= 80 and <= 9F */
-             (
-               ( (s[i] & 127) >= 97  && (s[i] & 127) <= 108 ||              /* byte 1 >= E1 and <= EC   */
-                 (s[i] & 127) == 110 || (s[i] & 127) == 111                 /* or byte 1 == EE or == EF */
-               ) && (s[i+1] & 192) == 128                                   /* and byte 2 start bits 10 */
-             )
-           )                                                          &&
-           (s[i+2] & 192) == 128                                            /* byte 3 start bits 10     */
-         ) {
-        i += 2;
-      }
-      else if ( i+1 < len                                             &&    /* valid 2-byte:            */
-           (s[i] & 127) >= 66                                         &&    /* byte 1 >= C2             */
-           (s[i] & 127) <= 95                                         &&    /* byte 1 <= DF             */
-           (s[i+1] & 192) == 128                                            /* byte 2 start bits 10     */
-         ) {
-        i += 1;
-      }
-      else {
-        return 0;
-      }
-    }
-  }
-  return 1;
-}
-
 
 #ifdef WIN32
 
@@ -1620,12 +1571,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
       }
       else {
         STRLEN len;
-        const char *str = SvPV(sv, len);
-
-        if (!isUTF8(str, len)) {
-          str = SvPVutf8(sv, len);
-        }
-
+        const char *str = SvPVutf8(sv, len);
 
         set_type(buf, BSON_STRING);
         perl_mongo_serialize_key(buf, key, is_insert);
@@ -1765,11 +1711,8 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids) {
           croak ("failed to fetch array element");
         }
 
-        str = SvPV(*key, len);
+        str = SvPVutf8(*key, len);
 
-        if (!isUTF8(str, len)) {
-          str = SvPVutf8(*key, len);
-        }
         append_sv (buf, str, *val, EMPTY_STACK, ids != 0);
       }
 

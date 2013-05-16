@@ -179,21 +179,6 @@ read_documents(sv)
            XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf, "DateTime", 0, newSV(0) )));
          }
 
-
-
-
-int
-_test_is_utf8(input)
-        SV *input
-    CODE:
-        /* exposed for testing only */
-        STRLEN len;
-        char *str = SvPV( input, len );
-        int ret = isUTF8(str, len);
-        RETVAL = ret;
-    OUTPUT:
-        RETVAL
-
 void
 force_double(input)
 	SV *input
