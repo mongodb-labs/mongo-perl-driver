@@ -98,7 +98,23 @@ sub AUTOLOAD {
     my $coll = $AUTOLOAD;
     $coll =~ s/.*:://;
 
-    carp sprintf q{AUTOLOADed collection method names are deprecated and will be removed in a future release. Use $db->get_collection( '%s' ) instead.}, $coll;
+    carp sprintf q{AUTOLOADed collection method names are deprecated and will be removed in a future release. Use $collection->get_collection( '%s' ) instead.}, $coll;
+
+    return $self->get_collection($coll);
+}
+
+=head2 get_collection ($name)
+
+    my $collection = $database->get_collection('foo');
+
+Returns a L<MongoDB::Collection> for the collection called C<$name> within this
+collection.
+
+=cut
+
+sub get_collection {
+    my $self = shift @_;
+    my $coll = shift @_;
 
     return $self->_database->get_collection($self->name.'.'.$coll);
 }
