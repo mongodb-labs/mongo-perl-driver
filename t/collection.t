@@ -215,11 +215,11 @@ $coll->drop;
 }
 
 {
-local $MongoDB::BSON::utf8_flag_on = 0;
-$coll->drop;
-$coll->insert({"\xe9" => "hi"});
-my $utfblah = $coll->find_one;
-is($utfblah->{"\xC3\xA9"}, "hi", 'byte key');
+    local $MongoDB::BSON::utf8_flag_on = 0;
+    $coll->drop;
+    $coll->insert({"\xe9" => "hi"});
+    my $utfblah = $coll->find_one;
+    is($utfblah->{"\xC3\xA9"}, "hi", 'byte key');
 }
 
 $coll->drop;
