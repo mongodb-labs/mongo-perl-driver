@@ -204,12 +204,11 @@ $coll->drop;
     delete $utfblah->{_id};
     is_deeply($utfblah, $copy, 'non-ascii values');
 
-{
-local $MongoDB::BSON::utf8_flag_on = 0;
-$coll->drop;
-$coll->insert({"\x9F" => "hi"});
-$utfblah = $coll->find_one;
-is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
+    local $MongoDB::BSON::utf8_flag_on = 0;
+    $coll->drop;
+    $coll->insert({"\x9F" => "hi"});
+    $utfblah = $coll->find_one;
+    is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
 }
 
 $coll->drop;
@@ -477,7 +476,7 @@ SKIP: {
     # turn off utf8 flag now
     local $MongoDB::BSON::utf8_flag_on = 0;
     $coll->insert({ foo => "\x{4e2d}\x{56fd}"});
-    $utfblah = $coll->find_one;
+    my $utfblah = $coll->find_one;
     # use utf8;
     my $utfv2 = encode('utf8',"\x{4e2d}\x{56fd}");
     # my $utfv2 = encode('utf8',"中国");
