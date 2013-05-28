@@ -447,11 +447,11 @@ sub _sasl_check {
 sub _sasl_start { 
     my ( $self, $payload ) = @_;
 
-    my $res = $self->get_database( '$external' )->run_command( { 
+    my $res = $self->get_database( '$external' )->run_command( [ 
         saslStart     => 1,
         mechanism     => 'GSSAPI',
         payload       => $payload,
-        autoAuthorize => 1 } );
+        autoAuthorize => 1 ] );
 
     return $self->_sasl_check( $res );
 }
@@ -460,11 +460,11 @@ sub _sasl_start {
 sub _sasl_continue { 
     my ( $self, $payload, $conv_id ) = @_;
 
-    my $res = $self->_get_database( '$external' )->run_command( { 
+    my $res = $self->_get_database( '$external' )->run_command( [ 
         saslContinue     => 1,
         conversationId   => $conv_id,
         payload          => $payload
-    } );
+    ] );
 
     return $self->_sasl_check( $res );
 }
