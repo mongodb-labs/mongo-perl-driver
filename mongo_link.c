@@ -41,7 +41,7 @@ static void set_timeout(int socket, time_t timeout) {
 }
 
 #ifdef MONGO_SASL
-static void sasl_authenticate( mongo_link *link ) { 
+static void sasl_authenticate( SV *client, mongo_link *link ) { 
   Gsasl *ctx = NULL;
   int rc;  
 
@@ -87,7 +87,7 @@ static void sasl_authenticate( mongo_link *link ) {
 }
 #endif
 
-void perl_mongo_connect(mongo_link* link) {
+void perl_mongo_connect(SV *client, mongo_link* link) {
 #ifdef MONGO_SSL
   if(link->ssl){
     ssl_connect(link);
@@ -102,7 +102,7 @@ void perl_mongo_connect(mongo_link* link) {
   link->receiver = non_ssl_recv;
 
 #ifdef MONGO_SASL
-  sasl_authenticate( link );
+  sasl_authenticate( client, link );
 #endif
 }
 
