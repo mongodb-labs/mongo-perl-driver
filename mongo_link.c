@@ -57,7 +57,6 @@ static void sasl_authenticate( mongo_link *link ) {
  
   gsasl_property_set( session, GSASL_SERVICE,          "mongodb" );
   gsasl_property_set( session, GSASL_HOSTNAME,         link->master->host );
-  gsasl_property_set( session, GSASL_VALIDATE_GSSAPI,  1 );
   
 
   char buf[8192] = "";
