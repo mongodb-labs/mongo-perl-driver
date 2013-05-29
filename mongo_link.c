@@ -58,29 +58,35 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   gsasl_property_set( session, GSASL_SERVICE,          "mongodb" );
   gsasl_property_set( session, GSASL_HOSTNAME,         link->master->host );
   
-  char buf[8192] = "";
   char *p;
-  SV *buf_sv;
+  SV *out_sv;
 
-  rc = gsasl_step64( session, buf, &p );
-  buf_sv = newSVpv( buf, 0 );  
+  rc = gsasl_step64( session, "", &p );
+  out_sv = newSVpv( p, 0 );  
 
-  SV *conv_id = perl_mongo_call_method( client, "_sasl_start", 0, 1, buf_sv );
+  HV *result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_start", 0, 1, out_sv ) );
+  fprintf( stderr, "result conv id = [%s]\n", SvPV_nolen( *hv_fetch( result, "conversationId", 14, FALSE ) ) );
+  fprintf( stderr, "result payload = [%s]\n", SvPV_nolen( *hv_fetch( result, "payload",         7, FALSE ) ) );
 
+  char *buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
+  SV *conv_id = *hv_fetch( result, "conversationId", 14, FALSE ); 
+ 
   do { 
-    rc = gsasl_step64( session, buf, p );
-    buf_sv = newSVpv( buf, 0 );
+    rc = gsasl_step64( session, buf, &p );
+    out_sv = newSVpv( p, 0 );
 
-    fprintf( stderr, "SASL step = buf[%s], p=[%s] \n", buf, &p );
+    fprintf( stderr, "SASL step = buf[%s], p=[%s] \n", buf, p );
  
     if ( rc == GSASL_NEEDS_MORE || rc == GSASL_OK ) {
       gsasl_free( p );
     }
 
     if ( rc == GSASL_NEEDS_MORE ) {
-        perl_mongo_call_method( client, "_sasl_continue", 0, 2, buf_sv, conv_id );
+        perl_mongo_call_method( client, "_sasl_continue", 0, 2, out_sv, conv_id );
     }
   } while( rc == GSASL_NEEDS_MORE );
+
+
 
   if ( rc != GSASL_OK ) { 
     croak( "SASL Authentication error (%d): %s\n", rc, gsasl_strerror(rc) );

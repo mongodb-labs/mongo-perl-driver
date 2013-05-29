@@ -455,7 +455,8 @@ sub _sasl_start {
         payload       => $payload,
         autoAuthorize => 1 ] );
 
-    return $self->_sasl_check( $res );
+    $self->_sasl_check( $res );
+    return $res;
 }
 
 
@@ -464,13 +465,14 @@ sub _sasl_continue {
 
     warn "SASL continue, payload = [$payload], conv ID = [$conv_id]";
 
-    my $res = $self->_get_database( '$external' )->run_command( [ 
+    my $res = $self->get_database( '$external' )->run_command( [ 
         saslContinue     => 1,
         conversationId   => $conv_id,
         payload          => $payload
     ] );
 
-    return $self->_sasl_check( $res );
+    $self->_sasl_check( $res );
+    return $res;
 }
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
