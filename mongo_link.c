@@ -58,12 +58,18 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   gsasl_property_set( session, GSASL_SERVICE,          "mongodb" );
   gsasl_property_set( session, GSASL_HOSTNAME,         link->master->host );
   
-
   char buf[8192] = "";
-  char **p;
+  char *p;
+  SV *buf_sv;
+
+  rc = gsasl_step64( session, buf, &p );
+  buf_sv = newSVpv( buf, 0 );  
+
+  SV *conv_id = perl_mongo_call_method( client, "_sasl_start", 0, 1, buf_sv );
 
   do { 
     rc = gsasl_step64( session, buf, p );
+    buf_sv = newSVpv( buf, 0 );
 
     fprintf( stderr, "SASL step = buf[%s], p=[%s] \n", buf, &p );
  
@@ -72,8 +78,7 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
     }
 
     if ( rc == GSASL_NEEDS_MORE ) {
-      send( link->master->socket, buf, sizeof( buf ), 0 );
-      recv( link->master->socket, buf, sizeof( buf ), 0 );
+        perl_mongo_call_method( client, "_sasl_continue", 0, 2, buf_sv, conv_id );
     }
   } while( rc == GSASL_NEEDS_MORE );
 
