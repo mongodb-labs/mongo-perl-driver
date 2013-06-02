@@ -19,6 +19,9 @@ use strict;
 use warnings;
 
 package MongoDB;
+{
+	$MongoDB::VERSION = '7.001.0';
+}
 # ABSTRACT: A MongoDB Driver for Perl
 
 use XSLoader;
