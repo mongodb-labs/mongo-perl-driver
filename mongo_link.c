@@ -81,8 +81,8 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   out_sv = newSVpv( p, 0 );  
 
   HV *result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_start", 0, 1, out_sv ) );
-  fprintf( stderr, "result conv id = [%s]\n", SvPV_nolen( *hv_fetch( result, "conversationId", 14, FALSE ) ) );
-  fprintf( stderr, "result payload = [%s]\n", SvPV_nolen( *hv_fetch( result, "payload",         7, FALSE ) ) );
+  // fprintf( stderr, "result conv id = [%s]\n", SvPV_nolen( *hv_fetch( result, "conversationId", 14, FALSE ) ) );
+  // fprintf( stderr, "result payload = [%s]\n", SvPV_nolen( *hv_fetch( result, "payload",         7, FALSE ) ) );
 
   char *buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
   SV *conv_id = *hv_fetch( result, "conversationId", 14, FALSE ); 
@@ -91,7 +91,7 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
     p = sasl_do_step( session, buf, &rc );
     out_sv = newSVpv( p, 0 );
 
-    fprintf( stderr, "SASL step = buf[%s], p=[%s] \n", buf, p );
+    // fprintf( stderr, "SASL step = buf[%s], p=[%s] \n", buf, p );
  
     if ( rc == GSASL_NEEDS_MORE ) {
         perl_mongo_call_method( client, "_sasl_continue", 0, 2, out_sv, conv_id );

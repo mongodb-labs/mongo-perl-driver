@@ -447,7 +447,7 @@ sub _sasl_check {
 sub _sasl_start { 
     my ( $self, $payload ) = @_;
 
-    warn "SASL start, payload = [$payload]";
+    # warn "SASL start, payload = [$payload]";
 
     my $res = $self->get_database( '$external' )->run_command( [ 
         saslStart     => 1,
@@ -463,7 +463,7 @@ sub _sasl_start {
 sub _sasl_continue { 
     my ( $self, $payload, $conv_id ) = @_;
 
-    warn "SASL continue, payload = [$payload], conv ID = [$conv_id]";
+    # warn "SASL continue, payload = [$payload], conv ID = [$conv_id]";
 
     my $res = $self->get_database( '$external' )->run_command( [ 
         saslContinue     => 1,
