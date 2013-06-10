@@ -96,12 +96,15 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
         result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_continue", 0, 2, out_sv, conv_id ) );
         buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
     }
-
-
     
   } while( rc == GSASL_NEEDS_MORE );
 
+  fprintf( stderr, "exited do loop\n" );
 
+  char *decode_out;
+  size_t decode_out_len;
+  gsasl_decode( session, p, strlen( p ), &decode_out, &decode_out_len ); 
+  fprintf( stderr, "decoded result length=[%d], result=[%s]\n", decode_out_len, decode_out );
 
   if ( rc != GSASL_OK ) { 
     croak( "SASL Authentication error (%d): %s\n", rc, gsasl_strerror(rc) );
