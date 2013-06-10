@@ -45,13 +45,12 @@ static char *sasl_do_step( Gsasl_session *session, char *input, int *rc_ptr ) {
   char out_buf[8192];
   char *p;
 
-  fprintf( stderr, "sasl_do_step input=[%s]\n", input );
+  fprintf( stderr, "\n========================================\nsasl_do_step input=[%s]\n", input );
   *rc_ptr = gsasl_step64( session, input, &p );
-  fprintf( stderr, "sasl_do_step output=[%s]\n", p );
   fprintf( stderr, "sasl_do_step rc=[%d]\n", *rc_ptr );
 
   strncpy( out_buf, p, 8192 );
-  fprintf( stderr, "sasl_do_step output buf=[%s]\n", out_buf );
+  fprintf( stderr, "sasl_do_step output buf=[%s]\n\n", out_buf );
   gsasl_free( p );
 
   return out_buf;
@@ -94,8 +93,12 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
     // fprintf( stderr, "SASL step = buf[%s], p=[%s] \n", buf, p );
  
     if ( rc == GSASL_NEEDS_MORE ) {
-        perl_mongo_call_method( client, "_sasl_continue", 0, 2, out_sv, conv_id );
+        result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_continue", 0, 2, out_sv, conv_id ) );
+        buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
     }
+
+
+    
   } while( rc == GSASL_NEEDS_MORE );
 
 
