@@ -45,12 +45,8 @@ static char *sasl_do_step( Gsasl_session *session, char *input, int *rc_ptr ) {
   char out_buf[8192];
   char *p;
 
-  fprintf( stderr, "\n========================================\nsasl_do_step input=[%s]\n", input );
   *rc_ptr = gsasl_step64( session, input, &p );
-  fprintf( stderr, "sasl_do_step rc=[%d]\n", *rc_ptr );
-
   strncpy( out_buf, p, 8192 );
-  fprintf( stderr, "sasl_do_step output buf=[%s]\n\n", out_buf );
   gsasl_free( p );
 
   return out_buf;
@@ -69,10 +65,16 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   if ( ( rc = gsasl_client_start( ctx, "GSSAPI", &session ) ) != GSASL_OK ) { 
     croak( "Cannot initialize SASL client (%d): %s\n", rc, gsasl_strerror(rc) );
   }
+
+  SV *username = perl_mongo_call_method( client, "username", 0, 0 );
+  if ( !SvOK( username ) ) { 
+    croak( "Cannot start SASL session without username. Specify username in constructor" );
+  }
  
   gsasl_property_set( session, GSASL_SERVICE,          "mongodb" );
   gsasl_property_set( session, GSASL_HOSTNAME,         link->master->host );
-  
+  gsasl_property_set( session, GSASL_AUTHID,           SvPV_nolen( username ) ); 
+ 
   char *p;
   SV *out_sv;
 
@@ -90,21 +92,10 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
     p = sasl_do_step( session, buf, &rc );
     out_sv = newSVpv( p, 0 );
 
-    // fprintf( stderr, "SASL step = buf[%s], p=[%s] \n", buf, p );
- 
-    if ( rc == GSASL_NEEDS_MORE ) {
-        result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_continue", 0, 2, out_sv, conv_id ) );
-        buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
-    }
-    
+    result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_continue", 0, 2, out_sv, conv_id ) );
+    buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
+
   } while( rc == GSASL_NEEDS_MORE );
-
-  fprintf( stderr, "exited do loop\n" );
-
-  char *decode_out;
-  size_t decode_out_len;
-  gsasl_decode( session, p, strlen( p ), &decode_out, &decode_out_len ); 
-  fprintf( stderr, "decoded result length=[%d], result=[%s]\n", decode_out_len, decode_out );
 
   if ( rc != GSASL_OK ) { 
     croak( "SASL Authentication error (%d): %s\n", rc, gsasl_strerror(rc) );
