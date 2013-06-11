@@ -46,6 +46,10 @@ static char *sasl_do_step( Gsasl_session *session, char *input, int *rc_ptr ) {
   char *p;
 
   *rc_ptr = gsasl_step64( session, input, &p );
+  if ( ( *rc_ptr != GSASL_OK ) && ( *rc_ptr != GSASL_NEEDS_MORE ) ) { 
+      croak( "No data from GSSAPI. Did you run kinit?" );
+  }
+
   strncpy( out_buf, p, 8192 );
   gsasl_free( p );
 
