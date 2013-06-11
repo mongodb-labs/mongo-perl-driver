@@ -131,6 +131,12 @@ has ssl => (
     default  => 0,
 );
 
+has sasl => ( 
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0
+);
 
 # hash of servers in a set
 # call connected() to determine if a connection is enabled
@@ -690,6 +696,19 @@ This tells the driver that you are connecting to an SSL mongodb instance.
 
 This option will be ignored if the driver was not compiled with the SSL flag. You must
 also be using a database server that supports SSL.
+
+=head2 sasl (EXPERIMENTAL)
+
+If set to C<1>, the driver will attempt to negotiate SASL authentication upon
+connection. Currently, the only supported mechanism is GSSAPI/Krb5 on Linux. The
+driver must be built as follows for SASL support:
+
+    perl Makefile.PL --sasl
+    make
+    make install
+
+The C<libgsasl> library is required for SASL support. RedHat/CentOS users can find it
+in the EPEL repositories.
 
 
 =head2 dt_type
