@@ -261,6 +261,22 @@ recv(self, cursor)
          mongo_link_hear(cursor);
 
 
+SV *
+_compile_flags(self)
+        SV *self
+    CODE:
+        HV *flags = newHV();
+#ifdef MONGO_SSL
+        hv_store( flags, "--ssl",  5, newSViv( 1 ), 0 );
+#endif
+#ifdef MONGO_SASL
+        hv_store( flags, "--sasl", 6, newSViv( 1 ), 0 );
+#endif
+        RETVAL = newRV_noinc( flags );
+    OUTPUT:
+        RETVAL
+
+
 void
 DESTROY (self)
           SV *self
