@@ -441,6 +441,14 @@ sub fsync_unlock {
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
 
+sub _w_want_safe { 
+    my ( $self ) = @_;
+
+    my $w = $self->w;
+    return 0 if ( $w =~ /^\d+/ && $w <= 0 );
+    return 1;
+}
+
 sub _sasl_check { 
     my ( $self, $res ) = @_;
 
