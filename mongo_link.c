@@ -58,39 +58,38 @@ static char *sasl_do_step( Gsasl_session *session, char *input, int *rc_ptr ) {
 
 static void sasl_authenticate( SV *client, mongo_link *link ) { 
   Gsasl *ctx = NULL;
+  Gsasl_session *session;
+  SV *username, *out_sv, *conv_id;
+  HV *result;       /* response document from mongod */
+  char *p, *buf;    /* I/O buffers for gsasl */
   int rc;  
 
   if ( ( rc = gsasl_init( &ctx ) ) != GSASL_OK ) { 
     croak( "Cannot initialize libgsasl (%d): %s", rc, gsasl_strerror(rc) );  
   }
 
-  Gsasl_session *session;
-
   if ( ( rc = gsasl_client_start( ctx, "GSSAPI", &session ) ) != GSASL_OK ) { 
     croak( "Cannot initialize SASL client (%d): %s\n", rc, gsasl_strerror(rc) );
   }
 
-  SV *username = perl_mongo_call_method( client, "username", 0, 0 );
+  username = perl_mongo_call_method( client, "username", 0, 0 );
   if ( !SvOK( username ) ) { 
     croak( "Cannot start SASL session without username. Specify username in constructor" );
   }
  
-  gsasl_property_set( session, GSASL_SERVICE,          "mongodb" );
-  gsasl_property_set( session, GSASL_HOSTNAME,         link->master->host );
-  gsasl_property_set( session, GSASL_AUTHID,           SvPV_nolen( username ) ); 
- 
-  char *p;
-  SV *out_sv;
+  gsasl_property_set( session, GSASL_SERVICE,  "mongodb" );
+  gsasl_property_set( session, GSASL_HOSTNAME, link->master->host );
+  gsasl_property_set( session, GSASL_AUTHID,   SvPV_nolen( username ) ); 
 
   p = sasl_do_step( session, "", &rc );
-  out_sv = newSVpv( p, 0 );  
+  out_sv = newSVpv( p, 0 );
 
-  HV *result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_start", 0, 1, out_sv ) );
+  result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_start", 0, 1, out_sv ) );
   // fprintf( stderr, "result conv id = [%s]\n", SvPV_nolen( *hv_fetch( result, "conversationId", 14, FALSE ) ) );
   // fprintf( stderr, "result payload = [%s]\n", SvPV_nolen( *hv_fetch( result, "payload",         7, FALSE ) ) );
 
-  char *buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
-  SV *conv_id = *hv_fetch( result, "conversationId", 14, FALSE ); 
+  buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
+  conv_id = *hv_fetch( result, "conversationId", 14, FALSE ); 
  
   do { 
     p = sasl_do_step( session, buf, &rc );
@@ -109,7 +108,7 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
 
   gsasl_done( ctx );
 }
-#endif
+#endif  /* MONGO_SASL */
 
 void perl_mongo_connect(SV *client, mongo_link* link) {
 #ifdef MONGO_SSL
