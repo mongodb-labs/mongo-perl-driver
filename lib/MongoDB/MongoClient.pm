@@ -25,6 +25,7 @@ use MongoDB::Cursor;
 use Digest::MD5;
 use Tie::IxHash;
 use Carp 'carp';
+use Scalar::Util 'reftype';
 use boolean;
 
 
@@ -442,6 +443,9 @@ sub fsync_unlock {
 
 sub _sasl_check { 
     my ( $self, $res ) = @_;
+
+    die "Invalid SASL response document from server:"
+        unless reftype $res eq reftype { };
 
     if ( $res->{ok} != 1 ) { 
         die "SASL authentication error: $res->{errmsg}";
