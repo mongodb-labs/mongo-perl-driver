@@ -41,31 +41,17 @@ static void set_timeout(int socket, time_t timeout) {
 }
 
 #ifdef MONGO_SASL
-static char *sasl_do_step( Gsasl_session *session, char *input, int *rc_ptr ) { 
-  char out_buf[8192];
-  char *p;
-
-  *rc_ptr = gsasl_step64( session, input, &p );
-  if ( ( *rc_ptr != GSASL_OK ) && ( *rc_ptr != GSASL_NEEDS_MORE ) ) { 
-      croak( "No data from GSSAPI. Did you run kinit?" );
-  }
-
-  strncpy( out_buf, p, 8192 );
-  gsasl_free( p );
-
-  return out_buf;
-}
-
 static void sasl_authenticate( SV *client, mongo_link *link ) { 
   Gsasl *ctx = NULL;
   Gsasl_session *session;
-  SV *username, *out_sv, *conv_id;
+  SV *username, *conv_id;
   HV *result;       /* response document from mongod */
   char *p, *buf;    /* I/O buffers for gsasl */
-  int rc;  
+  int rc;
+  char out_buf[8192];
 
   if ( ( rc = gsasl_init( &ctx ) ) != GSASL_OK ) { 
-    croak( "Cannot initialize libgsasl (%d): %s", rc, gsasl_strerror(rc) );  
+    croak( "Cannot initialize libgsasl (%d): %s\n", rc, gsasl_strerror(rc) );  
   }
 
   if ( ( rc = gsasl_client_start( ctx, "GSSAPI", &session ) ) != GSASL_OK ) { 
@@ -74,28 +60,47 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
 
   username = perl_mongo_call_method( client, "username", 0, 0 );
   if ( !SvOK( username ) ) { 
-    croak( "Cannot start SASL session without username. Specify username in constructor" );
+    croak( "Cannot start SASL session without username. Specify username in constructor\n" );
   }
  
   gsasl_property_set( session, GSASL_SERVICE,  "mongodb" );
   gsasl_property_set( session, GSASL_HOSTNAME, link->master->host );
   gsasl_property_set( session, GSASL_AUTHID,   SvPV_nolen( username ) ); 
 
-  p = sasl_do_step( session, "", &rc );
-  out_sv = newSVpv( p, 0 );
+  rc = gsasl_step64( session, "", &p );
+  if ( ( rc != GSASL_OK ) && ( rc != GSASL_NEEDS_MORE ) ) { 
+    croak( "No data from GSSAPI. Did you run kinit?\n" );
+  }
 
-  result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_start", 0, 1, out_sv ) );
-  // fprintf( stderr, "result conv id = [%s]\n", SvPV_nolen( *hv_fetch( result, "conversationId", 14, FALSE ) ) );
-  // fprintf( stderr, "result payload = [%s]\n", SvPV_nolen( *hv_fetch( result, "payload",         7, FALSE ) ) );
+  strncpy( out_buf, p, 8192 );
+  gsasl_free( p );
+
+  result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_start", 0, 1, newSVpv( out_buf, 0 ) ) );
+
+#if 0  
+  fprintf( stderr, "result conv id = [%s]\n", SvPV_nolen( *hv_fetch( result, "conversationId", 14, FALSE ) ) );
+  fprintf( stderr, "result payload = [%s]\n", SvPV_nolen( *hv_fetch( result, "payload",         7, FALSE ) ) );
+#endif
 
   buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
   conv_id = *hv_fetch( result, "conversationId", 14, FALSE ); 
  
   do { 
-    p = sasl_do_step( session, buf, &rc );
-    out_sv = newSVpv( p, 0 );
+    rc = gsasl_step64( session, buf, &p );
+    if ( ( rc != GSASL_OK ) && ( rc != GSASL_NEEDS_MORE ) ) {
+      croak( "SASL step error (%d): %s\n", rc, gsasl_strerror(rc) );
+    }
 
-    result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_continue", 0, 2, out_sv, conv_id ) );
+    strncpy( out_buf, p, 8192 );
+    gsasl_free( p );
+
+    result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_continue", 0, 2, newSVpv( out_buf, 0 ), conv_id ) );
+
+#if 0 
+    fprintf( stderr, "result conv id = [%s]\n", SvPV_nolen( *hv_fetch( result, "conversationId", 14, FALSE ) ) );
+    fprintf( stderr, "result payload = [%s]\n", SvPV_nolen( *hv_fetch( result, "payload",         7, FALSE ) ) );
+#endif
+
     buf = SvPV_nolen( *hv_fetch( result, "payload", 7, FALSE ) );
 
   } while( rc == GSASL_NEEDS_MORE );
