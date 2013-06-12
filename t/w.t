@@ -37,5 +37,5 @@ is( $conn->_w_want_safe, 1 );
 $conn->w( 'majority' );
 is( $conn->_w_want_safe, 1 );
 
-$conn=>w( 'anything' );
+$conn->w( 'anything' );
 is( $conn->_w_want_safe, 1 );

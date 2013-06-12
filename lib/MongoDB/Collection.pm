@@ -302,7 +302,7 @@ sub batch_insert {
         return 0;
     }
 
-    if (defined($options) && $options->{safe}) {
+    if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
         my $ok = $self->_make_safe($insert);
 
         if (!$ok) {
@@ -351,6 +351,7 @@ See also core documentation on update: L<http://dochub.mongodb.org/core/update>.
 
 =cut
 
+
 sub update {
     my ($self, $query, $object, $opts) = @_;
 
@@ -377,7 +378,7 @@ sub update {
     my $ns = $self->full_name;
 
     my $update = MongoDB::write_update($ns, $query, $object, $flags);
-    if ($opts->{safe}) {
+    if ($opts->{safe} or $conn->_w_want_safe ) {
         return $self->_make_safe($update);
     }
 
@@ -506,19 +507,21 @@ See also core documentation on remove: L<http://dochub.mongodb.org/core/remove>.
 
 =cut
 
+
 sub remove {
     my ($self, $query, $options) = @_;
+
+    my $conn = $self->_database->_client;
 
     my ($just_one, $safe);
     if (defined $options && ref $options eq 'HASH') {
         $just_one = exists $options->{just_one} ? $options->{just_one} : 0;
-        $safe = exists $options->{safe} ? $options->{safe} : 0;
+        $safe = $options->{safe} or $conn->_w_want_safe;
     }
     else {
         $just_one = $options || 0;
     }
 
-    my $conn = $self->_database->_client;
     my $ns = $self->full_name;
     $query ||= {};
 

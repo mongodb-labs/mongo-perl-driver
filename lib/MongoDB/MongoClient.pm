@@ -445,7 +445,8 @@ sub _w_want_safe {
     my ( $self ) = @_;
 
     my $w = $self->w;
-    return 0 if ( $w =~ /^\d+/ && $w <= 0 );
+
+    return 0 if $w =~ /^-?\d+$/ && $w <= 0;
     return 1;
 }
 
