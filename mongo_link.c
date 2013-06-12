@@ -51,16 +51,16 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   char out_buf[8192];
 
   if ( ( rc = gsasl_init( &ctx ) ) != GSASL_OK ) { 
-    croak( "Cannot initialize libgsasl (%d): %s\n", rc, gsasl_strerror(rc) );  
+    croak( "MongoDB: Cannot initialize libgsasl (%d): %s\n", rc, gsasl_strerror(rc) );  
   }
 
   if ( ( rc = gsasl_client_start( ctx, "GSSAPI", &session ) ) != GSASL_OK ) { 
-    croak( "Cannot initialize SASL client (%d): %s\n", rc, gsasl_strerror(rc) );
+    croak( "MongoDB: Cannot initialize SASL client (%d): %s\n", rc, gsasl_strerror(rc) );
   }
 
   username = perl_mongo_call_method( client, "username", 0, 0 );
   if ( !SvOK( username ) ) { 
-    croak( "Cannot start SASL session without username. Specify username in constructor\n" );
+    croak( "MongoDB: Cannot start SASL session without username. Specify username in constructor\n" );
   }
  
   gsasl_property_set( session, GSASL_SERVICE,  "mongodb" );
@@ -69,7 +69,7 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
 
   rc = gsasl_step64( session, "", &p );
   if ( ( rc != GSASL_OK ) && ( rc != GSASL_NEEDS_MORE ) ) { 
-    croak( "No data from GSSAPI. Did you run kinit?\n" );
+    croak( "MongoDB: No data from GSSAPI. Did you run kinit?\n" );
   }
 
   strncpy( out_buf, p, 8192 );
@@ -88,7 +88,7 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   do { 
     rc = gsasl_step64( session, buf, &p );
     if ( ( rc != GSASL_OK ) && ( rc != GSASL_NEEDS_MORE ) ) {
-      croak( "SASL step error (%d): %s\n", rc, gsasl_strerror(rc) );
+      croak( "MongoDB: SASL step error (%d): %s\n", rc, gsasl_strerror(rc) );
     }
 
     strncpy( out_buf, p, 8192 );
@@ -106,11 +106,10 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   } while( rc == GSASL_NEEDS_MORE );
 
   if ( rc != GSASL_OK ) { 
-    croak( "SASL Authentication error (%d): %s\n", rc, gsasl_strerror(rc) );
+    croak( "MongoDB: SASL Authentication error (%d): %s\n", rc, gsasl_strerror(rc) );
   }
 
   gsasl_finish( session );
-
   gsasl_done( ctx );
 }
 #endif  /* MONGO_SASL */
@@ -135,7 +134,7 @@ void perl_mongo_connect(SV *client, mongo_link* link) {
 #ifdef MONGO_SASL
       sasl_authenticate( client, link );
 #else
-      croak( "sasl => 1 specified, but this driver was not compiled with SASL support." );
+      croak( "MongoDB: sasl => 1 specified, but this driver was not compiled with SASL support." );
 #endif
   }
 }
