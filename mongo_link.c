@@ -72,7 +72,9 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
     croak( "MongoDB: No data from GSSAPI. Did you run kinit?\n" );
   }
 
-  strncpy( out_buf, p, 8192 );
+  if ( ! strncpy( out_buf, p, 8192 ) ) {
+    croak( "MongoDB: Unable to copy SASL output buffer\n" );
+  }
   gsasl_free( p );
 
   result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_start", 0, 1, newSVpv( out_buf, 0 ) ) );
@@ -91,11 +93,12 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
       croak( "MongoDB: SASL step error (%d): %s\n", rc, gsasl_strerror(rc) );
     }
 
-    strncpy( out_buf, p, 8192 );
+    if ( ! strncpy( out_buf, p, 8192 ) ) { 
+      croak( "MongoDB: Unable to copy SASL output buffer\n" );
+    }
     gsasl_free( p );
 
     result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_continue", 0, 2, newSVpv( out_buf, 0 ), conv_id ) );
-
 #if 0 
     fprintf( stderr, "result conv id = [%s]\n", SvPV_nolen( *hv_fetch( result, "conversationId", 14, FALSE ) ) );
     fprintf( stderr, "result payload = [%s]\n", SvPV_nolen( *hv_fetch( result, "payload",         7, FALSE ) ) );
