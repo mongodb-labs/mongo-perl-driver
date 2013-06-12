@@ -25,6 +25,7 @@ use MongoDB::Cursor;
 use Digest::MD5;
 use Tie::IxHash;
 use Carp 'carp';
+use Scalar::Util 'reftype';
 use boolean;
 
 
@@ -131,6 +132,12 @@ has ssl => (
     default  => 0,
 );
 
+has sasl => ( 
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0
+);
 
 # hash of servers in a set
 # call connected() to determine if a connection is enabled
@@ -434,6 +441,58 @@ sub fsync_unlock {
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
 
+sub _w_want_safe { 
+    my ( $self ) = @_;
+
+    my $w = $self->w;
+
+    return 0 if $w =~ /^-?\d+$/ && $w <= 0;
+    return 1;
+}
+
+sub _sasl_check { 
+    my ( $self, $res ) = @_;
+
+    die "Invalid SASL response document from server:"
+        unless reftype $res eq reftype { };
+
+    if ( $res->{ok} != 1 ) { 
+        die "SASL authentication error: $res->{errmsg}";
+    }
+
+    return $res->{conversationId};
+}
+
+sub _sasl_start { 
+    my ( $self, $payload ) = @_;
+
+    # warn "SASL start, payload = [$payload]";
+
+    my $res = $self->get_database( '$external' )->run_command( [ 
+        saslStart     => 1,
+        mechanism     => 'GSSAPI',
+        payload       => $payload,
+        autoAuthorize => 1 ] );
+
+    $self->_sasl_check( $res );
+    return $res;
+}
+
+
+sub _sasl_continue { 
+    my ( $self, $payload, $conv_id ) = @_;
+
+    # warn "SASL continue, payload = [$payload], conv ID = [$conv_id]";
+
+    my $res = $self->get_database( '$external' )->run_command( [ 
+        saslContinue     => 1,
+        conversationId   => $conv_id,
+        payload          => $payload
+    ] );
+
+    $self->_sasl_check( $res );
+    return $res;
+}
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
@@ -650,6 +709,19 @@ This tells the driver that you are connecting to an SSL mongodb instance.
 
 This option will be ignored if the driver was not compiled with the SSL flag. You must
 also be using a database server that supports SSL.
+
+=head2 sasl (EXPERIMENTAL)
+
+If set to C<1>, the driver will attempt to negotiate SASL authentication upon
+connection. Currently, the only supported mechanism is GSSAPI/Krb5 on Linux. The
+driver must be built as follows for SASL support:
+
+    perl Makefile.PL --sasl
+    make
+    make install
+
+The C<libgsasl> library is required for SASL support. RedHat/CentOS users can find it
+in the EPEL repositories.
 
 
 =head2 dt_type

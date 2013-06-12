@@ -10,7 +10,6 @@ MongoDB.def
 Makefile*
 !Makefile.PL
 blib
-inc
 pm_to_blib
 Debian*
 MongoDB-*

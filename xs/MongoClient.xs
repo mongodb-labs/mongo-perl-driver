@@ -165,7 +165,7 @@ connect (self)
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
      SV *username, *password;
    CODE:
-    perl_mongo_connect(link);
+    perl_mongo_connect(self, link);
 
      if (!link->master->connected) {
        croak ("couldn't connect to server %s:%d", link->master->host, link->master->port);
@@ -258,6 +258,22 @@ recv(self, cursor)
          SV *cursor
      CODE:
          mongo_link_hear(cursor);
+
+
+SV *
+_compile_flags(self)
+        SV *self
+    CODE:
+        HV *flags = newHV();
+#ifdef MONGO_SSL
+        hv_store( flags, "--ssl",  5, newSViv( 1 ), 0 );
+#endif
+#ifdef MONGO_SASL
+        hv_store( flags, "--sasl", 6, newSViv( 1 ), 0 );
+#endif
+        RETVAL = newRV_noinc( flags );
+    OUTPUT:
+        RETVAL
 
 
 void

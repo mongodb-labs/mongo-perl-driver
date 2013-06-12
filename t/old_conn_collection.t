@@ -119,7 +119,7 @@ is($coll->count, 2);
 
 $ok = $coll->ensure_index({boo => 1}, {unique => 1});
 ok(!defined $ok);
-$coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
+eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
 
 is($coll->count, 2, 'unique index');
 
@@ -163,7 +163,7 @@ $coll->drop;
 
     # unique index
     $coll->ensure_index({boo => 1}, {unique => 1});
-    $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
+    eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
     is($coll->count, 2, 'unique index');
 }
 $coll->drop;
@@ -422,7 +422,7 @@ SKIP: {
 
     $coll->insert({x=>1});
     $ok = $coll->update({}, {'$inc' => {x => 1}});
-    is($ok, 1);
+    is($ok->{ok}, 1);
 
     $ok = $coll->update({}, {'$inc' => {x => 2}}, {safe => 1});
     is($ok->{ok}, 1);
@@ -523,7 +523,7 @@ SKIP: {
     }
     is($coll->count, 20);
 
-    $coll->ensure_index({"y" => 1}, {"unique" => 1, "name" => "foo"});
+    eval { $coll->ensure_index({"y" => 1}, {"unique" => 1, "name" => "foo"}) };
     my $index = $coll->_database->get_collection("system.indexes")->find_one({"name" => "foo"});
     ok(!$index);
 

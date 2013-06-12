@@ -52,9 +52,11 @@ sub AUTOLOAD {
 sub collection_names {
     my ($self) = @_;
     my $it = $self->get_collection('system.namespaces')->query({});
-    return map {
-        substr($_, length($self->name) + 1)
-    } map { $_->{name} } $it->all;
+    return grep { 
+        not ( index( $_, '$' ) >= 0 && index( $_, '.oplog.$' ) < 0 ) 
+    } map { 
+        substr $_->{name}, length( $self->name ) + 1 
+    } $it->all;
 }
 
 
