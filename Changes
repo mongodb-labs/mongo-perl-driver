@@ -1,3 +1,32 @@
+0.701
+
+  [Enhancements]
+
+  - Support for Kerberos authentication on Linux (EXPERIMENTAL)
+
+  - Add a get_collection method to MongoDB::Collection (@sanbeg, pull #52)
+
+  - Optimizations on inserts and fetch (@ilmari, pull #66, PERL-129)
+
+  - Hash ordering fixes (@ilmari, pull #64)
+
+  - Double and int type helpers (@kenahoo, pull #65, PERL-227)
+
+  - TTL index support (@drtz, pull #60, PERL-222)
+
+  - Restored support for Perl 5.8.
+
+  - Support for native DBRefs.
+
+  [Bug Fixes]
+
+  - UTF-8 fixes (@ilmari, pull #67, #68)
+
+  - DateTime fixes (@kenahoo, pull #65)
+
+  - Don't do aggregation tests when running against MongoDB < 2.2.
+
+
 0.47 - 0.503.4
 
   [Enhancements]
