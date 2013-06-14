@@ -7,22 +7,11 @@ use Data::Dumper;
 use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+plan tests => 11;
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 11;
-}
 
 # Test normal fsync.
 my $ret = $conn->fsync();
