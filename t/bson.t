@@ -12,21 +12,11 @@ use Tie::IxHash;
 use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::BSON::Binary;
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 75;
-}
+plan tests => 75;
+
 
 my $db = $conn->get_database('foo');
 my $c = $db->get_collection('bar');
