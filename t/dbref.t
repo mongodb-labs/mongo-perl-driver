@@ -6,21 +6,11 @@ use Test::Exception;
 use MongoDB;
 use Scalar::Util 'blessed', 'reftype';
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 28;
-}
+plan tests => 28;
+
 
 {
     my $ref = MongoDB::DBRef->new( db => 'test', ref => 'test_coll', id => 123 );
