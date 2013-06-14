@@ -13,23 +13,12 @@ use MongoDB::GridFS::File;
 use DateTime;
 use FileHandle;
 
-my $m;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $m = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 62;
-}
+plan tests => 62;
 
-my $db = $m->get_database('foo');
+my $db = $conn->get_database('foo');
 my $grid = $db->get_gridfs;
 $grid->drop;
 
@@ -247,6 +236,7 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
     $file = $coll->find_one({files_id => 1});
     is($file, undef);
 }
+
 
 
 END {
