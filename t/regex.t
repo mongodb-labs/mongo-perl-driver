@@ -7,25 +7,15 @@ use Test::Warn;
 use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
+use lib "t/lib";
+use MongoDBTest '$conn';
+
 if ( $^V lt 5.14.0 ) { 
     plan skip_all => 'we need perl 5.14 for regex tests';
 }
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+plan tests => 2;
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 2;
-}
 
 my $db = $conn->get_database('test_database');
 $db->drop;
