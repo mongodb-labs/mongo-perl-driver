@@ -88,7 +88,8 @@ else {
 
 # test fetch via find
 {
-    $conn->get_database( 'test' )->get_collection( 'some_coll' )->insert( { _id => 123, value => 'foobar' } );
+    my $some_coll = $conn->get_database( 'test' )->get_collection( 'some_coll' );
+    $some_coll->insert( { _id => 123, value => 'foobar' } );
     my $dbref = MongoDB::DBRef->new( db => 'test', ref => 'some_coll', id => 123 );
 
     my $coll = $conn->get_database( 'test' )->get_collection( 'test_coll' );
@@ -101,6 +102,7 @@ else {
     is $ref_doc->{value}, 'foobar';
 
     $coll->drop;
+    $some_coll->drop;
 }
 
 # test inflate_dbrefs flag
