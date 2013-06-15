@@ -28,15 +28,12 @@ MongoDB::Collection - A Mongo collection
 An instance of a MongoDB collection.
 
     # gets the foo collection
-    my $collection = $db->foo;
+    my $collection = $db->get_collection( 'foo' );
 
 Collection names can be chained together to access subcollections.  For
 instance, the collection C<foo.bar> can be accessed with:
 
-    my $collection = $db->foo->bar;
-
-You can also access collections with the L<MongoDB::Database/get_collection>
-method.
+    my $collection = $db->get_collection( 'foo' )->get_collection( 'bar' );
 
 =head1 SEE ALSO
 
