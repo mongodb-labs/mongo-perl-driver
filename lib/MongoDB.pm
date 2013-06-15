@@ -14,19 +14,20 @@
 #  limitations under the License.
 #
 
-use v5.10.0;
+use v5.8.0;
 use strict;
 use warnings;
 
 package MongoDB;
-# ABSTRACT: A Mongo Driver for Perl
+# ABSTRACT: A MongoDB Driver for Perl
 
 use XSLoader;
 use MongoDB::Connection;
 use MongoDB::MongoClient;
 use MongoDB::Database;
 use MongoDB::Collection;
-
+use MongoDB::DBRef;
+use MongoDB::OID;
 
 XSLoader::load(__PACKAGE__, $MongoDB::VERSION, int rand(2 ** 24));
 

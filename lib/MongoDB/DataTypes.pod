@@ -26,7 +26,7 @@ mappers that will enforce certain types for certain fields for you.
 
 You generally shouldn't save numbers as strings, as they will behave like
 strings (e.g., range queries won't work correctly) and the data will take up
-more space.  If you set L<MongoDB::BSON#looks_like_number>, the driver will
+more space.  If you set L<MongoDB::BSON/looks_like_number>, the driver will
 automatically convert everything that looks like a number to a number before
 sending it to the database.
 
@@ -119,7 +119,7 @@ Because of this, users often find that they end up with more strings than they
 wanted in their database.
 
 If you would like to have everything that looks like a number saved as a number,
-set the L<MongoDB::BSON#looks_like_number> option.
+set the L<MongoDB::BSON/looks_like_number> option.
 
     $MongoDB::BSON::looks_like_number = 1;
 
@@ -149,6 +149,20 @@ on, bless the string as a C<MongoDB::BSON::String> type:
     # zip is stored as "04101"
     $collection->insert({city => "Portland",
         zip => bless(\$zip, "MongoDB::BSON::String")});
+
+Additionally, there are two utility functions, C<force_int> and
+c<force_double>, to explicitly set Perl's internal type flags to
+Integer (C<IV>) and Double (C<NV>) respectively, thus triggering
+MongoDB's recognition of the values as Int32/Int64 (depending on the
+platform) or Double:
+
+    my $x = 1.0;
+    MongoDB::force_int($x);
+    $coll->insert({x => $x}); # Inserts an integer
+
+    MongoDB::force_double($x);
+    $coll->insert({x => $x}); # Inserts a double
+
 
 =head2 Strings
 
@@ -200,8 +214,12 @@ references or L<Tie::IxHash>s.
 
 =head2 Dates
 
-The L<DateTime> package can be used insert and query for dates. Dates stored in
-the database will be returned as instances of DateTime.
+The L<DateTime> or L<DateTime::Tiny> packages can be used to insert
+and query for dates. Dates stored in the database will be returned as
+instances of one of these classes, depending on the C<dt_type> setting
+of the connection:
+
+    $conn->dt_type( 'DateTime::Tiny' );
 
 An example of storing and retrieving a date:
 
@@ -221,7 +239,7 @@ An example of querying for a range of dates:
     my $cursor = $collection->query({event => {'$gt' => $start, '$lt' => $end}});
 
 B<Warning: creating Perl L<DateTime> objects is extremely slow.  Consider saving
-dates as numbers and converting the numbers to L<DateTime>s when needed.  A single
+dates as numbers or C<DateTime::Tiny> objects and converting the numbers to L<DateTime>s only when needed.  A single
 L<DateTime> field can make deserialization up to 10 times slower.>
 
 For example, you could use the L<time> function to store seconds since the epoch:
@@ -229,6 +247,13 @@ For example, you could use the L<time> function to store seconds since the epoch
     $collection->update($criteria, {'$set' => {"last modified" => time()}})
 
 This will be faster to deserialize.
+
+Note that (at least, as of C<DateTime::Tiny> version 1.04) there is no
+time-zone attribute for C<DateTime::Tiny> objects.  We therefore
+consider all such times to be in the C<UTC> time zone.  Likewise,
+C<DateTime::Tiny> has no notion of milliseconds (yet?), so the
+milliseconds portion of the datetime will be set to zero.
+
 
 =head2 Regular Expressions
 
@@ -384,5 +409,5 @@ seconds.  So, to represent this document in Perl, we would do:
     }
 
 Timestamps are not dates.  You should not use them unless you are doing
-something low-level with replication.  To save dates or times, use a number or
-L<DateTime>.
+something low-level with replication.  To save dates or times, use a number,
+L<DateTime> object, or L<DateTime::Tiny> object.

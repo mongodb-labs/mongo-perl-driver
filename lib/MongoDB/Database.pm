@@ -52,9 +52,11 @@ sub AUTOLOAD {
 sub collection_names {
     my ($self) = @_;
     my $it = $self->get_collection('system.namespaces')->query({});
-    return map {
-        substr($_, length($self->name) + 1)
-    } map { $_->{name} } $it->all;
+    return grep { 
+        not ( index( $_, '$' ) >= 0 && index( $_, '.oplog.$' ) < 0 ) 
+    } map { 
+        substr $_->{name}, length( $self->name ) + 1 
+    } $it->all;
 }
 
 
@@ -267,7 +269,7 @@ this field is set, it will be a string describing the error that occurred.
 
 =item C<n>
 
-If the last operation was an insert, an update or a remove, the number of
+If the last operation was an update, upsert, or a remove, the number of
 objects affected will be returned.
 
 =item C<wtimeout>
@@ -307,7 +309,7 @@ Runs a database command. Returns a string with the error message if the
 command fails. Returns the result of the command (a hash reference) on success.
 For a list of possible database commands, run:
 
-    my $commands = $db->run_command({listCommands : 1});
+    my $commands = $db->run_command({listCommands => 1});
 
 There are a few examples of database commands in the
 L<MongoDB::Examples/"DATABASE COMMANDS"> section.

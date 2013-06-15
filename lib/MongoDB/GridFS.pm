@@ -345,7 +345,7 @@ sub _calc_md5 {
     my ($self, $id, $root, $retry) = @_;
    
     # Try to get an md5 hash for the file
-    my $result = $self->_database->run_command({"filemd5", $id, "root" => $self->prefix});
+    my $result = $self->_database->run_command(["filemd5", $id, "root" => $self->prefix]);
     
     # If we didn't get a hash back, it means something is wrong (probably to do with gridfs's 
     # indexes because its currently the only error that is thown from the md5 class)

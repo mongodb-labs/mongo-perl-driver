@@ -12,21 +12,11 @@ use Tie::IxHash;
 use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::BSON::Binary;
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 74;
-}
+plan tests => 75;
+
 
 my $db = $conn->get_database('foo');
 my $c = $db->get_collection('bar');
@@ -84,7 +74,7 @@ my $c = $db->get_collection('bar');
 }
 
 {
-    $MongoDB::BSON::char = "=";
+    local $MongoDB::BSON::char = "=";
     $c->drop;
     $c->update({x => 1}, {"=inc" => {x => 1}}, {upsert => true});
 
@@ -93,7 +83,7 @@ my $c = $db->get_collection('bar');
 }
 
 {
-    $MongoDB::BSON::char = ":";
+    local $MongoDB::BSON::char = ":";
     $c->drop;
     $c->batch_insert([{x => 1}, {x => 2}, {x => 3}, {x => 4}, {x => 5}]);
     my $cursor = $c->query({x => {":gt" => 2, ":lte" => 4}})->sort({x => 1});
@@ -109,18 +99,15 @@ my $c = $db->get_collection('bar');
 {
     $c->drop;
 
-    # should convert invalid utf8 to valid
-    my $invalid = "\xFE";
-    $c->insert({char => $invalid});
+    # latin1
+    $c->insert({char => "\xFE"});
     my $x =$c->find_one;
-    # now that the utf8 flag is set, it converts it back to a single char for
-    # unknown reasons
     is($x->{char}, "\xFE");
 
     $c->remove;
 
-    # should be the same with valid utf8
-    my $valid = "\xE6\xB5\x8B\xE8\xAF\x95";
+    # non-latin1
+    my $valid = "\x{8D4B}\x{8BD5}";
     $c->insert({char => $valid});
     $x = $c->find_one;
 
@@ -212,7 +199,7 @@ my $c = $db->get_collection('bar');
 
 # moose numbers
 package Person;
-use Any::Moose;
+use Moose;
 has 'name' => ( is=>'rw', isa=>'Str' );
 has 'age'  => ( is=>'rw', isa=>'Int' );
 has 'size' => ( is=>'rw', isa=>'Num' );
@@ -230,8 +217,11 @@ package main;
 
 # warn on floating timezone
 {
+    my $warned = 0;
+    local $SIG{__WARN__} = sub { if ($_[0] =~ /floating/) { $warned = 1; } else { warn(@_); } };
     my $date = DateTime->new(year => 2010, time_zone => "floating");
     $c->insert({"date" => $date});
+    is($warned, 1, "warn on floating timezone");
 }
 
 # half-conversion to int type
@@ -240,7 +230,9 @@ package main;
 
     my $var = 'zzz';
     # don't actually change it to an int, but add pIOK flag
+    { no warnings 'numeric';
     $var = int($var) if (int($var) eq $var);
+    }
 
     $c->insert({'key' => $var});
     my $v = $c->find_one;
@@ -257,7 +249,9 @@ package main;
     my $size = Person->new( size => 11.5 )->size;
 
     # add pIOK flag (IV is 11)
+    { no warnings 'void';
     int($size);
+    }
 
     $c->insert({'key' => $size});
     my $v = $c->find_one;
@@ -323,8 +317,7 @@ package main;
 {
     $c->drop;
 
-    my $old = $MongoDB::BSON::use_binary;
-    $MongoDB::BSON::use_binary = 0;
+    local $MongoDB::BSON::use_binary = 0;
 
     my $str = "foo";
     my $bin = {bindata => [
@@ -361,8 +354,6 @@ package main;
         is($arr[$i]->subtype, $bin->{'bindata'}->[$i]->subtype);
         is($arr[$i]->data, $bin->{'bindata'}->[$i]->data);
     }
-
-    $MongoDB::BSON::use_binary = $old;
 }
 
 # Checking hash key unicode support

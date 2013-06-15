@@ -90,8 +90,10 @@ static mongo_cursor* get_cursor(SV *self) {
   return (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
 }
 
+static SV *request_id;
+
 static int has_next(SV *self, mongo_cursor *cursor) {
-  SV *link, *limit, *ns, *request_id, *response_to;
+  SV *link, *limit, *ns, *response_to;
   mongo_msg_header header;
   buffer buf;
   int size, heard;
@@ -120,7 +122,6 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   buf.end = buf.start + size;
 
   response_to = perl_mongo_call_reader(self, "_request_id");
-  request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
 
   CREATE_RESPONSE_HEADER(buf, SvPV_nolen(ns), SvIV(response_to), OP_GET_MORE);
 
@@ -189,10 +190,12 @@ static void kill_cursor(SV *self) {
   SvREFCNT_dec(link);
 }
 
-
 MODULE = MongoDB::Cursor  PACKAGE = MongoDB::Cursor
 
 PROTOTYPES: DISABLE
+
+BOOT:
+    request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
 
 void
 _init (self)
@@ -224,25 +227,27 @@ next (self)
     PREINIT:
         mongo_cursor *cursor;
         SV *dt_type_sv;
+        SV *inflate_dbrefs_sv;
+        SV *client_sv;
     CODE:
         cursor = get_cursor(self);
         if (has_next(self, cursor)) {
-          dt_type_sv = perl_mongo_call_reader( self, "_dt_type" );
-          if ( SvOK( dt_type_sv ) ) { 
-            char *dt_type = SvPV( dt_type_sv, SvLEN( dt_type_sv ) );
-            RETVAL = perl_mongo_bson_to_sv(&cursor->buf, dt_type);
-          } else { 
-            // dt type is undef
-            RETVAL = perl_mongo_bson_to_sv(&cursor->buf, NULL);
-          }
+          dt_type_sv          = perl_mongo_call_reader( self, "_dt_type" );
+          inflate_dbrefs_sv   = perl_mongo_call_reader( self, "_inflate_dbrefs" );
+          client_sv           = perl_mongo_call_reader( self, "_client" );
+          char *dt_type       = SvOK( dt_type_sv ) ? SvPV( dt_type_sv, SvLEN( dt_type_sv ) ) : NULL;
+          int  inflate_dbrefs = SvIV( inflate_dbrefs_sv );
+
+          RETVAL = perl_mongo_bson_to_sv( &cursor->buf, dt_type, inflate_dbrefs, client_sv );
+
           cursor->at++;
 
           if (cursor->num == 1 &&
               hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))) {
             SV **err = 0, **code = 0;
 
-            err = hv_fetch((HV*)SvRV(RETVAL), "$err", strlen("$err"), 0);
-            code = hv_fetch((HV*)SvRV(RETVAL), "code", strlen("code"), 0);
+            err = hv_fetchs((HV*)SvRV(RETVAL), "$err", 0);
+            code = hv_fetchs((HV*)SvRV(RETVAL), "code", 0);
             
             if (code && SvIOK(*code) &&
                 (SvIV(*code) == 10107 || SvIV(*code) == 13435 || SvIV(*code) == 13436)) {
@@ -288,12 +293,11 @@ info (self)
         cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(self, &cursor_vtbl);
         
         hv = newHV();
-        hv_store(hv, "flag", strlen("flag"), newSViv(cursor->flag), 0);
-        hv_store(hv, "cursor_id", strlen("cursor_id"),
-                 newSViv(cursor->cursor_id), 0);
-        hv_store(hv, "start", strlen("start"), newSViv(cursor->start), 0);
-        hv_store(hv, "at", strlen("at"), newSViv(cursor->at), 0);
-        hv_store(hv, "num", strlen("num"), newSViv(cursor->num), 0);
+        hv_stores(hv, "flag", newSViv(cursor->flag));
+        hv_stores(hv, "cursor_id", newSViv(cursor->cursor_id));
+        hv_stores(hv, "start", newSViv(cursor->start));
+        hv_stores(hv, "at", newSViv(cursor->at));
+        hv_stores(hv, "num", newSViv(cursor->num));
         
         RETVAL = newRV_noinc((SV*)hv);
     OUTPUT:

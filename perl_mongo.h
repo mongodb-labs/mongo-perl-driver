@@ -142,7 +142,7 @@ extern MGVTBL connection_vtbl, cursor_vtbl;
 extern int perl_mongo_machine_id;
 
 int isUTF8(const char*, int);
-void perl_mongo_mutex_init();
+void perl_mongo_init();
 void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 SV *perl_mongo_call_reader (SV *self, const char *reader);
 SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
@@ -157,7 +157,7 @@ void perl_mongo_make_id(char *id);
 void perl_mongo_make_oid(char* twelve, char *twenty4);
 
 // serialization
-SV *perl_mongo_bson_to_sv (buffer *buf, char *dt_type);
+SV *perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client );
 void perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids);
 
 int perl_mongo_resize_buf (buffer*, int);

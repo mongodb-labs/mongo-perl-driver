@@ -119,8 +119,6 @@ like math:
 
     my $geeks = $users->find({"likes" => "math"});
 
-=head3
-
 This being Perl, it is important to mention that you can also use regular
 expressions to search for strings.  If you wanted to find all users with the
 name John and all variations of said name, you could do:

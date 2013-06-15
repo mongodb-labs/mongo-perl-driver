@@ -7,22 +7,10 @@ use MongoDB;
 use DateTime;
 use DateTime::Tiny;
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 1;
-}
-
+plan tests => 1;
 
 # test that Connection delegates constructor params to MongoClient correctly
 my $conn2 = MongoDB::Connection->new( host => '127.0.0.1' );

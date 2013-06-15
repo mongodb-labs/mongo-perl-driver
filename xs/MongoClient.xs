@@ -117,8 +117,7 @@ _init_conn(self, host, port, ssl)
      * [{host => "host", port => 27017}, ...]
      */
     Newx(link->master, 1, mongo_server);
-    Newxz(link->master->host, strlen(host)+1, char);
-    memcpy(link->master->host, host, strlen(host));
+    link->master->host = savepv(host);
     link->master->port = port;
     link->master->connected = 0;
     link->ssl = ssl;
@@ -166,7 +165,7 @@ connect (self)
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
      SV *username, *password;
    CODE:
-    perl_mongo_connect(link);
+    perl_mongo_connect(self, link);
 
      if (!link->master->connected) {
        croak ("couldn't connect to server %s:%d", link->master->host, link->master->port);
@@ -194,7 +193,7 @@ connect (self)
          SvREFCNT_dec(password);
          croak("%s", SvPV_nolen(result));
        } else if (SvROK(result)) {
-         ok = hv_fetch((HV*)SvRV(result), "ok", strlen("ok"), 0);
+         ok = hv_fetchs((HV*)SvRV(result), "ok", 0);
          if (!ok || 1 != SvIV(*ok)) {
            SvREFCNT_dec(database);
            SvREFCNT_dec(username);
@@ -259,6 +258,22 @@ recv(self, cursor)
          SV *cursor
      CODE:
          mongo_link_hear(cursor);
+
+
+SV *
+_compile_flags(self)
+        SV *self
+    CODE:
+        HV *flags = newHV();
+#ifdef MONGO_SSL
+        hv_store( flags, "--ssl",  5, newSViv( 1 ), 0 );
+#endif
+#ifdef MONGO_SASL
+        hv_store( flags, "--sasl", 6, newSViv( 1 ), 0 );
+#endif
+        RETVAL = newRV_noinc( flags );
+    OUTPUT:
+        RETVAL
 
 
 void

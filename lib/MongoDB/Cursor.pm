@@ -492,6 +492,10 @@ sub _dt_type {
     return $self->_client->dt_type;
 }
 
+sub _inflate_dbrefs {
+    my $self = shift;
+    return $self->_client->inflate_dbrefs;
+}
 
 
 =head2 reset

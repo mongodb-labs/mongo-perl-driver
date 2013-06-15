@@ -39,6 +39,10 @@
 #include <openssl/err.h>
 #endif
 
+#ifdef MONGO_SASL
+#include <gsasl.h>
+#endif
+
 // db ops
 #define OP_REPLY 1
 #define OP_MSG 1000
@@ -172,7 +176,7 @@ int perl_mongo_master(SV *self, int auto_reconnect);
 void set_disconnected(SV *link_sv);
 
 //ssl
-void perl_mongo_connect(mongo_link* link);
+void perl_mongo_connect( SV *client, mongo_link* link);
 void non_ssl_connect(mongo_link* link);
 
 #ifdef MONGO_SSL

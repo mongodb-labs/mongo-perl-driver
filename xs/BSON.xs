@@ -32,7 +32,7 @@ decode_bson(sv)
          buf.end = buf.start + SvCUR(sv);
 
          while(buf.pos < buf.end) {
-             XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf, "DateTime")));
+           XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf, "DateTime", 1, newSV(0) )));
          }
 
 void

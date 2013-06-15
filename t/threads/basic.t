@@ -58,7 +58,7 @@ $col->drop;
 
 END {
     if ($conn) {
-        $conn->moo->drop;
+        $conn->get_database('moo')->drop;
     }
 }
 

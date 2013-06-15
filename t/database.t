@@ -8,21 +8,10 @@ use MongoDB::Timestamp; # needed if db is being run as master
 
 use MongoDB;
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 13;
-}
+plan tests => 13;
 
 isa_ok($conn, 'MongoDB::MongoClient');
 
@@ -41,7 +30,7 @@ is($coll->find_one, undef, 'nothing for find_one');
 
 my $id = $coll->insert({ just => 'another', perl => 'hacker' });
 
-is(scalar $db->collection_names, 3, 'test, system.indexes, and test.$_id_');
+is(scalar $db->collection_names, 2, 'test and system.indexes');
 ok((grep { $_ eq 'test' } $db->collection_names), 'collection_names');
 is($coll->count, 1, 'count');
 is($coll->find_one->{perl}, 'hacker', 'find_one');

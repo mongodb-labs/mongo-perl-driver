@@ -177,7 +177,7 @@ safe insert times out and croaks.
 I<MongoDB server version 2.0+: "majority" and Data Center Awareness>
 
 As of MongoDB 2.0+, the 'w' parameter can be passed strings. This can be done by passing it the string "majority" this will wait till the B<majority> of 
-of the nodes in the relica set have recieved the data. For more information see: http://www.mongodb.org/display/DOCS/getLastError+Command#getLastErrorCommand-majority
+of the nodes in the replica set have recieved the data. For more information see: http://www.mongodb.org/display/DOCS/getLastError+Command#getLastErrorCommand-majority
 
 This can be useful for "Data Center Awareness." In v2.0+, you can "tag" replica members. With "tagging" you can specify a new "getLastErrorMode" where you can create new
 rules on how your data is replicated. To used you getLastErrorMode, you pass in the name of the mode to the 'w' parameter. For more infomation see: http://www.mongodb.org/display/DOCS/Data+Center+Awareness
@@ -368,10 +368,10 @@ C<MongoDB::Cursor>.  At the moment, the only required field for C<$info> is
 C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
 
 
-=head fsync(\%args)
+=head2 fsync(\%args)
 
     $conn->fsync();
-    
+
 A function that will forces the server to flush all pending writes to the storage layer.
 
 The fsync operation is synchronous by default, to run fsync asynchronously, use the following form:
@@ -379,11 +379,10 @@ The fsync operation is synchronous by default, to run fsync asynchronously, use 
     $conn->fsync({async => 1});
 
 The primary use of fsync is to lock the database during backup operations. This will flush all data to the data storage layer and block all write operations until you unlock the database. Note: you can still read while the database is locked. 
-    
+
     $conn->fsync({lock => 1});
-    
-    
-=head fsync_unlock()
+
+=head2 fsync_unlock()
 
     $conn->fsync_unlock();
 

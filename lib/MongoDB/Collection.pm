@@ -98,7 +98,23 @@ sub AUTOLOAD {
     my $coll = $AUTOLOAD;
     $coll =~ s/.*:://;
 
-    carp sprintf q{AUTOLOADed collection method names are deprecated and will be removed in a future release. Use $db->get_collection( '%s' ) instead.}, $coll;
+    carp sprintf q{AUTOLOADed collection method names are deprecated and will be removed in a future release. Use $collection->get_collection( '%s' ) instead.}, $coll;
+
+    return $self->get_collection($coll);
+}
+
+=head2 get_collection ($name)
+
+    my $collection = $database->get_collection('foo');
+
+Returns a L<MongoDB::Collection> for the collection called C<$name> within this
+collection.
+
+=cut
+
+sub get_collection {
+    my $self = shift @_;
+    my $coll = shift @_;
 
     return $self->_database->get_collection($self->name.'.'.$coll);
 }
@@ -302,7 +318,7 @@ sub batch_insert {
         return 0;
     }
 
-    if (defined($options) && $options->{safe}) {
+    if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
         my $ok = $self->_make_safe($insert);
 
         if (!$ok) {
@@ -351,6 +367,7 @@ See also core documentation on update: L<http://dochub.mongodb.org/core/update>.
 
 =cut
 
+
 sub update {
     my ($self, $query, $object, $opts) = @_;
 
@@ -377,7 +394,7 @@ sub update {
     my $ns = $self->full_name;
 
     my $update = MongoDB::write_update($ns, $query, $object, $flags);
-    if ($opts->{safe}) {
+    if ($opts->{safe} or $conn->_w_want_safe ) {
         return $self->_make_safe($update);
     }
 
@@ -409,7 +426,7 @@ sub find_and_modify {
     my $conn = $self->_database->_client;
     my $db   = $self->_database;
 
-    my $result = $db->run_command( { findAndModify => $self->name, %$opts } );
+    my $result = $db->run_command( [ findAndModify => $self->name, %$opts ] );
 
     if ( not $result->{ok} ) { 
         return if ( $result->{errmsg} eq 'No matching object found' );
@@ -435,7 +452,7 @@ sub aggregate {
 
     my $db   = $self->_database;
 
-    my $result = $db->run_command( { aggregate => $self->name, pipeline => $pipeline } );
+    my $result = $db->run_command( [ aggregate => $self->name, pipeline => $pipeline ] );
 
     # TODO: handle errors?
 
@@ -506,19 +523,21 @@ See also core documentation on remove: L<http://dochub.mongodb.org/core/remove>.
 
 =cut
 
+
 sub remove {
     my ($self, $query, $options) = @_;
+
+    my $conn = $self->_database->_client;
 
     my ($just_one, $safe);
     if (defined $options && ref $options eq 'HASH') {
         $just_one = exists $options->{just_one} ? $options->{just_one} : 0;
-        $safe = exists $options->{safe} ? $options->{safe} : 0;
+        $safe = $options->{safe} or $conn->_w_want_safe;
     }
     else {
         $just_one = $options || 0;
     }
 
-    my $conn = $self->_database->_client;
     my $ns = $self->full_name;
     $query ||= {};
 
@@ -587,6 +606,10 @@ sub ensure_index {
         }
     }
     $options->{'no_ids'} = 1;
+
+    if (exists $options->{expire_after_seconds}) {
+        $obj->Push("expireAfterSeconds" => int($options->{expire_after_seconds}));
+    }
 
     my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
 
@@ -687,10 +710,10 @@ sub count {
 
     my $obj;
     eval {
-        $obj = $self->_database->run_command({
+        $obj = $self->_database->run_command([
             count => $self->name,
             query => $query,
-        });
+        ]);
     };
 
     # if there was an error, check if it was the "ns missing" one that means the
@@ -756,9 +779,10 @@ Use C<MongoDB::Collection::get_indexes> to find the index name.
 
 sub drop_index {
     my ($self, $index_name) = @_;
-    my $t = tie(my %myhash, 'Tie::IxHash');
-    %myhash = ("deleteIndexes" => $self->name, "index" => $index_name);
-    return $self->_database->run_command($t);
+    return $self->_database->run_command([
+        deleteIndexes => $self->name,
+        index => $index_name,
+    ]);
 }
 
 =head2 get_indexes

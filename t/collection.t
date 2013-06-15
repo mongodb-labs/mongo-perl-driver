@@ -12,21 +12,10 @@ use MongoDB::Timestamp; # needed if db is being run as master
 
 use MongoDB;
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 140;
-}
+plan tests => 141;
 
 my $db = $conn->get_database('test_database');
 $db->drop;
@@ -119,7 +108,7 @@ is($coll->count, 2);
 
 $ok = $coll->ensure_index({boo => 1}, {unique => 1});
 ok(!defined $ok);
-$coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
+eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
 
 is($coll->count, 2, 'unique index');
 
@@ -163,7 +152,7 @@ $coll->drop;
 
     # unique index
     $coll->ensure_index({boo => 1}, {unique => 1});
-    $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2});
+    eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
     is($coll->count, 2, 'unique index');
 }
 $coll->drop;
@@ -193,17 +182,34 @@ ok(!defined $obj->{none}, 'null field is undefined');
 
 $coll->drop;
 
-# ord("\x9F") is 159
-$coll->insert({foo => "\x9F" });
-my $utfblah = $coll->find_one;
-is(ord($utfblah->{'foo'}), 159, 'translate non-utf8 to utf8 char');
+{
+    my ($down, $up, $non_latin) = ("\xE5", "\xE6", "\x{2603}");
+    utf8::upgrade($up);
+    utf8::downgrade($down);
+    my $insert = { down => $down, up => $up, non_latin => $non_latin };
+    my $copy = +{ %{$insert} };
+    $coll->insert($insert);
+    my $utfblah = $coll->find_one;
+    delete $utfblah->{_id};
+    is_deeply($utfblah, $copy, 'non-ascii values');
 
-$MongoDB::BSON::utf8_flag_on = 0;
-$coll->drop;
-$coll->insert({"\x9F" => "hi"});
-$utfblah = $coll->find_one;
-is($utfblah->{chr(159)}, "hi", 'translate non-utf8 key');
-$MongoDB::BSON::utf8_flag_on = 1;
+    $coll->drop;
+
+    $insert = { $down => "down", $up => "up", $non_latin => "non_latin" };
+    $copy = +{ %{$insert} };
+    $coll->insert($insert);
+    $utfblah = $coll->find_one;
+    delete $utfblah->{_id};
+    is_deeply($utfblah, $copy, 'non-ascii keys');
+}
+
+{
+    local $MongoDB::BSON::utf8_flag_on = 0;
+    $coll->drop;
+    $coll->insert({"\xe9" => "hi"});
+    my $utfblah = $coll->find_one;
+    is($utfblah->{"\xC3\xA9"}, "hi", 'byte key');
+}
 
 $coll->drop;
 my $keys = tie(my %idx, 'Tie::IxHash');
@@ -412,7 +418,7 @@ SKIP: {
 
     $coll->insert({x=>1});
     $ok = $coll->update({}, {'$inc' => {x => 1}});
-    is($ok, 1);
+    is($ok->{ok}, 1);
 
     $ok = $coll->update({}, {'$inc' => {x => 2}}, {safe => 1});
     is($ok->{ok}, 1);
@@ -468,19 +474,14 @@ SKIP: {
     my $coll = $db->get_collection('test_collection');
     $coll->drop;
     # turn off utf8 flag now
-    $MongoDB::BSON::utf8_flag_on = 0;
+    local $MongoDB::BSON::utf8_flag_on = 0;
     $coll->insert({ foo => "\x{4e2d}\x{56fd}"});
-    $utfblah = $coll->find_one;
-    $coll->drop;
-    $coll->insert({foo2 => $utfblah->{foo}});
-    $utfblah = $coll->find_one;
+    my $utfblah = $coll->find_one;
     # use utf8;
     my $utfv2 = encode('utf8',"\x{4e2d}\x{56fd}");
     # my $utfv2 = encode('utf8',"中国");
     # diag(Dumper(\$utfv2));
-    is($utfblah->{foo2},$utfv2,'turn utf8 flag off,return perl internal form(bytes)');
-    # restore;
-    $MongoDB::BSON::utf8_flag_on = 1;
+    is($utfblah->{foo},$utfv2,'turn utf8 flag off,return perl internal form(bytes)');
     $coll->drop;
 }
 
@@ -503,7 +504,7 @@ SKIP: {
     }
     is($coll->count, 20);
 
-    $coll->ensure_index({"y" => 1}, {"unique" => 1, "name" => "foo"});
+    eval { $coll->ensure_index({"y" => 1}, {"unique" => 1, "name" => "foo"}) };
     my $index = $coll->_database->get_collection("system.indexes")->find_one({"name" => "foo"});
     ok(!$index);
 
@@ -516,7 +517,7 @@ SKIP: {
 
 # utf8 test, croak when null key is inserted
 {
-    $MongoDB::BSON::utf8_flag_on = 1;
+    local $MongoDB::BSON::utf8_flag_on = 1;
     my $ok = 0;
     my $kanji = "漢\0字";
     utf8::encode($kanji);

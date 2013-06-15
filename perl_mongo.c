@@ -28,6 +28,7 @@ static void serialize_regex(buffer*, const char*, REGEXP*, int is_insert);
 static void serialize_regex_flags(buffer*, SV*);
 static void append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert);
 static void containsNullChar(const char* str, int len);
+static SV *bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client);
 
 #ifdef USE_ITHREADS
 static perl_mutex inc_mutex;
@@ -36,8 +37,19 @@ static perl_mutex inc_mutex;
 static int perl_mongo_inc = 0;
 int perl_mongo_machine_id;
 
-void perl_mongo_mutex_init() {
+static SV *utf8_flag_on;
+static SV *use_binary;
+static SV *use_boolean;
+static SV *special_char;
+static SV *look_for_numbers;
+
+void perl_mongo_init() {
   MUTEX_INIT(&inc_mutex);
+  utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
+  use_binary = get_sv("MongoDB::BSON::use_binary", 0);
+  use_boolean = get_sv("MongoDB::BSON::use_boolean", 0);
+  special_char = get_sv("MongoDB::BSON::char", 0);
+  look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
 }
 
 void
@@ -167,7 +179,7 @@ perl_mongo_call_function (const char *func, int num, ...) {
   return ret;
 }
 
-static int perl_mongo_regex_flags( char **flags_ptr, SV *re ) {
+static int perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
   dSP;
   ENTER;
   SAVETMPS;
@@ -188,7 +200,7 @@ static int perl_mongo_regex_flags( char **flags_ptr, SV *re ) {
 
   char *flags = SvPVutf8_nolen(flags_sv);
 
-  *flags_ptr = strdup(flags);
+  strncpy( flags_ptr, flags, 7 );
 }
 
 void
@@ -280,23 +292,18 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *
   return ret;
 }
 
-static SV *bson_to_av (buffer *buf, char *dt_type);
+static SV *bson_to_av (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client );
 
 void perl_mongo_make_oid(char *twelve, char *twenty4) {
+  static char ra_hex[] = "0123456789abcdef";
+  unsigned int x;
   int i;
-  char *id_str = twelve;
-  char *movable = twenty4;
-
   for(i=0; i<12; i++) {
-    int x = *id_str;
-    if (*id_str < 0) {
-      x = 256 + *id_str;
-    }
-    sprintf(movable, "%02x", x);
-    movable += 2;
-    id_str++;
+    x = *(unsigned char *)twelve++;
+    *twenty4++ = ra_hex[x >> 4];
+    *twenty4++ = ra_hex[x & 0x0f];
   }
-  twenty4[24] = '\0';
+  *twenty4++ = '\0';
 }
 
 static SV *
@@ -307,18 +314,16 @@ oid_to_sv (buffer *buf)
   perl_mongo_make_oid(buf->pos, oid_s);
 
   id_hv = newHV();
-  (void)hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
+  (void)hv_stores(id_hv, "value", newSVpvn(oid_s, 24));
 
   stash = gv_stashpv("MongoDB::OID", 0);
   return sv_bless(newRV_noinc((SV *)id_hv), stash);
 }
 
 static SV *
-elem_to_sv (int type, buffer *buf, char *dt_type)
+elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
 {
   SV *value = 0;
-
-  SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
 
   switch(type) {
   case BSON_OID: {
@@ -345,7 +350,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
     // len includes \0
     value = newSVpvn(buf->pos, len-1);
 
-    if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
+    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
       SvUTF8_on(value);
     }
 
@@ -353,17 +358,17 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
     break;
   }
   case BSON_OBJECT: {
-    value = perl_mongo_bson_to_sv(buf, dt_type);
+    value = bson_to_sv(buf, dt_type, inflate_dbrefs, client );
+
     break;
   }
   case BSON_ARRAY: {
-    value = bson_to_av(buf, dt_type);
+    value = bson_to_av(buf, dt_type, inflate_dbrefs, client );
     break;
   }
   case BSON_BINARY: {
     int len = MONGO_32p(buf->pos);
     unsigned char type;
-    SV *use_binary = get_sv("MongoDB::BSON::use_binary", 0);
 
     buf->pos += INT_32;
 
@@ -394,9 +399,8 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
     dSP;
     char d = *buf->pos++;
     int count;
-    SV *use_bool = get_sv("MongoDB::BSON::use_boolean", 0);
 
-    if (!use_bool) {
+    if (!use_boolean) {
       value = newSViv(d);
       break;
     }
@@ -459,17 +463,17 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
 
       value = 
         perl_mongo_call_function("DateTime::Tiny::new", 13, datetime,
-                                 newSVpvn("year",     strlen("year")),  
+                                 newSVpvs("year"),
                                  newSViv( dt->tm_year + 1900 ),
-                                 newSVpvn("month",    strlen("month")),
+                                 newSVpvs("month"),
                                  newSViv( dt->tm_mon  +    1 ),
-                                 newSVpvn("day",      strlen("day")),
+                                 newSVpvs("day"),
                                  newSViv( dt->tm_mday ),
-                                 newSVpvn("hour",     strlen("hour")),
+                                 newSVpvs("hour"),
                                  newSViv( dt->tm_hour ),
-                                 newSVpvn("minute",   strlen("minute")),
+                                 newSVpvs("minute"),
                                  newSViv( dt->tm_min ),
-                                 newSVpvn("second",   strlen("second")),
+                                 newSVpvs("second"),
                                  newSViv( dt->tm_sec )
                                  );
 
@@ -479,7 +483,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
       ms = newSViv(ms_i);
 
       named_params = newHV();
-      heval = hv_store(named_params, "epoch", strlen("epoch"), ms, 0);
+      heval = hv_stores(named_params, "epoch", ms);
 
       value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
                                        sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
@@ -576,7 +580,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
     buf->pos += code_len;
 
     if (type == BSON_CODE) {
-      scope = perl_mongo_bson_to_sv(buf, dt_type);
+      scope = bson_to_sv(buf, dt_type, inflate_dbrefs, client );
       value = perl_mongo_construct_instance("MongoDB::Code", "code", code, "scope", scope, NULL);
     }
     else {
@@ -619,7 +623,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type)
 }
 
 static SV *
-bson_to_av (buffer *buf, char *dt_type)
+bson_to_av (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
 {
   AV *ret = newAV ();
 
@@ -635,7 +639,7 @@ bson_to_av (buffer *buf, char *dt_type)
     buf->pos += strlen(buf->pos) + 1;
 
     // get value
-    if ((sv = elem_to_sv (type, buf, dt_type))) {
+    if ((sv = elem_to_sv (type, buf, dt_type, inflate_dbrefs, client ))) {
       av_push (ret, sv);
     }
   }
@@ -644,12 +648,22 @@ bson_to_av (buffer *buf, char *dt_type)
 }
 
 SV *
-perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
+perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
+{
+  utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
+  use_binary = get_sv("MongoDB::BSON::use_binary", 0);
+
+  return bson_to_sv(buf, dt_type, inflate_dbrefs, client);
+}
+
+static SV *
+bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client )
 {
   HV *ret = newHV();
-  SV *flag = get_sv("MongoDB::BSON::utf8_flag_on", 0);
 
   char type;
+  int is_dbref = 1;
+  int key_num  = 0;
 
   // for size
   buf->pos += INT_32;
@@ -659,12 +673,19 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
     SV *value;
 
     name = buf->pos;
+    key_num++;
+    /* check if this is a DBref. We must see the keys
+       $ref, $id, and $db in that order, with no extra keys */
+    if ( key_num == 1 && strcmp( name, "$ref" ) ) is_dbref = 0;
+    if ( key_num == 2 && is_dbref == 1 && strcmp( name, "$id" ) ) is_dbref = 0;
+    if ( key_num == 3 && is_dbref == 1 && strcmp( name, "$db" ) ) is_dbref = 0;
+
     // get past field name
     buf->pos += strlen(buf->pos) + 1;
 
     // get value
-    value = elem_to_sv(type, buf, dt_type);
-    if (!flag || !SvIOK(flag) || SvIV(flag) != 0) {
+    value = elem_to_sv(type, buf, dt_type, inflate_dbrefs, client );
+    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
     	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
      	 croak ("failed storing value in hash");
     	}
@@ -673,6 +694,23 @@ perl_mongo_bson_to_sv (buffer *buf, char *dt_type)
      	 croak ("failed storing value in hash");
     	}
     }
+  }
+
+  if ( key_num == 3 && is_dbref == 1 && inflate_dbrefs == 1 ) { 
+    SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
+    SV *dbref = 
+      perl_mongo_call_method( dbr_class, "new", 0, 8,
+                              newSVpvs("ref"),
+                              *hv_fetch( ret, "$ref", 4, FALSE ),
+                              newSVpvs("id"),
+                              *hv_fetch( ret, "$id", 3, FALSE ),
+                              newSVpvs("db"),
+                              *hv_fetch( ret, "$db", 3, FALSE ),
+                              newSVpvs("client"),
+                              client
+                                 );
+
+    return dbref;
   }
 
   return newRV_noinc ((SV *)ret);
@@ -799,10 +837,9 @@ void perl_mongo_serialize_bindata(buffer *buf, const int subtype, SV *sv)
 }
 
 void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert) {
-  SV *c = get_sv("MongoDB::BSON::char", 0);
-
-  if(BUF_REMAINING <= strlen(str)+1) {
-    perl_mongo_resize_buf(buf, strlen(str)+1);
+  STRLEN len = strlen(str);
+  if(BUF_REMAINING <= len+1) {
+    perl_mongo_resize_buf(buf, len+1);
   }
 
   if (str[0] == '\0') {
@@ -813,17 +850,17 @@ void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert) {
     croak("inserts cannot contain the . character");
   }
 
-  if (c && SvPOK(c) && SvPV_nolen(c)[0] == str[0]) {
+  if (special_char && SvPOK(special_char) && SvPV_nolen(special_char)[0] == str[0]) {
     *(buf->pos) = '$';
-    memcpy(buf->pos+1, str+1, strlen(str)-1);
+    memcpy(buf->pos+1, str+1, len-1);
   }
   else {
-    memcpy(buf->pos, str, strlen(str));
+    memcpy(buf->pos, str, len);
   }
 
   // add \0 at the end of the string
-  buf->pos[strlen(str)] = 0;
-  buf->pos += strlen(str) + 1;
+  buf->pos[len] = 0;
+  buf->pos += len + 1;
 }
 
 
@@ -841,10 +878,7 @@ void perl_mongo_make_id(char *id) {
   //SV *temp;
   char *data = id;
 
-  // the pid is stored in $$
-  SV *pid_s = get_sv("$", 0);
-  // ...but if it's not, don't crash
-  int pid = pid_s ? SvIV(pid_s) : rand();
+  Pid_t pid = PerlProc_getpid();
 
   int inc;
   unsigned t;
@@ -903,7 +937,7 @@ perl_mongo_prep(buffer *buf, AV *ids) {
 
   perl_mongo_make_oid(id_s, oid_s);
   id_hv = newHV();
-  (void)hv_store(id_hv, "value", strlen("value"), newSVpvn(oid_s, 24), 0);
+  (void)hv_stores(id_hv, "value", newSVpvn(oid_s, 24));
 
   id = sv_bless(newRV_noinc((SV *)id_hv), stash);
 
@@ -965,7 +999,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
 
   if (ids) {
     if(hv_exists(hv, "_id", strlen("_id"))) {
-      SV **id = hv_fetch(hv, "_id", strlen("_id"), 0);
+      SV **id = hv_fetchs(hv, "_id", 0);
       append_sv(buf, "_id", *id, stack, is_insert);
       SvREFCNT_inc(*id);
       av_push(ids, *id);
@@ -981,6 +1015,7 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
     SV **hval;
     STRLEN len;
     const char *key = HePV (he, len);
+    const char *utf8 = HeUTF8(he);
     containsNullChar(key, len);
     /* if we've already added the oid field, continue */
     if (ids && strcmp(key, "_id") == 0) {
@@ -991,13 +1026,16 @@ hv_to_bson (buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert)
      * HeVAL doesn't return the correct value for tie(%foo, 'Tie::IxHash')
      * so we're using hv_fetch
      */
-    if ((hval = hv_fetch(hv, key, len, 0)) == 0) {
-    /* May be it's an unicode string? */
-        if ((hval = hv_fetch(hv, key, -len, 0)) == 0) {
-	    croak("could not find hash value for key %s, len:%d", key, len);
-	}
+    if ((hval = hv_fetch(hv, key, utf8 ? -len : len, 0)) == 0) {
+      croak("could not find hash value for key %s, len:%d", key, len);
+    }
+    if (!utf8) {
+      key = bytes_to_utf8(key, &len);
     }
     append_sv (buf, key, *hval, stack, is_insert);
+    if (!utf8) {
+      Safefree(key);
+    }
   }
 
   perl_mongo_serialize_null(buf);
@@ -1084,7 +1122,7 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
        * if so, the value of the _id key is its index
        * in the values array.
        */
-      SV **index = hv_fetch((HV*)SvRV(*hash_sv), "_id", strlen("_id"), 0);
+      SV **index = hv_fetchs((HV*)SvRV(*hash_sv), "_id", 0);
       SV **id = av_fetch(values, SvIV(*index), 0);
       /*
        * add it to the bson and the ids array
@@ -1108,12 +1146,8 @@ ixhash_to_bson(buffer *buf, SV *sv, AV *ids, stackette *stack, int is_insert) {
       croak ("failed to fetch associative array value");
     }
 
-    str = SvPV(*k, len);
+    str = SvPVutf8(*k, len);
     containsNullChar(str,len);
-    if (isUTF8(str, len)) {
-      str = SvPVutf8(*k, len);
-    }
-
     append_sv(buf, str, *v, stack, is_insert);
   }
 
@@ -1129,55 +1163,44 @@ static void containsNullChar(const char* str, int len) {
     croak("key contains null char");
 }
 
-int isUTF8(const char *s, int len) {
-  int i;
+#ifdef WIN32
 
-  for (i=0; i<len; i++) {
-    if ((s[i] & 128) == 128) {
-      if ( i+3 < len                                                  &&    /* valid 4-byte:            */
-           (
-             ( (s[i] & 127) == 112 &&                                       /* byte 1 == F0 and         */
-               ( (s[i+1] & 240) == 144 || (s[i+1] & 224) == 160 )) ||       /* byte 2 >= 90 and <= BF   */
-             ( (s[i] & 127) >= 113 && (s[i] & 127) <= 115                   /* byte 1 >= F1 and <= F3   */
-                                   && (s[i+1] & 192) == 128 )      ||       /* byte 2 start bits 10     */
-             ( (s[i] & 127) == 116 && (s[i+1] & 128) == 128                 /* byte 1 == F4 and         */
-                                   && (s[i+1] & 127) <= 15  )               /* byte 2 >= 80 and <= 8F   */
-           )                                                          &&
-           (s[i+2] & 192) == 128                                      &&    /* byte 3 start bits 10     */
-           (s[i+3] & 192) == 128                                            /* byte 4 start bits 10     */
-         ) {
-        i += 3;
-      }
-      else if ( i+2 < len                                             &&    /* valid 3-byte:            */
-           (
-             ( (s[i] & 127) == 96  && (s[i+1] & 224) == 160 )      ||       /* byte 1 == E0 and byte 2 >= A0 and <= BF */
-             ( (s[i] & 127) == 109 && (s[i+1] & 224) == 128 )      ||       /* byte 1 == ED and byte 2 >= 80 and <= 9F */
-             (
-               ( (s[i] & 127) >= 97  && (s[i] & 127) <= 108 ||              /* byte 1 >= E1 and <= EC   */
-                 (s[i] & 127) == 110 || (s[i] & 127) == 111                 /* or byte 1 == EE or == EF */
-               ) && (s[i+1] & 192) == 128                                   /* and byte 2 start bits 10 */
-             )
-           )                                                          &&
-           (s[i+2] & 192) == 128                                            /* byte 3 start bits 10     */
-         ) {
-        i += 2;
-      }
-      else if ( i+1 < len                                             &&    /* valid 2-byte:            */
-           (s[i] & 127) >= 66                                         &&    /* byte 1 >= C2             */
-           (s[i] & 127) <= 95                                         &&    /* byte 1 <= DF             */
-           (s[i+1] & 192) == 128                                            /* byte 2 start bits 10     */
-         ) {
-        i += 1;
-      }
-      else {
-        return 0;
-      }
-    }
-  }
-  return 1;
+/* 
+ * Some C libraries (e.g. MSVCRT) do not have a "timegm" function.
+ * Here is a surrogate implementation.
+ *
+ */
+
+static int is_leap_year(unsigned year)
+{
+    year += 1900;
+    return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0);
 }
 
+time_t timegm (struct tm *tm)
+{
+  static const unsigned month_start[2][12] = {
+	{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 },
+	{ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 },
+	};
+  time_t ret = 0;
+  int i;
 
+  for (i = 70; i < tm->tm_year; ++i)
+    ret += is_leap_year(i) ? 366 : 365;
+
+  ret += month_start[is_leap_year(tm->tm_year)][tm->tm_mon];
+  ret += tm->tm_mday - 1;
+  ret *= 24;
+  ret += tm->tm_hour;
+  ret *= 60;
+  ret += tm->tm_min;
+  ret *= 60;
+  ret += tm->tm_sec;
+  return ret;
+}
+
+#endif /* WIN32 */
 
 
 static void
@@ -1218,7 +1241,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         perl_mongo_serialize_key(buf, key, is_insert);
 
         // get sign
-        sign_ref = hv_fetch((HV*)SvRV(sv), "sign", strlen("sign"), 0);
+        sign_ref = hv_fetchs((HV*)SvRV(sv), "sign", 0);
         if (!sign_ref) {
           croak( "couldn't get BigInt sign" );
         }
@@ -1227,7 +1250,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         }
 
         // get value
-        av_ref = hv_fetch((HV*)SvRV(sv), "value", strlen("value"), 0);
+        av_ref = hv_fetchs((HV*)SvRV(sv), "value", 0);
         if (!av_ref) {
           croak( "couldn't get BigInt value" );
         }
@@ -1314,25 +1337,11 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         t.tm_mon    = SvIV( perl_mongo_call_reader( sv, "month"   ) ) -    1;
         t.tm_mday   = SvIV( perl_mongo_call_reader( sv, "day"     ) )       ;
         t.tm_hour   = SvIV( perl_mongo_call_reader( sv, "hour"    ) )       ;
-        t.tm_min    = SvIV( perl_mongo_call_reader( sv, "minute"  ) ) -     1;
+        t.tm_min    = SvIV( perl_mongo_call_reader( sv, "minute"  ) )       ;
         t.tm_sec    = SvIV( perl_mongo_call_reader( sv, "second"  ) )       ;
         t.tm_isdst  = -1;     // no dst/tz info in DateTime::Tiny
 
-        /* this dumb hack is necessary because Windows and some other
-           OSes do not have support for the timegm() function, so 
-           we will get the UTC time by temporarily poking the environment
-           table. */
-        char *old_tz = getenv( "TZ" );
-        setenv( "TZ", "", 1 );
-        tzset();
-        epoch_secs = mktime( &t );
-
-        if ( old_tz ) { 
-          setenv( "TZ", old_tz, 1 );
-        } else { 
-          unsetenv( "TZ" );
-        }
-        tzset();
+        epoch_secs = timegm( &t );
 
         // no miliseconds in DateTime::Tiny, so just multiply by 1000
         epoch_ms = (int64_t)epoch_secs*1000;
@@ -1340,6 +1349,15 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
         perl_mongo_serialize_key( buf, key, is_insert );
         perl_mongo_serialize_long( buf, epoch_ms );
       }
+      /* DBRef */
+      else if (sv_isa(sv, "MongoDB::DBRef")) { 
+        SV *dbref;
+        set_type(buf, BSON_OBJECT);
+        perl_mongo_serialize_key(buf, key, is_insert);
+        dbref = perl_mongo_call_reader(sv, "_ordered");
+        ixhash_to_bson(buf, dbref, NO_PREP, stack, is_insert);
+      }
+
       /* boolean */
       else if (sv_isa(sv, "boolean")) {
         set_type(buf, BSON_BOOL);
@@ -1486,7 +1504,6 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
     }
   } else {
     int is_string = 0, aggressively_number = 0;
-    SV *look_for_numbers = 0;
 
 #if PERL_REVISION==5 && PERL_VERSION<=10
     /* Flags usage changed in Perl 5.10.1.  In Perl 5.8, there is no way to
@@ -1509,7 +1526,6 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
     }
 #endif
 
-    look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
     if (look_for_numbers && SvIOK(look_for_numbers) && SvIV(look_for_numbers)) {
       aggressively_number = looks_like_number(sv);
     }
@@ -1560,12 +1576,7 @@ append_sv (buffer *buf, const char *key, SV *sv, stackette *stack, int is_insert
       }
       else {
         STRLEN len;
-        const char *str = SvPV(sv, len);
-
-        if (!isUTF8(str, len)) {
-          str = SvPVutf8(sv, len);
-        }
-
+        const char *str = SvPVutf8(sv, len);
 
         set_type(buf, BSON_STRING);
         perl_mongo_serialize_key(buf, key, is_insert);
@@ -1588,23 +1599,45 @@ static void serialize_regex(buffer *buf, const char *key, REGEXP *re, int is_ins
 }
 
 static void serialize_regex_flags(buffer *buf, SV *sv) {
-  char flags[] = {0,0,0,0,0,0};
+  char flags[]     = {0,0,0,0,0};
+  char flags_tmp[] = {0,0,0,0,0,0,0,0};
   unsigned int i = 0, f = 0;
 
-  char *flags_str;
-  perl_mongo_regex_flags( &flags_str, sv );
+#if PERL_REVISION == 5 && PERL_VERSION < 10
+  // pre-5.10 doesn't have the re API
+  STRLEN string_length;
+  char *re_string = SvPV( sv, string_length );
+  
+  /* pre-5.14 regexes are stringified in the format: (?ix-sm:foo) where
+     everything between ? and - are the current flags. The format changed
+     around 5.14, but for everything after 5.10 we use the re API anyway. */
+  for( i = 2; i < string_length && re_string[i] != '-'; i++ ) { 
+    if ( re_string[i] == 'i'  ||
+         re_string[i] == 'm'  ||
+         re_string[i] == 'x'  ||
+         re_string[i] == 's' ) { 
+      flags[f++] = re_string[i];
+    } else if ( re_string[i] == ':' ) {
+      break;
+    }
+  }
 
-  for ( i = 0; i < sizeof( flags_str ); i++ ) { 
-    if ( flags_str[i] == NULL ) break;
+
+#else
+  perl_mongo_regex_flags( &flags_tmp, sv );
+#endif
+
+  for ( i = 0; i < sizeof( flags_tmp ); i++ ) { 
+    if ( flags_tmp[i] == NULL ) break;
 
     // MongoDB supports only flags /imxs, so warn if we get anything else and discard them.
-    if ( flags_str[i] == 'i' ||
-         flags_str[i] == 'm' ||
-         flags_str[i] == 'x' ||
-         flags_str[i] == 's' ) { 
-      flags[f++] = flags_str[i];
+    if ( flags_tmp[i] == 'i' ||
+         flags_tmp[i] == 'm' ||
+         flags_tmp[i] == 'x' ||
+         flags_tmp[i] == 's' ) { 
+      flags[f++] = flags_tmp[i];
     } else { 
-      warn( "stripped unsupported regex flag /%c from MongoDB regex\n", flags_str[i] );
+      warn( "stripped unsupported regex flag /%c from MongoDB regex\n", flags_tmp[i] );
     }
   }
 
@@ -1617,6 +1650,9 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids) {
   if (!SvROK (sv)) {
     croak ("not a reference");
   }
+
+  special_char = get_sv("MongoDB::BSON::char", 0);
+  look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
 
   switch (SvTYPE (SvRV (sv))) {
   case SVt_PVHV:
@@ -1683,11 +1719,8 @@ perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids) {
           croak ("failed to fetch array element");
         }
 
-        str = SvPV(*key, len);
+        str = SvPVutf8(*key, len);
 
-        if (!isUTF8(str, len)) {
-          str = SvPVutf8(*key, len);
-        }
         append_sv (buf, str, *val, EMPTY_STACK, ids != 0);
       }
 

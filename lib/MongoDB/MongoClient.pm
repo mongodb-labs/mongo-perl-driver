@@ -25,6 +25,7 @@ use MongoDB::Cursor;
 use Digest::MD5;
 use Tie::IxHash;
 use Carp 'carp';
+use Scalar::Util 'reftype';
 use boolean;
 
 
@@ -131,6 +132,12 @@ has ssl => (
     default  => 0,
 );
 
+has sasl => ( 
+    is       => 'ro',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0
+);
 
 # hash of servers in a set
 # call connected() to determine if a connection is enabled
@@ -160,6 +167,12 @@ has dt_type => (
     default  => 'DateTime'
 );
 
+has inflate_dbrefs => (
+    is        => 'rw',
+    isa       => 'Bool',
+    required  => 0,
+    default   => 1
+);
 
 sub BUILD {
     my ($self, $opts) = @_;
@@ -174,7 +187,7 @@ sub BUILD {
             (?: ([^:]*) : ([^@]*) @ )? # [username:password@]
             ([^/]*) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
             (?:
-                / ([^?]*) # /[database]
+               / ([^?]*) # /[database]
                 (?: [?] (.*) )? # [?options]
             )?
             $ }x) {
@@ -384,7 +397,7 @@ sub get_master {
 sub authenticate {
     my ($self, $dbname, $username, $password, $is_digest) = @_;
     my $hash = $password;
-
+    
     # create a hash if the password isn't yet encrypted
     if (!$is_digest) {
         $hash = Digest::MD5::md5_hex("${username}:mongo:${password}");
@@ -407,7 +420,7 @@ sub authenticate {
              nonce => $nonce,
              key => $digest);
     $result = $db->run_command($login);
-
+    
     return $result;
 }
 
@@ -415,8 +428,8 @@ sub authenticate {
 sub fsync {
     my ($self, $args) = @_;
 	
-	$args //= {};
-	
+	$args ||= {};
+
     # Pass this in as array-ref to ensure that 'fsync => 1' is the first argument.
     return $self->get_database('admin')->run_command([fsync => 1, %$args]);
 }
@@ -427,11 +440,61 @@ sub fsync_unlock {
     # Have to fetch from a special collection to unlock.
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
-	
+
+sub _w_want_safe { 
+    my ( $self ) = @_;
+
+    my $w = $self->w;
+
+    return 0 if $w =~ /^-?\d+$/ && $w <= 0;
+    return 1;
+}
+
+sub _sasl_check { 
+    my ( $self, $res ) = @_;
+
+    die "Invalid SASL response document from server:"
+        unless reftype $res eq reftype { };
+
+    if ( $res->{ok} != 1 ) { 
+        die "SASL authentication error: $res->{errmsg}";
+    }
+
+    return $res->{conversationId};
+}
+
+sub _sasl_start { 
+    my ( $self, $payload ) = @_;
+
+    # warn "SASL start, payload = [$payload]";
+
+    my $res = $self->get_database( '$external' )->run_command( [ 
+        saslStart     => 1,
+        mechanism     => 'GSSAPI',
+        payload       => $payload,
+        autoAuthorize => 1 ] );
+
+    $self->_sasl_check( $res );
+    return $res;
+}
 
 
+sub _sasl_continue { 
+    my ( $self, $payload, $conv_id ) = @_;
 
-__PACKAGE__->meta->make_immutable (inline_destructor => 0);
+    # warn "SASL continue, payload = [$payload], conv ID = [$conv_id]";
+
+    my $res = $self->get_database( '$external' )->run_command( [ 
+        saslContinue     => 1,
+        conversationId   => $conv_id,
+        payload          => $payload
+    ] );
+
+    $self->_sasl_check( $res );
+    return $res;
+}
+
+__PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
 1;
 
@@ -506,19 +569,25 @@ The client I<write concern>.
 
 =over 4
 
-=item C<-1> Errors ignored. Do not use this.
-=item C<0> Unacknowledged. MongoClient will B<NOT> wait for an acknowledgment that 
+=item * C<-1> Errors ignored. Do not use this.
+
+=item * C<0> Unacknowledged. MongoClient will B<NOT> wait for an acknowledgment that 
 the server has received and processed the request. Older documentation may refer
 to this as "fire-and-forget" mode. You must call C<getLastError> manually to check
 if a request succeeds. This option is not recommended.
-=item C<1> Acknowledged. This is the default. MongoClient will wait until the 
+
+=item * C<1> Acknowledged. This is the default. MongoClient will wait until the 
 primary MongoDB acknowledges the write.
-=item C<2> Replica acknowledged. MongoClient will wait until at least two 
+
+=item * C<2> Replica acknowledged. MongoClient will wait until at least two 
 replicas (primary and one secondary) acknowledge the write. You can set a higher 
 number for more replicas.
-=item C<all> All replicas acknowledged.
-=item C<majority> A majority of replicas acknowledged.
 
+=item * C<all> All replicas acknowledged.
+
+=item * C<majority> A majority of replicas acknowledged.
+
+=back
 
 In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can specify a 
 new "getLastErrorMode" where you can create new
@@ -641,12 +710,31 @@ This tells the driver that you are connecting to an SSL mongodb instance.
 This option will be ignored if the driver was not compiled with the SSL flag. You must
 also be using a database server that supports SSL.
 
+=head2 sasl (EXPERIMENTAL)
+
+If set to C<1>, the driver will attempt to negotiate SASL authentication upon
+connection. Currently, the only supported mechanism is GSSAPI/Krb5 on Linux. The
+driver must be built as follows for SASL support:
+
+    perl Makefile.PL --sasl
+    make
+    make install
+
+The C<libgsasl> library is required for SASL support. RedHat/CentOS users can find it
+in the EPEL repositories.
+
 
 =head2 dt_type
 
 Sets the type of object which is returned for DateTime fields. The default is L<DateTime>. Other
 acceptable values are L<DateTime::Tiny> and C<undef>. The latter will give you the raw epoch value
 rather than an object.
+
+=head2 inflate_dbrefs
+
+Controls whether L<DBRef|http://docs.mongodb.org/manual/applications/database-references/#dbref>s 
+are automatically inflated into L<MongoDB::DBRef> objects. Defaults to true.
+Set this to C<0> if you don't want to auto-inflate them.
 
 
 =head1 METHODS
@@ -712,10 +800,10 @@ C<MongoDB::Cursor>.  At the moment, the only required field for C<$info> is
 C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
 
 
-=head fsync(\%args)
+=head2 fsync(\%args)
 
     $client->fsync();
-    
+
 A function that will forces the server to flush all pending writes to the storage layer.
 
 The fsync operation is synchronous by default, to run fsync asynchronously, use the following form:
@@ -723,11 +811,10 @@ The fsync operation is synchronous by default, to run fsync asynchronously, use 
     $client->fsync({async => 1});
 
 The primary use of fsync is to lock the database during backup operations. This will flush all data to the data storage layer and block all write operations until you unlock the database. Note: you can still read while the database is locked. 
-    
+
     $conn->fsync({lock => 1});
-    
-    
-=head fsync_unlock()
+
+=head2 fsync_unlock
 
     $conn->fsync_unlock();
 

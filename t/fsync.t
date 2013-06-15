@@ -7,22 +7,11 @@ use Data::Dumper;
 use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-my $conn;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $conn = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+plan tests => 11;
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 11;
-}
 
 # Test normal fsync.
 my $ret = $conn->fsync();
@@ -31,8 +20,12 @@ is(exists $ret->{numFiles}, 1, "fsync returned 'numFiles'");
 
 # Test async fsync.
 $ret = $conn->fsync({async => 1});
-is($ret->{ok},              1, "fsync + async returned 'ok' => 1");
-is(exists $ret->{numFiles}, 1, "fsync + async returned 'numFiles'");
+SKIP: { 
+    $ret =~ s/exception: //, warn($ret), skip $ret, 2 if $ret =~ /not supported/;
+
+    is($ret->{ok},              1, "fsync + async returned 'ok' => 1");
+    is(exists $ret->{numFiles}, 1, "fsync + async returned 'numFiles'");
+}
 
 # Test fsync with lock.
 $ret = $conn->fsync({lock => 1});

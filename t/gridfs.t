@@ -13,23 +13,12 @@ use MongoDB::GridFS::File;
 use DateTime;
 use FileHandle;
 
-my $m;
-eval {
-    my $host = "localhost";
-    if (exists $ENV{MONGOD}) {
-        $host = $ENV{MONGOD};
-    }
-    $m = MongoDB::MongoClient->new(host => $host, ssl => $ENV{MONGO_SSL});
-};
+use lib "t/lib";
+use MongoDBTest '$conn';
 
-if ($@) {
-    plan skip_all => $@;
-}
-else {
-    plan tests => 62;
-}
+plan tests => 62;
 
-my $db = $m->get_database('foo');
+my $db = $conn->get_database('foo');
 my $grid = $db->get_gridfs;
 $grid->drop;
 
@@ -53,7 +42,7 @@ is(0, $chunk->{'n'});
 is("$id", $chunk->{'files_id'}."", "compare returned id");
 is($dumb_str, $chunk->{'data'}, "compare file content");
 
-my $md5 = $db->run_command({"filemd5" => $chunk->{'files_id'}, "root" => "fs"});
+my $md5 = $db->run_command(["filemd5" => $chunk->{'files_id'}, "root" => "fs"]);
 my $file = $grid->files->find_one();
 ok($file->{'md5'} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->{'md5'});
 is($file->{'md5'}, $md5->{'md5'}, $md5->{'md5'});
@@ -247,6 +236,7 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
     $file = $coll->find_one({files_id => 1});
     is($file, undef);
 }
+
 
 
 END {
