@@ -31,9 +31,13 @@ An instance of a MongoDB collection.
     my $collection = $db->get_collection( 'foo' );
 
 Collection names can be chained together to access subcollections.  For
-instance, the collection C<foo.bar> can be accessed with:
+instance, the collection C<foo.bar> can be accessed with either:
 
     my $collection = $db->get_collection( 'foo' )->get_collection( 'bar' );
+
+or
+
+    my $collection = $db->get_collection( 'foo.bar' );
 
 =head1 SEE ALSO
 
