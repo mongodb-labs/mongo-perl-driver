@@ -139,6 +139,13 @@ has sasl => (
     default  => 0
 );
 
+has sasl_mechanism => ( 
+    is       => 'ro',
+    isa      => subtype( Str => where { /^GSSAPI|PLAIN$/ } ),
+    required => 1,
+    default  => 'GSSAPI',
+);
+
 # hash of servers in a set
 # call connected() to determine if a connection is enabled
 has _servers => (
