@@ -713,7 +713,7 @@ also be using a database server that supports SSL.
 =head2 sasl (EXPERIMENTAL)
 
 If set to C<1>, the driver will attempt to negotiate SASL authentication upon
-connection. Currently, the only supported mechanism is GSSAPI/Kerberos on Linux. The
+connection. See C<sasl_mechanism> below for a list of the currently supported mechanisms. The
 driver must be built as follows for SASL support:
 
     perl Makefile.PL --sasl
@@ -726,6 +726,21 @@ in the EPEL repositories.
 Future versions of this driver may switch to L<Cyrus SASL|http://www.cyrusimap.org/docs/cyrus-sasl/2.1.25/>
 in order to be consistent with the MongoDB server, which now uses Cyrus.
 
+=head2 sasl_mechanism (EXPERIMENTAL)
+
+This specifies the SASL mechanism to use for authentication with a MongoDB server. (See C<sasl> above.) 
+The default is GSSAPI. The supported SASL mechanisms are:
+
+=over 4
+
+=item * C<GSSAPI>. This is the default. GSSAPI will attempt to authenticate against Kerberos
+for MongoDB Enterprise 2.4+. You must run your program from within a C<kinit> session and set 
+the C<username> attribute to the Kerberos principal name, e.g. C<user@EXAMPLE.COM>. 
+
+=item * C<PLAIN>. The SASL PLAIN mechanism will attempt to authenticate against LDAP for
+MongoDB Enterprise 2.6+. Because the password is not encrypted, you should only use this
+mechanism over a secure connection. You must set the C<username> and C<password> attributes 
+to your LDAP credentials.
 
 =head2 dt_type
 
