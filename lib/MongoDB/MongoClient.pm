@@ -713,7 +713,7 @@ also be using a database server that supports SSL.
 =head2 sasl (EXPERIMENTAL)
 
 If set to C<1>, the driver will attempt to negotiate SASL authentication upon
-connection. Currently, the only supported mechanism is GSSAPI/Krb5 on Linux. The
+connection. Currently, the only supported mechanism is GSSAPI/Kerberos on Linux. The
 driver must be built as follows for SASL support:
 
     perl Makefile.PL --sasl
@@ -723,6 +723,10 @@ driver must be built as follows for SASL support:
 The C<libgsasl> library is required for SASL support. RedHat/CentOS users can find it
 in the EPEL repositories.
 
+Future versions of this driver may switch to L<Cyrus SASL|http://www.cyrusimap.org/docs/cyrus-sasl/2.1.25/>
+in order to be consistent with the MongoDB server, which now uses Cyrus.
+
+This specifies the 
 
 =head2 dt_type
 
