@@ -44,17 +44,27 @@ static void set_timeout(int socket, time_t timeout) {
 static void sasl_authenticate( SV *client, mongo_link *link ) { 
   Gsasl *ctx = NULL;
   Gsasl_session *session;
-  SV *username, *conv_id;
+  SV *username, *mechanism, *conv_id;
   HV *result;       /* response document from mongod */
   char *p, *buf;    /* I/O buffers for gsasl */
   int rc;
   char out_buf[8192];
 
+  mechanism = perl_mongo_call_method( client, "sasl_mechanism", 0, 0 );
+  if ( !SvOK( mechanism ) ) { 
+    croak( "MongoDB: Could not retrieve SASL mechanism from client object\n" );
+  }
+
+  if ( strncmp( "PLAIN", SvPV_nolen( mechanism ), 5 ) == 0 ) { 
+    /* SASL PLAIN does not require a conversation loop, so we can handle it elsewhere */
+    return sasl_plain_authenticate( client );
+  }
+
   if ( ( rc = gsasl_init( &ctx ) ) != GSASL_OK ) { 
     croak( "MongoDB: Cannot initialize libgsasl (%d): %s\n", rc, gsasl_strerror(rc) );  
   }
 
-  if ( ( rc = gsasl_client_start( ctx, "GSSAPI", &session ) ) != GSASL_OK ) { 
+  if ( ( rc = gsasl_client_start( ctx, SvPV_nolen( mechanism ), &session ) ) != GSASL_OK ) { 
     croak( "MongoDB: Cannot initialize SASL client (%d): %s\n", rc, gsasl_strerror(rc) );
   }
 
