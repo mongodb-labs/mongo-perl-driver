@@ -726,7 +726,6 @@ in the EPEL repositories.
 Future versions of this driver may switch to L<Cyrus SASL|http://www.cyrusimap.org/docs/cyrus-sasl/2.1.25/>
 in order to be consistent with the MongoDB server, which now uses Cyrus.
 
-This specifies the 
 
 =head2 dt_type
 
