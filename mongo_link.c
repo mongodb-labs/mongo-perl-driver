@@ -56,8 +56,8 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   }
 
   if ( strncmp( "PLAIN", SvPV_nolen( mechanism ), 5 ) == 0 ) { 
-    /* SASL PLAIN does not require a conversation loop, so we can handle it elsewhere */
-    return sasl_plain_authenticate( client );
+    /* SASL PLAIN does not require a libgsasl conversation loop, so we can handle it elsewhere */
+    return perl_mongo_call_method( client, "_sasl_plain_authenticate", 0, 0 );
   }
 
   if ( ( rc = gsasl_init( &ctx ) ) != GSASL_OK ) { 
@@ -87,7 +87,7 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   }
   gsasl_free( p );
 
-  result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_start", 0, 1, newSVpv( out_buf, 0 ) ) );
+  result = (HV *)SvRV( perl_mongo_call_method( client, "_sasl_start", 0, 2, newSVpv( out_buf, 0 ), mechanism ) );
 
 #if 0  
   fprintf( stderr, "result conv id = [%s]\n", SvPV_nolen( *hv_fetch( result, "conversationId", 14, FALSE ) ) );
