@@ -473,7 +473,7 @@ sub _sasl_check {
 sub _sasl_start { 
     my ( $self, $payload, $mechanism ) = @_;
 
-    # warn "SASL start, payload = [$payload]";
+    # warn "SASL start, payload = [$payload], mechanism = [$mechanism]\n";
 
     my $res = $self->get_database( '$external' )->run_command( [ 
         saslStart     => 1,
