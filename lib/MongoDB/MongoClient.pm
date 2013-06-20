@@ -21,13 +21,13 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use MongoDB;
 use MongoDB::Cursor;
-
+use MongoDB::BSON::Binary;
 use Digest::MD5;
 use Tie::IxHash;
-use Carp 'carp';
+use Carp 'carp', 'croak';
 use Scalar::Util 'reftype';
 use boolean;
-
+use Encode;
 
 has host => (
     is       => 'ro',
@@ -471,13 +471,13 @@ sub _sasl_check {
 }
 
 sub _sasl_start { 
-    my ( $self, $payload ) = @_;
+    my ( $self, $payload, $mechanism ) = @_;
 
     # warn "SASL start, payload = [$payload]";
 
     my $res = $self->get_database( '$external' )->run_command( [ 
         saslStart     => 1,
-        mechanism     => 'GSSAPI',
+        mechanism     => $mechanism,
         payload       => $payload,
         autoAuthorize => 1 ] );
 
@@ -500,6 +500,19 @@ sub _sasl_continue {
     $self->_sasl_check( $res );
     return $res;
 }
+
+
+sub _sasl_plain_authenticate { 
+    my ( $self ) = @_;
+
+    my $username = defined $self->username ? $self->username : "";
+    my $password = defined $self->password ? $self->password : ""; 
+
+    my $auth_bytes = encode( "UTF-8", "\x00" . $username . "\x00" . $password );
+    my $payload = MongoDB::BSON::Binary->new( data => $auth_bytes ); 
+
+    $self->_sasl_start( $payload, "PLAIN" );    
+} 
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
