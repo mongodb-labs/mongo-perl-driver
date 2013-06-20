@@ -164,6 +164,7 @@ connect (self)
    PREINIT:
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
      SV *username, *password;
+     IV sasl_flag;
    CODE:
     perl_mongo_connect(self, link);
 
@@ -171,11 +172,12 @@ connect (self)
        croak ("couldn't connect to server %s:%d", link->master->host, link->master->port);
      }
 
-     // try authentication
+     // try legacy authentication if we have username and password but are not using SASL 
      username = perl_mongo_call_reader (self, "username");
      password = perl_mongo_call_reader (self, "password");
+     sasl_flag = SvIV( perl_mongo_call_reader( self, "sasl" ) );
 
-     if (SvPOK(username) && SvPOK(password)) {
+     if ( ( sasl_flag == 0 ) && SvPOK(username) && SvPOK(password)) {
        SV *database, *result, **ok;
 
        database = perl_mongo_call_reader (self, "db_name");
