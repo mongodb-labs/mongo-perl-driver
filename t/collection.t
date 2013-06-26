@@ -144,7 +144,7 @@ $coll->drop;
 {
     $ok = $coll->ensure_index({foo => 1, bar => -1, baz => 1});
     ok(!defined $ok);
-    $ok = $coll->ensure_index({foo => 1, bar => 1});
+    $ok = $coll->ensure_index([foo => 1, bar => 1]);
     ok(!defined $ok);
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
