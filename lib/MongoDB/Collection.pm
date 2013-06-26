@@ -519,7 +519,7 @@ Other commonly used cursor methods are C<MongoDB::Cursor::limit>,
 C<MongoDB::Cursor::skip>, and C<MongoDB::Cursor::sort>.
 
 See also core documentation on querying:
-L<http://dochub.mongodb.org/core/find>.
+L<http://docs.mongodb.org/manual/core/read/>.
 
 =method query($query, $attrs?)
 
@@ -574,7 +574,7 @@ insert.  A safe insert will check with the database if the insert succeeded and
 croak if it did not.  You can also check if the insert succeeded by doing an
 unsafe insert, then calling L<MongoDB::Database/"last_error($options?)">.
 
-See also core documentation on insert: L<http://dochub.mongodb.org/core/insert>.
+See also core documentation on insert: L<http://docs.mongodb.org/manual/core/create/>.
 
 =method batch_insert (\@array, $options)
 
@@ -619,7 +619,7 @@ If the update fails and safe is set, the update will croak.
 
 =back
 
-See also core documentation on update: L<http://dochub.mongodb.org/core/update>.
+See also core documentation on update: L<http://docs.mongodb.org/manual/core/update/>.
 
 =method find_and_modify
 
@@ -697,7 +697,7 @@ If the update fails and safe is set, this function will croak.
 
 =back
 
-See also core documentation on remove: L<http://dochub.mongodb.org/core/remove>.
+See also core documentation on remove: L<http://docs.mongodb.org/manual/core/delete/>.
 
 =method ensure_index ($keys, $options?)
 
