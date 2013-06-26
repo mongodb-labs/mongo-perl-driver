@@ -470,10 +470,7 @@ __PACKAGE__->meta->make_immutable;
 
 __END__
 
-
-=head1 NAME
-
-MongoDB::Collection - A Mongo collection
+=pod
 
 =head1 SYNOPSIS
 
@@ -491,37 +488,24 @@ or
 
     my $collection = $db->get_collection( 'foo.bar' );
 
-=head1 ATTRIBUTES
-
-=head2 name
+=attr name
 
 The name of the collection.
 
-=head2 full_name
+=attr full_name
 
 The full_name of the collection, including the namespace of the database it's
 in.
 
 
-=head2 get_collection ($name)
+=method get_collection ($name)
 
     my $collection = $database->get_collection('foo');
 
 Returns a L<MongoDB::Collection> for the collection called C<$name> within this
 collection.
 
-=head1 STATIC METHODS
-
-=head2 to_index_string ($keys)
-
-    $name = MongoDB::Collection::to_index_string({age : 1});
-
-Takes a L<Tie::IxHash>, hash reference, or array reference.  Converts it into
-an index string.
-
-=head1 METHODS
-
-=head2 find($query)
+=method find($query)
 
     my $cursor = $collection->find({ i => { '$gt' => 42 } });
 
@@ -537,7 +521,7 @@ C<MongoDB::Cursor::skip>, and C<MongoDB::Cursor::sort>.
 See also core documentation on querying:
 L<http://dochub.mongodb.org/core/find>.
 
-=head2 query($query, $attrs?)
+=method query($query, $attrs?)
 
 Identical to C<MongoDB::Collection::find>, described above.
 
@@ -564,7 +548,7 @@ Order results.
 
 =back
 
-=head2 find_one ($query, $fields?)
+=method find_one($query, $fields?)
 
     my $object = $collection->find_one({ name => 'Resi' });
     my $object = $collection->find_one({ name => 'Resi' }, { name => 1, age => 1});
@@ -575,7 +559,7 @@ even number of elements).  If C<$fields> is specified, the resulting document
 will only include the fields given (and the C<_id> field) which can cut down on
 wire traffic.
 
-=head2 insert ($object, $options?)
+=method insert ($object, $options?)
 
     my $id1 = $coll->insert({ name => 'mongo', type => 'database' });
     my $id2 = $coll->insert({ name => 'mongo', type => 'database' }, {safe => 1});
@@ -592,7 +576,7 @@ unsafe insert, then calling L<MongoDB::Database/"last_error($options?)">.
 
 See also core documentation on insert: L<http://dochub.mongodb.org/core/insert>.
 
-=head2 batch_insert (\@array, $options)
+=method batch_insert (\@array, $options)
 
     my @ids = $collection->batch_insert([{name => "Joe"}, {name => "Fred"}, {name => "Sam"}]);
 
@@ -605,7 +589,7 @@ croak if it did not. You can also check if the inserts succeeded by doing an
 unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
 
 
-=head2 update (\%criteria, \%object, \%options?)
+=method update (\%criteria, \%object, \%options?)
 
     $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
 
@@ -637,7 +621,7 @@ If the update fails and safe is set, the update will croak.
 
 See also core documentation on update: L<http://dochub.mongodb.org/core/update>.
 
-=head2 find_and_modify
+=method find_and_modify
 
     my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
 
@@ -647,7 +631,7 @@ and change the queried documents before the update is performed.
 Returns the old version of the document, unless C<new => 1> is specified. If no documents
 match the query, it returns nothing.
 
-=head2 aggregate
+=method aggregate
 
     my $result = $collection->aggregate( [ ... ] );
 
@@ -656,7 +640,7 @@ aggregation pipeline operators. Returns an array-ref containing the results of
 the query. See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
 for more information on how to construct aggregation queries.
 
-=head2 rename ("newcollectionname")
+=method rename ("newcollectionname")
 
     my $newcollection = $collection->rename("mynewcollection");
 
@@ -665,25 +649,18 @@ Renames the collection.  It expects that the new name is currently not in use.
 Returns the new collection.  If a collection already exists with that new collection name this will
 die.
 
-=head2 save($doc, $options)
+=method save($doc, $options)
 
     $collection->save({"author" => "joe"});
     my $post = $collection->find_one;
 
     $post->{author} = {"name" => "joe", "id" => 123, "phone" => "555-5555"};
 
-    $collection->save($post);
+    $collection->save( $post );
+    $collection->save( $post, { safe => 1 } )
 
 Inserts a document into the database if it does not have an _id field, upserts
 it if it does have an _id field.
-
-=over
-
-=item C<safe => boolean>
-
-If the save fails and safe is set, this function will croak.
-
-=back
 
 The return types for this function are a bit of a mess, as it will return the
 _id if a new document was inserted, 1 if an upsert occurred, and croak if the
@@ -692,7 +669,7 @@ succeeded by doing an unsafe save, then calling
 L<MongoDB::Database/"last_error($options?)">.
 
 
-=head2 remove ($query?, $options?)
+=method remove ($query?, $options?)
 
     $collection->remove({ answer => { '$ne' => 42 } });
 
@@ -722,7 +699,7 @@ If the update fails and safe is set, this function will croak.
 
 See also core documentation on remove: L<http://dochub.mongodb.org/core/remove>.
 
-=head2 ensure_index ($keys, $options?)
+=method ensure_index ($keys, $options?)
 
     use boolean;
     $collection->ensure_index({"foo" => 1, "bar" => -1}, { unique => true });
@@ -740,14 +717,14 @@ L<MongoDB::Database/"last_error($options?)">.
 
 See the L<MongoDB::Indexing> pod for more information on indexing.
 
-=head2 count($query?)
+=method count($query?)
 
     my $n_objects = $collection->count({ name => 'Bob' });
 
 Counts the number of objects in this collection that match the given C<$query>.
 If no query is given, the total number of objects in the collection is returned.
 
-=head2 validate
+=method validate
 
     $collection->validate;
 
@@ -763,20 +740,20 @@ Returns a hash of the form:
 where C<info> is a string of information
 about the collection.
 
-=head2 drop_indexes
+=method drop_indexes
 
     $collection->drop_indexes;
 
 Removes all indexes from this collection.
 
-=head2 drop_index ($index_name)
+=method drop_index ($index_name)
 
     $collection->drop_index('foo_1');
 
 Removes an index called C<$index_name> from this collection.
 Use C<MongoDB::Collection::get_indexes> to find the index name.
 
-=head2 get_indexes
+=method get_indexes
 
     my @indexes = $collection->get_indexes;
 
@@ -798,9 +775,11 @@ fields of the form:
 where C<dirX> is 1 or -1, depending on if the
 index is ascending or descending on that key.
 
-=head2 drop
+=method drop
 
     $collection->drop;
 
 Deletes a collection as well as all of its indexes.
+
+
 
