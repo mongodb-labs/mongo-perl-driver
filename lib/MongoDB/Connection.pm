@@ -16,7 +16,8 @@
 
 package MongoDB::Connection;
 
-# ABSTRACT: A connection to a Mongo server
+# ABSTRACT: A connection to a MongoDB server (DEPRECATED)
+
 use Moose;
 
 use MongoDB;
@@ -70,9 +71,7 @@ __PACKAGE__->meta->make_immutable ( inline_destructor => 0, inline_constructor =
 
 __END__
 
-=head1 NAME
-
-MongoDB::Connection - A connection to a MongoDB server
+=pod
 
 =head1 DEPRECATED
 
@@ -95,7 +94,7 @@ It can connect to a database server running anywhere, though:
 
 See the L</"host"> section for more options for connecting to MongoDB.
 
-=head2 Multithreading
+=head2 MULTITHREADING
 
 Cloning instances of this class is disabled in Perl 5.8.7+, so forked threads
 will have to create their own connections to the database.
