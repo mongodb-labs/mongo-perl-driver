@@ -727,7 +727,9 @@ This tells the driver that you are connecting to an SSL mongodb instance.
 This option will be ignored if the driver was not compiled with the SSL flag. You must
 also be using a database server that supports SSL.
 
-=attr sasl (EXPERIMENTAL)
+=attr sasl
+
+This attribute is experimental.
 
 If set to C<1>, the driver will attempt to negotiate SASL authentication upon
 connection. See L</sasl_mechanism> for a list of the currently supported mechanisms. The
@@ -743,7 +745,9 @@ in the EPEL repositories.
 Future versions of this driver may switch to L<Cyrus SASL|http://www.cyrusimap.org/docs/cyrus-sasl/2.1.25/>
 in order to be consistent with the MongoDB server, which now uses Cyrus.
 
-=attr sasl_mechanism (EXPERIMENTAL)
+=attr sasl_mechanism
+
+This attribute is experimental.
 
 This specifies the SASL mechanism to use for authentication with a MongoDB server. (See L</sasl>.) 
 The default is GSSAPI. The supported SASL mechanisms are:
