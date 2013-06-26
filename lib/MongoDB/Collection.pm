@@ -135,13 +135,11 @@ sub to_index_string {
     my $keys = shift;
 
     my @name;
-    if (ref $keys eq 'ARRAY' ||
-        ref $keys eq 'HASH' ) {
-
-        while ((my $idx, my $d) = each(%$keys)) {
-            push @name, $idx;
-            push @name, $d;
-        }
+    if (ref $keys eq 'ARRAY') {
+        @name = @$keys;
+    }
+    elsif (ref $keys eq 'HASH' ) {
+        @name = %$keys
     }
     elsif (ref $keys eq 'Tie::IxHash') {
         my @ks = $keys->Keys;
@@ -592,6 +590,7 @@ sub ensure_index {
         Carp::croak("you're using the old ensure_index format, please upgrade");
     }
 
+    $keys = Tie::IxHash->new(@$keys) if ref $keys eq 'ARRAY';
     my $obj = Tie::IxHash->new("ns" => $ns, "key" => $keys);
 
     if (exists $options->{name}) {
