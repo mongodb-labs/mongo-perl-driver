@@ -1,5 +1,5 @@
 #
-#  Copyright 2009 10gen, Inc.
+#  Copyright 2009-2013 10gen, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package MongoDB::Database;
 
 
-# ABSTRACT: A Mongo Database
+# ABSTRACT: A MongoDB Database
 
 use Moose;
 use MongoDB::GridFS;
