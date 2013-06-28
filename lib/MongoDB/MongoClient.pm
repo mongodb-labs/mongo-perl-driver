@@ -762,6 +762,8 @@ MongoDB Enterprise 2.6+. Because the password is not encrypted, you should only 
 mechanism over a secure connection. You must set the C<username> and C<password> attributes 
 to your LDAP credentials.
 
+=back
+
 =head2 dt_type
 
 Sets the type of object which is returned for DateTime fields. The default is L<DateTime>. Other
