@@ -1,0 +1,3 @@
+[submodule "mongo-meta-driver"]
+	path = mongo-meta-driver
+	url = git@github.com:mmalvarez/mongo-meta-driver.git
