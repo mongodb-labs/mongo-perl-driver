@@ -28,12 +28,12 @@ static int mongo_link_timeout(int socket, time_t timeout);
 
 static void set_timeout(int socket, time_t timeout) {
 #ifdef WIN32
-  DWORD tv = (DWORD)timeout * 1000;
+  DWORD tv = (DWORD)timeout;
   const char *tv_ptr = (const char*)&tv;
 #else
   struct timeval tv;
-  tv.tv_sec = timeout;
-  tv.tv_usec = 0;
+  tv.tv_sec = timeout / 1000;
+  tv.tv_usec = (timeout % 1000) * 1000;
   const void *tv_ptr = (void*)&tv;
 #endif
   setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, tv_ptr, sizeof(tv));
