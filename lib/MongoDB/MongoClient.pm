@@ -727,6 +727,19 @@ This tells the driver that you are connecting to an SSL mongodb instance.
 This option will be ignored if the driver was not compiled with the SSL flag. You must
 also be using a database server that supports SSL.
 
+The driver must be built as follows for SSL support:
+
+    perl Makefile.PL --ssl
+    make
+    make install
+
+Alternatively, you can set the C<PERL_MONGODB_WITH_SSL> environment variable before
+installing:
+
+    PERL_MONGODB_WITH_SSL=1 cpan MongoDB
+
+The C<libcrypto> and C<libssl> libraries are required for SSL support.
+
 =attr sasl
 
 This attribute is experimental.
@@ -738,6 +751,11 @@ driver must be built as follows for SASL support:
     perl Makefile.PL --sasl
     make
     make install
+
+Alternatively, you can set the C<PERL_MONGODB_WITH_SASL> environment variable before
+installing:
+
+    PERL_MONGODB_WITH_SASL=1 cpan MongoDB
 
 The C<libgsasl> library is required for SASL support. RedHat/CentOS users can find it
 in the EPEL repositories.
