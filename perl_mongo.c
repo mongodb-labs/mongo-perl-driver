@@ -447,11 +447,11 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
     break;
   }
   case BSON_DATE: {
-    int64_t ms_i = MONGO_64p(buf->pos);
+    double ms_i = (double)MONGO_64p(buf->pos);
     SV *datetime, *ms, **heval;
     HV *named_params;
     buf->pos += INT_64;
-    ms_i /= 1000;
+    ms_i /= 1000.0;
 
     if ( dt_type == NULL ) { 
       // raw epoch
@@ -480,7 +480,7 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
 
     } else if ( strcmp( dt_type, "DateTime" ) == 0 ) { 
       datetime = sv_2mortal(newSVpv("DateTime", 0));
-      ms = newSViv(ms_i);
+      ms = newSVnv(ms_i);
 
       named_params = newHV();
       heval = hv_stores(named_params, "epoch", ms);

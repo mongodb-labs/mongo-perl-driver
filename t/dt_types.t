@@ -29,7 +29,7 @@ use DateTime::Tiny;
 use lib "t/lib";
 use MongoDBTest '$conn';
 
-plan tests => 15;
+plan tests => 22;
 
 
 my $db = $conn->get_database('test_database');
@@ -114,3 +114,21 @@ my $now = DateTime->now;
     $db->drop;
 }
 
+{
+    # test fractional second roundtrip
+    $conn->dt_type( 'DateTime' );
+    my $coll = $db->get_collection( 'test_collection' );
+    my $now = DateTime->now;
+    $now->add( nanoseconds => 500_000_000 );
+    
+    $coll->insert( { date => $now } );
+    my $doc = $coll->find_one;
+
+    is $doc->{date}->year,       $now->year;
+    is $doc->{date}->month,      $now->month;
+    is $doc->{date}->day,        $now->day;
+    is $doc->{date}->hour,       $now->hour;
+    is $doc->{date}->minute,     $now->minute;
+    is $doc->{date}->second,     $now->second;
+    is $doc->{date}->nanosecond, $now->nanosecond;
+}
