@@ -21,6 +21,7 @@ use warnings;
 package MongoDB;
 # ABSTRACT: A MongoDB Driver for Perl
 
+our $VERSION = "0.503.2";
 use XSLoader;
 use MongoDB::Connection;
 use MongoDB::MongoClient;
