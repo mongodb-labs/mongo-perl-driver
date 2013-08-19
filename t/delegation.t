@@ -27,6 +27,8 @@ use DateTime::Tiny;
 use lib "t/lib";
 use MongoDBTest '$conn';
 
+plan skip_all => "connecting to default host/port won't work with a remote db" if exists $ENV{MONGOD};
+
 plan tests => 1;
 
 # test that Connection delegates constructor params to MongoClient correctly
