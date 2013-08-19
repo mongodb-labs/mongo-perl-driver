@@ -332,10 +332,9 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
     break;
   }
   case BSON_DOUBLE: {
-    int64_t i = MONGO_64p(buf->pos);
     double d;
 
-    memcpy(&d, &i, DOUBLE_64);
+    memcpy(&d, buf->pos, DOUBLE_64);
 
     value = newSVnv(d);
     buf->pos += DOUBLE_64;
