@@ -334,7 +334,12 @@ elem_to_sv (int type, buffer *buf, char *dt_type, int inflate_dbrefs, SV *client
   case BSON_DOUBLE: {
     double d;
 
+#if MONGO_BIG_ENDIAN
+    int64_t i = MONGO_64p(buf->pos);
+    memcpy(&d, &i, DOUBLE_64);
+#else
     memcpy(&d, buf->pos, DOUBLE_64);
+#endif
 
     value = newSVnv(d);
     buf->pos += DOUBLE_64;
