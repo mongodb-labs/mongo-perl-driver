@@ -96,6 +96,7 @@ plan tests => 28;
 # test fetch via find
 {
     my $some_coll = $conn->get_database( 'test' )->get_collection( 'some_coll' );
+    $some_coll->drop;
     $some_coll->insert( { _id => 123, value => 'foobar' } );
     my $dbref = MongoDB::DBRef->new( db => 'test', ref => 'some_coll', id => 123 );
 
