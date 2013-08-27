@@ -100,6 +100,8 @@ sub to_index_string {
 }
 
 
+
+
 sub find {
     my ($self, $query, $attrs) = @_;
     # old school options - these should be set with MongoDB::Cursor methods
@@ -108,16 +110,27 @@ sub find {
     $limit   ||= 0;
     $skip    ||= 0;
 
-    my $q = $query || {};
     my $conn = $self->_database->_client;
+    my $q = $query || {};
     my $ns = $self->full_name;
+
+    my $slave_ok = ($conn->_readpref_mode == MongoDB::MongoClient->PRIMARY) ? 0 : 1;
+
     my $cursor = MongoDB::Cursor->new(
-	_client => $conn,
-	_ns => $ns,
-	_query => $q,
-	_limit => $limit,
-	_skip => $skip
+      _master    => $conn,
+      _client    => $conn->_readpref_pinned // $conn,
+      _ns        => $ns,
+      _query     => $q,
+      _limit     => $limit,
+      _skip      => $skip,
+      slave_okay => $slave_ok
     );
+
+    # add readpref info if connected to mongos
+    if ($conn->_readpref_pinned && $conn->_is_mongos) {
+        my $modeName = MongoDB::MongoClient->_READPREF_MODENAMES->[$conn->_readpref_mode];
+        $cursor->_add_readpref({mode => $modeName, tags => $conn->_readpref_tagsets});
+    }
 
     $cursor->_init;
     if ($sort_by) {
@@ -357,7 +370,10 @@ sub _make_safe {
 
     $conn->send("$req$query");
 
-    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns}, _client => $conn, _query => {});
+    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns},
+                                      _master => $conn,
+                                      _client => $conn,
+                                      _query => {});
     $cursor->_init;
     $cursor->_request_id($info->{'request_id'});
 

@@ -30,6 +30,20 @@ use Scalar::Util 'reftype';
 use boolean;
 use Encode;
 
+use constant {
+    PRIMARY             => 0, 
+    SECONDARY           => 1,
+    PRIMARY_PREFERRED   => 2,
+    SECONDARY_PREFERRED => 3,
+    NEAREST             => 4 
+};
+
+use constant _READPREF_MODENAMES => ['primary',
+                                     'secondary',
+                                     'primaryPreferred',
+                                     'secondaryPreferred',
+                                     'nearest'];
+
 has host => (
     is       => 'ro',
     isa      => 'Str',
@@ -53,6 +67,39 @@ has j => (
     is      => 'rw',
     isa     => 'Bool',
     default => 0
+);
+
+
+has _readpref_mode => (
+    is      => 'rw',
+    isa     => 'Str',
+    default => MongoDB::MongoClient->PRIMARY
+);
+
+has _readpref_tagsets => (
+    is       => 'rw',
+    isa      => 'ArrayRef',
+    required => 0
+);
+
+has _readpref_pinned => (
+    is       => 'rw',
+    isa      => 'MongoDB::MongoClient',
+    required => 0
+);
+
+has _readpref_retries => (
+    is       => 'ro',
+    isa      => 'Int',
+    required => 1,
+    default  => 3
+);
+
+has _readpref_pingfreq_sec => (
+    is       => 'ro',
+    isa      => 'Int',
+    required => 1,
+    default  => 5 
 );
 
 
@@ -123,6 +170,13 @@ has find_master => (
     isa      => 'Bool',
     required => 1,
     default  => 0,
+);
+
+has _is_mongos => (
+    is       => 'rw',
+    isa      => 'Bool',
+    required => 1,
+    default  => 0
 );
 
 
@@ -330,6 +384,8 @@ sub _get_any_connection {
     while ((my $key, my $value) = each(%{$self->_servers})) {
         my $conn = $self->_get_a_specific_connection($key);
         if ($conn) {
+            # force a reset of the iterator 
+            my $reset = keys %{$self->_servers};
             return $conn;
         }
     }
@@ -360,6 +416,10 @@ sub get_master {
         if (ref($master) eq 'SCALAR') {
             return -1;
         }
+
+        # msg field from ismaster command will
+        # be set if in a sharded environment 
+        $self->_is_mongos(1) if $master->{'msg'};
 
         # if this is a replica set & we haven't renewed the host list in 1 sec
         if ($master->{'hosts'} && time() > $self->ts) {
@@ -399,6 +459,215 @@ sub get_master {
     }
 
     return -1;
+}
+
+
+sub read_preference {
+    my ($self, $mode, $tagsets) = @_;
+
+    Carp::croak "Missing read preference mode" if @_ < 2;
+    Carp::croak "Unrecognized read preference mode: $mode" if $mode < 0 || $mode > 4;
+    Carp::croak "NEAREST read preference mode not supported" if $mode == MongoDB::MongoClient->NEAREST; 
+    if (!$self->_is_mongos) {
+        Carp::croak "Read preference must be used with a replica set" if !$self->find_master || keys %{$self->_servers} < 2;
+    }
+    Carp::croak "PRIMARY cannot be combined with tags" if $mode == MongoDB::MongoClient->PRIMARY && $tagsets;
+
+    # only repin if mode or tagsets have changed
+    return if $mode == $self->_readpref_mode &&
+              defined $self->_readpref_tagsets &&
+              defined $tagsets &&
+              $tagsets == $self->_readpref_tagsets;
+
+    $self->_readpref_mode($mode);
+
+    $self->_readpref_tagsets($tagsets) if defined $tagsets;
+    $self->_readpref_tagsets([]) if !(defined $tagsets);
+
+    $self->repin();
+}
+
+sub _choose_secondary {
+    my ($self, $servers) = @_;
+
+    for (1 .. $self->_readpref_retries) {
+
+        my @secondaries = keys %{$servers};
+        return undef if @secondaries == 0;
+
+        my $secondary = $servers->{$secondaries[int(rand(scalar @secondaries))]};
+
+        if ($secondary->_check_ok(1)) {
+            return $secondary;
+        }
+        else {
+            delete $servers->{$secondary->host};
+        }
+    }
+
+    return undef;
+}
+
+
+sub _narrow_by_tagsets {
+    my ($self, $servers) = @_;
+
+    return unless @{$self->_readpref_tagsets};
+
+    my $conn = $self->_get_any_connection();
+    if (!$conn) {
+        # no connections available, clear the hash
+        undef %{$servers};
+        return;
+    }
+
+    my $replcoll = $conn->get_database('local')->get_collection('system.replset');
+    my $rsconf = $replcoll->find_one();
+
+    foreach my $conf (@{$rsconf->{'members'}}) {
+        next unless exists $conf->{'tags'};
+
+        my $member_matches = 0;
+
+        # see if any of the tagsets match the rs conf
+        TAGSET:
+        foreach my $tagset (@{$self->_readpref_tagsets}) {
+
+            foreach my $tagkey (keys %{$tagset}) {
+                next TAGSET unless exists $conf->{'tags'}->{$tagkey} &&
+                                   $tagset->{$tagkey} eq $conf->{'tags'}->{$tagkey};
+            }
+
+            $member_matches = 1;
+        }
+
+        # eliminate non-matching RS members
+        delete $servers->{'mongodb://' . $conf->{'host'}} unless $member_matches;
+    }
+}
+
+sub _check_ok {
+    my ($self, $retries) = @_;
+
+    foreach (1 .. $retries) {
+
+        my $status;
+        eval {
+            $status = $self->get_database('admin')->run_command({ping => 1});
+        };
+
+        if (!$@ && $status->{'ok'}) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+sub repin {
+    my ($self) = @_;
+
+    if ($self->_is_mongos) {
+        $self->_readpref_pinned($self);
+        return;
+    }
+
+    my %secondaries = %{$self->_servers};
+    foreach (keys %secondaries) {
+        my $value = $secondaries{$_};
+        $value->{'query_timeout'} = $self->query_timeout;
+        delete $secondaries{$_};
+        $secondaries{"mongodb://$_"} = $value;
+    }
+    my $primary = $secondaries{$self->_master->host};
+    delete $secondaries{$primary->host};
+
+    my $mode = $self->_readpref_mode;
+
+    # pin the primary or die
+    if ($mode == MongoDB::MongoClient->PRIMARY) {
+        if ($primary->_check_ok($self->_readpref_retries)) {
+            $self->_readpref_pinned($primary);
+            return;
+        }
+        else {
+            die "No replica set primary available for query with read_preference PRIMARY";
+        }
+    }
+
+    # pin an arbitrary secondary or die
+    elsif ($mode == MongoDB::MongoClient->SECONDARY) {
+        $self->_narrow_by_tagsets(\%secondaries);
+        my $secondary = $self->_choose_secondary(\%secondaries);
+        if ($secondary) {
+            $self->_readpref_pinned($secondary);
+            return;
+        }
+        else {
+            die "No replica set secondary available for query with read_preference SECONDARY";
+        }
+    }
+
+    # if no primary available, then pin an arbitrary secondary
+    elsif ($mode == MongoDB::MongoClient->PRIMARY_PREFERRED) {
+        if ($primary->_check_ok($self->_readpref_retries)) {
+            $self->_readpref_pinned($primary);
+            return;
+        }
+        else {
+            $self->_narrow_by_tagsets(\%secondaries);
+            my $secondary = $self->_choose_secondary(\%secondaries);
+            if ($secondary) {
+                $self->_readpref_pinned($secondary);
+                return;
+            }
+        }
+    }
+
+    # if no secondary available, then pin the primary
+    elsif ($mode == MongoDB::MongoClient->SECONDARY_PREFERRED) {
+        $self->_narrow_by_tagsets(\%secondaries);
+        my $secondary = $self->_choose_secondary(\%secondaries);
+        if ($secondary) {
+            $self->_readpref_pinned($secondary);
+            return;
+        }
+        elsif ($primary->_check_ok($self->_readpref_retries)) {
+            $self->_readpref_pinned($primary);
+            return;
+        }
+    }
+
+    die "No replica set members available for query";
+}
+
+
+sub rs_refresh {
+    my ($self) = @_;
+
+    # only refresh if connected directly
+    # to a replica set
+    return unless $self->find_master;
+    return unless $self->_readpref_pinned;
+    return if $self->_is_mongos;
+
+    # ping rs members, and repin if something has changed
+    my $repin_required = 0;
+    if (time() > ($self->ts + $self->_readpref_pingfreq_sec)) {
+        for (keys %{$self->_servers}) {
+            my $server = $self->_servers->{$_};
+            my $connected = $server->connected;
+            my $ok = $server->_check_ok(1);
+            if (($ok && !$connected) || (!$ok && $connected)) {
+                $self->repin();
+                $self->ts(time());
+                return 1;
+            }
+        }
+    }
+    
+    $self->ts(time());
+    return 0; 
 }
 
 

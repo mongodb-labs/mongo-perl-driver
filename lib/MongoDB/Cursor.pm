@@ -91,8 +91,14 @@ has started_iterating => (
     default => 0,
 );
 
-has _client => (
+has _master => (
     is => 'ro',
+    isa => 'MongoDB::MongoClient',
+    required => 1,
+);
+
+has _client => (
+    is => 'rw',
     isa => 'MongoDB::MongoClient',
     required => 1,
 );
@@ -234,6 +240,8 @@ sub _ensure_special {
 sub _do_query {
     my ($self) = @_;
 
+    $self->_master->rs_refresh();
+
     if ($self->started_iterating) {
         return;
     }
@@ -246,8 +254,16 @@ sub _do_query {
     my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit, $self->_query, $self->_fields);
     $self->_request_id($info->{'request_id'});
 
-    $self->_client->send($query);
-    $self->_client->recv($self);
+    eval {
+        $self->_client->send($query);
+        $self->_client->recv($self); 
+    };
+    if ($@ && $self->_master->_readpref_pinned) {
+        $self->_master->repin();
+        $self->_client($self->_master->_readpref_pinned);
+        $self->_client->send($query); 
+        $self->_client->recv($self); 
+    }
 
     $self->started_iterating(1);
 }
@@ -485,6 +501,13 @@ sub count {
 }
 
 
+sub _add_readpref {
+    my ($self, $prefdoc) = @_;
+    $self->_ensure_special;
+    $self->_query->{'$readPreference'} = $prefdoc;
+}
+
+
 # shortcut to make some XS code saner
 sub _dt_type { 
     my $self = shift;
@@ -571,6 +594,28 @@ sub all {
     }
 
     return @ret;
+}
+
+=head2 read_preference ($mode, $tagsets)
+
+    my $cursor = $coll->find()->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED, [{foo => 'bar'}]);
+
+Sets read preference for the cursor's connection. The $mode argument
+should be a constant in MongoClient (PRIMARY, PRIMARY_PREFERRED, SECONDARY,
+SECONDARY_PREFERRED). The $tagsets specify selection criteria for secondaries
+in a replica set and should be an ArrayRef whose array elements are HashRefs.
+
+Returns self so that this method can be chained.
+
+=cut
+
+sub read_preference {
+    my ($self, $mode, $tagsets) = @_;
+
+    $self->_master->read_preference($mode, $tagsets);
+
+    $self->_client($self->_master->_readpref_pinned);
+    return $self;
 }
 
 
