@@ -628,8 +628,12 @@ Sets read preference for the cursor's connection. The $mode argument
 should be a constant in MongoClient (PRIMARY, PRIMARY_PREFERRED, SECONDARY,
 SECONDARY_PREFERRED). The $tagsets specify selection criteria for secondaries
 in a replica set and should be an ArrayRef whose array elements are HashRefs.
+This is a convenience method which is identical in function to
+L<MongoDB::MongoClient/read_preference>.
+In order to use read preference, L<MongoDB::MongoClient/find_master> must be set.
+For core documentation on read preference see L<http://docs.mongodb.org/manual/core/read-preference/>.
 
-Returns self so that this method can be chained.
+Returns $self so that this method can be chained.
 
 =cut
 

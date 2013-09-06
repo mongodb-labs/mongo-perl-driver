@@ -186,6 +186,207 @@ Thus, we can translate the important parts into Perl:
 
     $db->run_command( { validate => "foo" } );
 
+
+=head2 Find-and-modify
+
+The find-and-modify command is similar to update (or remove), but it will return
+the modified document.  It can be useful for implementing queues or locks.
+
+For example, suppose we had a list of things to do, and we wanted to remove the
+highest-priority item for processing.  We could do a L<MongoDB::Collection/find>
+and then a L<MongoDB::Collection/remove>, but that wouldn't be atomic (a write
+could occur between the query and the remove).  Instead, we can use find and
+modify.
+
+    my $next_task = $db->run_command({
+        findAndModify => "todo",
+        sort => {priority => -1},
+        remove => 1
+    });
+
+This will atomically find and pop the next-highest-priority task.
+
+See L<http://www.mongodb.org/display/DOCS/findAndModify+Command> for more
+details on find-and-modify.
+
+=head1 AGGREGATION
+
+The aggregation framework is MongoDB's analogy for SQL GROUP BY queries,
+but more generic and more powerful. An invocation of the aggregation framework
+specifies a series of stages in a pipeline to be executed in order by
+the server. Each stage of the pipeline is
+drawn from one of the following so-called "pipeline operators":
+C<$project>, C<$match>, C<$limit>, C<$skip>, C<$unwind>, C<$group>,
+C<$sort>, and C<$geoNear>.
+
+The aggregation framework is the preferred way of performing
+most aggregation tasks. New in version 2.2, it has largely
+obviated mapReduce (L<http://docs.mongodb.org/manual/reference/command/mapReduce/#dbcmd.mapReduce>),
+and group (L<http://docs.mongodb.org/manual/reference/command/group/#dbcmd.group>).
+
+See the MongoDB aggregation framework documentation for more
+information (L<http://docs.mongodb.org/manual/aggregation/>).
+
+=head2 $match and $group
+
+The C<$group> pipeline operator is used like GROUP BY in SQL. For example,
+suppose we have a number of local businesses stored in a "business" collection. 
+If we wanted to find the number of coffeeshops in each neighborhood, we
+could do:
+
+    my $out = $db->get_collection('business')->aggregate(
+        [
+            {'$match' => {'type' => 'coffeeshop'}},
+            {'$group' => {'_id' => '$neighborhood', 'num_coffeshops' => {'$sum' => 1}}}
+        ]
+    );
+
+The SQL equivalent is C<SELECT neighborhood, COUNT(*) FROM business GROUP BY neighborhood WHERE type = 'coffeeshop'>.
+After executing the above aggregation query, C<$out> will contain an array of
+result documents such as the following:
+
+    [
+         {
+             '_id' => 'Soho',
+             'num_coffeshops' => 23
+         },
+         {
+             '_id' => 'Chinatown',
+             'num_coffeshops' => 14 
+         },
+         {
+             '_id' => 'Upper East Side',
+             'num_coffeshops' => 10
+         },
+         {
+             '_id' => 'East Village',
+             'num_coffeshops' => 87
+         }
+    ]
+
+Note that L<MongoDB::Collection/aggregate> takes an array reference as
+an argument. Each element of the array is document which specifies a stage
+in the aggregation pipeline. Here our aggregation query consists of a
+C<$match> phase followed by a C<$group> phase. Use C<$match> to filter the
+documents in the collection prior to aggregation. The C<_id> field in the
+C<$group> stage specifies the key to group by; the C<$> in C<'$neighborhood'>
+indicates that we are referencing the name of a key. Finally, we use the
+C<$sum> operator to add one for every document in a particular neighborhood.
+There are other operators, such as C<$avg>, C<$max>, C<$min>, C<$push>, and
+C<$addToSet>, which can be used in the C<$group> phase and work much like
+C<$sum>.
+
+=head2 $project and $unwind
+
+Now let's look at a more complex example of the aggregation framework that
+makes use of the C<$project> and C<$unwind> pipeline operators. Suppose
+we have a collection called 'courses' which contains information on college
+courses. An example document in the collection looks like this:
+
+    {
+        '_id' => 'CSCI0170',
+        'name' => 'Computer Science 17',
+        'description' => 'An Integrated Introduction to Computer Science',
+        'instructor_id' => 29823498,
+        'instructor_name' => 'A. Greenwald',
+        'students' => [
+            { 'student_id' => 91736114, 'student_name' => 'D. Storch' },
+            { 'student_id' => 89100891, 'student_name' => 'J. Rassi' }
+        ]
+    }
+
+We wish to generate a report containing one document per student that indicates
+the courses in which each student is enrolled. The following call to
+L<MongoDB::Collection/aggregate> will do the trick:
+
+    my $out = $db->get_collection('courses')->aggregate([
+        {'$unwind' => '$students'},
+        {'$project' => {
+                '_id' => 0,
+                'course' => '$_id',
+                'student_id' => '$students.student_id',
+            }
+        },
+        {'$group' => {
+                '_id' => '$student_id',
+                'courses' => {'$addToSet' => '$course'}
+            }
+        }
+    ]);
+
+The output documents will each have a student ID number and an array of the
+courses in which that student is enrolled:
+
+    [
+        {
+            '_id' => 91736114,
+            'courses' => ['CSCI0170', 'CSCI0220', 'APMA1650', 'HIST1230']
+        }
+        {
+            '_id' => 89100891,
+            'courses' => ['CSCI0170', 'CSCI1670', 'CSCI1690']
+        }
+    ]
+
+The C<$unwind> stage of the aggregation query "peels off" elements of the courses
+array one-by-one and places them in their own documents. After this phase completes,
+there is a separate document for each (course, student) pair. The C<$project> stage
+then throws out unecessary fields and keeps the ones we are interested in. It also
+pulls the student ID field out of its subdocument and creates a top-level field
+with the key C<student_id>. Last, we group by student ID, using C<$addToSet> in
+order to add the unique courses for each student to the C<courses> array.
+
+=head2 $sort, $skip, and $limit
+
+The C<$sort>, C<$skip>, and C<$limit> pipeline operators work much like their
+companion methods in L<MongoDB::Cursor>. Returning to the previous students and
+courses example, suppose that we were particularly interested in the student with
+the ID that is numerically third-to-highest. We could retrieve the course list for that
+student by adding C<$sort>, C<$skip>, and C<$limit> phases to the pipeline:
+
+    my $out = $db->get_collection('courses')->aggregate([
+        {'$unwind' => '$students'},
+        {'$project' => {
+                '_id' => 0,
+                'course' => '$_id',
+                'student_id' => '$students.student_id',
+            }
+        },
+        {'$group' => {
+                '_id' => '$student_id',
+                'courses' => {'$addToSet' => '$course'}
+            }
+        },
+        {'$sort' => {'_id' => -1}},
+        {'$skip' => 2},
+        {'$limit' => 1}
+    ]);
+
+=head2 Group
+
+In addition to the aggregation framework, MongoDB offers a few special
+commands for common aggregation tasks: C<group>, C<distinct>, and C<count>.
+
+Returning to the coffeeshop example, the same result could be obtained using
+C<group> with the following code:
+
+    my $reduce = <<REDUCE;
+    function(doc, prev) {
+        if (doc.type == "coffeeshop") {
+            prev["num coffeeshops"]++;
+        }
+    }
+    REDUCE
+
+    my $result = $db->run_command({group => {
+        'ns' => "business",
+        'key' => {"neighborhood" => 1},
+        'initial' => {"num coffeeshops" => 0},
+        '$reduce' => MongoDB::Code->new(code => $reduce)
+
+Modern code should generally prefer the C<$group> aggregation pipeline
+operator to the C<group> database command.
+
 =head2 Distinct
 
 The distinct command returns all values for a given key in a collection.  For
@@ -223,90 +424,13 @@ Running C<distinct> on the above collection would give you:
                     ]
     };
 
-
-=head2 Find-and-modify
-
-The find-and-modify command is similar to update (or remove), but it will return
-the modified document.  It can be useful for implementing queues or locks.
-
-For example, suppose we had a list of things to do, and we wanted to remove the
-highest-priority item for processing.  We could do a L<MongoDB::Collection/find>
-and then a L<MongoDB::Collection/remove>, but that wouldn't be atomic (a write
-could occur between the query and the remove).  Instead, we can use find and
-modify.
-
-    my $next_task = $db->run_command({
-        findAndModify => "todo",
-        sort => {priority => -1},
-        remove => 1
-    });
-
-This will atomically find and pop the next-highest-priority task.
-
-See L<http://www.mongodb.org/display/DOCS/findAndModify+Command> for more
-details on find-and-modify.
-
-=head2 Group
-
-The group command is similar to "GROUP BY" in SQL.  You can use the
-L<MongoDB::Database/run_command> method to perform group-bys with MongoDB.
-
-For example, suppose we have a number of local businesses stored in a "business"
-collection.  If we wanted to find the number of coffeeshops in each neighborhood, we
-could do:
-
-    my $reduce = <<REDUCE;
-    function(doc, prev) {
-        for (var t in doc.tags) {
-            if (doc.tags[t] == "coffeeshop") {
-                prev["num coffeeshops"]++;
-                break;
-            }
-        }
-    }
-    REDUCE
-
-    my $result = $db->run_command({group => {
-        'ns' => "business",
-        'key' => {"neighborhood" => 1},
-        'initial' => {"num coffeeshops" => 0},
-        '$reduce' => MongoDB::Code->new(code => $reduce)
-
-This would return something like:
-
-    {
-          'ok' => '1',
-          'keys' => 4,
-          'count' => '487', # total number of documents
-          'retval' => [
-              {
-                          'neighborhood' => 'Soho',
-                          'num coffeeshops' => '23'
-              },
-              {
-                          'neighborhood' => 'Chinatown',
-                          'num coffeeshops' => '14'
-              },
-              {
-                          'neighborhood' => 'Upper East Side',
-                          'num coffeeshops' => '10'
-              },
-              {
-                          'neighborhood' => 'East Village',
-                          'num coffeeshops' => '87'
-              }
-            ]
-    };
-
-Thus, there are 23 coffeeshops in Soho, 14 in Chinatown, and so on.
-
-See L<http://www.mongodb.org/display/DOCS/Aggregation> for more details on
-grouping.
-
 =head2 MapReduce
 
-MapReduce is a powerful aggregation tool.  (For traditional queries, you should
-use C<MongoDB::Collection::query>.)
+For some special purpose aggregation tasks, the aggregation framework may not
+be sufficient. In this case, the database server can execute special MapReduce
+jobs written in JavaScript. Be warned: MapReduce is generally slower than the
+aggregation framework and should be avoided unless your application requires
+the flexibility that it provides.
 
 This example counts the number of occurences of each tag in a collection.  Each
 document contains a "tags" array that contains zero or more strings.
@@ -336,7 +460,7 @@ document contains a "tags" array that contains zero or more strings.
     my $result = $db->run_command($cmd);
 
 See the MongoDB documentation on MapReduce for more information
-(L<http://dochub.mongodb.org/core/mapreduce>).
+(L<http://docs.mongodb.org/manual/core/map-reduce>).
 
 =head1 QUERYING
 

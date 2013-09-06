@@ -1161,3 +1161,37 @@ The primary use of fsync is to lock the database during backup operations. This 
     $conn->fsync_unlock();
 
 Unlocks a database server to allow writes and reverses the operation of a $conn->fsync({lock => 1}); operation. 
+
+=method read_preference
+
+    $conn->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED, [{'disk' => 'ssd'}, {'rack' => 'k'}]);
+
+Sets the read preference for this connection. The first argument is the read
+preference mode and should be one of four constants: PRIMARY, SECONDARY,
+PRIMARY_PREFERRED, or SECONDARY_PREFERRED (NEAREST is not yet supported).
+In order to use read preference, L<MongoDB::MongoClient/find_master> must be set.
+The second argument (optional) is an array reference containing tagsets. The tagsets can
+be used to match the tags for replica set secondaries. See also
+L<MongoDB::Cursor/read_preference>. For core documentation on read preference
+see L<http://docs.mongodb.org/manual/core/read-preference/>.
+
+=method repin
+
+    $conn->repin()
+
+Chooses a replica set member to which this connection should route read operations,
+according to the read preference that has been set via L<MongoDB::MongoClient/read_preference>
+or L<MongoDB::Cursor/read_preference>. This method is called automatically
+when the read preference or replica set state changes, and generally does not
+need to be called by application code. 
+
+=method rs_refresh
+
+    $conn->rs_refresh()
+
+If it has been at least 5 seconds since last checking replica set state,
+then ping all replica set members. Calls L<MongoDB::MongoClient/repin> if
+a previously reachable node is now unreachable, or a previously unreachable
+node is now reachable. This method is called automatically before communicating
+with the server, and therefore should not generally be called by client code.
+
