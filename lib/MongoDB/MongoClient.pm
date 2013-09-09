@@ -468,8 +468,8 @@ sub read_preference {
     Carp::croak "Missing read preference mode" if @_ < 2;
     Carp::croak "Unrecognized read preference mode: $mode" if $mode < 0 || $mode > 4;
     Carp::croak "NEAREST read preference mode not supported" if $mode == MongoDB::MongoClient->NEAREST; 
-    if (!$self->_is_mongos) {
-        Carp::croak "Read preference must be used with a replica set" if !$self->find_master || keys %{$self->_servers} < 2;
+    if (!$self->_is_mongos && (!$self->find_master || keys %{$self->_servers} < 2)) {
+        Carp::croak "Read preference must be used with a replica set; is find_master false?";
     }
     Carp::croak "PRIMARY cannot be combined with tags" if $mode == MongoDB::MongoClient->PRIMARY && $tagsets;
 
@@ -571,6 +571,8 @@ sub repin {
         $self->_readpref_pinned($self);
         return;
     }
+
+    $self->get_master if !$self->_master;
 
     my %secondaries = %{$self->_servers};
     foreach (keys %secondaries) {

@@ -280,6 +280,11 @@ sub _do_query {
         $self->_client->send($query); 
         $self->_client->recv($self); 
     }
+    elsif ($@) {
+        # rethrow the exception if read preference
+        # has not been set
+        die $@;
+    }
 
     $self->started_iterating(1);
 }

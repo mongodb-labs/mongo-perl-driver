@@ -39,6 +39,19 @@ has dbpath => (
     default  => '/data/db/replset'
 );
 
+has logpath => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1
+);
+
+has logappend => (
+    is       => 'ro',
+    isa      => 'Str',
+    default  => 0,
+    required => 1
+);
+
 has set_size => (
     is       => 'ro',
     isa      => 'Int',
@@ -66,6 +79,17 @@ has name => (
     required => 1
 );
 
+has client => (
+    is       => 'rw',
+    isa      => 'MongoDB::MongoClient'
+);
+
+has priorities => (
+    is       => 'ro',
+    isa      => 'ArrayRef',
+    required => 0
+);
+
 has _nodes => (
     is       => 'rw',
     isa      => 'HashRef',
@@ -85,6 +109,8 @@ sub BUILD {
     my $mongod = File::Spec->catfile($self->mongo_path, 'mongod');
     Carp::croak "can't find mongod" unless -e $mongod;
 
+    Carp::croak "logpath does not exist" unless -e $self->logpath;
+
     my @nodes;
     foreach (0..($self->set_size - 1)) {
         my $dbpath = File::Spec->catfile($self->dbpath, "rs_$_");
@@ -101,6 +127,11 @@ sub BUILD {
 
         my $seed = $self->name . '/' . join(',', keys %{$self->_nodes});
 
+        my $log = File::Spec->catfile($self->logpath, "rs_$_.log");
+        if (!$self->logappend && -e $log) {
+            unlink $log or warn "could not unlink $log";
+        }
+
         my @command = ($mongod);
         push @command, ('--port', $port);
         push @command, ('--dbpath', $dbpath);
@@ -108,6 +139,7 @@ sub BUILD {
         push @command, '--rest';
         push @command, ('--bind_ip', '127.0.0.1');
         push @command, ('--oplogSize', $self->oplog_size);
+        push @command, ('--logpath', $log);
 
         # remember command so we can bring nodes back up
         $self->_commands->{$host} = \@command;
@@ -120,6 +152,9 @@ sub BUILD {
     foreach my $i (0 .. $#nodes) {
         my $member = {_id => $i, host => $nodes[$i]};
         $config->{'members'}->[$i] = $member;
+        if ($self->priorities) {
+            $config->{'members'}->[$i]->{'priority'} = $self->priorities->[$i];
+        }
     }
 
     # wait for mongod's to start
@@ -142,7 +177,15 @@ sub BUILD {
                     $is_ready = 0;
                 }
             }
-            return if $is_ready;
+            if ($is_ready) {
+                # store a connection to an rs member
+                $self->client(MongoDB::MongoClient->new(
+                    host => 'mongodb://' . $nodes[0],
+                    port => $self->port,
+                    find_master => 1
+                ));
+                return;
+            }
             sleep 1;
         }
     }
@@ -163,7 +206,16 @@ sub nodes_up {
 
     my %commands = %{$self->_commands};
 
-    foreach (@up) {
+    my @up_clean = map {
+        if ($_ =~ /mongodb:\/\/(.*)/) {
+            $1;
+        }
+        else {
+            $_;
+        }
+    } @up;
+
+    foreach (@up_clean) {
         # fork and run the mongod in a child process
         my $pid = fork;
         if (!$pid) {
@@ -182,7 +234,16 @@ sub nodes_down {
     
     my $to_die = @down;
     my %nodes = %{$self->_nodes};
-    my @pids = @nodes{@down};
+
+    my @down_clean = map {
+        if ($_ =~ /mongodb:\/\/(.*)/) {
+            $1;
+        }
+        else {
+            $_;
+        }
+    } @down;
+    my @pids = @nodes{@down_clean};
 
     my $dead = kill 'SIGTERM', @pids;
     if ($to_die != $dead) {
@@ -194,11 +255,8 @@ sub nodes_down {
 sub add_tags {
     my ($self, @tags) = @_;
 
-    my $rsconn = MongoDB::MongoClient->new(host => 'localhost',
-                                           port => $self->port,
-                                           find_master => 1);
-
-    my $replcoll = $rsconn->get_database('local')->get_collection('system.replset');
+    my $client = $self->client;
+    my $replcoll = $client->get_database('local')->get_collection('system.replset');
     my $rsconf = $replcoll->find_one();
 
     ($rsconf->{'version'})++;
@@ -206,7 +264,14 @@ sub add_tags {
         $rsconf->{'members'}->[$i]{'tags'} = $tags[$i];
     }
 
-    $rsconn->get_database('admin')->run_command({'replSetReconfig' => $rsconf});
+    # reconfig will cause connection to be reset,
+    # and throw a connection error
+    eval {
+        $client->get_database('admin')->run_command({'replSetReconfig' => $rsconf});
+    };
+    if ($@ !~ /can't get db response/) {
+        die $@;
+    }
 }
 
 

@@ -100,6 +100,42 @@ sub to_index_string {
 }
 
 
+sub _select_cursor_client {
+    my ($self, $conn, $query) = @_;
+
+    return $conn if !$conn->_readpref_pinned || !$conn->find_master;
+    return $conn->_master if $self->_cmd_primary_only($query);
+    return $conn->_readpref_pinned;
+}
+
+sub _cmd_primary_only {
+    my ($self, $query) = @_;
+
+    # these commands allow read preferences
+    my %readpref_commands = (
+        'group' => 1,
+        'aggregate' => 1,
+        'mapreduce' => 1,
+        'collstats' => 1,
+        'dbstats' => 1,
+        'count' => 1,
+        'distinct' => 1,
+        'geonear' => 1,
+        'geosearch' => 1,
+        'geowalk' => 1,
+        'text' => 1
+    );
+
+    if ($self->full_name =~ /\$cmd/) {
+        foreach (keys %{$query}) {
+            return 0 if $readpref_commands{lc($_)};
+        }
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
 
 
 sub find {
@@ -114,20 +150,22 @@ sub find {
     my $q = $query || {};
     my $ns = $self->full_name;
 
-    my $slave_ok = ($conn->_readpref_mode == MongoDB::MongoClient->PRIMARY) ? 0 : 1;
+    my $slave_ok = ($conn->_readpref_mode == MongoDB::MongoClient->PRIMARY) ||
+                   $self->_cmd_primary_only($q)
+                   ? 0 : 1;
 
     my $cursor = MongoDB::Cursor->new(
-      _master    => $conn,
-      _client    => $conn->_readpref_pinned // $conn,
-      _ns        => $ns,
-      _query     => $q,
-      _limit     => $limit,
-      _skip      => $skip,
-      slave_okay => $slave_ok
+        _master    => $conn,
+        _client    => $self->_select_cursor_client($conn, $q),
+        _ns        => $ns,
+        _query     => $q,
+        _limit     => $limit,
+        _skip      => $skip,
+        slave_okay => $slave_ok
     );
 
     # add readpref info if connected to mongos
-    if ($conn->_readpref_pinned && $conn->_is_mongos) {
+    if ($conn->_readpref_pinned && $conn->_is_mongos && !$self->_cmd_primary_only($q)) {
         my $modeName = MongoDB::MongoClient->_READPREF_MODENAMES->[$conn->_readpref_mode];
         $cursor->_add_readpref({mode => $modeName, tags => $conn->_readpref_tagsets});
     }
