@@ -101,15 +101,15 @@ sub to_index_string {
 
 
 sub _select_cursor_client {
-    my ($self, $conn, $query) = @_;
+    my ($conn, $ns, $query) = @_;
 
     return $conn if !$conn->_readpref_pinned || !$conn->find_master;
-    return $conn->_master if $self->_cmd_primary_only($query);
+    return $conn->_master if _cmd_primary_only($ns, $query);
     return $conn->_readpref_pinned;
 }
 
 sub _cmd_primary_only {
-    my ($self, $query) = @_;
+    my ($ns, $query) = @_;
 
     # these commands allow read preferences
     my %readpref_commands = (
@@ -126,7 +126,7 @@ sub _cmd_primary_only {
         'text' => 1
     );
 
-    if ($self->full_name =~ /\$cmd/) {
+    if ($ns =~ /\$cmd/) {
         foreach (keys %{$query}) {
             return 0 if $readpref_commands{lc($_)};
         }
@@ -151,12 +151,12 @@ sub find {
     my $ns = $self->full_name;
 
     my $slave_ok = ($conn->_readpref_mode == MongoDB::MongoClient->PRIMARY) ||
-                   $self->_cmd_primary_only($q)
+                   _cmd_primary_only($ns, $q)
                    ? 0 : 1;
 
     my $cursor = MongoDB::Cursor->new(
         _master    => $conn,
-        _client    => $self->_select_cursor_client($conn, $q),
+        _client    => _select_cursor_client($conn, $ns, $q),
         _ns        => $ns,
         _query     => $q,
         _limit     => $limit,
@@ -165,7 +165,7 @@ sub find {
     );
 
     # add readpref info if connected to mongos
-    if ($conn->_readpref_pinned && $conn->_is_mongos && !$self->_cmd_primary_only($q)) {
+    if ($conn->_readpref_pinned && $conn->_is_mongos && !_cmd_primary_only($ns, $q)) {
         my $modeName = MongoDB::MongoClient->_READPREF_MODENAMES->[$conn->_readpref_mode];
         $cursor->_add_readpref({mode => $modeName, tags => $conn->_readpref_tagsets});
     }

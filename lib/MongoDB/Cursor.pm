@@ -258,6 +258,9 @@ sub _do_query {
 
     $self->_master->rs_refresh();
 
+    # in case the refresh caused a repin
+    $self->_client(MongoDB::Collection::_select_cursor_client($self->_master, $self->_ns, $self->_query));
+
     if ($self->started_iterating) {
         return;
     }

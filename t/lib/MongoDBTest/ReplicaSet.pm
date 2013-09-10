@@ -107,9 +107,9 @@ sub BUILD {
     my ($self, $opts) = @_;
 
     my $mongod = File::Spec->catfile($self->mongo_path, 'mongod');
-    Carp::croak "can't find mongod" unless -e $mongod;
+    croak "can't find mongod" unless -e $mongod;
 
-    Carp::croak "logpath does not exist" unless -e $self->logpath;
+    croak "logpath does not exist" unless -e $self->logpath;
 
     my @nodes;
     foreach (0..($self->set_size - 1)) {
@@ -269,9 +269,6 @@ sub add_tags {
     eval {
         $client->get_database('admin')->run_command({'replSetReconfig' => $rsconf});
     };
-    if ($@ !~ /can't get db response/) {
-        die $@;
-    }
 }
 
 

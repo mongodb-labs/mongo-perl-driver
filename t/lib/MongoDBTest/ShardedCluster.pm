@@ -116,13 +116,13 @@ sub BUILD {
     my ($self, $opts) = @_;
 
     my $mongod = File::Spec->catfile($self->mongo_path, 'mongod');
-    Carp::croak "can't find mongod" unless -e $mongod;
+    croak "can't find mongod" unless -e $mongod;
     
     my $mongos = File::Spec->catfile($self->mongo_path, 'mongos');
-    Carp::croak "can't find mongos" unless -e $mongos;
+    croak "can't find mongos" unless -e $mongos;
 
     if ($self->n_configs != 1 && $self->n_configs != 3) {
-        Carp::croak "number of config servers must be one or three; " .
+        croak "number of config servers must be one or three; " .
                     "you specified " . $self->configs;
     }
 

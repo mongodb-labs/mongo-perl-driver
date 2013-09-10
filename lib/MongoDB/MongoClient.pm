@@ -179,6 +179,12 @@ has _is_mongos => (
     default  => 0
 );
 
+has _ismaster_version => (
+    is       => 'rw',
+    isa      => 'Int',
+    default  => 0
+);
+
 
 has ssl => (
     is       => 'ro',
@@ -395,9 +401,9 @@ sub _get_any_connection {
 
 
 sub get_master {
-    my ($self) = @_;
+    my ($self, $conn) = @_;
 
-    my $conn = $self->_get_any_connection();
+    $conn = defined $conn ? $conn : $self->_get_any_connection();
     # if we couldn't connect to anything, just return
     if (!$conn) {
         return -1;
@@ -422,7 +428,13 @@ sub get_master {
         $self->_is_mongos(1) if $master->{'msg'};
 
         # if this is a replica set & we haven't renewed the host list in 1 sec
-        if ($master->{'hosts'} && time() > $self->ts) {
+        if ($master->{'hosts'} && (!$master->{'setVersion'} || $master->{'setVersion'} > $self->_ismaster_version)) {
+
+            # update rs config version
+            if ($master->{'setVersion'}) {
+                $self->_ismaster_version($master->{'setVersion'});
+            }
+
             # update (or set) rs list
             my %opts = ( auto_connect => 0 );
             if ($self->username && $self->password) {
@@ -430,12 +442,13 @@ sub get_master {
                 $opts{password} = $self->password;
                 $opts{db_name}  = $self->db_name;
             }
+            
+            # clear old host list before refreshing
+            %{$self->_servers} = ();
+
             for (@{$master->{'hosts'}}) {
-                if (!$self->_servers->{$_}) {
-                    $self->_servers->{$_} = MongoDB::MongoClient->new("host" => "mongodb://$_", %opts);
-                }
+                $self->_servers->{$_} = MongoDB::MongoClient->new("host" => "mongodb://$_", %opts);
             }
-            $self->ts(time());
         }
 
         # if this is the master, whether or not it's a replica set, return it
@@ -465,13 +478,13 @@ sub get_master {
 sub read_preference {
     my ($self, $mode, $tagsets) = @_;
 
-    Carp::croak "Missing read preference mode" if @_ < 2;
-    Carp::croak "Unrecognized read preference mode: $mode" if $mode < 0 || $mode > 4;
-    Carp::croak "NEAREST read preference mode not supported" if $mode == MongoDB::MongoClient->NEAREST; 
+    croak "Missing read preference mode" if @_ < 2;
+    croak "Unrecognized read preference mode: $mode" if $mode < 0 || $mode > 4;
+    croak "NEAREST read preference mode not supported" if $mode == MongoDB::MongoClient->NEAREST; 
     if (!$self->_is_mongos && (!$self->find_master || keys %{$self->_servers} < 2)) {
-        Carp::croak "Read preference must be used with a replica set; is find_master false?";
+        croak "Read preference must be used with a replica set; is find_master false?";
     }
-    Carp::croak "PRIMARY cannot be combined with tags" if $mode == MongoDB::MongoClient->PRIMARY && $tagsets;
+    croak "PRIMARY cannot be combined with tags" if $mode == MongoDB::MongoClient->PRIMARY && $tagsets;
 
     # only repin if mode or tagsets have changed
     return if $mode == $self->_readpref_mode &&
@@ -655,21 +668,24 @@ sub rs_refresh {
 
     # ping rs members, and repin if something has changed
     my $repin_required = 0;
+    my $any_conn;
     if (time() > ($self->ts + $self->_readpref_pingfreq_sec)) {
         for (keys %{$self->_servers}) {
             my $server = $self->_servers->{$_};
             my $connected = $server->connected;
             my $ok = $server->_check_ok(1);
             if (($ok && !$connected) || (!$ok && $connected)) {
-                $self->repin();
-                $self->ts(time());
-                return 1;
+                $repin_required = 1;
+            }
+            if ($ok && !$any_conn) {
+                $any_conn = $server;
             }
         }
+        $self->get_master($any_conn) if $any_conn;
     }
-    
+   
+    $self->repin if $repin_required;
     $self->ts(time());
-    return 0; 
 }
 
 
