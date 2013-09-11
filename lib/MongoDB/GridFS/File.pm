@@ -77,7 +77,7 @@ sub print {
     my ($written, $pos) = (0, 0);
     my $start_pos = $fh->getpos();
 
-    $self->_grid->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1));
+    $self->_grid->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), { safe => 1, unique => 1 });
 
     my $cursor = $self->_grid->chunks->query({"files_id" => $self->info->{"_id"}})->sort({"n" => 1});
 
