@@ -260,9 +260,31 @@ sub aggregate {
     if ( exists $opts->{cursor} ) { 
         $opts->{cursor} = { } unless ref $opts->{cursor} eq 'HASH';
     }
-    my $result = $db->run_command( [ aggregate => $self->name, pipeline => $pipeline, %$opts ] );
 
-    
+    my @command = ( aggregate => $self->name, pipeline => $pipeline, %$opts );
+    my $result = $db->run_command( \@command );
+
+
+    # if we got a cursor option then we need to construct a wonky cursor
+    # object on our end and populate it with the first batch, since 
+    # commands can't actually return cursors. 
+    if ( exists $opts->{cursor} ) { 
+        unless ( exists $result->{cursor} ) { 
+            die "no cursor returned from aggregation";
+        }
+
+        my $cursor = MongoDB::Cursor->new( 
+            started_iterating      => 1,              # we have the first batch
+            _client                => $db->_client,
+            _master                => $db->_client,   # fake this because we're already iterating
+            _ns                    => $result->{cursor}{ns},
+            _request_id            => $result->{cursor}{id},
+            _agg_first_batch       => $result->{cursor}{firstBatch}, 
+            _query                 => \@command,
+        );
+
+        return $cursor;
+    }
 
     # TODO: handle errors?
 
