@@ -252,11 +252,17 @@ sub find_and_modify {
 
 
 sub aggregate { 
-    my ( $self, $pipeline ) = @_;
+    my ( $self, $pipeline, $opts ) = @_;
+    $opts = ref $opts eq 'HASH' ? $opts : { };
 
     my $db   = $self->_database;
 
-    my $result = $db->run_command( [ aggregate => $self->name, pipeline => $pipeline ] );
+    if ( exists $opts->{cursor} ) { 
+        $opts->{cursor} = { } unless ref $opts->{cursor} eq 'HASH';
+    }
+    my $result = $db->run_command( [ aggregate => $self->name, pipeline => $pipeline, %$opts ] );
+
+    
 
     # TODO: handle errors?
 
