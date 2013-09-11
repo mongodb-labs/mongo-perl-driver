@@ -32,7 +32,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn';
 
-plan tests => 141;
+plan tests => 144;
 
 my $db = $conn->get_database('test_database');
 $db->drop;
@@ -617,6 +617,29 @@ SKIP: {
     is( ref( $res ), ref [ ] );
     ok $res->[0]{avgScore} < 59;
     ok $res->[0]{avgScore} > 57;
+
+}
+
+# aggregation cursors
+SKIP: {
+    my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
+
+    # skip aggregation cursor tests if we're running against MongoDB < 2.5
+    unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) { 
+        skip "Aggregation cursors are unsupported on MongoDB $build->{version}", 3
+    }
+
+    for( 1..20 ) { 
+        $coll->insert( { count => $_ } );
+    }
+
+    my $cursor = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } } ], { cursor => 1 } );
+
+    isa_ok $cursor, 'MongoDB::Cursor';
+    is $cursor->started_iterating, 1;
+    use Data::Dumper;
+    warn Dumper( $cursor );
+    is( ref( $cursor->_agg_first_batch ), ref [ ] );    
 
 }
 
