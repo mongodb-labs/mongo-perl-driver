@@ -166,12 +166,14 @@ See L<MongoDB::Connection/query_timeout>.
 =cut
 
 
+
 has immortal => (
     is => 'rw',
     isa => 'Bool',
     required => 0,
     default => 0,
 );
+
 
 
 =head2 partial
@@ -182,6 +184,7 @@ shard.  If this is set, mongos will just skip that shard, instead.
 Boolean value, defaults to 0.
 
 =cut
+
 
 has partial => (
     is => 'rw',
@@ -217,6 +220,19 @@ has _grrrr => (
 
 has _request_id => (
     is      => 'rw',
+    isa     => 'Int',
+    default => 0,
+);
+
+
+# special attributes for aggregation cursors
+has _agg_first_batch => (
+    is      => 'ro',
+    isa     => 'Maybe[ArrayRef]',
+);
+
+has _agg_batch_size => ( 
+    is      => 'ro',
     isa     => 'Int',
     default => 0,
 );
