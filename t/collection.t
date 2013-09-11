@@ -637,8 +637,6 @@ SKIP: {
 
     isa_ok $cursor, 'MongoDB::Cursor';
     is $cursor->started_iterating, 1;
-    use Data::Dumper;
-    warn Dumper( $cursor );
     is( ref( $cursor->_agg_first_batch ), ref [ ] );    
 
 }
