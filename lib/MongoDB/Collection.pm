@@ -415,6 +415,12 @@ sub ensure_index {
     }
     $options->{'no_ids'} = 1;
 
+    foreach ("weights", "default_language", "language_override") {
+        if (exists $options->{$_}) {
+            $obj->Push("$_" => $options->{$_});
+        }
+    }
+
     if (exists $options->{expire_after_seconds}) {
         $obj->Push("expireAfterSeconds" => int($options->{expire_after_seconds}));
     }

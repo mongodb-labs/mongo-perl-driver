@@ -32,7 +32,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn';
 
-plan tests => 144;
+plan tests => 152;
 
 my $db = $conn->get_database('test_database');
 $db->drop;
@@ -528,6 +528,43 @@ SKIP: {
     $coll->ensure_index({"y" => 1}, {"unique" => 1, "sparse" => 1, "name" => "foo"});
     $index = $coll->_database->get_collection("system.indexes")->find_one({"name" => "foo"});
     ok($index);
+
+    $coll->drop;
+}
+
+# text indices
+SKIP: {
+    my $admin = $conn->get_database('admin');
+    my $buildinfo = $admin->run_command({buildinfo => 1});
+    skip "text indices won't work with db version $buildinfo->{version}", 8 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.\d+\.\d+)|(2\.[0123]\d*\.\d+)/;
+
+    my $cmd = Tie::IxHash->new('getParameter' => 1, 'textSearchEnabled' => 1);
+    my $ok = $admin->run_command($cmd);
+    skip "text search not enabled", 8 if !$ok->{'textSearchEnabled'};
+
+    my $coll = $db->get_collection('test_text');
+    $coll->insert({language => 'english', w1 => 'hello', w2 => 'world'}) foreach (1..10);
+    is($coll->count, 10);
+
+    $ok = $coll->ensure_index({'$**' => 'text'}, {
+        name => 'testTextIndex',
+        default_language => 'spanish',
+        language_override => 'language',
+        weights => { w1 => 5, w2 => 10 }
+    });
+    ok(!defined $ok, 'ensure_index succeeds for text index');
+
+    my $syscoll = $db->get_collection('system.indexes');
+    my $text_index = $syscoll->find_one({name => 'testTextIndex'});
+    is($text_index->{'default_language'}, 'spanish', 'default_language option works');
+    is($text_index->{'language_override'}, 'language', 'language_override option works');
+    is($text_index->{'weights'}->{'w1'}, 5, 'weights option works 1');
+    is($text_index->{'weights'}->{'w2'}, 10, 'weights option works 2');
+
+    $cmd = Tie::IxHash->new('text' => 'test_text', 'search' => 'world');
+    my $search = $db->run_command($cmd);
+    is($search->{'language'}, 'spanish', 'text search uses preferred language');
+    is($search->{'stats'}->{'nfound'}, 10, 'correct number of results found');
 
     $coll->drop;
 }
