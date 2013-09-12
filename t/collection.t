@@ -663,7 +663,7 @@ SKIP: {
 
     # skip aggregation cursor tests if we're running against MongoDB < 2.5
     unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) { 
-        skip "Aggregation cursors are unsupported on MongoDB $build->{version}", 3
+        skip "Aggregation cursors are unsupported on MongoDB $build->{version}", 4
     }
 
     for( 1..20 ) { 
@@ -674,8 +674,8 @@ SKIP: {
 
     isa_ok $cursor, 'MongoDB::Cursor';
     is $cursor->started_iterating, 1;
-    is( ref( $cursor->_agg_first_batch ), ref [ ] );    
-
+    is( ref( $cursor->_agg_first_batch ), ref [ ] );
+    is $cursor->_agg_batch_size, 20;
 }
 
 END {
