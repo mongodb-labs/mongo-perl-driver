@@ -232,7 +232,7 @@ has _agg_first_batch => (
 );
 
 has _agg_batch_size => ( 
-    is      => 'ro',
+    is      => 'rw',
     isa     => 'Int',
     default => 0,
 );
