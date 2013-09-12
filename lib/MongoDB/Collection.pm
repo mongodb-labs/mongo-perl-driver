@@ -318,6 +318,7 @@ sub aggregate {
             _ns                    => $result->{cursor}{ns},
             _request_id            => $result->{cursor}{id},
             _agg_first_batch       => $result->{cursor}{firstBatch}, 
+            _agg_batch_size        => scalar @{ $result->{cursor}{firstBatch} },  # for has_next
             _query                 => \@command,
         );
 
