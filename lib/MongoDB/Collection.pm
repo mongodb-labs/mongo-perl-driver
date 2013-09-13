@@ -322,6 +322,7 @@ sub aggregate {
             _query                 => \@command,
         );
 
+        $cursor->_init;
         return $cursor;
     }
 
