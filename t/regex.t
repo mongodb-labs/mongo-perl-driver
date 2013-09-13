@@ -25,7 +25,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest '$conn', '$testdb';
 
 if ( $^V lt 5.14.0 ) { 
     plan skip_all => 'we need perl 5.14 for regex tests';
@@ -34,10 +34,9 @@ if ( $^V lt 5.14.0 ) {
 plan tests => 2;
 
 
-my $db = $conn->get_database('test_database');
-$db->drop;
+$testdb->drop;
 
-my $coll = $db->get_collection('test_collection');
+my $coll = $testdb->get_collection('test_collection');
 
 my $test_regex = eval 'qr/foo/iu';    # eval regex to prevent compile failure on pre-5.14
 warning_like { 

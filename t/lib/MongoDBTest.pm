@@ -25,17 +25,19 @@ use Exporter 'import';
 use MongoDB;
 use Test::More;
 
-our @EXPORT_OK = ( '$conn' );
+our @EXPORT_OK = ( '$conn', '$testdb' );
 our $conn;
+our $testdb;
 
 use MongoDBTest::ReplicaSet;
 use MongoDBTest::ShardedCluster;
 
-# set up connection if we can
+# set up connection to a test database if we can
 BEGIN { 
     eval { 
         my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
         $conn = MongoDB::MongoClient->new( host => $host, ssl => $ENV{MONGO_SSL} );
+        $testdb = $conn->get_database('testdb-' . time());
     };
 
     if ( $@ ) { 
@@ -47,9 +49,9 @@ BEGIN {
 
 # clean up any detritus from failed tests
 END { 
-    return unless $conn;
+    return unless $testdb;
 
-    $conn->get_database( 'test_database' )->drop;
+    $testdb->drop;
 };
 
 

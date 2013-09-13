@@ -23,6 +23,9 @@ use MongoDB;
 use Try::Tiny;
 use threads;
 
+use lib "t/lib";
+use MongoDBTest '$testdb';
+
 my $conn = try {
     MongoDB::Connection->new({
         host => exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost',
@@ -33,7 +36,7 @@ catch {
     plan skip_all => $_;
 };
 
-my $col = $conn->get_database('moo')->get_collection('kooh');
+my $col = $testdb->get_collection('kooh');
 $col->drop;
 
 {
@@ -55,7 +58,7 @@ $col->drop;
 {
     my @threads = map {
         threads->create(sub {
-            my $col = $conn->get_database('moo')->get_collection('kooh');
+            my $col = $conn->get_database($testdb->name)->get_collection('kooh');
             $col->insert({ foo => threads->self->tid }, { safe => 1 });
         })
     } 0 .. 9;
@@ -71,12 +74,6 @@ $col->drop;
         [@vals],
         'right values inserted from threads',
     );
-}
-
-END {
-    if ($conn) {
-        $conn->get_database('moo')->drop;
-    }
 }
 
 done_testing();

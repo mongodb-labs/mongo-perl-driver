@@ -27,57 +27,57 @@ use DateTime;
 use DateTime::Tiny;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest '$conn', '$testdb';
 
 plan tests => 22;
 
 
-my $db = $conn->get_database('test_database');
-$db->drop;
+$testdb->drop;
 
 my $now = DateTime->now;
-{
-    $db->get_collection( 'test_collection' )->insert( { date => $now } );
 
-    my $date1 = $db->get_collection( 'test_collection' )->find_one->{date};
+{
+    $testdb->get_collection( 'test_collection' )->insert( { date => $now } );
+
+    my $date1 = $testdb->get_collection( 'test_collection' )->find_one->{date};
     isa_ok $date1, 'DateTime';
     is $date1->epoch, $now->epoch;
-    $db->drop;
+    $testdb->drop;
 }
 
 {
-    $db->get_collection( 'test_collection' )->insert( { date => $now } );
+    $testdb->get_collection( 'test_collection' )->insert( { date => $now } );
     $conn->dt_type( undef );
-    my $date3 = $db->get_collection( 'test_collection' )->find_one->{date};
+    my $date3 = $testdb->get_collection( 'test_collection' )->find_one->{date};
     ok( not ref $date3 );
     is $date3, $now->epoch;
-    $db->drop;
+    $testdb->drop;
 }
 
 
 {
-    $db->get_collection( 'test_collection' )->insert( { date => $now } );
+    $testdb->get_collection( 'test_collection' )->insert( { date => $now } );
     $conn->dt_type( 'DateTime::Tiny' );
-    my $date2 = $db->get_collection( 'test_collection' )->find_one->{date};
+    my $date2 = $testdb->get_collection( 'test_collection' )->find_one->{date};
     isa_ok( $date2, 'DateTime::Tiny' );
     is $date2->DateTime->epoch, $now->epoch;
-    $db->drop;
+    $testdb->drop;
 }
 
 {
-    $db->get_collection( 'test_collection' )->insert( { date => $now } );
+    $testdb->get_collection( 'test_collection' )->insert( { date => $now } );
     $conn->dt_type( 'DateTime::Bad' );
     throws_ok { 
-        my $date4 = $db->get_collection( 'test_collection' )->find_one->{date};
+        my $date4 = $testdb->get_collection( 'test_collection' )->find_one->{date};
     } qr/Invalid dt_type "DateTime::Bad"/i;
-    $db->drop;
+    $testdb->drop;
 }
 
 # roundtrips
 
 {
     $conn->dt_type( 'DateTime' );
-    my $coll = $db->get_collection( 'test_collection' );
+    my $coll = $testdb->get_collection( 'test_collection' );
     $coll->insert( { date => $now } );
     my $doc = $coll->find_one;
 
@@ -87,14 +87,14 @@ my $now = DateTime->now;
 
     my $doc2 = $coll->find_one;
     is( $doc2->{date}->epoch, ( $now->epoch + 60 ) );
-    $db->drop;
+    $testdb->drop;
 }
 
 
 {
     $conn->dt_type( 'DateTime::Tiny' );
     my $dtt_now = DateTime::Tiny->now;
-    my $coll = $db->get_collection( 'test_collection' );
+    my $coll = $testdb->get_collection( 'test_collection' );
     $coll->insert( { date => $dtt_now } );
     my $doc = $coll->find_one;
 
@@ -111,13 +111,13 @@ my $now = DateTime->now;
     my $doc2 = $coll->find_one( { _id => $doc->{_id} } );
 
     is( $doc2->{date}->DateTime->epoch, $dtt_now->DateTime->epoch + 30 );
-    $db->drop;
+    $testdb->drop;
 }
 
 {
     # test fractional second roundtrip
     $conn->dt_type( 'DateTime' );
-    my $coll = $db->get_collection( 'test_collection' );
+    my $coll = $testdb->get_collection( 'test_collection' );
     my $now = DateTime->now;
     $now->add( nanoseconds => 500_000_000 );
     

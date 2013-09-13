@@ -30,132 +30,160 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest '$conn', '$testdb';
 
 plan tests => 298;
 
-my $db = $conn->get_database('test_database');
-$db->drop;
+my $coll;
+my $id;
+my $obj;
+my $ok;
+my $cursor;
+my $tied;
 
-my $coll = $db->get_collection('test_collection');
-isa_ok($coll, 'MongoDB::Collection');
+# get_collection
+{
+    $testdb->drop;
 
-is($coll->name, 'test_collection', 'get name');
+    $coll = $testdb->get_collection('test_collection');
+    isa_ok($coll, 'MongoDB::Collection');
 
-$db->drop;
+    is($coll->name, 'test_collection', 'get name');
 
-# very small insert
-my $id = $coll->insert({_id => 1});
-is($id, 1);
-my $tiny = $coll->find_one;
-is($tiny->{'_id'}, 1);
-
-$coll->remove;
-
-$id = $coll->insert({});
-isa_ok($id, 'MongoDB::OID');
-$tiny = $coll->find_one;
-is($tiny->{'_id'}, $id);
-
-$coll->remove;
-
-# insert
-$id = $coll->insert({ just => 'another', perl => 'hacker' });
-is($coll->count, 1, 'count');
-
-$coll->update({ _id => $id }, {
-    just => "an\xE4oth\0er",
-    mongo => 'hacker',
-    with => { a => 'reference' },
-    and => [qw/an array reference/],
-});
-is($coll->count, 1);
-# rename 
-my $newcoll = $coll->rename('test_collection.rename');
-is($newcoll->name, 'test_collection.rename', 'rename');
-is($coll->count, 0, 'rename');
-is($newcoll->count, 1, 'rename');
-$coll = $newcoll->rename('test_collection');
-is($coll->name, 'test_collection', 'rename');
-is($coll->count, 1, 'rename');
-is($newcoll->count, 0, 'rename');
-
-is($coll->count({ mongo => 'programmer' }), 0, 'count = 0');
-is($coll->count({ mongo => 'hacker'     }), 1, 'count = 1');
-is($coll->count({ 'with.a' => 'reference' }), 1, 'inner obj count');
-
-my $obj = $coll->find_one;
-is($obj->{mongo} => 'hacker', 'find_one');
-is(ref $obj->{with}, 'HASH', 'find_one type');
-is($obj->{with}->{a}, 'reference');
-is(ref $obj->{and}, 'ARRAY');
-is_deeply($obj->{and}, [qw/an array reference/]);
-ok(!exists $obj->{perl});
-is($obj->{just}, "an\xE4oth\0er");
-
-lives_ok {
-    $coll->validate;
-} 'validate';
-
-$coll->remove($obj);
-is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
-
-$coll->drop;
-for (my $i=0; $i<10; $i++) {
-    $coll->insert({'x' => $i, 'z' => 3, 'w' => 4});
-    $coll->insert({'x' => $i, 'y' => 2, 'z' => 3, 'w' => 4});
+    $testdb->drop;
 }
 
-$coll->drop;
-ok(!$coll->get_indexes, 'no indexes yet');
+# very small insert
+{
+    $id = $coll->insert({_id => 1});
+    is($id, 1);
+    my $tiny = $coll->find_one;
+    is($tiny->{'_id'}, 1);
 
-my $indexes = Tie::IxHash->new(foo => 1, bar => 1, baz => 1);
-my $ok = $coll->ensure_index($indexes);
-ok(!defined $ok);
-my $err = $db->last_error;
-is($err->{ok}, 1);
-is($err->{err}, undef);
+    $coll->remove;
 
-$indexes = Tie::IxHash->new(foo => 1, bar => 1);
-$ok = $coll->ensure_index($indexes);
-ok(!defined $ok);
-$coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
-$coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
-is($coll->count, 2);
+    $id = $coll->insert({});
+    isa_ok($id, 'MongoDB::OID');
+    $tiny = $coll->find_one;
+    is($tiny->{'_id'}, $id);
 
-$ok = $coll->ensure_index({boo => 1}, {unique => 1});
-ok(!defined $ok);
-eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
+    $coll->remove;
+}
 
-is($coll->count, 2, 'unique index');
+# insert
+{
+    $id = $coll->insert({ just => 'another', perl => 'hacker' });
+    is($coll->count, 1, 'count');
 
-my @indexes = $coll->get_indexes;
-is(scalar @indexes, 4, 'three custom indexes and the default _id_ index');
-is_deeply(
-    [sort keys %{ $indexes[1]->{key} }],
-    [sort qw/foo bar baz/],
-);
-is_deeply(
-    [sort keys %{ $indexes[2]->{key} }],
-    [sort qw/foo bar/],
-);
+    $coll->update({ _id => $id }, {
+        just => "an\xE4oth\0er",
+        mongo => 'hacker',
+        with => { a => 'reference' },
+        and => [qw/an array reference/],
+    });
+    is($coll->count, 1);
+}
 
-$coll->drop_index($indexes[1]->{name});
-@indexes = $coll->get_indexes;
-is(scalar @indexes, 3);
-is_deeply(
-    [sort keys %{ $indexes[1]->{key} }],
-    [sort qw/foo bar/],
-);
+# rename 
+{
+    my $newcoll = $coll->rename('test_collection.rename');
+    is($newcoll->name, 'test_collection.rename', 'rename');
+    is($coll->count, 0, 'rename');
+    is($newcoll->count, 1, 'rename');
+    $coll = $newcoll->rename('test_collection');
+    is($coll->name, 'test_collection', 'rename');
+    is($coll->count, 1, 'rename');
+    is($newcoll->count, 0, 'rename');
+}
 
-$coll->drop;
-ok(!$coll->get_indexes, 'no indexes after dropping');
+# count
+{
+    is($coll->count({ mongo => 'programmer' }), 0, 'count = 0');
+    is($coll->count({ mongo => 'hacker'     }), 1, 'count = 1');
+    is($coll->count({ 'with.a' => 'reference' }), 1, 'inner obj count');
+}
 
-# make sure this still works
-$coll->ensure_index({"foo" => 1});
-@indexes = $coll->get_indexes;
-is(scalar @indexes, 2, '1 custom index and the default _id_ index');
-$coll->drop;
+# find_one 
+{
+    $obj = $coll->find_one;
+    is($obj->{mongo} => 'hacker', 'find_one');
+    is(ref $obj->{with}, 'HASH', 'find_one type');
+    is($obj->{with}->{a}, 'reference');
+    is(ref $obj->{and}, 'ARRAY');
+    is_deeply($obj->{and}, [qw/an array reference/]);
+    ok(!exists $obj->{perl});
+    is($obj->{just}, "an\xE4oth\0er");
+}
+
+# validate and remove
+{
+    lives_ok {
+        $coll->validate;
+    } 'validate';
+
+    $coll->remove($obj);
+    is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
+}
+
+# basic indexes
+{
+    $coll->drop;
+    for (my $i=0; $i<10; $i++) {
+        $coll->insert({'x' => $i, 'z' => 3, 'w' => 4});
+        $coll->insert({'x' => $i, 'y' => 2, 'z' => 3, 'w' => 4});
+    }
+
+    $coll->drop;
+    ok(!$coll->get_indexes, 'no indexes yet');
+
+    my $indexes = Tie::IxHash->new(foo => 1, bar => 1, baz => 1);
+    $ok = $coll->ensure_index($indexes);
+    ok(!defined $ok);
+    my $err = $testdb->last_error;
+    is($err->{ok}, 1);
+    is($err->{err}, undef);
+
+    $indexes = Tie::IxHash->new(foo => 1, bar => 1);
+    $ok = $coll->ensure_index($indexes);
+    ok(!defined $ok);
+    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
+    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
+    is($coll->count, 2);
+
+    $ok = $coll->ensure_index({boo => 1}, {unique => 1});
+    ok(!defined $ok);
+    eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
+
+    is($coll->count, 2, 'unique index');
+
+    my @indexes = $coll->get_indexes;
+    is(scalar @indexes, 4, 'three custom indexes and the default _id_ index');
+    is_deeply(
+        [sort keys %{ $indexes[1]->{key} }],
+        [sort qw/foo bar baz/],
+    );
+    is_deeply(
+        [sort keys %{ $indexes[2]->{key} }],
+        [sort qw/foo bar/],
+    );
+
+    $coll->drop_index($indexes[1]->{name});
+    @indexes = $coll->get_indexes;
+    is(scalar @indexes, 3);
+    is_deeply(
+        [sort keys %{ $indexes[1]->{key} }],
+        [sort qw/foo bar/],
+    );
+
+    $coll->drop;
+    ok(!$coll->get_indexes, 'no indexes after dropping');
+
+    # make sure this still works
+    $coll->ensure_index({"foo" => 1});
+    @indexes = $coll->get_indexes;
+    is(scalar @indexes, 2, '1 custom index and the default _id_ index');
+    $coll->drop;
+}
 
 # test new form of ensure index
 {
@@ -171,34 +199,39 @@ $coll->drop;
     $coll->ensure_index({boo => 1}, {unique => 1});
     eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
     is($coll->count, 2, 'unique index');
+
+    $coll->drop;
 }
-$coll->drop;
 
+# doubles
+{
+    my $pi = 3.14159265;
+    ok($id = $coll->insert({ data => 'pi', pi => $pi }), "inserting float number value");
+    ok($obj = $coll->find_one({ data => 'pi' }));
+    # can't test exactly because floating point nums are weird
+    ok(abs($obj->{pi} - $pi) < .000000001);
 
-# test doubles
-my $pi = 3.14159265;
-ok($id = $coll->insert({ data => 'pi', pi => $pi }), "inserting float number value");
-ok($obj = $coll->find_one({ data => 'pi' }));
-# can't test exactly because floating point nums are weird
-ok(abs($obj->{pi} - $pi) < .000000001);
+    $coll->drop;
+    my $object = {};
+    $object->{'autoPartNum'} = '123456';
+    $object->{'price'} = 123.19;
+    $coll->insert($object);
+    my $auto = $coll->find_one;
+    ok(is_float($auto->{'price'}));
+    ok(abs($auto->{'price'} - $object->{'price'}) < .000000001);
+}
 
-$coll->drop;
-my $object = {};
-$object->{'autoPartNum'} = '123456';
-$object->{'price'} = 123.19;
-$coll->insert($object);
-my $auto = $coll->find_one;
-ok(is_float($auto->{'price'}));
-ok(abs($auto->{'price'} - $object->{'price'}) < .000000001);
+# undefined values
+{
+    ok($id  = $coll->insert({ data => 'null', none => undef }), 'inserting undefined data');
+    ok($obj = $coll->find_one({ data => 'null' }), 'finding undefined row');
+    ok(exists $obj->{none}, 'got null field');
+    ok(!defined $obj->{none}, 'null field is undefined');
 
-# test undefined values
-ok($id  = $coll->insert({ data => 'null', none => undef }), 'inserting undefined data');
-ok($obj = $coll->find_one({ data => 'null' }), 'finding undefined row');
-ok(exists $obj->{none}, 'got null field');
-ok(!defined $obj->{none}, 'null field is undefined');
+    $coll->drop;
+}
 
-$coll->drop;
-
+# utf8
 {
     my ($down, $up, $non_latin) = ("\xE5", "\xE6", "\x{2603}");
     utf8::upgrade($up);
@@ -220,6 +253,7 @@ $coll->drop;
     is_deeply($utfblah, $copy, 'non-ascii keys');
 }
 
+# more utf8
 {
     local $MongoDB::BSON::utf8_flag_on = 0;
     $coll->drop;
@@ -228,114 +262,130 @@ $coll->drop;
     is($utfblah->{"\xC3\xA9"}, "hi", 'byte key');
 }
 
-$coll->drop;
-my $keys = tie(my %idx, 'Tie::IxHash');
-%idx = ('sn' => 1, 'ts' => -1);
+# get_indexes
+{
+    $coll->drop;
+    my $keys = tie(my %idx, 'Tie::IxHash');
+    %idx = ('sn' => 1, 'ts' => -1);
 
-$coll->ensure_index($keys, {safe => 1});
+    $coll->ensure_index($keys, {safe => 1});
 
-my @tied = $coll->get_indexes;
-is(scalar @tied, 2, 'num indexes');
-is($tied[1]->{'ns'}, 'test_database.test_collection', 'namespace');
-is($tied[1]->{'name'}, 'sn_1_ts_-1', 'namespace');
+    my @tied = $coll->get_indexes;
+    is(scalar @tied, 2, 'num indexes');
+    is($tied[1]->{'ns'}, $testdb->name . '.test_collection', 'namespace');
+    is($tied[1]->{'name'}, 'sn_1_ts_-1', 'namespace');
+}
 
-$coll->drop;
+{
+    $coll->drop;
 
-$coll->insert({x => 1, y => 2, z => 3, w => 4});
-my $cursor = $coll->query->fields({'y' => 1});
-$obj = $cursor->next;
-is(exists $obj->{'y'}, 1, 'y exists');
-is(exists $obj->{'_id'}, 1, '_id exists');
-is(exists $obj->{'x'}, '', 'x doesn\'t exist');
-is(exists $obj->{'z'}, '', 'z doesn\'t exist');
-is(exists $obj->{'w'}, '', 'w doesn\'t exist');
+    $coll->insert({x => 1, y => 2, z => 3, w => 4});
+    $cursor = $coll->query->fields({'y' => 1});
+    $obj = $cursor->next;
+    is(exists $obj->{'y'}, 1, 'y exists');
+    is(exists $obj->{'_id'}, 1, '_id exists');
+    is(exists $obj->{'x'}, '', 'x doesn\'t exist');
+    is(exists $obj->{'z'}, '', 'z doesn\'t exist');
+    is(exists $obj->{'w'}, '', 'w doesn\'t exist');
+}
 
 # batch insert
-$coll->drop;
-my $ids = $coll->batch_insert([{'x' => 1}, {'x' => 2}, {'x' => 3}]);
-is($coll->count, 3, 'batch_insert');
+{
+    $coll->drop;
+    my $ids = $coll->batch_insert([{'x' => 1}, {'x' => 2}, {'x' => 3}]);
+    is($coll->count, 3, 'batch_insert');
+}
 
-$cursor = $coll->query->sort({'x' => 1});
-my $i = 1;
-while ($obj = $cursor->next) {
-    is($obj->{'x'}, $i++);
+# sort
+{
+    $cursor = $coll->query->sort({'x' => 1});
+    my $i = 1;
+    while ($obj = $cursor->next) {
+        is($obj->{'x'}, $i++);
+    }
 }
 
 # find_one fields
-$coll->drop;
-$coll->insert({'x' => 1, 'y' => 2, 'z' => 3});
-my $yer = $coll->find_one({}, {'y' => 1});
+{
+    $coll->drop;
+    $coll->insert({'x' => 1, 'y' => 2, 'z' => 3});
+    my $yer = $coll->find_one({}, {'y' => 1});
 
-ok(exists $yer->{'y'}, 'y exists');
-ok(!exists $yer->{'x'}, 'x doesn\'t');
-ok(!exists $yer->{'z'}, 'z doesn\'t');
+    ok(exists $yer->{'y'}, 'y exists');
+    ok(!exists $yer->{'x'}, 'x doesn\'t');
+    ok(!exists $yer->{'z'}, 'z doesn\'t');
 
-$coll->drop;
-$coll->batch_insert([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
-$coll->remove({"x" => 1}, 1);
-is ($coll->count, 2, 'remove just one');
+    $coll->drop;
+    $coll->batch_insert([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
+    $coll->remove({"x" => 1}, 1);
+    is ($coll->count, 2, 'remove just one');
+}
 
 # tie::ixhash for update/insert
-$coll->drop;
-my $hash = Tie::IxHash->new("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
-$id = $coll->insert($hash);
-isa_ok($id, 'MongoDB::OID');
-my $tied = $coll->find_one;
-is($tied->{'_id'}."", "$id");
-is($tied->{'f'}, 1);
-is($tied->{'s'}, 2);
-is($tied->{'fo'}, 4);
-is($tied->{'t'}, 3);
+{
+    $coll->drop;
+    my $hash = Tie::IxHash->new("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
+    $id = $coll->insert($hash);
+    isa_ok($id, 'MongoDB::OID');
+    $tied = $coll->find_one;
+    is($tied->{'_id'}."", "$id");
+    is($tied->{'f'}, 1);
+    is($tied->{'s'}, 2);
+    is($tied->{'fo'}, 4);
+    is($tied->{'t'}, 3);
 
-my $criteria = Tie::IxHash->new("_id" => $id);
-$hash->Push("something" => "else");
-$coll->update($criteria, $hash);
-$tied = $coll->find_one;
-is($tied->{'f'}, 1);
-is($tied->{'something'}, 'else');
-
+    my $criteria = Tie::IxHash->new("_id" => $id);
+    $hash->Push("something" => "else");
+    $coll->update($criteria, $hash);
+    $tied = $coll->find_one;
+    is($tied->{'f'}, 1);
+    is($tied->{'something'}, 'else');
+}
 
 # () update/insert
-$coll->drop;
-my @h = ("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
-$id = $coll->insert(\@h);
-isa_ok($id, 'MongoDB::OID');
-$tied = $coll->find_one;
-is($tied->{'_id'}."", "$id");
-is($tied->{'f'}, 1);
-is($tied->{'s'}, 2);
-is($tied->{'fo'}, 4);
-is($tied->{'t'}, 3);
+{
+    $coll->drop;
+    my @h = ("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
+    $id = $coll->insert(\@h);
+    isa_ok($id, 'MongoDB::OID');
+    $tied = $coll->find_one;
+    is($tied->{'_id'}."", "$id");
+    is($tied->{'f'}, 1);
+    is($tied->{'s'}, 2);
+    is($tied->{'fo'}, 4);
+    is($tied->{'t'}, 3);
 
-my @criteria = ("_id" => $id);
-my @newobj = ('$inc' => {"f" => 1});
-$coll->update(\@criteria, \@newobj);
-$tied = $coll->find_one;
-is($tied->{'f'}, 2);
-
-# update multiple
-$coll->drop;
-$coll->insert({"x" => 1});
-$coll->insert({"x" => 1});
-
-$coll->insert({"x" => 2, "y" => 3});
-$coll->insert({"x" => 2, "y" => 4});
-
-$coll->update({"x" => 1}, {'$set' => {'x' => "hi"}});
-# make sure one is set, one is not
-ok($coll->find_one({"x" => "hi"}));
-ok($coll->find_one({"x" => 1}));
+    my @criteria = ("_id" => $id);
+    my @newobj = ('$inc' => {"f" => 1});
+    $coll->update(\@criteria, \@newobj);
+    $tied = $coll->find_one;
+    is($tied->{'f'}, 2);
+}
 
 # multiple update
-$coll->update({"x" => 2}, {'$set' => {'x' => 4}}, {'multiple' => 1});
-is($coll->count({"x" => 4}), 2);
+{
+    $coll->drop;
+    $coll->insert({"x" => 1});
+    $coll->insert({"x" => 1});
 
-$cursor = $coll->query({"x" => 4})->sort({"y" => 1});
+    $coll->insert({"x" => 2, "y" => 3});
+    $coll->insert({"x" => 2, "y" => 4});
 
-$obj = $cursor->next();
-is($obj->{'y'}, 3);
-$obj = $cursor->next();
-is($obj->{'y'}, 4);
+    $coll->update({"x" => 1}, {'$set' => {'x' => "hi"}});
+    # make sure one is set, one is not
+    ok($coll->find_one({"x" => "hi"}));
+    ok($coll->find_one({"x" => 1}));
+
+    $coll->update({"x" => 2}, {'$set' => {'x' => 4}}, {'multiple' => 1});
+    is($coll->count({"x" => 4}), 2);
+
+    $cursor = $coll->query({"x" => 4})->sort({"y" => 1});
+
+    $obj = $cursor->next();
+    is($obj->{'y'}, 3);
+    $obj = $cursor->next();
+    is($obj->{'y'}, 4);
+}
 
 # check with upsert if there are matches
 SKIP: {
@@ -360,30 +410,36 @@ SKIP: {
     is($coll->count(), 5);
 }
 
-$coll->drop;
 
-# test uninitialised array elements
-my @g = ();
-$g[1] = 'foo';
-ok($id = $coll->insert({ data => \@g }));
-ok($obj = $coll->find_one());
-is_deeply($obj->{data}, [undef, 'foo']);
+# uninitialised array elements
+{
+    $coll->drop;
+    my @g = ();
+    $g[1] = 'foo';
+    ok($id = $coll->insert({ data => \@g }));
+    ok($obj = $coll->find_one());
+    is_deeply($obj->{data}, [undef, 'foo']);
+}
 
-$coll->drop;
+# was float, now string
+{
+    $coll->drop;
 
-# test PVNV with was float, now string
-my $val = 1.5;
-$val = 'foo';
-ok($id = $coll->insert({ data => $val }));
-ok($obj = $coll->find_one({ data => $val }));
-is($obj->{data}, 'foo');
+    my $val = 1.5;
+    $val = 'foo';
+    ok($id = $coll->insert({ data => $val }));
+    ok($obj = $coll->find_one({ data => $val }));
+    is($obj->{data}, 'foo');
+}
 
 # was string, now float
-my $f = 'abc';
-$f = 3.3;
-ok($id = $coll->insert({ data => $f }), 'insert float');
-ok($obj = $coll->find_one({ data => $f }));
-ok(abs($obj->{data} - 3.3) < .000000001);
+{
+    my $f = 'abc';
+    $f = 3.3;
+    ok($id = $coll->insert({ data => $f }), 'insert float');
+    ok($obj = $coll->find_one({ data => $f }));
+    ok(abs($obj->{data} - 3.3) < .000000001);
+}
 
 # timeout
 SKIP: {
@@ -396,7 +452,7 @@ SKIP: {
     }
 
     eval {
-        my $num = $db->eval('for (i=0;i<1000;i++) { print(.);}');
+        my $num = $testdb->eval('for (i=0;i<1000;i++) { print(.);}');
     };
 
     ok($@ && $@ =~ /recv timed out/, 'count timeout');
@@ -412,9 +468,9 @@ SKIP: {
     ok($@ and $@ =~ /^E11000/, 'duplicate key exception');
 
   SKIP: {
-      skip "the version of the db you're running doesn't give error codes, you may wish to consider upgrading", 1 if !exists $db->last_error->{code};
+      skip "the version of the db you're running doesn't give error codes, you may wish to consider upgrading", 1 if !exists $testdb->last_error->{code};
 
-      is($db->last_error->{code}, 11000);
+      is($testdb->last_error->{code}, 11000);
     }
 }
 
@@ -424,9 +480,9 @@ SKIP: {
 
     $ok = $coll->remove;
     is($ok, 1, 'unsafe remove');
-    is($db->last_error->{n}, 0);
+    is($testdb->last_error->{n}, 0);
 
-    my $syscoll = $db->get_collection('system.indexes');
+    my $syscoll = $testdb->get_collection('system.indexes');
     eval {
         $ok = $syscoll->remove({}, {safe => 1});
     };
@@ -457,7 +513,7 @@ SKIP: {
     my $z = $coll->find_one;
     is($z->{"hello"}, 3);
 
-    my $syscoll = $db->get_collection('system.indexes');
+    my $syscoll = $testdb->get_collection('system.indexes');
     eval {
         $ok = $syscoll->save({_id => 'foo'}, {safe => 1});
     };
@@ -473,7 +529,7 @@ SKIP: {
     $coll->insert({x => 4});
     $coll->insert({x => 5});
 
-    my $cursor = $coll->find({x=>4});
+    $cursor = $coll->find({x=>4});
     my $result = $cursor->next;
     is($result->{'x'}, 4, 'find');
 
@@ -488,7 +544,7 @@ SKIP: {
 # ns hack
 # check insert utf8
 {
-    my $coll = $db->get_collection('test_collection');
+    my $coll = $testdb->get_collection('test_collection');
     $coll->drop;
     # turn off utf8 flag now
     local $MongoDB::BSON::utf8_flag_on = 0;
@@ -505,7 +561,7 @@ SKIP: {
 # test index names with "."s
 {
 
-    my $ok = $coll->ensure_index({"x.y" => 1}, {"name" => "foo"});
+    $ok = $coll->ensure_index({"x.y" => 1}, {"name" => "foo"});
     my $index = $coll->_database->get_collection("system.indexes")->find_one({"name" => "foo"});
     ok($index);
     ok($index->{'key'});
@@ -539,10 +595,10 @@ SKIP: {
     skip "text indices won't work with db version $buildinfo->{version}", 8 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.\d+\.\d+)|(2\.[0123]\d*\.\d+)/;
 
     my $cmd = Tie::IxHash->new('getParameter' => 1, 'textSearchEnabled' => 1);
-    my $ok = $admin->run_command($cmd);
+    $ok = $admin->run_command($cmd);
     skip "text search not enabled", 8 if !$ok->{'textSearchEnabled'};
 
-    my $coll = $db->get_collection('test_text');
+    my $coll = $testdb->get_collection('test_text');
     $coll->insert({language => 'english', w1 => 'hello', w2 => 'world'}) foreach (1..10);
     is($coll->count, 10);
 
@@ -554,7 +610,7 @@ SKIP: {
     });
     ok(!defined $ok, 'ensure_index succeeds for text index');
 
-    my $syscoll = $db->get_collection('system.indexes');
+    my $syscoll = $testdb->get_collection('system.indexes');
     my $text_index = $syscoll->find_one({name => 'testTextIndex'});
     is($text_index->{'default_language'}, 'spanish', 'default_language option works');
     is($text_index->{'language_override'}, 'language', 'language_override option works');
@@ -562,7 +618,7 @@ SKIP: {
     is($text_index->{'weights'}->{'w2'}, 10, 'weights option works 2');
 
     $cmd = Tie::IxHash->new('text' => 'test_text', 'search' => 'world');
-    my $search = $db->run_command($cmd);
+    my $search = $testdb->run_command($cmd);
     is($search->{'language'}, 'spanish', 'text search uses preferred language');
     is($search->{'stats'}->{'nfound'}, 10, 'correct number of results found');
 
@@ -572,7 +628,7 @@ SKIP: {
 # utf8 test, croak when null key is inserted
 {
     local $MongoDB::BSON::utf8_flag_on = 1;
-    my $ok = 0;
+    $ok = 0;
     my $kanji = "漢\0字";
     utf8::encode($kanji);
     eval{
@@ -602,7 +658,7 @@ SKIP: {
     };
     is($ok,0, "ixHash Insert key with Null Char in Key Operation Failed");
     is($coll->count, 0, "ixHash key with Null Char in Key Operation Failed");
-    my $tied = $coll->find_one;
+    $tied = $coll->find_one;
     $coll->drop;
 }
 
@@ -670,7 +726,7 @@ SKIP: {
         $coll->insert( { count => $_ } );
     }
 
-    my $cursor = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } } ], { cursor => 1 } );
+    $cursor = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } } ], { cursor => 1 } );
 
     isa_ok $cursor, 'MongoDB::Cursor';
     is $cursor->started_iterating, 1;
@@ -730,10 +786,7 @@ SKIP: {
 }
 
 END {
-    if ($conn) {
-        $conn->get_database( 'foo' )->drop;
-    }
-    if ($db) {
-        $db->drop;
+    if ($testdb) {
+        $testdb->drop;
     }
 }

@@ -31,13 +31,12 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::BSON::Binary;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest '$testdb';
 
 plan tests => 75;
 
 
-my $db = $conn->get_database('foo');
-my $c = $db->get_collection('bar');
+my $c = $testdb->get_collection('bar');
 
 # relloc
 {
@@ -136,7 +135,7 @@ my $c = $db->get_collection('bar');
 
 # undefined
 {
-    my $err = $db->last_error();
+    my $err = $testdb->last_error();
     ok(!$err->{err}, "undef");
     $err->{err} = "foo";
     is($err->{err}, "foo", "assign to undef");
@@ -389,8 +388,3 @@ package main;
     is ( $obj->{$testkey}, 1 );
 }
 
-END {
-    if ($db) {
-        $db->drop;
-    }
-}

@@ -26,7 +26,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest '$conn', '$testdb';
 
 plan tests => 27;
 
@@ -76,16 +76,20 @@ SKIP: {
     is(MongoDB::MongoClient->new('host' => 'mongodb://:@localhost/?')->db_name, 'admin', 'connection uri empty extras');
 }
 
-my $db = $conn->get_database('test_database');
-isa_ok($db, 'MongoDB::Database', 'get_database');
+# get_database and drop 
+{
+    my $db = $conn->get_database($testdb->name);
+    isa_ok($db, 'MongoDB::Database', 'get_database');
 
-$db->get_collection('test_collection')->insert({ foo => 42 }, {safe => 1});
+    $db->get_collection('test_collection')->insert({ foo => 42 }, {safe => 1});
 
-ok((grep { $_ eq 'test_database' } $conn->database_names), 'database_names');
+    ok((grep { /testdb-/ } $conn->database_names), 'database_names');
 
-my $result = $db->drop;
-is(ref $result, 'HASH', $result);
-is($result->{'ok'}, 1, 'db was dropped');
+    my $result = $db->drop;
+    is(ref $result, 'HASH', $result);
+    is($result->{'ok'}, 1, 'db was dropped');
+}
+
 
 # TODO: won't work on master/slave until SERVER-2329 is fixed
 # ok(!(grep { $_ eq 'test_database' } $conn->database_names), 'database got dropped');
@@ -106,7 +110,7 @@ is($result->{'ok'}, 1, 'db was dropped');
     $conn->wtimeout(100);
     is($conn->wtimeout, 100, "set wtimeout");
 
-    $db->drop;
+    $testdb->drop;
 }
 
 
@@ -136,11 +140,3 @@ is($result->{'ok'}, 1, 'db was dropped');
     }
 }
 
-END {
-    if ($conn) {
-        $conn->get_database( 'foo' )->drop;
-    }
-    if ($db) {
-        $db->drop;
-    }
-}

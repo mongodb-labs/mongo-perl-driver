@@ -26,35 +26,44 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest '$conn', '$testdb';
 
-plan tests => 13;
+plan tests => 22;
 
-isa_ok($conn, 'MongoDB::MongoClient');
+# get_database
+{
+    isa_ok($conn, 'MongoDB::MongoClient');
 
-my $db = $conn->get_database('test_database');
-$db->drop;
+    my $db = $conn->get_database($testdb->name);
+    $db->drop;
 
-isa_ok($db, 'MongoDB::Database');
+    isa_ok($db, 'MongoDB::Database');
 
-$db->drop;
+    $testdb->drop;
+}
 
-is(scalar $db->collection_names, 0, 'no collections');
-my $coll = $db->get_collection('test');
-is($coll->count, 0, 'collection is empty');
+# collection_names
+{
+    is(scalar $testdb->collection_names, 0, 'no collections');
+    my $coll = $testdb->get_collection('test');
+    is($coll->count, 0, 'collection is empty');
 
-is($coll->find_one, undef, 'nothing for find_one');
+    is($coll->find_one, undef, 'nothing for find_one');
 
-my $id = $coll->insert({ just => 'another', perl => 'hacker' });
+    my $id = $coll->insert({ just => 'another', perl => 'hacker' });
 
-is(scalar $db->collection_names, 2, 'test and system.indexes');
-ok((grep { $_ eq 'test' } $db->collection_names), 'collection_names');
-is($coll->count, 1, 'count');
-is($coll->find_one->{perl}, 'hacker', 'find_one');
-is($coll->find_one->{_id}->value, $id->value, 'insert id');
+    is(scalar $testdb->collection_names, 2, 'test and system.indexes');
+    ok((grep { $_ eq 'test' } $testdb->collection_names), 'collection_names');
+    is($coll->count, 1, 'count');
+    is($coll->find_one->{perl}, 'hacker', 'find_one');
+    is($coll->find_one->{_id}->value, $id->value, 'insert id');
+}
 
-my $result = $db->run_command({ foo => 'bar' });
-ok ($result =~ /no such cmd/, "run non-existent command: $result");
+# non-existent command
+{
+    my $result = $testdb->run_command({ foo => 'bar' });
+    ok ($result =~ /no such cmd/, "run non-existent command: $result");
+}
 
 # getlasterror
 SKIP: {
@@ -62,22 +71,53 @@ SKIP: {
     my $buildinfo = $admin->run_command({buildinfo => 1});
 
     #skip "MongoDB 1.5+ needed", 1 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[1234]\d*.\d+)/;
-    #my $result = $db->last_error({w => 20, wtimeout => 1});
+    #my $result = $testdb->last_error({w => 20, wtimeout => 1});
     #is($result, 'timed out waiting for slaves', 'last error timeout');
 
     skip "MongoDB 1.5+ needed", 2 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[1234]\d*.\d+)/;
 
-    my $result = $db->last_error({fsync => 1});
+    my $result = $testdb->last_error({fsync => 1});
     is($result->{ok}, 1);
     is($result->{err}, undef);
+
+    $result = $testdb->last_error;
+    is($result->{ok}, 1, 'last_error1');
+    is($result->{n}, 0, 'last_error2');
+    is($result->{err}, undef, 'last_error3');
 }
 
-
-END {
-    if ($conn) {
-        $conn->get_database( 'foo' )->drop;
-    }
-    if ($db) {
-        $db->drop;
-    }
+# reseterror 
+{
+    my $result = $testdb->run_command({reseterror => 1});
+    is($result->{ok}, 1, 'reset error');
 }
+
+# forceerror
+{
+    $testdb->run_command({forceerror => 1});
+
+    my $result = $testdb->last_error;
+    is($result->{ok}, 1, 'last_error1');
+    is($result->{n}, 0, 'last_error2');
+    is($result->{err}, 'forced error', 'last_error3');
+}
+
+# eval
+{
+    my $hello = $testdb->eval('function(x) { return "hello, "+x; }', ["world"]);
+    is('hello, world', $hello, 'db eval');
+
+    my $err = $testdb->eval('function(x) { xreturn "hello, "+x; }', ["world"]);
+    # skip until JS error reporting stabilizes 
+    #like($err, qr/(?:compile|execution) failed/, 'js err');
+}
+
+# tie
+{
+    my $admin = $conn->get_database('admin');
+    my %cmd;
+    tie( %cmd, 'Tie::IxHash', buildinfo => 1);
+    my $result = $admin->run_command(\%cmd);
+    is($result->{ok}, 1);
+}
+

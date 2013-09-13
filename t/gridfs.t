@@ -31,138 +31,169 @@ use DateTime;
 use FileHandle;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest '$conn', '$testdb';
 
 plan tests => 62;
 
-my $db = $conn->get_database('foo');
-my $grid = $db->get_gridfs;
+my $dumb_str;
+my $now;
+my $file;
+my $save_id;
+
+my $grid = $testdb->get_gridfs;
 $grid->drop;
 
 # test ctor prefix
-is('foo.fs.files', $grid->files->full_name, "no prefix");
-is('foo.fs.chunks', $grid->chunks->full_name);
+{
+    is($testdb->name . '.fs.files', $grid->files->full_name, "no prefix");
+    is($testdb->name . '.fs.chunks', $grid->chunks->full_name);
 
-my $fancy_grid = $db->get_gridfs("bar");
-is('foo.bar.files', $fancy_grid->files->full_name, "prefix");
-is('foo.bar.chunks', $fancy_grid->chunks->full_name);
+    my $fancy_grid = $testdb->get_gridfs("bar");
+    is($testdb->name . '.bar.files', $fancy_grid->files->full_name, "prefix");
+    is($testdb->name . '.bar.chunks', $fancy_grid->chunks->full_name);
+}
 
 # test text insert
-my $dumb_str = "abc\n\nzyw\n";
-my $text_doc = new IO::File("t/input.txt", "r") or die $!;
-my $ts = DateTime->now;
-my $id = $grid->insert($text_doc);
-$text_doc->close;
+{
+    $dumb_str = "abc\n\nzyw\n";
+    my $text_doc = new IO::File("t/input.txt", "r") or die $!;
+    my $ts = DateTime->now;
+    my $id = $grid->insert($text_doc);
+    $text_doc->close;
 
-my $chunk = $grid->chunks->find_one();
-is(0, $chunk->{'n'});
-is("$id", $chunk->{'files_id'}."", "compare returned id");
-is($dumb_str, $chunk->{'data'}, "compare file content");
+    my $chunk = $grid->chunks->find_one();
+    is(0, $chunk->{'n'});
+    is("$id", $chunk->{'files_id'}."", "compare returned id");
+    is($dumb_str, $chunk->{'data'}, "compare file content");
 
-my $md5 = $db->run_command(["filemd5" => $chunk->{'files_id'}, "root" => "fs"]);
-my $file = $grid->files->find_one();
-ok($file->{'md5'} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->{'md5'});
-is($file->{'md5'}, $md5->{'md5'}, $md5->{'md5'});
-ok($file->{'uploadDate'}->epoch - $ts->epoch < 10);
-is($file->{'chunkSize'}, $MongoDB::GridFS::chunk_size);
-is($file->{'length'}, length $dumb_str, "compare file len");
-is($chunk->{'files_id'}, $file->{'_id'}, "compare ids");
+    my $md5 = $testdb->run_command(["filemd5" => $chunk->{'files_id'}, "root" => "fs"]);
+    $file = $grid->files->find_one();
+    ok($file->{'md5'} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->{'md5'});
+    is($file->{'md5'}, $md5->{'md5'}, $md5->{'md5'});
+    ok($file->{'uploadDate'}->epoch - $ts->epoch < 10);
+    is($file->{'chunkSize'}, $MongoDB::GridFS::chunk_size);
+    is($file->{'length'}, length $dumb_str, "compare file len");
+    is($chunk->{'files_id'}, $file->{'_id'}, "compare ids");
+}
 
 # test bin insert
-my $img = new IO::File("t/img.png", "r") or die $!;
-# Windows is dumb
-binmode($img);
-$id = $grid->insert($img);
-my $save_id = $id;
-$img->read($dumb_str, 4000000);
-$img->close;
-my $meta = $grid->files->find_one({'_id' => $save_id});
-is($meta->{'length'}, 1292706);
+{
+    my $img = new IO::File("t/img.png", "r") or die $!;
+    # Windows is dumb
+    binmode($img);
+    my $id = $grid->insert($img);
+    $save_id = $id;
+    $img->read($dumb_str, 4000000);
+    $img->close;
+    my $meta = $grid->files->find_one({'_id' => $save_id});
+    is($meta->{'length'}, 1292706);
 
-$chunk = $grid->chunks->find_one({'files_id' => $id});
-is(0, $chunk->{'n'});
-is("$id", $chunk->{'files_id'}."");
-my $len = 1048576;
-is(substr($dumb_str, 0, $len), substr($chunk->{'data'}, 0, $len), "compare first chunk with file");
+    my $chunk = $grid->chunks->find_one({'files_id' => $id});
+    is(0, $chunk->{'n'});
+    is("$id", $chunk->{'files_id'}."");
+    my $len = 1048576;
+    is(substr($dumb_str, 0, $len), substr($chunk->{'data'}, 0, $len), "compare first chunk with file");
 
-$file = $grid->files->find_one({'_id' => $id});
-is($file->{'length'}, length $dumb_str, "compare file length");
-is($chunk->{'files_id'}, $file->{'_id'}, "compare ids");
+    $file = $grid->files->find_one({'_id' => $id});
+    is($file->{'length'}, length $dumb_str, "compare file length");
+    is($chunk->{'files_id'}, $file->{'_id'}, "compare ids");
+}
 
 # test inserting metadata
-$text_doc = new IO::File("t/input.txt", "r") or die $!;
-my $now = time;
-$id = $grid->insert($text_doc, {"filename" => "t/input.txt", "uploaded" => time, "_id" => 1});
-$text_doc->close;
+{
+    my $text_doc = new IO::File("t/input.txt", "r") or die $!;
+    $now = time;
+    my $id = $grid->insert($text_doc, {"filename" => "t/input.txt", "uploaded" => time, "_id" => 1});
+    $text_doc->close;
 
-is($id, 1);
-# NOT $grid->find_one
-$file = $grid->files->find_one({"_id" => 1});
-ok($file, "found file");
-is($file->{"uploaded"}, $now, "compare ts");
-is($file->{"filename"}, "t/input.txt", "compare filename");
+    is($id, 1);
+}
 
-# find_one
-$file = $grid->find_one({"_id" => 1});
-isa_ok($file, 'MongoDB::GridFS::File');
-is($file->info->{"uploaded"}, $now, "compare ts");
-is($file->info->{"filename"}, "t/input.txt", "compare filename");
+# $grid->files->find_one (NOT $grid->find_one)
+{
+    $file = $grid->files->find_one({"_id" => 1});
+    ok($file, "found file");
+    is($file->{"uploaded"}, $now, "compare ts");
+    is($file->{"filename"}, "t/input.txt", "compare filename");
+}
+
+# $grid->find_one
+{
+    $file = $grid->find_one({"_id" => 1});
+    isa_ok($file, 'MongoDB::GridFS::File');
+    is($file->info->{"uploaded"}, $now, "compare ts");
+    is($file->info->{"filename"}, "t/input.txt", "compare filename");
+}
 
 #write
-my $wfh = IO::File->new("t/output.txt", "+>") or die $!;
-my $written = $file->print($wfh);
-is($written, length "abc\n\nzyw\n");
-$wfh->close();
+{
+    my $wfh = IO::File->new("t/output.txt", "+>") or die $!;
+    my $written = $file->print($wfh);
+    is($written, length "abc\n\nzyw\n");
+    $wfh->close();
+}
 
 # slurp
-is($file->slurp,"abc\n\nzyw\n",'slurp');
+{
+    is($file->slurp,"abc\n\nzyw\n",'slurp');
+}
 
-my $buf;
-$wfh = IO::File->new("t/output.txt", "<") or die $!;
-$wfh->read($buf, 1000);
-#$wfh->read($buf, length( "abc\n\nzyw\n"));
+{
+    my $buf;
+    my $wfh = IO::File->new("t/output.txt", "<") or die $!;
+    $wfh->read($buf, 1000);
+    #$wfh->read($buf, length( "abc\n\nzyw\n"));
 
-is($buf, "abc\n\nzyw\n", "read chars from tmpfile");
+    is($buf, "abc\n\nzyw\n", "read chars from tmpfile");
 
-my $wh = IO::File->new("t/outsub.txt", "+>") or die $!;
-$written = $file->print($wh, 3, 2);
-is($written, 3);
+    my $wh = IO::File->new("t/outsub.txt", "+>") or die $!;
+    my $written = $file->print($wh, 3, 2);
+    is($written, 3);
+}
 
 # write bindata
-$file = $grid->find_one({'_id' => $save_id});
-$wfh = IO::File->new('t/output.png', '+>') or die $!;
-$wfh->binmode;
-$written = $file->print($wfh);
-is($written, $file->info->{'length'}, 'bin file length');
+{
+    $file = $grid->find_one({'_id' => $save_id});
+    my $wfh = IO::File->new('t/output.png', '+>') or die $!;
+    $wfh->binmode;
+    my $written = $file->print($wfh);
+    is($written, $file->info->{'length'}, 'bin file length');
+}
 
 #all
-my @list = $grid->all;
-is(@list, 3, "three files");
-for (my $i=0; $i<3; $i++) {
-    isa_ok($list[$i], 'MongoDB::GridFS::File');
+{
+    my @list = $grid->all;
+    is(@list, 3, "three files");
+    for (my $i=0; $i<3; $i++) {
+        isa_ok($list[$i], 'MongoDB::GridFS::File');
+    }
+    is($list[0]->info->{'length'}, 9, 'checking lens');
+    is($list[1]->info->{'length'}, 1292706);
+    is($list[2]->info->{'length'}, 9);
 }
-is($list[0]->info->{'length'}, 9, 'checking lens');
-is($list[1]->info->{'length'}, 1292706);
-is($list[2]->info->{'length'}, 9);
 
 # remove
-is($grid->files->query({"_id" => 1})->has_next, 1, 'pre-remove');
-is($grid->chunks->query({"files_id" => 1})->has_next, 1);
-$file = $grid->remove({"_id" => 1});
-is(int($grid->files->query({"_id" => 1})->has_next), 0, 'post-remove');
-is(int($grid->chunks->query({"files_id" => 1})->has_next), 0);
+{
+    is($grid->files->query({"_id" => 1})->has_next, 1, 'pre-remove');
+    is($grid->chunks->query({"files_id" => 1})->has_next, 1);
+    $file = $grid->remove({"_id" => 1});
+    is(int($grid->files->query({"_id" => 1})->has_next), 0, 'post-remove');
+    is(int($grid->chunks->query({"files_id" => 1})->has_next), 0);
+}
 
 # remove just_one
-$grid->drop;
-$img = new IO::File("t/img.png", "r") or die $!;
-$grid->insert($img, {"filename" => "garbage.png"});
-$grid->insert($img, {"filename" => "garbage.png"});
+{
+    $grid->drop;
+    my $img = new IO::File("t/img.png", "r") or die $!;
+    $grid->insert($img, {"filename" => "garbage.png"});
+    $grid->insert($img, {"filename" => "garbage.png"});
 
-is($grid->files->count, 2);
-$grid->remove({'filename' => 'garbage.png'}, 1);
-is($grid->files->count, 1, 'remove just one');
+    is($grid->files->count, 2);
+    $grid->remove({'filename' => 'garbage.png'}, 1);
+    is($grid->files->count, 1, 'remove just one');
 
-unlink 't/output.txt', 't/output.png', 't/outsub.txt';
+    unlink 't/output.txt', 't/output.png', 't/outsub.txt';
+}
 
 # multi-chunk
 {
@@ -201,7 +232,7 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
     $fh->fdopen($basicfh, 'r');
     $grid->insert($fh, {filename => 'hello.txt'});
 
-    my $file = $grid->find_one;
+    $file = $grid->find_one;
     is($file->info->{filename}, 'hello.txt');
     is($file->info->{length}, 5);
 }
@@ -209,11 +240,11 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
 # safe insert
 {
     $grid->drop;
-    $img = new IO::File("t/img.png", "r") or die $!;
+    my $img = new IO::File("t/img.png", "r") or die $!;
     $img->binmode;
     $grid->insert($img, {filename => 'img.png'}, {safe => boolean::true});
 
-    my $file = $grid->find_one;
+    $file = $grid->find_one;
     is($file->info->{filename}, 'img.png', 'safe insert');
     is($file->info->{length}, 1292706);
     ok($file->info->{md5} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->info->{'md5'});
@@ -223,7 +254,7 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
 {
     $grid->drop;
 
-    $img = new IO::File("t/img.png", "r") or die $!;
+    my $img = new IO::File("t/img.png", "r") or die $!;
     $img->binmode;
 
     my $id = $grid->put($img, {_id => 1, filename => 'img.png'});
@@ -238,26 +269,19 @@ unlink 't/output.txt', 't/output.png', 't/outsub.txt';
 
     ok($@ and $@ =~ /^E11000/, 'duplicate key exception');
 
-    my $file = $grid->get(1);
+    $file = $grid->get(1);
     is($file->info->{filename}, 'img.png');
     ok($file->info->{md5} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->info->{'md5'});
 
     $grid->delete(1);
 
-    my $coll = $db->get_collection('fs.files');
+    my $coll = $testdb->get_collection('fs.files');
 
     $file = $coll->find_one({_id => 1});
     is($file, undef);
 
-    $coll = $db->get_collection('fs.chunks');
+    $coll = $testdb->get_collection('fs.chunks');
     $file = $coll->find_one({files_id => 1});
     is($file, undef);
 }
 
-
-
-END {
-    if ($db) {
-        $db->drop;
-    }
-}

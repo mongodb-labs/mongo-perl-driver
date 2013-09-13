@@ -23,6 +23,9 @@ use MongoDB;
 use Try::Tiny;
 use threads;
 
+use lib "t/lib";
+use MongoDBTest '$testdb';
+
 my $conn = try {
     MongoDB::Connection->new({
         host => exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost',
@@ -33,7 +36,7 @@ catch {
     plan skip_all => $_;
 };
 
-my $col = $conn->get_database('affe')->get_collection('tiger');
+my $col = $testdb->get_collection('tiger');
 $col->drop;
 
 
@@ -117,12 +120,6 @@ $col->insert({ foo => 4,  bar => 9, shazbot => 1 });
 
     is_deeply [map { $_->next } @cursors], [($comp_cursor->next) x 10],
         'joining back cursors works';
-}
-
-END {
-    if ($conn) {
-        $conn->get_database('affe')->drop;
-    }
 }
 
 done_testing();

@@ -27,14 +27,12 @@ use DateTime;
 use JSON;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest '$conn', '$testdb';
 
 plan tests => 61;
 
 
-my $db = $conn->get_database('x');
-my $coll = $db->get_collection('y');
-
+my $coll = $testdb->get_collection('y');
 $coll->drop;
 
 my $id = MongoDB::OID->new;
@@ -76,63 +74,67 @@ is($id."", $id->value);
 }
 
 #regexes
+{
+    $coll->insert({'x' => 'FRED', 'y' => 1});
+    $coll->insert({'x' => 'bob'});
+    $coll->insert({'x' => 'fRed', 'y' => 2});
 
-$coll->insert({'x' => 'FRED', 'y' => 1});
-$coll->insert({'x' => 'bob'});
-$coll->insert({'x' => 'fRed', 'y' => 2});
+    my $freds = $coll->query({'x' => qr/fred/i})->sort({'y' => 1});
 
-my $freds = $coll->query({'x' => qr/fred/i})->sort({'y' => 1});
+    is($freds->next->{'x'}, 'FRED', 'case insensitive');
+    is($freds->next->{'x'}, 'fRed', 'case insensitive');
+    ok(!$freds->has_next, 'bob doesn\'t match');
 
-is($freds->next->{'x'}, 'FRED', 'case insensitive');
-is($freds->next->{'x'}, 'fRed', 'case insensitive');
-ok(!$freds->has_next, 'bob doesn\'t match');
+    my $fred = $coll->find_one({'x' => qr/^F/});
+    is($fred->{'x'}, 'FRED', 'starts with');
 
-my $fred = $coll->find_one({'x' => qr/^F/});
-is($fred->{'x'}, 'FRED', 'starts with');
+    # saving/getting regexes
+    $coll->drop;
+    $coll->insert({"r" => qr/foo/i});
+    my $obj = $coll->find_one;
+    ok("foo" =~ $obj->{'r'}, 'matches');
 
-# saving/getting regexes
-$coll->drop;
-$coll->insert({"r" => qr/foo/i});
-my $obj = $coll->find_one;
-ok("foo" =~ $obj->{'r'}, 'matches');
+    SKIP: {
+        skip "regex flags don't work yet with perl 5.8", 1 if $] =~ /5\.008/;
+        ok("FOO" =~ $obj->{'r'}, 'this won\'t pass with Perl 5.8');
+    }
 
-SKIP: {
-    skip "regex flags don't work yet with perl 5.8", 1 if $] =~ /5\.008/;
-    ok("FOO" =~ $obj->{'r'}, 'this won\'t pass with Perl 5.8');
+    ok(!("bar" =~ $obj->{'r'}), 'not a match');
 }
 
-ok(!("bar" =~ $obj->{'r'}), 'not a match');
-
-
 # date
-$coll->drop;
+{
+    $coll->drop;
 
-my $now = DateTime->now;
+    my $now = DateTime->now;
 
-$coll->insert({'date' => $now});
-my $date = $coll->find_one;
+    $coll->insert({'date' => $now});
+    my $date = $coll->find_one;
 
-is($date->{'date'}->epoch, $now->epoch);
-is($date->{'date'}->day_of_week, $now->day_of_week);
+    is($date->{'date'}->epoch, $now->epoch);
+    is($date->{'date'}->day_of_week, $now->day_of_week);
 
-my $past = DateTime->from_epoch('epoch' => 1234567890);
+    my $past = DateTime->from_epoch('epoch' => 1234567890);
 
-$coll->insert({'date' => $past});
-$date = $coll->find_one({'date' => $past});
+    $coll->insert({'date' => $past});
+    $date = $coll->find_one({'date' => $past});
 
-is($date->{'date'}->epoch, 1234567890);
+    is($date->{'date'}->epoch, 1234567890);
+}
 
 # minkey/maxkey
-$coll->drop;
+{
+    $coll->drop;
 
-my $min = bless {}, "MongoDB::MinKey";
-my $max = bless {}, "MongoDB::MaxKey";
+    my $min = bless {}, "MongoDB::MinKey";
+    my $max = bless {}, "MongoDB::MaxKey";
 
-$coll->insert({min => $min, max => $max});
-my $x = $coll->find_one;
+    $coll->insert({min => $min, max => $max});
+    my $x = $coll->find_one;
 
-isa_ok($x->{min}, 'MongoDB::MinKey');
-isa_ok($x->{max}, 'MongoDB::MaxKey');
+    isa_ok($x->{min}, 'MongoDB::MinKey');
+    isa_ok($x->{max}, 'MongoDB::MaxKey');
+}
 
 # tie::ixhash
 {
@@ -209,13 +211,13 @@ isa_ok($x->{max}, 'MongoDB::MaxKey');
     is(keys %$scope, 0);
     is($ret_code->code, $str);
 
-    my $x = $db->eval($code);
+    my $x = $testdb->eval($code);
     is($x, 5);
 
     $str = "function() { return name; }";
     $code = MongoDB::Code->new("code" => $str,
                                "scope" => {"name" => "Fred"});
-    $x = $db->eval($code);
+    $x = $testdb->eval($code);
     is($x, "Fred");
 
     $coll->remove;
@@ -324,8 +326,3 @@ SKIP: {
     is($result->{x}, 1);
 }
 
-END {
-    if ($db) {
-        $db->drop;
-    }
-}

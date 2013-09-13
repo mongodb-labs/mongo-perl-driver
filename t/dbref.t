@@ -24,7 +24,7 @@ use MongoDB;
 use Scalar::Util 'blessed', 'reftype';
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest '$conn', '$testdb';
 
 plan tests => 28;
 
@@ -37,23 +37,22 @@ plan tests => 28;
 
 # test type coercions 
 { 
-    my $db   = $conn->get_database( 'test' );
-    my $coll = $db->get_collection( 'test_collection' );
+    my $coll = $testdb->get_collection( 'test_collection' );
 
-    my $ref = MongoDB::DBRef->new( db => $db, ref => $coll, id => 123 );
+    my $ref = MongoDB::DBRef->new( db => $testdb, ref => $coll, id => 123 );
 
     ok $ref;
     ok not blessed $ref->db;
     ok not blessed $ref->ref;
 
-    is $ref->db, 'test';
+    is $ref->db, $testdb->name;
     is $ref->ref, 'test_collection';
     is $ref->id, 123;
 }
 
 # test fetch
 { 
-    $conn->get_database( 'test' )->get_collection( 'test_coll' )->insert( { _id => 123, foo => 'bar' } );
+    $testdb->get_collection( 'test_coll' )->insert( { _id => 123, foo => 'bar' } );
 
     my $ref = MongoDB::DBRef->new( db => 'fake_db_does_not_exist', 'ref', 'fake_coll_does_not_exist', id => 123 );
     throws_ok { $ref->fetch } qr/Can't fetch DBRef without a MongoClient/;
@@ -61,7 +60,7 @@ plan tests => 28;
     $ref->client( $conn );
     throws_ok { $ref->fetch } qr/No such database fake_db_does_not_exist/;
 
-    $ref->db( 'test' );
+    $ref->db( $testdb->name );
     throws_ok { $ref->fetch } qr/No such collection fake_coll_does_not_exist/;
 
     $ref->ref( 'test_coll' );
@@ -70,7 +69,7 @@ plan tests => 28;
     is $doc->{_id}, 123;
     is $doc->{foo}, 'bar';
 
-    $conn->get_database( 'test' )->get_collection( 'test_coll' )->drop;
+    $testdb->get_collection( 'test_coll' )->drop;
 }
 
 # test roundtrip
@@ -95,9 +94,9 @@ plan tests => 28;
 
 # test fetch via find
 {
-    my $some_coll = $conn->get_database( 'test' )->get_collection( 'some_coll' );
+    my $some_coll = $testdb->get_collection( 'some_coll' );
     $some_coll->insert( { _id => 123, value => 'foobar' } );
-    my $dbref = MongoDB::DBRef->new( db => 'test', ref => 'some_coll', id => 123 );
+    my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
 
     my $coll = $conn->get_database( 'test' )->get_collection( 'test_coll' );
     $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
@@ -115,9 +114,9 @@ plan tests => 28;
 # test inflate_dbrefs flag
 {
     $conn->inflate_dbrefs( 0 );
-    my $dbref = MongoDB::DBRef->new( db => 'test', ref => 'some_coll', id => 123 );
+    my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
 
-    my $coll = $conn->get_database( 'test' )->get_collection( 'test_coll' );
+    my $coll = $testdb->get_collection( 'test_coll' );
     $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
 
     my $doc = $coll->find_one( { _id => 'wut wut wut' } );
@@ -125,7 +124,7 @@ plan tests => 28;
     ok ref $doc->{thing};
     ok reftype $doc->{thing} eq reftype { };
     ok not blessed $doc->{thing};
-    is $doc->{thing}{'$db'}, 'test';
+    is $doc->{thing}{'$db'}, $testdb->name;
     is $doc->{thing}{'$ref'}, 'some_coll';
     is $doc->{thing}{'$id'}, 123;
 
