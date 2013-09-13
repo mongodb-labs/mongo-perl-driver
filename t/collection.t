@@ -32,7 +32,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn';
 
-plan tests => 152;
+plan tests => 205;
 
 my $db = $conn->get_database('test_database');
 $db->drop;
@@ -663,7 +663,7 @@ SKIP: {
 
     # skip aggregation cursor tests if we're running against MongoDB < 2.5
     unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) { 
-        skip "Aggregation cursors are unsupported on MongoDB $build->{version}", 4
+        skip "Aggregation cursors are unsupported on MongoDB $build->{version}", 64
     }
 
     for( 1..20 ) { 
@@ -676,6 +676,13 @@ SKIP: {
     is $cursor->started_iterating, 1;
     is( ref( $cursor->_agg_first_batch ), ref [ ] );
     is $cursor->_agg_batch_size, 20;
+
+    for( 1..20 ) { 
+        my $doc = $cursor->next;
+        is( ref( $doc ), ref { } );
+        is $doc->{count}, $_;
+        is $cursor->_agg_batch_size, ( 20 - $_ );
+    }
 }
 
 END {
