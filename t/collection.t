@@ -32,7 +32,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn';
 
-plan tests => 213;
+plan tests => 257;
 
 my $db = $conn->get_database('test_database');
 $db->drop;
@@ -683,6 +683,22 @@ SKIP: {
         is $doc->{count}, $_;
         is $cursor->_agg_batch_size, ( 20 - $_ );
     }
+
+    # make sure we can transition to a "real" cursor
+    $cursor = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } } ], { cursor => { batchSize => 10 } } );
+
+    isa_ok $cursor, 'MongoDB::Cursor';
+    is $cursor->started_iterating, 1;
+    is( ref( $cursor->_agg_first_batch ), ref [ ] );
+    is $cursor->_agg_batch_size, 10;
+
+    for( 1..20 ) { 
+        my $doc = $cursor->next;
+        is( ref( $doc ), ref { } );
+        is $doc->{count}, $_;
+    }
+
+    $coll->drop;
 }
 
 END {
