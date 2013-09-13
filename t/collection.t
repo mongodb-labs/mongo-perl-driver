@@ -32,7 +32,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn';
 
-plan tests => 205;
+plan tests => 213;
 
 my $db = $conn->get_database('test_database');
 $db->drop;
