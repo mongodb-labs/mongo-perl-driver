@@ -663,7 +663,7 @@ SKIP: {
 
     # skip aggregation cursor tests if we're running against MongoDB < 2.5
     unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) { 
-        skip "Aggregation cursors are unsupported on MongoDB $build->{version}", 64
+        skip "Aggregation cursors are unsupported on MongoDB $build->{version}", 108
     }
 
     for( 1..20 ) { 
