@@ -116,7 +116,6 @@ static int has_next(SV *self, mongo_cursor *cursor) {
     return 1;
   }
 
-
   link = perl_mongo_call_reader (self, "_client");
   ns = perl_mongo_call_reader (self, "_ns");
 
@@ -203,12 +202,22 @@ BOOT:
     request_id = get_sv("MongoDB::Cursor::_request_id", GV_ADD);
 
 void
-_init (self)
+_init (self, ...)
         SV *self
     PREINIT:
         mongo_cursor *cursor;
     CODE:
         Newxz(cursor, 1, mongo_cursor);
+
+        /* initialize a cursor ID manually if we are getting constructed
+           from an aggregation result */
+        if ( items > 1 ) { 
+          cursor->cursor_id = MONGO_64( SvIV( ST(1) ) );
+
+          /* if we are manually setting the cursor ID then we need to 
+             set cursor->num to the size of the first batch */
+          cursor->num = SvIV( perl_mongo_call_reader( self, "_agg_batch_size" ) );
+        } 
 
         // attach a mongo_cursor* to the MongoDB::Cursor
         perl_mongo_attach_ptr_to_instance(self, cursor, &cursor_vtbl);
