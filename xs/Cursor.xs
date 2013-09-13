@@ -98,6 +98,11 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   buffer buf;
   int size, heard;
 
+  /* if we have a firstBatch from an aggregation cursor,
+     then has_next is determined solely by the current 
+     batch count. */
+  if ( SvIV( perl_mongo_call_reader( self, "_agg_batch_size" ) ) > 0 ) return 1;
+
   limit = perl_mongo_call_reader (self, "_limit");
 
   if ((SvIV(limit) > 0 && cursor->at >= SvIV(limit)) || 
@@ -229,6 +234,8 @@ next (self)
         SV *dt_type_sv;
         SV *inflate_dbrefs_sv;
         SV *client_sv;
+        AV *agg_batch;
+        SV *agg_doc;
     CODE:
         cursor = get_cursor(self);
         if (has_next(self, cursor)) {
@@ -238,7 +245,17 @@ next (self)
           char *dt_type       = SvOK( dt_type_sv ) ? SvPV( dt_type_sv, SvLEN( dt_type_sv ) ) : NULL;
           int  inflate_dbrefs = SvIV( inflate_dbrefs_sv );
 
-          RETVAL = perl_mongo_bson_to_sv( &cursor->buf, dt_type, inflate_dbrefs, client_sv );
+          int agg_batch_size  = SvIV( perl_mongo_call_reader( self, "_agg_batch_size" ) );
+
+          if ( agg_batch_size > 0 ) { 
+            agg_batch = (AV *)SvRV( perl_mongo_call_reader( self, "_agg_first_batch" ) );
+            agg_doc = av_shift( agg_batch );
+            perl_mongo_call_method( self, "_agg_batch_size", G_DISCARD, 1, newSViv( agg_batch_size - 1 ) );
+
+            RETVAL = agg_doc;
+          } else { 
+            RETVAL = perl_mongo_bson_to_sv( &cursor->buf, dt_type, inflate_dbrefs, client_sv );
+          }
 
           cursor->at++;
 
