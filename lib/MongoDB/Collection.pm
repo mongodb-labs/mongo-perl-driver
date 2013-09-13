@@ -316,13 +316,12 @@ sub aggregate {
             _client                => $db->_client,
             _master                => $db->_client,   # fake this because we're already iterating
             _ns                    => $result->{cursor}{ns},
-            _request_id            => $result->{cursor}{id},
             _agg_first_batch       => $result->{cursor}{firstBatch}, 
             _agg_batch_size        => scalar @{ $result->{cursor}{firstBatch} },  # for has_next
             _query                 => \@command,
         );
 
-        $cursor->_init;
+        $cursor->_init( $result->{cursor}{id} );
         return $cursor;
     }
 
