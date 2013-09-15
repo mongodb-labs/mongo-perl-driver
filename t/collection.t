@@ -32,7 +32,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn';
 
-plan tests => 257;
+plan tests => 298;
 
 my $db = $conn->get_database('test_database');
 $db->drop;
@@ -698,6 +698,34 @@ SKIP: {
         is $doc->{count}, $_;
     }
 
+    $coll->drop;
+}
+
+# aggregation resultNs
+SKIP: {
+    my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
+
+    # skip aggregation resultNs tests if we're running against MongoDB < 2.5
+    unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) {
+        skip "Aggregation result collections are unsupported on MongoDB $build->{version}", 41; 
+    }
+
+    for( 1..20 ) {
+        $coll->insert( { count => $_ } );
+    }
+
+    my $res_coll = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$out' => 'test_out' } ] );
+
+    isa_ok $res_coll, 'MongoDB::Collection';
+    my $cursor = $res_coll->find;
+
+    for( 1..20 ) {
+        my $doc = $cursor->next;
+        is( ref( $doc ), ref { } );
+        is $doc->{count}, $_;
+    }
+
+    $res_coll->drop;
     $coll->drop;
 }
 
