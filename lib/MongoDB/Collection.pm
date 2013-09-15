@@ -736,9 +736,37 @@ match the query, it returns nothing.
 
     my $result = $collection->aggregate( [ ... ] );
 
-Run a query using the MongoDB 2.2+ aggregation framework. The argument is an array-ref of 
-aggregation pipeline operators. Returns an array-ref containing the results of 
-the query. See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
+Run a query using the MongoDB 2.2+ aggregation framework. The first argument is an array-ref of 
+aggregation pipeline operators. 
+
+The type of return value from C<aggregate> depends on how you use it.
+
+=over 4
+
+=item * By default, the aggregation framework returns a document with an embedded array of results, and
+the C<aggregate> method returns a reference to that array.
+
+=item * MongoDB 2.6+ supports returning cursors from aggregation queries, allowing you to bypass
+the 16MB size limit of documents. If you specifiy a C<cursor> option, the C<aggregate> method
+will return a L<MongoDB::Cursor> object which can be iterated in the normal fashion.
+
+    my $cursor = $collection->aggregate( [ ... ], { cursor => 1 } );
+
+Specifying a C<cursor> option will cause an error on versions of MongoDB below 2.6.
+
+The C<cursor> option may also have some useful options of its own. Currently, the only one
+is C<batchSize>, which allows you to control how frequently the cursor must go back to the
+database for more documents.
+
+    my $cursor = $collection->aggregate( [ ... ], { cursor => { batchSize => 10 } } );
+
+=item * Finally, MongoDB 2.6+ will not return any results if the C<$out> pipeline operator is used to 
+write aggregation results directly to a collection. Instead, C<aggregate> will return a 
+L<MongoDB::Collection> object for the collection in question.
+
+=back
+
+See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
 for more information on how to construct aggregation queries.
 
 =method rename ("newcollectionname")
