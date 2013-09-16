@@ -83,7 +83,7 @@ SKIP: {
 
     $db->get_collection('test_collection')->insert({ foo => 42 }, {safe => 1});
 
-    ok((grep { /testdb-/ } $conn->database_names), 'database_names');
+    ok((grep { /testdb/ } $conn->database_names), 'database_names');
 
     my $result = $db->drop;
     is(ref $result, 'HASH', $result);

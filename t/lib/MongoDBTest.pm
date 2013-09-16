@@ -37,7 +37,7 @@ BEGIN {
     eval { 
         my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
         $conn = MongoDB::MongoClient->new( host => $host, ssl => $ENV{MONGO_SSL} );
-        $testdb = $conn->get_database('testdb-' . time());
+        $testdb = $conn->get_database('testdb' . time());
     };
 
     if ( $@ ) { 
