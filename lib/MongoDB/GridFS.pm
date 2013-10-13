@@ -380,6 +380,7 @@ sub drop {
 
     $self->files->drop;
     $self->chunks->drop;
+    $self->_ensure_indexes;
 }
 
 =head2 all
