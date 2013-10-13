@@ -222,6 +222,14 @@ has _master => (
     required => 0,
 );
 
+# cache our original constructor args in BUILD for creating
+# new, per-host connections
+has _opts => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
 has ts => (
     is      => 'rw',
     isa     => 'Int',
@@ -276,6 +284,10 @@ sub BUILD {
         push @pairs, $self->host.":".$self->port;
     }
 
+    # We cache our updated constructor arguments because we need them again for
+    # creating new, per-host objects
+    $self->_opts( $opts );
+
     # a simple single server is special-cased (so we don't recurse forever)
     if (@pairs == 1 && !$self->find_master) {
         my @hp = split ":", $pairs[0];
@@ -290,12 +302,16 @@ sub BUILD {
 
     # multiple servers
     my $connected = 0;
-    $opts->{find_master} = 0;
-    $opts->{auto_connect} = 0;
     foreach (@pairs) {
-        $opts->{host} = "mongodb://$_";
+        # override host, find_master and auto_connect
+        my $args = {
+            %$opts,
+            host => "mongodb://$_",
+            find_master => 0,
+            auto_connect => 0,
+        };
 
-        $self->_servers->{$_} = MongoDB::MongoClient->new($opts);
+        $self->_servers->{$_} = MongoDB::MongoClient->new($args);
 
         next unless $self->auto_connect;
 
@@ -435,19 +451,19 @@ sub get_master {
                 $self->_ismaster_version($master->{'setVersion'});
             }
 
-            # update (or set) rs list
-            my %opts = ( auto_connect => 0 );
-            if ($self->username && $self->password) {
-                $opts{username} = $self->username;
-                $opts{password} = $self->password;
-                $opts{db_name}  = $self->db_name;
-            }
-            
             # clear old host list before refreshing
             %{$self->_servers} = ();
 
             for (@{$master->{'hosts'}}) {
-                $self->_servers->{$_} = MongoDB::MongoClient->new("host" => "mongodb://$_", %opts);
+                # override host, find_master and auto_connect
+                my $args = {
+                    %{ $self->_opts },
+                    host => "mongodb://$_",
+                    find_master => 0,
+                    auto_connect => 0,
+                };
+
+                $self->_servers->{$_} = MongoDB::MongoClient->new($args);
             }
         }
 
