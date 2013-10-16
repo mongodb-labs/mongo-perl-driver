@@ -159,20 +159,6 @@ write_update(ns, criteria, obj, flags)
          Safefree(buf.start);
 
 void
-read_documents(sv)
-         SV *sv
-    PREINIT:
-         buffer buf;
-    PPCODE:
-         buf.start = SvPV_nolen(sv);
-         buf.pos = buf.start;
-         buf.end = buf.start + SvCUR(sv);
-
-         while(buf.pos < buf.end) {
-           XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf, "DateTime", 0, newSV(0) )));
-         }
-
-void
 force_double(input)
 	SV *input
     CODE:

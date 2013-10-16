@@ -24,16 +24,25 @@ PROTOTYPES: DISABLE
 void
 decode_bson(sv)
          SV *sv
-    PREINIT:
-         buffer buf;
-    PPCODE:
-         buf.start = SvPV_nolen(sv);
-         buf.pos = buf.start;
-         buf.end = buf.start + SvCUR(sv);
 
-         while(buf.pos < buf.end) {
-           XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf, "DateTime", 1, newSV(0) )));
-         }
+    PREINIT:
+        char * data;
+        const bson_t * bson;
+        bson_reader_t * reader;
+        bson_bool_t reached_eof;
+        STRLEN length;
+
+    PPCODE:
+        data = SvPV_nolen(sv);
+        length = SvCUR(sv);
+
+        reader = bson_reader_new_from_data((bson_uint8_t *)data, length);
+
+        while ((bson = bson_reader_read(reader, &reached_eof))) {
+            XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, "DateTime", 1, newSV(0))));
+        }
+
+        bson_reader_destroy(reader);
 
 void
 encode_bson(obj)

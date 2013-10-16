@@ -355,6 +355,10 @@ package main;
     my $data = $doc->{'bindata'};
     foreach (@$data) {
         is($_, "foo");
+        if ($_ ne "foo") {
+            use Devel::Peek;
+            Dump($_);
+        }
     }
 
     $MongoDB::BSON::use_binary = 1;
@@ -370,6 +374,11 @@ package main;
     for (my $i=1; $i<=$#arr; $i++ ) {
         is($arr[$i]->subtype, $bin->{'bindata'}->[$i]->subtype);
         is($arr[$i]->data, $bin->{'bindata'}->[$i]->data);
+
+        if ($arr[$i]->data ne $bin->{'bindata'}->[$i]->data) {
+            use Devel::Peek;
+            Dump($arr[$i]->data);
+        }
     }
 }
 

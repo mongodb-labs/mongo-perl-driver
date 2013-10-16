@@ -31,6 +31,8 @@ use MongoDB::OID;
 
 XSLoader::load(__PACKAGE__, $MongoDB::VERSION, int rand(2 ** 24));
 
+*read_documents = \&MongoDB::BSON::decode_bson;
+
 1;
 
 

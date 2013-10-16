@@ -19,6 +19,8 @@
 
 #define PERL_GCC_BRACE_GROUPS_FORBIDDEN
 
+#include <libbson-1.0/bson.h>
+
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -162,7 +164,8 @@ void perl_mongo_make_id(char *id);
 void perl_mongo_make_oid(char* twelve, char *twenty4);
 
 // serialization
-SV *perl_mongo_bson_to_sv (buffer *buf, char *dt_type, int inflate_dbrefs, SV *client );
+SV *perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, SV * client);
+SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, SV *client );
 void perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids);
 
 int perl_mongo_resize_buf (buffer*, int);
