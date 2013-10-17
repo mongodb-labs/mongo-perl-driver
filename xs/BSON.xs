@@ -48,11 +48,9 @@ void
 encode_bson(obj)
          SV *obj
     PREINIT:
-         buffer buf;
+         bson_t * bson;
     PPCODE:
-         CREATE_BUF(INITIAL_BUF_SIZE);
-         perl_mongo_sv_to_bson(&buf, obj, NO_PREP);
-         perl_mongo_serialize_size(buf.start, &buf);
-         XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
-         Safefree(buf.start);
-
+         bson = bson_new();
+         perl_mongo_sv_to_bson(bson, obj, NO_PREP);
+         XPUSHs(sv_2mortal(newSVpvn(bson_get_data(bson), bson->len)));
+         bson_destroy(bson);

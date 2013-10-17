@@ -146,7 +146,6 @@ typedef struct _stackette {
 #define perl_mongo_serialize_bool(buf, b) perl_mongo_serialize_byte(buf, (char)b)
 
 extern MGVTBL connection_vtbl, cursor_vtbl;
-extern int perl_mongo_machine_id;
 
 int isUTF8(const char*, int);
 void perl_mongo_init();
@@ -160,22 +159,10 @@ SV *perl_mongo_construct_instance (const char *klass, ...);
 SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
 
-void perl_mongo_make_id(char *id);
-void perl_mongo_make_oid(char* twelve, char *twenty4);
-
 // serialization
 SV *perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, SV * client);
 SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, SV *client );
-void perl_mongo_sv_to_bson (buffer *buf, SV *sv, AV *ids);
-
-int perl_mongo_resize_buf (buffer*, int);
-void perl_mongo_serialize_key(buffer *buf, const char *str, int is_insert);
-void perl_mongo_serialize_size(char*, buffer*);
-void perl_mongo_serialize_double(buffer*, double);
-void perl_mongo_serialize_string(buffer*, const char*, unsigned int);
-void perl_mongo_serialize_long(buffer*, int64_t);
-void perl_mongo_serialize_int(buffer*, int);
-void perl_mongo_serialize_byte(buffer*, char);
-void perl_mongo_serialize_bytes(buffer*, const char*, unsigned int);
+void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, AV *ids);
+void perl_mongo_sv_to_buffer(buffer * buf, SV *sv, AV *ids);
 
 #endif

@@ -29,7 +29,7 @@ use MongoDB::Collection;
 use MongoDB::DBRef;
 use MongoDB::OID;
 
-XSLoader::load(__PACKAGE__, $MongoDB::VERSION, int rand(2 ** 24));
+XSLoader::load(__PACKAGE__, $MongoDB::VERSION);
 
 *read_documents = \&MongoDB::BSON::decode_bson;
 
