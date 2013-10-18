@@ -281,6 +281,9 @@ sub find_and_modify {
 
     my $result = $db->run_command( [ findAndModify => $self->name, %$opts ] );
 
+    if ( not ref $result ) {
+        die $result;
+    }
     if ( not $result->{ok} ) { 
         return if ( $result->{errmsg} eq 'No matching object found' );
     }
