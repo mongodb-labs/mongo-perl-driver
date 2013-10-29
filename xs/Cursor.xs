@@ -263,7 +263,7 @@ next (self)
 
             RETVAL = agg_doc;
           } else { 
-            RETVAL = perl_mongo_bson_to_sv( &cursor->buf, dt_type, inflate_dbrefs, client_sv );
+            RETVAL = perl_mongo_buffer_to_sv( &cursor->buf, dt_type, inflate_dbrefs, client_sv );
           }
 
           cursor->at++;

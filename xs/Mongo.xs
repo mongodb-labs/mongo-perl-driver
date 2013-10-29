@@ -29,11 +29,6 @@ MODULE = MongoDB  PACKAGE = MongoDB
 PROTOTYPES: DISABLE
 
 BOOT:
-        if (items < 3)
-            croak("machine id required");
-
-        perl_mongo_machine_id = SvIV(ST(2));
-
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__MongoClient);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__BSON);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Cursor);
@@ -74,10 +69,10 @@ write_query(ns, opts, skip, limit, query, fields = 0)
          perl_mongo_serialize_int(&buf, skip);
          perl_mongo_serialize_int(&buf, limit);
 
-         perl_mongo_sv_to_bson(&buf, query, NO_PREP);
+         perl_mongo_sv_to_buffer(&buf, query, NO_PREP);
 
          if (fields && SvROK(fields)) {
-           perl_mongo_sv_to_bson(&buf, fields, NO_PREP);
+           perl_mongo_sv_to_buffer(&buf, fields, NO_PREP);
          }
 
          perl_mongo_serialize_size(buf.start, &buf);
@@ -107,9 +102,8 @@ write_insert(ns, a, add_ids)
          CREATE_HEADER(buf, ns, OP_INSERT);
 
          for (i=0; i<=av_len(a); i++) {
-           int start = buf.pos-buf.start;
            SV **obj = av_fetch(a, i, 0);
-           perl_mongo_sv_to_bson(&buf, *obj, ids);
+           perl_mongo_sv_to_buffer(&buf, *obj, ids);
          }
          perl_mongo_serialize_size(buf.start, &buf);
 
@@ -132,7 +126,7 @@ write_remove(ns, criteria, flags)
          CREATE_BUF(INITIAL_BUF_SIZE);
          CREATE_HEADER(buf, ns, OP_DELETE);
          perl_mongo_serialize_int(&buf, flags);
-         perl_mongo_sv_to_bson(&buf, criteria, NO_PREP);
+         perl_mongo_sv_to_buffer(&buf, criteria, NO_PREP);
          perl_mongo_serialize_size(buf.start, &buf);
 
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
@@ -151,26 +145,12 @@ write_update(ns, criteria, obj, flags)
          CREATE_BUF(INITIAL_BUF_SIZE);
          CREATE_HEADER(buf, ns, OP_UPDATE);
          perl_mongo_serialize_int(&buf, flags);
-         perl_mongo_sv_to_bson(&buf, criteria, NO_PREP);
-         perl_mongo_sv_to_bson(&buf, obj, NO_PREP);
+         perl_mongo_sv_to_buffer(&buf, criteria, NO_PREP);
+         perl_mongo_sv_to_buffer(&buf, obj, NO_PREP);
          perl_mongo_serialize_size(buf.start, &buf);
 
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
          Safefree(buf.start);
-
-void
-read_documents(sv)
-         SV *sv
-    PREINIT:
-         buffer buf;
-    PPCODE:
-         buf.start = SvPV_nolen(sv);
-         buf.pos = buf.start;
-         buf.end = buf.start + SvCUR(sv);
-
-         while(buf.pos < buf.end) {
-           XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(&buf, "DateTime", 0, newSV(0) )));
-         }
 
 void
 force_double(input)

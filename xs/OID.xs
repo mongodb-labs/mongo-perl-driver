@@ -24,7 +24,8 @@ SV *
 _build_value (self, oid_sv=NULL)
         SV *oid_sv
     PREINIT:
-        char id[12], oid[25];
+        bson_oid_t boid;
+        char oid[25];
     CODE:
         if (oid_sv) {
           if (sv_len(oid_sv) != 24)
@@ -34,8 +35,8 @@ _build_value (self, oid_sv=NULL)
           oid[24] = '\0';
         }
         else {
-          perl_mongo_make_id(id);
-          perl_mongo_make_oid(id, oid);
+          bson_oid_init(&boid, NULL);
+          bson_oid_to_string(&boid, oid);
         }
         RETVAL = newSVpvn(oid, 24);
     OUTPUT:
