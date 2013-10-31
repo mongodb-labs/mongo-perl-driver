@@ -19,8 +19,7 @@
 
 #define PERL_GCC_BRACE_GROUPS_FORBIDDEN
 
-#include <libbson-1.0/bson.h>
-
+#include <bson.h>
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"

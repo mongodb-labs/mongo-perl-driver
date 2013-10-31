@@ -13,6 +13,8 @@ all_from 'lib/MongoDB.pm';
 
 my (@cc_lib_links, @cc_optimize_flags);
 
+push @cc_lib_links, 'bson-1.0';
+
 if ( $ENV{PERL_MONGODB_WITH_SSL} || grep { $_ eq '--ssl' } @ARGV ) {
     push @cc_lib_links, 'ssl', 'crypto';
     push @cc_optimize_flags, '-DMONGO_SSL';

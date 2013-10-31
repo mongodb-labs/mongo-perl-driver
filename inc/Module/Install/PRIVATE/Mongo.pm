@@ -7,6 +7,7 @@ package Module::Install::PRIVATE::Mongo;
 use Module::Install::Base;
 use Config;
 use File::Spec::Functions qw/catdir/;
+use Cwd; 
 
 use vars qw{$VERSION @ISA};
 BEGIN {
@@ -50,9 +51,18 @@ sub mongo {
         $self->makemaker_args( CCFLAGS => $ccflags);
     }
 
+#    # set up libbson
+#    my $cwd = getcwd;
+#    chdir './libbson';
+#    system './autogen.sh';
+#    chdir $cwd;
+
     $self->xs_files;
 
     $self->makemaker_args( INC   => '-I. ' );
+#    $self->makemaker_args( INC   => '-I. -I./libbson/bson -L./libbson/.libs -lbson' );
+#    $self->makemaker_args( DIR   => [ './libbson' ] );
+
     return;
 }
 
