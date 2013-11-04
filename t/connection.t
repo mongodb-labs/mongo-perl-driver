@@ -28,7 +28,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb';
 
-plan tests => 27;
+plan tests => 32;
 
 throws_ok {
     MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL});
@@ -140,3 +140,46 @@ SKIP: {
     }
 }
 
+# wire protocol versions
+{ 
+    # mock run_command so we can test our own isMaster responses
+    no warnings 'redefine';
+    my $server_doc = { ismaster => 1, 
+                       maxBsonObjectSize => 16777216,
+                       maxMessageSizeBytes => 48000000,
+                       ok => 1 };
+
+    my $old_method = \&MongoDB::Database::run_command;
+    local *MongoDB::Database::run_command = sub { 
+        my $self = shift;
+
+        if ( ref $_[0] eq 'HASH' && exists $_[0]{ismaster} ) { 
+            return $server_doc;
+        }
+
+        return $self->$old_method( @_ );
+    };
+
+
+    my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
+    my $test_conn1 = MongoDB::MongoClient->new( host => $host, ssl => $ENV{MONGO_SSL} );
+
+    is $test_conn1->min_wire_version, 0;
+    is $test_conn1->max_wire_version, 2;
+
+    $server_doc->{minWireVersion} = 0;
+    $server_doc->{maxWireVersion} = 2;
+
+    my $test_conn2 = MongoDB::MongoClient->new( host => $host, ssl => $ENV{MONGO_SSL} );
+
+    is $test_conn2->min_wire_version, 0;
+    is $test_conn2->max_wire_version, 2;
+
+    $server_doc->{minWireVersion} = 3;
+    $server_doc->{maxWireVersion} = 4;
+
+    throws_ok {
+        my $test_conn3 = MongoDB::MongoClient->new( host => $host, ssl => $ENV{MONGO_SSL} );
+    } qr/Incompatible wire protocol/i, 'exception on wire protocol';
+
+}
