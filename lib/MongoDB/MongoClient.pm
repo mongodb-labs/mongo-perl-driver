@@ -250,6 +250,23 @@ has inflate_dbrefs => (
     default   => 1
 );
 
+
+# attributes for keeping track of client and server wire protocol versions
+has min_wire_version => ( 
+    is        => 'ro',
+    isa       => 'Int',
+    required  => 1,
+    default   => 0
+);
+
+has max_wire_version => (
+    is        => 'ro',
+    isa       => 'Int',
+    required  => 1,
+    default   => 2
+);
+
+
 sub BUILD {
     my ($self, $opts) = @_;
     eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
@@ -295,6 +312,7 @@ sub BUILD {
         $self->_init_conn($hp[0], $hp[1], $self->ssl);
         if ($self->auto_connect) {
             $self->connect;
+            $self->_check_wire_version;
             $self->max_bson_size($self->_get_max_bson_size);
         }
         return;
@@ -318,6 +336,7 @@ sub BUILD {
         # it's okay if we can't connect, so long as someone can
         eval {
             $self->_servers->{$_}->connect;
+            $self->_servers->{$_}->_check_wire_version;
             $self->_servers->{$_}->max_bson_size($self->_servers->{$_}->_get_max_bson_size);
         };
 
@@ -817,6 +836,22 @@ sub _sasl_plain_authenticate {
 
     $self->_sasl_start( $payload, "PLAIN" );    
 } 
+
+
+sub _check_wire_version { 
+    my ( $self ) = @_;
+    # check our wire protocol version compatibility
+    
+    my $master = $self->get_database( $self->db_name )->run_command( { ismaster => 1 } );
+
+    if ( exists $master->{minWireVersion} && exists $master->{maxWireVersion} ) {
+        if (    ( $master->{minWireVersion} > $self->max_wire_version )
+             or ( $master->{maxWireVersion} < $self->min_wire_version ) ) { 
+            die "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library.";
+        }
+    }
+
+}
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
