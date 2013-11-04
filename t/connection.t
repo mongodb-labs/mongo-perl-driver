@@ -141,7 +141,8 @@ SKIP: {
 }
 
 # wire protocol versions
-{ 
+SKIP: { 
+    skip "no wire version check", 5, unless $conn->can( '_check_wire_version' );
     # mock run_command so we can test our own isMaster responses
     no warnings 'redefine';
     my $server_doc = { ismaster => 1, 
