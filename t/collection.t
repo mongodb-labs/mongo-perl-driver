@@ -32,7 +32,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb';
 
-plan tests => 298;
+plan tests => 301;
 
 my $coll;
 my $id;
@@ -757,11 +757,11 @@ SKIP: {
     $coll->drop;
 }
 
-# aggregation resultNs
+# aggregation $out
 SKIP: {
     my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
 
-     # skip aggregation resultNs tests if we're running against MongoDB < 2.5
+    # skip aggregation $out tests if we're running against MongoDB < 2.5
     unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) {
         skip "Aggregation result collections are unsupported on MongoDB $build->{version}", 41; 
     }
@@ -786,6 +786,31 @@ SKIP: {
     $coll->drop;
 }
 
+# aggregation explain
+SKIP: { 
+    my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
+
+    # skip explain tests if we're running against MongoDB < 2.5
+    unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) { 
+        skip "Aggregation explain output unsupported on MongoDB $build->{version}", 3;
+    }
+
+    for ( 1..20 ) { 
+        $coll->insert( { count => $_ } );
+    }
+    
+    my $result = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$sort' => { count => 1 } } ], 
+                                   { explain => 1 } );
+
+
+    ok $result;
+
+    is( ref( $result ), ref { } );
+    
+    ok exists $result->{serverPipeline};
+    
+    $coll->drop;
+}
 
 END {
     if ($testdb) {
