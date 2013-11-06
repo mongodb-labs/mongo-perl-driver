@@ -302,6 +302,11 @@ sub aggregate {
         $opts->{cursor} = { } unless ref $opts->{cursor} eq 'HASH';
     }
 
+    # explain requires a boolean
+    if ( exists $opts->{explain} ) { 
+        $opts->{explain} = $opts->{explain} ? true : false;
+    }
+
     my @command = ( aggregate => $self->name, pipeline => $pipeline, %$opts );
     my $result = $db->run_command( \@command );
 
@@ -325,6 +330,11 @@ sub aggregate {
 
         $cursor->_init( $result->{cursor}{id} );
         return $cursor;
+    }
+
+    # return the whole result document if they want an explain
+    if ( $opts->{explain} ) { 
+        return $result;
     }
 
     # TODO: handle errors?
@@ -749,6 +759,14 @@ is C<batchSize>, which allows you to control how frequently the cursor must go b
 database for more documents.
 
     my $cursor = $collection->aggregate( [ ... ], { cursor => { batchSize => 10 } } );
+
+=item * MongoDB 2.6+ supports an C<explain> option to aggregation queries to retrieve data
+about how the server will process a query pipeline.
+
+    my $result = $collection->aggregate( [ ... ], { explain => 1 } );
+
+In this case, C<aggregate> will return a document (not an array) containing the explanation
+structure.
 
 =item * Finally, MongoDB 2.6+ will return an empty results array if the C<$out> pipeline operator is used to 
 write aggregation results directly to a collection. Create a new C<Collection> object to 
