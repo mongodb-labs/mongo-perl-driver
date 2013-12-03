@@ -28,6 +28,9 @@ use MongoDB::Database;
 use MongoDB::Collection;
 use MongoDB::DBRef;
 use MongoDB::OID;
+use MongoDB::Timestamp;
+use MongoDB::BSON::Binary;
+use MongoDB::BSON::Regexp;
 
 XSLoader::load(__PACKAGE__, $MongoDB::VERSION);
 
