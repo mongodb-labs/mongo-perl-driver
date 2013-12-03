@@ -24,6 +24,7 @@
 #include "regcomp.h"
 
 static stackette* check_circular_ref(void *ptr, stackette *stack);
+static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
 static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
 static void serialize_regex_flags(char*, SV*);
 static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
@@ -1272,6 +1273,14 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
           serialize_binary(bson, key, BSON_SUBTYPE_BINARY, SvRV(sv));
         }
       }
+      else if (sv_isa(sv, "MongoDB::BSON::Regexp") ) { 
+        /* Abstract regexp object */
+        SV *pattern, *flags;
+        pattern = perl_mongo_call_reader( sv, "pattern" );
+        flags   = perl_mongo_call_reader( sv, "flags" );
+        
+        serialize_regex_obj( bson, key, SvPV_nolen( pattern ), SvPV_nolen( flags ) );
+      }
       else {
         croak ("type (%s) unhandled", HvNAME(SvSTASH(SvRV(sv))));
       }
@@ -1381,6 +1390,21 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
   }
 
   if (in_key != key) free((char *)key);
+}
+
+static void serialize_regex_obj(bson_t *bson, const char *key, 
+                                const char *pattern, const char *flags ) { 
+  size_t pattern_length = strlen( pattern );
+  size_t flags_length   = strlen( flags );
+
+  char *buf = malloc( pattern_length + flags_length + 2 ); /* two null bytes */
+
+  memcpy( buf[0], pattern, pattern_length );
+  buf[ pattern_length ] = '\0';
+
+  bson_append_regex(bson, key, -1, buf, flags);
+
+  free(buf);
 }
 
 static void serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
