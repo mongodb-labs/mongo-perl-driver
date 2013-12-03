@@ -35,7 +35,7 @@ sub BUILD {
             die "Regexp flag $f is not supported by MongoDB" if not exists $ALLOWED_FLAGS{$f};
         }
 
-        $self->_set_flags( join '', @flags );
+        $self->_set_flags( join '', sort @flags );
     }
 }
 
