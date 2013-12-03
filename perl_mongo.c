@@ -1397,13 +1397,10 @@ static void serialize_regex_obj(bson_t *bson, const char *key,
   size_t pattern_length = strlen( pattern );
   size_t flags_length   = strlen( flags );
 
-  char *buf = malloc( pattern_length + flags_length + 2 ); /* two null bytes */
-
-  memcpy( buf[0], pattern, pattern_length );
+  char *buf = malloc( pattern_length + 1 ); 
+  memcpy( buf, pattern, pattern_length );
   buf[ pattern_length ] = '\0';
-
   bson_append_regex(bson, key, -1, buf, flags);
-
   free(buf);
 }
 
