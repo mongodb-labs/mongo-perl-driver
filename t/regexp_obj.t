@@ -25,7 +25,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb';
 
-plan tests => 4;
+plan tests => 9;
 
 {
     my $regexp = MongoDB::BSON::Regexp->new( pattern => 'foo*bar' );
@@ -43,5 +43,21 @@ throws_ok {
 } qr/Regexp flag \w is not supported/, 'exception on invalid flag';
 
 
+{
+    $conn->inflate_regexps( 1 );
 
-    
+    $conn->get_database( "test_database" )->get_collection( "test_collection" )->insert( {
+        _id => 'spl0rt',
+        foo => MongoDB::BSON::Regexp->new( pattern => 'foo.+bar', flags => 'ims' ) } 
+    );
+
+    my $doc = $conn->get_database( "test_database" )->get_collection( "test_collection" )->find_one( { _id => 'spl0rt' } );
+    ok $doc->{foo};
+    ok ref $doc->{foo};
+    isa_ok $doc->{foo}, 'MongoDB::BSON::Regexp';
+
+    is $doc->{foo}->pattern, 'foo.+bar';
+    is $doc->{foo}->flags, 'ims';
+
+    $conn->get_database( "test_database" )->drop;
+}
