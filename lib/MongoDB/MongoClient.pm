@@ -23,6 +23,7 @@ use Moose::Util::TypeConstraints;
 use MongoDB;
 use MongoDB::Cursor;
 use MongoDB::BSON::Binary;
+use MongoDB::BSON::Regexp;
 use Digest::MD5;
 use Tie::IxHash;
 use Carp 'carp', 'croak';

@@ -499,12 +499,11 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
 
     if ( inflate_regexps ) { 
       /* make a MongoDB::BSON::Regexp object instead of a native Perl regexp. */
-      
-      value = perl_mongo_call_function( "MongoDB::BSON::Regexp::new", 5, class_str,
-                                        newSVpvs("pattern"),
-                                        pattern,
-                                        newSVpvs("flags"),
-                                        options );
+      value = perl_mongo_call_method( class_str, "new", 0, 4,
+                                      sv_2mortal( newSVpvs("pattern") ),
+                                      pattern,
+                                      sv_2mortal( newSVpvs("flags") ),
+                                      sv_2mortal( newSVpv( options, 0 ) ) );
 
       break;   /* exit case */
     }
