@@ -250,6 +250,12 @@ has inflate_dbrefs => (
     default   => 1
 );
 
+has inflate_regexps => ( 
+    is        => 'rw',
+    isa       => 'Bool',
+    required  => 0,
+    default   => 0,
+);
 
 # attributes for keeping track of client and server wire protocol versions
 has min_wire_version => ( 
@@ -1132,6 +1138,10 @@ rather than an object.
 Controls whether L<DBRef|http://docs.mongodb.org/manual/applications/database-references/#dbref>s 
 are automatically inflated into L<MongoDB::DBRef> objects. Defaults to true.
 Set this to C<0> if you don't want to auto-inflate them.
+
+=attr inflate_regexps
+
+Controls whether regular expressions stored in MongoDB are inflated into L<MongoDB::BSON::Regexp> objects instead of native Perl Regexps. The default is false. This can be dangerous, since the JavaScript regexps used internally by MongoDB are of a different dialect than Perl's. The default for this attribute may become true in future versions of the driver. 
 
 =method connect
 
