@@ -543,6 +543,11 @@ sub _inflate_dbrefs {
     return $self->_client->inflate_dbrefs;
 }
 
+sub _inflate_regexps { 
+    my $self = shift;
+    return $self->_client->inflate_regexps;
+}
+
 
 =head2 reset
 
