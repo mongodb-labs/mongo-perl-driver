@@ -159,8 +159,8 @@ SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
 
 // serialization
-SV *perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, SV * client);
-SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, SV *client );
+SV *perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, int inflate_regexps, SV * client);
+SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, AV *ids);
 void perl_mongo_sv_to_buffer(buffer * buf, SV *sv, AV *ids);
 

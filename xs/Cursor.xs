@@ -248,6 +248,7 @@ next (self)
         mongo_cursor *cursor;
         SV *dt_type_sv;
         SV *inflate_dbrefs_sv;
+        SV *inflate_regexps_sv;
         SV *client_sv;
         SV *agg_batch_size_sv;
         AV *agg_batch;
@@ -257,11 +258,13 @@ next (self)
         if (has_next(self, cursor)) {
           dt_type_sv          = perl_mongo_call_reader( self, "_dt_type" );
           inflate_dbrefs_sv   = perl_mongo_call_reader( self, "_inflate_dbrefs" );
+          inflate_regexps_sv  = perl_mongo_call_reader( self, "_inflate_regexps" );
           client_sv           = perl_mongo_call_reader( self, "_client" );
           agg_batch_size_sv   = perl_mongo_call_reader( self, "_agg_batch_size" );
 
           char *dt_type       = SvOK( dt_type_sv ) ? SvPV( dt_type_sv, SvLEN( dt_type_sv ) ) : NULL;
-          int inflate_dbrefs = SvIV( inflate_dbrefs_sv );          
+          int inflate_dbrefs  = SvIV( inflate_dbrefs_sv );
+          int inflate_regexps = SvIV( inflate_regexps_sv );
           int agg_batch_size  = SvIV( agg_batch_size_sv );
 
           if ( agg_batch_size > 0 ) { 
@@ -272,7 +275,7 @@ next (self)
             SvREFCNT_dec(agg_batch);
             RETVAL = agg_doc;
           } else { 
-            RETVAL = perl_mongo_buffer_to_sv( &cursor->buf, dt_type, inflate_dbrefs, client_sv );
+            RETVAL = perl_mongo_buffer_to_sv( &cursor->buf, dt_type, inflate_dbrefs, inflate_regexps, client_sv );
           }
 
           cursor->at++;
@@ -291,6 +294,7 @@ next (self)
           
             SvREFCNT_dec(dt_type_sv);
             SvREFCNT_dec(inflate_dbrefs_sv);
+            SvREFCNT_dec(inflate_regexps_sv);
             SvREFCNT_dec(client_sv);
             SvREFCNT_dec(agg_batch_size_sv);
             croak("query error: %s", SvPV_nolen(*err));
@@ -298,6 +302,7 @@ next (self)
   
           SvREFCNT_dec(dt_type_sv);
           SvREFCNT_dec(inflate_dbrefs_sv);
+          SvREFCNT_dec(inflate_regexps_sv);
           SvREFCNT_dec(client_sv);
           SvREFCNT_dec(agg_batch_size_sv);
         } else {

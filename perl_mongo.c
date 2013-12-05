@@ -30,7 +30,7 @@ static void serialize_regex_flags(char*, SV*);
 static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void containsNullChar(const char* str, int len);
-static SV *bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *client);
+static SV *bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
 
 #ifdef USE_ITHREADS
 static perl_mutex inc_mutex;
@@ -294,7 +294,7 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *
   return ret;
 }
 
-static SV *bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *client );
+static SV *bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 
 static SV *
 oid_to_sv (const bson_iter_t * iter)
@@ -313,7 +313,7 @@ oid_to_sv (const bson_iter_t * iter)
 }
 
 static SV *
-elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *client )
+elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client )
 {
   SV *value = 0;
 
@@ -351,7 +351,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *cli
     bson_iter_t child;
     bson_iter_recurse(iter, &child);
 
-    value = bson_to_sv(&child, dt_type, inflate_dbrefs, client );
+    value = bson_to_sv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
 
     break;
   }
@@ -359,7 +359,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *cli
     bson_iter_t child;
     bson_iter_recurse(iter, &child);
 
-    value = bson_to_av(&child, dt_type, inflate_dbrefs, client );
+    value = bson_to_av(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
 
     break;
   }
@@ -478,6 +478,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *cli
     break;
   }
   case BSON_TYPE_REGEX: {
+    SV *class_str = sv_2mortal(newSVpv("MongoDB::BSON::Regexp", 0));
     SV *pattern, *regex_ref;
     const char * regex_str;
     const char * options;
@@ -495,6 +496,19 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *cli
     regex_str = bson_iter_regex(iter, &options);
 
     pattern = sv_2mortal(newSVpv(regex_str, 0));
+
+    if ( inflate_regexps ) { 
+      /* make a MongoDB::BSON::Regexp object instead of a native Perl regexp. */
+      
+      value = perl_mongo_call_function( "MongoDB::BSON::Regexp::new", 5, class_str,
+                                        newSVpvs("pattern"),
+                                        pattern,
+                                        newSVpvs("flags"),
+                                        options );
+
+      break;   /* exit case */
+    }
+
 
     while(*options != 0) {
       switch(*options) {
@@ -576,7 +590,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *cli
     bson_init_static(&bson, scope, scope_len);
     bson_iter_init(&child, &bson);
 
-    SV * scope_sv = bson_to_sv(&child, dt_type, inflate_dbrefs, client );
+    SV * scope_sv = bson_to_sv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
     value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
 
     break;
@@ -612,7 +626,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *cli
 }
 
 static SV *
-bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *client )
+bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client )
 {
   AV *ret = newAV ();
 
@@ -620,7 +634,7 @@ bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *client )
     SV *sv;
 
     // get value
-    if ((sv = elem_to_sv (iter, dt_type, inflate_dbrefs, client ))) {
+    if ((sv = elem_to_sv (iter, dt_type, inflate_dbrefs, inflate_regexps, client ))) {
       av_push (ret, sv);
     }
   }
@@ -629,7 +643,7 @@ bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *client )
 }
 
 SV *
-perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, SV * client)
+perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, int inflate_regexps, SV * client)
 {
   bson_reader_t * reader;
   const bson_t * bson;
@@ -639,7 +653,7 @@ perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, SV 
   reader = bson_reader_new_from_data((bson_uint8_t *)buffer->pos, buffer->end - buffer->pos);
   bson = bson_reader_read(reader, &reached_eof);
 
-  sv = perl_mongo_bson_to_sv(bson, dt_type, inflate_dbrefs, client);
+  sv = perl_mongo_bson_to_sv(bson, dt_type, inflate_dbrefs, inflate_regexps, client);
 
   buffer->pos += bson_reader_tell(reader);
 
@@ -649,7 +663,7 @@ perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, SV 
 }
 
 SV *
-perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, SV *client )
+perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client )
 {
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
@@ -657,11 +671,11 @@ perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, S
   bson_iter_t iter;
   bson_iter_init(&iter, bson);
 
-  return bson_to_sv(&iter, dt_type, inflate_dbrefs, client);
+  return bson_to_sv(&iter, dt_type, inflate_dbrefs, inflate_regexps, client);
 }
 
 static SV *
-bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *client )
+bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client )
 {
   HV *ret = newHV();
 
@@ -683,7 +697,7 @@ bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, SV *client )
     // get past field name
 
     // get value
-    value = elem_to_sv(iter, dt_type, inflate_dbrefs, client );
+    value = elem_to_sv(iter, dt_type, inflate_dbrefs, inflate_regexps, client );
     if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
     	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
      	 croak ("failed storing value in hash");

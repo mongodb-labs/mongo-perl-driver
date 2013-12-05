@@ -39,7 +39,7 @@ decode_bson(sv)
         reader = bson_reader_new_from_data((bson_uint8_t *)data, length);
 
         while ((bson = bson_reader_read(reader, &reached_eof))) {
-            XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, "DateTime", 1, newSV(0))));
+          XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, "DateTime", 1, newSV(0), newSV(0))));
         }
 
         bson_reader_destroy(reader);
