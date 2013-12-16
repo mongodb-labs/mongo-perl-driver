@@ -141,15 +141,18 @@ void perl_mongo_connect(SV *client, mongo_link* link) {
   link->sender = non_ssl_send;
   link->receiver = non_ssl_recv;
 
-  IV sasl_flag = SvIV( perl_mongo_call_method( client, "sasl", 0, 0 ) );
+  SV* sasl_flag = perl_mongo_call_method( client, "sasl", 0, 0 );
 
-  if ( sasl_flag == 1 ) { 
+  if ( SvIV(sasl_flag) == 1 ) { 
 #ifdef MONGO_SASL
       sasl_authenticate( client, link );
 #else
       croak( "MongoDB: sasl => 1 specified, but this driver was not compiled with SASL support\n" );
 #endif
   }
+  
+  SvREFCNT_dec(sasl_flag);
+  
 }
 
 /*
