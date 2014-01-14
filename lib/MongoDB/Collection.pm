@@ -305,19 +305,6 @@ sub aggregate {
     my @command = ( aggregate => $self->name, pipeline => $pipeline, %$opts );
     my $result = $db->run_command( \@command );
 
-    # if the server responded with an outputNs (e.g. because we sent a $out
-    # operator), then return a Collection for it.
-    if ( exists $result->{outputNs} ) { 
-        my $ns = $result->{outputNs};
-        $ns =~ s{^\w+\.}{};
-        my $coll = MongoDB::Collection->new(
-            _database    => $self->_database,      # $out always goes to the same DB
-            name         => $ns
-        );
-
-        return $coll;
-    }
-
     # if we got a cursor option then we need to construct a wonky cursor
     # object on our end and populate it with the first batch, since 
     # commands can't actually return cursors. 
@@ -763,9 +750,9 @@ database for more documents.
 
     my $cursor = $collection->aggregate( [ ... ], { cursor => { batchSize => 10 } } );
 
-=item * Finally, MongoDB 2.6+ will not return any results if the C<$out> pipeline operator is used to 
-write aggregation results directly to a collection. Instead, C<aggregate> will return a 
-L<MongoDB::Collection> object for the collection in question.
+=item * Finally, MongoDB 2.6+ will return an empty results array if the C<$out> pipeline operator is used to 
+write aggregation results directly to a collection. Create a new C<Collection> object to 
+query the result collection.
 
 =back
 
