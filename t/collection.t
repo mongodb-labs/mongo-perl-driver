@@ -761,7 +761,7 @@ SKIP: {
 SKIP: {
     my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
 
-    # skip aggregation resultNs tests if we're running against MongoDB < 2.5
+     # skip aggregation resultNs tests if we're running against MongoDB < 2.5
     unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) {
         skip "Aggregation result collections are unsupported on MongoDB $build->{version}", 41; 
     }
@@ -770,9 +770,10 @@ SKIP: {
         $coll->insert( { count => $_ } );
     }
 
-    my $res_coll = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$out' => 'test_out' } ] );
+    my $result = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$out' => 'test_out' } ] );
 
-    isa_ok $res_coll, 'MongoDB::Collection';
+    ok $result;
+    my $res_coll = $testdb->get_collection( 'test_out' );
     my $cursor = $res_coll->find;
 
     for( 1..20 ) {
@@ -784,6 +785,7 @@ SKIP: {
     $res_coll->drop;
     $coll->drop;
 }
+
 
 END {
     if ($testdb) {
