@@ -110,11 +110,14 @@ sub run_command {
 
 
 sub eval {
-    my ($self, $code, $args) = @_;
+    my ($self, $code, $args, $nolock) = @_;
+
+    $nolock = boolean::false unless defined $nolock;
 
     my $cmd = tie(my %hash, 'Tie::IxHash');
     %hash = ('$eval' => $code,
-             'args' => $args);
+             'args' => $args
+             'nolock' => $nolock);
 
     my $result = $self->run_command($cmd);
     if (ref $result eq 'HASH' && exists $result->{'retval'}) {
@@ -317,18 +320,21 @@ L<MongoDB::Examples/"DATABASE COMMANDS"> section.
 See also core documentation on database commands:
 L<http://dochub.mongodb.org/core/commands>.
 
-=head2 eval ($code, $args?)
+=head2 eval ($code, $args?, $nolock?)
 
     my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
 
 Evaluate a JavaScript expression on the Mongo server. The C<$code> argument can
 be a string or an instance of L<MongoDB::Code>.  The C<$args> are an optional
-array of arguments to be passed to the C<$code> function.
+array of arguments to be passed to the C<$code> function.  C<$nolock> (default
+C<false>) prevents the eval command from taking the global write lock before
+evaluating the JavaScript.
 
 C<eval> is useful if you need to touch a lot of data lightly; in such a scenario
 the network transfer of the data could be a bottleneck. The C<$code> argument
 must be a JavaScript function. C<$args> is an array of parameters that will be
-passed to the function.  For more examples of using eval see
+passed to the function.  C<$nolock> is a L<boolean> value.  For more examples of
+using eval see
 L<http://www.mongodb.org/display/DOCS/Server-side+Code+Execution#Server-sideCodeExecution-Using{{db.eval%28%29}}>.
 
 
