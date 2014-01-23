@@ -116,7 +116,7 @@ sub eval {
 
     my $cmd = tie(my %hash, 'Tie::IxHash');
     %hash = ('$eval' => $code,
-             'args' => $args
+             'args' => $args,
              'nolock' => $nolock);
 
     my $result = $self->run_command($cmd);
