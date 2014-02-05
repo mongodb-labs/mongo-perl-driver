@@ -273,6 +273,12 @@ has max_wire_version => (
     default   => 2
 );
 
+has _use_write_cmd => ( 
+    is        => 'ro',
+    isa       => 'Bool',
+    required  => 1,
+    lazy_build => 1
+);
 
 sub BUILD {
     my ($self, $opts) = @_;
@@ -291,6 +297,7 @@ sub BUILD {
                 (?: [?] (.*) )? # [?options]
             )?
             $ }x ) {
+
         my ($username, $password, $hostpairs, $database, $options) = ($1, $2, $3, $4, $5);
 
         # we add these things to $opts as well as self so that they get propagated when we recurse for multiple servers
@@ -377,6 +384,16 @@ sub BUILD {
 
     # create a struct that just points to the master's connection
     $self->_init_conn_holder($master);
+}
+
+sub _build__use_write_cmd { 
+    my $self = shift;
+    
+    # find out if we support write commands
+    my $result = $self->get_database( "test" )->run_command( { insert => "test", documents => [ ] } );
+    
+    return 1 if ref $result && $result->{ok} == 1;
+    return 0;
 }
 
 sub _get_max_bson_size {

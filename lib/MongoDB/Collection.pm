@@ -24,6 +24,7 @@ use Tie::IxHash;
 use Moose;
 use Carp 'carp';
 use boolean;
+use Devel::Size 'total_size';
 
 has _database => (
     is       => 'ro',
@@ -192,9 +193,50 @@ sub find_one {
     return $self->find($query)->limit(-1)->fields($fields)->next;
 }
 
+sub _split_batch { 
+    my ( $self, $docs ) = @_;
+
+    # this will give us a rather inflated size as compared to the BSON
+    # serialized version of the structure, so we'll use it as a rather
+    # liberal estimate of when to split the batch.
+    my $size = total_size $docs;
+    return $docs if $size < 16_777_216;
+
+    my ( @left, @right );
+    @left  = @{$docs}[ 0                     .. int( @$docs / 2 ) - 1];
+    @right = @{$docs}[ int( @$docs / 2 )     .. $#docs               ]; 
+
+    return ( total_size \@left  < 16_777_216 ? \@left  : $self->_split_batch( \@left ),
+             total_size \@right < 16_777_216 ? \@right : $self->_split_batch( \@right ) );
+}
+
+sub insert_cmd { 
+    my ( $self, $object, $options ) = @_;
+
+    if ( ref $object ne ref [ ] ) { 
+        $object = [ $object ];
+    }
+
+    my @inserts = @$object > 1 ? $self->_split_batch( $object ) : ( $object );
+
+    my %total_results = ( ok => 1, n => 0 );
+    foreach my $ins( @inserts ) { 
+        my $result = $self->_database->get_collection( '$cmd' )->find_one( { insert => $self->name, documents => $ins } );
+        $total_results{n} += $result->{n};
+
+        if ( $result->{ok} != 0 ) { 
+            push @{ $total_results{writeErrors} }, @{ $result->{writeErrors} } if exists $results->{writeErrors};
+            # tbd writeconcern errors
+        }
+    }
+
+    return \%total_results;
+}
 
 sub insert {
     my ($self, $object, $options) = @_;
+    $self->insert_cmd( $object, $options ) if $self->_database->_client->_use_write_cmd;
+    
     my ($id) = $self->batch_insert([$object], $options);
 
     return $id;
@@ -203,6 +245,8 @@ sub insert {
 
 sub batch_insert {
     my ($self, $object, $options) = @_;
+    $self->insert_cmd( $object, $options ) if $self->_database->_client->_use_write_cmd;
+
     confess 'not an array reference' unless ref $object eq 'ARRAY';
 
     my $add_ids = 1;
@@ -236,7 +280,8 @@ sub batch_insert {
 
 sub update {
     my ($self, $query, $object, $opts) = @_;
-
+    $self->update_cmd( $query, $object, $opts ) if $self->_database->_client->_use_write_cmd;
+    
     # there used to be one option: upsert=0/1
     # now there are two, there will probably be
     # more in the future.  So, to support old code,
@@ -365,6 +410,7 @@ sub rename {
 
 sub remove {
     my ($self, $query, $options) = @_;
+    $self->delete_cmd( $query, $options ) if $self->_database->_client->_use_write_cmd;
 
     my $conn = $self->_database->_client;
 
