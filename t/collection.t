@@ -807,7 +807,7 @@ SKIP: {
 
     is( ref( $result ), ref { } );
     
-    ok exists $result->{serverPipeline};
+    ok exists $result->{stages};
     
     $coll->drop;
 }
