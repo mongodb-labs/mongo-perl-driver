@@ -204,7 +204,7 @@ sub _split_batch {
 
     my ( @left, @right );
     @left  = @{$docs}[ 0                     .. int( @$docs / 2 ) - 1];
-    @right = @{$docs}[ int( @$docs / 2 )     .. $#docs               ]; 
+    @right = @{$docs}[ int( @$docs / 2 )     .. $#$docs               ]; 
 
     return ( total_size \@left  < 16_777_216 ? \@left  : $self->_split_batch( \@left ),
              total_size \@right < 16_777_216 ? \@right : $self->_split_batch( \@right ) );
@@ -225,7 +225,7 @@ sub insert_cmd {
         $total_results{n} += $result->{n};
 
         if ( $result->{ok} != 0 ) { 
-            push @{ $total_results{writeErrors} }, @{ $result->{writeErrors} } if exists $results->{writeErrors};
+            push @{ $total_results{writeErrors} }, @{ $result->{writeErrors} } if exists $result->{writeErrors};
             # tbd writeconcern errors
         }
     }
