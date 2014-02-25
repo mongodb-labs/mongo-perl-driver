@@ -213,7 +213,7 @@ $testdb->drop;
         $aok = 0;
     };
 
-    ok($@ =~ m/bad hint/);
+    ok($@ =~ m/query error/);
 }
 
 # slave_okay
