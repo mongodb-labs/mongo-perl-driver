@@ -62,7 +62,7 @@ has '_updates' => (
     isa      => 'ArrayRef[HashRef]',
     default  => sub { [ ] },
     traits   => [ 'Array' ]
-)
+);
 
 has '_removes' => ( 
     is       => 'rw',

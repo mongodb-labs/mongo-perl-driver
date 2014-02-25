@@ -210,32 +210,10 @@ sub _split_batch {
              total_size \@right < 16_777_216 ? \@right : $self->_split_batch( \@right ) );
 }
 
-sub insert_cmd { 
-    my ( $self, $object, $options ) = @_;
-
-    if ( ref $object ne ref [ ] ) { 
-        $object = [ $object ];
-    }
-
-    my @inserts = @$object > 1 ? $self->_split_batch( $object ) : ( $object );
-
-    my %total_results = ( ok => 1, n => 0 );
-    foreach my $ins( @inserts ) { 
-        my $result = $self->_database->get_collection( '$cmd' )->find_one( { insert => $self->name, documents => $ins } );
-        $total_results{n} += $result->{n};
-
-        if ( $result->{ok} != 0 ) { 
-            push @{ $total_results{writeErrors} }, @{ $result->{writeErrors} } if exists $result->{writeErrors};
-            # tbd writeconcern errors
-        }
-    }
-
-    return \%total_results;
-}
 
 sub insert {
     my ($self, $object, $options) = @_;
-    $self->insert_cmd( $object, $options ) if $self->_database->_client->_use_write_cmd;
+    #$self->insert_cmd( $object, $options ) if $self->_database->_client->_use_write_cmd;
     
     my ($id) = $self->batch_insert([$object], $options);
 
@@ -245,7 +223,7 @@ sub insert {
 
 sub batch_insert {
     my ($self, $object, $options) = @_;
-    $self->insert_cmd( $object, $options ) if $self->_database->_client->_use_write_cmd;
+    #$self->insert_cmd( $object, $options ) if $self->_database->_client->_use_write_cmd;
 
     confess 'not an array reference' unless ref $object eq 'ARRAY';
 
@@ -280,7 +258,7 @@ sub batch_insert {
 
 sub update {
     my ($self, $query, $object, $opts) = @_;
-    $self->update_cmd( $query, $object, $opts ) if $self->_database->_client->_use_write_cmd;
+    #$self->update_cmd( $query, $object, $opts ) if $self->_database->_client->_use_write_cmd;
     
     # there used to be one option: upsert=0/1
     # now there are two, there will probably be
@@ -410,7 +388,7 @@ sub rename {
 
 sub remove {
     my ($self, $query, $options) = @_;
-    $self->delete_cmd( $query, $options ) if $self->_database->_client->_use_write_cmd;
+    #$self->delete_cmd( $query, $options ) if $self->_database->_client->_use_write_cmd;
 
     my $conn = $self->_database->_client;
 
