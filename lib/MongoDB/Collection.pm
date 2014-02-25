@@ -606,7 +606,11 @@ sub drop {
     return;
 }
 
+sub bulk { 
+    my ( $self, %args ) = @_;
 
+    return MongoDB::Bulk->new( %args, collection => $self );
+}
 
 __PACKAGE__->meta->make_immutable;
 
