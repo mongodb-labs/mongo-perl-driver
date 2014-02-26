@@ -54,21 +54,47 @@ has '_inserts' => (
     is       => 'rw',
     isa      => 'ArrayRef[HashRef]',
     default  => sub { [ ] },
-    traits   => [ 'Array' ]
+    traits   => [ 'Array' ],
+    handles  => { 
+        _add_insert    => 'push',
+        _all_inserts   => 'elements',
+        _num_inserts   => 'count',
+        _get_insert    => 'get',
+        _shf_insert    => 'shift',
+        _pop_insert    => 'pop',
+    }
 );
 
 has '_updates' => ( 
     is       => 'rw',
     isa      => 'ArrayRef[HashRef]',
     default  => sub { [ ] },
-    traits   => [ 'Array' ]
+    traits   => [ 'Array' ],
+    handles  => { 
+        _add_update    => 'push',
+        _all_updates   => 'elements',
+        _num_updates   => 'count',
+        _get_update    => 'get',
+        _shf_update    => 'shift',
+        _pop_update    => 'pop',
+    }
+
 );
 
 has '_removes' => ( 
     is       => 'rw',
     isa      => 'ArrayRef[HashRef]',
     default  => sub { [ ] },
-    traits   => [ 'Array' ]
+    traits   => [ 'Array' ],
+    handles  => { 
+        _add_remove    => 'push',
+        _all_removes   => 'elements',
+        _num_removes   => 'count',
+        _get_remove    => 'get',
+        _shf_remove    => 'shift',
+        _pop_remove    => 'pop',
+    }
+
 );
 
 
@@ -79,12 +105,14 @@ sub find {
       unless ref $selector && reftype $selector eq reftype { };
 
     $self->_current_selector( { query => $selector, upsert => false } );
+
+    return $self;
 }
 
 
 sub insert { 
     my ( $self, $doc ) = @_;
-    $self->_inserts->push( $doc );
+    $self->_add_insert( $doc );
     return $self;
 }
 
@@ -94,12 +122,12 @@ sub update {
     die "update requires a replacement document."
       unless ref $update_doc && reftype $update_doc eq reftype { };
 
-    $multi ||= false;
+    $multi = defined $multi ? $multi : true;
 
-    $self->_updates->push( { q      => $self->_current_selector->{query}, 
-                             u      => $update_doc,
-                             upsert => $self->_current_selector->{upsert},
-                             multi  => $multi } );
+    $self->_add_update( { q      => $self->_current_selector->{query}, 
+                          u      => $update_doc,
+                          upsert => $self->_current_selector->{upsert},
+                          multi  => $multi } );
 
     return $self;
 }
@@ -125,8 +153,8 @@ sub remove {
     # limit of zero means unlimited
     $limit = defined $limit ? $limit : 0;
 
-    $self->_removes->push( { q     => $self->_current_selector->{query},
-                             limit => $limit } );
+    $self->_add_remove( { q     => $self->_current_selector->{query},
+                          limit => $limit } );
 
     return $self;
 }
