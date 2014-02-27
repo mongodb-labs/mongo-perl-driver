@@ -223,11 +223,19 @@ C<w> copies cannot be made.
 
 =item fsync
 
-If true, the database will fsync to disk before returning.
+If true, behaves identically to C<j> if journaling has been turned on for C<mongod>. 
+
+If C<mongod> is not running with journaling, then this option requests that writes be 
+immediately C<sync>ed to disk if true.
+
+This option can not be used simultaneously with the C<j> flag.
 
 =item j
 
-If true, awaits the journal commit before returning. If the server is running without journaling, it returns immediately, and successfully.
+If true, the client will block until write operations have been committed to the
+server's journal. Prior to MongoDB 2.6, this option was ignored if the server was 
+running without journaling. Starting with MongoDB 2.6, write operations will fail 
+if this option is used when the server is running without journaling.
 
 =back
 
