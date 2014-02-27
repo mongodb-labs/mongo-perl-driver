@@ -985,9 +985,10 @@ See C<w> above for more information.
 
 =attr j
 
-If true, awaits the journal commit before returning. If the server is running without 
-journaling, it returns immediately, and successfully.
-
+If true, the client will block until write operations have been committed to the
+server's journal. Prior to MongoDB 2.6, this option was ignored if the server was 
+running without journaling. Starting with MongoDB 2.6, write operations will fail 
+if this option is used when the server is running without journaling.
 
 =attr auto_reconnect
 
