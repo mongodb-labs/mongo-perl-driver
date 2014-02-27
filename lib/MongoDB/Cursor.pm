@@ -142,7 +142,6 @@ has _tailable => (
 
 
 
-
 =head2 immortal
 
     $cursor->immortal(1);
@@ -240,6 +239,7 @@ has _agg_batch_size => (
 =head1 METHODS
 
 =cut
+
 
 sub _ensure_special {
     my ($self) = @_;
@@ -360,6 +360,26 @@ sub limit {
     return $self;
 }
 
+
+=head2 max_time_ms( $millis )
+
+    $cursor = $coll->query->max_time_ms( 500 );
+
+Causes the server to abort the operation if the specified time in 
+milliseconds is exceeded. 
+
+=cut
+
+sub max_time_ms { 
+    my ( $self, $num ) = @_;
+    confess "can not set max_time_ms after querying"
+      if $self->started_iterating;
+
+    $self->_ensure_special;
+    $self->_query->{'$maxTimeMS'} = $num;
+    return $self;
+
+}
 
 =head2 tailable ($bool)
 
