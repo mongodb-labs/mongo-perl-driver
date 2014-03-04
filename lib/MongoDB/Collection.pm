@@ -464,9 +464,19 @@ sub ensure_index {
 
     my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
 
-    my $indexes = $self->_database->get_collection("system.indexes");
-    return $indexes->insert($obj, $options);
-}
+    # try the new createIndexes command (mongodb 2.6), falling back to the old insert
+    # method if createIndexes is not available.
+    my $res = $self->_database->get_collection( '$cmd' )->find_one( { createIndexes => $obj } );
+    return $res if $res->{ok};
+
+    if ( ( not $res->{ok} )  && 
+         ( not exists $res->{code} or $res->{code} == 59 ) ) { 
+        my $indexes = $self->_database->get_collection("system.indexes");
+        return $indexes->insert($obj, $options);
+    } else { 
+        die "error creating index: " . $res->{errmsg};
+    }
+} 
 
 
 sub _make_safe {
