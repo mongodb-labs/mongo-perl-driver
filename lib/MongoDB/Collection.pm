@@ -211,11 +211,16 @@ sub _split_batch {
 }
 
 
-sub insert {
+sub insert { 
+    my $self = shift;
+    my ( $object, $options ) = @_;
+    $self->legacy_insert( @_ );
+}
+
+sub legacy_insert {
     my ($self, $object, $options) = @_;
-    #$self->insert_cmd( $object, $options ) if $self->_database->_client->_use_write_cmd;
     
-    my ($id) = $self->batch_insert([$object], $options);
+    my ($id) = $self->batch_insert( [ $object ], $options);
 
     return $id;
 }
@@ -223,7 +228,6 @@ sub insert {
 
 sub batch_insert {
     my ($self, $object, $options) = @_;
-    #$self->insert_cmd( $object, $options ) if $self->_database->_client->_use_write_cmd;
 
     confess 'not an array reference' unless ref $object eq 'ARRAY';
 
@@ -255,8 +259,14 @@ sub batch_insert {
     return $ids ? @$ids : $ids;
 }
 
+sub update { 
+    my $self = shift;
+    my ( $query, $object, $opts ) = @_;
 
-sub update {
+    return $self->legacy_update( @_ );
+}
+
+sub legacy_update {
     my ($self, $query, $object, $opts) = @_;
     #$self->update_cmd( $query, $object, $opts ) if $self->_database->_client->_use_write_cmd;
     
@@ -386,7 +396,13 @@ sub rename {
 }
 
 
-sub remove {
+sub remove { 
+    my $self = shift;
+    my ( $query, $options ) = @_;
+    $self->legacy_remove( @_ );
+}
+
+sub legacy_remove {
     my ($self, $query, $options) = @_;
     #$self->delete_cmd( $query, $options ) if $self->_database->_client->_use_write_cmd;
 
