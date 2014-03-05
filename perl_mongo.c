@@ -979,7 +979,7 @@ static void containsNullChar(const char* str, int len) {
     croak("key contains null char");
 }
 
-#ifdef WIN32
+ #if defined(WIN32) || defined(sun)
 
 /* 
  * Some C libraries (e.g. MSVCRT) do not have a "timegm" function.
