@@ -47,20 +47,6 @@ around 'new' => sub {
 
 
 
-sub AUTOLOAD {
-    my $self = shift @_;
-    our $AUTOLOAD;
-
-    my $db = $AUTOLOAD;
-    $db =~ s/.*:://;
-
-    carp sprintf q{AUTOLOADed database method names are deprecated and will be removed in a future release. Use $client->get_database( '%s' ) instead.}, $db;
-
-    return $self->get_database($db);
-}
-
-
-
 __PACKAGE__->meta->make_immutable ( inline_destructor => 0, inline_constructor => 0 );
 
 1;

@@ -36,19 +36,6 @@ has name => (
 );
 
 
-sub AUTOLOAD {
-    my $self = shift @_;
-    our $AUTOLOAD;
-
-    my $coll = $AUTOLOAD;
-    $coll =~ s/.*:://;
-
-    carp sprintf q{AUTOLOADed collection method names are deprecated and will be removed in a future release. Use $db->get_collection( '%s' ) instead.}, $coll;
-
-    return $self->get_collection($coll);
-}
-
-
 sub collection_names {
     my ($self) = @_;
     my $it = $self->get_collection('system.namespaces')->query({});

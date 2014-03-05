@@ -54,19 +54,6 @@ sub _build_full_name {
 }
 
 
-sub AUTOLOAD {
-    my $self = shift @_;
-    our $AUTOLOAD;
-
-    my $coll = $AUTOLOAD;
-    $coll =~ s/.*:://;
-
-    carp sprintf q{AUTOLOADed collection method names are deprecated and will be removed in a future release. Use $collection->get_collection( '%s' ) instead.}, $coll;
-
-    return $self->get_collection($coll);
-}
-
-
 sub get_collection {
     my $self = shift @_;
     my $coll = shift @_;
