@@ -331,7 +331,7 @@ automatically hashed before sending over the wire, unless C<$is_digest> is
 true, which will assume you already did the hashing on yourself.
 
 See also the core documentation on authentication:
-L<http://dochub.mongodb.org/core/authentication>.
+L<http://docs.mongodb.org/manual/core/access-control/>.
 
 
 =head2 send($str)
