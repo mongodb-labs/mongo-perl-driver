@@ -329,7 +329,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
   case BSON_TYPE_SYMBOL:
   case BSON_TYPE_UTF8: {
     const char * str;
-    bson_uint32_t len;
+    uint32_t len;
 
     if (bson_iter_type(iter) == BSON_TYPE_SYMBOL) {
       str = bson_iter_symbol(iter, &len);
@@ -365,9 +365,9 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
   }
   case BSON_TYPE_BINARY: {
     const char * const buf;
-    bson_uint32_t len;
+    uint32_t len;
     bson_subtype_t type;
-    bson_iter_binary(iter, &type, &len, (const bson_uint8_t **)&buf);
+    bson_iter_binary(iter, &type, &len, (const uint8_t **)&buf);
 
     if (use_binary && SvTRUE(use_binary)) {
       SV *data = sv_2mortal(newSVpvn(buf, len));
@@ -382,7 +382,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
   }
   case BSON_TYPE_BOOL: {
     dSP;
-    bson_bool_t d = bson_iter_bool(iter);
+    bool d = bson_iter_bool(iter);
     int count;
 
     if (!use_boolean) {
@@ -564,7 +564,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
   }
   case BSON_TYPE_CODE: {
     const char * code;
-    bson_uint32_t len;
+    uint32_t len;
     
     code = bson_iter_code(iter, &len);
 
@@ -576,8 +576,8 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
   }
   case BSON_TYPE_CODEWSCOPE: {
     const char * code;
-    const bson_uint8_t * scope;
-    bson_uint32_t code_len, scope_len;
+    const uint8_t * scope;
+    uint32_t code_len, scope_len;
 
     code = bson_iter_codewscope(iter, &code_len, &scope_len, &scope);
 
@@ -596,7 +596,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
   }
   case BSON_TYPE_TIMESTAMP: {
     SV *sec_sv, *inc_sv;
-    bson_uint32_t sec, inc;
+    uint32_t sec, inc;
 
     bson_iter_timestamp(iter, &sec, &inc);
 
@@ -646,10 +646,10 @@ perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, int
 {
   bson_reader_t * reader;
   const bson_t * bson;
-  bson_bool_t reached_eof;
+  bool reached_eof;
   SV * sv;
   
-  reader = bson_reader_new_from_data((bson_uint8_t *)buffer->pos, buffer->end - buffer->pos);
+  reader = bson_reader_new_from_data((uint8_t *)buffer->pos, buffer->end - buffer->pos);
   bson = bson_reader_read(reader, &reached_eof);
 
   sv = perl_mongo_bson_to_sv(bson, dt_type, inflate_dbrefs, inflate_regexps, client);
@@ -1157,7 +1157,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         sec = perl_mongo_call_reader (sv, "epoch");
         ms = perl_mongo_call_method (sv, "millisecond", 0, 0);
 
-        bson_append_date_time(bson, key, -1, (bson_int64_t)SvIV(sec)*1000+SvIV(ms));
+        bson_append_date_time(bson, key, -1, (int64_t)SvIV(sec)*1000+SvIV(ms));
 
         SvREFCNT_dec (sec);
         SvREFCNT_dec (ms);
@@ -1476,7 +1476,7 @@ static void serialize_regex_flags(char * flags, SV *sv) {
 static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv)
 {
     STRLEN len;
-    bson_uint8_t * bytes = SvPVbyte(sv, len);
+    uint8_t * bytes = SvPVbyte(sv, len);
 
     bson_append_binary(bson, key, -1, subtype, bytes, len);
 }
@@ -1498,7 +1498,7 @@ void perl_mongo_sv_to_buffer(buffer * buf, SV *sv, AV *ids)
   buf_len = buf->end - buf->start;
   offset = buf->pos - buf->start;
 
-  writer = bson_writer_new((bson_uint8_t **)&buf->start, &buf_len, offset, &mongo_renew);
+  writer = bson_writer_new((uint8_t **)&buf->start, &buf_len, offset, &mongo_renew);
 
   bson_writer_begin(writer, &bson);
   perl_mongo_sv_to_bson(bson, sv, ids);
