@@ -1,4 +1,5 @@
 package MongoDB::BSON::Regexp;
+# ABSTRACT: Regular expression type
 
 use Moose;
 
