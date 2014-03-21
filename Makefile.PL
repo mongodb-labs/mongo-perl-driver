@@ -1,6 +1,5 @@
 use strict;
 use warnings;
-use lib 'ext';
 use inc::Module::Install;
 
 name 'MongoDB';
