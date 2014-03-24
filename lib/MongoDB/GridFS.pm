@@ -50,11 +50,11 @@ Core documentation on GridFS: L<http://dochub.mongodb.org/core/gridfs>.
 
 =head2 chunk_size
 
-The number of bytes per chunk.  Defaults to 1048576.
+The number of bytes per chunk.  Defaults to 261120 (255kb).
 
 =cut
 
-$MongoDB::GridFS::chunk_size = 1048576;
+$MongoDB::GridFS::chunk_size = 261120;
 
 has _database => (
     is       => 'ro',
