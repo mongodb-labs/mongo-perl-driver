@@ -12,8 +12,6 @@ all_from 'lib/MongoDB.pm';
 
 my (@cc_lib_links, @cc_optimize_flags);
 
-push @cc_lib_links, 'bson-1.0';
-
 if ( $ENV{PERL_MONGODB_WITH_SSL} || grep { $_ eq '--ssl' } @ARGV ) {
     push @cc_lib_links, 'ssl', 'crypto';
     push @cc_optimize_flags, '-DMONGO_SSL';
@@ -52,8 +50,6 @@ test_requires 'Try::Tiny';
 test_requires 'DateTime::Tiny';
 
 mongo;
-
-no_index directory => 'ext';
 
 repository 'git://github.com/mongodb/mongo-perl-driver.git';
 
