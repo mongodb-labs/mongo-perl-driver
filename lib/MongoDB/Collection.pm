@@ -469,11 +469,15 @@ sub ensure_index {
 
     # try the new createIndexes command (mongodb 2.6), falling back to the old insert
     # method if createIndexes is not available.
-    my $res = $self->_database->get_collection( '$cmd' )->find_one( { createIndexes => $obj } );
+    my $tmp_ns = $obj->DELETE( 'ns' );     # ci command takes ns outside of index spec
+
+    my $res = $self->_database->get_collection( '$cmd' )->find_one( { createIndexes => $tmp_ns, indexes => [ $obj ] } );
     return $res if $res->{ok};
+    
 
     if ( ( not $res->{ok} )  && 
          ( not exists $res->{code} or $res->{code} == 59 ) ) { 
+        $obj->Unshift( ns => $tmp_ns );     # restore ns to spec
         my $indexes = $self->_database->get_collection("system.indexes");
         return $indexes->insert($obj, $options);
     } else { 
