@@ -91,8 +91,8 @@ $grid->drop;
     my $chunk = $grid->chunks->find_one({'files_id' => $id});
     is(0, $chunk->{'n'});
     is("$id", $chunk->{'files_id'}."");
-    my $len = 1048576;
-    is(substr($dumb_str, 0, $len), substr($chunk->{'data'}, 0, $len), "compare first chunk with file");
+    my $len = $MongoDB::GridFS::chunk_size;
+    ok(substr($dumb_str, 0, $len) eq substr($chunk->{'data'}, 0, $len), "compare first chunk with file");
 
     $file = $grid->files->find_one({'_id' => $id});
     is($file->{'length'}, length $dumb_str, "compare file length");
