@@ -582,7 +582,7 @@ sub drop_indexes {
 sub drop_index {
     my ($self, $index_name) = @_;
     return $self->_database->run_command([
-        deleteIndexes => $self->name,
+        dropIndexes => $self->name,
         index => $index_name,
     ]);
 }
