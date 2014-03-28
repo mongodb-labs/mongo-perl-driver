@@ -19,6 +19,9 @@ package MongoDB::Timestamp;
 
 # ABSTRACT: Replication timestamp
 
+use version;
+our $VERSION = 'v0.703.3';
+
 =head1 NAME
 
 MongoDB::Timestamp - Timestamp used for replication

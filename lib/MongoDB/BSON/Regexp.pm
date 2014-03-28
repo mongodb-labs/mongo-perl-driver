@@ -1,6 +1,9 @@
 package MongoDB::BSON::Regexp;
 # ABSTRACT: Regular expression type
 
+use version;
+our $VERSION = 'v0.703.3';
+
 use Moose;
 
 has pattern => ( 

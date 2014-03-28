@@ -19,6 +19,9 @@ package MongoDB::Database;
 
 # ABSTRACT: A MongoDB Database
 
+use version;
+our $VERSION = 'v0.703.3';
+
 use Moose;
 use MongoDB::GridFS;
 use Carp 'carp';

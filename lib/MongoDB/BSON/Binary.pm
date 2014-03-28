@@ -19,6 +19,9 @@ package MongoDB::BSON::Binary;
 
 # ABSTRACT: Binary type
 
+use version;
+our $VERSION = 'v0.703.3';
+
 use Moose;
 
 =head1 NAME

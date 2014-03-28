@@ -18,6 +18,9 @@ package MongoDB::OID;
 
 # ABSTRACT: A Mongo Object ID
 
+use version;
+our $VERSION = 'v0.703.3';
+
 use Moose;
 
 =head1 NAME

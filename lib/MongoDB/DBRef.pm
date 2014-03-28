@@ -18,6 +18,9 @@ package MongoDB::DBRef;
 
 # ABSTRACT: Native DBRef support
 
+use version;
+our $VERSION = 'v0.703.3';
+
 use Moose;
 use Moose::Util::TypeConstraints;
 use Carp 'croak';

@@ -18,6 +18,9 @@ package MongoDB::MongoClient;
 
 # ABSTRACT: A connection to a MongoDB server
 
+use version;
+our $VERSION = 'v0.703.3';
+
 use Moose;
 use Moose::Util::TypeConstraints;
 use MongoDB;
