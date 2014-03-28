@@ -20,6 +20,8 @@
 
 =pod
 
+=encoding UTF-8
+
 =head1 DESCRIPTION
 
 This goes over the types you can save to the database and use for queries in the
