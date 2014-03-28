@@ -33,7 +33,7 @@ requires 'Moose';
 requires 'Class::Method::Modifiers';
 requires 'Digest::MD5';
 requires 'Tie::IxHash';
-requires 'DateTime';
+requires 'DateTime', '0.78';
 requires 'XSLoader';
 requires 'boolean';
 test_requires 'Test::Exception';

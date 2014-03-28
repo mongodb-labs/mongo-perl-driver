@@ -21,7 +21,7 @@ package MongoDB::GridFS;
 
 use Moose;
 use MongoDB::GridFS::File;
-use DateTime;
+use DateTime 0.78; # drops dependency on bug-prone Math::Round
 use Digest::MD5;
 
 =head1 NAME
