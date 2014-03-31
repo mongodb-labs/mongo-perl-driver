@@ -41,6 +41,11 @@ my $ok;
 my $cursor;
 my $tied;
 
+my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
+my $version_int = join '', @{ $build->{versionArray} }[0..2];
+my $using_2_6 = $version_int >= 255;
+
+
 # get_collection
 {
     $testdb->drop;
@@ -127,6 +132,8 @@ my $tied;
 
 # basic indexes
 {
+    my $res;
+
     $coll->drop;
     for (my $i=0; $i<10; $i++) {
         $coll->insert({'x' => $i, 'z' => 3, 'w' => 4});
@@ -137,21 +144,38 @@ my $tied;
     ok(!$coll->get_indexes, 'no indexes yet');
 
     my $indexes = Tie::IxHash->new(foo => 1, bar => 1, baz => 1);
-    $ok = $coll->ensure_index($indexes);
-    ok(!defined $ok);
+    $res = $coll->ensure_index($indexes);
+    if ( $using_2_6 ) {
+        ok $res->{ok};
+    } else { 
+        ok(!defined $res);
+    }
+
     my $err = $testdb->last_error;
     is($err->{ok}, 1);
     is($err->{err}, undef);
 
     $indexes = Tie::IxHash->new(foo => 1, bar => 1);
-    $ok = $coll->ensure_index($indexes);
-    ok(!defined $ok);
+    $res = $coll->ensure_index($indexes);
+
+    if ( $using_2_6 ) {
+        ok $res->{ok};
+    } else { 
+        ok(!defined $res);
+    }
+
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
     is($coll->count, 2);
 
-    $ok = $coll->ensure_index({boo => 1}, {unique => 1});
-    ok(!defined $ok);
+    $res = $coll->ensure_index({boo => 1}, {unique => 1});
+
+    if ( $using_2_6 ) {
+        ok $res->{ok};
+    } else { 
+        ok(!defined $res);
+    }
+
     eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
 
     is($coll->count, 2, 'unique index');
@@ -187,10 +211,23 @@ my $tied;
 
 # test new form of ensure index
 {
-    $ok = $coll->ensure_index({foo => 1, bar => -1, baz => 1});
-    ok(!defined $ok);
-    $ok = $coll->ensure_index([foo => 1, bar => 1]);
-    ok(!defined $ok);
+    my $res;
+    $res = $coll->ensure_index({foo => 1, bar => -1, baz => 1});
+
+    if ( $using_2_6 ) {
+        ok $res->{ok};
+    } else { 
+        ok(!defined $res);
+    }
+
+    $res = $coll->ensure_index([foo => 1, bar => 1]);
+
+    if ( $using_2_6 ) {
+        ok $res->{ok};
+    } else { 
+        ok(!defined $res);
+    }
+
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
     $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
     is($coll->count, 2);
@@ -590,6 +627,7 @@ SKIP: {
 
 # text indices
 SKIP: {
+    my $res;
     my $admin = $conn->get_database('admin');
     my $buildinfo = $admin->run_command({buildinfo => 1});
     skip "text indices won't work with db version $buildinfo->{version}", 8 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.\d+\.\d+)|(2\.[0123]\d*\.\d+)/;
@@ -602,13 +640,18 @@ SKIP: {
     $coll->insert({language => 'english', w1 => 'hello', w2 => 'world'}) foreach (1..10);
     is($coll->count, 10);
 
-    $ok = $coll->ensure_index({'$**' => 'text'}, {
+    $res = $coll->ensure_index({'$**' => 'text'}, {
         name => 'testTextIndex',
         default_language => 'spanish',
         language_override => 'language',
         weights => { w1 => 5, w2 => 10 }
     });
-    ok(!defined $ok, 'ensure_index succeeds for text index');
+
+    if ( $using_2_6 ) {
+        ok $res->{ok};
+    } else { 
+        ok(!defined $res);
+    }
 
     my $syscoll = $testdb->get_collection('system.indexes');
     my $text_index = $syscoll->find_one({name => 'testTextIndex'});
@@ -619,8 +662,14 @@ SKIP: {
 
     $cmd = Tie::IxHash->new('text' => 'test_text', 'search' => 'world');
     my $search = $testdb->run_command($cmd);
-    is($search->{'language'}, 'spanish', 'text search uses preferred language');
-    is($search->{'stats'}->{'nfound'}, 10, 'correct number of results found');
+
+    if ( $using_2_6 ) { 
+        # 2.6 changed the response format for text search results, so skip these.
+        ok 1; ok 1;
+    } else { 
+        is($search->{'language'}, 'spanish', 'text search uses preferred language');
+        is($search->{'stats'}->{'nfound'}, 10, 'correct number of results found');
+    }
 
     $coll->drop;
 }
