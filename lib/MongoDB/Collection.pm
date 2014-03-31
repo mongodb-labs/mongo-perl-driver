@@ -471,7 +471,8 @@ sub ensure_index {
     # method if createIndexes is not available.
     my $tmp_ns = $obj->DELETE( 'ns' );     # ci command takes ns outside of index spec
 
-    my $res = $self->_database->get_collection( '$cmd' )->find_one( { createIndexes => $tmp_ns, indexes => [ $obj ] } );
+    my $res = $self->_database->get_collection( '$cmd' )->find_one( { createIndexes => $self->name, indexes => [ $obj ] } );
+
     return $res if $res->{ok};
     
 
