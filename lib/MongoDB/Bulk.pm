@@ -18,6 +18,9 @@ package MongoDB::Bulk;
 
 # ABSTRACT: MongoDB bulk write interface
 
+use version;
+our $VERSION = 'v0.703.3';
+
 use boolean;
 use Moose;
 use MongoDB;

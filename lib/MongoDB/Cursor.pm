@@ -18,6 +18,10 @@ package MongoDB::Cursor;
 
 
 # ABSTRACT: A cursor/iterator for Mongo query results
+
+use version;
+our $VERSION = 'v0.703.3';
+
 use Moose;
 use boolean;
 use Tie::IxHash;

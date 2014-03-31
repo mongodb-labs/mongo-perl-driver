@@ -19,6 +19,8 @@ package MongoDB::Collection;
 
 # ABSTRACT: A MongoDB Collection
 
+use version;
+our $VERSION = 'v0.703.3';
 
 use Tie::IxHash;
 use Moose;
