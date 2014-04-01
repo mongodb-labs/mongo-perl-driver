@@ -260,14 +260,16 @@ $grid->drop;
     my $id = $grid->put($img, {_id => 1, filename => 'img.png'});
     is($id, 1, "put _id");
 
+    $img->seek(0,0);
     $id = $grid->put($img);
     isa_ok($id, 'MongoDB::OID');
 
+    $img->seek(0,0);
     eval {
         $id = $grid->put($img, {_id => 1, filename => 'img.png'});
     };
 
-    ok($@ and $@ =~ /^E11000/, 'duplicate key exception');
+    like($@, qr/E11000/, 'duplicate key exception');
 
     $file = $grid->get(1);
     is($file->info->{filename}, 'img.png');
