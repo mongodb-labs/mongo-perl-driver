@@ -17,7 +17,7 @@
 
 use strict;
 use warnings;
-use Test::More;
+use Test::More 0.88;
 use Test::Exception;
 use Test::Warn;
 
@@ -31,8 +31,6 @@ use MongoDB;
 
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb';
-
-plan tests => 301;
 
 my $coll;
 my $id;
@@ -208,6 +206,28 @@ my $using_2_6 = $version_int >= 255;
     is(scalar @indexes, 2, '1 custom index and the default _id_ index');
     $coll->drop;
 }
+
+# test ensure index with drop_dups
+{
+
+    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
+    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
+    is($coll->count, 2);
+
+    eval { $coll->ensure_index({foo => 1}, {unique => 1}) };
+    like( $@, qr/E11000/, "got expected error creating unique index with dups" );
+
+    my $res = $coll->ensure_index({foo => 1}, {unique => 1, drop_dups => 1});
+
+    if ( $using_2_6 ) {
+        ok $res->{ok};
+    } else {
+        ok(!defined $res);
+    }
+
+    $coll->drop;
+}
+
 
 # test new form of ensure index
 {
@@ -860,6 +880,8 @@ SKIP: {
     
     $coll->drop;
 }
+
+done_testing;
 
 END {
     if ($testdb) {

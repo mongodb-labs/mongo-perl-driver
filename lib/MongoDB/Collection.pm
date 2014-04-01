@@ -450,10 +450,13 @@ sub ensure_index {
         $obj->Push("name" => MongoDB::Collection::to_index_string($keys));
     }
 
-    foreach ("unique", "drop_dups", "background", "sparse") {
+    foreach ("unique", "background", "sparse") {
         if (exists $options->{$_}) {
             $obj->Push("$_" => ($options->{$_} ? boolean::true : boolean::false));
         }
+    }
+    if (exists $options->{drop_dups}) {
+        $obj->Push("dropDups" => ($options->{drop_dups} ? boolean::true : boolean::false));
     }
     $options->{'no_ids'} = 1;
 
