@@ -26,28 +26,37 @@ if ( $ENV{PERL_MONGODB_WITH_SASL} || grep { $_ eq '--sasl' } @ARGV ) {
 cc_lib_links( @cc_lib_links ) if @cc_lib_links;
 cc_optimize_flags( @cc_optimize_flags ) if @cc_optimize_flags;
 
-requires 'Moose';
-# C::M::Modifiers isn't always needed. It'll be used only if Any::Moose decides
-# to use Mouse instead of Moose. We depend on it anyway to make sure it's there
-# when it's needed.
-requires 'Class::Method::Modifiers';
+requires 'Carp';
+requires 'Class::MOP::Class';
+requires 'DateTime' => '0.78';
+requires 'Devel::Size';
 requires 'Digest::MD5';
+requires 'Encode';
+requires 'IO::File';
+requires 'Moose' => '2';
+requires 'Moose::Util::TypeConstraints' => '2';
+requires 'Scalar::Util';
 requires 'Tie::IxHash';
-requires 'DateTime', '0.78';
-requires 'XSLoader';
 requires 'boolean';
-test_requires 'Test::Exception';
-test_requires 'Test::Warn';
-test_requires 'Tie::IxHash';
-test_requires 'DateTime';
-test_requires 'boolean';
+requires 'version';
+
+test_requires 'Data::Dump';
+test_requires 'Data::Dumper';
 test_requires 'Data::Types';
-test_requires 'File::Slurp';
-test_requires 'FileHandle';
-test_requires 'JSON';
-test_requires 'File::Temp' => '0.17';
-test_requires 'Try::Tiny';
 test_requires 'DateTime::Tiny';
+test_requires 'Devel::Peek';
+test_requires 'File::Copy';
+test_requires 'File::Path';
+test_requires 'File::Slurp';
+test_requires 'File::Spec';
+test_requires 'File::Temp' => '0.17';
+test_requires 'FileHandle';
+test_requires 'JSON' => '2';
+test_requires 'Test::Exception';
+test_requires 'Test::More';
+test_requires 'Test::Warn';
+test_requires 'Try::Tiny';
+test_requires 'bigint';
 
 mongo;
 
