@@ -28,7 +28,7 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb';
 
-plan tests => 32;
+plan tests => 33;
 
 throws_ok {
     MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL});
@@ -183,4 +183,15 @@ SKIP: {
         my $test_conn3 = MongoDB::MongoClient->new( host => $host, ssl => $ENV{MONGO_SSL} );
     } qr/Incompatible wire protocol/i, 'exception on wire protocol';
 
+}
+
+# test for PERL-264
+{
+    my ($connections, $start);
+    for (1..10) {
+        my $conn2 = MongoDB::MongoClient->new("host" => "mongodb://localhost:27017", ssl => $ENV{MONGO_SSL});
+        $connections =  $conn->get_database("admin")->eval("db.serverStatus().connections.current");
+        $start = $connections unless defined $start
+    }
+    is(abs($connections-$start) < 3, 1, 'connection dropped after scope');
 }
