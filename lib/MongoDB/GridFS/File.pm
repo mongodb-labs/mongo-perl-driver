@@ -20,7 +20,7 @@ package MongoDB::GridFS::File;
 # ABSTRACT: A Mongo GridFS file
 
 use version;
-our $VERSION = 'v0.703.3';
+our $VERSION = 'v0.703.4'; # TRIAL
 
 use Moose;
 use MongoDB::GridFS;

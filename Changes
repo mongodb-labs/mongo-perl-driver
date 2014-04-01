@@ -2,6 +2,8 @@ Change history for the MongoDB Perl driver:
 
 {{ $NEXT }}
 
+v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
+
   [Enhancements]
 
   - Adds support for MongoDB server version 2.6
