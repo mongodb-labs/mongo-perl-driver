@@ -144,9 +144,12 @@ sub _ensure_indexes {
 
 =head2 get($id)
 
-    my $file = $grid->get("my file");
+    my $file = $grid->get($id);
 
 Get a file from GridFS based on its _id.  Returns a L<MongoDB::GridFS::File>.
+
+To retrieve a file based on metadata like C<filename>, use the L</find_one>
+method instead.
 
 =cut
 
@@ -163,6 +166,12 @@ sub get {
 Inserts a file into GridFS, adding a L<MongoDB::OID> as the _id field if the
 field is not already defined.  This is a wrapper for C<MongoDB::GridFS::insert>,
 see that method below for more information.
+
+To use a filename as the _id for subsequent C<get> calls, you must set _id
+explicitly:
+
+    $grid->put($fh, {_id => "pic.jpg", filename => "pic.jpg"});
+    my $file = $grid->get("pic.jpg");
 
 Returns the _id field.
 

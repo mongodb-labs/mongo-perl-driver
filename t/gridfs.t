@@ -257,8 +257,8 @@ $grid->drop;
     my $img = new IO::File("t/img.png", "r") or die $!;
     $img->binmode;
 
-    my $id = $grid->put($img, {_id => 1, filename => 'img.png'});
-    is($id, 1, "put _id");
+    my $id = $grid->put($img, {_id => 'img.png', filename => 'img.png'});
+    is($id, 'img.png', "put _id");
 
     $img->seek(0,0);
     $id = $grid->put($img);
@@ -266,16 +266,16 @@ $grid->drop;
 
     $img->seek(0,0);
     eval {
-        $id = $grid->put($img, {_id => 1, filename => 'img.png'});
+        $id = $grid->put($img, {_id => 'img.png', filename => 'img.png'});
     };
 
     like($@, qr/E11000/, 'duplicate key exception');
 
-    $file = $grid->get(1);
+    $file = $grid->get('img.png');
     is($file->info->{filename}, 'img.png');
     ok($file->info->{md5} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->info->{'md5'});
 
-    $grid->delete(1);
+    $grid->delete('img.png');
 
     my $coll = $testdb->get_collection('fs.files');
 
