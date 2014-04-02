@@ -364,6 +364,43 @@ sub aggregate {
     return $result->{result};
 }
 
+sub parallel_scan {
+    my ( $self, $num_cursors, $opts ) = @_;
+    unless (defined $num_cursors && $num_cursors == int($num_cursors)
+        && $num_cursors > 0 && $num_cursors <= 10000
+    ) {
+        Carp::croak( "first argument to parallel_scan must be a positive integer between 1 and 10000" )
+    }
+    $opts = ref $opts eq 'HASH' ? $opts : { };
+
+    my $db   = $self->_database;
+
+    my @command = ( parallelCollectionScan => $self->name, numCursors => $num_cursors );
+    my $result = $db->run_command( \@command );
+
+    Carp::croak($result) unless ref $result eq 'HASH';
+
+    Carp::croak("No cursors returned")
+        unless $result->{cursors} && ref $result->{cursors} eq 'ARRAY';
+
+    my @cursors;
+    for my $c ( map { $_->{cursor} } @{$result->{cursors}} ) {
+        # fake up a post-query cursor
+        my $cursor = MongoDB::Cursor->new(
+            started_iterating      => 1,              # we have the first batch
+            _client                => $db->_client,
+            _master                => $db->_client,   # fake this because we're already iterating
+            _ns                    => $c->{ns},
+            _query                 => \@command,
+            _is_parallel           => 1,
+        );
+
+        $cursor->_init( $c->{id} );
+        push @cursors, $cursor;
+    }
+
+    return @cursors;
+}
 
 sub rename {
     my ($self, $collectionname) = @_;
@@ -826,6 +863,21 @@ query the result collection.
 
 See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
 for more information on how to construct aggregation queries.
+
+=method parallel_scan($max_cursors)
+
+    my @cursors = $collection->parallel_scan(10);
+
+Scan the collection in parallel. The argument is the maximum number of
+L<MongoDB::Cursor> objects to return and must be a positive integer between 1
+and 10,000.
+
+As long as the collection is not modified during scanning, each document will
+appear only once in one of the cursors' result sets.
+
+Only iteration methods may be called on parallel scan cursors.
+
+If an error occurs, an exception will be thrown.
 
 =method rename ("newcollectionname")
 
