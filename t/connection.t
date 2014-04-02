@@ -150,8 +150,8 @@ SKIP: {
                        maxMessageSizeBytes => 48000000,
                        ok => 1 };
 
-    my $old_method = \&MongoDB::Database::run_command;
-    local *MongoDB::Database::run_command = sub { 
+    my $old_method = \&MongoDB::Database::_try_run_command;
+    local *MongoDB::Database::_try_run_command = sub {
         my $self = shift;
 
         if ( ref $_[0] eq 'HASH' && exists $_[0]{ismaster} ) { 

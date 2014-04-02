@@ -37,6 +37,7 @@ requires 'Moose' => '2';
 requires 'Moose::Util::TypeConstraints' => '2';
 requires 'Scalar::Util';
 requires 'Tie::IxHash';
+requires 'Try::Tiny';
 requires 'boolean';
 requires 'version';
 
@@ -55,7 +56,6 @@ test_requires 'JSON' => '2';
 test_requires 'Test::Exception';
 test_requires 'Test::More';
 test_requires 'Test::Warn';
-test_requires 'Try::Tiny';
 test_requires 'bigint';
 
 mongo;

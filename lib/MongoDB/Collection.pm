@@ -27,6 +27,7 @@ use Moose;
 use Carp 'carp';
 use boolean;
 use Devel::Size 'total_size';
+use Try::Tiny;
 
 has _database => (
     is       => 'ro',
@@ -301,16 +302,16 @@ sub find_and_modify {
     my $conn = $self->_database->_client;
     my $db   = $self->_database;
 
-    my $result = $db->run_command( [ findAndModify => $self->name, %$opts ] );
-
-    if ( not ref $result ) {
-        die $result;
+    my $result;
+    try {
+        $result = $db->_try_run_command( [ findAndModify => $self->name, %$opts ] )
     }
-    if ( not $result->{ok} ) { 
-        return if ( $result->{errmsg} eq 'No matching object found' );
-    }
+    catch {
+        die $_ unless $_ eq 'No matching object found';
+    };
 
-    return $result->{value};
+    return $result->{value} if $result;
+    return;
 }
 
 
@@ -330,7 +331,7 @@ sub aggregate {
     }
 
     my @command = ( aggregate => $self->name, pipeline => $pipeline, %$opts );
-    my $result = $db->run_command( \@command );
+    my $result = $db->_try_run_command( \@command );
 
     # if we got a cursor option then we need to construct a wonky cursor
     # object on our end and populate it with the first batch, since 
@@ -376,9 +377,7 @@ sub parallel_scan {
     my $db   = $self->_database;
 
     my @command = ( parallelCollectionScan => $self->name, numCursors => $num_cursors );
-    my $result = $db->run_command( \@command );
-
-    Carp::croak($result) unless ref $result eq 'HASH';
+    my $result = $db->_try_run_command( \@command );
 
     Carp::croak("No cursors returned")
         unless $result->{cursors} && ref $result->{cursors} eq 'ARRAY';
@@ -411,14 +410,9 @@ sub rename {
   
     my ($db, @collection_bits) = split(/\./, $fullname);
     my $collection = join('.', @collection_bits);
-    my $obj = $database->run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
+    my $obj = $database->_try_run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
 
-    if(ref($obj) eq "HASH"){
-      return $conn->get_database( $db )->get_collection( $collectionname );
-    }
-    else {
-      die $obj;
-    }
+    return $conn->get_database( $db )->get_collection( $collectionname );
 }
 
 
@@ -585,26 +579,19 @@ sub count {
     $query ||= {};
 
     my $obj;
-    eval {
-        $obj = $self->_database->run_command([
+    try {
+        $obj = $self->_database->_try_run_command([
             count => $self->name,
             query => $query,
         ]);
+    }
+    catch {
+        # if there was an error, check if it was the "ns missing" one that means the
+        # collection hasn't been created or a real error.
+        die $_ unless /^ns missing/;
     };
 
-    # if there was an error, check if it was the "ns missing" one that means the
-    # collection hasn't been created or a real error.
-    if ($@) {
-        # if the request timed out, $obj might not be initialized
-        if ($obj && $obj =~ m/^ns missing/) {
-            return 0;
-        }
-        else {
-            die $@;
-        }
-    }
-
-    return $obj->{n};
+    return $obj ? $obj->{n} : 0;
 }
 
 

@@ -99,6 +99,15 @@ sub run_command {
     $obj->{'errmsg'};
 }
 
+# same as run_command but throws an exception on error; private
+# for now until exception handling is overhauled
+sub _try_run_command {
+    my ($self, $command) = @_;
+    my $obj = $self->get_collection('$cmd')->find_one($command);
+    return $obj if $obj->{ok};
+    confess $obj->{'errmsg'};
+}
+
 
 sub eval {
     my ($self, $code, $args, $nolock) = @_;
