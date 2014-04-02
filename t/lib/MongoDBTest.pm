@@ -24,10 +24,12 @@ use warnings;
 use Exporter 'import';
 use MongoDB;
 use Test::More;
+use version;
 
-our @EXPORT_OK = ( '$conn', '$testdb' );
+our @EXPORT_OK = ( '$conn', '$testdb', '$using_2_6' );
 our $conn;
 our $testdb;
+our $using_2_6;
 
 use MongoDBTest::ReplicaSet;
 use MongoDBTest::ShardedCluster;
@@ -46,6 +48,10 @@ BEGIN {
     }
 };
 
+# check database version
+my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
+my ($version_str) = $build->{version} =~ m{^([0-9.]+)};
+$using_2_6 = version->parse("v$version_str") >= v2.5.5;
 
 # clean up any detritus from failed tests
 END { 
@@ -54,4 +60,4 @@ END {
     $testdb->drop;
 };
 
-
+1;

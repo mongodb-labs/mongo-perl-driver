@@ -30,7 +30,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb';
+use MongoDBTest '$conn', '$testdb', '$using_2_6';
 
 my $coll;
 my $id;
@@ -38,10 +38,6 @@ my $obj;
 my $ok;
 my $cursor;
 my $tied;
-
-my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
-my $version_int = join '', @{ $build->{versionArray} }[0..2];
-my $using_2_6 = $version_int >= 255;
 
 
 # get_collection
