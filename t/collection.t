@@ -30,7 +30,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb';
+use MongoDBTest '$conn', '$testdb', '$using_2_6';
 
 my $coll;
 my $id;
@@ -38,10 +38,6 @@ my $obj;
 my $ok;
 my $cursor;
 my $tied;
-
-my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
-my $version_int = join '', @{ $build->{versionArray} }[0..2];
-my $using_2_6 = $version_int >= 255;
 
 
 # get_collection
@@ -879,6 +875,46 @@ SKIP: {
     ok exists $result->{stages};
     
     $coll->drop;
+}
+
+# parallel_scan
+SKIP: {
+    skip( "Parallel scan not supported before MongoDB 2.6", 7 )
+        unless $using_2_6;
+
+    my $num_docs = 200;
+
+    for ( 1..$num_docs ) {
+        $coll->insert( { count => $_ } );
+    }
+
+    my $err_re = qr/must be a positive integer between 1 and 10000/;
+
+    eval { $coll->parallel_scan };
+    like( $@, $err_re, "parallel_scan() throws error");
+
+    for my $i ( 0, -1, 10001 ) {
+        eval { $coll->parallel_scan($i) };
+        like( $@, $err_re, "parallel_scan($i) throws error" );
+    }
+
+    my $max = 5;
+    my @cursors = $coll->parallel_scan($max);
+    ok( scalar @cursors <= $max, "parallel_scan($max) returned <= $max cursors" );
+
+    for my $method ( qw/reset count explain/ ) {
+        eval { $cursors[0]->$method };
+        like( $@, qr/cannot $method a parallel scan/, "$method on parallel scan cursor throws error" );
+    }
+
+    my %seen;
+    for my $i (0 .. $#cursors ) {
+        my @chunk = $cursors[$i]->all;
+        ok( @chunk > 0, "cursor $i had some results" );
+        $seen{$_}++ for map { $_->{count} } @chunk;
+    }
+    is( scalar keys %seen, $num_docs, "cursors collectively returned all results" );
+
 }
 
 done_testing;

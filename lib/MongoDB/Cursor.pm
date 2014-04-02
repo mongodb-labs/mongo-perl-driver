@@ -240,6 +240,15 @@ has _agg_batch_size => (
     default => 0,
 );
 
+# special flag for parallel scan cursors, since they
+# start out empty
+
+has _is_parallel => (
+    is      => 'ro',
+    isa     => 'Bool',
+    default => 0,
+);
+
 =head1 METHODS
 
 =cut
@@ -496,6 +505,8 @@ L<http://dochub.mongodb.org/core/explain>.
 
 sub explain {
     my ($self) = @_;
+    confess "cannot explain a parallel scan"
+        if $self->_is_parallel;
     my $temp = $self->_limit;
     if ($self->_limit > 0) {
         $self->_limit($self->_limit * -1);
@@ -525,6 +536,9 @@ used in calculating the count.
 
 sub count {
     my ($self, $all) = @_;
+
+    confess "cannot count a parallel scan"
+        if $self->_is_parallel;
 
     my ($db, $coll) = $self->_ns =~ m/^([^\.]+)\.(.*)/;
     my $cmd = new Tie::IxHash(count => $coll);
@@ -579,6 +593,14 @@ Resets the cursor.  After being reset, pre-query methods can be
 called on the cursor (sort, limit, etc.) and subsequent calls to
 next, has_next, or all will re-query the database.
 
+=cut
+
+sub reset {
+    my ($self) = @_;
+    confess "cannot reset a parallel scan"
+        if $self->_is_parallel;
+    return $self->_reset;
+}
 
 =head2 has_next
 

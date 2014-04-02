@@ -93,7 +93,7 @@ static mongo_cursor* get_cursor(SV *self) {
 static SV *request_id;
 
 static int has_next(SV *self, mongo_cursor *cursor) {
-  SV *link, *limit, *ns, *response_to, *agg_batch_size_sv;;
+  SV *link, *limit, *ns, *response_to, *agg_batch_size_sv, *is_parallel;
   mongo_msg_header header;
   buffer buf;
   int size, heard;
@@ -110,15 +110,18 @@ static int has_next(SV *self, mongo_cursor *cursor) {
 
 
   limit = perl_mongo_call_reader (self, "_limit");
+  is_parallel = perl_mongo_call_reader (self, "_is_parallel");
 
   if ((SvIV(limit) > 0 && cursor->at >= SvIV(limit)) || 
-      cursor->num == 0 ||
+      (cursor->num == 0 && ! SvTRUE(is_parallel) ) ||
       (cursor->at == cursor->num && cursor->cursor_id == 0)) {
     SvREFCNT_dec(limit);
+    SvREFCNT_dec(is_parallel);
     return 0;
   }
   else if (cursor->at < cursor->num) {
     SvREFCNT_dec(limit);
+    SvREFCNT_dec(is_parallel);
     return 1;
   }
 
@@ -314,7 +317,7 @@ next (self)
 
 
 SV *
-reset (self)
+_reset (self)
         SV *self
     PREINIT:
         mongo_cursor *cursor;
