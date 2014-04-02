@@ -75,7 +75,7 @@ plan tests => 28;
 # test roundtrip
 {
     my $dbref = MongoDB::DBRef->new( db => 'some_db', ref => 'some_coll', id => 123 );
-    my $coll = $conn->get_database( 'test' )->get_collection( 'test_coll' );
+    my $coll = $testdb->get_collection( 'test_coll' );
 
     $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
 
@@ -98,7 +98,7 @@ plan tests => 28;
     $some_coll->insert( { _id => 123, value => 'foobar' } );
     my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
 
-    my $coll = $conn->get_database( 'test' )->get_collection( 'test_coll' );
+    my $coll = $testdb->get_collection( 'test_coll' );
     $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
 
     my $ref_doc = $coll->find_one( { _id => 'wut wut wut' } )->{thing}->fetch;
