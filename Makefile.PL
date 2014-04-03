@@ -88,13 +88,5 @@ sub const_cccmd {
     else {
         $inherited .= ' -o $@';
     }
-
-    if ($Config{use64bitint}) {
-        $inherited .= ' -DUSE_64_BIT_INT';
-    }
-    else {
-        $inherited .= ' ';
-    }
-
     return $inherited;
 }

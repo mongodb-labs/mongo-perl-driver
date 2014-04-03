@@ -422,7 +422,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
     break;
   }
   case BSON_TYPE_INT64: {
-#if defined(USE_64_BIT_INT)
+#if defined(MONGO_USE_64_BIT_INT)
     value = newSViv(bson_iter_int64(iter));
 #else
     value = newSVnv((double)MONGO_64p(bson_iter_int64(iter)));
@@ -1376,7 +1376,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
 
       // if it's publicly an int OR (privately an int AND not publicly a string)
       if (aggressively_number || (!is_string && (SvIOK(sv) || (SvIOKp(sv) && !SvPOK(sv))))) {
-#if defined(USE_64_BIT_INT)
+#if defined(MONGO_USE_64_BIT_INT)
         bson_append_int64(bson, key, -1, (int64_t)SvIV(sv));
 #else
         bson_append_int32(bson, key, -1, (int)SvIV(sv));

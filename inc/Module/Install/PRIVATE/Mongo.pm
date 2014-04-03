@@ -38,6 +38,11 @@ sub mongo {
         $self->makemaker_args( LDDLFLAGS => ' -bundle -undefined dynamic_lookup -L/usr/local/lib');
     }
 
+    # check for 64-bit
+    if ($Config{use64bitint}) {
+        $ccflags .= " -DMONGO_USE_64_BIT_INT";
+    }
+
     # check for big-endian
     my $endianess = $Config{byteorder};
     if ($endianess == 4321 || $endianess == 87654321) {
