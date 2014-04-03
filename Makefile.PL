@@ -74,12 +74,15 @@ our $VERSION = '0.45';
 
 use Config;
 
+# Because we keep our XS in an 'xs' subdirectory, this ensures the object files
+# are built there, too, which is needed for linking to work.
+# Originally added by Florian Ragwitz, based on Glib::MakeHelper. See
+# https://metacpan.org/source/XAOC/Glib-1.304/lib/Glib/MakeHelper.pm#L553
 sub const_cccmd {
     my $inherited = shift->SUPER::const_cccmd(@_);
     return '' unless $inherited;
 
     if ($Config{cc} =~ /^cl\b/) {
-        warn 'you are using MSVC... my condolences.';
         $inherited .= ' /Fo$@';
     }
     else {
