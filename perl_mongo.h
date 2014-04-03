@@ -164,4 +164,9 @@ SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbref
 void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, AV *ids);
 void perl_mongo_sv_to_buffer(buffer * buf, SV *sv, AV *ids);
 
+void perl_mongo_serialize_string(buffer *buf, const char *str, unsigned int str_len);
+void perl_mongo_serialize_int(buffer *buf, int num);
+void perl_mongo_serialize_long(buffer *buf, int64_t num);
+void perl_mongo_serialize_size(char *start, buffer *buf);
+
 #endif
