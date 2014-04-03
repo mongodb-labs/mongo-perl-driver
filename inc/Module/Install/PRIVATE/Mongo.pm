@@ -19,7 +19,7 @@ BEGIN {
 
 sub mongo {
     my ($self, @mongo_vars) = @_;
-    my $ccflags = $self->makemaker_args->{CCFLAGS};
+    my $ccflags = $self->makemaker_args->{CCFLAGS} || $Config{ccflags};
     $ccflags = "" unless defined $ccflags;
 
     if ($Config{osname} eq 'darwin') {
