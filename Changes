@@ -2,13 +2,162 @@ Change history for the MongoDB Perl driver:
 
 {{ $NEXT }}
 
+  [Enhancements]
+
+  - PERL-298 implement parallel_scan method for collections
+
+  [Bug Fixes]
+
+  - PERL-307 fix drop_dups option for ensure_index
+
+  - Added missing Devel::Size to prerequisites list
+
+  - Fix exception handling for internal run_command calls
+
+  - Fix gridfs test for unique keys
+
+  [Documentation]
+
+  - PERL-217 improved documentation of GridFS::get
+
+  - Changes file updated with changes since 0.701
+
+  [Internal]
+
+  - PERL-264 test for closing connection when MongoClient object leaves scope. (Ashley Willis)
+
+  - Make t/dbref.t use fresh test database
+
 v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
+
+  [Bug Fixes]
+
+  - PERL-315 require DateTime 0.78 or later
+
+  - Fixed index creation and drop on MongoDB 2.6
+
+  [Documentation]
+
+  - PERL-311 fix legacy docs authentication link
+
+  - Added abstract to MongoDB::BSON::Regexp documentation
+
+  [Internal]
+
+  - PERL-312 default GridFS chunk size changed from 1mb -> 255kb
+
+  - Bundled libbson 0.6.4 to avoid external library dependency
+
+0.703_2 (TRIAL RELEASE)
+
+  [Incompatible Changes]
+
+  - PERL-108 removed previously-deprecated AUTOLOAD functions
 
   [Enhancements]
 
-  - Adds support for MongoDB server version 2.6
+  - PERL-221 added MongoDB::Regex class to represent stored regexes
 
-  - PERL-298 implement parallel_scan method for collections
+  - PERL-251 implemented support for aggregation command cursors
+
+  - PERL-252 added 'max_time_ms' method to cursors
+
+  - PERL-258 added support for '$out' aggregation pipeline operator
+
+  - PERL-262 read preference implementation
+
+  - PERL-278 added explain support for aggregation queries
+
+  - PERL-299 implemented new bulk write API
+
+  - Added nolock support to eval in MongoDB::Database (Ashley Willis)
+
+  [Bug Fixes]
+
+  - PERL-260 ensure_index no longer ignores weights, default_language, and
+    language_override options
+
+  - PERL-267 memory leak fixes (Casey Rojas)
+
+  - Fixed hint tests for MongoDB >= 2.5.4
+
+  - Fix failing t/gridfs.t
+
+  - Cache client constructor arguments for replica set connections
+
+  - Fix find_and_modify error handling
+
+  - Prevent GridFS MD5 calculation when 'safe' is not set (mapbuh)
+
+  [Documentation]
+
+  - PERL-287 updated "j" and "fsync" option docs for MongoDB 2.6
+
+  [Internal]
+
+  - PERL-259 implemented new write commands for MongoDB 2.6
+
+  - PERL-261 use setVersion field in isMaster for replica set discovery (David Storch)
+
+  - PERL-296 implemented new index creation command for MongoDB 2.6
+
+  - PERL-269 test libraries for replica set and sharded cluster testing
+
+  - PERL-285 added wire protocol check
+
+  - Switched BSON implementation to libbson
+
+0.702.2
+
+  [Bug Fixes]
+
+  - Fix double-from-buffer alignment issue on ARM platform (Robin Lee)
+
+  - Set BSON_MINKEY to 255 if char is unsigned (Robin Lee)
+
+  - Fix test plans in connection.t and delegation.t (Robin Lee)
+
+  [Internal]
+
+  - Copyright update s/10gen/MongoDB/ due to company name change
+
+0.702.1
+
+  [Bug Fixes]
+
+  - Query Fields accept Tie::IxHash and Hashref.. (Colin Cyr)
+
+  - Fix for gridfs and creation of indexes (mapbuh)
+
+0.702.0
+
+  [Enhancements]
+
+  - SASL PLAIN suport added
+
+  - Makefile.PL can enable SSL/SASL builds via environment variables
+
+  [Bug Fixes]
+
+  - PERL-162 set_timeout fix
+
+  - PERL-245 fix fractional seconds in BSON datetime deserialization
+
+  - Fix specifying index keys as an array ref (D. Ilmari Mannsåker)
+
+  - Prevent legacy auth when in SASL mode
+
+  - Drop all created collections in dbref.t (D. Ilmari Mannsåker)
+
+  [Documentation]
+
+  - Deprecated AUTOLOAD functions removed from documenation
+
+  - Various module docs revised and updated
+
+  [Internal]
+
+  - Refactored boilerplate test code to a separate testing module
 
 0.701
 
@@ -250,7 +399,7 @@ v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
   - Added $conn->query_timeout option to control timeout lengths for all queries
     done over a given connection
   - MongoDB::Cursor::tailable and MongoDB::Cursor::immortal
-  - added TO_JSON function to MongoDB::OID
+  - Added TO_JSON function to MongoDB::OID
   - Fixed safe save (Othello Maurer)
   - BACKWARD-BREAKING: removed old indexing syntax (if you started using the
     driver less than a year ago, this shouldn't affect you.  If you're an old-
@@ -267,8 +416,8 @@ v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
     update/insert/remove/ensure_index (Eric Wilhelm)
   - w and wtimeout (see MongoDB::Connection::w)
   - die correctly on MongoCollection::count errors (help from Josh Rabinowitz)
-  - added MongoDB::Collection::find (same as query)
-  - added get, put, and delete methods to MongoDB::GridFS
+  - Added MongoDB::Collection::find (same as query)
+  - Added get, put, and delete methods to MongoDB::GridFS
   - Perl 5.12 compatibility
 
 0.31 05 April 2010
@@ -324,9 +473,9 @@ v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
 0.24  15 Oct 2009
 
   - Fix for uninitialized array values (David Morrison)
-  - boolean support
+  - Boolean support
   - Connection memory leak fix
-  - added MongoDB::Cursor::count
+  - Added MongoDB::Cursor::count
 
 0.23  25 Sept 2009
 
