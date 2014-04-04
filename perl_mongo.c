@@ -858,7 +858,7 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert)
     SV **hval;
     STRLEN len;
     const char *key = HePV (he, len);
-    const char *utf8 = HeUTF8(he);
+    uint32_t utf8 = HeUTF8(he);
     containsNullChar(key, len);
     /* if we've already added the oid field, continue */
     if (ids && strcmp(key, "_id") == 0) {
@@ -870,10 +870,10 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert)
      * so we're using hv_fetch
      */
     if ((hval = hv_fetch(hv, key, utf8 ? -len : len, 0)) == 0) {
-      croak("could not find hash value for key %s, len:%d", key, len);
+      croak("could not find hash value for key %s, len:%lu", key, len);
     }
     if (!utf8) {
-      key = bytes_to_utf8((const U8 *)key, &len);
+      key = (const char *) bytes_to_utf8((const U8 *)key, &len);
     }
     append_sv (bson, key, *hval, stack, is_insert);
     if (!utf8) {
@@ -1476,7 +1476,7 @@ static void serialize_regex_flags(char * flags, SV *sv) {
 static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv)
 {
     STRLEN len;
-    uint8_t * bytes = SvPVbyte(sv, len);
+    uint8_t * bytes = (uint8_t *) SvPVbyte(sv, len);
 
     bson_append_binary(bson, key, -1, subtype, bytes, len);
 }
