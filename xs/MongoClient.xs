@@ -277,7 +277,7 @@ _compile_flags(self)
 #ifdef MONGO_SASL
         hv_store( flags, "--sasl", 6, newSViv( 1 ), 0 );
 #endif
-        RETVAL = newRV_noinc( flags );
+        RETVAL = newRV_noinc((SV *) flags );
     OUTPUT:
         RETVAL
 
