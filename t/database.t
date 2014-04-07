@@ -28,8 +28,6 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb';
 
-plan tests => 22;
-
 # get_database
 {
     isa_ok($conn, 'MongoDB::MongoClient');
@@ -121,3 +119,4 @@ SKIP: {
     is($result->{ok}, 1);
 }
 
+done_testing;
