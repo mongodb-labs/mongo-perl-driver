@@ -106,8 +106,7 @@ SKIP: {
     is('hello, world', $hello, 'db eval');
 
     my $err = $testdb->eval('function(x) { xreturn "hello, "+x; }', ["world"]);
-    # skip until JS error reporting stabilizes 
-    #like($err, qr/(?:compile|execution) failed/, 'js err');
+    like( $err, qr/SyntaxError/, 'js err');
 }
 
 # tie
