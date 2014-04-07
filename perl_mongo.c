@@ -586,8 +586,9 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
     bson_t bson;
     bson_iter_t child;
 
-    bson_init_static(&bson, scope, scope_len);
-    bson_iter_init(&child, &bson);
+    if ( ! ( bson_init_static(&bson, scope, scope_len) && bson_iter_init(&child, &bson) ) ) {
+        croak("error iterating BSON type %d\n", bson_iter_type(iter));
+    }
 
     SV * scope_sv = bson_to_sv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
     value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
@@ -668,7 +669,9 @@ perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, i
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
 
   bson_iter_t iter;
-  bson_iter_init(&iter, bson);
+  if ( ! bson_iter_init(&iter, bson) ) {
+      croak( "error creating BSON iterator" );
+  }
 
   return bson_to_sv(&iter, dt_type, inflate_dbrefs, inflate_regexps, client);
 }
