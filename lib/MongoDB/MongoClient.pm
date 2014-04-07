@@ -1215,15 +1215,12 @@ Low-level function to send a string directly to the database.  Use
 L<MongoDB::write_insert>, L<MongoDB::write_update>, L<MongoDB::write_remove>, or
 L<MongoDB::write_query> to create a valid string.
 
-=method recv(\%info)
+=method recv($cursor)
 
-    my $cursor = $client->recv({ns => "foo.bar"});
+    my $ok = $client->recv($cursor);
 
-Low-level function to receive a response from the database. Returns a
-C<MongoDB::Cursor>.  At the moment, the only required field for C<$info> is
-"ns", although "request_id" is likely to be required in the future.  The
-C<$info> hash will be automatically created for you by L<MongoDB::write_query>.
-
+Low-level function to receive a response from the database into a cursor.
+Dies on error.  Returns true if any results were received and false otherwise.
 
 =method fsync(\%args)
 

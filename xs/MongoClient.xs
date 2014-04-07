@@ -259,12 +259,13 @@ send(self, str)
          RETVAL
 
 
-void
+int
 recv(self, cursor)
-         SV *cursor
-     CODE:
-         mongo_link_hear(cursor);
-
+        SV *cursor
+    CODE:
+        RETVAL = mongo_link_hear(cursor);
+    OUTPUT:
+        RETVAL
 
 SV *
 _compile_flags(self)
