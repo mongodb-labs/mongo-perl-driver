@@ -49,7 +49,7 @@ sub mongo {
 
     my $conf = $self->configure_bson;
 
-    if ($conf->{BSON_WITH_OID32_PT} || $conf->{BSON_WITH_OID32_PT}) {
+    if ($conf->{BSON_WITH_OID32_PT} || $conf->{BSON_WITH_OID64_PT}) {
         my $pthread = $^O eq 'solaris' ? " -pthreads " : " -pthread ";
         $ccflags .= $pthread;
         my $ldflags = $self->makemaker_args->{LDFLAGS};
