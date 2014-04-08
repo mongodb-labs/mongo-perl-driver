@@ -50,6 +50,12 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
   int rc;
   char out_buf[8192];
 
+  /* check that we are connected before attempting a SASL conversation;
+     otherwise we will end up in an infinite loop */
+  if ( ! link->master->connected ) { 
+    croak( "MongoDB: Could not begin SASL authentication without connection." );
+  }
+
   mechanism = perl_mongo_call_method( client, "sasl_mechanism", 0, 0 );
   if ( !SvOK( mechanism ) ) { 
     croak( "MongoDB: Could not retrieve SASL mechanism from client object\n" );
