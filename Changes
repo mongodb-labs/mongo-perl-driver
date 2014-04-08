@@ -10,11 +10,19 @@ Change history for the MongoDB Perl driver:
 
   - PERL-307 fix drop_dups option for ensure_index
 
-  - Added missing Devel::Size to prerequisites list
+  - PERL-318 fix compiler warnings
+
+  - PERL-319 fix compilation failures on some platforms
+
+  - PERL-322 change return value and document low-level recv
+
+  - Add missing Devel::Size to prerequisites list
 
   - Fix exception handling for internal run_command calls
 
   - Fix gridfs test for unique keys
+
+  - Ensure internal run_command exceptions include correct error string
 
   [Documentation]
 
