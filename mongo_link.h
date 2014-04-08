@@ -181,7 +181,7 @@ void non_ssl_connect(mongo_link* link);
 
 #ifdef MONGO_SSL
 void tcp_setup(mongo_link* link);
-void ssl_connect(mongo_link* link);
+void ssl_connect(mongo_link* link, SV *client);
 void ssl_disconnect (mongo_link *link);
 int ssl_send(void* link, const char* buffer, size_t len);
 int ssl_recv(void* link, const char* buffer, size_t len);

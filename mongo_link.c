@@ -136,7 +136,7 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
 void perl_mongo_connect(SV *client, mongo_link* link) {
 #ifdef MONGO_SSL
   if(link->ssl){
-    ssl_connect(link);
+    ssl_connect(link, client);
     link->sender = ssl_send;
     link->receiver = ssl_recv;
     return;
@@ -262,7 +262,7 @@ void non_ssl_connect(mongo_link* link) {
 
 #ifdef MONGO_SSL
 // Establish a connection using an SSL layer
-void ssl_connect(mongo_link* link) {
+void ssl_connect(mongo_link* link, SV *client) {
   tcp_setup(link);
 
   SV *ca_file_sv, *ca_path_sv;
