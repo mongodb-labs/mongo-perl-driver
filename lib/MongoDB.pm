@@ -22,7 +22,7 @@ package MongoDB;
 # ABSTRACT: A MongoDB Driver for Perl
 
 use version;
-our $VERSION = 'v0.703.4'; # TRIAL
+our $VERSION = 'v0.703.5'; # TRIAL
 
 use XSLoader;
 use MongoDB::Connection;

@@ -20,7 +20,7 @@ package MongoDB::Collection;
 # ABSTRACT: A MongoDB Collection
 
 use version;
-our $VERSION = 'v0.703.4'; # TRIAL
+our $VERSION = 'v0.703.5'; # TRIAL
 
 use Tie::IxHash;
 use Moose;

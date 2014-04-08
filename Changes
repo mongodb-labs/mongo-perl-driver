@@ -2,6 +2,8 @@ Change history for the MongoDB Perl driver:
 
 {{ $NEXT }}
 
+v0.703.4  2014-04-07 20:12:27-04:00 America/New_York (TRIAL RELEASE)
+
   [Enhancements]
 
   - PERL-298 implement parallel_scan method for collections
