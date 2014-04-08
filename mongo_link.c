@@ -265,6 +265,9 @@ void non_ssl_connect(mongo_link* link) {
 void ssl_connect(mongo_link* link) {
   tcp_setup(link);
 
+  SV *ca_file_sv, *ca_path_sv;
+  char *ca_file, *ca_path;
+
   if (link->master->socket){
     // Register the error strings for libcrypto & libssl
     SSL_load_error_strings();
@@ -276,6 +279,16 @@ void ssl_connect(mongo_link* link) {
     link->ssl_context = SSL_CTX_new(SSLv23_client_method());
     if(link->ssl_context == NULL){
       ERR_print_errors_fp(stderr);
+    }
+
+    ca_file_sv = perl_mongo_call_method( client, "ssl_ca_file", 0, 0 );
+    ca_path_sv = perl_mongo_call_method( client, "ssl_ca_path", 0, 0 );
+
+    if ( SvPOK( ca_file_sv ) && SvPOK( ca_path_sv ) ) { 
+      ca_file = SvPV_nolen( ca_file_sv );
+      ca_path = SvPV_nolen( ca_path_sv );
+
+      SSL_CTX_load_verify_locations( link->ssl_context, ca_file, ca_path );
     }
 
     // Create an SSL struct for the connection
