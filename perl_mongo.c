@@ -1515,6 +1515,8 @@ void perl_mongo_sv_to_buffer(buffer * buf, SV *sv, AV *ids)
 
 void
 perl_mongo_sv_to_bson (bson_t * bson, SV *sv, AV *ids) {
+  int is_insert = ids != NO_PREP;
+
   if (!SvROK (sv)) {
     croak ("not a reference");
   }
@@ -1524,11 +1526,11 @@ perl_mongo_sv_to_bson (bson_t * bson, SV *sv, AV *ids) {
 
   switch (SvTYPE (SvRV (sv))) {
   case SVt_PVHV:
-    hv_to_bson (bson, sv, ids, EMPTY_STACK, ids != 0);
+    hv_to_bson (bson, sv, ids, EMPTY_STACK, is_insert);
     break;
   case SVt_PVAV: {
     if (sv_isa(sv, "Tie::IxHash")) {
-      ixhash_to_bson(bson, sv, ids, EMPTY_STACK, ids != 0);
+      ixhash_to_bson(bson, sv, ids, EMPTY_STACK, is_insert);
     }
     else {
       /*
@@ -1558,7 +1560,7 @@ perl_mongo_sv_to_bson (bson_t * bson, SV *sv, AV *ids) {
           if (strcmp(SvPV_nolen(*key), "_id") == 0) {
             SV **val = av_fetch(av, i+1, 0);
             has_id = 1;
-            append_sv(bson, "_id", *val, EMPTY_STACK, ids != 0);
+            append_sv(bson, "_id", *val, EMPTY_STACK, is_insert);
             SvREFCNT_inc(*val);
             av_push(ids, *val);
             break;
@@ -1580,7 +1582,7 @@ perl_mongo_sv_to_bson (bson_t * bson, SV *sv, AV *ids) {
 
         str = SvPVutf8(*key, len);
 
-        append_sv (bson, str, *val, EMPTY_STACK, ids != 0);
+        append_sv (bson, str, *val, EMPTY_STACK, is_insert);
       }
     }
     break;
