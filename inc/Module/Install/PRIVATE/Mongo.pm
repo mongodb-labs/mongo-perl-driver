@@ -1,4 +1,3 @@
-#line 1
 use strict;
 use warnings;
 
@@ -11,11 +10,7 @@ use Path::Tiny;
 use File::Spec::Functions qw/catdir/;
 use Cwd; 
 
-use vars qw{$VERSION @ISA};
-BEGIN {
-    $VERSION = '0.45';
-    @ISA     = qw{Module::Install::Base};
-}
+our @ISA = qw{Module::Install::Base};
 
 sub mongo {
     my ($self, @mongo_vars) = @_;
