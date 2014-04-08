@@ -876,7 +876,7 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert)
       croak("could not find hash value for key %s, len:%lu", key, len);
     }
     if (!utf8) {
-      key = (const char *) bytes_to_utf8((const U8 *)key, &len);
+      key = (const char *) bytes_to_utf8((U8 *)key, &len);
     }
     append_sv (bson, key, *hval, stack, is_insert);
     if (!utf8) {
