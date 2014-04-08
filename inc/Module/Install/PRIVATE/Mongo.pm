@@ -109,7 +109,7 @@ sub configure_bson {
 
     my $conf = $self->probe_bson_config;
 
-    path("bson/bson-stdint.h")->spew("#include <$conf->{STDINT_SOURCE}>");
+    path("bson/bson-stdint.h")->spew("#include <$conf->{STDINT_SOURCE}>\n");
 
     my $config_guts = path("bson/bson-config.h.in")->slurp;
     for my $key ( %$conf ) {
