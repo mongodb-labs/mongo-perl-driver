@@ -364,7 +364,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
     break;
   }
   case BSON_TYPE_BINARY: {
-    const char * const buf;
+    const char * buf;
     uint32_t len;
     bson_subtype_t type;
     bson_iter_binary(iter, &type, &len, (const uint8_t **)&buf);
