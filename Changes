@@ -2,6 +2,20 @@ Change history for the MongoDB Perl driver:
 
 {{ $NEXT }}
 
+  [Bug Fixes]
+
+  - Provided backwards compatible HeUTF8 macro for Perl v5.10 and v5.8.8
+    and earlier
+
+  - Fixed bson library configuration bugs
+
+  - Fixed a bug that would serialize an index direction as a string on
+    some older Perls
+
+  - Update ppport.h to version 3.22
+
+  - Fixed several compiler warnings on Perl 5.8
+
 v0.703.4  2014-04-07 20:12:27-04:00 America/New_York (TRIAL RELEASE)
 
   [Enhancements]
