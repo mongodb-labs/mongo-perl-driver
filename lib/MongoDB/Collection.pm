@@ -467,7 +467,7 @@ sub ensure_index {
     if (($options && ref $options ne 'HASH') ||
         (ref $keys eq 'ARRAY' &&
          ($#$keys == 0 || $#$keys >= 1 && !($keys->[1] =~ /-?1/))) ||
-        (ref $keys eq 'Tie::IxHash' && $keys->[2][0] =~ /(de|a)scending/)) {
+        (ref $keys eq 'Tie::IxHash' && (my $copy = $keys->[2][0]) =~ /(de|a)scending/)) {
         Carp::croak("you're using the old ensure_index format, please upgrade");
     }
 
