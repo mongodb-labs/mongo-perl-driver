@@ -252,7 +252,7 @@ static void
 _bson_context_get_oid_seq32_threadsafe (bson_context_t *context, /* IN */
                                         bson_oid_t     *oid)     /* OUT */
 {
-#if defined WITH_OID32_PT
+#if defined BSON_WITH_OID32_PT
    uint32_t seq;
    bson_mutex_lock (&context->_m32);
    seq = context->seq32++;
@@ -316,7 +316,7 @@ static void
 _bson_context_get_oid_seq64_threadsafe (bson_context_t *context, /* IN */
                                         bson_oid_t     *oid)     /* OUT */
 {
-#if defined WITH_OID64_PT
+#if defined BSON_WITH_OID64_PT
    uint64_t seq;
    bson_mutex_lock (&context->_m64);
    seq = context->seq64++;
@@ -425,10 +425,10 @@ bson_context_new (bson_context_flags_t flags) /* IN */
    }
 
    if ((flags & BSON_CONTEXT_THREAD_SAFE)) {
-#if defined WITH_OID32_PT
+#if defined BSON_WITH_OID32_PT
       bson_mutex_init (&context->_m32, NULL);
 #endif
-#if defined WITH_OID64_PT
+#if defined BSON_WITH_OID64_PT
       bson_mutex_init (&context->_m64, NULL);
 #endif
       context->oid_get_seq32 = _bson_context_get_oid_seq32_threadsafe;
@@ -477,10 +477,10 @@ bson_context_new (bson_context_flags_t flags) /* IN */
 void
 bson_context_destroy (bson_context_t *context)  /* IN */
 {
-#if defined WITH_OID32_PT
+#if defined BSON_WITH_OID32_PT
    bson_mutex_destroy (&context->_m32);
 #endif
-#if defined WITH_OID64_PT
+#if defined BSON_WITH_OID64_PT
    bson_mutex_destroy (&context->_m64);
 #endif
    memset (context, 0, sizeof *context);
