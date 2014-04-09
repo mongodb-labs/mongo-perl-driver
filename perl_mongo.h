@@ -26,6 +26,13 @@
 
 #include "ppport.h"
 
+/* not yet provided by ppport.h */
+#ifndef HeUTF8
+#define HeUTF8(he)  ((HeKLEN(he) == HEf_SVKEY) ? \
+                    SvUTF8(HeKEY_sv(he)) :       \
+                    (U32)HeKUTF8(he))
+#endif
+
 #define PERL_MONGO_CALL_BOOT(name)  perl_mongo_call_xs (aTHX_ name, cv, mark)
 
 /* whether to add an _id field */
