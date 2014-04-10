@@ -154,18 +154,3 @@ write_update(ns, criteria, obj, flags)
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
          Safefree(buf.start);
 
-void
-force_double(input)
-	SV *input
-    CODE:
-	if (SvROK(input)) croak("Can't force a reference into a double");
-	SvNV(input);
-	SvNOK_only(input);
-
-void
-force_int(input)
-	SV *input
-    CODE:
-	if (SvROK(input)) croak("Can't force a reference into an int");
-	SvIV(input);
-	SvIOK_only(input);
