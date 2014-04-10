@@ -1554,7 +1554,7 @@ void perl_mongo_sv_to_buffer(buffer * buf, SV *sv, AV *ids)
   writer = bson_writer_new((uint8_t **)&buf->start, &buf_len, offset, &mongo_renew);
 
   bson_writer_begin(writer, &bson);
-  perl_mongo_sv_to_bson(bson, sv, ids);
+  perl_mongo_sv_to_bson(bson, sv, ids!=0, ids);
   bson_writer_end(writer);
 
   buf->end = buf->start + buf_len;
@@ -1564,8 +1564,7 @@ void perl_mongo_sv_to_buffer(buffer * buf, SV *sv, AV *ids)
 }
 
 void
-perl_mongo_sv_to_bson (bson_t * bson, SV *sv, AV *ids) {
-  int is_insert = ids != NO_PREP;
+perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids) {
 
   if (!SvROK (sv)) {
     croak ("not a reference");

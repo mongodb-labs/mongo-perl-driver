@@ -621,8 +621,7 @@ sub _gen_legacy_insert {
     my ( $self, $ns, $doc ) = @_;
     # $doc is a document to insert
 
-    # for bulk, we don't accumulate IDs
-    my ( $insert, undef ) = MongoDB::write_insert( $ns, [$doc], 0 );
+    my $insert = MongoDB::_Protocol::write_insert($ns, [$doc], 1);
 
     return $insert;
 }
@@ -635,14 +634,14 @@ sub _gen_legacy_update {
     $flags |= 1 << 0 if $doc->{upsert};
     $flags |= 1 << 1 if $doc->{multi};
 
-    return MongoDB::write_update( $ns, $doc->{q}, $doc->{u}, $flags );
+    return MongoDB::_Protocol::write_update( $ns, $doc->{q}, $doc->{u}, $flags );
 }
 
 sub _gen_legacy_delete {
     my ( $self, $ns, $doc ) = @_;
     # $doc is { q: $query, limit: $limit }
 
-    return MongoDB::write_remove( $ns, $doc->{q}, $doc->{limit} ? 1 : 0 );
+    return MongoDB::_Protocol::write_delete( $ns, $doc->{q}, $doc->{limit} ? 1 : 0 );
 }
 
 sub _check_no_dollar_keys {

@@ -286,7 +286,9 @@ sub _do_query {
         ($self->immortal << 4) |
         ($self->partial << 7);
 
-    my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit || $self->_batch_size, $self->_query, $self->_fields);
+    my ($query, $info) = MongoDB::_Protocol::write_query(
+        $self->_ns, $opts, $self->_skip, $self->_limit || $self->_batch_size, $self->_query, $self->_fields
+    );
     $self->_request_id($info->{'request_id'});
 
     if ( length($query) > $self->_client->_max_bson_wire_size ) {

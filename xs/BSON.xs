@@ -49,12 +49,13 @@ _decode_bson(msg, dt_type, inflate_dbrefs, inflate_regexps, client)
         bson_reader_destroy(reader);
 
 void
-encode_bson(obj)
+encode_bson(obj, clean_keys)
          SV *obj
+         int clean_keys
     PREINIT:
          bson_t * bson;
     PPCODE:
          bson = bson_new();
-         perl_mongo_sv_to_bson(bson, obj, NO_PREP);
+         perl_mongo_sv_to_bson(bson, obj, clean_keys, NO_PREP);
          XPUSHs(sv_2mortal(newSVpvn((const char *)bson_get_data(bson), bson->len)));
          bson_destroy(bson);

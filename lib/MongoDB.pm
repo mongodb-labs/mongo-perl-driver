@@ -40,6 +40,7 @@ use MongoDB::Timestamp;
 use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use MongoDB::BulkWrite;
+use MongoDB::_Protocol;
 
 XSLoader::load(__PACKAGE__, $MongoDB::VERSION);
 

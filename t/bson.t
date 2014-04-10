@@ -178,32 +178,32 @@ my $c = $testdb->get_collection('bar');
     eval {
         $c->insert({"x.y" => "foo"});
     };
-    ok($@ =~ /inserts cannot contain/);
+    like($@, qr/inserts cannot contain/);
 
     eval {
         $c->insert({"x.y" => "foo", "bar" => "baz"});
     };
-    ok($@ =~ /inserts cannot contain/);
+    like($@, qr/inserts cannot contain/);
 
     eval {
         $c->insert({"bar" => "baz", "x.y" => "foo"});
     };
-    ok($@ =~ /inserts cannot contain/);
+    like($@, qr/inserts cannot contain/);
 
     eval {
         $c->insert({"bar" => {"x.y" => "foo"}});
     };
-    ok($@ =~ /inserts cannot contain/);
+    like($@, qr/inserts cannot contain/);
 
     eval {
         $c->batch_insert([{"x" => "foo"}, {"x.y" => "foo"}, {"y" => "foo"}]);
     };
-    ok($@ =~ /inserts cannot contain/);
+    like($@, qr/inserts cannot contain/);
 
     eval {
         $c->batch_insert([{"x" => "foo"}, {"foo" => ["x", {"x.y" => "foo"}]}, {"y" => "foo"}]);
     };
-    ok($@ =~ /inserts cannot contain/);
+    like($@, qr/inserts cannot contain/);
 }
 
 # empty key name

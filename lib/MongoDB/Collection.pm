@@ -25,7 +25,7 @@ our $VERSION = 'v0.704.4.1';
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
-use Scalar::Util qw/blessed/;
+use Scalar::Util qw/blessed reftype/;
 use Try::Tiny;
 use Moose;
 use namespace::clean -except => 'meta';
@@ -211,29 +211,77 @@ sub insert {
 
 sub legacy_insert {
     my ($self, $object, $options) = @_;
-    
+
+    # XXX if legacy insert doesn't croak on error for unsafe inserts, then we
+    # must trap the batch_insert and return whatever is appropriate (probably
+    # return undef as that's not a valid OID)
     my ($id) = $self->batch_insert( [ $object ], $options);
 
     return $id;
 }
 
+sub _add_oids {
+    my ($self, $docs) = @_;
+    my @ids;
+
+    for my $d ( @$docs ) {
+        my $type = reftype($d);
+        my $found_id;
+        if (ref($d) eq 'Tie::IxHash') {
+            $found_id = $d->FETCH('_id');
+            unless ( defined $found_id ) {
+                $d->Unshift( '_id', $found_id = MongoDB::OID->new );
+            }
+        }
+        elsif ($type eq 'ARRAY') {
+            # search for an _id or prepend one
+            for my $i ( 0 .. (@$d/2 - 1) ) {
+                if ( $d->[2*$i] eq '_id' ) {
+                    $found_id = $d->[2*$i+1];
+                    last;
+                }
+            }
+            unless (defined $found_id) {
+                unshift @$d, '_id', $found_id = MongoDB::OID->new;
+            }
+        }
+        elsif ($type eq 'HASH') {
+            # hash or IxHash
+            $found_id = $d->{_id};
+            unless ( defined $found_id ) {
+                $found_id = MongoDB::OID->new;
+                $d->{_id} = $found_id;
+            }
+        }
+        else {
+            $type = 'scalar' unless $type;
+            Carp::croak("unhandled type $type")
+        }
+        push @ids, $found_id;
+    }
+
+    return \@ids;
+}
 
 sub batch_insert {
     my ($self, $object, $options) = @_;
 
     confess 'not an array reference' unless ref $object eq 'ARRAY';
 
-    my $add_ids = 1;
-    if ($options->{'no_ids'}) {
-        $add_ids = 0;
+    my $ids = [];
+    unless ($options->{'no_ids'}) {
+        $ids = $self->_add_oids($object);
     }
 
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
+    # inserts into system.indexes allows dots in key names
+    my $check_keys = $self->name eq 'system.indexes' ? 0 : 1;
 
-    my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids);
+    my $insert = MongoDB::_Protocol::write_insert($ns, $object, $check_keys);
     if (length($insert) > $conn->max_bson_size) {
         Carp::croak("insert is too large: ".length($insert)." max: ".$conn->max_bson_size);
+        # XXX unnecessary
         return 0;
     }
 
@@ -241,6 +289,7 @@ sub batch_insert {
         my $ok = $self->_make_safe($insert);
 
         if (!$ok) {
+            # XXX wrong return type and docs say we should croak anyway
             return 0;
         }
     }
@@ -248,7 +297,7 @@ sub batch_insert {
         $conn->send($insert);
     }
 
-    return $ids ? @$ids : $ids;
+    return @$ids;
 }
 
 sub update { 
@@ -284,7 +333,7 @@ sub legacy_update {
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
-    my $update = MongoDB::write_update($ns, $query, $object, $flags);
+    my $update = MongoDB::_Protocol::write_update($ns, $query, $object, $flags);
     if ($opts->{safe} or $conn->_w_want_safe ) {
         return $self->_make_safe($update);
     }
@@ -442,7 +491,7 @@ sub legacy_remove {
     my $ns = $self->full_name;
     $query ||= {};
 
-    my $remove = MongoDB::write_remove($ns, $query, $just_one);
+    my $remove = MongoDB::_Protocol::write_delete($ns, $query, $just_one);
     if ($safe) {
         return $self->_make_safe($remove);
     }
@@ -548,7 +597,7 @@ sub _make_safe_cursor {
     $write_concern ||= $conn->_write_concern;
 
     my $last_error = Tie::IxHash->new(getlasterror => 1, %$write_concern);
-    my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
+    my ($query, $info) = MongoDB::_Protocol::write_query($db.'.$cmd', 0, 0, -1, $last_error);
 
     $conn->send("$req$query");
 
