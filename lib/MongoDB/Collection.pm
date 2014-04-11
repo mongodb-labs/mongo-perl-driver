@@ -181,7 +181,6 @@ sub find {
         $cursor->_add_readpref({mode => $modeName, tags => $conn->_readpref_tagsets});
     }
 
-    $cursor->_init;
     if ($sort_by) {
         $cursor->sort($sort_by);
     }
@@ -281,17 +280,10 @@ sub batch_insert {
     my $insert = MongoDB::_Protocol::write_insert($ns, $object, $check_keys);
     if (length($insert) > $conn->max_bson_size) {
         Carp::croak("insert is too large: ".length($insert)." max: ".$conn->max_bson_size);
-        # XXX unnecessary
-        return 0;
     }
 
     if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
-        my $ok = $self->_make_safe($insert);
-
-        if (!$ok) {
-            # XXX wrong return type and docs say we should croak anyway
-            return 0;
-        }
+        $self->_make_safe($insert);
     }
     else {
         $conn->send($insert);
@@ -397,12 +389,12 @@ sub aggregate {
             _client                => $db->_client,
             _master                => $db->_client,   # fake this because we're already iterating
             _ns                    => $result->{cursor}{ns},
-            _agg_first_batch       => $result->{cursor}{firstBatch}, 
-            _agg_batch_size        => scalar @{ $result->{cursor}{firstBatch} },  # for has_next
+            _docs                  => $result->{cursor}{firstBatch}, 
+            _batch_size            => scalar @{ $result->{cursor}{firstBatch} },  # for has_next
             _query                 => Tie::IxHash->new(@command),
+            _cursor_id             => $result->{cursor}{id},
         );
 
-        $cursor->_init( $result->{cursor}{id} );
         return $cursor;
     }
 
@@ -443,9 +435,9 @@ sub parallel_scan {
             _ns                    => $c->{ns},
             _query                 => Tie::IxHash->new(@command),
             _is_parallel           => 1,
+            _cursor_id             => $c->{id},
         );
 
-        $cursor->_init( $c->{id} );
         push @cursors, $cursor;
     }
 
@@ -599,17 +591,15 @@ sub _make_safe_cursor {
     my $last_error = Tie::IxHash->new(getlasterror => 1, %$write_concern);
     my ($query, $info) = MongoDB::_Protocol::write_query($db.'.$cmd', 0, 0, -1, $last_error);
 
-    $conn->send("$req$query");
+    my $cursor = MongoDB::Cursor->new(
+        _master                         => $conn,
+        _client                         => $conn,
+        _ns                             => $info->{ns},
+        _query                          => Tie::IxHash->new(),
+    );
 
-    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns},
-                                      _master => $conn,
-                                      _client => $conn,
-                                      _query => Tie::IxHash->new());
-    $cursor->_init;
-    $cursor->_request_id($info->{'request_id'});
+    $cursor->_send_and_recv("$req$query", $info->{request_id});
 
-    $conn->recv($cursor);
-    $cursor->started_iterating(1);
     return $cursor;
 }
 

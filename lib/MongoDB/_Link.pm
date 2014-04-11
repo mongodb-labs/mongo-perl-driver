@@ -120,6 +120,11 @@ sub close {
     }
 }
 
+sub connected {
+    my ($self) = @_;
+    return $self->{fh} && $self->{fh}->connected;
+}
+
 sub assert_connected {
     my ($self) = @_;
     unless ( $self->{fh} && $self->{fh}->connected ) {

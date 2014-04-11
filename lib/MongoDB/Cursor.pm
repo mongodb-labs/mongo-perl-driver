@@ -99,6 +99,54 @@ has started_iterating => (
     default => 0,
 );
 
+has _docs => (
+    is      => 'ro',
+    isa     => 'ArrayRef',
+    traits  => ['Array'],
+    default => sub { [] },
+    handles => {
+        _drained   => 'is_empty',
+        _doc_count => 'count',
+        _add_docs  => 'push',
+        _next_doc  => 'shift',
+        _clear_docs => 'clear',
+    },
+);
+
+has [qw/_cursor_id _cursor_start/] => (
+    is => 'rw',
+    isa => 'Num',
+    default => 0,
+);
+
+has _cursor_flags => (
+    is => 'rw',
+    isa => 'Str',
+    default => '',
+);
+
+has _cursor_num => (
+    is => 'rw',
+    isa => 'Num',
+    traits => ['Counter'],
+    default => 0,
+    handles => {
+        _inc_cursor_num => 'inc',
+        _clear_cursor_num => 'reset',
+    },
+);
+
+has _cursor_at => (
+    is => 'rw',
+    isa => 'Num',
+    traits => ['Counter'],
+    default => 0,
+    handles => {
+        _inc_cursor_at => 'inc',
+        _clear_cursor_at => 'reset',
+    },
+);
+
 has _master => (
     is => 'ro',
     isa => 'MongoDB::MongoClient',
@@ -135,8 +183,6 @@ has _limit => (
     default => 0,
 );
 
-# XXX this is here for testing; we can rationalize this later
-# with _aggregate_batch_size when we convert to pure Perl
 has _batch_size => (
     is => 'rw',
     isa => 'Int',
@@ -227,25 +273,6 @@ has slave_okay => (
     default => 0,
 );
 
-has _request_id => (
-    is      => 'rw',
-    isa     => 'Int',
-    default => 0,
-);
-
-
-# special attributes for aggregation cursors
-has _agg_first_batch => (
-    is      => 'ro',
-    isa     => 'Maybe[ArrayRef]',
-);
-
-has _agg_batch_size => ( 
-    is      => 'rw',
-    isa     => 'Int',
-    default => 0,
-);
-
 # special flag for parallel scan cursors, since they
 # start out empty
 
@@ -289,7 +316,6 @@ sub _do_query {
     my ($query, $info) = MongoDB::_Protocol::write_query(
         $self->_ns, $opts, $self->_skip, $self->_limit || $self->_batch_size, $self->_query, $self->_fields
     );
-    $self->_request_id($info->{'request_id'});
 
     if ( length($query) > $self->_client->_max_bson_wire_size ) {
         MongoDB::_CommandSizeError->throw(
@@ -298,15 +324,22 @@ sub _do_query {
         );
     }
 
+    return $self->_send_and_recv($query, $info->{request_id});
+}
+
+sub _send_and_recv {
+    my ($self, $query, $request_id) = @_;
+
+    my $reply;
     eval {
         $self->_client->send($query);
-        $self->_client->recv($self); 
+        $reply = $self->_client->recv;
     };
     if ($@ && $self->_master->_readpref_pinned) {
         $self->_master->repin();
         $self->_client($self->_master->_readpref_pinned);
         $self->_client->send($query); 
-        $self->_client->recv($self); 
+        $reply = $self->_client->recv;
     }
     elsif ($@) {
         # rethrow the exception if read preference
@@ -315,6 +348,40 @@ sub _do_query {
     }
 
     $self->started_iterating(1);
+    return $self->_read_reply($reply, $request_id);
+}
+
+sub _read_reply {
+    my ($self, $reply, $request_id) = @_;
+    my $result = MongoDB::_Protocol::parse_reply($reply, $request_id, $self->_client);
+
+    if ( vec( $result->{response_flags}, MongoDB::_Protocol::QUERY_FAILURE(), 1 ) && $self->_ns !~ /\$cmd$/ ) {
+        my $doc = $result->{docs}[0];
+        my $err = $doc->{'$err'} || 'unspecified error';
+        my $code = $doc->{code};
+        if ( $code && grep { $code == $_ } NOT_MASTER(), NOT_MASTER_NO_SLAVE_OK(), NOT_MASTER_OR_SECONDARY() ) {
+            $self->_client->disconnect;
+        }
+        Carp::croak("query error: $err");
+    }
+
+    $self->_cursor_flags( $result->{response_flags} );
+    $self->_cursor_id( $result->{cursor_id} );
+    $self->_cursor_start( $result->{starting_from} );
+    $self->_inc_cursor_num( $result->{number_returned} );
+    $self->_add_docs( @{ $result->{docs} } );
+    return scalar @{ $result->{docs} };
+}
+
+sub info {
+    my ($self) = @_;
+    return {
+        flag => $self->_cursor_flags,
+        cursor_id => $self->_cursor_id,
+        start => $self->_cursor_start,
+        at => $self->_cursor_at,
+        num => $self->_cursor_num,
+    }
 }
 
 =head2 fields (\%f)
@@ -380,7 +447,6 @@ sub limit {
     my ($self, $num) = @_;
     confess "cannot set limit after querying"
 	if $self->started_iterating;
-
     $self->_limit($num);
     return $self;
 }
@@ -601,6 +667,37 @@ sub _inflate_regexps {
     return $self->_client->inflate_regexps;
 }
 
+sub has_next {
+    my ($self) = @_;
+    $self->_do_query unless $self->started_iterating;
+    if ( (my $limit = $self->_limit) > 0 ) {
+          if ($self->_cursor_at + 1 > $limit) {
+            $self->_kill_cursor;
+            return 0;
+        }
+    }
+    return 1 if ! $self->_drained;
+    return $self->_get_more;
+}
+
+sub next {
+    my ($self) = @_;
+    return unless $self->has_next;
+    $self->_inc_cursor_at();
+    return $self->_next_doc;
+}
+
+sub _get_more {
+    my ($self) = @_;
+    return 0 if ! $self->_cursor_id;
+
+    my ($get_more, $request_id) = MongoDB::_Protocol::write_get_more(
+        $self->_ns, $self->_cursor_id, $self->_batch_size );
+    $self->_client->send($get_more);
+    my $reply = $self->_client->recv;
+    # XXX should we blank out cursor if this fails?
+    return $self->_read_reply($reply, $request_id);
+}
 
 =head2 reset
 
@@ -614,7 +711,10 @@ sub reset {
     my ($self) = @_;
     confess "cannot reset a parallel scan"
         if $self->_is_parallel;
-    return $self->_reset;
+    $self->started_iterating(0);
+    $self->_clear_docs;
+    $self->_kill_cursor;
+    return $self;
 }
 
 =head2 has_next
@@ -712,6 +812,17 @@ sub read_preference {
     return $self;
 }
 
+sub _kill_cursor {
+    my ($self) = @_;
+    return if $self->_cursor_id eq 0;
+    $self->_client->send(MongoDB::_Protocol::write_kill_cursor($self->_cursor_id));
+    $self->_cursor_id(0);
+}
+
+sub DESTROY {
+    my ($self) = @_;
+    $self->_kill_cursor;
+}
 
 __PACKAGE__->meta->make_immutable (inline_destructor => 0);
 

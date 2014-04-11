@@ -24,7 +24,7 @@ PROTOTYPES: DISABLE
 void
 _decode_bson(msg, dt_type, inflate_dbrefs, inflate_regexps, client)
         SV *msg
-        char *dt_type
+        SV *dt_type
         int inflate_dbrefs
         int inflate_regexps
         SV *client
@@ -43,13 +43,13 @@ _decode_bson(msg, dt_type, inflate_dbrefs, inflate_regexps, client)
         reader = bson_reader_new_from_data((uint8_t *)data, length);
 
         while ((bson = bson_reader_read(reader, &reached_eof))) {
-          XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, dt_type, inflate_dbrefs, inflate_regexps, client)));
+          XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, (SvOK(dt_type) ? SvPV_nolen(dt_type) : NULL), inflate_dbrefs, inflate_regexps, client)));
         }
 
         bson_reader_destroy(reader);
 
 void
-encode_bson(obj, clean_keys)
+_encode_bson(obj, clean_keys)
          SV *obj
          int clean_keys
     PREINIT:

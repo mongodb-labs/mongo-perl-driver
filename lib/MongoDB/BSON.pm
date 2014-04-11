@@ -111,13 +111,23 @@ $MongoDB::BSON::use_binary = 0;
 
 sub decode_bson {
     my ($msg,$client) = @_;
-    return MongoDB::BSON::_decode_bson(
+    my $struct = eval { MongoDB::BSON::_decode_bson(
         $msg,
         $client->dt_type,
         $client->inflate_dbrefs,
         $client->inflate_regexps,
         $client,
-    );
+        );
+    };
+    Carp::confess($@) if $@;
+    return $struct;
+}
+
+sub encode_bson {
+    my ($struct, $clean_keys) = @_;
+    my $bson = eval { MongoDB::BSON::_encode_bson($struct, $clean_keys) };
+    Carp::confess($@) if $@;
+    return $bson;
 }
 
 __PACKAGE__->meta->make_immutable;

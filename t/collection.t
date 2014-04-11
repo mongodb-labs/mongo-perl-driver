@@ -797,14 +797,14 @@ subtest "aggregation cursors" => sub {
 
     isa_ok $cursor, 'MongoDB::Cursor';
     is $cursor->started_iterating, 1;
-    is( ref( $cursor->_agg_first_batch ), ref [ ] );
-    is $cursor->_agg_batch_size, 20;
+    is( ref( $cursor->_docs ), ref [ ] );
+    is $cursor->_doc_count, 20, "document count cached in cursor";
 
     for( 1..20 ) { 
         my $doc = $cursor->next;
         is( ref( $doc ), ref { } );
         is $doc->{count}, $_;
-        is $cursor->_agg_batch_size, ( 20 - $_ );
+        is $cursor->_doc_count, ( 20 - $_ );
     }
 
     # make sure we can transition to a "real" cursor
@@ -812,8 +812,8 @@ subtest "aggregation cursors" => sub {
 
     isa_ok $cursor, 'MongoDB::Cursor';
     is $cursor->started_iterating, 1;
-    is( ref( $cursor->_agg_first_batch ), ref [ ] );
-    is $cursor->_agg_batch_size, 10;
+    is( ref( $cursor->_docs), ref [ ] );
+    is $cursor->_doc_count, 10;
 
     for( 1..20 ) { 
         my $doc = $cursor->next;

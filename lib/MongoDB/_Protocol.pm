@@ -47,7 +47,7 @@ use constant {
 # XXX this way of seeding/reseeding request ID is a bit of a hack
 # but it should reseed on forks and thread splits
 {
-    my $max        = 2**31-1;
+    my $max        = 2**31 - 1;
     my $request_id = int( rand($max) );
     my $pid        = $$;
 
@@ -163,10 +163,11 @@ sub write_query {
 sub write_get_more {
     my ( $ns, $cursor_id, $limit ) = @_;
     utf8::encode($ns);
-    my $msg = pack( "l<4", 0, _request_id(), 0, OP_GET_MORE );
+    my $request_id = _request_id();
+    my $msg = pack( "l<4", 0, $request_id, 0, OP_GET_MORE );
     $msg .= pack( "l<Z*l<q", 0, $ns, $limit, $cursor_id );
     substr( $msg, 0, 4, pack( "l<", length($msg) ) );
-    return $msg;
+    return ( $msg, $request_id );
 }
 
 # struct {
@@ -256,7 +257,7 @@ sub parse_reply {
     }
 
     if ( $response_to != $request_id ) {
-        Carp::croak("response ID did not match request ID");
+        Carp::croak("response to ID ($response_to) did not match request ID ($request_id)");
     }
 
     if ( vec( $flags, CURSOR_NOT_FOUND, 1 ) ) {
@@ -265,11 +266,15 @@ sub parse_reply {
 
     my @documents;
     for ( 1 .. $number_returned ) {
-        my $len = unpack( "l", substr( 0, 1, $msg ) );
+        my $len = unpack( "l", substr( $msg, 0, 4 ) );
         if ( $len > length($msg) ) {
             Carp::croak("document in response was truncated");
         }
         push @documents, MongoDB::BSON::decode_bson( substr( $msg, 0, $len, '' ), $client );
+    }
+
+    if ( @documents != $number_returned ) {
+        Carp::croak("unepxected number of documents");
     }
 
     if ( length($msg) > 0 ) {
@@ -277,8 +282,11 @@ sub parse_reply {
     }
 
     return {
-        cursor_id => $cursor_id,
-        docs      => \@documents,
+        response_flags  => $flags,
+        cursor_id       => $cursor_id,
+        starting_from   => $starting_from,
+        number_returned => $number_returned,
+        docs            => \@documents,
     };
 }
 

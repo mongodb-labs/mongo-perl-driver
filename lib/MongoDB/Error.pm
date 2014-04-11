@@ -37,6 +37,9 @@ BEGIN {
         BAD_VALUE                   => 2,
         UNKNOWN_ERROR               => 8,
         WRITE_CONCERN_ERROR         => 64,
+        NOT_MASTER                  => 10107,
+        NOT_MASTER_NO_SLAVE_OK      => 13435,
+        NOT_MASTER_OR_SECONDARY     => 13436,
         CANT_OPEN_DB_IN_READ_LOCK   => 15927,
     };
 }

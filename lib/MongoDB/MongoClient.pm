@@ -302,6 +302,22 @@ has _use_write_cmd => (
     lazy_build => 1
 );
 
+has _link => (
+    is        => 'rw', # XXX rw to proxy to master connection
+    isa       => 'MongoDB::_Link',
+    lazy_build => 1,
+    handles => {
+        connected => 'connected',
+        send => 'write',
+        recv => 'read',
+    },
+);
+
+has _conn_params => (
+    is  => 'rw',
+    isa => 'ArrayRef',
+);
+
 sub BUILD {
     my ($self, $opts) = @_;
     eval "use ${_}" # no Any::Moose::load_class because the namespaces already have symbols from the xs bootstrap
@@ -404,8 +420,11 @@ sub BUILD {
         $master = $first_server;
     }
 
-    # create a struct that just points to the master's connection
-    $self->_init_conn_holder($master);
+    # user master's link directly
+    # XXX alternatively, we could store master and proxy all send/recv through it.  Eventually,
+    # the common architecture will replace this with a cluster/node abstraction and we won't
+    # use MongoClient to play so many roles at the same time.
+    $self->_link($master->_link);
 }
 
 sub _str_to_bool {
@@ -488,6 +507,20 @@ sub _build__use_write_cmd {
     return 0;
 }
 
+sub _build__link {
+    my ($self) = @_;
+    # XXX eventually add SSL CA parameters
+    return MongoDB::_Link->new(
+        timeout => $self->timeout,
+        reconnect => $self->auto_reconnect,
+    );
+}
+
+sub _init_conn {
+    my ($self, @params) = @_;
+    $self->_conn_params( \@params );
+}
+
 sub _get_max_bson_size {
     my $self = shift;
     my $buildinfo = $self->get_database('admin')->run_command({buildinfo => 1});
@@ -498,6 +531,16 @@ sub _get_max_bson_size {
     return 4194304;
 }
 
+sub connect {
+    my ($self) = @_;
+    return $self->_link->connect(@{$self->_conn_params});
+}
+
+sub disconnect {
+    my ($self) = @_;
+    my $link = $self->_link;
+    $link->close if defined $link;
+}
 
 sub database_names {
     my ($self) = @_;
@@ -997,6 +1040,11 @@ sub _write_concern {
     };
     $wc->{j} = $self->j if $self->j;
     return $wc;
+}
+
+sub DESTROY {
+    my ($self) = @_;
+    $self->disconnect;
 }
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );

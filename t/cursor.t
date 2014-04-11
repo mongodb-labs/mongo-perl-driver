@@ -73,7 +73,7 @@ $testdb->drop;
 # limit
 {
     @values = $coll->query({}, { limit => 3, sort_by => { foo => 1 } })->all;
-    is(scalar @values, 3);
+    is(scalar @values, 3) or diag explain \@values;
     is ($values[0]->{foo}, -3);
     is ($values[1]->{foo}, 2);
     is ($values[2]->{foo}, 4);
@@ -212,7 +212,7 @@ $testdb->drop;
         $aok = 0;
     };
 
-    ok($@ =~ m/query error/);
+    like($@, qr/query error/, "check query error on hint");
 }
 
 # slave_okay
