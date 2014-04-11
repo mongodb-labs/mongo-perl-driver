@@ -109,6 +109,17 @@ you would like to have it deserialized as instances of L<MongoDB::BSON::Binary>
 
 $MongoDB::BSON::use_binary = 0;
 
+sub decode_bson {
+    my ($msg,$client) = @_;
+    return MongoDB::BSON::_decode_bson(
+        $msg,
+        $client->dt_type,
+        $client->inflate_dbrefs,
+        $client->inflate_regexps,
+        $client,
+    );
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;

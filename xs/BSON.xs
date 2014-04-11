@@ -22,8 +22,12 @@ MODULE = MongoDB::BSON  PACKAGE = MongoDB::BSON
 PROTOTYPES: DISABLE
 
 void
-decode_bson(sv)
-         SV *sv
+_decode_bson(msg, dt_type, inflate_dbrefs, inflate_regexps, client)
+        SV *msg
+        char *dt_type
+        int inflate_dbrefs
+        int inflate_regexps
+        SV *client
 
     PREINIT:
         char * data;
@@ -33,13 +37,13 @@ decode_bson(sv)
         STRLEN length;
 
     PPCODE:
-        data = SvPV_nolen(sv);
-        length = SvCUR(sv);
+        data = SvPV_nolen(msg);
+        length = SvCUR(msg);
 
         reader = bson_reader_new_from_data((uint8_t *)data, length);
 
         while ((bson = bson_reader_read(reader, &reached_eof))) {
-          XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, "DateTime", 1, 1, newSV(0))));
+          XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, dt_type, inflate_dbrefs, inflate_regexps, client)));
         }
 
         bson_reader_destroy(reader);
