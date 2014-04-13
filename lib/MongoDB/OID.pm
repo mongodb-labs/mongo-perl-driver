@@ -21,6 +21,7 @@ package MongoDB::OID;
 use version;
 our $VERSION = 'v0.704.4.1';
 
+use MongoDB::BSON;
 use Moose;
 use MongoDB;
 use namespace::clean -except => 'meta';
@@ -73,8 +74,16 @@ has value => (
     is      => 'ro',
     isa     => 'Str',
     required => 1,
-    builder => 'build_value',
+    builder => '_build_value',
 );
+
+# XXX need to set up typedef with str length
+# msg: "OIDs need to have a length of 24 bytes"
+
+sub _build_value {
+    my ($self) = @_;
+    return MongoDB::BSON::generate_oid();
+}
 
 around BUILDARGS => sub {
     my $orig = shift;
@@ -87,12 +96,6 @@ around BUILDARGS => sub {
     }
     return $class->$orig(@_);
 };
-
-sub build_value {
-    my $self = shift;
-
-    _build_value($self, @_ ? @_ : ());
-}
 
 =head1 METHODS
 

@@ -29,7 +29,7 @@ our $VERSION = 'v0.704.4.1';
 use if ($] eq '5.010000'), 're', 'regexp_pattern';
 
 use Carp ();
-use XSLoader;
+use MongoDB::BSON;
 use MongoDB::Connection;
 use MongoDB::MongoClient;
 use MongoDB::Database;
@@ -42,8 +42,6 @@ use MongoDB::BSON::Regexp;
 use MongoDB::BulkWrite;
 use MongoDB::_Link;
 use MongoDB::_Protocol;
-
-XSLoader::load(__PACKAGE__, $MongoDB::VERSION);
 
 *read_documents = \&MongoDB::BSON::decode_bson;
 

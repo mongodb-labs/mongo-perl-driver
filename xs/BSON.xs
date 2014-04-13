@@ -15,11 +15,13 @@
  */
 
 #include "perl_mongo.h"
-#include "mongo_link.h"
 
-MODULE = MongoDB::BSON  PACKAGE = MongoDB::BSON
+MODULE = MongoDB  PACKAGE = MongoDB::BSON
 
 PROTOTYPES: DISABLE
+
+BOOT:
+    perl_mongo_init();
 
 void
 _decode_bson(msg, dt_type, inflate_dbrefs, inflate_regexps, client)
@@ -59,3 +61,15 @@ _encode_bson(obj, clean_keys)
          perl_mongo_sv_to_bson(bson, obj, clean_keys, NO_PREP);
          XPUSHs(sv_2mortal(newSVpvn((const char *)bson_get_data(bson), bson->len)));
          bson_destroy(bson);
+
+SV *
+generate_oid ()
+    PREINIT:
+        bson_oid_t boid;
+        char oid[25];
+    CODE:
+        bson_oid_init(&boid, NULL);
+        bson_oid_to_string(&boid, oid);
+        RETVAL = newSVpvn(oid, 24);
+    OUTPUT:
+        RETVAL

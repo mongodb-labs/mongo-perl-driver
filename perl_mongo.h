@@ -118,6 +118,7 @@ typedef __int64 int64_t;
 #endif
 #define BSON_MAXKEY 127
 
+#define INITIAL_BUF_SIZE 4096
 #define GROW_SLOWLY 1048576
 #define MAX_OBJ_SIZE (1024*1024*4)
 

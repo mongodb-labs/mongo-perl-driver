@@ -22,6 +22,9 @@ package MongoDB::BSON;
 use version;
 our $VERSION = 'v0.704.4.1';
 
+use XSLoader;
+XSLoader::load("MongoDB", $VERSION);
+
 use Moose;
 use MongoDB;
 use namespace::clean -except => 'meta';

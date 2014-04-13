@@ -15,7 +15,6 @@
  */
 
 #include "perl_mongo.h"
-#include "mongo_link.h"
 
 #ifdef WIN32
 #include <memory.h>
