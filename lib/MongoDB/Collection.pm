@@ -392,7 +392,7 @@ sub aggregate {
             _docs                  => $result->{cursor}{firstBatch}, 
             _batch_size            => scalar @{ $result->{cursor}{firstBatch} },  # for has_next
             _query                 => Tie::IxHash->new(@command),
-            _cursor_id             => $result->{cursor}{id},
+            _cursor_id             => MongoDB::Cursor::_pack_cursor_id($result->{cursor}{id}),
         );
 
         return $cursor;
@@ -435,7 +435,7 @@ sub parallel_scan {
             _ns                    => $c->{ns},
             _query                 => Tie::IxHash->new(@command),
             _is_parallel           => 1,
-            _cursor_id             => $c->{id},
+            _cursor_id             => MongoDB::Cursor::_pack_cursor_id($c->{id}),
         );
 
         push @cursors, $cursor;

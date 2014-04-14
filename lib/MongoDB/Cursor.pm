@@ -29,6 +29,11 @@ use boolean;
 use Tie::IxHash;
 use namespace::clean -except => 'meta';
 
+use constant {
+    CURSOR_ZERO => "\0" x 8,
+    FLAG_ZERO => "\0" x 4,
+};
+
 =head1 NAME
 
 MongoDB::Cursor - A cursor/iterator for Mongo query results
@@ -113,16 +118,22 @@ has _docs => (
     },
 );
 
-has [qw/_cursor_id _cursor_start/] => (
+has _cursor_start => (
     is => 'rw',
     isa => 'Num',
     default => 0,
 );
 
+has _cursor_id => (
+    is => 'rw',
+    isa => 'Str',
+    default => CURSOR_ZERO,
+);
+
 has _cursor_flags => (
     is => 'rw',
     isa => 'Str',
-    default => '',
+    default => FLAG_ZERO,
 );
 
 has _cursor_num => (
@@ -689,7 +700,7 @@ sub next {
 
 sub _get_more {
     my ($self) = @_;
-    return 0 if ! $self->_cursor_id;
+    return 0 if $self->_cursor_id eq CURSOR_ZERO;
 
     my ($get_more, $request_id) = MongoDB::_Protocol::write_get_more(
         $self->_ns, $self->_cursor_id, $self->_batch_size );
@@ -814,14 +825,40 @@ sub read_preference {
 
 sub _kill_cursor {
     my ($self) = @_;
-    return if $self->_cursor_id eq 0;
+    return if $self->_cursor_id eq CURSOR_ZERO;
     $self->_client->send(MongoDB::_Protocol::write_kill_cursor($self->_cursor_id));
-    $self->_cursor_id(0);
+    $self->_cursor_id(CURSOR_ZERO);
 }
 
 sub DESTROY {
     my ($self) = @_;
     $self->_kill_cursor;
+}
+
+#--------------------------------------------------------------------------#
+# utility functions
+#--------------------------------------------------------------------------#
+
+# If we get a cursor_id from a command, BSON decoding will give us either
+# a perl scalar or a Math::BigInt object (if we don't have 32 bit support).
+# For OP_GET_MORE, we treat it as an opaque string, so we need to convert back
+# to a packed, little-endian quad
+sub _pack_cursor_id {
+    my $cursor_id = shift;
+    if ( ref($cursor_id) eq "Math::BigInt" ) {
+        my $as_hex = $cursor_id->as_hex;                  # big-endian hex
+        substr($as_hex,0,2,'');                           # remove "0x"
+        my $len = length( $as_hex );
+        substr($as_hex,0,0,"0" x (16-$len)) if $len < 16; # pad to quad length
+        $cursor_id = pack("H*", $as_hex);                 # packed big-endian
+        $cursor_id = reverse( $cursor_id );               # reverse to little-endian
+    }
+    else {
+        # pack doesn't have endianness modifiers before perl 5.10.
+        # We die during configuration on big-endian platforms on 5.8
+        $cursor_id = pack( $] lt '5.010' ? "q" : "q<", $cursor_id);
+    }
+    return $cursor_id;
 }
 
 __PACKAGE__->meta->make_immutable (inline_destructor => 0);

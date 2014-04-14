@@ -191,8 +191,7 @@ sub read {
     # read length
     $self->_read_bytes( 4, \$msg );
 
-    # XXX not big-endian portable before Perl v5.10
-    my $len = unpack( "l<", $msg );
+    my $len = unpack( P_INT32, $msg );
 
     # read rest of the message
     $self->_read_bytes( $len - 4, \$msg );
