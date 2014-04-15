@@ -40,6 +40,12 @@ XSLoader::load(__PACKAGE__, $MongoDB::VERSION);
 
 *read_documents = \&MongoDB::BSON::decode_bson;
 
+# regexp_pattern was unavailable before 5.10, had to be exported to load the
+# function implementation on 5.10, and was automatically available in 5.10.1
+if ( $] eq '5.010' ) {
+    use re qw/regexp_pattern/;
+}
+
 1;
 
 
