@@ -29,7 +29,7 @@ use JSON;
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb';
 
-plan tests => 61;
+plan tests => 63;
 
 
 my $coll = $testdb->get_collection('y');
@@ -145,11 +145,11 @@ is($id."", $id->value);
     $test{one} = "on"; 
     $test{two} = 2; 
     
-    $coll->insert(\%test);
+    ok( $coll->insert(\%test), "inserted IxHash") ;
 
     my $doc = $coll->find_one;
-    is($doc->{'one'}, 'on');
-    is($doc->{'two'}, 2);
+    is($doc->{'one'}, 'on', "field one");
+    is($doc->{'two'}, 2, "field two");
 }
 
 # binary
@@ -157,10 +157,10 @@ is($id."", $id->value);
     $coll->remove;
 
     my $invalid = "\xFE";
-    $coll->insert({"bin" => \$invalid});
+    ok( $coll->insert({"bin" => \$invalid}), "inserted binary data" );
 
     my $one = $coll->find_one;
-    is($one->{'bin'}, "\xFE");
+    is($one->{'bin'}, "\xFE", "read binary data");
 }
 
 # 64-bit ints
