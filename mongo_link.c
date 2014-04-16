@@ -203,6 +203,7 @@ void non_ssl_connect(mongo_link* link) {
 
   // get addresses
   if (!mongo_link_sockaddr(&addr, link->master->host, link->master->port)) {
+    close(sock);
     return;
   }
 
@@ -230,10 +231,12 @@ void non_ssl_connect(mongo_link* link) {
     if (errno != EINPROGRESS)
 #endif
     {
+      close(sock);
       return;
     }
 
     if (!mongo_link_timeout(sock, link->timeout)) {
+      close(sock);
       return;
     }
 
@@ -241,6 +244,7 @@ void non_ssl_connect(mongo_link* link) {
 
     connected = getpeername(sock, (struct sockaddr*)&addr, &size);
     if (connected == -1){
+      close(sock);
       return;
     }
   }
