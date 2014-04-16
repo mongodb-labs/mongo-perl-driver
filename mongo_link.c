@@ -361,8 +361,8 @@ static int mongo_link_timeout(int sock, time_t to) {
     return 1;
   }
 
-  timeout.tv_sec = to > 0 ? ((long)to / 1000) : 20;
-  timeout.tv_usec = to > 0 ? ((to % 1000) * 1000) : 0;
+  timeout.tv_sec = (long)to / 1000;
+  timeout.tv_usec = (to % 1000) * 1000;
 
   // initialize prev, in case we get interrupted
   if (gettimeofday(&prev, 0) == -1) {
