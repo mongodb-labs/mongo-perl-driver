@@ -4,10 +4,14 @@ Change history for the MongoDB Perl driver:
 
   [Bug Fixes]
 
+  - PERL-323 fix possibly socket leaks on communication errors
+
+  - Fix use of re::regexp_pattern for 5.10.0
+
   - Provided backwards compatible HeUTF8 macro for Perl v5.10 and v5.8.8
     and earlier
 
-  - Fixed bson library configuration bugs
+  - Fixed bson library configuration and ifdef bugs
 
   - Fixed a bug that would serialize an index direction as a string on
     some older Perls
