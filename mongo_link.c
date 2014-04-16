@@ -203,7 +203,12 @@ void non_ssl_connect(mongo_link* link) {
 
   // get addresses
   if (!mongo_link_sockaddr(&addr, link->master->host, link->master->port)) {
+#ifdef WIN32
+    closesocket(link->master->socket);
+    WSACleanup();
+#else
     close(sock);
+#endif
     return;
   }
 
@@ -231,12 +236,22 @@ void non_ssl_connect(mongo_link* link) {
     if (errno != EINPROGRESS)
 #endif
     {
-      close(sock);
+#ifdef WIN32
+        closesocket(link->master->socket);
+        WSACleanup();
+#else
+        close(sock);
+#endif
       return;
     }
 
     if (!mongo_link_timeout(sock, link->timeout)) {
-      close(sock);
+#ifdef WIN32
+        closesocket(link->master->socket);
+        WSACleanup();
+#else
+        close(sock);
+#endif
       return;
     }
 
@@ -244,7 +259,12 @@ void non_ssl_connect(mongo_link* link) {
 
     connected = getpeername(sock, (struct sockaddr*)&addr, &size);
     if (connected == -1){
-      close(sock);
+#ifdef WIN32
+        closesocket(link->master->socket);
+        WSACleanup();
+#else
+        close(sock);
+#endif
       return;
     }
   }
