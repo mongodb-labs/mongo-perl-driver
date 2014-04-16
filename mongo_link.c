@@ -205,7 +205,6 @@ void non_ssl_connect(mongo_link* link) {
   if (!mongo_link_sockaddr(&addr, link->master->host, link->master->port)) {
 #ifdef WIN32
     closesocket(link->master->socket);
-    WSACleanup();
 #else
     close(sock);
 #endif
@@ -238,7 +237,6 @@ void non_ssl_connect(mongo_link* link) {
     {
 #ifdef WIN32
         closesocket(link->master->socket);
-        WSACleanup();
 #else
         close(sock);
 #endif
@@ -248,7 +246,6 @@ void non_ssl_connect(mongo_link* link) {
     if (!mongo_link_timeout(sock, link->timeout)) {
 #ifdef WIN32
         closesocket(link->master->socket);
-        WSACleanup();
 #else
         close(sock);
 #endif
@@ -261,7 +258,6 @@ void non_ssl_connect(mongo_link* link) {
     if (connected == -1){
 #ifdef WIN32
         closesocket(link->master->socket);
-        WSACleanup();
 #else
         close(sock);
 #endif
@@ -688,6 +684,8 @@ void set_disconnected(SV *link_sv) {
 #ifdef WIN32
   shutdown(link->master->socket, 2);
   closesocket(link->master->socket);
+  /* this might be a bug -- we should defer this to program exit or get the Perl
+   * interpreter to do it */
   WSACleanup();
 #else
   close(link->master->socket);
