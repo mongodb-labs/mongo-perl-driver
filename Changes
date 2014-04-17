@@ -102,6 +102,8 @@ v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
 
   [Bug Fixes]
 
+  - PERL-233 Fix find_and_modify error handling
+
   - PERL-260 ensure_index no longer ignores weights, default_language, and
     language_override options
 
@@ -112,8 +114,6 @@ v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
   - Fix failing t/gridfs.t
 
   - Cache client constructor arguments for replica set connections
-
-  - Fix find_and_modify error handling
 
   - Prevent GridFS MD5 calculation when 'safe' is not set (mapbuh)
 
