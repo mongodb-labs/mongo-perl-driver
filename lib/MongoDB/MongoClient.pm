@@ -298,7 +298,7 @@ has _use_write_cmd => (
 
 sub BUILD {
     my ($self, $opts) = @_;
-    eval "use ${_}" # no Any::Moose::load_class becase the namespaces already have symbols from the xs bootstrap
+    eval "use ${_}" # no Any::Moose::load_class because the namespaces already have symbols from the xs bootstrap
         for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID MongoDB::Timestamp/;
 
     my @pairs;
@@ -986,7 +986,7 @@ number for more replicas.
 In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can specify a 
 new "getLastErrorMode" where you can create new
 rules on how your data is replicated. To used you getLastErrorMode, you pass in the 
-name of the mode to the C<w> parameter. For more infomation see: 
+name of the mode to the C<w> parameter. For more information see: 
 http://www.mongodb.org/display/DOCS/Data+Center+Awareness
 
 =attr wtimeout
