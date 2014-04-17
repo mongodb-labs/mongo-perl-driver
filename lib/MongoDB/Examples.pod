@@ -432,7 +432,7 @@ jobs written in JavaScript. Be warned: MapReduce is generally slower than the
 aggregation framework and should be avoided unless your application requires
 the flexibility that it provides.
 
-This example counts the number of occurences of each tag in a collection.  Each
+This example counts the number of occurrences of each tag in a collection.  Each
 document contains a "tags" array that contains zero or more strings.
 
     my $map = <<MAP;
