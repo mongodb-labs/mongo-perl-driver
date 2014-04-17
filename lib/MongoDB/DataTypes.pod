@@ -319,7 +319,7 @@ booleans as L<boolean>s, set C<$MongoDB::BSON::use_boolean> to 1.
 
 "OID" stands for "Object ID", and is a unique id that is automatically added to
 documents if they do not already have an C<_id> field before they are saved to
-the database.  They are 12 bytes which are guarenteed to be unique.  Their
+the database.  They are 12 bytes which are guaranteed to be unique.  Their
 string form is a 24-character string of hexidecimal digits.
 
 To create a unique id:

@@ -264,7 +264,7 @@ sub legacy_update {
     # now there are two, there will probably be
     # more in the future.  So, to support old code,
     # passing "1" will still be supported, but not
-    # documentd, so we can phase that out eventually.
+    # documented, so we can phase that out eventually.
     #
     # The preferred way of passing options will be a
     # hash of {optname=>value, ...}

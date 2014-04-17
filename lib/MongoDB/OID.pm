@@ -34,7 +34,7 @@ C<_id> field will be added with a new C<MongoDB::OID> as its value.
 
     my $id = $collection->insert({'name' => 'Alice', age => 20});
 
-C<$id> will be a C<MongoDB::OID> that can be used to retreive or update the 
+C<$id> will be a C<MongoDB::OID> that can be used to retrieve or update the 
 saved document:
 
     $collection->update({_id => $id}, {'age' => {'$inc' => 1}});

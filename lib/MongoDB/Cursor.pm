@@ -83,7 +83,7 @@ $MongoDB::Cursor::timeout = 30000;
 =head2 started_iterating
 
 If this cursor has queried the database yet. Methods
-mofifying the query will complain if they are called
+modifying the query will complain if they are called
 after the database is queried.
 
 =cut

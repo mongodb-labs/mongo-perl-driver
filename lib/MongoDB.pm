@@ -195,7 +195,7 @@ C<MongoDB::Collection::insert>, pass a single hash, for example:
 Passing multiple hashes imitates the behavior of
 C<MongoDB::Collection::batch_insert>.
 
-This function returns the string and an array of the the _id fields that the
+This function returns the string and an array of the _id fields that the
 inserted hashes will contain.
 
 =head2 write_query($ns, $flags, $skip, $limit, $query, $fields?)
