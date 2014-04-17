@@ -24,6 +24,10 @@ package MongoDB;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
+# regexp_pattern was unavailable before 5.10, had to be exported to load the
+# function implementation on 5.10, and was automatically available in 5.10.1
+use if ($] eq '5.010000'), 're', 'regexp_pattern';
+
 use XSLoader;
 use MongoDB::Connection;
 use MongoDB::MongoClient;
@@ -39,13 +43,6 @@ use MongoDB::Bulk;
 XSLoader::load(__PACKAGE__, $MongoDB::VERSION);
 
 *read_documents = \&MongoDB::BSON::decode_bson;
-
-# regexp_pattern was unavailable before 5.10, had to be exported to load the
-# function implementation on 5.10, and was automatically available in 5.10.1
-if ( $] eq '5.010' ) {
-    require re;
-    re->import('regexp_pattern');
-}
 
 1;
 
