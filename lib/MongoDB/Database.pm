@@ -202,7 +202,7 @@ Deletes the database.
 
 Finds out if the last database operation completed successfully.  If the last
 operation did not complete successfully, returns a hash reference of information
-about the error that occured.
+about the error that occurred.
 
 The optional C<$options> parameter is a hash reference that can contain any of
 the following:
@@ -298,7 +298,7 @@ C<w> servers.
 
 =item C<upserted>
 
-If an upsert occured, this field will contain the new record's C<_id> field. For
+If an upsert occurred, this field will contain the new record's C<_id> field. For
 upserts, either this field or C<updatedExisting> will be present (unless an
 error occurred).
 
