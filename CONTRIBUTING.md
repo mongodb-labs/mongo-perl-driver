@@ -16,12 +16,19 @@ If you would like to contribute code, documentation, tests, or bugfixes, follow 
 2. Clone the fork to your local machine.
 3. Make your changes and push them back up to your GitHub account.
 4. Send a "pull request" with a brief description of your changes, and a link to a JIRA 
-ticket if there is one. Make sure your *target your pull request* to the latest development
-branch, not the master branch. The development branches are named in the format 
-`version-X.YYY`.
+ticket if there is one.
 
 If you are unfamiliar with GitHub, start with their excellent documentation here:
 
   https://help.github.com/articles/fork-a-repo
 
- 
+## Working with the Repository
+You will need to install Config::AutoConf and Path::Tiny to be able to run
+the Makefile.PL.  While this distribution is shipped using Dist::Zilla, you
+do not need to install it or use it for testing.
+
+    $ cpan Config::AutoConf Path::Tiny
+    $ perl Makefile.PL
+    $ make
+    $ make test
+
