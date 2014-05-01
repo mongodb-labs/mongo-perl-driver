@@ -512,7 +512,7 @@ sub ensure_index {
     return $res if $res->{ok};    
 
     if ( ( not $res->{ok} )  && 
-         ( not exists $res->{code} or $res->{code} == 59 ) ) { 
+         ( not exists $res->{code} or $res->{code} == 59 or $res->{code} == 13390) ) { 
         $obj->Unshift( ns => $tmp_ns );     # restore ns to spec
         my $indexes = $self->_database->get_collection("system.indexes");
         return $indexes->insert($obj, $options);
