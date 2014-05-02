@@ -79,15 +79,16 @@ has '_ops' => (
     }
 );
 
-has '_wire_version' => (
+has '_use_write_cmd' => (
     is         => 'ro',
-    isa        => 'Int',
+    isa        => 'Bool',
     lazy_build => 1,
 );
 
-sub _build__wire_version {
+sub _build__use_write_cmd {
     my ($self) = @_;
-    return $self->collection->_database->_client->max_wire_version;
+    my $use_it = $self->collection->_database->_client->_use_write_cmd;
+    return $use_it;
 }
 
 with 'MongoDB::Role::_OpQueue';
@@ -111,6 +112,7 @@ sub insert {
     unless ( @_ == 2 && ref $doc eq 'HASH' ) {
         confess "argument to insert must be a single hash reference";
     }
+
     $doc->{_id} = MongoDB::OID->new unless exists $doc->{_id};
     $self->_enqueue_op( [ insert => $doc ] );
     return $self;
@@ -159,7 +161,7 @@ sub execute {
     }
 
     for my $batch ( $ordered ? $self->_batch_ordered : $self->_batch_unordered ) {
-        if ( $self->_wire_version > 1 ) {
+        if ( $self->_use_write_cmd ) {
             $self->_execute_write_command_batch( $batch, $result, $ordered );
         }
         else {
@@ -322,8 +324,180 @@ sub _assert_no_error {
     );
 }
 
+# XXX the _execute_legacy_(insert|update|delete) commands duplicate code in
+# Collection.pm, but that code is wrapped up in a way that doesn't easily allow
+# grabbing result details.  We can't parse a response directly because the
+# network receive code is tightly coupled to a cursor.  These functions work
+# around these limitations for the time being
+
 sub _execute_legacy_batch {
-    die "unimplemented"
+    my ( $self, $batch, $result, $ordered ) = @_;
+    my ( $type, $docs ) = @$batch;
+
+    my $coll   = $self->collection;
+    my $client = $coll->_database->_client;
+    my $ns     = $coll->full_name;
+    my $method = "_gen_legacy_$type";
+
+    for my $doc (@$docs) {
+        # legacy server doesn't check keys on insert
+        if ( $type eq 'insert' && ( my $r = $self->_check_no_dollar_keys($doc) ) ) {
+            $result->merge_result($r);
+            $self->_assert_no_error($result) if $ordered;
+            next;
+        }
+
+        my $op_string = $self->$method( $ns, $doc );
+
+        if ( length($op_string) > $client->max_bson_size ) {
+            # XXX do something here: croak? fake up a result? send anyway and get
+            # server response?
+        }
+
+        # XXX for bulk, do we just send and ignore errors when not safe?
+        my $op_result;
+        if ( $client->_w_want_safe ) {
+            $op_result = $coll->_make_safe_cursor($op_string)->next;
+        }
+        else {
+            # XXX they don't want safe -- now what?
+            # $client->send($op_string);
+        }
+
+        # XXX do something with $op_result
+        my $gle_result = $self->_get_writeresult_from_gle( $type, $op_result, $doc );
+
+        $result->merge_result($gle_result);
+        $self->_assert_no_error($result) if $ordered;
+    }
+
+    return;
+}
+
+sub _get_writeresult_from_gle {
+    my ( $self, $type, $gle, $doc ) = @_;
+    my ( @writeErrors, @writeConcernErrors, @upserted );
+
+    # Still checking for $err here because it's not yet handled during
+    # reply unpacking
+    if ( exists $gle->{'$err'} ) {
+        MongoDB::DatabaseError->throw(
+            message => $gle->{'$err'},
+            details => MongoDB::CommandResult->new( result => $gle ),
+        );
+    }
+
+    # 'ok' false means GLE itself failed
+    if ( !$gle->{ok} ) {
+        MongoDB::DatabaseError->throw(
+            message => $gle->{errmsg},
+            details => MongoDB::CommandResult->new( result => $gle ),
+        );
+    }
+
+    my $affected = 0;
+    my $errmsg =
+        defined $gle->{err}    ? $gle->{err}
+      : defined $gle->{errmsg} ? $gle->{errmsg}
+      :                          undef;
+
+    if ( my $wtimeout = $gle->{wtimeout} ) {
+        my $code = $gle->{code} || WRITE_CONCERN_ERROR;
+        push @writeConcernErrors,
+          {
+            errmsg  => $errmsg,
+            errInfo => { wtimeout => $wtimeout },
+            code    => $code
+          };
+    }
+    elsif ( defined $errmsg ) {
+        my $code = $gle->{code} || UNKNOWN_ERROR;
+        # index is always 0 because ops are executed individually; later
+        # merging of results will fix up the index values as usual
+        my $error_doc = {
+            errmsg => $errmsg,
+            code   => $code,
+            index  => 0,
+            op     => $doc,
+        };
+        # convert boolean::true|false back to 1 or 0
+        for my $k (qw/upsert multi/) {
+            $error_doc->{op}{$k} = 0+ $error_doc->{op}{$k} if exists $error_doc->{op}{$k};
+        }
+        $error_doc->{errInfo} = $gle->{errInfo} if exists $gle->{errInfo};
+        push @writeErrors, $error_doc;
+    }
+    else {
+        # GLE: n only returned for update/remove, so we infer it for insert
+        $affected =
+            $type eq 'insert' ? 1
+          : defined $gle->{n} ? $gle->{n}
+          :                     0;
+
+        # index is always 0 because ops are executed individually; later
+        # merging of results will fix up the index values as usual
+        push @upserted, { index => 0, _id => $gle->{upserted} } if $gle->{upserted};
+    }
+
+    my $result = MongoDB::WriteResult->parse(
+        op       => $type,
+        op_count => 1,
+        result   => {
+            n                  => $affected,
+            writeErrors        => \@writeErrors,
+            writeConcernErrors => \@writeConcernErrors,
+            ( @upserted ? ( upserted => \@upserted ) : () ),
+        },
+    );
+
+    return $result;
+}
+
+sub _gen_legacy_insert {
+    my ( $self, $ns, $doc ) = @_;
+    # $doc is a document to insert
+
+    # for bulk, we don't accumulate IDs
+    my ( $insert, undef ) = MongoDB::write_insert( $ns, [$doc], 0 );
+
+    return $insert;
+}
+
+sub _gen_legacy_update {
+    my ( $self, $ns, $doc ) = @_;
+    # $doc is { q: $query, u: $update, multi: $multi, upsert: $upsert }
+
+    my $flags = 0;
+    $flags |= 1 << 0 if $doc->{upsert};
+    $flags |= 1 << 1 if $doc->{multi};
+
+    return MongoDB::write_update( $ns, $doc->{q}, $doc->{u}, $flags );
+}
+
+sub _gen_legacy_delete {
+    my ( $self, $ns, $doc ) = @_;
+    # $doc is { q: $query, limit: $limit }
+
+    return MongoDB::write_remove( $ns, $doc->{q}, $doc->{limit} ? 1 : 0 );
+}
+
+sub _check_no_dollar_keys {
+    my ( $self, $doc ) = @_;
+
+    if ( my @bad = grep { substr( $_, 0, 1 ) eq '$' } keys %$doc ) {
+        my $errdoc = {
+            index  => 0,
+            errmsg => "Document can't have '\$' prefixed field names: @bad",
+            code   => UNKNOWN_ERROR
+        };
+
+        return MongoDB::WriteResult->new(
+            op_count    => 1,
+            writeErrors => [$errdoc]
+        );
+    }
+
+    return;
 }
 
 __PACKAGE__->meta->make_immutable;

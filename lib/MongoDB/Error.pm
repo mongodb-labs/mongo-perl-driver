@@ -25,7 +25,26 @@ use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
 use Moose;
-use namespace::clean -except => 'meta';
+use Exporter 5.57 qw/import/;
+use namespace::clean -except => [ 'meta', 'import' ];
+
+#--------------------------------------------------------------------------#
+# Export some error codes
+
+my $ERROR_CODES;
+
+BEGIN {
+    $ERROR_CODES = {
+        UNKNOWN_ERROR => 8,
+        WRITE_CONCERN_ERROR => 64,
+    }
+}
+
+use constant $ERROR_CODES;
+
+our @EXPORT = keys %$ERROR_CODES;
+
+#--------------------------------------------------------------------------#
 
 use overload
   q{""}    => sub { shift->message },
@@ -101,8 +120,8 @@ use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
 
 has size => (
-    is      => 'ro',
-    isa     => 'Int',
+    is       => 'ro',
+    isa      => 'Int',
     required => 1,
 );
 
