@@ -123,6 +123,13 @@ sub get_time {
     return hex(substr($self->value, 0, 8));
 }
 
+# for testing purposes
+sub _get_pid {
+    my ($self) = @_;
+
+    return hex(substr($self->value, 14, 4));
+}
+
 =head2 TO_JSON
 
     my $json = JSON->new;
