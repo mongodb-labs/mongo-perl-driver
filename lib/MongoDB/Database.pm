@@ -22,6 +22,8 @@ package MongoDB::Database;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
+use MongoDB::CommandResult;
+use MongoDB::Error;
 use MongoDB::GridFS;
 use Carp 'carp';
 use boolean;
@@ -106,9 +108,11 @@ sub _try_run_command {
     my ($self, $command) = @_;
     my $obj = $self->get_collection('$cmd')->find_one($command);
     return $obj if $obj->{ok};
-    confess $obj->{'errmsg'};
+    MongoDB::DatabaseError->throw(
+        message => $obj->{errmsg},
+        details => MongoDB::CommandResult->new(result => $obj),
+    );
 }
-
 
 sub eval {
     my ($self, $code, $args, $nolock) = @_;
@@ -132,11 +136,6 @@ sub eval {
 __PACKAGE__->meta->make_immutable;
 
 1;
-
-
-
-
-
 
 __END__
 
