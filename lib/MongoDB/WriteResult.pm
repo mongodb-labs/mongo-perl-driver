@@ -88,7 +88,7 @@ sub parse {
         confess "parse requires 'op' and 'result' arguments";
     }
 
-    my ( $op, $op_count, $result ) = @{$args}{qw/op op_count result/};
+    my ( $op, $op_count, $batch_count, $result ) = @{$args}{qw/op op_count batch_count result/};
 
     confess "op argument to parse must be one of: @op_map_keys"
       unless $op eq any(@op_map_keys);
@@ -97,7 +97,7 @@ sub parse {
 
     # if we have an op count, use it, otherwise, let it use the default
     my $attrs = {
-        batch_count => 1,
+        batch_count => $batch_count || 1,
         $op_count ? ( op_count => $op_count ) : ()
     };
 

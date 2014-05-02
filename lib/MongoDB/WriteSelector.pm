@@ -66,13 +66,13 @@ sub _update {
     }
 
     if ( $method eq 'replace_one' ) {
-        if ( grep { substr($_,0,1) eq '$' } keys %$doc ) {
-            confess "no $method document keys may be '\$' prefixed operators";
+        if ( my @bad = grep { substr($_,0,1) eq '$' } keys %$doc ) {
+            confess "$method document can't have '\$' prefixed field names: @bad";
         }
     }
     else {
-        if ( grep { substr($_,0,1) ne '$' } keys %$doc ) {
-            confess "all $method document keys must be '\$' prefixed operators";
+        if ( my @bad = grep { substr($_,0,1) ne '$' } keys %$doc ) {
+            confess "$method document can't have non- '\$' prefixed field names: @bad";
         }
     }
 
