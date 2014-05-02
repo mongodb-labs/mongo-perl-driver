@@ -29,6 +29,7 @@ MongoDB::Code - JavaScript code
 =cut
 
 use Moose;
+use namespace::clean -except => 'meta';
 
 =head1 ATTRIBUTES
 
@@ -55,5 +56,7 @@ has scope => (
     isa      => 'HashRef',
     required => 0,
 );
+
+__PACKAGE__->meta->make_immutable;
 
 1;

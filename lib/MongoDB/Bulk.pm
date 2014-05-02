@@ -22,10 +22,10 @@ use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
 use boolean;
-use Moose;
 use MongoDB;
 use Scalar::Util 'reftype';
-
+use Moose;
+use namespace::clean -except => 'meta';
 
 has 'collection' => ( 
     is       => 'ro',
@@ -167,5 +167,7 @@ sub remove_one {
 
     return $self->remove( 1 );
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

@@ -5,6 +5,7 @@ use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
 use Moose;
+use namespace::clean -except => 'meta';
 
 has pattern => ( 
     is       => 'ro',
@@ -43,5 +44,6 @@ sub BUILD {
     }
 }
 
+__PACKAGE__->meta->make_immutable;
 
 1;

@@ -21,8 +21,6 @@ package MongoDB::Connection;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use Moose;
-
 use MongoDB;
 use MongoDB::Cursor;
 use MongoDB::MongoClient;
@@ -32,7 +30,8 @@ use Digest::MD5;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
-
+use Moose;
+use namespace::clean -except => 'meta';
 
 has '_client' => (
     isa         => 'MongoDB::MongoClient', 
@@ -47,8 +46,6 @@ around 'new' => sub {
     my ( $orig, $self, @args ) = @_;
     return $self->$orig( _client => MongoDB::MongoClient->new( @args ) );
 };
-
-
 
 __PACKAGE__->meta->make_immutable ( inline_destructor => 0, inline_constructor => 0 );
 

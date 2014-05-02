@@ -23,11 +23,12 @@ use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
 use Tie::IxHash;
-use Moose;
 use Carp 'carp';
 use boolean;
 use Devel::Size 'total_size';
 use Try::Tiny;
+use Moose;
+use namespace::clean -except => 'meta';
 
 has _database => (
     is       => 'ro',

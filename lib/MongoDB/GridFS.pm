@@ -22,10 +22,11 @@ package MongoDB::GridFS;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use Moose;
 use MongoDB::GridFS::File;
 use DateTime 0.78; # drops dependency on bug-prone Math::Round
 use Digest::MD5;
+use Moose;
+use namespace::clean -except => 'meta';
 
 =head1 NAME
 
@@ -415,6 +416,8 @@ sub all {
     }
     return @ret;
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;
 

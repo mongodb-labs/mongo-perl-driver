@@ -22,9 +22,10 @@ package MongoDB::GridFS::File;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use Moose;
 use MongoDB::GridFS;
 use IO::File;
+use Moose;
+use namespace::clean -except => 'meta';
 
 =head1 NAME
 
@@ -150,6 +151,8 @@ sub slurp {
 
     return $bytes;
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;
 

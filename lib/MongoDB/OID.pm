@@ -22,6 +22,7 @@ use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
 use Moose;
+use namespace::clean -except => 'meta';
 
 =head1 NAME
 

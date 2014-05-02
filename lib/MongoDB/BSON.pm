@@ -23,6 +23,7 @@ use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
 use Moose;
+use namespace::clean -except => 'meta';
 
 =head1 NAME
 
@@ -106,5 +107,7 @@ you would like to have it deserialized as instances of L<MongoDB::BSON::Binary>
 =cut
 
 $MongoDB::BSON::use_binary = 0;
+
+__PACKAGE__->meta->make_immutable;
 
 1;

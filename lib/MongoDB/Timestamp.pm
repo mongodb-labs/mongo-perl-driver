@@ -36,6 +36,7 @@ L<DateTime>.  See <MongoDB::DataTypes> for more information.
 =cut
 
 use Moose;
+use namespace::clean -except => 'meta';
 
 =head1 ATTRIBUTES
 
@@ -62,5 +63,7 @@ has inc => (
     isa      => 'Int',
     required => 1,
 );
+
+__PACKAGE__->meta->make_immutable;
 
 1;

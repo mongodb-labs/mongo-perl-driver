@@ -21,10 +21,11 @@ package MongoDB::DBRef;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use Moose;
-use Moose::Util::TypeConstraints;
 use Carp 'croak';
 use Tie::IxHash;
+use Moose;
+use Moose::Util::TypeConstraints;
+use namespace::clean -except => 'meta';
 
 
 subtype DBRefColl => as 'Str';
@@ -112,6 +113,8 @@ sub _ordered {
     
     return Tie::IxHash->new( '$ref' => $self->ref, '$id' => $self->id, '$db' => $self->db );
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;
 

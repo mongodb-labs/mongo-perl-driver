@@ -21,8 +21,6 @@ package MongoDB::MongoClient;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use Moose;
-use Moose::Util::TypeConstraints;
 use MongoDB;
 use MongoDB::Cursor;
 use MongoDB::BSON::Binary;
@@ -34,6 +32,9 @@ use Scalar::Util 'reftype';
 use boolean;
 use Encode;
 use Try::Tiny;
+use Moose;
+use Moose::Util::TypeConstraints;
+use namespace::clean -except => 'meta';
 
 use constant {
     PRIMARY             => 0, 
