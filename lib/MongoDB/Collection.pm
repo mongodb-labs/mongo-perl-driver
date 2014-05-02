@@ -506,6 +506,21 @@ sub ensure_index {
 
 sub _make_safe {
     my ($self, $req) = @_;
+
+    my $ok = $self->_make_safe_cursor($req)->next();
+
+    # $ok->{ok} is 1 if err is set
+    Carp::croak $ok->{err} if $ok->{err};
+    # $ok->{ok} == 0 is still an error
+    if (!$ok->{ok}) {
+        Carp::croak $ok->{errmsg};
+    }
+
+    return $ok;
+}
+
+sub _make_safe_cursor {
+    my ($self, $req) = @_;
     my $conn = $self->_database->_client;
     my $db = $self->_database->name;
 
@@ -523,17 +538,7 @@ sub _make_safe {
 
     $conn->recv($cursor);
     $cursor->started_iterating(1);
-
-    my $ok = $cursor->next();
-
-    # $ok->{ok} is 1 if err is set
-    Carp::croak $ok->{err} if $ok->{err};
-    # $ok->{ok} == 0 is still an error
-    if (!$ok->{ok}) {
-        Carp::croak $ok->{errmsg};
-    }
-
-    return $ok;
+    return $cursor;
 }
 
 sub save {
