@@ -21,151 +21,309 @@ package MongoDB::Bulk;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use boolean;
 use MongoDB;
-use Scalar::Util 'reftype';
+use MongoDB::Error;
+use MongoDB::OID;
+use MongoDB::WriteResult;
+use MongoDB::WriteSelector;
+use Try::Tiny;
+use Safe::Isa;
+
 use Moose;
 use namespace::clean -except => 'meta';
 
-has 'collection' => ( 
+=attr collection (required)
+
+The L<MongoDB::Collection> where the operations are to be performed.
+
+=cut
+
+has 'collection' => (
     is       => 'ro',
     isa      => 'MongoDB::Collection',
-    required => 1
+    required => 1,
+    handles  => [qw/name/],
 );
 
-has 'ordered'  => ( 
+=attr ordered (required)
+
+A boolean for whether or not operations should be ordered (true) or
+unordered (false).
+
+=cut
+
+has 'ordered' => (
     is       => 'ro',
     isa      => 'Bool',
     required => 1,
-    default  => 0
 );
 
-has '_current_selector' => ( 
-   is        => 'rw',
-   isa       => 'HashRef',
-   default   => sub { { } },
-);
-
-has '_executed' => ( 
-   is        => 'rw',
-   isa       => 'Bool',
-   init_arg  => undef,
-   default   => 0,
-);
-
-has '_inserts' => ( 
+has '_executed' => (
     is       => 'rw',
-    isa      => 'ArrayRef[HashRef]',
-    default  => sub { [ ] },
-    traits   => [ 'Array' ],
-    handles  => { 
-        _add_insert    => 'push',
-        _all_inserts   => 'elements',
-        _num_inserts   => 'count',
-        _get_insert    => 'get',
-        _shf_insert    => 'shift',
-        _pop_insert    => 'pop',
+    isa      => 'Bool',
+    init_arg => undef,
+    default  => 0,
+);
+
+has '_ops' => (
+    is       => 'rw',
+    isa      => 'ArrayRef[ArrayRef]',
+    init_arg => undef,
+    default  => sub { [] },
+    traits   => ['Array'],
+    handles  => {
+        _enqueue_op => 'push',
+        _all_ops    => 'elements',
+        _count_ops  => 'count',
+        _clear_ops  => 'clear',
     }
 );
 
-has '_updates' => ( 
-    is       => 'rw',
-    isa      => 'ArrayRef[HashRef]',
-    default  => sub { [ ] },
-    traits   => [ 'Array' ],
-    handles  => { 
-        _add_update    => 'push',
-        _all_updates   => 'elements',
-        _num_updates   => 'count',
-        _get_update    => 'get',
-        _shf_update    => 'shift',
-        _pop_update    => 'pop',
-    }
-
+has '_wire_version' => (
+    is         => 'ro',
+    isa        => 'Int',
+    lazy_build => 1,
 );
 
-has '_removes' => ( 
-    is       => 'rw',
-    isa      => 'ArrayRef[HashRef]',
-    default  => sub { [ ] },
-    traits   => [ 'Array' ],
-    handles  => { 
-        _add_remove    => 'push',
-        _all_removes   => 'elements',
-        _num_removes   => 'count',
-        _get_remove    => 'get',
-        _shf_remove    => 'shift',
-        _pop_remove    => 'pop',
-    }
+sub _build__wire_version {
+    my ($self) = @_;
+    return $self->collection->_database->_client->max_wire_version;
+}
 
-);
+with 'MongoDB::Role::_OpQueue';
 
-
-sub find { 
+sub find {
     my ( $self, $selector ) = @_;
 
-    die "find requires a criteria document. Use an empty hashref for no criteria."
-      unless ref $selector && reftype $selector eq reftype { };
+    # XXX replace this with a proper argument check for acceptable selector types
+    confess "find requires a criteria document. Use an empty hashref for no criteria."
+      unless ref $selector eq 'HASH';
 
-    $self->_current_selector( { query => $selector, upsert => false } );
-
-    return $self;
+    return MongoDB::WriteSelector->new(
+        query    => $selector,
+        op_queue => $self,
+    );
 }
 
-
-sub insert { 
+sub insert {
     my ( $self, $doc ) = @_;
-    $self->_add_insert( $doc );
+    # XXX eventually, need to support array or IxHash
+    unless ( @_ == 2 && ref $doc eq 'HASH' ) {
+        confess "argument to insert must be a single hash reference";
+    }
+    $doc->{_id} = MongoDB::OID->new unless exists $doc->{_id};
+    $self->_enqueue_op( [ insert => $doc ] );
     return $self;
 }
 
-sub update { 
-    my ( $self, $update_doc, $multi ) = @_;
+=method execute
 
-    die "update requires a replacement document."
-      unless ref $update_doc && reftype $update_doc eq reftype { };
+    $bulk->execute;
 
-    $multi = defined $multi ? $multi : true;
+Returns a hash reference with results of the bulk operations.  Keys may
+include:
 
-    $self->_add_update( { q      => $self->_current_selector->{query}, 
-                          u      => $update_doc,
-                          upsert => $self->_current_selector->{upsert},
-                          multi  => $multi } );
+=for :list
+* ...
+* writeErrors
+* writeConcernError
 
-    return $self;
+This method will throw an error if there are communication or other serious
+errors.  It will not throw error for C<writeErrors> or C<writeConcernError>.
+You must check the results document for those.
+
+XXX discuss how order affects errors
+
+=cut
+
+my %OP_MAP = (
+    insert => [ insert => 'documents' ],
+    update => [ update => 'updates' ],
+    delete => [ delete => 'deletes' ],
+);
+
+sub execute {
+    my ($self) = @_;
+    if ( $self->_executed ) {
+        MongoDB::Error->throw("bulk op execute called more than once");
+    }
+    else {
+        $self->_executed(1);
+    }
+
+    my $ordered = $self->ordered;
+    my $result  = MongoDB::WriteResult->new;
+
+    unless ( $self->_count_ops ) {
+        MongoDB::Error->throw("no bulk ops to execute");
+    }
+
+    for my $batch ( $ordered ? $self->_batch_ordered : $self->_batch_unordered ) {
+        if ( $self->_wire_version > 1 ) {
+            $self->_execute_write_command_batch( $batch, $result, $ordered );
+        }
+        else {
+            $self->_execute_legacy_batch( $batch, $result, $ordered );
+        }
+    }
+
+    # only reach here with an error for unordered bulk ops
+    $self->_assert_no_error($result);
+
+    return $result;
 }
 
-sub update_one { 
-    my ( $self, $update_doc ) = @_;
+# _execute_write_command_batch may split batches if they are too large and
+# execute them separately
 
-    return $self->update( $update_doc, false );
+sub _execute_write_command_batch {
+    my ( $self, $batch, $result, $ordered ) = @_;
+
+    my ( $type, $docs )   = @$batch;
+    my ( $cmd,  $op_key ) = @{ $OP_MAP{$type} };
+
+    my $boolean_ordered = $ordered ? boolean::true : boolean::false;
+    my $coll_name = $self->name;
+
+    my @left_to_send = ($docs);
+
+    while (@left_to_send) {
+        my $chunk = shift @left_to_send;
+
+        my $cmd_doc = [
+            $cmd    => $coll_name,
+            $op_key => $chunk,
+            ordered => $boolean_ordered,
+        ];
+
+        my $cmd_result = try {
+            $self->collection->_database->_try_run_command($cmd_doc);
+        }
+        catch {
+            if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
+                if ( @$chunk == 1 ) {
+                    # XXX need a proper exception
+                    die "document too large";
+                }
+                else {
+                    unshift @left_to_send, $self->_split_chunk( $chunk, $_->size );
+                }
+            }
+            else {
+                die $_;
+            }
+            return;
+        };
+
+        next unless $cmd_result;
+
+        # XXX maybe refacotr the result munging and merging
+        my $r = MongoDB::WriteResult->parse(
+            op       => $type,
+            op_count => scalar @$chunk,
+            result   => $cmd_result,
+        );
+
+        # append corresponding ops to errors
+        if ( $r->count_writeErrors ) {
+            for my $error ( @{ $r->writeErrors } ) {
+                $error->{op} = $chunk->[ $error->{index} ];
+                # convert boolean::true|false back to 1 or 0
+                for my $k (qw/upsert multi/) {
+                    $error->{op}{$k} = 0+ $error->{op}{$k} if exists $error->{op}{$k};
+                }
+            }
+        }
+
+        $result->merge_result($r);
+        $self->_assert_no_error($result) if $ordered;
+    }
+
+    return;
 }
 
-sub upsert { 
-    my ( $self ) = @_;
+sub _split_chunk {
+    my ( $self, $chunk, $size ) = @_;
 
-    die "upsert does not take any arguments" if @_ > 1;
+    # XXX this call chain is gross; eventually, client (or node) should probably be
+    # an attribute of Bulk
+    my $max_wire_size = $self->collection->_database->_client->_max_bson_wire_size;
 
-    $self->_current_selector->{upsert} = true;
-    return $self;
+    my $avg_cmd_size       = $size / @$chunk;
+    my $new_cmds_per_chunk = int( $max_wire_size / $avg_cmd_size );
+
+    my @split_chunks;
+    while (@$chunk) {
+        push @split_chunks, [ splice( @$chunk, 0, $new_cmds_per_chunk ) ];
+    }
+
+    return @split_chunks;
 }
 
-sub remove { 
-    my ( $self, $limit ) = @_;
+sub _batch_ordered {
+    my ($self) = @_;
+    my @batches;
+    my $last_type = '';
+    my $count     = 0;
 
-    # limit of zero means unlimited
-    $limit = defined $limit ? $limit : 0;
+    # XXX this call chain is gross; eventually, client (or node) should probably be
+    # an attribute of Bulk
+    my $max_batch_count = $self->collection->_database->_client->_max_write_batch_size;
 
-    $self->_add_remove( { q     => $self->_current_selector->{query},
-                          limit => $limit } );
+    for my $op ( $self->_all_ops ) {
+        my ( $type, $doc ) = @$op;
+        if ( $type ne $last_type || $count == 1000 ) {
+            push @batches, [ $type => [$doc] ];
+            $last_type = $type;
+            $count     = 1;
+        }
+        else {
+            push @{ $batches[-1][-1] }, $doc;
+            $count++;
+        }
+    }
 
-    return $self;
+    return @batches;
 }
 
-sub remove_one { 
-    my ( $self ) = @_;
+sub _batch_unordered {
+    my ($self) = @_;
+    my %batches = map { ; $_ => [ [] ] } keys %OP_MAP;
 
-    return $self->remove( 1 );
+    # XXX this call chain is gross; eventually, client (or node) should probably be
+    # an attribute of Bulk
+    my $max_batch_count = $self->collection->_database->_client->_max_write_batch_size;
+
+    for my $op ( $self->_all_ops ) {
+        my ( $type, $doc ) = @$op;
+        if ( @{ $batches{$type}[-1] } == $max_batch_count ) {
+            push @{ $batches{$type} }, [$doc];
+        }
+        else {
+            push @{ $batches{$type}[-1] }, $doc;
+        }
+    }
+
+    # insert/update/delete are guaranteed to be in random order on Perl 5.18+
+    my @batches;
+    for my $type ( grep { scalar @{ $batches{$_}[-1] } } keys %batches ) {
+        push @batches, map { [ $type => $_ ] } @{ $batches{$type} };
+    }
+    return @batches;
+}
+
+sub _assert_no_error {
+    my ( $self, $result ) = @_;
+    my $error_cnt = $result->count_writeErrors;
+    return unless $error_cnt;
+    MongoDB::BulkWriteError->throw(
+        message => "writeErrors: $error_cnt",
+        details => $result,
+    );
+}
+
+sub _execute_legacy_batch {
+    die "unimplemented"
 }
 
 __PACKAGE__->meta->make_immutable;
