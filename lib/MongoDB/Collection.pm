@@ -617,10 +617,14 @@ sub drop {
     return;
 }
 
-sub bulk { 
-    my ( $self, %args ) = @_;
+sub initialize_unordered_bulk_op {
+    my ($self) = @_;
+    return MongoDB::Bulk->new( collection => $self, ordered => 0 );
+}
 
-    return MongoDB::Bulk->new( %args, collection => $self );
+sub initialize_ordered_bulk_op {
+    my ($self) = @_;
+    return MongoDB::Bulk->new( collection => $self, ordered => 1 );
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -995,4 +999,6 @@ index is ascending or descending on that key.
 Deletes a collection as well as all of its indexes.
 
 
+=cut
 
+# vim: ts=4 sts=4 sw=4 et:

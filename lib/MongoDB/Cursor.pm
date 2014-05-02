@@ -22,6 +22,7 @@ package MongoDB::Cursor;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
+use MongoDB::Error;
 use boolean;
 use Tie::IxHash;
 use Moose;
@@ -286,6 +287,13 @@ sub _do_query {
 
     my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit, $self->_query, $self->_fields);
     $self->_request_id($info->{'request_id'});
+
+    if ( length($query) > $self->_client->_max_bson_wire_size ) {
+        MongoDB::_CommandSizeError->throw(
+            message => "database command too large",
+            size => length $query,
+        );
+    }
 
     eval {
         $self->_client->send($query);
