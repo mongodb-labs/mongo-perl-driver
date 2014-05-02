@@ -171,6 +171,21 @@ has max_bson_size => (
     default  => 4194304
 );
 
+has _max_bson_wire_size => (
+    is       => 'rw',
+    isa      => 'Int',
+    required => 1,
+    default  => 16_793_600, # 16MiB + 16KiB
+);
+
+# XXX eventually, get this off an isMaster call
+has _max_write_batch_size => (
+    is       => 'rw',
+    isa      => 'Int',
+    required => 1,
+    default  => 1000,
+);
+
 has find_master => (
     is       => 'ro',
     isa      => 'Bool',
