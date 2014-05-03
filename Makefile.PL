@@ -39,6 +39,7 @@ requires 'Scalar::Util';
 requires 'Tie::IxHash';
 requires 'Try::Tiny';
 requires 'boolean';
+requires 'namespace::clean';
 requires 'version';
 
 test_requires 'Data::Dump';
