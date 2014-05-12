@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-use 5.008001;
+use 5.008;
 use strict;
 use warnings;
 use Test::More 0.96;
