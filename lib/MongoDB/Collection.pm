@@ -25,7 +25,6 @@ our $VERSION = 'v0.703.5'; # TRIAL
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
-use Devel::Size 'total_size';
 use Try::Tiny;
 use Moose;
 use namespace::clean -except => 'meta';
@@ -183,24 +182,6 @@ sub find_one {
 
     return $self->find($query)->limit(-1)->fields($fields)->next;
 }
-
-sub _split_batch { 
-    my ( $self, $docs ) = @_;
-
-    # this will give us a rather inflated size as compared to the BSON
-    # serialized version of the structure, so we'll use it as a rather
-    # liberal estimate of when to split the batch.
-    my $size = total_size $docs;
-    return $docs if $size < 16_777_216;
-
-    my ( @left, @right );
-    @left  = @{$docs}[ 0                     .. int( @$docs / 2 ) - 1];
-    @right = @{$docs}[ int( @$docs / 2 )     .. $#$docs               ]; 
-
-    return ( total_size \@left  < 16_777_216 ? \@left  : $self->_split_batch( \@left ),
-             total_size \@right < 16_777_216 ? \@right : $self->_split_batch( \@right ) );
-}
-
 
 sub insert { 
     my $self = shift;
