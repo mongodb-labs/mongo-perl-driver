@@ -29,7 +29,6 @@ cc_optimize_flags( @cc_optimize_flags ) if @cc_optimize_flags;
 requires 'Carp';
 requires 'Class::MOP::Class';
 requires 'DateTime' => '0.78';
-requires 'Devel::Size';
 requires 'Digest::MD5';
 requires 'Encode';
 requires 'IO::File';
