@@ -21,7 +21,6 @@ package MongoDB::Bulk;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use MongoDB;
 use MongoDB::Error;
 use MongoDB::OID;
 use MongoDB::WriteResult;
@@ -145,13 +144,15 @@ my %OP_MAP = (
 );
 
 sub execute {
-    my ($self) = @_;
+    my ( $self, $write_concern ) = @_;
     if ( $self->_executed ) {
         MongoDB::Error->throw("bulk op execute called more than once");
     }
     else {
         $self->_executed(1);
     }
+
+    $write_concern ||= $self->collection->_database->_client->_write_concern;
 
     my $ordered = $self->ordered;
     my $result  = MongoDB::WriteResult->new;
@@ -162,15 +163,18 @@ sub execute {
 
     for my $batch ( $ordered ? $self->_batch_ordered : $self->_batch_unordered ) {
         if ( $self->_use_write_cmd ) {
-            $self->_execute_write_command_batch( $batch, $result, $ordered );
+            $self->_execute_write_command_batch( $batch, $result, $ordered, $write_concern );
         }
         else {
-            $self->_execute_legacy_batch( $batch, $result, $ordered );
+            $self->_execute_legacy_batch( $batch, $result, $ordered, $write_concern );
         }
     }
 
     # only reach here with an error for unordered bulk ops
-    $self->_assert_no_error($result);
+    $self->_assert_no_write_error($result);
+
+    # write concern errors are thrown only for the entire batch
+    $self->_assert_no_write_concern_error($result);
 
     return $result;
 }
@@ -179,7 +183,7 @@ sub execute {
 # execute them separately
 
 sub _execute_write_command_batch {
-    my ( $self, $batch, $result, $ordered ) = @_;
+    my ( $self, $batch, $result, $ordered, $write_concern ) = @_;
 
     my ( $type, $docs )   = @$batch;
     my ( $cmd,  $op_key ) = @{ $OP_MAP{$type} };
@@ -196,6 +200,7 @@ sub _execute_write_command_batch {
             $cmd    => $coll_name,
             $op_key => $chunk,
             ordered => $boolean_ordered,
+            ( $write_concern ? ( writeConcern => $write_concern ) : () )
         ];
 
         my $cmd_result = try {
@@ -238,7 +243,7 @@ sub _execute_write_command_batch {
         }
 
         $result->merge_result($r);
-        $self->_assert_no_error($result) if $ordered;
+        $self->_assert_no_write_error($result) if $ordered;
     }
 
     return;
@@ -314,14 +319,26 @@ sub _batch_unordered {
     return @batches;
 }
 
-sub _assert_no_error {
+sub _assert_no_write_error {
     my ( $self, $result ) = @_;
-    my $error_cnt = $result->count_writeErrors;
-    return unless $error_cnt;
-    MongoDB::BulkWriteError->throw(
-        message => "writeErrors: $error_cnt",
-        details => $result,
-    );
+    if ( my $write_errors = $result->count_writeErrors ) {
+        MongoDB::BulkWriteError->throw(
+            message => "writeErrors: $write_errors",
+            details => $result,
+        );
+    }
+    return;
+}
+
+sub _assert_no_write_concern_error {
+    my ( $self, $result ) = @_;
+    if ( my $write_concern_errors = $result->count_writeConcernErrors ) {
+        MongoDB::BulkWriteError->throw(
+            message => "writeConcernErrors: $write_concern_errors",
+            details => $result,
+        );
+    }
+    return;
 }
 
 # XXX the _execute_legacy_(insert|update|delete) commands duplicate code in
@@ -331,7 +348,7 @@ sub _assert_no_error {
 # around these limitations for the time being
 
 sub _execute_legacy_batch {
-    my ( $self, $batch, $result, $ordered ) = @_;
+    my ( $self, $batch, $result, $ordered, $write_concern ) = @_;
     my ( $type, $docs ) = @$batch;
 
     my $coll   = $self->collection;
@@ -339,12 +356,21 @@ sub _execute_legacy_batch {
     my $ns     = $coll->full_name;
     my $method = "_gen_legacy_$type";
 
+    # check write_concern for string "0" because write concern can be
+    # 'majority' or a tag-set
+    my $w_0 = defined $write_concern->{w} && $write_concern->{w} eq "0";
+
     for my $doc (@$docs) {
-        # legacy server doesn't check keys on insert
+        # legacy server doesn't check keys on insert; we fake an error if it happens
         if ( $type eq 'insert' && ( my $r = $self->_check_no_dollar_keys($doc) ) ) {
-            $result->merge_result($r);
-            $self->_assert_no_error($result) if $ordered;
-            next;
+            if ( $w_0 ) {
+                last;
+            }
+            else {
+                $result->merge_result($r);
+                $self->_assert_no_write_error($result) if $ordered;
+                next;
+            }
         }
 
         my $op_string = $self->$method( $ns, $doc );
@@ -354,21 +380,27 @@ sub _execute_legacy_batch {
             # server response?
         }
 
-        # XXX for bulk, do we just send and ignore errors when not safe?
-        my $op_result;
-        if ( $client->_w_want_safe ) {
-            $op_result = $coll->_make_safe_cursor($op_string)->next;
+        my $gle_result;
+
+        # Even for {w:0}, if the batch is ordered we have to check each result
+        # and break on the first error, but we don't throw the error to the user.
+        if ( $ordered || ! $w_0 ) {
+            my $op_result = $coll->_make_safe_cursor( $op_string, $write_concern )->next;
+            $gle_result = $self->_get_writeresult_from_gle( $type, $op_result, $doc );
+            last if $w_0 && $gle_result->count_writeErrors;
         }
         else {
-            # XXX they don't want safe -- now what?
-            # $client->send($op_string);
+            # Fire and forget and mock up an empty result to get the right op count
+            $client->send($op_string);
+            $gle_result = MongoDB::WriteResult->parse(
+                    op       => $type,
+                    op_count => 1,
+                    result   => { n => 0 },
+            );
         }
 
-        # XXX do something with $op_result
-        my $gle_result = $self->_get_writeresult_from_gle( $type, $op_result, $doc );
-
         $result->merge_result($gle_result);
-        $self->_assert_no_error($result) if $ordered;
+        $self->_assert_no_write_error($result) if $ordered;
     }
 
     return;
@@ -376,7 +408,7 @@ sub _execute_legacy_batch {
 
 sub _get_writeresult_from_gle {
     my ( $self, $type, $gle, $doc ) = @_;
-    my ( @writeErrors, @writeConcernErrors, @upserted );
+    my ( @writeErrors, $writeConcernError, @upserted );
 
     # Still checking for $err here because it's not yet handled during
     # reply unpacking
@@ -395,22 +427,32 @@ sub _get_writeresult_from_gle {
         );
     }
 
+    # 'wnote' or 'jnote' are write concern usage errors, so those get
+    # raised as database errors
+    if ( exists $gle->{wnote} || exists $gle->{jnote} ) {
+        MongoDB::DatabaseError->throw(
+            message => exists $gle->{wnote} ? $gle->{wnote} : $gle->{jnote},
+            details => MongoDB::CommandResult->new( result => $gle ),
+        );
+    }
+
     my $affected = 0;
     my $errmsg =
         defined $gle->{err}    ? $gle->{err}
       : defined $gle->{errmsg} ? $gle->{errmsg}
       :                          undef;
+    my $wtimeout = $gle->{wtimeout};
 
-    if ( my $wtimeout = $gle->{wtimeout} ) {
+    if ( $wtimeout ) {
         my $code = $gle->{code} || WRITE_CONCERN_ERROR;
-        push @writeConcernErrors,
-          {
+        $writeConcernError = {
             errmsg  => $errmsg,
             errInfo => { wtimeout => $wtimeout },
             code    => $code
-          };
+        };
     }
-    elsif ( defined $errmsg ) {
+
+    if ( defined $errmsg && ! $wtimeout ) {
         my $code = $gle->{code} || UNKNOWN_ERROR;
         # index is always 0 because ops are executed individually; later
         # merging of results will fix up the index values as usual
@@ -445,7 +487,7 @@ sub _get_writeresult_from_gle {
         result   => {
             n                  => $affected,
             writeErrors        => \@writeErrors,
-            writeConcernErrors => \@writeConcernErrors,
+            writeConcernError  => $writeConcernError,
             ( @upserted ? ( upserted => \@upserted ) : () ),
         },
     );

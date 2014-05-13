@@ -35,9 +35,10 @@ my $ERROR_CODES;
 
 BEGIN {
     $ERROR_CODES = {
-        UNKNOWN_ERROR => 8,
+        BAD_VALUE           => 2,
+        UNKNOWN_ERROR       => 8,
         WRITE_CONCERN_ERROR => 64,
-    }
+    };
 }
 
 use constant $ERROR_CODES;

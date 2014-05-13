@@ -520,11 +520,12 @@ sub _make_safe {
 }
 
 sub _make_safe_cursor {
-    my ($self, $req) = @_;
+    my ($self, $req, $write_concern) = @_;
     my $conn = $self->_database->_client;
     my $db = $self->_database->name;
+    $write_concern ||= $conn->_write_concern;
 
-    my $last_error = Tie::IxHash->new(getlasterror => 1, w => $conn->w, wtimeout => $conn->wtimeout, j => $conn->j);
+    my $last_error = Tie::IxHash->new(getlasterror => 1, %$write_concern);
     my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
 
     $conn->send("$req$query");
