@@ -92,7 +92,7 @@ sub parse {
 
     confess "op argument to parse must be one of: @op_map_keys"
       unless $op eq any(@op_map_keys);
-    confess "op_count argument to parse must be a hash reference"
+    confess "results argument to parse must be a hash reference"
       unless ref $result eq 'HASH';
 
     # if we have an op count, use it, otherwise, let it use the default
@@ -135,6 +135,11 @@ sub parse {
 sub count_writeErrors {
     my ($self) = @_;
     return scalar @{ $self->writeErrors };
+}
+
+sub count_writeConcernErrors {
+    my ($self) = @_;
+    return scalar @{ $self->writeConcernErrors };
 }
 
 sub last_errmsg {

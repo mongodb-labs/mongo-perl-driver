@@ -25,12 +25,15 @@ use Syntax::Keyword::Junction qw/any/;
 use boolean;
 
 use MongoDB;
+use MongoDB::Error;
 
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb', '$using_2_6';
 
 my $coll = $testdb->get_collection("test_collection");
 $coll->drop;
+
+my $ismaster = $testdb->run_command( { ismaster => 1 } );
 
 # constructors
 subtest "constructors" => sub {
@@ -854,7 +857,7 @@ subtest "ordered batch with errors" => sub {
 
     # on 2.6+, 4 ops run in two batches; but on legacy, we get an error on
     # the first update_one, so we only have two ops, still in two batches
-    is( $details->op_count,  $using_2_6 ? 4 : 2, "op_count" );
+    is( $details->op_count, $using_2_6 ? 4 : 2, "op_count" );
     is( $details->batch_count, 2, "op_count" );
 
     is( $details->count_writeErrors,       1,     "writeError count" );
@@ -1004,7 +1007,105 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     };
 }
 
+note("QA-477 W>1 AGAINST STANDALONE");
+for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
+    subtest "$method: w > 1 against standalone (explicit)" => sub {
+        plan skip_all => 'needs a standalone server'
+          if $ismaster->{hosts};
+
+        $coll->drop;
+        my $bulk = $coll->$method;
+        $bulk->insert( {} );
+        my $err = exception { $bulk->execute( { w => 2 } ) };
+        isa_ok( $err, 'MongoDB::DatabaseError',
+            "executing write concern w > 1 throws error" );
+        like( $err->message, qr/replica/, "error message mentions replication" );
+    };
+
+    subtest "$method: w > 1 against standalone (implicit)" => sub {
+        plan skip_all => 'needs a standalone server'
+          if $ismaster->{hosts};
+
+        $coll->drop;
+        $conn->w(2);
+        my $bulk = $coll->$method;
+        $bulk->insert( {} );
+        my $err = exception { $bulk->execute() };
+        isa_ok( $err, 'MongoDB::DatabaseError',
+            "executing write concern w > 1 throws error" );
+        like( $err->message, qr/replica/, "error message mentions replication" );
+    };
+}
+
+note("QA-477 WTIMEOUT PLUS DUPLICATE KEY ERROR");
+subtest "initialize_unordered_bulk_op: wtimeout plus duplicate keys" => sub {
+    plan skip_all => 'needs a replica set'
+        unless $ismaster->{hosts};
+
+    # asking for w more than N hosts will trigger the error we need
+    my $W = @{$ismaster->{hosts}} + 1;
+
+    $coll->drop;
+    my $bulk = $coll->initialize_unordered_bulk_op;
+    $bulk->insert( { _id => 1} );
+    $bulk->insert( { _id => 1} );
+    my $err = exception { $bulk->execute( { w => $W, wtimeout => 100 } ) };
+    isa_ok( $err, 'MongoDB::BulkWriteError',
+        "executing throws error" );
+    my $details = $err->details;
+    is( $details->nInserted, 1, "nInserted == 1" );
+    is( $details->count_writeErrors, 1, "one write error" );
+    is( $details->count_writeConcernErrors, 1, "one write concern error" );
+};
+
+
+note("QA-477 W = 0");
+for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
+    subtest "$method: w = 0" => sub {
+        $coll->drop;
+        my $bulk = $coll->$method;
+
+        $bulk->insert({_id => 1});
+        $bulk->insert({_id => 1});
+        $bulk->insert({_id => 2});
+        my ($result, $err);
+        $err = exception { $result = $bulk->execute( {w => 0} ) };
+        is( $err, undef, "execute with w = 0 doesn't throw error" )
+            or diag explain $err;
+
+        my $expect = $method eq 'initialize_ordered_bulk_op' ? 1 : 2;
+        is( $coll->count, $expect, "document count ($expect)" );
+    };
+}
+
+note("WRITE CONCERN ERRORS");
+for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
+    subtest "$method: write concern errors" => sub {
+        plan skip_all => 'needs a replica set'
+            unless $ismaster->{hosts};
+
+        # asking for w more than N hosts will trigger the error we need
+        my $W = @{$ismaster->{hosts}} + 1;
+
+        $coll->drop;
+        my $bulk = $coll->$method;
+        $bulk->insert( { _id => 1 } );
+        $bulk->insert( { _id => 2 } );
+        $bulk->find( { id => 3 } )->upsert->update( { '$set' => { x => 2 } } );
+        $bulk->insert( { _id => 4 } );
+        my $err = exception { $bulk->execute( { w => $W, wtimeout => 100 } ) };
+        isa_ok( $err, 'MongoDB::BulkWriteError', "executing throws error" );
+        my $details = $err->details;
+        is( $details->nInserted, 3, "nInserted" );
+        is( $details->nUpserted, 1, "nUpserted" );
+        is( $details->count_writeErrors, 0, "no write errors" );
+        ok( $details->count_writeConcernErrors, "got write concern errors" );
+    };
+}
+
 # XXX QA-477 tests not covered herein:
 # MIXED OPERATIONS, AUTH
+# NO JOURNAL
+# FAILOVER WITH MIXED VERSIONS
 
 done_testing;

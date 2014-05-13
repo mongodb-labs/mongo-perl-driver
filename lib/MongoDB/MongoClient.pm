@@ -913,6 +913,16 @@ sub _check_wire_version {
 
 }
 
+sub _write_concern {
+    my ($self) = @_;
+    my $wc = {
+        w => $self->w,
+        wtimeout => $self->wtimeout,
+    };
+    $wc->{j} = $self->j if $self->j;
+    return $wc;
+}
+
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
 1;
