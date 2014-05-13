@@ -265,7 +265,7 @@ next (self)
           client_sv           = perl_mongo_call_reader( self, "_client" );
           agg_batch_size_sv   = perl_mongo_call_reader( self, "_agg_batch_size" );
 
-          char *dt_type       = SvOK( dt_type_sv ) ? SvPV( dt_type_sv, SvLEN( dt_type_sv ) ) : NULL;
+          char *dt_type       = SvOK( dt_type_sv ) ? SvPV_nolen( dt_type_sv ) : NULL;
           int inflate_dbrefs  = SvIV( inflate_dbrefs_sv );
           int inflate_regexps = SvIV( inflate_regexps_sv );
           int agg_batch_size  = SvIV( agg_batch_size_sv );
