@@ -22,6 +22,7 @@ use Test::Fatal;
 use Test::Deep qw/!blessed/;
 use Scalar::Util qw/refaddr/;
 use Syntax::Keyword::Junction qw/any/;
+use Tie::IxHash;
 use boolean;
 
 use MongoDB;
@@ -59,19 +60,24 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my $bulk = $coll->$method;
         # raise errors on wrong arg types
         my %bad_args = (
-            SCALAR   => ['foo'],
-            ARRAYREF => [ [ {} ] ], # eventually, arrayref with key/value pairs should be OK
-            LIST     => [ {}, {} ],
-            EMPTY    => [],
+            SCALAR => ['foo'],
+            LIST   => [ {}, {} ],
+            EMPTY  => [],
         );
 
         for my $k ( sort keys %bad_args ) {
             like(
                 exception { $bulk->insert( @{ $bad_args{$k} } ) },
-                qr/argument to insert must be a single hash reference/,
+                qr/argument to insert must be a single hashref, arrayref or Tie::IxHash/,
                 "insert( $k ) throws an error"
             );
         }
+
+        like(
+            exception { $bulk->insert( ['foo'] ) },
+            qr{array reference to insert must have key/value pairs},
+            "insert( ['foo'] ) throws an error",
+        );
 
         like(
             exception { $bulk->find( {} )->insert( {} ) },
@@ -166,7 +172,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             for my $k ( sort keys %bad_args ) {
                 like(
                     exception { $bulk->find( {} )->$update( @{ $bad_args{$k} } ) },
-                    qr/argument to $update must be a single hash reference/,
+                    qr/argument to $update must be a single hashref, arrayref or Tie::IxHash/,
                     "$update( $k ) throws an error"
                 );
             }
@@ -287,7 +293,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         for my $k ( sort keys %bad_args ) {
             like(
                 exception { $bulk->find( {} )->replace_one( @{ $bad_args{$k} } ) },
-                qr/argument to replace_one must be a single hash reference/,
+                qr/argument to replace_one must be a single hashref, arrayref or Tie::IxHash/,
                 "replace_one( $k ) throws an error"
             );
         }
@@ -1016,8 +1022,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my $bulk = $coll->$method;
         $bulk->insert( {} );
         my $err = exception { $bulk->execute( { j => 1 } ) };
-        isa_ok( $err, 'MongoDB::DatabaseError',
-            "executing j:1 on nojournal throws error" );
+        isa_ok( $err, 'MongoDB::DatabaseError', "executing j:1 on nojournal throws error" );
         like( $err->message, qr/journal/, "error message mentions journal" );
     };
 }
@@ -1049,6 +1054,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $err, 'MongoDB::DatabaseError',
             "executing write concern w > 1 throws error" );
         like( $err->message, qr/replica/, "error message mentions replication" );
+        $conn->w(1);
     };
 }
 
@@ -1091,7 +1097,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     };
 }
 
-# This test was not included in the QA test plan; it ensures that
+# This test was not included in the QA-477 test plan; it ensures that
 # write concerns are applied only after all operations finish
 note("WRITE CONCERN ERRORS");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
@@ -1117,6 +1123,106 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         ok( $details->count_writeConcernErrors, "got write concern errors" );
     };
 }
+
+# Not in QA-477 -- Many methods take hashrefs, arrayrefs or Tie::IxHash
+# objects.  The following tests check that arrayrefs and Tie::IxHash are legal
+# arguments to find, insert, update, update_one and replace_one.  The
+# remove and remove_one methods take no arguments and don't need tests
+
+note("ARRAY REFS"); # Not in QA-477 -- this is perl driver specific
+subtest "insert (ARRAY)" => sub {
+    $coll->drop;
+    my $bulk = $coll->initialize_ordered_bulk_op;
+    is( $coll->count, 0, "no docs in collection" );
+    $bulk->insert( [ _id => 1 ] );
+    $bulk->insert( [] );
+    my ( $result, $err );
+    $err = exception { $result = $bulk->execute };
+    is( $err, undef, "no error on insert" ) or diag explain $err;
+    is( $coll->count, 2, "doc count" );
+};
+
+subtest "update (ARRAY)" => sub {
+    $coll->drop;
+    $coll->insert( { _id => 1 } );
+    my $bulk = $coll->initialize_ordered_bulk_op;
+    $bulk->find( [] )->update( [ '$set' => { x => 2 } ] );
+    my ( $result, $err );
+    $err = exception { $result = $bulk->execute };
+    is( $err, undef, "no error on update" ) or diag explain $err;
+    is( $coll->find_one( {} )->{x}, 2, "document updated" );
+};
+
+subtest "update_one (ARRAY)" => sub {
+    $coll->drop;
+    $coll->insert( { _id => $_ } ) for 1 .. 2;
+    my $bulk = $coll->initialize_ordered_bulk_op;
+    $bulk->find( [] )->update_one( [ '$set' => { x => 2 } ] );
+    my ( $result, $err );
+    $err = exception { $result = $bulk->execute };
+    is( $err, undef, "no error on update_one" ) or diag explain $err;
+    is( $coll->count( { x => 2 } ), 1, "only one doc updated" );
+};
+
+subtest "replace_one (ARRAY)" => sub {
+    $coll->drop;
+    $coll->insert( { key => $_ } ) for 1 .. 2;
+    my $bulk = $coll->initialize_ordered_bulk_op;
+    $bulk->find( [] )->replace_one( [ key => 3 ] );
+    my ( $result, $err );
+    $err = exception { $result = $bulk->execute };
+    is( $err, undef, "no error on replace" ) or diag explain $err;
+    is( $coll->count( { key => 3 } ), 1, "only one doc replaced" );
+};
+
+note("Tie::IxHash");
+subtest "insert (Tie::IxHash)" => sub {
+    $coll->drop;
+    my $bulk = $coll->initialize_ordered_bulk_op;
+    is( $coll->count, 0, "no docs in collection" );
+    $bulk->insert( Tie::IxHash->new( _id => 1 ) );
+    $bulk->insert( Tie::IxHash->new() );
+    my ( $result, $err );
+    $err = exception { $result = $bulk->execute };
+    is( $err, undef, "no error on insert" ) or diag explain $err;
+    is( $coll->count, 2, "doc count" );
+};
+
+subtest "update (Tie::IxHash)" => sub {
+    $coll->drop;
+    $coll->insert( { _id => 1 } );
+    my $bulk = $coll->initialize_ordered_bulk_op;
+    $bulk->find( Tie::IxHash->new() )
+      ->update( Tie::IxHash->new( '$set' => { x => 2 } ) );
+    my ( $result, $err );
+    $err = exception { $result = $bulk->execute };
+    is( $err, undef, "no error on update" ) or diag explain $err;
+    is( $coll->find_one( {} )->{x}, 2, "document updated" );
+};
+
+subtest "update_one (Tie::IxHash)" => sub {
+    $coll->drop;
+    $coll->insert( { _id => $_ } ) for 1 .. 2;
+    my $bulk = $coll->initialize_ordered_bulk_op;
+    $bulk->find( Tie::IxHash->new() )
+      ->update_one( Tie::IxHash->new( '$set' => { x => 2 } ) );
+    my ( $result, $err );
+    $err = exception { $result = $bulk->execute };
+    is( $err, undef, "no error on update" ) or diag explain $err;
+    is( $coll->count( { x => 2 } ), 1, "only one doc updated" );
+};
+
+subtest "replace_one (Tie::IxHash)" => sub {
+    $coll->drop;
+    $coll->insert( { key => $_ } ) for 1 .. 2;
+    my $bulk = $coll->initialize_ordered_bulk_op;
+    $bulk->find( Tie::IxHash->new() )
+        ->replace_one( Tie::IxHash->new( key => 3 ) );
+    my ( $result, $err );
+    $err = exception { $result = $bulk->execute };
+    is( $err, undef, "no error on replace" ) or diag explain $err;
+    is( $coll->count( { key => 3 } ), 1, "only one doc replaced" );
+};
 
 # XXX QA-477 tests not covered herein:
 # MIXED OPERATIONS, AUTH

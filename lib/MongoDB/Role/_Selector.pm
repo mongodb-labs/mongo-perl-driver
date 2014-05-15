@@ -21,6 +21,7 @@ package MongoDB::Role::_Selector;
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
+use MongoDB::_Types;
 use Moose::Role;
 
 =attr query (required)
@@ -31,7 +32,7 @@ A hash reference containing a MongoDB query document
 
 has query => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => 'HashRef|IxHash',
     required => 1
 );
 
