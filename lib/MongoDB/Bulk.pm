@@ -27,6 +27,7 @@ use MongoDB::WriteResult;
 use MongoDB::WriteSelector;
 use Try::Tiny;
 use Safe::Isa;
+use Syntax::Keyword::Junction qw/any/;
 
 use Moose;
 use namespace::clean -except => 'meta';
@@ -93,14 +94,23 @@ sub _build__use_write_cmd {
 with 'MongoDB::Role::_OpQueue';
 
 sub find {
-    my ( $self, $selector ) = @_;
+    my ( $self, $doc ) = @_;
 
-    # XXX replace this with a proper argument check for acceptable selector types
     confess "find requires a criteria document. Use an empty hashref for no criteria."
-      unless ref $selector eq 'HASH';
+      unless defined $doc;
+
+    unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
+        confess "argument to find must be a single hashref, arrayref or Tie::IxHash";
+    }
+
+    if ( ref $doc eq 'ARRAY' ) {
+        confess "array reference to find must have key/value pairs"
+            if @$doc % 2;
+        $doc = { @$doc };
+    }
 
     return MongoDB::WriteSelector->new(
-        query    => $selector,
+        query    => $doc,
         op_queue => $self,
     );
 }
@@ -108,11 +118,23 @@ sub find {
 sub insert {
     my ( $self, $doc ) = @_;
     # XXX eventually, need to support array or IxHash
-    unless ( @_ == 2 && ref $doc eq 'HASH' ) {
-        confess "argument to insert must be a single hash reference";
+    unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
+        confess "argument to insert must be a single hashref, arrayref or Tie::IxHash";
     }
 
-    $doc->{_id} = MongoDB::OID->new unless exists $doc->{_id};
+    if ( ref $doc eq 'ARRAY' ) {
+        confess "array reference to insert must have key/value pairs"
+            if @$doc % 2;
+        $doc = { @$doc };
+    }
+
+    if ( ref $doc eq 'Tie::IxHash' ) {
+        $doc->STORE('_id', MongoDB::OID->new) unless $doc->EXISTS('_id');
+    }
+    else {
+        $doc->{_id} = MongoDB::OID->new unless exists $doc->{_id};
+    }
+
     $self->_enqueue_op( [ insert => $doc ] );
     return $self;
 }
@@ -526,7 +548,8 @@ sub _gen_legacy_delete {
 sub _check_no_dollar_keys {
     my ( $self, $doc ) = @_;
 
-    if ( my @bad = grep { substr( $_, 0, 1 ) eq '$' } keys %$doc ) {
+    my @keys = ref $doc eq 'Tie::IxHash' ? $doc->Keys : keys %$doc;
+    if ( my @bad = grep { substr( $_, 0, 1 ) eq '$' } @keys ) {
         my $errdoc = {
             index  => 0,
             errmsg => "Document can't have '\$' prefixed field names: @bad",
