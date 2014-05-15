@@ -22,15 +22,11 @@ use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
 use Moose;
-use Moose::Util::TypeConstraints;
+use MongoDB::_Types;
 use Syntax::Keyword::Junction qw/any/;
 use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_LastError';
-
-subtype 'ArrayOfHashRef', as 'ArrayRef[HashRef]';
-
-coerce 'ArrayOfHashRef', from 'HashRef', via { [$_] };
 
 has [qw/writeErrors writeConcernErrors upserted/] => (
     is      => 'ro',

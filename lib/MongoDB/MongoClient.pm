@@ -33,7 +33,7 @@ use boolean;
 use Encode;
 use Try::Tiny;
 use Moose;
-use Moose::Util::TypeConstraints;
+use MongoDB::_Types;
 use namespace::clean -except => 'meta';
 
 use constant {
@@ -235,7 +235,7 @@ has sasl => (
 
 has sasl_mechanism => ( 
     is       => 'ro',
-    isa      => subtype( Str => where { /^GSSAPI|PLAIN$/ } ),
+    isa      => 'SASLMech',
     required => 1,
     default  => 'GSSAPI',
 );
