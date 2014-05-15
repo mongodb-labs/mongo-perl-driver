@@ -150,7 +150,7 @@ void perl_mongo_connect(SV *client, mongo_link* link) {
 
   SV* sasl_flag = perl_mongo_call_method( client, "sasl", 0, 0 );
 
-  if ( SvIV(sasl_flag) == 1 ) { 
+  if ( link->master->connected && SvIV(sasl_flag) == 1 ) {
 #ifdef MONGO_SASL
       sasl_authenticate( client, link );
 #else
