@@ -449,8 +449,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         # key => 1, x => $big_string } exceeds 16MiB when BSON encoded unless
         # the bigstring is 16MiB - 41.  This may be a peculiarity of Perl's
         # BSON type encoding.
+        #
+        # Using legacy API, the bigstring must be 16MiB - 97 for some reason.
 
-        my $big_string = "a" x ( 16 * 1024 * 1024 - 41 );
+        my $big_string = "a" x ( 16 * 1024 * 1024 - $using_2_6 ? 41 : 97 );
 
         my $bulk = $coll->$method;
         $bulk->find( { key => "1" } )->upsert->update( { '$set' => { x => $big_string } } );
