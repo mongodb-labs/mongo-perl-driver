@@ -28,9 +28,6 @@ use Moose;
 use Exporter 5.57 qw/import/;
 use namespace::clean -except => [ 'meta', 'import' ];
 
-#--------------------------------------------------------------------------#
-# Export some error codes
-
 my $ERROR_CODES;
 
 BEGIN {
@@ -43,9 +40,9 @@ BEGIN {
 
 use constant $ERROR_CODES;
 
+# Export error codes for use by end-users; this is unusual for Moose, but
+# probably sufficiently helpful to justify it
 our @EXPORT = keys %$ERROR_CODES;
-
-#--------------------------------------------------------------------------#
 
 use overload
   q{""}    => sub { shift->message },
@@ -85,10 +82,9 @@ around BUILDARGS => sub {
     return $class->$orig(@_);
 };
 
-package MongoDB::ConnectionError;
-use Moose;
-use namespace::clean -except => 'meta';
-extends("MongoDB::Error");
+#--------------------------------------------------------------------------#
+# Subclasses with attributes included inline below
+#--------------------------------------------------------------------------#
 
 package MongoDB::DatabaseError;
 use Moose;
@@ -108,11 +104,6 @@ has details => (
     required => 1,
 );
 
-package MongoDB::BulkWriteError;
-use Moose;
-use namespace::clean -except => 'meta';
-extends("MongoDB::DatabaseError");
-
 # Internal error class for signalling commands in excess of
 # max BSON wire size
 package MongoDB::_CommandSizeError;
@@ -125,6 +116,20 @@ has size => (
     isa      => 'Int',
     required => 1,
 );
+
+#--------------------------------------------------------------------------#
+# Empty subclasses generated programatically
+#--------------------------------------------------------------------------#
+
+my %classes = (
+    'MongoDB::ConnectionError' => 'MongoDB::Error',
+    'MongoDB::WriteError' => 'MongoDB::DatabaseError',
+    'MongoDB::WriteConcernError' => 'MongoDB::DatabaseError',
+);
+
+require Moose::Meta::Class;
+Moose::Meta::Class->create($_, superclasses => [ $classes{$_} ]) for keys %classes;
+
 
 1;
 
@@ -157,7 +162,7 @@ Errors related to network connections.
 
 Errors related to database operations.
 
-=head3 MongoDB::BulkWriteError
+=head3 MongoDB::WriteError
 
 =cut
 

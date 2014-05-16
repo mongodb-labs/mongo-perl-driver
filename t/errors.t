@@ -19,14 +19,14 @@ while (@isa_checks) {
 
 my $result = MongoDB::WriteResult->new( 'insert' => {} );
 my $error = exception {
-    MongoDB::BulkWriteError->throw(
+    MongoDB::WriteError->throw(
         message => "whoops",
         details => $result,
     );
 };
 
-isa_ok( $error, 'MongoDB::DatabaseError', "MongoDB::BulkWriteError" );
-isa_ok( $error, 'MongoDB::Error',         "MongoDB::BulkWriteError" );
+isa_ok( $error, 'MongoDB::DatabaseError', "MongoDB::WriteError" );
+isa_ok( $error, 'MongoDB::Error',         "MongoDB::WriteError" );
 is( $error->message, "whoops", "object message captured" );
 is_deeply( $error->details, $result, "object details captured" );
 is( "$error", "whoops", "object stringifies to error message" );
