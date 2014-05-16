@@ -253,7 +253,7 @@ sub _execute_write_command_batch {
             if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
                 if ( @$chunk == 1 ) {
                     MongoDB::DocumentSizeError->throw(
-                        message => "document too large",
+                        message  => "document too large",
                         document => $chunk->[0],
                     );
                 }
@@ -402,7 +402,7 @@ sub _execute_legacy_batch {
         # legacy server doesn't check keys on insert; we fake an error if it happens
         if ( $type eq 'insert' && ( my $r = $self->_check_no_dollar_keys($doc) ) ) {
             if ($w_0) {
-                last;
+                last; # XXX why is this last and not next?
             }
             else {
                 $result->merge_result($r);
@@ -413,9 +413,17 @@ sub _execute_legacy_batch {
 
         my $op_string = $self->$method( $ns, $doc );
 
+        # this isn't quite right; a command should allow a max-sized object plus
+        # some overhead, but this is consistent with how Collection.pm does it
         if ( length($op_string) > $client->max_bson_size ) {
-            # XXX do something here: croak? fake up a result? send anyway and get
-            # server response?
+            if ($w_0) {
+                last; # XXX why is this last and not next?
+            }
+            else {
+                $result->merge_result($self->_fake_doc_size_error($doc));
+                $self->_assert_no_write_error($result) if $ordered;
+                next;
+            }
         }
 
         my $gle_result;
@@ -580,6 +588,22 @@ sub _check_no_dollar_keys {
 
     return;
 }
+
+sub _fake_doc_size_error {
+    my ( $self, $doc ) = @_;
+
+    my $errdoc = {
+        index  => 0,
+        errmsg => "Document too large",
+        code   => UNKNOWN_ERROR
+    };
+
+    return MongoDB::WriteResult->new(
+        op_count    => 1,
+        writeErrors => [$errdoc]
+    );
+}
+
 
 __PACKAGE__->meta->make_immutable;
 

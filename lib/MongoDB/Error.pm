@@ -105,7 +105,7 @@ has details => (
     required => 1,
 );
 
-package MongodB::DocumentSizeError;
+package MongoDB::DocumentSizeError;
 use Moose;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
