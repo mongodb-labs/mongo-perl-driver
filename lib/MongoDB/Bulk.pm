@@ -230,8 +230,10 @@ sub _execute_write_command_batch {
         catch {
             if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
                 if ( @$chunk == 1 ) {
-                    # XXX need a proper exception
-                    die "document too large";
+                    MongoDB::DocumentSizeError->throw(
+                        message => "document too large",
+                        document => $chunk->[0],
+                    );
                 }
                 else {
                     unshift @left_to_send, $self->_split_chunk( $chunk, $_->size );

@@ -25,6 +25,7 @@ use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
 use Moose;
+use MongoDB::_Types;
 use Exporter 5.57 qw/import/;
 use namespace::clean -except => [ 'meta', 'import' ];
 
@@ -104,16 +105,18 @@ has details => (
     required => 1,
 );
 
-# Internal error class for signalling commands in excess of
-# max BSON wire size
-package MongoDB::_CommandSizeError;
+package MongodB::DocumentSizeError;
 use Moose;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
 
-has size => (
+=attr document (DocumentSizeError only)
+
+=cut
+
+has document => (
     is       => 'ro',
-    isa      => 'Int',
+    isa      => 'HashRef|IxHash',
     required => 1,
 );
 
@@ -129,6 +132,21 @@ my %classes = (
 
 require Moose::Meta::Class;
 Moose::Meta::Class->create( $_, superclasses => [ $classes{$_} ] ) for keys %classes;
+
+#--------------------------------------------------------------------------#
+# Internal error classes
+#--------------------------------------------------------------------------#
+
+package MongoDB::_CommandSizeError;
+use Moose;
+use namespace::clean -except => 'meta';
+extends("MongoDB::Error");
+
+has size => (
+    is       => 'ro',
+    isa      => 'Int',
+    required => 1,
+);
 
 1;
 
