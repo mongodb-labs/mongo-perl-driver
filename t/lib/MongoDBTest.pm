@@ -38,7 +38,9 @@ use MongoDBTest::ShardedCluster;
 BEGIN { 
     eval { 
         my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
-        $conn = MongoDB::MongoClient->new( host => $host, ssl => $ENV{MONGO_SSL} );
+        $conn = MongoDB::MongoClient->new(
+            host => $host, ssl => $ENV{MONGO_SSL}, find_master => 1
+        );
         $testdb = $conn->get_database('testdb' . time());
     };
 

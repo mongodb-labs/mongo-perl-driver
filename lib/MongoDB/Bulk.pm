@@ -344,7 +344,7 @@ sub _batch_unordered {
 sub _assert_no_write_error {
     my ( $self, $result ) = @_;
     if ( my $write_errors = $result->count_writeErrors ) {
-        MongoDB::BulkWriteError->throw(
+        MongoDB::WriteError->throw(
             message => "writeErrors: $write_errors",
             details => $result,
         );
@@ -355,7 +355,7 @@ sub _assert_no_write_error {
 sub _assert_no_write_concern_error {
     my ( $self, $result ) = @_;
     if ( my $write_concern_errors = $result->count_writeConcernErrors ) {
-        MongoDB::BulkWriteError->throw(
+        MongoDB::WriteConcernError->throw(
             message => "writeConcernErrors: $write_concern_errors",
             details => $result,
         );
