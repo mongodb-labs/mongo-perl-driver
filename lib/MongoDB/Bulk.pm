@@ -78,6 +78,28 @@ has '_ops' => (
     }
 );
 
+has '_database' => (
+    is         => 'ro',
+    isa        => 'MongoDB::Database',
+    lazy_build => 1,
+);
+
+sub _build__database {
+    my ($self) = @_;
+    return $self->collection->_database;
+}
+
+has '_client' => (
+    is         => 'ro',
+    isa        => 'MongoDB::MongoClient',
+    lazy_build => 1,
+);
+
+sub _build__client {
+    my ($self) = @_;
+    return $self->_database->_client;
+}
+
 has '_use_write_cmd' => (
     is         => 'ro',
     isa        => 'Bool',
@@ -86,7 +108,7 @@ has '_use_write_cmd' => (
 
 sub _build__use_write_cmd {
     my ($self) = @_;
-    my $use_it = $self->collection->_database->_client->_use_write_cmd;
+    my $use_it = $self->_client->_use_write_cmd;
     return $use_it;
 }
 
@@ -173,7 +195,7 @@ sub execute {
         $self->_executed(1);
     }
 
-    $write_concern ||= $self->collection->_database->_client->_write_concern;
+    $write_concern ||= $self->_client->_write_concern;
 
     my $ordered = $self->ordered;
     my $result  = MongoDB::WriteResult->new;
@@ -225,7 +247,7 @@ sub _execute_write_command_batch {
         ];
 
         my $cmd_result = try {
-            $self->collection->_database->_try_run_command($cmd_doc);
+            $self->_database->_try_run_command($cmd_doc);
         }
         catch {
             if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
@@ -247,7 +269,6 @@ sub _execute_write_command_batch {
 
         next unless $cmd_result;
 
-        # XXX maybe refacotr the result munging and merging
         my $r = MongoDB::WriteResult->parse(
             op       => $type,
             op_count => scalar @$chunk,
@@ -275,9 +296,7 @@ sub _execute_write_command_batch {
 sub _split_chunk {
     my ( $self, $chunk, $size ) = @_;
 
-    # XXX this call chain is gross; eventually, client (or node) should probably be
-    # an attribute of Bulk
-    my $max_wire_size = $self->collection->_database->_client->_max_bson_wire_size;
+    my $max_wire_size = $self->_client->_max_bson_wire_size;
 
     my $avg_cmd_size       = $size / @$chunk;
     my $new_cmds_per_chunk = int( $max_wire_size / $avg_cmd_size );
@@ -296,9 +315,7 @@ sub _batch_ordered {
     my $last_type = '';
     my $count     = 0;
 
-    # XXX this call chain is gross; eventually, client (or node) should probably be
-    # an attribute of Bulk
-    my $max_batch_count = $self->collection->_database->_client->_max_write_batch_size;
+    my $max_batch_count = $self->_client->_max_write_batch_size;
 
     for my $op ( $self->_all_ops ) {
         my ( $type, $doc ) = @$op;
@@ -320,9 +337,7 @@ sub _batch_unordered {
     my ($self) = @_;
     my %batches = map { ; $_ => [ [] ] } keys %OP_MAP;
 
-    # XXX this call chain is gross; eventually, client (or node) should probably be
-    # an attribute of Bulk
-    my $max_batch_count = $self->collection->_database->_client->_max_write_batch_size;
+    my $max_batch_count = $self->_client->_max_write_batch_size;
 
     for my $op ( $self->_all_ops ) {
         my ( $type, $doc ) = @$op;
@@ -375,7 +390,7 @@ sub _execute_legacy_batch {
     my ( $type, $docs ) = @$batch;
 
     my $coll   = $self->collection;
-    my $client = $coll->_database->_client;
+    my $client = $self->_client;
     my $ns     = $coll->full_name;
     my $method = "_gen_legacy_$type";
 
