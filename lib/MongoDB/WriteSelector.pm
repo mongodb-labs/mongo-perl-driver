@@ -29,8 +29,8 @@ use namespace::clean -except => 'meta';
 with 'MongoDB::Role::_Selector';
 
 has _upsert => (
-    is => 'ro',
-    isa => 'boolean',
+    is      => 'ro',
+    isa     => 'boolean',
     default => sub { boolean::false },
 );
 
@@ -59,35 +59,34 @@ sub replace_one {
 
 sub _update {
     my $method = pop @_;
-    my ($self, $doc) = @_;
+    my ( $self, $doc ) = @_;
 
-    # XXX replace this with a proper argument check for acceptable selector types
     unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
         confess "argument to $method must be a single hashref, arrayref or Tie::IxHash";
     }
 
     if ( ref $doc eq 'ARRAY' ) {
         confess "array reference to $method must have key/value pairs"
-            if @$doc % 2;
-        $doc = { @$doc };
+          if @$doc % 2;
+        $doc = {@$doc};
     }
 
     my @keys = ref $doc eq 'Tie::IxHash' ? $doc->Keys : keys %$doc;
     if ( $method eq 'replace_one' ) {
-        if ( my @bad = grep { substr($_,0,1) eq '$' } @keys ) {
+        if ( my @bad = grep { substr( $_, 0, 1 ) eq '$' } @keys ) {
             confess "$method document can't have '\$' prefixed field names: @bad";
         }
     }
     else {
-        if ( my @bad = grep { substr($_,0,1) ne '$' } @keys ) {
+        if ( my @bad = grep { substr( $_, 0, 1 ) ne '$' } @keys ) {
             confess "$method document can't have non- '\$' prefixed field names: @bad";
         }
     }
 
     my $update = {
-        q => $self->query,
-        u => $doc,
-        multi => $method eq 'update' ? boolean::true : boolean::false,
+        q      => $self->query,
+        u      => $doc,
+        multi  => $method eq 'update' ? boolean::true : boolean::false,
         upsert => $self->_upsert,
     };
 
