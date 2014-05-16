@@ -37,7 +37,11 @@ my $ismaster      = $testdb->run_command( { ismaster     => 1 } );
 my $server_status = $testdb->run_command( { serverStatus => 1 } );
 
 subtest "constructors" => sub {
-    for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
+    my @constructors = qw(
+      initialize_ordered_bulk_op initialize_unordered_bulk_op
+      ordered_bulk unordered_bulk
+    );
+    for my $method (@constructors) {
         my $bulk = $coll->$method;
         isa_ok( $bulk, 'MongoDB::Bulk', $method );
         if ( $method =~ /unordered/ ) {
@@ -92,8 +96,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $err, 'MongoDB::WriteError', "executing insertion with \$key" );
 
         is( $err->message, "writeErrors: 1", "WriteError message" );
-        like( $err->details->last_errmsg,
-            qr/\$key/, "WriteError details mentions \$key" );
+        like( $err->details->last_errmsg, qr/\$key/, "WriteError details mentions \$key" );
     };
 
     subtest "$method: successful insert" => sub {
@@ -1216,8 +1219,7 @@ subtest "replace_one (Tie::IxHash)" => sub {
     $coll->drop;
     $coll->insert( { key => $_ } ) for 1 .. 2;
     my $bulk = $coll->initialize_ordered_bulk_op;
-    $bulk->find( Tie::IxHash->new() )
-        ->replace_one( Tie::IxHash->new( key => 3 ) );
+    $bulk->find( Tie::IxHash->new() )->replace_one( Tie::IxHash->new( key => 3 ) );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on replace" ) or diag explain $err;

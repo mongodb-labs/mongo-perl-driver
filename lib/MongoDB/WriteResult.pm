@@ -91,19 +91,17 @@ sub parse {
     confess "results argument to parse must be a hash reference"
       unless ref $result eq 'HASH';
 
-    # if we have an op count, use it, otherwise, let it use the default
     my $attrs = {
         batch_count => $batch_count || 1,
         $op_count ? ( op_count => $op_count ) : ()
     };
 
-    # XXX need to detect and parse GLE: err|errmsg, wnote, jnote, wtimeout|error=timeout
-    # and set code to unknown (8?) if not set
-
-    # get writeErrors
     $attrs->{writeErrors} = $result->{writeErrors} if $result->{writeErrors};
 
-    # rename writeConcernError -> writeConcernErrors; coercion will make it into an array later $attrs->{writeConcernErrors} = $result->{writeConcernError}
+    # rename writeConcernError -> writeConcernErrors; coercion will make it
+    # into an array later $attrs->{writeConcernErrors} =
+    # $result->{writeConcernError}
+
     $attrs->{writeConcernErrors} = $result->{writeConcernError}
       if $result->{writeConcernError};
 
@@ -154,7 +152,7 @@ sub last_errmsg {
 sub merge_result {
     my ( $self, $result ) = @_;
 
-    # Add counters
+    # Add simple counters
     for my $attr (qw/nInserted nUpserted nMatched nRemoved/) {
         my $setter = "_set_$attr";
         $self->$setter( $self->$attr + $result->$attr );
@@ -176,12 +174,11 @@ sub merge_result {
         push @{ $self->$attr }, @{ $result->$attr };
     }
 
-    # Merge op and batch counts; this is largely for testing
-    $self->_set_op_count( $op_count + $result->op_count );
-    $self->_set_batch_count( $self->batch_count + $result->batch_count );
-
     # Append write concern errors without modification (they have no index)
     push @{ $self->writeConcernErrors }, @{ $result->writeConcernErrors };
+
+    $self->_set_op_count( $op_count + $result->op_count );
+    $self->_set_batch_count( $self->batch_count + $result->batch_count );
 
     return 1;
 }
