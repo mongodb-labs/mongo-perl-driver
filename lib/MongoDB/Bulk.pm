@@ -42,7 +42,6 @@ has 'collection' => (
     is       => 'ro',
     isa      => 'MongoDB::Collection',
     required => 1,
-    handles  => [qw/name/],
 );
 
 =attr ordered (required)
@@ -117,7 +116,7 @@ sub find {
 
 sub insert {
     my ( $self, $doc ) = @_;
-    # XXX eventually, need to support array or IxHash
+
     unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
         confess "argument to insert must be a single hashref, arrayref or Tie::IxHash";
     }
@@ -211,7 +210,7 @@ sub _execute_write_command_batch {
     my ( $cmd,  $op_key ) = @{ $OP_MAP{$type} };
 
     my $boolean_ordered = $ordered ? boolean::true : boolean::false;
-    my $coll_name = $self->name;
+    my $coll_name = $self->collection->name;
 
     my @left_to_send = ($docs);
 

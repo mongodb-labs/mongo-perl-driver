@@ -628,6 +628,13 @@ sub initialize_ordered_bulk_op {
     return MongoDB::Bulk->new( collection => $self, ordered => 1 );
 }
 
+{
+    # shorter aliases for bulk op constructors
+    no warnings 'once';
+    *ordered_bulk = \&initialize_ordered_bulk_op;
+    *unordered_bulk = \&initialize_unordered_bulk_op;
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
