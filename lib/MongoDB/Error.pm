@@ -122,14 +122,13 @@ has size => (
 #--------------------------------------------------------------------------#
 
 my %classes = (
-    'MongoDB::ConnectionError' => 'MongoDB::Error',
-    'MongoDB::WriteError' => 'MongoDB::DatabaseError',
+    'MongoDB::ConnectionError'   => 'MongoDB::Error',
+    'MongoDB::WriteError'        => 'MongoDB::DatabaseError',
     'MongoDB::WriteConcernError' => 'MongoDB::DatabaseError',
 );
 
 require Moose::Meta::Class;
-Moose::Meta::Class->create($_, superclasses => [ $classes{$_} ]) for keys %classes;
-
+Moose::Meta::Class->create( $_, superclasses => [ $classes{$_} ] ) for keys %classes;
 
 1;
 

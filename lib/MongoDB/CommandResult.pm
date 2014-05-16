@@ -27,17 +27,16 @@ use namespace::clean -except => 'meta';
 with 'MongoDB::Role::_LastError';
 
 has result => (
-    is => 'ro',
-    isa => 'HashRef',
+    is       => 'ro',
+    isa      => 'HashRef',
     required => 1,
 );
 
 sub last_errmsg {
     my ($self) = @_;
-    for my $err_key ( qw/$err err errmsg/ ) {
+    for my $err_key (qw/$err err errmsg/) {
         return $self->result->{$err_key} if exists $self->result->{$err_key};
     }
-    # XXX also check for write concern stuff, like timeouts?
     return "";
 }
 

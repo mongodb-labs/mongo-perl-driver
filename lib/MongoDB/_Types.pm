@@ -23,28 +23,18 @@ our $VERSION = 'v0.703.5'; # TRIAL
 
 use Moose::Util::TypeConstraints;
 
-class_type 'IxHash' => { class => 'Tie::IxHash' };
-
+class_type 'IxHash'            => { class => 'Tie::IxHash' };
 class_type 'MongoDBCollection' => { class => 'MongoDB::Collection' };
+class_type 'MongoDBDatabase'   => { class => 'MongoDB::Database' };
 
-class_type 'MongoDBDatabase' => { class => 'MongoDB::Database' };
+subtype ArrayOfHashRef => as 'ArrayRef[HashRef]';
+subtype DBRefColl      => as 'Str';
+subtype DBRefDB        => as 'Str';
+subtype SASLMech       => as 'Str', where { /^GSSAPI|PLAIN$/ };
 
-subtype 'ArrayOfHashRef', as 'ArrayRef[HashRef]';
-
-coerce 'ArrayOfHashRef', from 'HashRef', via { [$_] };
-
-subtype SASLMech => as 'Str' => where { /^GSSAPI|PLAIN$/ },
-
-subtype DBRefColl => as 'Str';
-subtype DBRefDB   => as 'Str';
-
-coerce 'DBRefColl'
-  => from 'MongoDBCollection'
-  => via  { $_->name };
-
-coerce 'DBRefDB' 
-  => from 'MongoDBDatabase'
-  => via  { $_->name };
+coerce ArrayOfHashRef => from 'HashRef', via { [$_] };
+coerce DBRefColl => from 'MongoDBCollection' => via { $_->name };
+coerce DBRefDB   => from 'MongoDBDatabase'   => via { $_->name };
 
 no Moose::Util::TypeConstraints;
 

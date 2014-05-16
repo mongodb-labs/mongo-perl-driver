@@ -104,8 +104,8 @@ sub find {
 
     if ( ref $doc eq 'ARRAY' ) {
         confess "array reference to find must have key/value pairs"
-            if @$doc % 2;
-        $doc = { @$doc };
+          if @$doc % 2;
+        $doc = {@$doc};
     }
 
     return MongoDB::WriteSelector->new(
@@ -123,12 +123,12 @@ sub insert {
 
     if ( ref $doc eq 'ARRAY' ) {
         confess "array reference to insert must have key/value pairs"
-            if @$doc % 2;
-        $doc = { @$doc };
+          if @$doc % 2;
+        $doc = {@$doc};
     }
 
     if ( ref $doc eq 'Tie::IxHash' ) {
-        $doc->STORE('_id', MongoDB::OID->new) unless $doc->EXISTS('_id');
+        $doc->STORE( '_id', MongoDB::OID->new ) unless $doc->EXISTS('_id');
     }
     else {
         $doc->{_id} = MongoDB::OID->new unless exists $doc->{_id};
@@ -384,7 +384,7 @@ sub _execute_legacy_batch {
     for my $doc (@$docs) {
         # legacy server doesn't check keys on insert; we fake an error if it happens
         if ( $type eq 'insert' && ( my $r = $self->_check_no_dollar_keys($doc) ) ) {
-            if ( $w_0 ) {
+            if ($w_0) {
                 last;
             }
             else {
@@ -405,7 +405,7 @@ sub _execute_legacy_batch {
 
         # Even for {w:0}, if the batch is ordered we have to check each result
         # and break on the first error, but we don't throw the error to the user.
-        if ( $ordered || ! $w_0 ) {
+        if ( $ordered || !$w_0 ) {
             my $op_result = $coll->_make_safe_cursor( $op_string, $write_concern )->next;
             $gle_result = $self->_get_writeresult_from_gle( $type, $op_result, $doc );
             last if $w_0 && $gle_result->count_writeErrors;
@@ -414,9 +414,9 @@ sub _execute_legacy_batch {
             # Fire and forget and mock up an empty result to get the right op count
             $client->send($op_string);
             $gle_result = MongoDB::WriteResult->parse(
-                    op       => $type,
-                    op_count => 1,
-                    result   => { n => 0 },
+                op       => $type,
+                op_count => 1,
+                result   => { n => 0 },
             );
         }
 
@@ -464,7 +464,7 @@ sub _get_writeresult_from_gle {
       :                          undef;
     my $wtimeout = $gle->{wtimeout};
 
-    if ( $wtimeout ) {
+    if ($wtimeout) {
         my $code = $gle->{code} || WRITE_CONCERN_ERROR;
         $writeConcernError = {
             errmsg  => $errmsg,
@@ -473,7 +473,7 @@ sub _get_writeresult_from_gle {
         };
     }
 
-    if ( defined $errmsg && ! $wtimeout ) {
+    if ( defined $errmsg && !$wtimeout ) {
         my $code = $gle->{code} || UNKNOWN_ERROR;
         # index is always 0 because ops are executed individually; later
         # merging of results will fix up the index values as usual
@@ -506,9 +506,9 @@ sub _get_writeresult_from_gle {
         op       => $type,
         op_count => 1,
         result   => {
-            n                  => $affected,
-            writeErrors        => \@writeErrors,
-            writeConcernError  => $writeConcernError,
+            n                 => $affected,
+            writeErrors       => \@writeErrors,
+            writeConcernError => $writeConcernError,
             ( @upserted ? ( upserted => \@upserted ) : () ),
         },
     );
