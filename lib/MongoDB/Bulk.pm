@@ -402,13 +402,13 @@ sub _execute_legacy_batch {
         # legacy server doesn't check keys on insert; we fake an error if it happens
         if ( $type eq 'insert' && ( my $r = $self->_check_no_dollar_keys($doc) ) ) {
             if ($w_0) {
-                last; # XXX why is this last and not next?
+                last if $ordered;
             }
             else {
                 $result->merge_result($r);
                 $self->_assert_no_write_error($result) if $ordered;
-                next;
             }
+            next;
         }
 
         my $op_string = $self->$method( $ns, $doc );
@@ -417,13 +417,13 @@ sub _execute_legacy_batch {
         # some overhead, but this is consistent with how Collection.pm does it
         if ( length($op_string) > $client->max_bson_size ) {
             if ($w_0) {
-                last; # XXX why is this last and not next?
+                last if $ordered;
             }
             else {
                 $result->merge_result($self->_fake_doc_size_error($doc));
                 $self->_assert_no_write_error($result) if $ordered;
-                next;
             }
+            next;
         }
 
         my $gle_result;
