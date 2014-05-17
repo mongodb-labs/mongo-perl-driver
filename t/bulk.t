@@ -1228,6 +1228,27 @@ subtest "replace_one (Tie::IxHash)" => sub {
     is( $coll->count( { key => 3 } ), 1, "only one doc replaced" );
 };
 
+# not in QA-477
+note("W = 0 IGNORES ERRORS");
+for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
+    subtest "$method: w = 0" => sub {
+        $coll->drop;
+        my $bulk = $coll->$method;
+
+        $bulk->insert( { _id => 1 } );
+        $bulk->insert( { _id => 2, big => "a" x ( 16 * 1024 * 1024 ) } );
+        $bulk->insert( { _id => 3, '$bad' => 1 } );
+        $bulk->insert( { _id => 4 } );
+        my ( $result, $err );
+        $err = exception { $result = $bulk->execute( { w => 0 } ) };
+        is( $err, undef, "execute with w = 0 doesn't throw error" )
+          or diag explain $err;
+
+        my $expect = $method eq 'initialize_ordered_bulk_op' ? 1 : 2;
+        is( $coll->count, $expect, "document count ($expect)" );
+    };
+}
+
 # XXX QA-477 tests not covered herein:
 # MIXED OPERATIONS, AUTH
 # FAILOVER WITH MIXED VERSIONS
