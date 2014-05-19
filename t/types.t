@@ -53,7 +53,7 @@ is($id."", $id->value);
     my $now = DateTime->now;
     $id = MongoDB::OID->new;
     
-    is($now->epoch, $id->get_time);
+    ok($id->get_time >= $now->epoch, "OID time >= epoch" );
 }
 
 # creating ids from an existing value
