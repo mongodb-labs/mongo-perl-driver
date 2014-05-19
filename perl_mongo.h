@@ -160,6 +160,7 @@ SV *perl_mongo_call_reader (SV *self, const char *reader);
 SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
 SV *perl_mongo_call_function (const char *func, int num, ...);
 void perl_mongo_attach_ptr_to_instance (SV *self, void *ptr, MGVTBL *vtbl);
+void *perl_mongo_maybe_get_ptr_from_instance (SV *self, MGVTBL *vtbl);
 void *perl_mongo_get_ptr_from_instance (SV *self, MGVTBL *vtbl);
 SV *perl_mongo_construct_instance (const char *klass, ...);
 SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);

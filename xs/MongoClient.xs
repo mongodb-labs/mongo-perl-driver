@@ -289,8 +289,8 @@ DESTROY (self)
      PREINIT:
          mongo_link *link;
      CODE:
-         link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
+         link = (mongo_link*)perl_mongo_maybe_get_ptr_from_instance(self, &connection_vtbl);
 
-         if (!link->copy && link->master) {
+         if (link && !link->copy && link->master) {
            set_disconnected(self);
          }

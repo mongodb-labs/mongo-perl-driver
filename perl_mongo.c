@@ -217,6 +217,18 @@ perl_mongo_attach_ptr_to_instance (SV *self, void *ptr, MGVTBL *vtbl)
 void *
 perl_mongo_get_ptr_from_instance (SV *self, MGVTBL *vtbl)
 {
+  void *p = perl_mongo_maybe_get_ptr_from_instance(self, vtbl);
+
+  if ( ! p ) {
+    croak ("invalid object");
+  }
+
+  return p;
+}
+
+void *
+perl_mongo_maybe_get_ptr_from_instance (SV *self, MGVTBL *vtbl)
+{
   MAGIC *mg;
 
   if (!self || !SvOK (self) || !SvROK (self) || !sv_isobject (self)) {
@@ -228,7 +240,7 @@ perl_mongo_get_ptr_from_instance (SV *self, MGVTBL *vtbl)
       return mg->mg_ptr;
   }
 
-  croak ("invalid object");
+  return NULL;
 }
 
 SV *
