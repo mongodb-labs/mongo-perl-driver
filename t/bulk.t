@@ -1036,7 +1036,7 @@ note("QA-477 W>1 AGAINST STANDALONE");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "$method: w > 1 against standalone (explicit)" => sub {
         plan skip_all => 'needs a standalone server'
-          if $ismaster->{hosts};
+          if $server_status->{repl};
 
         $coll->drop;
         my $bulk = $coll->$method;
@@ -1049,7 +1049,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "$method: w > 1 against standalone (implicit)" => sub {
         plan skip_all => 'needs a standalone server'
-          if $ismaster->{hosts};
+          if $server_status->{repl};
 
         $coll->drop;
         $conn->w(2);
