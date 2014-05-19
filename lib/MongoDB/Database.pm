@@ -110,7 +110,7 @@ sub _try_run_command {
     return $obj if $obj->{ok};
     MongoDB::DatabaseError->throw(
         message => $obj->{errmsg},
-        details => MongoDB::CommandResult->new(result => $obj),
+        result => MongoDB::CommandResult->new(result => $obj),
     );
 }
 

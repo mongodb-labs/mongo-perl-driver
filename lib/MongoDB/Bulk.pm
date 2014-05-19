@@ -362,7 +362,7 @@ sub _assert_no_write_error {
     if ( my $write_errors = $result->count_writeErrors ) {
         MongoDB::WriteError->throw(
             message => "writeErrors: $write_errors",
-            details => $result,
+            result => $result,
         );
     }
     return;
@@ -373,7 +373,7 @@ sub _assert_no_write_concern_error {
     if ( my $write_concern_errors = $result->count_writeConcernErrors ) {
         MongoDB::WriteConcernError->throw(
             message => "writeConcernErrors: $write_concern_errors",
-            details => $result,
+            result => $result,
         );
     }
     return;
@@ -461,7 +461,7 @@ sub _get_writeresult_from_gle {
     if ( exists $gle->{'$err'} ) {
         MongoDB::DatabaseError->throw(
             message => $gle->{'$err'},
-            details => MongoDB::CommandResult->new( result => $gle ),
+            result => MongoDB::CommandResult->new( result => $gle ),
         );
     }
 
@@ -469,7 +469,7 @@ sub _get_writeresult_from_gle {
     if ( !$gle->{ok} ) {
         MongoDB::DatabaseError->throw(
             message => $gle->{errmsg},
-            details => MongoDB::CommandResult->new( result => $gle ),
+            result => MongoDB::CommandResult->new( result => $gle ),
         );
     }
 
@@ -478,7 +478,7 @@ sub _get_writeresult_from_gle {
     if ( exists $gle->{wnote} || exists $gle->{jnote} ) {
         MongoDB::DatabaseError->throw(
             message => exists $gle->{wnote} ? $gle->{wnote} : $gle->{jnote},
-            details => MongoDB::CommandResult->new( result => $gle ),
+            result => MongoDB::CommandResult->new( result => $gle ),
         );
     }
 

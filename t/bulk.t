@@ -96,7 +96,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $err, 'MongoDB::WriteError', "executing insertion with \$key" );
 
         is( $err->message, "writeErrors: 1", "WriteError message" );
-        like( $err->details->last_errmsg, qr/\$key/, "WriteError details mentions \$key" );
+        like( $err->result->last_errmsg, qr/\$key/, "WriteError details mentions \$key" );
     };
 
     subtest "$method: successful insert" => sub {
@@ -795,7 +795,7 @@ subtest "unordered batch with errors" => sub {
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     isa_ok( $err, 'MongoDB::WriteError', 'caught error' );
-    my $details = $err->details;
+    my $details = $err->result;
 
     # Check if all ops ran in two batches (unless we're on a legacy server)
     is( $details->op_count, 6, "op_count" );
@@ -858,7 +858,7 @@ subtest "ordered batch with errors" => sub {
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     isa_ok( $err, 'MongoDB::WriteError', 'caught error' );
-    my $details = $err->details;
+    my $details = $err->result;
     is( $details->nUpserted, 0, "nUpserted" );
     is( $details->nMatched,  0, "nMatched" );
     is( $details->nRemoved,  0, "nRemoved" );
@@ -903,7 +903,7 @@ subtest "ordered batch split on size" => sub {
     $err = exception { $result = $bulk->execute };
     isa_ok( $err, 'MongoDB::WriteError', 'caught error' )
       or diag $err;
-    my $details = $err->details;
+    my $details = $err->result;
     my $errdoc  = $details->writeErrors->[0];
     is( $details->nInserted,         6,     "nInserted" );
     is( $details->count_writeErrors, 1,     "count_writeErrors" );
@@ -927,7 +927,7 @@ subtest "unordered batch split on size" => sub {
     $err = exception { $result = $bulk->execute };
     isa_ok( $err, 'MongoDB::WriteError', 'caught error' )
       or diag $err;
-    my $details = $err->details;
+    my $details = $err->result;
     my $errdoc  = $details->writeErrors->[0];
     is( $details->nInserted,         7,     "nInserted" );
     is( $details->count_writeErrors, 1,     "count_writeErrors" );
@@ -951,7 +951,7 @@ subtest "ordered batch split on number of ops" => sub {
     $err = exception { $result = $bulk->execute };
     isa_ok( $err, 'MongoDB::WriteError', 'caught error' )
       or diag $err;
-    my $details = $err->details;
+    my $details = $err->result;
     my $errdoc  = $details->writeErrors->[0];
     is( $details->nInserted,         2000,  "nInserted" );
     is( $details->count_writeErrors, 1,     "count_writeErrors" );
@@ -974,7 +974,7 @@ subtest "unordered batch split on number of ops" => sub {
     $err = exception { $result = $bulk->execute };
     isa_ok( $err, 'MongoDB::WriteError', 'caught error' )
       or diag $err;
-    my $details = $err->details;
+    my $details = $err->result;
     my $errdoc  = $details->writeErrors->[0];
     is( $details->nInserted,         2001,  "nInserted" );
     is( $details->count_writeErrors, 1,     "count_writeErrors" );
@@ -1077,7 +1077,7 @@ subtest "initialize_unordered_bulk_op: wtimeout plus duplicate keys" => sub {
     $bulk->insert( { _id => 1 } );
     my $err = exception { $bulk->execute( { w => $W, wtimeout => 100 } ) };
     isa_ok( $err, 'MongoDB::WriteError', "executing throws error" );
-    my $details = $err->details;
+    my $details = $err->result;
     is( $details->nInserted,                1, "nInserted == 1" );
     is( $details->count_writeErrors,        1, "one write error" );
     is( $details->count_writeConcernErrors, 1, "one write concern error" );
@@ -1121,7 +1121,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $bulk->insert( { _id => 4 } );
         my $err = exception { $bulk->execute( { w => $W, wtimeout => 100 } ) };
         isa_ok( $err, 'MongoDB::WriteConcernError', "executing throws error" );
-        my $details = $err->details;
+        my $details = $err->result;
         is( $details->nInserted,         3, "nInserted" );
         is( $details->nUpserted,         1, "nUpserted" );
         is( $details->count_writeErrors, 0, "no write errors" );

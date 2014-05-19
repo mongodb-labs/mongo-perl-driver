@@ -66,7 +66,7 @@ has message => (
     MongoDB::Error->throw("message");
     MongoDB::Error->throw(
         msg => "message",
-        details => $data,
+        result => $data,
     );
     MongoDB::Error->throw( $error_object );
 
@@ -92,14 +92,14 @@ use Moose;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
 
-=attr details (DatabaseError only)
+=attr result (DatabaseError only)
 
 An optional object with about the error.  The nature will
 vary by error subclass.
 
 =cut
 
-has details => (
+has result => (
     is       => 'ro',
     does     => 'MongoDB::Role::_LastError',
     required => 1,
@@ -160,7 +160,7 @@ __END__
 
     MongoDB::DatabaseError->throw(
         message => $string,
-        details => $hashref,
+        result => $hashref,
     );
 
 =head1 DESCRIPTION
