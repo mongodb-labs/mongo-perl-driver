@@ -164,18 +164,6 @@ sub insert {
 
     $bulk->execute;
 
-Returns a hash reference with results of the bulk operations.  Keys may
-include:
-
-=for :list
-* ...
-* writeErrors
-* writeConcernError
-
-This method will throw an error if there are communication or other serious
-errors.  It will not throw error for C<writeErrors> or C<writeConcernError>.
-You must check the results document for those.
-
 XXX discuss how order affects errors
 
 =cut
@@ -394,8 +382,8 @@ sub _execute_legacy_batch {
     my $ns     = $coll->full_name;
     my $method = "_gen_legacy_$type";
 
-    # check write_concern for string "0" because write concern can be
-    # 'majority' or a tag-set
+    # check write_concern with 'eq' for string "0" because write concern can be
+    # 'majority' or a tag-set and it would be an error to check that with '=='
     my $w_0 = defined $write_concern->{w} && $write_concern->{w} eq "0";
 
     for my $doc (@$docs) {
