@@ -307,7 +307,7 @@ sub _batch_ordered {
 
     for my $op ( $self->_all_ops ) {
         my ( $type, $doc ) = @$op;
-        if ( $type ne $last_type || $count == 1000 ) {
+        if ( $type ne $last_type || $count == $max_batch_count ) {
             push @batches, [ $type => [$doc] ];
             $last_type = $type;
             $count     = 1;
