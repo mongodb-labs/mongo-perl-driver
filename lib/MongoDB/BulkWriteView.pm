@@ -26,7 +26,7 @@ use Syntax::Keyword::Junction qw/any/;
 use Moose;
 use namespace::clean -except => 'meta';
 
-with 'MongoDB::Role::_Selector';
+with 'MongoDB::Role::_View';
 
 has _upsert => (
     is      => 'ro',
