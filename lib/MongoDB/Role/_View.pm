@@ -37,17 +37,17 @@ has query => (
     required => 1
 );
 
-=attr op_queue (required)
+=attr write_queue (required)
 
-An object implementing L<MongoDB::Role::_OpQueue>
+An object implementing L<MongoDB::Role::_WriteQueue>
 
 =cut
 
-has op_queue => (
+has write_queue => (
     is       => 'ro',
-    does     => 'MongoDB::Role::_OpQueue',
+    does     => 'MongoDB::Role::_WriteQueue',
     required => 1,
-    handles  => ['_enqueue_op'],
+    handles  => ['_enqueue_write'],
 );
 
 1;

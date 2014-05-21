@@ -90,19 +90,19 @@ sub _update {
         upsert => $self->_upsert,
     };
 
-    $self->_enqueue_op( [ update => $update ] );
+    $self->_enqueue_write( [ update => $update ] );
 
     return $self;
 }
 
 sub remove {
     my ($self) = @_;
-    $self->_enqueue_op( [ delete => { q => $self->query, limit => 0 } ] );
+    $self->_enqueue_write( [ delete => { q => $self->query, limit => 0 } ] );
 }
 
 sub remove_one {
     my ($self) = @_;
-    $self->_enqueue_op( [ delete => { q => $self->query, limit => 1 } ] );
+    $self->_enqueue_write( [ delete => { q => $self->query, limit => 1 } ] );
 }
 
 __PACKAGE__->meta->make_immutable;
