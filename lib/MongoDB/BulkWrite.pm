@@ -356,7 +356,7 @@ sub _assert_no_write_error {
     if ( my $write_errors = $result->count_writeErrors ) {
         MongoDB::WriteError->throw(
             message => "writeErrors: $write_errors",
-            result => $result,
+            result  => $result,
         );
     }
     return;
@@ -367,7 +367,7 @@ sub _assert_no_write_concern_error {
     if ( my $write_concern_errors = $result->count_writeConcernErrors ) {
         MongoDB::WriteConcernError->throw(
             message => "writeConcernErrors: $write_concern_errors",
-            result => $result,
+            result  => $result,
         );
     }
     return;
@@ -414,7 +414,7 @@ sub _execute_legacy_batch {
                 last if $ordered;
             }
             else {
-                $result->merge_result($self->_fake_doc_size_error($doc));
+                $result->merge_result( $self->_fake_doc_size_error($doc) );
                 $self->_assert_no_write_error($result) if $ordered;
             }
             next;
@@ -455,7 +455,7 @@ sub _get_writeresult_from_gle {
     if ( exists $gle->{'$err'} ) {
         MongoDB::DatabaseError->throw(
             message => $gle->{'$err'},
-            result => MongoDB::CommandResult->new( result => $gle ),
+            result  => MongoDB::CommandResult->new( result => $gle ),
         );
     }
 
@@ -463,7 +463,7 @@ sub _get_writeresult_from_gle {
     if ( !$gle->{ok} ) {
         MongoDB::DatabaseError->throw(
             message => $gle->{errmsg},
-            result => MongoDB::CommandResult->new( result => $gle ),
+            result  => MongoDB::CommandResult->new( result => $gle ),
         );
     }
 
@@ -473,13 +473,13 @@ sub _get_writeresult_from_gle {
     if ( exists $gle->{jnote} && $gle->{jnote} =~ /^journaling not enabled/ ) {
         MongoDB::DatabaseError->throw(
             message => $gle->{jnote},
-            result => MongoDB::CommandResult->new( result => $gle ),
+            result  => MongoDB::CommandResult->new( result => $gle ),
         );
     }
     if ( exists $gle->{wnote} && $gle->{wnote} =~ /^no replication has been enabled/ ) {
         MongoDB::DatabaseError->throw(
             message => $gle->{wnote},
-            result => MongoDB::CommandResult->new( result => $gle ),
+            result  => MongoDB::CommandResult->new( result => $gle ),
         );
     }
 
@@ -605,7 +605,6 @@ sub _fake_doc_size_error {
         writeErrors => [$errdoc]
     );
 }
-
 
 __PACKAGE__->meta->make_immutable;
 
