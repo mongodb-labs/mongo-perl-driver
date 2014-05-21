@@ -23,6 +23,7 @@ our $VERSION = 'v0.703.5'; # TRIAL
 
 use MongoDB::_Types;
 use Moose::Role;
+use namespace::clean -except => 'meta';
 
 =attr query (required)
 
