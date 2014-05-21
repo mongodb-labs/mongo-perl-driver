@@ -185,15 +185,21 @@ sub execute {
 
     $write_concern ||= $self->_client->_write_concern;
 
-    my $ordered = $self->ordered;
-    my $result  = MongoDB::WriteResult->new;
+    my $ordered       = $self->ordered;
+    my $use_write_cmd = $self->_use_write_cmd;
+
+    # If using legacy write ops, then there will never be a valid nModified
+    # result so we set that to undef in the constructor; otherwise, we set it
+    # to 0 so that results accumulate normally. If a mongos on a mixed cluster
+    # later fails to set it, results merging will handle it that case.
+    my $result = MongoDB::WriteResult->new( nModified => $use_write_cmd ? 0 : undef, );
 
     unless ( $self->_count_ops ) {
         MongoDB::Error->throw("no bulk ops to execute");
     }
 
     for my $batch ( $ordered ? $self->_batch_ordered : $self->_batch_unordered ) {
-        if ( $self->_use_write_cmd ) {
+        if ($use_write_cmd) {
             $self->_execute_write_command_batch( $batch, $result, $ordered, $write_concern );
         }
         else {
@@ -257,7 +263,7 @@ sub _execute_write_command_batch {
 
         next unless $cmd_result;
 
-        my $r = MongoDB::WriteResult->parse(
+        my $r = MongoDB::WriteResult->_parse(
             op       => $type,
             op_count => scalar @$chunk,
             result   => $cmd_result,
@@ -426,7 +432,7 @@ sub _execute_legacy_batch {
         else {
             # Fire and forget and mock up an empty result to get the right op count
             $client->send($op_string);
-            $gle_result = MongoDB::WriteResult->parse(
+            $gle_result = MongoDB::WriteResult->_parse(
                 op       => $type,
                 op_count => 1,
                 result   => { n => 0 },
@@ -515,7 +521,7 @@ sub _get_writeresult_from_gle {
         push @upserted, { index => 0, _id => $gle->{upserted} } if $gle->{upserted};
     }
 
-    my $result = MongoDB::WriteResult->parse(
+    my $result = MongoDB::WriteResult->_parse(
         op       => $type,
         op_count => 1,
         result   => {
@@ -570,6 +576,7 @@ sub _check_no_dollar_keys {
 
         return MongoDB::WriteResult->new(
             op_count    => 1,
+            nModified   => undef,
             writeErrors => [$errdoc]
         );
     }
