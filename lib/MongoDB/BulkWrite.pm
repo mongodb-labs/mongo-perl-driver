@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::Bulk;
+package MongoDB::BulkWrite;
 
 # ABSTRACT: MongoDB bulk write interface
 
@@ -24,7 +24,7 @@ our $VERSION = 'v0.703.5'; # TRIAL
 use MongoDB::Error;
 use MongoDB::OID;
 use MongoDB::WriteResult;
-use MongoDB::WriteSelector;
+use MongoDB::BulkWriteView;
 use Try::Tiny;
 use Safe::Isa;
 use Syntax::Keyword::Junction qw/any/;
@@ -130,7 +130,7 @@ sub find {
         $doc = {@$doc};
     }
 
-    return MongoDB::WriteSelector->new(
+    return MongoDB::BulkWriteView->new(
         query    => $doc,
         op_queue => $self,
     );
