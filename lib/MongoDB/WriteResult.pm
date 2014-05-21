@@ -44,6 +44,11 @@ for my $attr (qw/nInserted nUpserted nMatched nRemoved/) {
     );
 }
 
+# This should always be initialized either as a number or as undef so that
+# merges accumulate correctly.  It should be undef if talking to a server < 2.6
+# or if talking to a mongos and not getting the field back from an update.
+# The default is undef, which will be sticky and ensure this field stays undef.
+
 has nModified => (
     is      => 'ro',
     isa     => 'Maybe[Num]',
@@ -76,7 +81,7 @@ my %op_map = (
 
 my @op_map_keys = sort keys %op_map;
 
-sub parse {
+sub _parse {
     my $class = shift;
     my $args = ref $_[0] eq 'HASH' ? shift : {@_};
 
@@ -119,10 +124,11 @@ sub parse {
         $attrs->{$key} = $builder->($result);
     }
 
-    # nModified should stay undef unless we actually see it in a result
-    if ( $op eq 'update' || $op eq 'upsert' ) {
-        $attrs->{nModified} = $result->{nModified} if exists $result->{nModified};
-    }
+    # for an update/upsert we want the exact response whether numeric or undef so that
+    # new undef responses become sticky; for all other updates, we consider it 0
+    # and let it get sorted out in the merging
+    $attrs->{nModified} =
+      ( $op eq 'update' || $op eq 'upsert' ) ? $result->{nModified} : 0;
 
     return $class->new($attrs);
 }
@@ -159,11 +165,15 @@ sub merge_result {
         $self->$setter( $self->$attr + $result->$attr );
     }
 
-    # If nModified is defined in either result we're merging, then we're on a
-    # 2.6+ server and have done at least one update/upsert so we can combine
-    # them; otherwise we leave it undefined
-    if ( defined $self->nModified || defined $result->nModified ) {
-        $self->_set_nModified( ( $self->nModified || 0 ) + ( $result->nModified || 0 ) );
+    # If nModified is defined in both results we're merging, then we're talking
+    # to a 2.6+ mongod or we're talking to a 2.6+ mongos and have only seen
+    # responses with nModified.  In any other case, we set nModified to undef,
+    # which then becomes "sticky"
+    if ( defined $self->nModified && defined $result->nModified ) {
+        $self->_set_nModified( $self->nModified + $result->nModified );
+    }
+    else {
+        $self->_set_nModified(undef);
     }
 
     # Append error and upsert docs, but modify index based on op count

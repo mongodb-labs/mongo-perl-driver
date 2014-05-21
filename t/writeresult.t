@@ -24,7 +24,7 @@ use Test::Fatal;
 use MongoDB::WriteResult;
 
 subtest "insert" => sub {
-    my $r = MongoDB::WriteResult->parse(
+    my $r = MongoDB::WriteResult->_parse(
         op => 'insert',
         result => { ok => 1, n => 1 }
     );

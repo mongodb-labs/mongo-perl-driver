@@ -111,11 +111,11 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->parse(
-                op          => 'insert',
-                op_count    => 1,
+            MongoDB::WriteResult->new(
+                nInserted => 1,
+                nModified => ( $using_2_6 ? 0 : undef ),
+                op_count  => 1,
                 batch_count => 1,
-                result      => { n => 1 }
             ),
             "result object correct"
         );
@@ -133,11 +133,11 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->parse(
-                op          => 'insert',
-                op_count    => 1,
+            MongoDB::WriteResult->new(
+                nInserted => 1,
+                nModified => ( $using_2_6 ? 0 : undef ),
+                op_count  => 1,
                 batch_count => 1,
-                result      => { n => 1 }
             ),
             "result object correct"
         );
@@ -214,11 +214,11 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->parse(
-                op          => 'update',
+            MongoDB::WriteResult->new(
+                nMatched    => 2,
+                nModified   => ( $using_2_6 ? 2 : undef ),
                 op_count    => 1,
                 batch_count => 1,
-                result      => { n => 2, nModified => ( $using_2_6 ? 2 : undef ) }
             ),
             "result object correct"
         );
@@ -242,11 +242,11 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->parse(
-                op          => 'update',
+            MongoDB::WriteResult->new(
+                nMatched    => 2,
+                nModified   => ( $using_2_6 ? 2 : undef ),
                 op_count    => 2,
                 batch_count => $using_2_6 ? 1 : 2,
-                result      => { n => 2, nModified => ( $using_2_6 ? 2 : undef ) }
             ),
             "result object correct"
         );
@@ -268,11 +268,11 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->parse(
-                op          => 'update',
+            MongoDB::WriteResult->new(
+                nMatched    => 1,
+                nModified   => ( $using_2_6 ? 1 : undef ),
                 op_count    => 1,
                 batch_count => 1,
-                result      => { n => 1, nModified => ( $using_2_6 ? 1 : undef ) }
             ),
             "result object correct"
         );
@@ -333,11 +333,11 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->parse(
-                op          => 'update',
+            MongoDB::WriteResult->new(
+                nMatched    => 1,
+                nModified   => ( $using_2_6 ? 1 : undef ),
                 op_count    => 1,
                 batch_count => 1,
-                result      => { n => 1, nModified => ( $using_2_6 ? 1 : undef ) }
             ),
             "result object correct"
         );
@@ -635,11 +635,11 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->parse(
-                op          => 'delete',
+            MongoDB::WriteResult->new(
+                nRemoved    => 2,
+                nModified   => ( $using_2_6 ? 0 : undef ),
                 op_count    => 1,
                 batch_count => 1,
-                result      => { n => 2 }
             ),
             "result object correct"
         ) or diag explain $result;
@@ -660,11 +660,11 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->parse(
-                op          => 'delete',
+            MongoDB::WriteResult->new(
+                nRemoved    => 1,
+                nModified   => ( $using_2_6 ? 0 : undef ),
                 op_count    => 1,
                 batch_count => 1,
-                result      => { n => 1 }
             ),
             "result object correct"
         ) or diag explain $result;
@@ -702,11 +702,11 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->parse(
-                op          => 'delete',
+            MongoDB::WriteResult->new(
+                nRemoved    => 1,
+                nModified   => ( $using_2_6 ? 0 : undef ),
                 op_count    => 1,
                 batch_count => 1,
-                result      => { n => 1 }
             ),
             "result object correct"
         ) or diag explain $result;

@@ -17,7 +17,7 @@ while (@isa_checks) {
     isa_ok( exception { $error->throw }, $isa );
 }
 
-my $result = MongoDB::WriteResult->new( 'insert' => {} );
+my $result = MongoDB::WriteResult->new( nModified => 0 );
 my $error = exception {
     MongoDB::WriteError->throw(
         message => "whoops",
