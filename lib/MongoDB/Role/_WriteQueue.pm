@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_OpQueue;
+package MongoDB::Role::_WriteQueue;
 
 # ABSTRACT: MongoDB interface for queuing operations for execution
 
@@ -24,6 +24,6 @@ our $VERSION = 'v0.703.5'; # TRIAL
 use Moose::Role;
 use namespace::clean -except => 'meta';
 
-requires '_enqueue_op';
+requires '_enqueue_write';
 
 1;

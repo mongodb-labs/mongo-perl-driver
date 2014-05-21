@@ -64,17 +64,17 @@ has '_executed' => (
     default  => 0,
 );
 
-has '_ops' => (
+has '_queue' => (
     is       => 'rw',
     isa      => 'ArrayRef[ArrayRef]',
     init_arg => undef,
     default  => sub { [] },
     traits   => ['Array'],
     handles  => {
-        _enqueue_op => 'push',
-        _all_ops    => 'elements',
-        _count_ops  => 'count',
-        _clear_ops  => 'clear',
+        _enqueue_write => 'push',
+        _all_writes    => 'elements',
+        _count_writes  => 'count',
+        _clear_writes  => 'clear',
     }
 );
 
@@ -112,7 +112,7 @@ sub _build__use_write_cmd {
     return $use_it;
 }
 
-with 'MongoDB::Role::_OpQueue';
+with 'MongoDB::Role::_WriteQueue';
 
 sub find {
     my ( $self, $doc ) = @_;
@@ -131,8 +131,8 @@ sub find {
     }
 
     return MongoDB::BulkWriteView->new(
-        query    => $doc,
-        op_queue => $self,
+        query       => $doc,
+        write_queue => $self,
     );
 }
 
@@ -156,7 +156,7 @@ sub insert {
         $doc->{_id} = MongoDB::OID->new unless exists $doc->{_id};
     }
 
-    $self->_enqueue_op( [ insert => $doc ] );
+    $self->_enqueue_write( [ insert => $doc ] );
     return $self;
 }
 
@@ -194,7 +194,7 @@ sub execute {
     # later fails to set it, results merging will handle it that case.
     my $result = MongoDB::WriteResult->new( nModified => $use_write_cmd ? 0 : undef, );
 
-    unless ( $self->_count_ops ) {
+    unless ( $self->_count_writes ) {
         MongoDB::Error->throw("no bulk ops to execute");
     }
 
@@ -311,7 +311,7 @@ sub _batch_ordered {
 
     my $max_batch_count = $self->_client->_max_write_batch_size;
 
-    for my $op ( $self->_all_ops ) {
+    for my $op ( $self->_all_writes ) {
         my ( $type, $doc ) = @$op;
         if ( $type ne $last_type || $count == $max_batch_count ) {
             push @batches, [ $type => [$doc] ];
@@ -333,7 +333,7 @@ sub _batch_unordered {
 
     my $max_batch_count = $self->_client->_max_write_batch_size;
 
-    for my $op ( $self->_all_ops ) {
+    for my $op ( $self->_all_writes ) {
         my ( $type, $doc ) = @$op;
         if ( @{ $batches{$type}[-1] } == $max_batch_count ) {
             push @{ $batches{$type} }, [$doc];
