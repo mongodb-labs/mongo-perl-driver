@@ -620,12 +620,12 @@ sub drop {
 
 sub initialize_unordered_bulk_op {
     my ($self) = @_;
-    return MongoDB::Bulk->new( collection => $self, ordered => 0 );
+    return MongoDB::BulkWrite->new( collection => $self, ordered => 0 );
 }
 
 sub initialize_ordered_bulk_op {
     my ($self) = @_;
-    return MongoDB::Bulk->new( collection => $self, ordered => 1 );
+    return MongoDB::BulkWrite->new( collection => $self, ordered => 1 );
 }
 
 {

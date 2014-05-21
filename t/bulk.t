@@ -43,7 +43,7 @@ subtest "constructors" => sub {
     );
     for my $method (@constructors) {
         my $bulk = $coll->$method;
-        isa_ok( $bulk, 'MongoDB::Bulk', $method );
+        isa_ok( $bulk, 'MongoDB::BulkWrite', $method );
         if ( $method =~ /unordered/ ) {
             ok( !$bulk->ordered, "ordered attr is false" );
         }
@@ -53,7 +53,7 @@ subtest "constructors" => sub {
         is(
             refaddr $bulk->collection,
             refaddr $coll,
-            "MongoDB::Bulk holds ref to originating Collection"
+            "MongoDB::BulkWrite holds ref to originating Collection"
         );
     }
 };

@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::WriteSelector;
+package MongoDB::BulkWriteView;
 
 # ABSTRACT: MongoDB selector for write operations
 
