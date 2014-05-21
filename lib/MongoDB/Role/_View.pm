@@ -14,9 +14,9 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_Selector;
+package MongoDB::Role::_View;
 
-# ABSTRACT: MongoDB selector for write operations
+# ABSTRACT: MongoDB view role
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
