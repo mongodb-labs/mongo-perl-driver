@@ -467,11 +467,18 @@ sub _get_writeresult_from_gle {
         );
     }
 
-    # 'wnote' or 'jnote' are write concern usage errors, so those get
-    # raised as database errors
-    if ( exists $gle->{wnote} || exists $gle->{jnote} ) {
+    # usually we shouldn't check wnote or jnote, but the Bulk API QA test says we should
+    # detect no journal or replication not enabled, so we check for special strings.
+    # These strings were checked back to MongoDB 1.8.5.
+    if ( exists $gle->{jnote} && $gle->{jnote} =~ /^journaling not enabled/ ) {
         MongoDB::DatabaseError->throw(
-            message => exists $gle->{wnote} ? $gle->{wnote} : $gle->{jnote},
+            message => $gle->{jnote},
+            result => MongoDB::CommandResult->new( result => $gle ),
+        );
+    }
+    if ( exists $gle->{wnote} && $gle->{wnote} =~ /^no replication has been enabled/ ) {
+        MongoDB::DatabaseError->throw(
+            message => $gle->{wnote},
             result => MongoDB::CommandResult->new( result => $gle ),
         );
     }
