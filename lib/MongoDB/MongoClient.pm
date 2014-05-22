@@ -33,7 +33,7 @@ use boolean;
 use Encode;
 use Try::Tiny;
 use Moose;
-use Moose::Util::TypeConstraints;
+use MongoDB::_Types;
 use namespace::clean -except => 'meta';
 
 use constant {
@@ -171,6 +171,21 @@ has max_bson_size => (
     default  => 4194304
 );
 
+has _max_bson_wire_size => (
+    is       => 'rw',
+    isa      => 'Int',
+    required => 1,
+    default  => 16_793_600, # 16MiB + 16KiB
+);
+
+# XXX eventually, get this off an isMaster call
+has _max_write_batch_size => (
+    is       => 'rw',
+    isa      => 'Int',
+    required => 1,
+    default  => 1000,
+);
+
 has find_master => (
     is       => 'ro',
     isa      => 'Bool',
@@ -220,7 +235,7 @@ has sasl => (
 
 has sasl_mechanism => ( 
     is       => 'ro',
-    isa      => subtype( Str => where { /^GSSAPI|PLAIN$/ } ),
+    isa      => 'SASLMech',
     required => 1,
     default  => 'GSSAPI',
 );
@@ -405,11 +420,16 @@ sub BUILD {
 
 sub _build__use_write_cmd { 
     my $self = shift;
-    
+
     # find out if we support write commands
-    my $result = $self->get_database( "test" )->run_command( { insert => "test", documents => [ ] } );
-    
-    return 1 if ref $result && $result->{ok} == 1;
+    my $result = eval {
+        $self->get_database( $self->db_name )->_try_run_command( { "ismaster" => 1 } );
+    };
+
+    my $max_wire_version = ($result && exists $result->{maxWireVersion} )
+        ? $result->{maxWireVersion} : 0;
+
+    return 1 if $max_wire_version > 1;
     return 0;
 }
 
@@ -891,6 +911,16 @@ sub _check_wire_version {
         }
     }
 
+}
+
+sub _write_concern {
+    my ($self) = @_;
+    my $wc = {
+        w => $self->w,
+        wtimeout => $self->wtimeout,
+    };
+    $wc->{j} = $self->j if $self->j;
+    return $wc;
 }
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );

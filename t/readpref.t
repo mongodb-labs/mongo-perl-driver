@@ -17,23 +17,25 @@
 
 use strict;
 use warnings;
-use Test::More;
+use Test::More 0.96;
 use Test::Exception;
 use Test::Warn;
 
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
-
-plan tests => 60;
+use MongoDBTest '$testdb', '$conn';
 
 my $rs;
 my $rsconn;
 my $sh;
 
-# standalone mongod
-{
+my $ismaster      = $testdb->run_command( { ismaster     => 1 } );
+
+subtest "standalone" => sub {
+    plan skip_all => 'needs a standalone server'
+        if $ismaster->{hosts};
+
     ok(!$conn->_readpref_pinned, 'nothing should be pinned yet');
     throws_ok {
         $conn->read_preference(MongoDB::MongoClient->PRIMARY);
@@ -56,11 +58,11 @@ my $sh;
 
     # make sure we can still query
     is($collection->count(), 20, 'can count the entries');
-}
+};
 
-# three-node replica set
-SKIP: {
-    skip 'requires running replica set', 51 unless exists $ENV{MONGOTEST_PATH};
+subtest "three-node replica set" => sub {
+    plan skip_all => 'requires running replica set'
+      unless exists $ENV{MONGOTEST_PATH};
 
     $rs = MongoDBTest::ReplicaSet->new(
         mongo_path => $ENV{MONGOTEST_PATH},
@@ -347,11 +349,12 @@ SKIP: {
         $rs->nodes_up('localhost:27020', 'localhost:27022');
         sleep 10;
     }
-}
+};
 
 # connection to mongos
-SKIP: {
-    skip 'requires running sharded environment', 4 unless exists $ENV{MONGOTEST_PATH};
+subtest "sharded cluster" => sub {
+    plan skip_all => 'requires running sharded environment'
+      unless exists $ENV{MONGOTEST_PATH};
 
     $sh = MongoDBTest::ShardedCluster->new(
         mongo_path => $ENV{MONGOTEST_PATH},
@@ -378,7 +381,9 @@ SKIP: {
     $sh->client->read_preference(MongoDB::MongoClient->PRIMARY);
     my $item = $collection->find_one({a => 250});
     is($item->{'a'}, 250, 'querying mongos');
-}
+};
+
+done_testing;
 
 END {
     if ($conn) {

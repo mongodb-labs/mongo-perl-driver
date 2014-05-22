@@ -506,10 +506,26 @@ sub ensure_index {
 
 sub _make_safe {
     my ($self, $req) = @_;
+
+    my $ok = $self->_make_safe_cursor($req)->next();
+
+    # $ok->{ok} is 1 if err is set
+    Carp::croak $ok->{err} if $ok->{err};
+    # $ok->{ok} == 0 is still an error
+    if (!$ok->{ok}) {
+        Carp::croak $ok->{errmsg};
+    }
+
+    return $ok;
+}
+
+sub _make_safe_cursor {
+    my ($self, $req, $write_concern) = @_;
     my $conn = $self->_database->_client;
     my $db = $self->_database->name;
+    $write_concern ||= $conn->_write_concern;
 
-    my $last_error = Tie::IxHash->new(getlasterror => 1, w => $conn->w, wtimeout => $conn->wtimeout, j => $conn->j);
+    my $last_error = Tie::IxHash->new(getlasterror => 1, %$write_concern);
     my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
 
     $conn->send("$req$query");
@@ -523,17 +539,7 @@ sub _make_safe {
 
     $conn->recv($cursor);
     $cursor->started_iterating(1);
-
-    my $ok = $cursor->next();
-
-    # $ok->{ok} is 1 if err is set
-    Carp::croak $ok->{err} if $ok->{err};
-    # $ok->{ok} == 0 is still an error
-    if (!$ok->{ok}) {
-        Carp::croak $ok->{errmsg};
-    }
-
-    return $ok;
+    return $cursor;
 }
 
 sub save {
@@ -612,10 +618,21 @@ sub drop {
     return;
 }
 
-sub bulk { 
-    my ( $self, %args ) = @_;
+sub initialize_unordered_bulk_op {
+    my ($self) = @_;
+    return MongoDB::BulkWrite->new( collection => $self, ordered => 0 );
+}
 
-    return MongoDB::Bulk->new( %args, collection => $self );
+sub initialize_ordered_bulk_op {
+    my ($self) = @_;
+    return MongoDB::BulkWrite->new( collection => $self, ordered => 1 );
+}
+
+{
+    # shorter aliases for bulk op constructors
+    no warnings 'once';
+    *ordered_bulk = \&initialize_ordered_bulk_op;
+    *unordered_bulk = \&initialize_unordered_bulk_op;
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -990,4 +1007,6 @@ index is ascending or descending on that key.
 Deletes a collection as well as all of its indexes.
 
 
+=cut
 
+# vim: ts=4 sts=4 sw=4 et:

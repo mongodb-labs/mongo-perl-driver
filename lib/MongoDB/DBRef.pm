@@ -24,21 +24,8 @@ our $VERSION = 'v0.703.5'; # TRIAL
 use Carp 'croak';
 use Tie::IxHash;
 use Moose;
-use Moose::Util::TypeConstraints;
+use MongoDB::_Types;
 use namespace::clean -except => 'meta';
-
-
-subtype DBRefColl => as 'Str';
-subtype DBRefDB   => as 'Str';
-
-coerce 'DBRefColl'
-  => from 'MongoDB::Collection'
-  => via  { $_->name };
-
-coerce 'DBRefDB' 
-  => from 'MongoDB::Database'
-  => via  { $_->name };
-
 
 # no type constraint since an _id can be anything
 has id => (
