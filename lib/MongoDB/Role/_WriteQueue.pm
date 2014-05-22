@@ -16,7 +16,7 @@
 
 package MongoDB::Role::_WriteQueue;
 
-# ABSTRACT: MongoDB interface for queuing operations for execution
+# MongoDB interface for queuing operations for execution
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL

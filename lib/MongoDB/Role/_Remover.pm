@@ -16,7 +16,7 @@
 
 package MongoDB::Role::_Remover;
 
-# ABSTRACT: Role for remove operations
+# Role for remove operations
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL

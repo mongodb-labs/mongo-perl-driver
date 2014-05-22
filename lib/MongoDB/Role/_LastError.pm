@@ -16,7 +16,7 @@
 
 package MongoDB::Role::_LastError;
 
-# ABSTRACT: MongoDB interface for providing the last database error
+# MongoDB interface for providing the last database error
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL

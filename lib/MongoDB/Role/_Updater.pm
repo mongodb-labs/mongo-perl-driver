@@ -16,7 +16,7 @@
 
 package MongoDB::Role::_Updater;
 
-# ABSTRACT: Role for update and replace operations
+# Role for update and replace operations
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL

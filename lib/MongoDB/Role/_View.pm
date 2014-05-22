@@ -16,7 +16,7 @@
 
 package MongoDB::Role::_View;
 
-# ABSTRACT: Role providing a query document
+# Role providing a query document
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL

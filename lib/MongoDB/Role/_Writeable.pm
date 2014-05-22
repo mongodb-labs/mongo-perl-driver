@@ -16,7 +16,7 @@
 
 package MongoDB::Role::_Writeable;
 
-# ABSTRACT: Role providing a write queue
+# Role providing a write queue
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
