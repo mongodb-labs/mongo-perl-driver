@@ -14,27 +14,26 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_View;
+package MongoDB::Role::_Remover;
 
-# ABSTRACT: Role providing a query document
+# ABSTRACT: Role for remove operations
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use MongoDB::_Types;
 use Moose::Role;
 use namespace::clean -except => 'meta';
 
-=attr query (required)
+requires qw/_enqueue_write query/;
 
-A hash reference containing a MongoDB query document
+sub remove {
+    my ($self) = @_;
+    $self->_enqueue_write( [ delete => { q => $self->query, limit => 0 } ] );
+}
 
-=cut
-
-has query => (
-    is       => 'ro',
-    isa      => 'HashRef|IxHash',
-    required => 1
-);
+sub remove_one {
+    my ($self) = @_;
+    $self->_enqueue_write( [ delete => { q => $self->query, limit => 1 } ] );
+}
 
 1;

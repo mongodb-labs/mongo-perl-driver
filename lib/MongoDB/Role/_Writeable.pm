@@ -14,27 +14,34 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_View;
+package MongoDB::Role::_Writeable;
 
-# ABSTRACT: Role providing a query document
+# ABSTRACT: Role providing a write queue
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use MongoDB::_Types;
 use Moose::Role;
 use namespace::clean -except => 'meta';
 
-=attr query (required)
+=attr write_queue (required)
 
-A hash reference containing a MongoDB query document
+An object that does L<MongoDB::Role::_WriteQueue>.  This is
+used for executing write operations.
 
 =cut
 
-has query => (
+has write_queue => (
     is       => 'ro',
-    isa      => 'HashRef|IxHash',
-    required => 1
+    does     => 'MongoDB::Role::_WriteQueue',
+    required => 1,
 );
+
+# can't use 'handles' in attribute because role composition fails, so we
+# do it long-hand below
+sub _enqueue_write {
+    my $self = shift;
+    return $self->write_queue->_enqueue_write(@_);
+}
 
 1;

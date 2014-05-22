@@ -16,94 +16,24 @@
 
 package MongoDB::BulkWriteView;
 
-# ABSTRACT: MongoDB selector for write operations
+# ABSTRACT: Bulk write operations against a query document
 
 use version;
 our $VERSION = 'v0.703.5'; # TRIAL
 
-use boolean;
-use Syntax::Keyword::Junction qw/any/;
 use Moose;
 use namespace::clean -except => 'meta';
 
-with 'MongoDB::Role::_View';
-
-has _upsert => (
-    is      => 'ro',
-    isa     => 'boolean',
-    default => sub { boolean::false },
+# done in two parts to work around a moose bug: https://github.com/moose/Moose/pull/19
+with qw(
+  MongoDB::Role::_View
+  MongoDB::Role::_Writeable
 );
 
-sub upsert {
-    my ($self) = @_;
-    unless ( @_ == 1 ) {
-        confess "the upsert method takes no arguments";
-    }
-    return $self->new( %$self, _upsert => boolean::true );
-}
-
-sub update {
-    push @_, "update";
-    goto &_update;
-}
-
-sub update_one {
-    push @_, "update_one";
-    goto &_update;
-}
-
-sub replace_one {
-    push @_, "replace_one";
-    goto &_update;
-}
-
-sub _update {
-    my $method = pop @_;
-    my ( $self, $doc ) = @_;
-
-    unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
-        confess "argument to $method must be a single hashref, arrayref or Tie::IxHash";
-    }
-
-    if ( ref $doc eq 'ARRAY' ) {
-        confess "array reference to $method must have key/value pairs"
-          if @$doc % 2;
-        $doc = {@$doc};
-    }
-
-    my @keys = ref $doc eq 'Tie::IxHash' ? $doc->Keys : keys %$doc;
-    if ( $method eq 'replace_one' ) {
-        if ( my @bad = grep { substr( $_, 0, 1 ) eq '$' } @keys ) {
-            confess "$method document can't have '\$' prefixed field names: @bad";
-        }
-    }
-    else {
-        if ( my @bad = grep { substr( $_, 0, 1 ) ne '$' } @keys ) {
-            confess "$method document can't have non- '\$' prefixed field names: @bad";
-        }
-    }
-
-    my $update = {
-        q      => $self->query,
-        u      => $doc,
-        multi  => $method eq 'update' ? boolean::true : boolean::false,
-        upsert => $self->_upsert,
-    };
-
-    $self->_enqueue_write( [ update => $update ] );
-
-    return $self;
-}
-
-sub remove {
-    my ($self) = @_;
-    $self->_enqueue_write( [ delete => { q => $self->query, limit => 0 } ] );
-}
-
-sub remove_one {
-    my ($self) = @_;
-    $self->_enqueue_write( [ delete => { q => $self->query, limit => 1 } ] );
-}
+with qw(
+  MongoDB::Role::_Updater
+  MongoDB::Role::_Remover
+);
 
 __PACKAGE__->meta->make_immutable;
 
