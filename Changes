@@ -2,11 +2,25 @@
 
 {{ $NEXT }}
 
+  [Enhancements]
+
+  - PERL-299 Bulk API fully implemented (but not yet fully documented)
+
   [Bug Fixes]
 
-  - PERL-323 fix possibly socket leaks on communication errors
+  - PERL-305 fixed infinite loop connecting with SASL to a down server
 
-  - Fix use of re::regexp_pattern for 5.10.0
+  - PERL-323 fixed possible socket leaks on communication errors
+
+  - PERL-336 fixed index creation legacy fallback against older mongos
+
+  - Fixed clock race in OID unit test
+
+  - Fixed memory corruption error on Perl 5.19.1+
+
+  - Fixed fatal error in DESTROY with find_master and down server
+
+  - Fixed use of re::regexp_pattern for 5.10.0
 
   - Provided backwards compatible HeUTF8 macro for Perl v5.10 and v5.8.8
     and earlier
@@ -19,6 +33,30 @@
   - Update ppport.h to version 3.22
 
   - Fixed several compiler warnings on Perl 5.8
+
+  - Removed hard-coded compiler flags for Darwin
+
+  - Cleaned Moose class namespaces of imported methods
+
+  [Prerequisites]
+
+  - Added namespace::clean
+
+  - Added Test::Deep
+
+  - Added Test::Fatal
+
+  - Added Throwable
+
+  - Added Syntax::Keyword::Junction
+
+  - Changed Test::More requirement to 0.96
+
+  - Removed Devel::Size
+
+  [Known Issues]
+
+  - PERL-233 SSL certificate validation not yet implemented
 
 v0.703.4  2014-04-07 20:12:27-04:00 America/New_York (TRIAL RELEASE)
 
