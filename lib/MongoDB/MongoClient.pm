@@ -214,18 +214,6 @@ has ssl => (
     default  => 0,
 );
 
-has ssl_ca_path => ( 
-    is       => 'ro',
-    isa      => 'Str',
-    required => 0,
-);
-
-has ssl_ca_file => ( 
-    is       => 'ro',
-    isa      => 'Str',
-    required => 0,
-);
-
 has sasl => ( 
     is       => 'ro',
     isa      => 'Bool',
