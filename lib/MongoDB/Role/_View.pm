@@ -25,11 +25,7 @@ use MongoDB::_Types;
 use Moose::Role;
 use namespace::clean -except => 'meta';
 
-=attr query (required)
-
-A hash reference containing a MongoDB query document
-
-=cut
+# A hash reference containing a MongoDB query document
 
 has query => (
     is       => 'ro',

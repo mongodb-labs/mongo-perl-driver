@@ -24,12 +24,8 @@ our $VERSION = 'v0.703.5'; # TRIAL
 use Moose::Role;
 use namespace::clean -except => 'meta';
 
-=attr write_queue (required)
-
-An object that does L<MongoDB::Role::_WriteQueue>.  This is
-used for executing write operations.
-
-=cut
+# An object that does MongoDB::Role::_WriteQueue  This is used for
+# executing write operations.
 
 has write_queue => (
     is       => 'ro',
