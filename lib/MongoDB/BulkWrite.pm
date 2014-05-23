@@ -114,6 +114,21 @@ sub _build__use_write_cmd {
 
 with 'MongoDB::Role::_WriteQueue';
 
+=method find
+
+    $view = $bulk->find( $query_document );
+
+The C<find> method returns a L<MongoDB::BulkWriteView> object that allows
+write operations like C<update> or C<remove>, constrained by a query document.
+
+A query document is required.  Use an empty hashref for no criteria:
+
+    $bulk->find( {} )->remove; # remove all documents!
+
+An exception will be thrown on error.
+
+=cut
+
 sub find {
     my ( $self, $doc ) = @_;
 
@@ -135,6 +150,23 @@ sub find {
         write_queue => $self,
     );
 }
+
+=method insert
+
+    $bulk->insert( $doc );
+
+Queues a document for insertion when L</execute> is called.  The document may
+be a hash reference, an array reference (with balance key/value pairs) or a
+L<Tie::IxHash> object.  If the document does not have an C<_id> field, one will
+be added.
+
+For convenience, the method returns the invocant, allowing chaining:
+
+    $bulk->insert( $doc1 )->insert( $doc2 );
+
+An exception will be thrown on error.
+
+=cut
 
 sub insert {
     my ( $self, $doc ) = @_;
@@ -162,9 +194,39 @@ sub insert {
 
 =method execute
 
-    $bulk->execute;
+    my $result = $bulk->execute;
 
-XXX discuss how order affects errors
+Executes the queued operations.  The order and semantics depend on
+whether the bulk object is ordered or unordered:
+
+=for :list
+* ordered — operations are executed in order, but operations of the same type
+  (e.g. multiple inserts) may be grouped together and sent to the server.  If
+  the server returns an error, the bulk operation will stop and an error will
+  be thrown.
+* unordered — operations are grouped by type and sent to the server in an
+  unpredictable order.  After all operations are sent, if any errors occurred,
+  an error will be thrown.
+
+When grouping operations of a type, operations will be sent to the server in
+batches not exceeding 16MiB or 1000 items (for a version 2.6 or later server)
+or individually (for legacy servers without write command support).
+
+This method returns a L<MongoDB::WriteResult> object if the bulk operation
+executes successfully.
+
+Typical errors might include:
+
+=for :list
+* C<MongoDB::WriteError> — one or more write operations failed
+* C<MongoDB::WriteConcernError> - all writes were accepted by a primary, but
+  the write concern failed
+* C<MongoDB::DatabaseError> — a command to the database failed entirely
+
+See L<MongoDB::Error> for more on error handling.
+
+B<NOTE>: it is an error to call C<execute> without any operations or
+to call C<execute> more than once on the same bulk object.
 
 =cut
 
@@ -609,3 +671,57 @@ sub _fake_doc_size_error {
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+__END__
+
+=head1 SYNOPSIS
+
+    use Safe::Isa;
+    use Try::Tiny;
+
+    my $bulk = $collection->initialize_ordered_bulk_op;
+
+    $bulk->insert( $doc );
+    $bulk->find( $query )->upsert->replace_one( $doc )
+    $bulk->find( $query )->update( $modification )
+
+    my $result = try {
+        $bulk->execute;
+    }
+    catch {
+        if ( $_->$isa("MongoDB::WriteConcernError") ) {
+            warn "Write concern failed";
+        }
+        else {
+            die $_;
+        }
+    };
+
+=head1 DESCRIPTION
+
+This class constructs a list of write operations to perform in bulk for a
+single collection.  On a MongoDB 2.6 or later server with write command support
+this allow grouping similar operations together for transit to the database,
+minimizing network round-trips.
+
+To begin a bulk operation, use one these methods from L<MongoDB::Collection>:
+
+=for :list
+* L<initialize_ordered_bulk_op|MongoDB::Collection/initialize_ordered_bulk_op>
+* L<initialize_unordered_bulk_op|MongoDB::Collection/initialize_unordered_bulk_op>
+
+=head2 Ordered Operations
+
+With an ordered operations list, MongoDB executes the write operations in the
+list serially. If an error occurs during the processing of one of the write
+operations, MongoDB will return without processing any remaining write
+operations in the list.
+
+=head2 Unordered Operations
+
+With an unordered operations list, MongoDB can execute in parallel, as well as
+in a nondeterministic order, the write operations in the list. If an error
+occurs during the processing of one of the write operations, MongoDB will
+continue to process remaining write operations in the list.
+
+=cut

@@ -26,11 +26,23 @@ use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_LastError';
 
+=attr result
+
+Hash reference with the result of a database command
+
+=cut
+
 has result => (
     is       => 'ro',
     isa      => 'HashRef',
     required => 1,
 );
+
+=method last_errmsg
+
+Error string (if any) or the empty string if there was no error.
+
+=cut
 
 sub last_errmsg {
     my ($self) = @_;
@@ -43,3 +55,12 @@ sub last_errmsg {
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+__END__
+
+=head1 DESCRIPTION
+
+This class encapsulates the results from a database command.  Currently, it is only
+available from the C<result> attribute of C<MongoDB::DatabaseError>.
+
+=cut

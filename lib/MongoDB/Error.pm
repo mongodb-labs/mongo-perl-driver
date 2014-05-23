@@ -49,12 +49,6 @@ use overload
   q{""}    => sub { shift->message },
   fallback => 1;
 
-=attr message
-
-A text representation of the error
-
-=cut
-
 has message => (
     is      => 'ro',
     isa     => 'Str',
@@ -92,13 +86,6 @@ use Moose;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
 
-=attr result (DatabaseError only)
-
-An optional object with about the error.  The nature will
-vary by error subclass.
-
-=cut
-
 has result => (
     is       => 'ro',
     does     => 'MongoDB::Role::_LastError',
@@ -109,10 +96,6 @@ package MongoDB::DocumentSizeError;
 use Moose;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
-
-=attr document (DocumentSizeError only)
-
-=cut
 
 has document => (
     is       => 'ro',
@@ -171,6 +154,13 @@ This class defines a heirarchy of exception objects.
 
 All classes inherit from C<MongoDB::Error>.
 
+All error classes have the attribute:
+
+=for :list
+* message — a text representation of the error
+
+=cut
+
 =head2 MongoDB::ConnectionError
 
 Errors related to network connections.
@@ -179,11 +169,30 @@ Errors related to network connections.
 
 Errors related to database operations.
 
+Attributes include:
+
+=for :list
+* result — response from a database command; this must impliement the
+  C<last_errmsg> method
+
 =head3 MongoDB::WriteError
 
-=cut
+Errors indicating failure of a write command.  The C<result> attribute is
+a L<MongoDB::WriteResult> object.
 
-=cut
+=head3 MongoDB::WriteConcernError
+
+Errors indicating failure of a write concern.  The C<result> attribute is a
+L<MongoDB::WriteResult> object.
+
+=head2 MongoDB::DocumentSizeError
+
+Errors from documents exceeding the maximum allowable size.
+
+Attributes include:
+
+=for :list
+* document — the document that caused the error
 
 =cut
 

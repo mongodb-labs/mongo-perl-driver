@@ -133,15 +133,34 @@ sub _parse {
     return $class->new($attrs);
 }
 
+=method count_writeErrors
+
+Returns the number of write errors
+
+=cut
+
 sub count_writeErrors {
     my ($self) = @_;
     return scalar @{ $self->writeErrors };
 }
 
+=method count_writeConcernErrors
+
+Returns the number of write errors
+
+=cut
+
 sub count_writeConcernErrors {
     my ($self) = @_;
     return scalar @{ $self->writeConcernErrors };
 }
+
+=method last_errmsg
+
+Returns the last C<errmsg> field from either the list of C<writeErrors> or
+C<writeConcernErrors> or the empty string if there are no errors.
+
+=cut
 
 sub last_errmsg {
     my ($self) = @_;
@@ -197,3 +216,86 @@ sub _merge_result {
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+__END__
+
+=head1 SYNOPSIS
+
+    # returned directly
+    my $result = $bulk->execute;
+
+    # from a WriteError or WriteConcernError
+    my $result = $error->result;
+
+=head1 DESCRIPTION
+
+This class encapsulates the results from a bulk write operation. It may be
+returned directly from C<execute> or it may be in the C<result> attribute of a
+C<MongoDB::DatabaseError> subclass like C<MongoDB::WriteError> or
+C<MongoDB::WriteConcernError>.
+
+=attr nInserted
+
+Number of documents inserted
+
+=attr nUpserted
+
+Number of documents upserted
+
+=attr nMatched
+
+Number of documents matched for an update or replace operation.
+
+=attr nRemoved
+
+Number of documents removed
+
+=attr nModified
+
+Number of documents actually modified by an update operation. This
+is not necessarily the same as L</nMatched> if the document was
+not actually modified as a result of the update.
+
+This field is not available from legacy servers before version 2.6.
+If results are seen from a legacy server (or from a mongos proxying
+for a legacy server) this attribute will be C<undef>.
+
+=attr upserted
+
+An array reference containing information about upserted documetns (if any).
+Each document will have the following fields:
+
+=for :list
+* index — 0-based index indicating which operation failed
+* _id — the object ID of the upserted document
+
+=attr writeErrors
+
+An array reference containing write errors (if any).  Each error document
+will have the following fields:
+
+=for :list
+* index — 0-based index indicating which operation failed
+* code — numeric error code
+* errmsg — textual error string
+* op — a representation of the actual operation sent to the server
+
+=attr writeConcernErrors
+
+An array reference containing write concern errors (if any).  Each error
+document will have the following fields:
+
+=for :list
+* index — 0-based index indicating which operation failed
+* code — numeric error code
+
+=attr op_count
+
+The number of operations sent to the database.
+
+=attr batch_count
+
+The number of database commands issued to the server.  This will be less than the
+C<op_count> if multiple operations were grouped together.
+
+=cut
