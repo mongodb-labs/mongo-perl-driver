@@ -23,6 +23,24 @@ If you are using a modern CPAN client (anything since Perl v5.12), these will
 be installed automatically as needed.  If you have an older CPAN client or are
 doing manual installation, install these before running `Makefile.PL`.
 
+## Testing with a database
+
+Most tests will skip unless a MongoDB database is available either on the
+default localhost and port or on an alternate `host:port` specified by the
+`MONGOD` environment variable:
+
+    $ export MONGOD=localhosts:31017
+
+## Installing as a non-privileged user
+
+If you do not have write permissions to your Perl's site library directory
+(`perl -V:sitelib`), then you will need to use your CPAN client or run
+`make install` as root or with `sudo`.
+
+Alternatively, you configure a local library.  See
+[local::lib](https://metacpan.org/pod/local::lib#The-bootstrapping-technique)
+on CPAN for more details.
+
 ## Installing from CPAN
 
 You can install the latest stable release by installing the `MongoDB`
@@ -48,7 +66,7 @@ above.  Then run the `Makefile.PL` manually:
     $ perl Makefile.PL
 
 This will report any missing prerequisites and you will need to install
-them all.  You can then `make`, etc. as usual:
+them all.  You can then run `make`, etc. as usual:
 
     $ make
     $ make test
