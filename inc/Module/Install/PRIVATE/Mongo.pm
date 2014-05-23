@@ -17,22 +17,6 @@ sub mongo {
     my $ccflags = $self->makemaker_args->{CCFLAGS} || $Config{ccflags};
     $ccflags = "" unless defined $ccflags;
 
-##    if ($Config{osname} eq 'darwin') {
-##        my @arch = $Config::Config{ccflags} =~ m/-arch\s+(\S+)/g;
-##        my $archStr = join '', map { " -arch $_ " } @arch;
-##
-##        $ccflags = $ccflags . $archStr;
-##
-##        $self->makemaker_args(
-##            dynamic_lib => {
-##                OTHERLDFLAGS => $archStr
-##            }
-##        );
-##
-##        $ccflags = $ccflags . ' -g -pipe -fno-common -DPERL_DARWIN -no-cpp-precomp -fno-strict-aliasing -Wdeclaration-after-statement -I/usr/local/include';
-##        $self->makemaker_args( LDDLFLAGS => ' -bundle -undefined dynamic_lookup -L/usr/local/lib');
-##    }
-
     # check for 64-bit
     if ($Config{use64bitint}) {
         $ccflags .= " -DMONGO_USE_64_BIT_INT";
