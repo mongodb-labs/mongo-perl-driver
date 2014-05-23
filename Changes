@@ -2,61 +2,113 @@
 
 {{ $NEXT }}
 
-  [Known Issues]
+  [!!! Incompatible Changes !!!]
 
-  - PERL-349 changes to the testing framework revealed a bug when
-    threads are used with 'find_master' on the client; the offending
-    test is marked TODO and the bug will be addressed in the next
-    stable release.
+  - PERL-108 removed previously-deprecated AUTOLOAD functions
 
-v0.703.5  2014-05-23 06:26:46-04:00 America/New_York (TRIAL RELEASE)
+  [*** Deprecations ***]
 
-  [Enhancements]
+  - PERL-320 low-level protocol functions in MongoDB.pm are deprecated
 
-  - PERL-299 Bulk API fully implemented (but not yet fully documented)
+  [Additions]
+
+  - PERL-221 added MongoDB::Regex class to represent stored regexes
+
+  - PERL-251 implemented support for aggregation command cursors
+
+  - PERL-252 added 'max_time_ms' method to cursors
+
+  - PERL-258 added support for '$out' aggregation pipeline operator
+
+  - PERL-262 read preference implementation
+
+  - PERL-278 added explain support for aggregation queries
+
+  - PERL-298 implement parallel_scan method for collections
+
+  - PERL-299 implemented new bulk write API
+
+  - Added nolock support to eval in MongoDB::Database (Ashley Willis)
 
   [Bug Fixes]
 
-  - PERL-305 fixed infinite loop connecting with SASL to a down server
+  - PERL-233 Fix find_and_modify error handling
+
+  - PERL-260 ensure_index no longer ignores weights, default_language, and
+    language_override options
+
+  - PERL-267 memory leak fixes (Casey Rojas)
+
+  - PERL-307 fix drop_dups option for ensure_index
+
+  - PERL-315 require DateTime 0.78 or later
+
+  - PERL-318 fix compiler warnings
+
+  - PERL-319 fix compilation failures on some platforms
+
+  - PERL-322 change return value and document low-level recv
 
   - PERL-323 fixed possible socket leaks on communication errors
 
   - PERL-336 fixed index creation legacy fallback against older mongos
 
-  - Fixed clock race in OID unit test
-
-  - Fixed memory corruption error on Perl 5.19.1+
-
-  - Fixed fatal error in DESTROY with find_master and down server
-
-  - Fixed use of re::regexp_pattern for 5.10.0
-
-  - Provided backwards compatible HeUTF8 macro for Perl v5.10 and v5.8.8
-    and earlier
-
-  - Fixed bson library configuration and ifdef bugs
-
-  - Fixed a bug that would serialize an index direction as a string on
-    some older Perls
-
-  - Update ppport.h to version 3.22
-
-  - Fixed several compiler warnings on Perl 5.8
-
-  - Removed hard-coded compiler flags for Darwin
+  - Cached client constructor arguments for replica set connections
 
   - Cleaned Moose class namespaces of imported methods
 
-  [Deprecations]
+  - Ensured internal run_command exceptions include correct error string
 
-  - PERL-320 low-level protocol functions in MongoDB.pm are deprecated
+  - Fixed a bug that would serialize an index direction as a string on some
+    older Perls
+
+  - Fixed clock race in OID unit test
+
+  - Fixed exception handling for internal run_command calls
+
+  - Fixed fatal error in DESTROY with find_master and down server
+
+  - Fixed gridfs test for unique keys
+
+  - Fixed hint tests for MongoDB >= 2.5.4
+
+  - Fixed index creation and drop on MongoDB 2.6
+
+  - Fixed memory corruption error on Perl 5.19.1+
+
+  - Fixed several compiler warnings on Perl 5.8
+
+  - Fixed use of re::regexp_pattern for 5.10.0
+
+  - Made t/dbref.t use fresh test database
+
+  - Prevented GridFS MD5 calculation when 'safe' is not set (mapbuh)
+
+  - Provided backwards compatible HeUTF8 macro for Perl v5.10 and v5.8.8 and
+    earlier
+
+  - Removed hard-coded compiler flags for Darwin
+
+  - Updated ppport.h to version 3.22
 
   [Documentation]
+
+  - PERL-217 improved documentation of GridFS::get
+
+  - PERL-287 updated "j" and "fsync" option docs for MongoDB 2.6
+
+  - PERL-311 fix legacy docs authentication link
 
   - PERL-317 Clarified support for threads
 
   - PERL-341 Added install documentation including use of non-standard C
     library paths
+
+  - Added abstract to MongoDB::BSON::Regexp documentation
+
+  - Revised main MongoDB module and MongoDB::MongoClient docs
+
+  - Updated Changes file with changes since 0.701
 
   [Prerequisites]
 
@@ -74,124 +126,44 @@ v0.703.5  2014-05-23 06:26:46-04:00 America/New_York (TRIAL RELEASE)
 
   - Removed Devel::Size
 
-  [Known Issues]
+  [~ Internal changes ~]
 
-  - PERL-233 SSL certificate validation not yet implemented
+  - PERL-261 use setVersion field in isMaster for replica set discovery (David
+    Storch)
 
-v0.703.4  2014-04-07 20:12:27-04:00 America/New_York (TRIAL RELEASE)
-
-  [Enhancements]
-
-  - PERL-298 implement parallel_scan method for collections
-
-  [Bug Fixes]
-
-  - PERL-307 fix drop_dups option for ensure_index
-
-  - PERL-318 fix compiler warnings
-
-  - PERL-319 fix compilation failures on some platforms
-
-  - PERL-322 change return value and document low-level recv
-
-  - Add missing Devel::Size to prerequisites list
-
-  - Fix exception handling for internal run_command calls
-
-  - Fix gridfs test for unique keys
-
-  - Ensure internal run_command exceptions include correct error string
-
-  [Documentation]
-
-  - PERL-217 improved documentation of GridFS::get
-
-  - Changes file updated with changes since 0.701
-
-  [Internal]
-
-  - PERL-264 test for closing connection when MongoClient object leaves scope. (Ashley Willis)
-
-  - Make t/dbref.t use fresh test database
-
-v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
-
-  [Bug Fixes]
-
-  - PERL-315 require DateTime 0.78 or later
-
-  - Fixed index creation and drop on MongoDB 2.6
-
-  [Documentation]
-
-  - PERL-311 fix legacy docs authentication link
-
-  - Added abstract to MongoDB::BSON::Regexp documentation
-
-  [Internal]
-
-  - PERL-312 default GridFS chunk size changed from 1mb -> 255kb
-
-  - Bundled libbson 0.6.4 to avoid external library dependency
-
-0.703_2 (TRIAL RELEASE)
-
-  [Incompatible Changes]
-
-  - PERL-108 removed previously-deprecated AUTOLOAD functions
-
-  [Enhancements]
-
-  - PERL-221 added MongoDB::Regex class to represent stored regexes
-
-  - PERL-251 implemented support for aggregation command cursors
-
-  - PERL-252 added 'max_time_ms' method to cursors
-
-  - PERL-258 added support for '$out' aggregation pipeline operator
-
-  - PERL-262 read preference implementation
-
-  - PERL-278 added explain support for aggregation queries
-
-  - PERL-299 implemented new bulk write API
-
-  - Added nolock support to eval in MongoDB::Database (Ashley Willis)
-
-  [Bug Fixes]
-
-  - PERL-233 Fix find_and_modify error handling
-
-  - PERL-260 ensure_index no longer ignores weights, default_language, and
-    language_override options
-
-  - PERL-267 memory leak fixes (Casey Rojas)
-
-  - Fixed hint tests for MongoDB >= 2.5.4
-
-  - Fix failing t/gridfs.t
-
-  - Cache client constructor arguments for replica set connections
-
-  - Prevent GridFS MD5 calculation when 'safe' is not set (mapbuh)
-
-  [Documentation]
-
-  - PERL-287 updated "j" and "fsync" option docs for MongoDB 2.6
-
-  [Internal]
-
-  - PERL-259 implemented new write commands for MongoDB 2.6
-
-  - PERL-261 use setVersion field in isMaster for replica set discovery (David Storch)
-
-  - PERL-296 implemented new index creation command for MongoDB 2.6
+  - PERL-264 test for closing connection when MongoClient object leaves scope.
+    (Ashley Willis)
 
   - PERL-269 test libraries for replica set and sharded cluster testing
 
   - PERL-285 added wire protocol check
 
-  - Switched BSON implementation to libbson
+  - PERL-296 implemented new index creation command for MongoDB 2.6
+
+  - PERL-312 default GridFS chunk size changed from 1mb -> 255kb
+
+  - Switched BSON implementation to libbson and bundled patched libbson 0.6.4
+    to avoid external library dependency
+
+  [~ Known Issues ~]
+
+  - PERL-233 SSL certificate validation not yet implemented
+
+  - PERL-349 changes to the testing framework revealed a bug when
+    threads are used with 'find_master' on the client; the offending
+    test is marked TODO and the bug will be addressed in the next
+    stable release.
+
+  - Some platforms may not compile, including Windows and some Solaris
+    and OpenBSD systems; these issues will be addressed in a future release
+
+v0.703.5  2014-05-23 06:26:46-04:00 America/New_York (TRIAL RELEASE)
+
+v0.703.4  2014-04-07 20:12:27-04:00 America/New_York (TRIAL RELEASE)
+
+v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
+
+0.703_2 (TRIAL RELEASE)
 
 0.702.2
 
