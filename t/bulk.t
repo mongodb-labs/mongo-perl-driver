@@ -21,7 +21,6 @@ use Test::More 0.88;
 use Test::Fatal;
 use Test::Deep qw/!blessed/;
 use Scalar::Util qw/refaddr/;
-use Syntax::Keyword::Junction qw/any/;
 use Tie::IxHash;
 use boolean;
 
