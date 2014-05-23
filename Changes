@@ -2,6 +2,13 @@
 
 {{ $NEXT }}
 
+  [Known Issues]
+
+  - PERL-349 changes to the testing framework revealed a bug when
+    threads are used with 'find_master' on the client; the offending
+    test is marked TODO and the bug will be addressed in the next
+    stable release.
+
 v0.703.5  2014-05-23 06:26:46-04:00 America/New_York (TRIAL RELEASE)
 
   [Enhancements]
