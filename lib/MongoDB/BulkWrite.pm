@@ -160,11 +160,7 @@ be a hash reference, an array reference (with balance key/value pairs) or a
 L<Tie::IxHash> object.  If the document does not have an C<_id> field, one will
 be added.
 
-For convenience, the method returns the invocant, allowing chaining:
-
-    $bulk->insert( $doc1 )->insert( $doc2 );
-
-An exception will be thrown on error.
+The method has an empty return on success; an exception will be thrown on error.
 
 =cut
 
@@ -189,7 +185,7 @@ sub insert {
     }
 
     $self->_enqueue_write( [ insert => $doc ] );
-    return $self;
+    return;
 }
 
 =method execute

@@ -29,15 +29,13 @@ requires qw/_enqueue_write query/;
 sub remove {
     my ($self) = @_;
     $self->_enqueue_write( [ delete => { q => $self->query, limit => 0 } ] );
-
-    return $self;
+    return;
 }
 
 sub remove_one {
     my ($self) = @_;
     $self->_enqueue_write( [ delete => { q => $self->query, limit => 1 } ] );
-
-    return $self;
+    return;
 }
 
 1;

@@ -83,6 +83,9 @@ document.
 To instantiate a C<MongoDB::BulkWriteView>, use the L<find|MongoDB::BulkWrite/find>
 method from L<MongoDB::BulkWrite> or the L</upsert> method described below.
 
+Except for L</upsert>, all methods have an empty return on success; an
+exception will be thrown on error.
+
 =method remove
 
     $bulk->remove;

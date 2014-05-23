@@ -92,7 +92,7 @@ sub _update {
 
     $self->_enqueue_write( [ update => $update ] );
 
-    return $self;
+    return;
 }
 
 1;
