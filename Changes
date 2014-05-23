@@ -42,6 +42,9 @@
 
   - PERL-317 Clarified support for threads
 
+  - PERL-341 Added install documentation including use of non-standard C
+    library paths
+
   [Prerequisites]
 
   - Added namespace::clean
