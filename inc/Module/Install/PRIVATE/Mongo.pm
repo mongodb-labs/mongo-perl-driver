@@ -17,6 +17,14 @@ sub mongo {
     my $ccflags = $self->makemaker_args->{CCFLAGS} || $Config{ccflags};
     $ccflags = "" unless defined $ccflags;
 
+    # openbsd needs threaded perl *or* single-threaded but with libpthread, so
+    # we check specifically for that
+    if ($^O eq 'openbsd') {
+        my $has_libpthread = qx{/usr/bin/ldd $Config{perlpath}} =~ /libpthread/;
+        die "OS unsupported: OpenBSD support requires a perl linked with libpthread"
+            unless $has_libpthread;
+    }
+
     # check for 64-bit
     if ($Config{use64bitint}) {
         $ccflags .= " -DMONGO_USE_64_BIT_INT";
