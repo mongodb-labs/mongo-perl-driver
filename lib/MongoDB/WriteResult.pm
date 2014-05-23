@@ -156,7 +156,7 @@ sub last_errmsg {
     }
 }
 
-sub merge_result {
+sub _merge_result {
     my ( $self, $result ) = @_;
 
     # Add simple counters

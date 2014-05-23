@@ -280,7 +280,7 @@ sub _execute_write_command_batch {
             }
         }
 
-        $result->merge_result($r);
+        $result->_merge_result($r);
         $self->_assert_no_write_error($result) if $ordered;
     }
 
@@ -399,7 +399,7 @@ sub _execute_legacy_batch {
                 last if $ordered;
             }
             else {
-                $result->merge_result($r);
+                $result->_merge_result($r);
                 $self->_assert_no_write_error($result) if $ordered;
             }
             next;
@@ -414,7 +414,7 @@ sub _execute_legacy_batch {
                 last if $ordered;
             }
             else {
-                $result->merge_result( $self->_fake_doc_size_error($doc) );
+                $result->_merge_result( $self->_fake_doc_size_error($doc) );
                 $self->_assert_no_write_error($result) if $ordered;
             }
             next;
@@ -439,7 +439,7 @@ sub _execute_legacy_batch {
             );
         }
 
-        $result->merge_result($gle_result);
+        $result->_merge_result($gle_result);
         $self->_assert_no_write_error($result) if $ordered;
     }
 
