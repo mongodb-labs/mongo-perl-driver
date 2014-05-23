@@ -42,8 +42,9 @@ MongoDB::Cursor - A cursor/iterator for Mongo query results
 
 =head2 Multithreading
 
-Cloning instances of this class is disabled in Perl 5.8.7+, so forked threads
-will have to create their own database queries.
+Cursors are cloned in threads, but not reset.  Iterating the same cursor from
+multiple threads will give unpredictable results.  Only iterate from a single
+thread.
 
 =head1 SEE ALSO
 

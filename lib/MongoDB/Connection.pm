@@ -80,11 +80,6 @@ It can connect to a database server running anywhere, though:
 
 See the L</"host"> section for more options for connecting to MongoDB.
 
-=head2 MULTITHREADING
-
-Cloning instances of this class is disabled in Perl 5.8.7+, so forked threads
-will have to create their own connections to the database.
-
 =head1 SEE ALSO
 
 Core documentation on connections: L<http://dochub.mongodb.org/core/connections>.

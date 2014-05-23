@@ -939,8 +939,8 @@ See the L</"host"> section for more options for connecting to MongoDB.
 
 =head1 MULTITHREADING
 
-Cloning instances of this class is disabled in Perl 5.8.7+, so forked threads
-will have to create their own connections to the database.
+Existing connections are closed when a thread is created.  If C<auto_reconnect>
+is true, then connections will be re-established as needed.
 
 =head1 SEE ALSO
 

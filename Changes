@@ -38,6 +38,10 @@
 
   - Cleaned Moose class namespaces of imported methods
 
+  [Documentation]
+
+  - PERL-317 Clarified support for threads
+
   [Prerequisites]
 
   - Added namespace::clean
