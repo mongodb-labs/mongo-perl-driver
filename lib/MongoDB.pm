@@ -175,59 +175,17 @@ L<MongoDB::MongoClient> does the actual work and sends a message to the database
 
 =back
 
-=head1 FUNCTIONS
+=head1 FUNCTIONS (DEPRECATED)
 
-These functions should generally not be used.  They are very low level and have
-nice wrappers in L<MongoDB::Collection>.
+The following low-level functions are deprecated and will be removed in a
+future release.
 
-=head2 write_insert($ns, \@objs)
-
-    my ($insert, $ids) = MongoDB::write_insert("foo.bar", [{foo => 1}, {bar => -1}, {baz => 1}]);
-
-Creates an insert string to be used by C<MongoDB::MongoClient::send>.  The second
-argument is an array of hashes to insert.  To imitate the behavior of
-C<MongoDB::Collection::insert>, pass a single hash, for example:
-
-    my ($insert, $ids) = MongoDB::write_insert("foo.bar", [{foo => 1}]);
-
-Passing multiple hashes imitates the behavior of
-C<MongoDB::Collection::batch_insert>.
-
-This function returns the string and an array of the _id fields that the
-inserted hashes will contain.
-
-=head2 write_query($ns, $flags, $skip, $limit, $query, $fields?)
-
-    my ($query, $info) = MongoDB::write_query('foo.$cmd', 0, 0, -1, {getlasterror => 1});
-
-Creates a database query to be used by C<MongoDB::MongoClient::send>.  C<$flags>
-are query flags to use (see C<MongoDB::Cursor::Flags> for possible values).
-C<$skip> is the number of results to skip, C<$limit> is the number of results to
-return, C<$query> is the query hash, and C<$fields> is the optional fields to
-return.
-
-This returns the query string and a hash of information about the query that is
-used by C<MongoDB::MongoClient::recv> to get the database response to the query.
-
-=head2 write_update($ns, $criteria, $obj, $flags)
-
-    my ($update) = MongoDB::write_update("foo.bar", {age => {'$lt' => 20}}, {'$set' => {young => true}}, 0);
-
-Creates an update that can be used with C<MongoDB::MongoClient::send>.  C<$flags>
-can be 1 for upsert and/or 2 for updating multiple documents.
-
-=head2 write_remove($ns, $criteria, $flags)
-
-    my ($remove) = MongoDB::write_remove("foo.bar", {name => "joe"}, 0);
-
-Creates a remove that can be used with C<MongoDB::MongoClient::send>.  C<$flags>
-can be 1 for removing just one matching document.
-
-=head2 read_documents($buffer)
-
-  my @documents = MongoDB::read_documents($buffer);
-
-Decodes BSON documents from the given buffer.
+=for :list
+* write_insert
+* write_query
+* write_update
+* write_remove
+* read_documents
 
 =head1 SEE ALSO
 

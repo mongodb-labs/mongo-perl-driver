@@ -38,6 +38,10 @@
 
   - Cleaned Moose class namespaces of imported methods
 
+  [Deprecations]
+
+  - PERL-320 low-level protocol functions in MongoDB.pm are deprecated
+
   [Documentation]
 
   - PERL-317 Clarified support for threads
