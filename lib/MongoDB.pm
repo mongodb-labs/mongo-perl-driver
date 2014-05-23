@@ -22,7 +22,7 @@ package MongoDB;
 # ABSTRACT: A MongoDB Driver for Perl
 
 use version;
-our $VERSION = 'v0.703.5'; # TRIAL
+our $VERSION = 'v0.703.6'; # TRIAL
 
 # regexp_pattern was unavailable before 5.10, had to be exported to load the
 # function implementation on 5.10, and was automatically available in 5.10.1

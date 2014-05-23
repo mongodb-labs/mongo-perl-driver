@@ -19,7 +19,7 @@ package MongoDB::MongoClient;
 # ABSTRACT: A connection to a MongoDB server
 
 use version;
-our $VERSION = 'v0.703.5'; # TRIAL
+our $VERSION = 'v0.703.6'; # TRIAL
 
 use MongoDB;
 use MongoDB::Cursor;

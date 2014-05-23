@@ -19,7 +19,7 @@ package MongoDB::Connection;
 # ABSTRACT: A connection to a MongoDB server (DEPRECATED)
 
 use version;
-our $VERSION = 'v0.703.5'; # TRIAL
+our $VERSION = 'v0.703.6'; # TRIAL
 
 use MongoDB;
 use MongoDB::Cursor;

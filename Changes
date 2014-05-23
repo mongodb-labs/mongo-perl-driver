@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.703.5  2014-05-23 06:26:46-04:00 America/New_York (TRIAL RELEASE)
+
   [Enhancements]
 
   - PERL-299 Bulk API fully implemented (but not yet fully documented)
