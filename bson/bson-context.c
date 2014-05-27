@@ -426,10 +426,10 @@ bson_context_new (bson_context_flags_t flags) /* IN */
 
    if ((flags & BSON_CONTEXT_THREAD_SAFE)) {
 #if defined BSON_WITH_OID32_PT
-      bson_mutex_init (&context->_m32, NULL);
+      bson_mutex_init (&context->_m32);
 #endif
 #if defined BSON_WITH_OID64_PT
-      bson_mutex_init (&context->_m64, NULL);
+      bson_mutex_init (&context->_m64);
 #endif
       context->oid_get_seq32 = _bson_context_get_oid_seq32_threadsafe;
       context->oid_get_seq64 = _bson_context_get_oid_seq64_threadsafe;
