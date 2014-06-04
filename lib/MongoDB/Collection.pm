@@ -568,10 +568,10 @@ sub count {
 
     my $obj;
     try {
-        $obj = $self->_database->_try_run_command([
+        $obj = $self->_database->_try_run_command({
             count => $self->name,
             query => $query,
-        ]);
+        });
     }
     catch {
         # if there was an error, check if it was the "ns missing" one that means the
