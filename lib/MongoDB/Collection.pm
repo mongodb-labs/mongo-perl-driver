@@ -101,7 +101,7 @@ sub _select_cursor_client {
 
 sub _cmd_primary_only {
     my ($ns, $query) = @_;
-
+    
     # these commands allow read preferences
     my %readpref_commands = (
         'group' => 1,
@@ -118,8 +118,15 @@ sub _cmd_primary_only {
     );
 
     if ($ns =~ /\$cmd/) {
-        foreach (keys %{$query}) {
-            return 0 if $readpref_commands{lc($_)};
+        if (ref($query) eq "ARRAY") {
+            foreach (@{$query}) {
+                return 0 if $readpref_commands{lc($_)};
+            }
+        }
+        else {
+            foreach (keys %{$query}) {
+                return 0 if $readpref_commands{lc($_)};
+            }
         }
         return 1;
     }
@@ -568,10 +575,10 @@ sub count {
 
     my $obj;
     try {
-        $obj = $self->_database->_try_run_command({
+        $obj = $self->_database->_try_run_command([
             count => $self->name,
             query => $query,
-        });
+        ]);
     }
     catch {
         # if there was an error, check if it was the "ns missing" one that means the
