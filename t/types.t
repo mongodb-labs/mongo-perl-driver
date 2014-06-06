@@ -172,7 +172,8 @@ is($id."", $id->value);
     $coll->save({x => $x});
     my $result = $coll->find_one;
 
-    is($result->{'x'}, 17179869184);
+    is($result->{'x'}, 17179869184)
+        or diag explain $result;
 
     $coll->remove;
 
@@ -180,13 +181,15 @@ is($id."", $id->value);
     $coll->save({x => $x});
     $result = $coll->find_one;
 
-    is($result->{'x'}, -17179869184);
+    is($result->{'x'}, -17179869184)
+        or diag explain $result;
 
     $coll->remove;
 
     $coll->save({x => 2712631400});
     $result = $coll->find_one;
-    is($result->{'x'}, 2712631400);
+    is($result->{'x'}, 2712631400)
+        or diag explain $result;
 
     eval {
         my $ok = $coll->save({x => 9834590149023841902384137418571984503});
@@ -307,8 +310,8 @@ SKIP: {
 
     my $x = 1.0;
     my ($double_type, $int_type) = ({x => {'$type' => 1}},
-				    {'$or' => [{x => {'$type' => 16}},
-					       {x => {'$type' => 18}}]});
+                                    {'$or' => [{x => {'$type' => 16}},
+                                               {x => {'$type' => 18}}]});
 
     MongoDB::force_double($x);
     $coll->insert({x => $x});

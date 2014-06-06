@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-369 fix segfault on pure 32-bit perls
+
 v0.704.0.0 2014-05-27 13:54:01-04:00 America/New_York
 
   [!!! Incompatible Changes !!!]

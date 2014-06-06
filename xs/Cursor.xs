@@ -217,11 +217,20 @@ _init (self, ...)
         mongo_cursor *cursor;
     CODE:
         Newxz(cursor, 1, mongo_cursor);
+        SV *sv = ST(1);
 
         /* initialize a cursor ID manually if we are getting constructed
            from an aggregation result */
         if ( items > 1 ) { 
-          cursor->cursor_id = MONGO_64( SvIV( ST(1) ) );
+          if ( sv_isobject(sv) && sv_derived_from(sv, "Math::BigInt") ) {
+            int64_t id;
+            SV *cursor_str = perl_mongo_call_method(sv, "bstr", 0, 0);
+            sscanf(SvPV_nolen(cursor_str), "%" PRId64, &id);
+            cursor->cursor_id = id;
+          }
+          else {
+            cursor->cursor_id = MONGO_64( SvIV( sv ) );
+          }
 
           /* if we are manually setting the cursor ID then we need to 
              set cursor->num to the size of the first batch */

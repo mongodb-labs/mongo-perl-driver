@@ -306,6 +306,40 @@ perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *
   return ret;
 }
 
+SV *
+perl_mongo_construct_instance_single_arg (const char *klass, SV *arg)
+{
+  dSP;
+  SV *ret;
+  I32 count;
+
+  ENTER;
+  SAVETMPS;
+
+  PUSHMARK (SP);
+  mXPUSHp (klass, strlen (klass));
+  XPUSHs(arg);
+  PUTBACK;
+
+  count = call_method ("new", G_SCALAR);
+
+  SPAGAIN;
+
+  if (count != 1) {
+    croak ("constructor didn't return an instance");
+  }
+
+  ret = POPs;
+  SvREFCNT_inc (ret);
+
+  PUTBACK;
+  FREETMPS;
+  LEAVE;
+
+  return ret;
+}
+
+
 static SV *bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 
 static SV *
@@ -437,7 +471,11 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
 #if defined(MONGO_USE_64_BIT_INT)
     value = newSViv(bson_iter_int64(iter));
 #else
-    value = newSVnv((double)MONGO_64p(bson_iter_int64(iter)));
+    char buf[22];
+    sprintf(buf,"%" PRIi64,bson_iter_int64(iter));
+    load_module(0,newSVpvs("Math::BigInt"),NULL,NULL);
+    SV *as_str = sv_2mortal(newSVpv(buf,0));
+    value = perl_mongo_construct_instance_single_arg("Math::BigInt", as_str);
 #endif
     break;
   }
