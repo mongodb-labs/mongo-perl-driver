@@ -678,6 +678,7 @@ sub repin {
         $secondaries{"mongodb://$_"} = $value;
     }
     my $primary = $secondaries{$self->_master->host};
+    confess "internal error in host list" unless $primary;
     delete $secondaries{$primary->host};
 
     my $mode = $self->_readpref_mode;

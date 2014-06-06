@@ -118,6 +118,7 @@ has _ns => (
 
 has _query => (
     is => 'rw',
+    isa => 'Tie::IxHash',
     required => 1,
 );
 
@@ -216,14 +217,6 @@ has slave_okay => (
     default => 0,
 );
 
-
-# stupid hack for inconsistent database handling of queries
-has _grrrr => (
-    is      => 'rw',
-    isa     => 'Bool',
-    default => 0,
-);
-
 has _request_id => (
     is      => 'rw',
     isa     => 'Int',
@@ -257,15 +250,12 @@ has _is_parallel => (
 =cut
 
 
-sub _ensure_special {
+sub _ensure_nested {
     my ($self) = @_;
-
-    if ($self->_grrrr) {
-        return;
+    if ( ! $self->_query->EXISTS('$query') ) {
+        $self->_query( Tie::IxHash->new('$query' => $self->_query) );
     }
-
-    $self->_grrrr(1);
-    $self->_query({'query' => $self->_query})
+    return;
 }
 
 # this does the query if it hasn't been done yet
@@ -358,8 +348,8 @@ sub sort {
     confess 'not a hash reference'
 	    unless ref $order eq 'HASH' || ref $order eq 'Tie::IxHash';
 
-    $self->_ensure_special;
-    $self->_query->{'orderby'} = $order;
+    $self->_ensure_nested;
+    $self->_query->STORE('orderby', $order);
     return $self;
 }
 
@@ -398,8 +388,8 @@ sub max_time_ms {
     confess "can not set max_time_ms after querying"
       if $self->started_iterating;
 
-    $self->_ensure_special;
-    $self->_query->{'$maxTimeMS'} = $num;
+    $self->_ensure_nested;
+    $self->_query->STORE( '$maxTimeMS', $num );
     return $self;
 
 }
@@ -472,8 +462,8 @@ sub snapshot {
     confess "cannot set snapshot after querying"
 	if $self->started_iterating;
 
-    $self->_ensure_special;
-    $self->_query->{'$snapshot'} = 1;
+    $self->_ensure_nested;
+    $self->_query->STORE('$snapshot', 1);
     return $self;
 }
 
@@ -492,8 +482,8 @@ sub hint {
     confess 'not a hash reference'
     	unless ref $index eq 'HASH' || ref $index eq 'Tie::IxHash';
 
-    $self->_ensure_special;
-    $self->_query->{'$hint'} = $index;
+    $self->_ensure_nested;
+    $self->_query->STORE('$hint', $index);
     return $self;
 }
 
@@ -522,13 +512,13 @@ sub explain {
         $self->_limit($self->_limit * -1);
     }
 
-    $self->_ensure_special;
-    $self->_query->{'$explain'} = boolean::true;
+    $self->_ensure_nested;
+    $self->_query->STORE('$explain', boolean::true);
 
     my $retval = $self->reset->next;
     $self->reset->limit($temp);
 
-    undef $self->_query->{'$explain'};
+    $self->_query->DELETE('$explain');
 
     return $retval;
 }
@@ -553,8 +543,8 @@ sub count {
     my ($db, $coll) = $self->_ns =~ m/^([^\.]+)\.(.*)/;
     my $cmd = new Tie::IxHash(count => $coll);
 
-    if ($self->_grrrr) {
-        $cmd->Push(query => $self->_query->{'query'});
+    if ($self->_query->EXISTS('$query')) {
+        $cmd->Push(query => $self->_query->FETCH('$query'));
     }
     else {
         $cmd->Push(query => $self->_query);
@@ -575,8 +565,8 @@ sub count {
 
 sub _add_readpref {
     my ($self, $prefdoc) = @_;
-    $self->_ensure_special;
-    $self->_query->{'$readPreference'} = $prefdoc;
+    $self->_ensure_nested;
+    $self->_query->STORE('$readPreference', $prefdoc);
 }
 
 
