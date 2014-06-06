@@ -25,6 +25,7 @@ our $VERSION = 'v0.704.0.1';
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
+use Scalar::Util qw/blessed/;
 use Try::Tiny;
 use Moose;
 use namespace::clean -except => 'meta';
@@ -118,7 +119,7 @@ sub _cmd_primary_only {
     );
 
     if ($ns =~ /\$cmd/) {
-        foreach (keys %{$query}) {
+        foreach ($query->Keys) {
             return 0 if $readpref_commands{lc($_)};
         }
         return 1;
@@ -134,29 +135,48 @@ sub find {
     # old school options - these should be set with MongoDB::Cursor methods
     my ($limit, $skip, $sort_by) = @{ $attrs || {} }{qw/limit skip sort_by/};
 
+    if ( ! $query ) {
+        $query = Tie::IxHash->new();
+    }
+    elsif ( ref $query eq 'ARRAY' ) {
+        $query = Tie::IxHash->new( @$query );
+    }
+    elsif ( ref $query eq 'HASH' ) {
+        $query = Tie::IxHash->new( %$query );
+    }
+    elsif ( (blessed($query) || '') ne 'Tie::IxHash' ) {
+        confess "argument to find must be a hashref, arrayref or Tie::IxHash";
+    }
+
+
+    # if the first key is 'query' we must nest under the '$query' operator
+    my @keys = $query->Keys;
+    if ( @keys && $keys[0] eq 'query' ) {
+        $query = Tie::IxHash->new( '$query' => $query );
+    }
+
     $limit   ||= 0;
     $skip    ||= 0;
 
     my $conn = $self->_database->_client;
-    my $q = $query || {};
     my $ns = $self->full_name;
 
     my $slave_ok = ($conn->_readpref_mode == MongoDB::MongoClient->PRIMARY) ||
-                   _cmd_primary_only($ns, $q)
+                   _cmd_primary_only($ns, $query)
                    ? 0 : 1;
 
     my $cursor = MongoDB::Cursor->new(
         _master    => $conn,
-        _client    => _select_cursor_client($conn, $ns, $q),
+        _client    => _select_cursor_client($conn, $ns, $query),
         _ns        => $ns,
-        _query     => $q,
+        _query     => $query,
         _limit     => $limit,
         _skip      => $skip,
         slave_okay => $slave_ok
     );
 
     # add readpref info if connected to mongos
-    if ($conn->_readpref_pinned && $conn->_is_mongos && !_cmd_primary_only($ns, $q)) {
+    if ($conn->_readpref_pinned && $conn->_is_mongos && !_cmd_primary_only($ns, $query)) {
         my $modeName = MongoDB::MongoClient->_READPREF_MODENAMES->[$conn->_readpref_mode];
         $cursor->_add_readpref({mode => $modeName, tags => $conn->_readpref_tagsets});
     }
@@ -330,7 +350,7 @@ sub aggregate {
             _ns                    => $result->{cursor}{ns},
             _agg_first_batch       => $result->{cursor}{firstBatch}, 
             _agg_batch_size        => scalar @{ $result->{cursor}{firstBatch} },  # for has_next
-            _query                 => \@command,
+            _query                 => Tie::IxHash->new(@command),
         );
 
         $cursor->_init( $result->{cursor}{id} );
@@ -372,7 +392,7 @@ sub parallel_scan {
             _client                => $db->_client,
             _master                => $db->_client,   # fake this because we're already iterating
             _ns                    => $c->{ns},
-            _query                 => \@command,
+            _query                 => Tie::IxHash->new(@command),
             _is_parallel           => 1,
         );
 
@@ -533,7 +553,7 @@ sub _make_safe_cursor {
     my $cursor = MongoDB::Cursor->new(_ns => $info->{ns},
                                       _master => $conn,
                                       _client => $conn,
-                                      _query => {});
+                                      _query => Tie::IxHash->new());
     $cursor->_init;
     $cursor->_request_id($info->{'request_id'});
 

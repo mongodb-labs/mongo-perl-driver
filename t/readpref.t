@@ -22,6 +22,7 @@ use Test::Exception;
 use Test::Warn;
 
 use MongoDB;
+use Tie::IxHash;
 
 use lib "t/lib";
 use MongoDBTest '$testdb', '$conn', '$server_type';
@@ -139,11 +140,11 @@ subtest "replica set" => sub {
         my $cmd = $admin->get_collection('$cmd');
 
         my $cmd_conn = MongoDB::Collection::_select_cursor_client($conn, 'admin.$cmd',
-            {renameCollection => 'foo.bar', to => 'foo.foofoo'});
+            Tie::IxHash->new(renameCollection => 'foo.bar', to => 'foo.foofoo'));
         is($cmd_conn, $conn->_master, 'renameCollection runs on primary');
 
         $cmd_conn = MongoDB::Collection::_select_cursor_client($conn, 'admin.$cmd',
-            {collStats => 'test_database.test_collection', scale => 1024});
+            Tie::IxHash->new(collStats => 'test_database.test_collection', scale => 1024));
         is($cmd_conn, $conn->_readpref_pinned, 'collStats runs on secondary');
 
         # a command that ignores readpref
@@ -151,7 +152,7 @@ subtest "replica set" => sub {
         is($cursor->_master, $conn, 'cursor->_master is ok');
         is($cursor->_client, $conn->_master, 'direct command to _master');
         ok(!$cursor->slave_okay, 'slave_okay false');
-        ok(!$cursor->_query->{'$readPreference'}, 'no $readPreference field');
+        ok(!$cursor->_query->FETCH('$readPreference'), 'no $readPreference field');
         my $cmd_result;
         lives_ok {
             $cmd_result = $admin->run_command({resetError => 1});
@@ -164,7 +165,7 @@ subtest "replica set" => sub {
         is($cursor->_master, $conn, 'cursor->_master is ok');
         is($cursor->_client, $conn->_readpref_pinned, 'query runs on pinned node');
         ok($cursor->slave_okay, 'slave_okay true');
-        ok(!$cursor->_query->{'$readPreference'}, 'no $readPreference field');
+        ok(!$cursor->_query->FETCH('$readPreference'), 'no $readPreference field');
         lives_ok {
             $cmd_result = $admin->run_command([dbStats => 1, scale => 1024]);
         } 'command lives';
@@ -188,7 +189,7 @@ subtest "sharded cluster" => sub {
     }
 
     my $cursor = $collection->find();
-    is($cursor->_query->{'$readPreference'}->{'mode'}, 'primaryPreferred', 'read pref mode added to query');
+    is($cursor->_query->FETCH('$readPreference')->{'mode'}, 'primaryPreferred', 'read pref mode added to query');
 ##    is($cursor->_query->{'$readPreference'}->{'tags'}->[0]->{'foo'},
 ##       'bar', 'read pref tagsets added to query');
 
