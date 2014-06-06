@@ -26,13 +26,11 @@ use MongoDB;
 use Test::More;
 use version;
 
-our @EXPORT_OK = ( '$conn', '$testdb', '$using_2_6' );
+our @EXPORT_OK = ( '$conn', '$testdb', '$using_2_6', '$server_type' );
 our $conn;
 our $testdb;
 our $using_2_6;
-
-use MongoDBTest::ReplicaSet;
-use MongoDBTest::ShardedCluster;
+our $server_type;
 
 # set up connection to a test database if we can
 BEGIN { 
@@ -41,7 +39,8 @@ BEGIN {
         $conn = MongoDB::MongoClient->new(
             host => $host, ssl => $ENV{MONGO_SSL}, find_master => 1
         );
-        $testdb = $conn->get_database('testdb' . time());
+        $testdb = $conn->get_database('testdb' . time()) or
+            die "Can't get database";
     };
 
     if ( $@ ) { 
@@ -54,6 +53,21 @@ BEGIN {
 my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
 my ($version_str) = $build->{version} =~ m{^([0-9.]+)};
 $using_2_6 = version->parse("v$version_str") >= v2.5.5;
+
+# check database type
+my $ismaster = $conn->get_database('admin')->_try_run_command({ismaster => 1});
+if (exists $ismaster->{msg} && $ismaster->{msg} eq 'isdbgrid') {
+    $server_type = 'Mongos';
+}
+elsif ( $ismaster->{ismaster} && exists $ismaster->{setName} ) {
+    $server_type = 'RSPrimary'
+}
+elsif ( ! exists $ismaster->{setName} && ! $ismaster->{isreplicaset} ) {
+    $server_type = 'Standalone'
+}
+else {
+    $server_type = 'Unknown';
+}
 
 # clean up any detritus from failed tests
 END { 
