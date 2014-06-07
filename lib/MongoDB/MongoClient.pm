@@ -531,7 +531,7 @@ sub get_master {
                     auto_connect => 0,
                 };
 
-                $self->_servers->{$_} = MongoDB::MongoClient->new($args);
+                $self->_servers->{$_} = $_ eq $master->{me} ? $conn : MongoDB::MongoClient->new($args);
             }
         }
 
