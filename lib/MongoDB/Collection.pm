@@ -795,6 +795,28 @@ If the update fails and safe is set, the update will croak.
 
 See also core documentation on update: L<http://docs.mongodb.org/manual/core/update/>.
 
+=method initialize_ordered_bulk_op
+
+    my $bulk = $collection->initialize_ordered_bulk_op;
+    $bulk->insert( $doc1 );
+    $bulk->insert( $doc2 );
+    ...
+    my $result = $bulk->execute;
+
+Returns a L<MongoDB::BulkWrite> object to group write operations into fewer network
+round-trips.  This method creates an B<ordered> operation, where operations halt after
+the first error. See L<MongoDB::BulkWrite> for more details.
+
+The method C<ordered_bulk> may be used as an alias for C<initialize_ordered_bulk_op>.
+
+=method initialize_unordered_bulk_op
+
+This method works just like L</initialize_ordered_bulk_op> except that the order that
+operations are sent to the database is not guaranteed and errors do not halt processing.
+See L<MongoDB::BulkWrite> for more details.
+
+The method C<unordered_bulk> may be used as an alias for C<initialize_unordered_bulk_op>.
+
 =method find_and_modify
 
     my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
