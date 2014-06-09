@@ -581,9 +581,23 @@ sub _get_writeresult_from_gle {
           : defined $gle->{n} ? $gle->{n}
           :                     0;
 
-        # index is always 0 because ops are executed individually; later
-        # merging of results will fix up the index values as usual
-        push @upserted, { index => 0, _id => $gle->{upserted} } if $gle->{upserted};
+        # For upserts, index is always 0 because ops are executed individually;
+        # later merging of results will fix up the index values as usual.  For
+        # 2.4 and earlier, 'upserted' has _id only if the _id is an OID.  Otherwise,
+        # we have to pick it out of the update document or query document when we
+        # see updateExisting is false but the number of docs affected is 1
+
+        if ( exists $gle->{upserted} ) {
+            push @upserted, { index => 0, _id => $gle->{upserted} };
+        }
+        elsif (exists $gle->{updatedExisting}
+            && !$gle->{updatedExisting}
+            && $gle->{n} == 1 )
+        {
+            my $id = exists $doc->{u}{_id} ? $doc->{u}{_id} : $doc->{q}{_id};
+            push @upserted, { index => 0, _id => $id };
+        }
+
     }
 
     my $result = MongoDB::WriteResult->_parse(

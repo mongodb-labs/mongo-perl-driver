@@ -6,6 +6,9 @@
 
   - PERL-369 fix segfault on pure 32-bit perls
 
+  - PERL-370 fixed bulk update results for upserts with non OID _id
+    on servers prior to 2.6
+
   [Documentation]
 
   - PERL-366 documented bulk write initializers in Collection docs

@@ -111,9 +111,9 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         is_deeply(
             $result,
             MongoDB::WriteResult->new(
-                nInserted => 1,
-                nModified => ( $using_2_6 ? 0 : undef ),
-                op_count  => 1,
+                nInserted   => 1,
+                nModified   => ( $using_2_6 ? 0 : undef ),
+                op_count    => 1,
                 batch_count => 1,
             ),
             "result object correct"
@@ -133,9 +133,9 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         is_deeply(
             $result,
             MongoDB::WriteResult->new(
-                nInserted => 1,
-                nModified => ( $using_2_6 ? 0 : undef ),
-                op_count  => 1,
+                nInserted   => 1,
+                nModified   => ( $using_2_6 ? 0 : undef ),
+                op_count    => 1,
                 batch_count => 1,
             ),
             "result object correct"
@@ -1245,6 +1245,40 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my $expect = $method eq 'initialize_ordered_bulk_op' ? 1 : 2;
         is( $coll->count, $expect, "document count ($expect)" );
+    };
+}
+
+# DRIVERS-151 Handle edge case for pre-2.6 when upserted _id not returned
+note("UPSERT _ID NOT RETURNED");
+for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
+    subtest "$method: upsert with non OID _ids" => sub {
+        $coll->drop;
+        my $bulk = $coll->$method;
+
+        $bulk->find( { _id => 0 } )->upsert->update_one( { '$set' => { a => 0 } } );
+        $bulk->find( { a => 1 } )->upsert->replace_one( { _id => 1 } );
+
+        # 2.6 doesn't allow changing _id, but previously that's OK, so we try it both ways
+        # to ensure we use the right _id from the replace doc on older servers
+        $bulk->find( { _id => $using_2_6 ? 2 : 3 } )->upsert->replace_one( { _id => 2 } );
+
+        my ( $result, $err );
+        $err = exception { $result = $bulk->execute };
+        is( $err, undef, "execute doesn't throw error" )
+          or diag explain $err;
+
+        cmp_deeply(
+            $result,
+            MongoDB::WriteResult->new(
+                nUpserted => 3,
+                nModified => ( $using_2_6 ? 0 : undef ),
+                upserted =>
+                  [ { index => 0, _id => 0 }, { index => 1, _id => 1 }, { index => 2, _id => 2 }, ],
+                op_count    => 3,
+                batch_count => $using_2_6 ? 1 : 3,
+            ),
+            "result object correct"
+        ) or diag explain $result;
     };
 }
 
