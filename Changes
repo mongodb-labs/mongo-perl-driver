@@ -4,7 +4,12 @@
 
   [Bug fixes]
 
-  - PERL-369 fix segfault on pure 32-bit perls
+  - PERL-368 changed all query docs to be coerced to Tie::IxHash; this ensures
+    that command queries are properly ordered and fixes a crashing bug when
+    using command helpers in concert with read preference
+
+  - PERL-369 fixed segfaults deserializing 64-bit integers from BSON on
+    pure 32-bit perls
 
   - PERL-370 fixed bulk update results for upserts with non OID _id
     on servers prior to 2.6
@@ -12,6 +17,11 @@
   [Documentation]
 
   - PERL-366 documented bulk write initializers in Collection docs
+
+  [Testing]
+
+  - PERL-356 enabled additional tests if the test database is a replica set
+    or sharded cluster
 
 v0.704.0.0 2014-05-27 13:54:01-04:00 America/New_York
 
