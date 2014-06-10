@@ -40,7 +40,9 @@ BEGIN {
             host => $host, ssl => $ENV{MONGO_SSL}, find_master => 1
         );
         $testdb = $conn->get_database('testdb' . time()) or
-            die "Can't get database";
+            die "Can't get database\n";
+        eval { $conn->get_database("admin")->_try_run_command({ serverStatus => 1 }) }
+            or die "Database has auth enabled\n";
     };
 
     if ( $@ ) { 

@@ -20,6 +20,9 @@
 
   [Testing]
 
+  - PERL-351 fixed test failures if the local database has auth enabled;
+    tests will skip instead of fail
+
   - PERL-356 enabled additional tests if the test database is a replica set
     or sharded cluster
 
