@@ -26,7 +26,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb';
+use MongoDBTest '$conn', '$testdb', '$using_2_6';
 
 # get_database
 {
@@ -79,9 +79,11 @@ SKIP: {
     is($result->{err}, undef);
 
     $result = $testdb->last_error;
-    is($result->{ok}, 1, 'last_error1');
-    is($result->{n}, 0, 'last_error2');
-    is($result->{err}, undef, 'last_error3');
+    is($result->{ok}, 1, 'last_error: ok');
+    is($result->{err}, undef, 'last_error: err');
+
+    # mongos never returns 'n'
+    is($result->{n}, $conn->_is_mongos ? undef : 0, 'last_error: n');
 }
 
 # reseterror 
