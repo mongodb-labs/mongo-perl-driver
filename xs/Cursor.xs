@@ -299,7 +299,11 @@ next (self)
             code = hv_fetchs((HV*)SvRV(RETVAL), "code", 0);
             
             if (code && SvIOK(*code) &&
-                (SvIV(*code) == 10107 || SvIV(*code) == 13435 || SvIV(*code) == 13436)) {
+                (  SvIV(*code) == NOT_MASTER ||
+                   SvIV(*code) == NOT_MASTER_NO_SLAVE_OK ||
+                   SvIV(*code) == NOT_MASTER_OR_SECONDARY
+                )
+            ) {
               SV *conn = perl_mongo_call_method (self, "_client", 0, 0);
               set_disconnected(conn);
             }
