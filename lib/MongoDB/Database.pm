@@ -99,7 +99,7 @@ sub run_command {
     my ($self, $command) = @_;
     my $obj = $self->get_collection('$cmd')->find_one($command);
     return $obj if $obj->{ok};
-    $obj->{'errmsg'};
+    return exists $obj->{errmsg} ? $obj->{errmsg} : $obj->{'$err'};
 }
 
 # same as run_command but throws an exception on error; private

@@ -265,6 +265,7 @@ next (self)
         SV *agg_batch_size_sv;
         AV *agg_batch;
         SV *agg_doc;
+        SV *ns;
     CODE:
         cursor = get_cursor(self);
         if (has_next(self, cursor)) {
@@ -273,11 +274,13 @@ next (self)
           inflate_regexps_sv  = perl_mongo_call_reader( self, "_inflate_regexps" );
           client_sv           = perl_mongo_call_reader( self, "_client" );
           agg_batch_size_sv   = perl_mongo_call_reader( self, "_agg_batch_size" );
+          ns                  = perl_mongo_call_reader( self, "_ns" );
 
           char *dt_type       = SvOK( dt_type_sv ) ? SvPV_nolen( dt_type_sv ) : NULL;
           int inflate_dbrefs  = SvIV( inflate_dbrefs_sv );
           int inflate_regexps = SvIV( inflate_regexps_sv );
           int agg_batch_size  = SvIV( agg_batch_size_sv );
+          char *fullname     = SvPV_nolen(ns);
 
           if ( agg_batch_size > 0 ) { 
             agg_batch = (AV *)SvRV( perl_mongo_call_reader( self, "_agg_first_batch" ) );
@@ -292,7 +295,10 @@ next (self)
 
           cursor->at++;
 
-          if (cursor->num == 1 && hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))) {
+          /* $cmd queries must return the full result document without throwing an error here */
+          if ( strstr(fullname + strlen(fullname) - 4, "$cmd") == NULL
+            && cursor->num == 1 && hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))
+          ) {
             SV **err = 0, **code = 0;
 
             err = hv_fetchs((HV*)SvRV(RETVAL), "$err", 0);
@@ -313,6 +319,7 @@ next (self)
             SvREFCNT_dec(inflate_regexps_sv);
             SvREFCNT_dec(client_sv);
             SvREFCNT_dec(agg_batch_size_sv);
+            SvREFCNT_dec(ns);
             croak("query error: %s", SvPV_nolen(*err));
           }
   
@@ -321,6 +328,7 @@ next (self)
           SvREFCNT_dec(inflate_regexps_sv);
           SvREFCNT_dec(client_sv);
           SvREFCNT_dec(agg_batch_size_sv);
+          SvREFCNT_dec(ns);
         } else {
           RETVAL = newSV(0);
         }

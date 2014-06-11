@@ -513,6 +513,8 @@ sub ensure_index {
 
     return $res if $res->{ok};    
 
+    # if not ok, no code or code 59 or code 13390 mean "command not available",
+    # per DRIVERS-103 and DRIVERS-132
     if ( ( not $res->{ok} )  && 
          ( not exists $res->{code} or $res->{code} == 59 or $res->{code} == 13390) ) { 
         $obj->Unshift( ns => $tmp_ns );     # restore ns to spec
