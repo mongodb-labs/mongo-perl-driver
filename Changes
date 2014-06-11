@@ -17,6 +17,8 @@
   - PERL-370 fixed bulk update results for upserts with non OID _id
     on servers prior to 2.6
 
+  - Fixed stale detection of write command support for bulk operations
+
   [Documentation]
 
   - PERL-366 documented bulk write initializers in Collection docs
@@ -30,6 +32,8 @@
     or sharded cluster
 
   - Fixed various tests to run against a sharded cluster
+
+  - Moved unused orchestration tests out of the main test suite
 
 v0.704.0.0 2014-05-27 13:54:01-04:00 America/New_York
 
