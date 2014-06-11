@@ -881,6 +881,8 @@ SKIP: {
 SKIP: {
     skip( "Parallel scan not supported before MongoDB 2.6", 7 )
         unless $using_2_6;
+    skip( "Parallel scan not supported on mongos", 7 )
+        if $conn->_is_mongos;
 
     my $num_docs = 200;
 
