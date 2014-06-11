@@ -642,15 +642,17 @@ SKIP: {
 }
 
 # text indices
-SKIP: {
+subtest 'text indices' => sub {
     my $res;
     my $admin = $conn->get_database('admin');
     my $buildinfo = $admin->run_command({buildinfo => 1});
-    skip "text indices won't work with db version $buildinfo->{version}", 8 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.\d+\.\d+)|(2\.[0123]\d*\.\d+)/;
+    plan skip_all => "text indices won't work with db version $buildinfo->{version}"
+        if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.\d+\.\d+)|(2\.[0123]\d*\.\d+)/;
 
     my $cmd = Tie::IxHash->new('getParameter' => 1, 'textSearchEnabled' => 1);
     $ok = $admin->run_command($cmd);
-    skip "text search not enabled", 8 if !$ok->{'textSearchEnabled'};
+    plan skip_all => "text search not enabled"
+        if !$ok->{'textSearchEnabled'};
 
     my $coll = $testdb->get_collection('test_text');
     $coll->insert({language => 'english', w1 => 'hello', w2 => 'world'}) foreach (1..10);
@@ -679,16 +681,16 @@ SKIP: {
     $cmd = Tie::IxHash->new('text' => 'test_text', 'search' => 'world');
     my $search = $testdb->run_command($cmd);
 
-    if ( $using_2_6 ) { 
-        # 2.6 changed the response format for text search results, so skip these.
-        ok 1; ok 1;
-    } else { 
+    # 2.6 changed the response format for text search results, and deprecated
+    # the 'text' command. On 2.4, mongos doesn't report the default language
+    # and provides stats per shard instead of in total.
+    if ( ! ( $using_2_6 || $conn->_is_mongos) ) {
         is($search->{'language'}, 'spanish', 'text search uses preferred language');
         is($search->{'stats'}->{'nfound'}, 10, 'correct number of results found');
     }
 
     $coll->drop;
-}
+};
 
 # utf8 test, croak when null key is inserted
 {
