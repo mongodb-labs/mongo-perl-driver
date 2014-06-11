@@ -34,6 +34,7 @@ my $coll = $testdb->get_collection("test_collection");
 
 my $ismaster      = $testdb->run_command( { ismaster     => 1 } );
 my $server_status = $testdb->run_command( { serverStatus => 1 } );
+my $is_standalone = !( $conn->_is_mongos || exists $server_status->{repl} );
 
 subtest "constructors" => sub {
     my @constructors = qw(
@@ -1019,8 +1020,8 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 note("NO JOURNAL");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "$method: no journal" => sub {
-        plan skip_all => 'needs a server without journaling'
-          if exists $server_status->{dur};
+        plan skip_all => 'needs a standalone server without journaling'
+          unless $is_standalone && !exists $server_status->{dur};
 
         $coll->drop;
         my $bulk = $coll->$method;
@@ -1035,7 +1036,7 @@ note("QA-477 W>1 AGAINST STANDALONE");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "$method: w > 1 against standalone (explicit)" => sub {
         plan skip_all => 'needs a standalone server'
-          if $server_status->{repl};
+          unless $is_standalone;
 
         $coll->drop;
         my $bulk = $coll->$method;
@@ -1048,7 +1049,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "$method: w > 1 against standalone (implicit)" => sub {
         plan skip_all => 'needs a standalone server'
-          if $server_status->{repl};
+          unless $is_standalone;
 
         $coll->drop;
         $conn->w(2);
