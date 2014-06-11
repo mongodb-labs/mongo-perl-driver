@@ -60,7 +60,7 @@ use MongoDBTest '$conn', '$testdb', '$using_2_6';
 # non-existent command
 {
     my $result = $testdb->run_command({ foo => 'bar' });
-    ok ($result =~ /no such cmd/, "run non-existent command: $result");
+    like ($result, qr/no such cmd|unrecognized command/, "error from non-existent command");
 }
 
 # getlasterror
