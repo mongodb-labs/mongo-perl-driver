@@ -4,6 +4,9 @@
 
   [Bug fixes]
 
+  - PERL-336 fixed unknown command exception with index creation on 2.2 and
+    older servers; we now correctly fall back to legacy index creation
+
   - PERL-368 changed all query docs to be coerced to Tie::IxHash; this ensures
     that command queries are properly ordered and fixes a crashing bug when
     using command helpers in concert with read preference
@@ -25,6 +28,8 @@
 
   - PERL-356 enabled additional tests if the test database is a replica set
     or sharded cluster
+
+  - Fixed various tests to run against a sharded cluster
 
 v0.704.0.0 2014-05-27 13:54:01-04:00 America/New_York
 
