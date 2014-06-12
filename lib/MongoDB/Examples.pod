@@ -44,7 +44,7 @@ retrieved by using C<get_database>. See L<MongoDB::MongoClient> for more.
 
 =item C<SELECT a,b FROM users>
 
-    $db->get_collection( 'users')->find( { }, { a => 1, b => 1 } );
+    $db->get_collection( 'users')->find( { } )->fields( { a => 1, b => 1 });
 
 =item C<SELECT * FROM users>
 
@@ -56,7 +56,7 @@ retrieved by using C<get_database>. See L<MongoDB::MongoClient> for more.
 
 =item C<SELECT a,b FROM users WHERE age=33>
 
-    $db->get_collection( 'users' )->find( { age => 33 }, { a => 1, b => 1 } );
+    $db->get_collection( 'users' )->find( { age => 33 } )->fields( { a => 1, b => 1 });
 
 =item C<SELECT * FROM users WHERE age=33 ORDER BY name>
 
