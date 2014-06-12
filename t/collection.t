@@ -581,6 +581,7 @@ SKIP: {
     $coll->insert({x => 1});
     $coll->insert({x => 4});
     $coll->insert({x => 5});
+    $coll->insert({x => 1, y => 2});
 
     $cursor = $coll->find({x=>4});
     my $result = $cursor->next;
@@ -591,6 +592,10 @@ SKIP: {
     is($result->{'x'}, 5);
     $result = $cursor->next;
     is($result->{'x'}, 4);
+
+    $cursor = $coll->find({y=>2})->fields({y => 1, _id => 0});
+    $result = $cursor->next;
+    is(keys %$result, 1, 'find fields');
 }
 
 
