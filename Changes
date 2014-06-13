@@ -19,6 +19,9 @@
 
   - Fixed stale detection of write command support for bulk operations
 
+  - Fixed wire version checks and max BSON size inspection for replica
+    sets with multiple hosts in the connection URI
+
   [Documentation]
 
   - PERL-366 documented bulk write initializers in Collection docs

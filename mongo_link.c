@@ -709,6 +709,7 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
       if (auto_reconnect && link->auto_reconnect) {
           perl_mongo_call_method(link_sv, "connect", G_DISCARD, 0);
           if (link->master && link->master->connected) {
+              perl_mongo_call_method(link_sv, "_update_server_attributes", G_DISCARD, 0);
               return link->master->socket;
           }
       }

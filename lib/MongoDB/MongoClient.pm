@@ -346,8 +346,7 @@ sub BUILD {
         $self->_init_conn($hp[0], $hp[1], $self->ssl);
         if ($self->auto_connect) {
             $self->connect;
-            $self->_check_wire_version;
-            $self->max_bson_size($self->_get_max_bson_size);
+            $self->_update_server_attributes;
         }
         return;
     }
@@ -370,12 +369,11 @@ sub BUILD {
         # it's okay if we can't connect, so long as someone can
         eval {
             $self->_servers->{$_}->connect;
-            $self->_servers->{$_}->_check_wire_version;
-            $self->_servers->{$_}->max_bson_size($self->_servers->{$_}->_get_max_bson_size);
         };
 
         # at least one connection worked
         if (!$@) {
+            $self->_servers->{$_}->_update_server_attributes;
             $connected = 1;
         }
     }
@@ -404,6 +402,12 @@ sub BUILD {
 
     # create a struct that just points to the master's connection
     $self->_init_conn_holder($master);
+}
+
+sub _update_server_attributes {
+    my ($self) = @_;
+    $self->max_bson_size($self->_get_max_bson_size);
+    $self->_check_wire_version;
 }
 
 sub _build__use_write_cmd { 

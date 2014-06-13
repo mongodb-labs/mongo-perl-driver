@@ -131,10 +131,10 @@ SKIP: {
     my $size = $conn->max_bson_size;
     my $result = $conn->get_database( 'admin' )->run_command({buildinfo => 1});
     if (exists $result->{'maxBsonObjectSize'}) {
-        is($size, $result->{'maxBsonObjectSize'});
+        is($size, $result->{'maxBsonObjectSize'}, 'max bson size');
     }
     else {
-        is($size, 4*1024*1024);
+        is($size, 4*1024*1024, 'max bson size');
     }
 }
 
