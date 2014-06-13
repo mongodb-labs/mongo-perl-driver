@@ -28,6 +28,8 @@
 
   [Testing]
 
+  - PERL-348 tests report MongoDB version in test diagnostics
+
   - PERL-351 fixed test failures if the local database has auth enabled;
     tests will skip instead of fail
 
@@ -37,6 +39,11 @@
   - Fixed various tests to run against a sharded cluster
 
   - Moved unused orchestration tests out of the main test suite
+
+  [~ Internal changes ~]
+
+  - PERL-357 added developer tools for testing different cluster
+    configuration
 
 v0.704.0.0 2014-05-27 13:54:01-04:00 America/New_York
 
