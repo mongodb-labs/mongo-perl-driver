@@ -896,12 +896,12 @@ sub _check_wire_version {
     # check our wire protocol version compatibility
     
     my $master = $self->get_database( $self->db_name )->_try_run_command( { ismaster => 1 } );
+    $master->{minWireVersion} ||= 0;
+    $master->{maxWireVersion} ||= 0;
 
-    if ( exists $master->{minWireVersion} && exists $master->{maxWireVersion} ) {
-        if (    ( $master->{minWireVersion} > $self->max_wire_version )
-             or ( $master->{maxWireVersion} < $self->min_wire_version ) ) { 
-            die "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library.";
-        }
+    if (    ( $master->{minWireVersion} > $self->max_wire_version )
+            or ( $master->{maxWireVersion} < $self->min_wire_version ) ) { 
+        die "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library.";
     }
 
 }
