@@ -18,6 +18,8 @@
 use strict;
 use warnings;
 use Test::More;
+use Config;
+BEGIN { plan skip_all => 'requires threads' unless $Config{usethreads} }
 
 use MongoDB;
 use Try::Tiny;
