@@ -21,6 +21,19 @@ use warnings;
 use lib 'devel/lib';
 use MongoDBTest::Orchestrator;
 
+use Getopt::Long;
+use Log::Any::Adapter 'Null';
+
+my %opts;
+GetOptions(
+    \%opts,
+    'verbose|v'
+);
+
+if ( $opts{verbose} ) {
+    Log::Any::Adapter->set('Stderr');
+}
+
 my ($config_file, @command) = @ARGV;
 
 unless ( $config_file && @command ) {

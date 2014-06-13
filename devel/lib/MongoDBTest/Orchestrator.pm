@@ -19,8 +19,11 @@ use warnings;
 
 package MongoDBTest::Orchestrator;
 
+use lib 'devel/lib';
+
 use MongoDBTest::Server;
 
+use MongoDB;
 use YAML::XS;
 
 use Moo;
@@ -62,6 +65,16 @@ sub _build_cluster_type {
     return $self->config->{type};
 }
 
+has rs_name => (
+    is => 'lazy',
+    isa => Str,
+);
+
+sub _build_rs_name {
+    my ($self) = @_;
+    return $self->config->{setName} // 'rs0';
+}
+
 # Private
 
 has _mongod_set => (
@@ -76,7 +89,10 @@ sub BUILD {
     my ($self) = @_;
 
     for my $server ( @{ $self->config->{mongod} } ) {
-        $self->_mongod_set->{$server->{name}} = MongoDBTest::Server->new(config => $server);
+        $self->_mongod_set->{$server->{name}} = MongoDBTest::Server->new(
+            config => $server,
+            default_args => $self->default_args,
+        );
     }
 
     return;
@@ -94,11 +110,15 @@ sub start {
         $server->start;
         $self->_logger->info("$server is up on port " . $server->port);
     }
+
+    $self->rs_initiate if $self->is_replicaset;
+
 }
 
 sub stop {
     my ($self) = @_;
     for my $server ( $self->list_mongod_set ) {
+        next unless $server->is_alive;
         $self->_logger->info("stopping $server");
         $server->stop;
     }
@@ -108,6 +128,46 @@ sub as_uri {
     my ($self) = @_;
     my $uri = "mongodb://" . join(",", map { $_->hostname . ":" . $_->port } $self->list_mongod_set);
     return $uri;
+}
+
+sub default_args {
+    my ($self) = @_;
+    my $default = $self->is_replicaset ? "--replSet " . $self->rs_name . " " : "";
+    $default .= $self->config->{default_args} if exists $self->config->{default_args};
+    return $default;
+}
+
+sub is_replicaset {
+    my ($self) = @_;
+    return $self->cluster_type eq 'replicaset';
+}
+
+sub rs_initiate {
+    my ($self) = @_;
+    my ($first) = $self->list_mongod_set;
+
+    my $members = [
+        sort map {; { host => $_->as_host_port } } $self->list_mongod_set
+    ];
+
+    for my $i (0 .. $#$members) {
+        $members->[$i]{_id} = $i;
+    }
+
+    my $rs_config = {
+        _id => $self->rs_name,
+        members => $members,
+    };
+
+    my $client = MongoDB::MongoClient->new( host => $first->as_uri );
+    $client->get_database("admin")->run_command({replSetInitiate => $rs_config});
+
+    until ( eval { MongoDB::MongoClient->new( host => $self->as_uri, find_master => 1 ) } ) {
+        $self->_logger->debug("waiting for master");
+        sleep 1;
+    }
+
+    return;
 }
 
 sub DEMOLISH {

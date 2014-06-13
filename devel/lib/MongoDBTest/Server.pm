@@ -58,6 +58,12 @@ sub _build_name {
     return $self->config->{name};
 }
 
+has default_args => (
+    is => 'ro',
+    isa => Str,
+    default => '',
+);
+
 has timeout => (
     is => 'ro',
     isa => Str,
@@ -161,6 +167,7 @@ has guard => (
     is => 'rwp',
     isa => InstanceOf['Proc::Guard'],
     clearer => 1,
+    predicate => 1,
 );
 
 # Methods
@@ -168,7 +175,7 @@ has guard => (
 sub start {
     my ($self) = @_;
     $self->_set_port(empty_port());
-    $self->_logger->debug("Running " . $self->executable . join(" ", $self->_command_args));
+    $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
     my $guard = proc_guard($self->executable, $self->_command_args);
     $self->_set_guard( $guard );
     $self->_logger->debug("Waiting for port " . $self->port);
@@ -182,9 +189,25 @@ sub stop {
     $self->clear_port;
 }
 
+sub is_alive {
+    my ($self) = @_;
+    return unless $self->has_guard;
+}
+
+sub as_host_port {
+    my ($self) = @_;
+    return $self->hostname . ":" . $self->port;
+}
+
+sub as_uri {
+    my ($self) = @_;
+    return "mongodb://" . $self->as_host_port;
+}
+
 sub _command_args {
     my ($self) = @_;
-    my @args = split ' ', $self->config->{args} // '';
+    my @args = split ' ', $self->default_args;
+    push @args, split ' ', $self->config->{args} if exists $self->config->{args};
     push @args, '--port', $self->port, '--logpath', $self->logfile;
 
     if ($self->type eq 'mongod') {
