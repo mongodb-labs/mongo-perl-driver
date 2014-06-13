@@ -162,9 +162,12 @@ sub rs_initiate {
     my $client = MongoDB::MongoClient->new( host => $first->as_uri );
     $client->get_database("admin")->run_command({replSetInitiate => $rs_config});
 
+    $self->_logger->debug("waiting for master");
+    my $c = 1;
     until ( eval { MongoDB::MongoClient->new( host => $self->as_uri, find_master => 1 ) } ) {
-        $self->_logger->debug("waiting for master");
         sleep 1;
+        $self->_logger->debug("waiting for master")
+            if $c++ % 5 == 0
     }
 
     return;

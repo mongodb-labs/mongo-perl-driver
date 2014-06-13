@@ -108,12 +108,13 @@ sub _build_executable {
     unshift @paths, split /:/, $ENV{MONGOPATH} if $ENV{MONGOPATH};
 
     for my $f ( grep { -x } map { path($_)->child($type) } @paths ) {
-        $self->_logger->debug("Checking $f for version $want_version");
         if ( $want_version ) {
             my $v_check = qx/$f --version/;
             my ($found_version) = $v_check =~ /db version (v\d+\.\d+\.\d+)/;
-            $self->_logger->debug("$f is $found_version");
-            return $f if $found_version == $want_version;
+            if ( $found_version == $want_version ) {
+                $self->_logger->debug("$f is $found_version");
+                return $f;
+            }
         }
         else {
             return $f;
