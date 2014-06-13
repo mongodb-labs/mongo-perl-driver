@@ -12,6 +12,19 @@ The driver may not build successfully on the following platforms:
 
 We expect to provide support for these platforms in a future release.
 
+## Compiler tool requirements
+
+This module requires `make` and a compiler.
+
+For example, Debian and Ubuntu users should issue the following command:
+
+    $ sudo apt-get install build-essential
+
+Users of Red Hat based distributions (RHEL, CentOS, Amazon Linux, Oracle
+Linux, Fedora, etc.) should issue the following command:
+
+    $ sudo yum install make gcc
+
 ## Configuration requirements
 
 Configuration requires the following Perl modules:
@@ -77,6 +90,29 @@ them all.  You can then run `make`, etc. as usual:
 If you have checked out the git repository (or downloaded a tarball from
 Github), you will need to install configuration requirements and follow the
 manual procedure described above.
+
+## Building with SSL or SASL support
+
+SSL support requires the libssl-dev package or equivalent.  SASL support
+requires libgsasl-dev or equivalent (available from EPEL for Red Hat based
+distributions).
+
+To enable SSL, set the `PERL_MONGODB_WITH_SSL` environment variable before
+installing.  For example:
+
+    $ PERL_MONGODB_WITH_SSL=1 cpan MongoDB
+
+To enable SASL, set the `PERL_MONGODB_WITH_SASL` environment variable before
+installing.  For example:
+
+    $ PERL_MONGODB_WITH_SASL=1 cpan MongoDB
+
+If you are installing manually, these only need to be set when running
+`Makefile.PL`.  For example:
+
+    $ PERL_MONGODB_WITH_SASL=1 perl Makefile.PL
+
+Or you can pass the flags `--sasl` or `--ssl` to `Makefile.PL`.
 
 ## Non-standard library paths
 
