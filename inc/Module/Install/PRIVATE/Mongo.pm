@@ -90,7 +90,12 @@ sub xs_files {
         XS     => \%XS,
     );
 
-    $self->postamble('$(OBJECT) : perl_mongo.h');
+    $self->postamble(<<'HERE');
+$(OBJECT) : perl_mongo.h
+
+cover : pure_all
+	HARNESS_PERL_SWITCHES=-MDevel::Cover make test
+HERE
 
     return;
 }
