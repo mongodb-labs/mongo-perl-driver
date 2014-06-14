@@ -216,6 +216,7 @@ connect (self)
        SvREFCNT_dec(database);
      }
 
+     perl_mongo_call_method(self, "_update_server_attributes", G_DISCARD, 0);
      SvREFCNT_dec(username);
      SvREFCNT_dec(password);
      SvREFCNT_dec(sasl_flag);

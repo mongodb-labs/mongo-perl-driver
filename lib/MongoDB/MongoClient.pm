@@ -164,11 +164,13 @@ has query_timeout => (
     default  => sub { return $MongoDB::Cursor::timeout; },
 );
 
+# XXX this really shouldn't be required -- it should be populated lazily
+# on each connect (and probably private, too!)
 has max_bson_size => (
     is       => 'rw',
     isa      => 'Int',
     required => 1,
-    default  => 4194304
+    default  => 4194304,
 );
 
 has _max_bson_wire_size => (
@@ -346,13 +348,13 @@ sub BUILD {
         $self->_init_conn($hp[0], $hp[1], $self->ssl);
         if ($self->auto_connect) {
             $self->connect;
-            $self->_update_server_attributes;
         }
         return;
     }
 
     # multiple servers
     my $connected = 0;
+    my %errors;
     foreach (@pairs) {
         # override host, find_master and auto_connect
         my $args = {
@@ -373,8 +375,11 @@ sub BUILD {
 
         # at least one connection worked
         if (!$@) {
-            $self->_servers->{$_}->_update_server_attributes;
             $connected = 1;
+        }
+        else {
+            $errors{$_} = $@;
+            $errors{$_} =~ s/at \S+ line \d+.*//;
         }
     }
 
@@ -384,7 +389,7 @@ sub BUILD {
 
         # if we still aren't connected to anyone, give up
         if (!$connected) {
-            die "couldn't connect to any servers listed: ".join(",", @pairs);
+            die "couldn't connect to any servers listed:\n" . join("", map { "$_: $errors{$_}" } keys %errors );
         }
 
         $master = $self->get_master;
