@@ -26,6 +26,8 @@
 
   - PERL-366 documented bulk write initializers in Collection docs
 
+  - Updated Example.pod docs for field projection (Johann Rolschewski)
+
   [Testing]
 
   - PERL-348 tests report MongoDB version in test diagnostics
@@ -35,6 +37,8 @@
 
   - PERL-356 enabled additional tests if the test database is a replica set
     or sharded cluster
+
+  - Added test for field projection (Johann Rolschewski)
 
   - Fixed various tests to run against a sharded cluster
 
