@@ -116,11 +116,11 @@ SKIP: {
 {
     my $timeout = $MongoDB::Cursor::timeout;
 
-    my $conn2 = MongoDB::MongoClient->new(auto_connect => 0, ssl => $ENV{MONGO_SSL});
+    my $conn2 = MongoDBTest::build_client(auto_connect => 0);
     is($conn2->query_timeout, $timeout, 'query timeout');
 
     $MongoDB::Cursor::timeout = 40;
-    $conn2 = MongoDB::MongoClient->new(auto_connect => 0, ssl => $ENV{MONGO_SSL});
+    $conn2 = MongoDBTest::build_client(auto_connect => 0);
     is($conn2->query_timeout, 40, 'query timeout');
 
     $MongoDB::Cursor::timeout = $timeout;
@@ -142,15 +142,11 @@ SKIP: {
 
 {
 
-    my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
-    my $test_conn1 = MongoDB::MongoClient->new( host => $host, ssl => $ENV{MONGO_SSL} );
-
-    is $test_conn1->min_wire_version, 0, 'default min wire version';
-    is $test_conn1->max_wire_version, 2, 'default max wire version';
+    is $conn->min_wire_version, 0, 'default min wire version';
+    is $conn->max_wire_version, 2, 'default max wire version';
 
     throws_ok {
-        MongoDB::MongoClient->new(
-            host => $host, ssl => $ENV{MONGO_SSL},
+        MongoDBTest::build_client(
             min_wire_version => 99, max_wire_version => 100
         );
     } qr/Incompatible wire protocol/i, 'exception on wire protocol';
@@ -162,7 +158,7 @@ SKIP: {
     my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
     my ($connections, $start);
     for (1..10) {
-        my $conn2 = MongoDB::MongoClient->new("host" => $host, ssl => $ENV{MONGO_SSL});
+        my $conn2 = MongoDBTest::build_client;
         $connections =  $conn->get_database("admin")->eval("db.serverStatus().connections.current");
         $start = $connections unless defined $start
     }

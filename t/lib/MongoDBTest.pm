@@ -33,13 +33,19 @@ our $using_2_6;
 our $server_type;
 our $server_version;
 
+# abstract building a connection
+sub build_client {
+    my @args = @_;
+    my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
+    return MongoDB::MongoClient->new(
+        host => $host, ssl => $ENV{MONGO_SSL}, find_master => 1, @args,
+    );
+}
+
 # set up connection to a test database if we can
 BEGIN { 
     eval { 
-        my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
-        $conn = MongoDB::MongoClient->new(
-            host => $host, ssl => $ENV{MONGO_SSL}, find_master => 1
-        );
+        $conn = build_client();
         $testdb = $conn->get_database('testdb' . time()) or
             die "Can't get database\n";
         eval { $conn->get_database("admin")->_try_run_command({ serverStatus => 1 }) }
