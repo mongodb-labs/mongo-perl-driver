@@ -7,6 +7,10 @@
   - PERL-336 fixed unknown command exception with index creation on 2.2 and
     older servers; we now correctly fall back to legacy index creation
 
+  - PERL-349 fixed request ID misordering when reconnecting to a server; this
+    fixes the known issue regarding test failures with threads under
+    find_master
+
   - PERL-368 changed all query docs to be coerced to Tie::IxHash; this ensures
     that command queries are properly ordered and fixes a crashing bug when
     using command helpers in concert with read preference

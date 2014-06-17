@@ -57,12 +57,6 @@ write_query(ns, opts, skip, limit, query, fields = 0)
          HV *info = newHV();
          SV **heval;
      PPCODE:
-         heval = hv_stores(info, "ns", newSVpv(ns, strlen(ns)));
-         heval = hv_stores(info, "opts", newSViv(opts));
-         heval = hv_stores(info, "skip", newSViv(skip));
-         heval = hv_stores(info, "limit", newSViv(limit));
-         heval = hv_stores(info, "request_id", SvREFCNT_inc(request_id));
-
          CREATE_BUF(INITIAL_BUF_SIZE);
          CREATE_HEADER_WITH_OPTS(buf, ns, OP_QUERY, opts);
 
@@ -76,6 +70,14 @@ write_query(ns, opts, skip, limit, query, fields = 0)
          }
 
          perl_mongo_serialize_size(buf.start, &buf);
+
+         /* this must come after CREATE_HEADER_WITH_OPTS because that
+          * increments the request_id */
+         heval = hv_stores(info, "ns", newSVpv(ns, strlen(ns)));
+         heval = hv_stores(info, "opts", newSViv(opts));
+         heval = hv_stores(info, "skip", newSViv(skip));
+         heval = hv_stores(info, "limit", newSViv(limit));
+         heval = hv_stores(info, "request_id", newSVsv(request_id));
 
          XPUSHs(sv_2mortal(newSVpvn(buf.start, buf.pos-buf.start)));
          XPUSHs(sv_2mortal(newRV_noinc((SV*)info)));
