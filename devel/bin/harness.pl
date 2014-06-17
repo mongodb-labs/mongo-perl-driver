@@ -18,6 +18,8 @@ use v5.10;
 use strict;
 use warnings;
 
+use if -d 'blib', 'blib';
+
 use lib 'devel/lib';
 use MongoDBTest::Orchestrator;
 
@@ -39,6 +41,8 @@ my ($config_file, @command) = @ARGV;
 unless ( $config_file && @command ) {
     die "usage: $0 <config-file> <command> [args ...]\n"
 }
+
+say "Creating a cluster from $config_file";
 
 my $orc = MongoDBTest::Orchestrator->new( config_file => $config_file );
 
