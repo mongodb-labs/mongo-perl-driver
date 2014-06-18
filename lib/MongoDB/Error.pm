@@ -22,7 +22,7 @@ package MongoDB::Error;
 # ABSTRACT: MongoDB Driver Error classes
 
 use version;
-our $VERSION = 'v0.704.0.1';
+our $VERSION = 'v0.704.1.1';
 
 use Moose;
 use MongoDB::_Types;

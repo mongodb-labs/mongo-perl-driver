@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.704.1.0 2014-06-17 21:55:18-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-336 fixed unknown command exception with index creation on 2.2 and

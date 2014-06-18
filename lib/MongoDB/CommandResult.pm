@@ -19,7 +19,7 @@ package MongoDB::CommandResult;
 # ABSTRACT: MongoDB generic command result document
 
 use version;
-our $VERSION = 'v0.704.0.1';
+our $VERSION = 'v0.704.1.1';
 
 use Moose;
 use namespace::clean -except => 'meta';
