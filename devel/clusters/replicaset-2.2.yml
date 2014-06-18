@@ -1,5 +1,5 @@
 ---
-type: replicaset
+type: replica
 setName: foo
 default_args: --noprealloc --smallfiles --nohttpinterface --nssize 6 --quiet
 mongod:
