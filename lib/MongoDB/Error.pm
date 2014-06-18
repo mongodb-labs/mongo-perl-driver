@@ -25,6 +25,7 @@ use version;
 our $VERSION = 'v0.704.1.1';
 
 use Moose;
+use Moose::Meta::Class ();
 use MongoDB::_Types;
 use Exporter 5.57 qw/import/;
 use namespace::clean -except => [ 'meta', 'import' ];
@@ -104,17 +105,18 @@ has document => (
 );
 
 #--------------------------------------------------------------------------#
-# Empty subclasses generated programatically
+# Empty subclasses generated programatically; this keeps packages visible
+# to metadata inspectors, but is shorter than Moose/namespace::clean/extends
 #--------------------------------------------------------------------------#
 
-my %classes = (
-    'MongoDB::ConnectionError'   => 'MongoDB::Error',
-    'MongoDB::WriteError'        => 'MongoDB::DatabaseError',
-    'MongoDB::WriteConcernError' => 'MongoDB::DatabaseError',
-);
+package MongoDB::ConnectionError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => [ 'MongoDB::Error' ] );
 
-require Moose::Meta::Class;
-Moose::Meta::Class->create( $_, superclasses => [ $classes{$_} ] ) for keys %classes;
+package MongoDB::WriteError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => [ 'MongoDB::DatabaseError' ] );
+
+package MongoDB::WriteConcernError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => [ 'MongoDB::DatabaseError' ] );
 
 #--------------------------------------------------------------------------#
 # Internal error classes
