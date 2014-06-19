@@ -18,11 +18,12 @@ use warnings;
 
 package MongoDBTest::Role::Server;
 
+use CPAN::Meta::Requirements;
 use Path::Tiny;
 use Proc::Guard;
 use Sys::Hostname;
 use Net::EmptyPort qw/empty_port wait_port/;
-use version;
+use Version::Next qw/next_version/;
 
 use Moo::Role;
 use Types::Standard -types;
@@ -90,14 +91,41 @@ has hostname => (
 
 sub _build_hostname { hostname() }
 
-has version => (
+has version_wanted => (
     is => 'lazy',
-    isa => InstanceOf['version'],
+    isa => Str,
 );
 
-sub _build_version {
+sub _build_version_wanted {
     my ($self) = @_;
-    return version->parse( $self->config->{version} // $self->default_version );
+    my $target = ($self->config->{version} // $self->default_version) || 0;
+    return $target;
+}
+
+has version_constraint => (
+    is => 'lazy',
+    isa => InstanceOf['CPAN::Meta::Requirements'],
+);
+
+sub _build_version_constraint {
+    my ($self) = @_;
+    # abusing CMR for this
+    my $cmr = CPAN::Meta::Requirements->new;
+    my $target = $self->version_wanted;
+    if ( $target =~ /^v?\d+\.\d+\.\d+$/ ) {
+        $target =~ s/^v?(.*)/v$1/;
+        $cmr->exact_version(mongo => $target)
+    }
+    elsif ( $target =~ /^v?\d+\.\d+$/ ) {
+        $target =~ s/^v?(.*)/v$1/;
+        $cmr->add_minimum(mongo => $target);
+        $cmr->add_string_requirement(mongo => "< " . next_version($target));
+    }
+    else {
+        # hope it's a valid version range specifier
+        $cmr->add_string_requirement(mongo => $target);
+    }
+    return $cmr;
 }
 
 has executable => (
@@ -110,15 +138,14 @@ sub _build_executable {
     my ($self) = @_;
 
     my $cmd = $self->command_name;
-    my $want_version = $self->version;
     my @paths = split /:/, $ENV{PATH};
     unshift @paths, split /:/, $ENV{MONGOPATH} if $ENV{MONGOPATH};
 
     for my $f ( grep { -x } map { path($_)->child($cmd) } @paths ) {
-        if ( $want_version ) {
+        if ( $self->version_wanted ) {
             my $v_check = qx/$f --version/;
             my ($found_version) = $v_check =~ /version (v?\d+\.\d+\.\d+)/;
-            if ( $found_version == $want_version ) {
+            if ( $self->version_constraint->accepts_module( mongo => $found_version ) ) {
                 $self->_logger->debug("$f is $found_version");
                 return $f;
             }
