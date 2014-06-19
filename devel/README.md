@@ -33,7 +33,7 @@ For example, if there is a `~/mongodb` directory containing various mongodb
 versions (e.g. from downloaded tarballs), each with a `bin` directory, this
 command would set MONGOPATH to include all of them:
 
-    export MONGOPATH=$(find ~/mongodb -type d -name bin \
-        | perl -wE 'say join(":",map {chomp; $_} <>)'
+    export MONGOPATH=$(find ~/mongodb -type d -name bin | sort -r \
+        | perl -wE 'say join(":",map {chomp; $_} <>)')
 
 

@@ -1,5 +1,4 @@
-#
-#  Copyright 2009-2013 MongoDB, Inc.
+#  Copyright 2009-2014 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -17,26 +16,35 @@ use 5.010;
 use strict;
 use warnings;
 
-package MongoDBTest::Server;
+package MongoDBTest::Role::Server;
 
+use CPAN::Meta::Requirements;
 use Path::Tiny;
 use Proc::Guard;
 use Sys::Hostname;
 use Net::EmptyPort qw/empty_port wait_port/;
-use version;
+use Version::Next qw/next_version/;
 
-use Moo;
-use Types::Standard qw/Str Num HashRef Object InstanceOf/;
+use Moo::Role;
+use Types::Standard -types;
 use Types::Path::Tiny qw/AbsFile AbsDir AbsPath/;
 use namespace::clean;
 
-use overload (
-    q{""}    => sub    { $_[0]->name },
-    bool     => sub () { 1 },
-    fallback => 1,
+# To be satisfied by consumer
+
+requires '_build_command_name';
+requires '_build_command_args';
+requires '_logger';
+
+has command_args => (
+    is => 'lazy',
+    isa => Str,
 );
 
-with 'MooseX::Role::Logger';
+has command_name => (
+    is => 'lazy',
+    isa => Str,
+);
 
 # Required
 
@@ -64,16 +72,16 @@ has default_args => (
     default => '',
 );
 
+has default_version => (
+    is => 'ro',
+    isa => Str,
+    default => '',
+);
+
 has timeout => (
     is => 'ro',
     isa => Str,
     default => 60,
-);
-
-has type => (
-    is => 'ro',
-    isa => Str,
-    default => 'mongod',
 );
 
 has hostname => (
@@ -83,14 +91,41 @@ has hostname => (
 
 sub _build_hostname { hostname() }
 
-has version => (
+has version_wanted => (
     is => 'lazy',
-    isa => InstanceOf['version'],
+    isa => Str,
 );
 
-sub _build_version {
+sub _build_version_wanted {
     my ($self) = @_;
-    return version->parse( $self->config->{version} );
+    my $target = ($self->config->{version} // $self->default_version) || 0;
+    return $target;
+}
+
+has version_constraint => (
+    is => 'lazy',
+    isa => InstanceOf['CPAN::Meta::Requirements'],
+);
+
+sub _build_version_constraint {
+    my ($self) = @_;
+    # abusing CMR for this
+    my $cmr = CPAN::Meta::Requirements->new;
+    my $target = $self->version_wanted;
+    if ( $target =~ /^v?\d+\.\d+\.\d+$/ ) {
+        $target =~ s/^v?(.*)/v$1/;
+        $cmr->exact_version(mongo => $target)
+    }
+    elsif ( $target =~ /^v?\d+\.\d+$/ ) {
+        $target =~ s/^v?(.*)/v$1/;
+        $cmr->add_minimum(mongo => $target);
+        $cmr->add_string_requirement(mongo => "< " . next_version($target));
+    }
+    else {
+        # hope it's a valid version range specifier
+        $cmr->add_string_requirement(mongo => $target);
+    }
+    return $cmr;
 }
 
 has executable => (
@@ -102,16 +137,15 @@ has executable => (
 sub _build_executable {
     my ($self) = @_;
 
-    my $type = $self->type;
-    my $want_version = $self->version;
+    my $cmd = $self->command_name;
     my @paths = split /:/, $ENV{PATH};
     unshift @paths, split /:/, $ENV{MONGOPATH} if $ENV{MONGOPATH};
 
-    for my $f ( grep { -x } map { path($_)->child($type) } @paths ) {
-        if ( $want_version ) {
+    for my $f ( grep { -x } map { path($_)->child($cmd) } @paths ) {
+        if ( $self->version_wanted ) {
             my $v_check = qx/$f --version/;
-            my ($found_version) = $v_check =~ /db version (v\d+\.\d+\.\d+)/;
-            if ( $found_version == $want_version ) {
+            my ($found_version) = $v_check =~ /version (v?\d+\.\d+\.\d+)/;
+            if ( $self->version_constraint->accepts_module( mongo => $found_version ) ) {
                 $self->_logger->debug("$f is $found_version");
                 return $f;
             }
@@ -121,7 +155,7 @@ sub _build_executable {
         }
     }
 
-    die "Can't find suitable $type in MONGOPATH or PATH\n";
+    die "Can't find suitable $cmd in MONGOPATH or PATH\n";
 }
 
 has tempdir => (
@@ -131,19 +165,6 @@ has tempdir => (
 );
 
 sub _build_tempdir { Path::Tiny->tempdir }
-
-has datadir => (
-    is => 'lazy',
-    isa => AbsDir,
-    coerce => AbsDir->coercion,
-);
-
-sub _build_datadir {
-    my ($self) = @_;
-    my $dir = $self->tempdir->child("data");
-    $dir->mkpath;
-    return $dir;
-}
 
 has logfile => (
     is => 'lazy',
@@ -177,9 +198,17 @@ sub start {
     my ($self) = @_;
     $self->_set_port(empty_port());
     $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
-    my $guard = proc_guard($self->executable, $self->_command_args);
+    my $guard = proc_guard(
+        sub {
+            close STDOUT;
+            close STDERR;
+            close STDIN;
+            exec( $self->executable, $self->_command_args );
+        }
+    );
     $self->_set_guard( $guard );
     $self->_logger->debug("Waiting for port " . $self->port);
+    # XXX eventually refactor out so this can be done in parallel
     wait_port($self->port, $self->timeout);
     return 1;
 }
@@ -209,11 +238,8 @@ sub _command_args {
     my ($self) = @_;
     my @args = split ' ', $self->default_args;
     push @args, split ' ', $self->config->{args} if exists $self->config->{args};
+    push @args, split ' ', $self->command_args;
     push @args, '--port', $self->port, '--logpath', $self->logfile;
-
-    if ($self->type eq 'mongod') {
-        push @args, '--dbpath', $self->datadir;
-    }
 
     return @args;
 }
