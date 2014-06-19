@@ -20,6 +20,7 @@ package MongoDBTest::ReplicaSet;
 
 use MongoDB;
 
+use JSON;
 use Moo;
 use Types::Standard -types;
 use namespace::clean;
@@ -48,7 +49,12 @@ sub rs_initiate {
 
     # XXX eventually may have to figure out adding additional parameters
     my $members = [
-        map {; { host => $_->as_host_port } }
+        map {;
+            {
+                host => $_->as_host_port,
+                %{$_->config->{rs_config} // {}}
+            }
+        }
         sort { $a->name cmp $b->name } $self->all_servers
     ];
 
@@ -61,16 +67,40 @@ sub rs_initiate {
         members => $members,
     };
 
-    my $client = MongoDB::MongoClient->new( host => $first->as_uri );
+    $self->_logger->debug("configuring replica set with: " . to_json($rs_config));
+
+    my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
     $client->get_database("admin")->_try_run_command({replSetInitiate => $rs_config});
 
-    $self->_logger->debug("waiting for master");
+    $self->_logger->debug("waiting for primary");
     my $c = 1;
-    until ( eval { MongoDB::MongoClient->new( host => $self->as_uri, find_master => 1 ) } ) {
-        sleep 1;
-        $self->_logger->debug("waiting for master")
-            if $c++ % 5 == 0
+    until ( eval { MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef, find_master => 1 ) } ) {
+        $self->_logger->debug("waiting for primary")
+            if $c++ % 5 == 0;
+        die "primary never came up\n" if $c > 3; # XXX hard coded
     }
+    continue { sleep 1 }
+
+    return;
+}
+
+sub wait_for_all_hosts {
+    my ($self) = @_;
+    my $client = eval {MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef, find_master => 1 )};
+    die "Couldn't get client: $@" if $@;
+    my $admin = $client->get_database("admin");
+    my $c = 1;
+    while (1) {
+        if ( my $status = eval { $admin->_try_run_command({replSetGetStatus => 1}) } ) {
+            my @member_states = map { $_->{state} } @{ $status->{members} };
+            $self->_logger->debug("host states: @member_states");
+            last if @member_states == grep { $_ == 1 || $_ == 2 } @member_states; # all primary or secondary
+        }
+        $self->_logger->debug("waiting for all hosts to be online")
+            if $c++ % 5 == 0;
+        die "never got all hosts up\n" if $c > 120; # XXX hard coded
+    }
+    continue { sleep 1 }
 
     return;
 }
