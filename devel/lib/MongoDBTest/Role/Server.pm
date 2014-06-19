@@ -171,7 +171,14 @@ sub start {
     my ($self) = @_;
     $self->_set_port(empty_port());
     $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
-    my $guard = proc_guard($self->executable, $self->_command_args);
+    my $guard = proc_guard(
+        sub {
+            close STDOUT;
+            close STDERR;
+            close STDIN;
+            exec( $self->executable, $self->_command_args );
+        }
+    );
     $self->_set_guard( $guard );
     $self->_logger->debug("Waiting for port " . $self->port);
     # XXX eventually refactor out so this can be done in parallel
