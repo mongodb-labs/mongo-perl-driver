@@ -108,8 +108,7 @@ has '_use_write_cmd' => (
 
 sub _build__use_write_cmd {
     my ($self) = @_;
-    my $use_it = $self->_client->_master->_use_write_cmd;
-    return $use_it;
+    return $self->_client->get_master->_use_write_cmd;
 }
 
 with 'MongoDB::Role::_WriteQueue';

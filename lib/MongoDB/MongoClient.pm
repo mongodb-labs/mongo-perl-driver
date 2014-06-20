@@ -27,6 +27,7 @@ use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use Digest::MD5;
 use Tie::IxHash;
+use Time::HiRes qw/usleep/;
 use Carp 'carp', 'croak';
 use Scalar::Util 'reftype';
 use boolean;
@@ -49,6 +50,11 @@ use constant _READPREF_MODENAMES => ['primary',
                                      'primaryPreferred',
                                      'secondaryPreferred',
                                      'nearest'];
+
+use constant {
+    MIN_HEARTBEAT_FREQUENCY_MS => 10,
+    MAX_SCAN_TIME_SEC => 60,
+};
 
 has host => (
     is       => 'ro',
@@ -201,13 +207,6 @@ has _is_mongos => (
     required => 1,
     default  => 0
 );
-
-has _ismaster_version => (
-    is       => 'rw',
-    isa      => 'Int',
-    default  => 0
-);
-
 
 has ssl => (
     is       => 'ro',
@@ -393,12 +392,7 @@ sub BUILD {
         }
 
         $master = $self->get_master;
-        if ($master == -1) {
-            die "couldn't find master";
-        }
-        else {
-            $self->max_bson_size($master->max_bson_size);
-        }
+        $self->max_bson_size($master->max_bson_size);
     }
     else {
         # no auto-connect so just pick one. if auto-reconnect is set then it will connect as needed
@@ -474,7 +468,7 @@ sub _get_a_specific_connection {
     if (!$@) {
         return $self->_servers->{$host};
     }
-    return 0;
+    return;
 }
 
 sub _get_any_connection {
@@ -489,84 +483,86 @@ sub _get_any_connection {
         }
     }
 
-    return 0;
+    return;
 }
-
 
 sub get_master {
     my ($self, $conn) = @_;
 
-    $conn = defined $conn ? $conn : $self->_get_any_connection();
-    # if we couldn't connect to anything, just return
-    if (!$conn) {
-        return -1;
-    }
+    my $start = time;
+    while ( time - $start < MAX_SCAN_TIME_SEC ) {
+        $conn ||= $self->_get_any_connection()
+            or next;
 
-    # a single server or list of servers
-    if (!$self->find_master) {
-        $self->_master($conn);
-        return $self->_master;
-    }
-    # auto-detect master
-    else {
-        my $master = try {
-            $conn->get_database($self->db_name)->_try_run_command({"ismaster" => 1})
-        };
-
-        # check for errors
-        return -1 unless $master;
-
-        # msg field from ismaster command will
-        # be set if in a sharded environment 
-        $self->_is_mongos(1) if $master->{'msg'};
-
-        # if this is a replica set & we haven't renewed the host list in 1 sec
-        if ($master->{'hosts'} && (!$master->{'setVersion'} || $master->{'setVersion'} > $self->_ismaster_version)) {
-
-            # update rs config version
-            if ($master->{'setVersion'}) {
-                $self->_ismaster_version($master->{'setVersion'});
-            }
-
-            # clear old host list before refreshing
-            %{$self->_servers} = ();
-
-            for (@{$master->{'hosts'}}) {
-                # override host, find_master and auto_connect
-                my $args = {
-                    %{ $self->_opts },
-                    host => "mongodb://$_",
-                    find_master => 0,
-                    auto_connect => 0,
-                };
-
-                $self->_servers->{$_} = $_ eq $master->{me} ? $conn : MongoDB::MongoClient->new($args);
-            }
-        }
-
-        # if this is the master, whether or not it's a replica set, return it
-        if ($master->{'ismaster'}) {
+        # a single server or list of servers
+        if (!$self->find_master) {
             $self->_master($conn);
             return $self->_master;
         }
-        elsif ($self->find_master && exists $master->{'primary'}) {
-            my $primary = $self->_get_a_specific_connection($master->{'primary'});
-            if (!$primary) {
-                return -1;
+        # auto-detect master
+        else {
+            my $master = try {
+                $conn->get_database($self->db_name)->_try_run_command({"ismaster" => 1})
+            }
+            catch {
+                undef $conn;
+                next;
+            };
+
+            # msg field from ismaster command will
+            # be set if in a sharded environment 
+            $self->_is_mongos(1) if $master->{'msg'};
+
+            # if this is a replica set & list of hosts is different, then update
+            if ($master->{'hosts'}
+                && join("", sort @{$master->{hosts}}) ne join("",sort keys %{$self->_servers})
+            ) {
+
+                # clear old host list before refreshing
+                %{$self->_servers} = ();
+
+                for (@{$master->{'hosts'}}) {
+                    # override host, find_master and auto_connect
+                    my $args = {
+                        %{ $self->_opts },
+                        host => "mongodb://$_",
+                        find_master => 0,
+                        auto_connect => 0,
+                    };
+
+                    $self->_servers->{$_} = $_ eq $master->{me} ? $conn : MongoDB::MongoClient->new($args);
+                }
             }
 
-            # double-check that this is master
-            my $result = try {
-                $primary->get_database("admin")->_try_run_command({"ismaster" => 1})
-            };
-            if ($result && $result->{'ismaster'}) {
-                $self->_master($primary);
+            # if this is the master, whether or not it's a replica set, return it
+            if ($master->{'ismaster'}) {
+                $self->_master($conn);
                 return $self->_master;
+            }
+            elsif ($self->find_master && exists $master->{'primary'}) {
+                my $primary = $self->_get_a_specific_connection($master->{'primary'})
+                    or next;
+
+                # double-check that this is master
+                my $result = try {
+                    $primary->get_database("admin")->_try_run_command({"ismaster" => 1})
+                }
+                catch {
+                    $conn = $primary;
+                    next;
+                };
+                if ($result && $result->{'ismaster'}) {
+                    $self->_master($primary);
+                    return $self->_master;
+                }
             }
         }
     }
+    continue {
+        usleep(MIN_HEARTBEAT_FREQUENCY_MS);
+    }
 
-    return -1;
+    confess "couldn't find master";
 }
 
 
@@ -1248,15 +1244,6 @@ Lists all databases on the MongoDB server.
     my $database = $client->get_database('foo');
 
 Returns a L<MongoDB::Database> instance for the database with the given C<$name>.
-
-=method get_master
-
-    $master = $client->get_master
-
-Determines which host of a paired connection is master.  Does nothing for
-a non-paired connection.  This need never be invoked by a user, it is
-called automatically by internal functions.  Returns the index of the master
-connection in the list of connections or -1 if it cannot be determined.
 
 =method authenticate ($dbname, $username, $password, $is_digest?)
 

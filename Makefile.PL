@@ -40,6 +40,7 @@ requires 'Syntax::Keyword::Junction';
 requires 'Scalar::Util';
 requires 'Throwable';
 requires 'Tie::IxHash';
+requires 'Time::HiRes';
 requires 'Try::Tiny';
 requires 'boolean';
 requires 'namespace::clean';

@@ -716,6 +716,8 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
       return -1;
   }
 
+  // re-initialize master
+  link->master = 0;
   master = perl_mongo_call_method(link_sv, "get_master", 0, 0);
   if (SvROK(master)) {
     mongo_link *m_link;
@@ -734,7 +736,6 @@ int perl_mongo_master(SV *link_sv, int auto_reconnect) {
     return link->master->socket;
   }
 
-  link->master = 0;
   return -1;
 }
 

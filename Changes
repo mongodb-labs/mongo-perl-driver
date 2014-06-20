@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - Fixed primary server selection to retry for 60 seconds instead of
+    immediately failing with an error
+
 v0.704.1.0 2014-06-17 21:55:18-04:00 America/New_York
 
   [Bug fixes]
