@@ -18,12 +18,15 @@ use warnings;
 
 package MongoDBTest::Role::Server;
 
+use MongoDB;
+
 use CPAN::Meta::Requirements;
 use Path::Tiny;
 use Proc::Guard;
 use Sys::Hostname;
 use Net::EmptyPort qw/empty_port wait_port/;
 use Version::Next qw/next_version/;
+use version;
 
 use Moo::Role;
 use Types::Standard -types;
@@ -91,6 +94,11 @@ has hostname => (
 
 sub _build_hostname { hostname() }
 
+has server_version => (
+    is => 'rwp',
+    isa => InstanceOf['version'],
+);
+
 has version_wanted => (
     is => 'lazy',
     isa => Str,
@@ -142,9 +150,10 @@ sub _build_executable {
     unshift @paths, split /:/, $ENV{MONGOPATH} if $ENV{MONGOPATH};
 
     for my $f ( grep { -x } map { path($_)->child($cmd) } @paths ) {
+        my $v_check = qx/$f --version/;
+        my ($found_version) = $v_check =~ /version (v?\d+\.\d+\.\d+)/;
+        $self->_set_server_version(version->parse($found_version));
         if ( $self->version_wanted ) {
-            my $v_check = qx/$f --version/;
-            my ($found_version) = $v_check =~ /version (v?\d+\.\d+\.\d+)/;
             if ( $self->version_constraint->accepts_module( mongo => $found_version ) ) {
                 $self->_logger->debug("$f is $found_version");
                 return $f;
@@ -177,6 +186,16 @@ sub _build_logfile {
     return $self->tempdir->child("mongodb.log");
 }
 
+has auth_config => (
+    is => 'lazy',
+    isa => Maybe[HashRef],
+);
+
+has did_auth_setup => (
+    is => 'rwp',
+    isa => Bool,
+);
+
 # Semi-private
 
 has port => (
@@ -191,6 +210,17 @@ has guard => (
     clearer => 1,
     predicate => 1,
 );
+
+has client => (
+    is => 'lazy',
+    isa => InstanceOf['MongoDB::MongoClient'],
+    clearer => 1,
+);
+
+sub _build_client {
+    my ($self) = @_;
+    return MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef );
+}
 
 # Methods
 
@@ -210,6 +240,14 @@ sub start {
     $self->_logger->debug("Waiting for port " . $self->port);
     # XXX eventually refactor out so this can be done in parallel
     wait_port($self->port, $self->timeout);
+    if ( $self->auth_config && ! $self->did_auth_setup ) {
+        $self->add_user;
+        $self->_set_did_auth_setup(1);
+        eval { MongoDB::MongoClient->new(host => "mongodb://localhost:" . $self->port)->get_database("admin")->_try_run_command([shutdown => 1]) };
+        $self->_logger->debug("Restarting original server with --auth");
+        $self->stop;
+        $self->start;
+    }
     return 1;
 }
 
@@ -217,6 +255,7 @@ sub stop {
     my ($self) = @_;
     $self->clear_guard;
     $self->clear_port;
+    $self->clear_client;
 }
 
 sub is_alive {
@@ -240,8 +279,30 @@ sub _command_args {
     push @args, split ' ', $self->config->{args} if exists $self->config->{args};
     push @args, split ' ', $self->command_args;
     push @args, '--port', $self->port, '--logpath', $self->logfile;
+    if ($self->did_auth_setup) {
+        push @args, '--auth';
+    }
 
     return @args;
+}
+
+sub add_user {
+    my ($self) = @_;
+    $self->_logger->debug("Adding root user");
+    my ($user, $password) = @{ $self->auth_config }{qw/user password/};
+    my $doc = Tie::IxHash->new(
+        pwd => $password,
+        roles => [ 'root' ]
+    );
+    if ( $self->server_version >= v2.6.0 ) {
+        $doc->Unshift(createUser => $user);
+        $self->client->get_database("admin")->_try_run_command( $doc );
+    }
+    else {
+        $doc->Unshift(user => $user);
+        $self->client->get_database("admin")->get_collection("system.users")->save( $doc );
+    }
+    return;
 }
 
 sub DEMOLISH {

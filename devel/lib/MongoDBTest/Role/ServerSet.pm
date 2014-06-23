@@ -43,6 +43,11 @@ has default_version => (
     required => 1,
 );
 
+has auth_config => (
+    is => 'ro',
+    isa => Maybe[HashRef],
+);
+
 has server_config_list => (
     is => 'ro',
     isa => ArrayRef[HashRef],
@@ -73,6 +78,7 @@ sub _build__servers {
             config => $server,
             default_args => $self->default_args,
             default_version => $self->default_version,
+            auth_config => $self->auth_config,
         );
     }
     return $set;
@@ -99,9 +105,9 @@ sub start {
     # and wait in a loop for them all to be up
     for my $server ( $self->all_servers ) {
         my $name = $server->name;
-        $self->_logger->info("starting $name");
+        $self->_logger->info("Starting $name");
         $server->start;
-        $self->_logger->info("$name is up on port " . $server->port);
+        $self->_logger->info("Server $name is up on port " . $server->port);
     }
     return;
 }
@@ -119,7 +125,12 @@ sub stop {
 
 sub as_uri {
     my ($self) = @_;
-    return "mongodb://" . $self->as_pairs;
+    my $uri = "mongodb://" . $self->as_pairs;
+    if ( $self->auth_config ) {
+        my ($u,$p) = @{$self->auth_config}{qw/user password/};
+        $uri =~ s{mongodb://}{mongodb://$u:$p\@};
+    }
+    return $uri;
 }
 
 sub as_pairs {

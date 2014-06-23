@@ -54,6 +54,16 @@ sub _build_default_version {
     return $self->config->{default_version} // '';
 }
 
+has auth_config => (
+    is => 'lazy',
+    isa => Maybe[HashRef],
+);
+
+sub _build_auth_config {
+    my ($self) = @_;
+    return $self->config->{auth};
+}
+
 has type => (
     is => 'lazy',
     isa => Enum[qw/single replica sharded/],
