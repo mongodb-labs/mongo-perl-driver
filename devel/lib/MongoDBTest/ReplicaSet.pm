@@ -33,6 +33,16 @@ has set_name => (
     required => 1,
 );
 
+has client => (
+    is => 'lazy',
+    isa => InstanceOf['MongoDB::MongoClient'],
+);
+
+sub _build_client {
+    my ($self) = @_;
+    return MongoDB::MongoClient->new( host => $self->as_uri, find_master => 1, dt_type => undef );
+}
+
 after 'start' => sub {
     my ($self) = @_;
     $self->rs_initiate;
@@ -69,24 +79,20 @@ sub rs_initiate {
 
     $self->_logger->debug("configuring replica set with: " . to_json($rs_config));
 
+    # not $self->client because this needs to be a direct connection
     my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
     $client->get_database("admin")->_try_run_command({replSetInitiate => $rs_config});
 
     $self->_logger->debug("waiting for primary");
     my $c = 1;
-    until ( eval { MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef, find_master => 1 ) } ) {
-        $self->_logger->debug("waiting for primary")
-            if $c++ % 5 == 0;
-        die "primary never came up\n" if $c > 3; # XXX hard coded
-    }
-    continue { sleep 1 }
+    $self->client->get_master;
 
     return;
 }
 
 sub wait_for_all_hosts {
     my ($self) = @_;
-    my $client = eval {MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef, find_master => 1 )};
+    my $client = eval {$self->client};
     die "Couldn't get client: $@" if $@;
     my $admin = $client->get_database("admin");
     my $c = 1;
@@ -102,6 +108,15 @@ sub wait_for_all_hosts {
     }
     continue { sleep 1 }
 
+    return;
+}
+
+sub stepdown_primary {
+    my ($self, $timeout_secs) = @_;
+    # eval because command causes primary to close connection, causing network error
+    eval {
+        $self->client->get_database("admin")->_try_run_command( { replSetStepDown => 5 } );
+    };
     return;
 }
 

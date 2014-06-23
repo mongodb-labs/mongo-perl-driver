@@ -57,10 +57,9 @@ subtest "mixed version stepdown" => sub {
 
     is( exception { $coll->drop }, undef, "drop collection" );
 
-    # will terminate connection and throw error trying to read command back
-    eval {
-        $conn->get_database("admin")->_try_run_command( { replSetStepDown => 5 } );
-    };
+    # stopdown primary
+    $orc->cluster->server_set->stepdown_primary(5);
+    note "stepped down primary";
 
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->insert( { _id => 1 } );
@@ -69,13 +68,12 @@ subtest "mixed version stepdown" => sub {
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on insert" ) or diag explain $err;
 
-    diag "waiting for replica set stepdown to time out";
+    note "waiting for replica set stepdown to time out";
     sleep 6;
 
-    # will terminate connection and throw error trying to read command back
-    eval {
-        $conn->get_database("admin")->_try_run_command( { replSetStepDown => 5 } );
-    };
+    # stepdown primary again to switch back
+    $orc->cluster->server_set->stepdown_primary(5);
+    note "stepped down primary again";
 
     $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->insert( { _id => 2 } );
