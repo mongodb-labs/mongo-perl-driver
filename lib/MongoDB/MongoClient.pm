@@ -503,8 +503,9 @@ sub get_master {
         else {
             my $master = try {
                 $conn->get_database($self->db_name)->_try_run_command({"ismaster" => 1})
-            }
-            catch {
+            };
+
+            if ( !$master ) { 
                 undef $conn;
                 next;
             };
@@ -546,11 +547,13 @@ sub get_master {
                 # double-check that this is master
                 my $result = try {
                     $primary->get_database("admin")->_try_run_command({"ismaster" => 1})
-                }
-                catch {
+                };
+
+                if ( ! $result ) {
                     $conn = $primary;
                     next;
                 };
+
                 if ($result && $result->{'ismaster'}) {
                     $self->_master($primary);
                     return $self->_master;
