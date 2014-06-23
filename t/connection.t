@@ -159,7 +159,7 @@ SKIP: {
     my ($connections, $start);
     for (1..10) {
         my $conn2 = MongoDBTest::build_client;
-        $connections =  $conn->get_database("admin")->eval("db.serverStatus().connections.current");
+        $connections = $conn->get_database("admin")->_try_run_command([serverStatus => 1])->{connections}{current};
         $start = $connections unless defined $start
     }
     is(abs($connections-$start) < 3, 1, 'connection dropped after scope');

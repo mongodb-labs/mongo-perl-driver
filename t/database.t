@@ -103,13 +103,15 @@ SKIP: {
 }
 
 # eval
-{
+subtest "eval" => sub {
+    plan skip_all => "eval not available under auth"
+        if $conn->password;
     my $hello = $testdb->eval('function(x) { return "hello, "+x; }', ["world"]);
     is('hello, world', $hello, 'db eval');
 
     my $err = $testdb->eval('function(x) { xreturn "hello, "+x; }', ["world"]);
     like( $err, qr/SyntaxError/, 'js err');
-}
+};
 
 # tie
 {

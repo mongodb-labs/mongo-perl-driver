@@ -16,7 +16,7 @@
 
 use strict;
 use warnings;
-use Test::More;
+use Test::More 0.96;
 use Test::Exception;
 
 use MongoDB;
@@ -28,9 +28,6 @@ use JSON;
 
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb';
-
-plan tests => 63;
-
 
 my $coll = $testdb->get_collection('y');
 $coll->drop;
@@ -214,14 +211,20 @@ is($id."", $id->value);
     is(keys %$scope, 0);
     is($ret_code->code, $str);
 
-    my $x = $testdb->eval($code);
-    is($x, 5);
+    my $x;
+
+    if ( ! $conn->password ) {
+        $x = $testdb->eval($code);
+        is($x, 5);
+    }
 
     $str = "function() { return name; }";
     $code = MongoDB::Code->new("code" => $str,
                                "scope" => {"name" => "Fred"});
-    $x = $testdb->eval($code);
-    is($x, "Fred");
+    if ( ! $conn->password ) {
+        $x = $testdb->eval($code);
+        is($x, "Fred");
+    }
 
     $coll->remove;
 
@@ -329,3 +332,4 @@ SKIP: {
     is($result->{x}, 1);
 }
 
+done_testing;

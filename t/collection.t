@@ -540,7 +540,7 @@ SKIP: {
         $ok = $syscoll->remove({}, {safe => 1});
     };
 
-    ok($@ && $@ =~ 'cannot delete from system namespace', 'safe remove');
+    like($@, qr/cannot delete from system namespace|not authorized/, 'remove from system.indexes should fail');
 
     $coll->insert({x=>1});
     $ok = $coll->update({}, {'$inc' => {x => 1}});
@@ -571,7 +571,7 @@ SKIP: {
         $ok = $syscoll->save({_id => 'foo'}, {safe => 1});
     };
 
-    ok($@ && $@ =~ 'cannot update system collection');
+    like($@, qr/cannot update system collection|not authorized/, 'save to system.indexes should fail');
 }
 
 # find
