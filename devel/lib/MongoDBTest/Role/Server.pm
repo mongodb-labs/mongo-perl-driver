@@ -241,7 +241,8 @@ sub start {
     # XXX eventually refactor out so this can be done in parallel
     wait_port($self->port, $self->timeout);
     if ( $self->auth_config && ! $self->did_auth_setup ) {
-        $self->add_user;
+        my ($user, $password) = @{ $self->auth_config }{qw/user password/};
+        $self->add_user($user, $password, [ 'root' ]);
         $self->_set_did_auth_setup(1);
         eval { MongoDB::MongoClient->new(host => "mongodb://localhost:" . $self->port)->get_database("admin")->_try_run_command([shutdown => 1]) };
         $self->_logger->debug("Restarting original server with --auth");
@@ -287,12 +288,11 @@ sub _command_args {
 }
 
 sub add_user {
-    my ($self) = @_;
+    my ($self, $user, $password, $roles) = @_;
     $self->_logger->debug("Adding root user");
-    my ($user, $password) = @{ $self->auth_config }{qw/user password/};
     my $doc = Tie::IxHash->new(
         pwd => $password,
-        roles => [ 'root' ]
+        roles => $roles,
     );
     if ( $self->server_version >= v2.6.0 ) {
         $doc->Unshift(createUser => $user);
