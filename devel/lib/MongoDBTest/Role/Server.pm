@@ -283,6 +283,9 @@ sub _command_args {
     if ($self->did_auth_setup) {
         push @args, '--auth';
     }
+    if ( $self->server_version >= v2.4.0 ) {
+        push @args, qw/--setParameter enableTestCommands=1/;
+    }
 
     return @args;
 }
