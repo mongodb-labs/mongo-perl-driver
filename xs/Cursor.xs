@@ -93,7 +93,7 @@ static mongo_cursor* get_cursor(SV *self) {
 static SV *request_id;
 
 static int has_next(SV *self, mongo_cursor *cursor) {
-  SV *link, *limit, *ns, *response_to, *agg_batch_size_sv, *is_parallel;
+  SV *link, *limit, *ns, *response_to, *agg_batch_size_sv, *batch_size, *is_parallel;
   mongo_msg_header header;
   buffer buf;
   int size, heard;
@@ -142,10 +142,12 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   perl_mongo_call_method(self, "_request_id", G_DISCARD, 1, request_id);
   SvREFCNT_dec(response_to);
 
-  perl_mongo_serialize_int(&buf, SvIV(limit));
+  batch_size = perl_mongo_call_reader(self, "_batch_size");
+  perl_mongo_serialize_int(&buf, SvIV(batch_size));
   perl_mongo_serialize_long(&buf, cursor->cursor_id);
   perl_mongo_serialize_size(buf.start, &buf);
 
+  SvREFCNT_dec(batch_size);
   SvREFCNT_dec(limit);
   SvREFCNT_dec(ns);
 

@@ -134,6 +134,15 @@ has _limit => (
     default => 0,
 );
 
+# XXX this is here for testing; we can rationalize this later
+# with _aggregate_batch_size when we convert to pure Perl
+has _batch_size => (
+    is => 'rw',
+    isa => 'Int',
+    required => 0,
+    default => 0,
+);
+
 has _skip => (
     is => 'rw',
     isa => 'Int',
@@ -276,7 +285,7 @@ sub _do_query {
         ($self->immortal << 4) |
         ($self->partial << 7);
 
-    my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit, $self->_query, $self->_fields);
+    my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit || $self->_batch_size, $self->_query, $self->_fields);
     $self->_request_id($info->{'request_id'});
 
     if ( length($query) > $self->_client->_max_bson_wire_size ) {
