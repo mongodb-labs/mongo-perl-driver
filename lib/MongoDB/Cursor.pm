@@ -394,6 +394,9 @@ milliseconds is exceeded.
 
 sub max_time_ms { 
     my ( $self, $num ) = @_;
+    $num = 0 unless defined $num;
+    confess "max_time_ms must be non-negative"
+      if $num < 0;
     confess "can not set max_time_ms after querying"
       if $self->started_iterating;
 
