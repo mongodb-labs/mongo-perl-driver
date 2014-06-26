@@ -296,8 +296,8 @@ next (self)
           cursor->at++;
 
           /* $cmd queries must return the full result document without throwing an error here */
-          if ( strstr(fullname + strlen(fullname) - 4, "$cmd") == NULL
-            && cursor->num == 1 && hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))
+          if ( ( strstr(fullname + strlen(fullname) - 4, "$cmd") == NULL )
+            && hv_exists((HV*)SvRV(RETVAL), "$err", strlen("$err"))
           ) {
             SV **err = 0, **code = 0;
 
