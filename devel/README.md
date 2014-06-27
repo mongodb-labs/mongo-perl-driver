@@ -20,7 +20,8 @@ Subdirectories include:
 * bin — harnesses and other helper programs
 * clusters — cluster definition files in YAML format
 * lib - Perl modules for orchestration
-* t-large — Perl test files
+* t-dynamic — Perl test files that spin up own cluster for testing
+* stale -- legacy test files not yet adapted for new orchestration
 
 Configuration
 -------------
@@ -36,4 +37,18 @@ command would set MONGOPATH to include all of them:
     export MONGOPATH=$(find ~/mongodb -type d -name bin | sort -r \
         | perl -wE 'say join(":",map {chomp; $_} <>)')
 
+Sample usage
+------------
 
+Running a t-dynamic test:
+
+    make test TEST_FILES=devel/t-dynamic/CAP-386-bulk-mixed-auth.t
+
+Running all regular test files under a specific configuration:
+
+    ./devel/bin/harness.pl devel/clusters/sharded-2.6.yml -- \
+        make test 
+
+Running a test file under *every* configuration in `devel/clusters`:
+
+    ./devel/bin/test-all.pl make test TEST_FILES=t/bulk.t
