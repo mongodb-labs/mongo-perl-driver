@@ -125,7 +125,9 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $coll->drop;
         my $bulk = $coll->$method;
         is( $coll->count, 0, "no docs in collection" );
-        $bulk->insert( {} );
+        my $doc = {};
+        $bulk->insert( $doc );
+        is( $doc->{_id}, undef, "adding _id doesn't modify original" );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on insert" ) or diag explain $err;
@@ -1186,7 +1188,9 @@ subtest "insert (Tie::IxHash)" => sub {
     my $bulk = $coll->initialize_ordered_bulk_op;
     is( $coll->count, 0, "no docs in collection" );
     $bulk->insert( Tie::IxHash->new( _id => 1 ) );
-    $bulk->insert( Tie::IxHash->new() );
+    my $doc = Tie::IxHash->new();
+    $bulk->insert( $doc  );
+    is( $doc->FETCH('_id'), undef, "inserting _id doesn't modify original" );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on insert" ) or diag explain $err;

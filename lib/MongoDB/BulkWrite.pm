@@ -175,11 +175,15 @@ sub insert {
           if @$doc % 2;
         $doc = {@$doc};
     }
-
-    if ( ref $doc eq 'Tie::IxHash' ) {
-        $doc->STORE( '_id', MongoDB::OID->new ) unless $doc->EXISTS('_id');
+    elsif ( ref $doc eq 'HASH' ) {
+        $doc = {%$doc}; # shallow copy
     }
     else {
+        $doc = Tie::IxHash->new( map {; $_ => $doc->FETCH($_) } $doc->Keys );
+        $doc->STORE( '_id', MongoDB::OID->new ) unless $doc->EXISTS('_id');
+    }
+
+    if ( ref $doc eq 'HASH' ) {
         $doc->{_id} = MongoDB::OID->new unless exists $doc->{_id};
     }
 
