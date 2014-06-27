@@ -1,0 +1,26 @@
+---
+type: sharded
+default_args: --noprealloc --smallfiles --nohttpinterface --nssize 6 --quiet
+default_version: 2.6
+mongoc:
+    - name: config1
+mongos:
+    - name: router1
+shards:
+    - name: sh1
+      type: replica
+      mongod:
+        - name: host1
+        - name: host2
+        - name: host3
+          rs_config:
+            arbiterOnly: true
+    - name: sh2
+      type: replica
+      mongod:
+        - name: host4
+        - name: host5
+        - name: host6
+          rs_config:
+            arbiterOnly: true
+# vim: ts=4 sts=4 sw=4 et:
