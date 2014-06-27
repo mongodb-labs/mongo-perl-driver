@@ -153,16 +153,4 @@ SKIP: {
 
 }
 
-# test for PERL-264
-{
-    my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
-    my ($connections, $start);
-    for (1..10) {
-        my $conn2 = MongoDBTest::build_client;
-        $connections = $conn->get_database("admin")->_try_run_command([serverStatus => 1])->{connections}{current};
-        $start = $connections unless defined $start
-    }
-    is(abs($connections-$start) < 3, 1, 'connection dropped after scope');
-}
-
 done_testing;
