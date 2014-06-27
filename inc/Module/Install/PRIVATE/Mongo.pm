@@ -95,6 +95,10 @@ $(OBJECT) : perl_mongo.h
 
 cover : pure_all
 	HARNESS_PERL_SWITCHES=-MDevel::Cover make test
+
+ptest : pure_all
+	HARNESS_OPTIONS=j9 make test
+
 HERE
 
     return;
