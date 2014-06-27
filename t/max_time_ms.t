@@ -21,7 +21,7 @@ use Test::Fatal;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb', '$using_2_6';
+use MongoDBTest '$conn', '$testdb', '$using_2_6', '$server_type';
 
 plan skip_all => "maxTimeMS not available before 2.6"
   unless $using_2_6;
@@ -87,6 +87,9 @@ subtest "expected behaviors" => sub {
 subtest "force maxTimeMS failures" => sub {
     plan skip_all => "enableTestCommands is off"
       unless $param && $param->{enableTestCommands};
+
+    plan skip_all => "fail points not supported via mongos"
+      if $server_type eq 'Mongos';
 
     my $cursor = $coll->find( {} )->max_time_ms(100);
     $cursor->_batch_size(5); # force multiple batches to get all docs
