@@ -30,7 +30,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb', '$using_2_6';
+use MongoDBTest '$conn', '$testdb', '$using_2_6', '$server_type';
 
 my $coll;
 my $id;
@@ -885,16 +885,16 @@ SKIP: {
 }
 
 # parallel_scan
-SKIP: {
-    skip( "Parallel scan not supported before MongoDB 2.6", 7 )
+subtest "parallel scan" => sub {
+    plan skip_all => "Parallel scan not supported before MongoDB 2.6"
         unless $using_2_6;
-    skip( "Parallel scan not supported on mongos", 7 )
-        if $conn->_is_mongos;
+    plan skip_all => "Parallel scan not supported on mongos"
+        if $server_type eq 'Mongos';
 
-    my $num_docs = 200;
+    my $num_docs = 2000;
 
     for ( 1..$num_docs ) {
-        $coll->insert( { count => $_ } );
+        $coll->insert( { _id => $_ } );
     }
 
     my $err_re = qr/must be a positive integer between 1 and 10000/;
@@ -907,7 +907,7 @@ SKIP: {
         like( $@, $err_re, "parallel_scan($i) throws error" );
     }
 
-    my $max = 5;
+    my $max = 3;
     my @cursors = $coll->parallel_scan($max);
     ok( scalar @cursors <= $max, "parallel_scan($max) returned <= $max cursors" );
 
@@ -916,20 +916,36 @@ SKIP: {
         like( $@, qr/cannot $method a parallel scan/, "$method on parallel scan cursor throws error" );
     }
 
+    _check_parallel_results( $num_docs, @cursors );
+
+    # read preference
+    subtest "replica set" => sub {
+        plan skip_all => 'needs a replicaset'
+            unless $server_type eq 'RSPrimary';
+
+        my $conn2 = MongoDBTest::build_client();
+        $conn2->read_preference(MongoDB::MongoClient->SECONDARY_PREFERRED);
+
+        my @cursors = $coll->parallel_scan($max);
+        _check_parallel_results( $num_docs, @cursors );
+    };
+};
+
+sub _check_parallel_results {
+    my ($num_docs, @cursors) = @_;
+    local $Test::Builder::Level = $Test::Builder::Level+1;
+
     my %seen;
+    my $count;
     for my $i (0 .. $#cursors ) {
         my @chunk = $cursors[$i]->all;
         ok( @chunk > 0, "cursor $i had some results" );
-        $seen{$_}++ for map { $_->{count} } @chunk;
+        $seen{$_}++ for map { $_->{_id} } @chunk;
+        $count += @chunk;
     }
-    is( scalar keys %seen, $num_docs, "cursors collectively returned all results" );
+    is( $count, $num_docs, "cursors returned right number of docs" );
+    is_deeply( [sort { $a <=> $b } keys %seen], [ 1 .. $num_docs], "cursors returned all results" );
 
 }
 
 done_testing;
-
-END {
-    if ($testdb) {
-        $testdb->drop;
-    }
-}
