@@ -46,7 +46,7 @@ sub build_client {
 BEGIN { 
     eval { 
         $conn = build_client();
-        $testdb = $conn->get_database('testdb' . time()) or
+        $testdb = $conn->get_database('testdb' . int(rand(2**31))) or
             die "Can't get database\n";
         eval { $conn->get_database("admin")->_try_run_command({ serverStatus => 1 }) }
             or die "Database has auth enabled\n";
