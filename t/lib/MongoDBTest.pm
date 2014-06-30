@@ -26,10 +26,9 @@ use MongoDB;
 use Test::More;
 use version;
 
-our @EXPORT_OK = ( '$conn', '$testdb', '$using_2_6', '$server_type', '$server_version' );
+our @EXPORT_OK = ( '$conn', '$testdb', '$server_type', '$server_version' );
 our $conn;
 our $testdb;
-our $using_2_6;
 our $server_type;
 our $server_version;
 
@@ -62,7 +61,6 @@ BEGIN {
 my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
 my ($version_str) = $build->{version} =~ m{^([0-9.]+)};
 $server_version = version->parse("v$version_str");
-$using_2_6 = $server_version >= v2.5.5;
 
 # check database type
 my $ismaster = $conn->get_database('admin')->_try_run_command({ismaster => 1});

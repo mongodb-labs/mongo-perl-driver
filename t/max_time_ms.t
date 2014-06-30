@@ -21,10 +21,10 @@ use Test::Fatal;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb', '$using_2_6', '$server_type';
+use MongoDBTest '$conn', '$testdb', '$server_version', '$server_type';
 
 plan skip_all => "maxTimeMS not available before 2.6"
-  unless $using_2_6;
+  unless $server_version >= v2.6.0;
 
 my $param = eval {
     $conn->get_database('admin')

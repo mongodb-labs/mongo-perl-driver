@@ -17,7 +17,7 @@
 
 use strict;
 use warnings;
-use Test::More 0.88;
+use Test::More 0.96;
 use Test::Exception;
 use Test::Warn;
 
@@ -30,7 +30,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb', '$using_2_6', '$server_type';
+use MongoDBTest '$conn', '$testdb', '$server_type', '$server_version';
 
 my $coll;
 my $id;
@@ -139,7 +139,7 @@ my $tied;
 
     my $indexes = Tie::IxHash->new(foo => 1, bar => 1, baz => 1);
     $res = $coll->ensure_index($indexes);
-    if ( $using_2_6 ) {
+    if ( $server_version >= v2.6.0 ) {
         ok $res->{ok};
     } else { 
         ok(!defined $res);
@@ -152,7 +152,7 @@ my $tied;
     $indexes = Tie::IxHash->new(foo => 1, bar => 1);
     $res = $coll->ensure_index($indexes);
 
-    if ( $using_2_6 ) {
+    if ( $server_version >= v2.6.0 ) {
         ok $res->{ok};
     } else { 
         ok(!defined $res);
@@ -164,7 +164,7 @@ my $tied;
 
     $res = $coll->ensure_index({boo => 1}, {unique => 1});
 
-    if ( $using_2_6 ) {
+    if ( $server_version >= v2.6.0 ) {
         ok $res->{ok};
     } else { 
         ok(!defined $res);
@@ -215,7 +215,7 @@ my $tied;
 
     my $res = $coll->ensure_index({foo => 1}, {unique => 1, drop_dups => 1});
 
-    if ( $using_2_6 ) {
+    if ( $server_version >= v2.6.0 ) {
         ok $res->{ok};
     } else {
         ok(!defined $res);
@@ -230,7 +230,7 @@ my $tied;
     my $res;
     $res = $coll->ensure_index({foo => 1, bar => -1, baz => 1});
 
-    if ( $using_2_6 ) {
+    if ( $server_version >= v2.6.0 ) {
         ok $res->{ok};
     } else { 
         ok(!defined $res);
@@ -238,7 +238,7 @@ my $tied;
 
     $res = $coll->ensure_index([foo => 1, bar => 1]);
 
-    if ( $using_2_6 ) {
+    if ( $server_version >= v2.6.0 ) {
         ok $res->{ok};
     } else { 
         ok(!defined $res);
@@ -441,10 +441,9 @@ my $tied;
 }
 
 # check with upsert if there are matches
-SKIP: {
-    my $admin = $conn->get_database('admin');
-    my $buildinfo = $admin->run_command({buildinfo => 1});
-    skip "multiple update won't work with db version $buildinfo->{version}", 5 if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.[12]\d*.\d+)/;
+subtest "multiple update" => sub {
+    plan skip_all => "multiple update won't work with db version $server_version"
+      unless $server_version >= v1.3.0;
 
     $coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1});
     is($coll->count({"x" => 3}), 2, 'count');
@@ -461,7 +460,7 @@ SKIP: {
     ok($coll->find_one({"z" => 4}));
 
     is($coll->count(), 5);
-}
+};
 
 
 # uninitialised array elements
@@ -648,16 +647,12 @@ SKIP: {
 
 # text indices
 subtest 'text indices' => sub {
-    my $res;
-    my $admin = $conn->get_database('admin');
-    my $buildinfo = $admin->run_command({buildinfo => 1});
-    plan skip_all => "text indices won't work with db version $buildinfo->{version}"
-        if $buildinfo->{version} =~ /(0\.\d+\.\d+)|(1\.\d+\.\d+)|(2\.[0123]\d*\.\d+)/;
+    plan skip_all => "text indices won't work with db version $server_version"
+        unless $server_version >= v2.4.0;
 
-    my $cmd = Tie::IxHash->new('getParameter' => 1, 'textSearchEnabled' => 1);
-    $ok = $admin->run_command($cmd);
+    my $res = $conn->get_database('admin')->_try_run_command(['getParameter' => 1, 'textSearchEnabled' => 1]);
     plan skip_all => "text search not enabled"
-        if !$ok->{'textSearchEnabled'};
+        if !$res->{'textSearchEnabled'};
 
     my $coll = $testdb->get_collection('test_text');
     $coll->insert({language => 'english', w1 => 'hello', w2 => 'world'}) foreach (1..10);
@@ -670,7 +665,7 @@ subtest 'text indices' => sub {
         weights => { w1 => 5, w2 => 10 }
     });
 
-    if ( $using_2_6 ) {
+    if ( $server_version >= v2.6.0 ) {
         ok $res->{ok};
     } else { 
         ok(!defined $res);
@@ -683,13 +678,12 @@ subtest 'text indices' => sub {
     is($text_index->{'weights'}->{'w1'}, 5, 'weights option works 1');
     is($text_index->{'weights'}->{'w2'}, 10, 'weights option works 2');
 
-    $cmd = Tie::IxHash->new('text' => 'test_text', 'search' => 'world');
-    my $search = $testdb->run_command($cmd);
+    my $search = $testdb->run_command(['text' => 'test_text', 'search' => 'world']);
 
     # 2.6 changed the response format for text search results, and deprecated
     # the 'text' command. On 2.4, mongos doesn't report the default language
     # and provides stats per shard instead of in total.
-    if ( ! ( $using_2_6 || $conn->_is_mongos) ) {
+    if ( ! ( $server_version >= v2.6.0 || $conn->_is_mongos) ) {
         is($search->{'language'}, 'spanish', 'text search uses preferred language');
         is($search->{'stats'}->{'nfound'}, 10, 'correct number of results found');
     }
@@ -760,14 +754,10 @@ subtest 'text indices' => sub {
 }
 
 # aggregate 
-SKIP: {
-    my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
+subtest "simple aggregation" => sub {
+    plan skip_all => "Aggregation framework unsupported on MongoDB $server_version"
+        unless $server_version >= v2.2.0;
 
-    # skip aggregation tests if we're running against MongoDB < 2.2.
-    unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 2 ) {
-        skip "Aggregation framework unsupported on MongoDB $build->{version}", 3;
-    }
- 
     $coll->batch_insert( [ { wanted => 1, score => 56 },
                            { wanted => 1, score => 72 },
                            { wanted => 1, score => 96 },
@@ -783,16 +773,12 @@ SKIP: {
     ok $res->[0]{avgScore} < 59;
     ok $res->[0]{avgScore} > 57;
 
-}
+};
 
 # aggregation cursors
-SKIP: {
-    my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
-
-    # skip aggregation cursor tests if we're running against MongoDB < 2.5
-    unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) { 
-        skip "Aggregation cursors are unsupported on MongoDB $build->{version}", 108
-    }
+subtest "aggregation cursors" => sub {
+    plan skip_all => "Aggregation cursors unsupported on MongoDB $server_version"
+        unless $server_version >= v2.5.0;
 
     for( 1..20 ) { 
         $coll->insert( { count => $_ } );
@@ -827,16 +813,12 @@ SKIP: {
     }
 
     $coll->drop;
-}
+};
 
 # aggregation $out
-SKIP: {
-    my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
-
-    # skip aggregation $out tests if we're running against MongoDB < 2.5
-    unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) {
-        skip "Aggregation result collections are unsupported on MongoDB $build->{version}", 41; 
-    }
+subtest "aggregation \$out" => sub {
+    plan skip_all => "Aggregation result collections unsupported on MongoDB $server_version"
+        unless $server_version >= v2.5.0;
 
     for( 1..20 ) {
         $coll->insert( { count => $_ } );
@@ -856,16 +838,12 @@ SKIP: {
 
     $res_coll->drop;
     $coll->drop;
-}
+};
 
 # aggregation explain
-SKIP: { 
-    my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
-
-    # skip explain tests if we're running against MongoDB < 2.5
-    unless ( $build->{versionArray}[0] >= 2 && $build->{versionArray}[1] >= 5 ) { 
-        skip "Aggregation explain output unsupported on MongoDB $build->{version}", 3;
-    }
+subtest "aggregation explain" => sub {
+    plan skip_all => "Aggregation explain unsupported on MongoDB $server_version"
+        unless $server_version >= v2.5.0;
 
     for ( 1..20 ) { 
         $coll->insert( { count => $_ } );
@@ -882,12 +860,12 @@ SKIP: {
     ok exists $result->{stages};
     
     $coll->drop;
-}
+};
 
 # parallel_scan
 subtest "parallel scan" => sub {
     plan skip_all => "Parallel scan not supported before MongoDB 2.6"
-        unless $using_2_6;
+        unless $server_version >= v2.6.0;
     plan skip_all => "Parallel scan not supported on mongos"
         if $server_type eq 'Mongos';
 
