@@ -18,7 +18,7 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
+use Test::Fatal;
 use Test::Warn;
 
 use MongoDB::Timestamp; # needed if db is being run as master
@@ -28,16 +28,21 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest '$conn', '$testdb';
 
-throws_ok {
-    MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL});
-} qr/couldn't connect to server/, 'exception on connection failure';
+like(
+    exception { MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL}); },
+    qr/couldn't connect to server/,
+    'exception on connection failure'
+);
 
 SKIP: {
     skip "connecting to default host/port won't work with a remote db", 13 if exists $ENV{MONGOD};
 
-    lives_ok {
-        $conn = MongoDB::MongoClient->new(ssl => $ENV{MONGO_SSL});
-    } 'successful connection';
+    is(
+        exception { $conn = MongoDB::MongoClient->new(ssl => $ENV{MONGO_SSL}); },
+        undef,
+        'successful connection'
+    ) ;
+
     isa_ok($conn, 'MongoDB::MongoClient');
 
     is($conn->host, 'mongodb://localhost:27017', 'host default value');
@@ -49,22 +54,30 @@ SKIP: {
     $to = MongoDB::MongoClient->new('timeout' => 2000000, ssl => $ENV{MONGO_SSL});
 
     # test conn format
-    lives_ok {
-        $conn = MongoDB::MongoClient->new("host" => "mongodb://localhost:27017", ssl => $ENV{MONGO_SSL});
-    } 'connected';
+    is(
+        exception { $conn = MongoDB::MongoClient->new("host" => "mongodb://localhost:27017", ssl => $ENV{MONGO_SSL}); },
+        undef,
+        'connected'
+    );
 
-    lives_ok {
-        $conn = MongoDB::MongoClient->new("host" => "mongodb://localhost:27017,", ssl => $ENV{MONGO_SSL});
-    } 'extra comma';
+    is(
+        exception { $conn = MongoDB::MongoClient->new("host" => "mongodb://localhost:27017,", ssl => $ENV{MONGO_SSL}); },
+        undef,
+        'extra comma'
+    );
 
-    lives_ok {
-        my $ip = 27020;
-        while ((exists $ENV{DB_PORT} && $ip eq $ENV{DB_PORT}) ||
-               (exists $ENV{DB_PORT2} && $ip eq $ENV{DB_PORT2})) {
-            $ip++;
-        }
-        my $conn2 = MongoDB::MongoClient->new("host" => "mongodb://localhost:".$ip.",localhost:".($ip+1).",localhost", ssl => $ENV{MONGO_SSL});
-    } 'last in line';
+    is(
+        exception {
+            my $ip = 27020;
+            while ((exists $ENV{DB_PORT} && $ip eq $ENV{DB_PORT}) ||
+                (exists $ENV{DB_PORT2} && $ip eq $ENV{DB_PORT2})) {
+                $ip++;
+            }
+            my $conn2 = MongoDB::MongoClient->new("host" => "mongodb://localhost:".$ip.",localhost:".($ip+1).",localhost", ssl => $ENV{MONGO_SSL});
+        },
+        undef,
+        'last in line'
+    );
 
     is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/example_db')->db_name, 'example_db', 'connection uri database');
     is(MongoDB::MongoClient->new('host' => 'mongodb://localhost,/example_db')->db_name, 'example_db', 'connection uri database trailing comma');
@@ -102,7 +115,11 @@ SKIP: {
     $conn->w("tag");
     is($conn->w, "tag", "set w to string");
 
-    dies_ok { $conn->w({tag => 1});} "Setting w to anything but a string or int dies.";
+    isnt(
+        exception { $conn->w({tag => 1});},
+        undef,
+        "Setting w to anything but a string or int dies."
+    );
 
     is($conn->wtimeout, 1000, "get wtimeout");
     $conn->wtimeout(100);
@@ -145,11 +162,11 @@ SKIP: {
     is $conn->min_wire_version, 0, 'default min wire version';
     is $conn->max_wire_version, 2, 'default max wire version';
 
-    throws_ok {
-        MongoDBTest::build_client(
-            min_wire_version => 99, max_wire_version => 100
-        );
-    } qr/Incompatible wire protocol/i, 'exception on wire protocol';
+    like(
+        exception { MongoDBTest::build_client( min_wire_version => 99, max_wire_version => 100) },
+        qr/Incompatible wire protocol/i,
+        'exception on wire protocol'
+    );
 
 }
 

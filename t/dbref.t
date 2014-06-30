@@ -18,7 +18,7 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
+use Test::Fatal;
 
 use MongoDB;
 use Scalar::Util 'blessed', 'reftype';
@@ -55,13 +55,17 @@ plan tests => 28;
     $testdb->get_collection( 'test_coll' )->insert( { _id => 123, foo => 'bar' } );
 
     my $ref = MongoDB::DBRef->new( db => 'fake_db_does_not_exist', 'ref', 'fake_coll_does_not_exist', id => 123 );
-    throws_ok { $ref->fetch } qr/Can't fetch DBRef without a MongoClient/;
+    like(
+        exception { $ref->fetch },
+        qr/Can't fetch DBRef without a MongoClient/,
+        "fetch without dbref throws exception"
+    );
 
     $ref->client( $conn );
-    throws_ok { $ref->fetch } qr/No such database fake_db_does_not_exist/;
+    like( exception { $ref->fetch }, qr/No such database fake_db_does_not_exist/, "db doesn't exist throws" );
 
     $ref->db( $testdb->name );
-    throws_ok { $ref->fetch } qr/No such collection fake_coll_does_not_exist/;
+    like( exception { $ref->fetch }, qr/No such collection fake_coll_does_not_exist/, "collection doesn't exist throws" );
 
     $ref->ref( 'test_coll' );
     

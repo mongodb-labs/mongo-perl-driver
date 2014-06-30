@@ -18,7 +18,6 @@
 use strict;
 use warnings;
 use Test::More 0.96;
-use Test::Exception;
 use Test::Fatal;
 use Test::Warn;
 
@@ -117,9 +116,7 @@ my $tied;
 
 # validate and remove
 {
-    lives_ok {
-        $coll->validate;
-    } 'validate';
+    is( exception { $coll->validate }, undef, 'validate' );
 
     $coll->remove($obj);
     is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');

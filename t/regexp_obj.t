@@ -18,7 +18,7 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
+use Test::Fatal;
 
 use MongoDB;
 
@@ -38,9 +38,11 @@ plan tests => 9;
     is $regexp->flags, 'ims';
 }
 
-throws_ok {
-    my $regexp = MongoDB::BSON::Regexp->new( pattern => 'narf', flags => 'xyz' );
-} qr/Regexp flag \w is not supported/, 'exception on invalid flag';
+like(
+    exception { my $regexp = MongoDB::BSON::Regexp->new( pattern => 'narf', flags => 'xyz' ); },
+    qr/Regexp flag \w is not supported/,
+    'exception on invalid flag'
+);
 
 
 {

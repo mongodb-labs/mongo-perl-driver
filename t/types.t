@@ -17,7 +17,6 @@
 use strict;
 use warnings;
 use Test::More 0.96;
-use Test::Exception;
 
 use MongoDB;
 use MongoDB::OID;

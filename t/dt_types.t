@@ -18,7 +18,7 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
+use Test::Fatal;
 use Test::Warn;
 
 use MongoDB::Timestamp; # needed if db is being run as master
@@ -67,9 +67,12 @@ my $now = DateTime->now;
 {
     $testdb->get_collection( 'test_collection' )->insert( { date => $now } );
     $conn->dt_type( 'DateTime::Bad' );
-    throws_ok { 
-        my $date4 = $testdb->get_collection( 'test_collection' )->find_one->{date};
-    } qr/Invalid dt_type "DateTime::Bad"/i;
+    like( exception { 
+            my $date4 = $testdb->get_collection( 'test_collection' )->find_one->{date};
+        },
+        qr/Invalid dt_type "DateTime::Bad"/i,
+        "invalid dt_type throws"
+    );
     $testdb->drop;
 }
 

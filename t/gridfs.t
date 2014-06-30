@@ -18,7 +18,6 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
 use IO::File;
 use File::Temp;
 use File::Slurp qw(read_file write_file);

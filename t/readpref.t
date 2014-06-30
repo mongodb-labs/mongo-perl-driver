@@ -18,7 +18,7 @@
 use strict;
 use warnings;
 use Test::More 0.96;
-use Test::Exception;
+use Test::Fatal;
 use Test::Warn;
 
 use MongoDB;
@@ -32,15 +32,17 @@ subtest "standalone" => sub {
         unless $server_type eq 'Standalone';
 
     ok(!$conn->_readpref_pinned, 'nothing should be pinned yet');
-    throws_ok {
-        $conn->read_preference(MongoDB::MongoClient->PRIMARY);
-    } qr/Read preference must be used with a replica set/,
-    'read_preference PRIMARY failure on standalone mongod';
+    like(
+        exception { $conn->read_preference(MongoDB::MongoClient->PRIMARY); },
+        qr/Read preference must be used with a replica set/,
+        'read_preference PRIMARY failure on standalone mongod',
+    );
 
-    throws_ok {
-        $conn->read_preference(MongoDB::MongoClient->SECONDARY);
-    } qr/Read preference must be used with a replica set/,
-    'read_preference SECONDARY failure on standalone mongod';
+    like(
+        exception { $conn->read_preference(MongoDB::MongoClient->SECONDARY); },
+        qr/Read preference must be used with a replica set/,
+        'read_preference SECONDARY failure on standalone mongod',
+    );
 
     ok(!$conn->_readpref_pinned, 'still nothing pinned');
 
@@ -94,30 +96,30 @@ subtest "replica set" => sub {
 
     # error cases
     {
-        throws_ok {
+        like( exception  {
             $conn->read_preference(MongoDB::MongoClient->PRIMARY, [{use => 'production'}]);
-        } qr/PRIMARY cannot be combined with tags/,
-        'PRIMARY cannot be combined with tags';
+        }, qr/PRIMARY cannot be combined with tags/,
+        'PRIMARY cannot be combined with tags');
 
-        throws_ok {
-            $conn->read_preference();
-        } qr/Missing read preference mode/,
-        'Missing read preference mode';
+        like( exception  {
+            $conn->read_preference()
+        }, qr/Missing read preference mode/,
+        'Missing read preference mode');
 
-        throws_ok {
-            $conn->read_preference(-1);
-        } qr/Unrecognized read preference mode/,
-        'bad readpref mode 1';
+        like( exception  {
+            $conn->read_preference(-1)
+        }, qr/Unrecognized read preference mode/,
+        'bad readpref mode 1');
 
-        throws_ok {
+        like( exception  {
             $conn->read_preference(5);
-        } qr/Unrecognized read preference mode/,
-        'bad readpref mode 2';
+        }, qr/Unrecognized read preference mode/,
+        'bad readpref mode 2');
 
-        throws_ok {
+        like( exception  {
             $conn->read_preference(MongoDB::MongoClient->NEAREST);
-        } qr/NEAREST read preference mode not supported/,
-        'NEAREST read preference mode not supported';
+        }, qr/NEAREST read preference mode not supported/,
+        'NEAREST read preference mode not supported');
     }
 
     # set read preference on the cursor

@@ -18,7 +18,6 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
 use Tie::IxHash;
 
 use MongoDB;

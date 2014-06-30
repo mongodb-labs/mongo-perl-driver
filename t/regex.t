@@ -18,7 +18,6 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
 use Test::Warn;
 
 use MongoDB::Timestamp; # needed if db is being run as master
