@@ -19,6 +19,7 @@ use strict;
 use warnings;
 use Test::More 0.96;
 use Test::Exception;
+use Test::Fatal;
 use Test::Warn;
 
 use utf8;
@@ -754,7 +755,7 @@ subtest 'text indices' => sub {
 }
 
 # aggregate 
-subtest "simple aggregation" => sub {
+subtest "aggregation" => sub {
     plan skip_all => "Aggregation framework unsupported on MongoDB $server_version"
         unless $server_version >= v2.2.0;
 
@@ -773,6 +774,13 @@ subtest "simple aggregation" => sub {
     ok $res->[0]{avgScore} < 59;
     ok $res->[0]{avgScore} > 57;
 
+    if ( $server_version < v2.5.0 ) {
+        like(
+            exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
+            qr/unrecognized field.*cursor/,
+            "asking for cursor when unsupported throws error"
+        );
+    }
 };
 
 # aggregation cursors
