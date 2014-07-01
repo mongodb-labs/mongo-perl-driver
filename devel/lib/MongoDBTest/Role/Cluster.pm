@@ -27,6 +27,7 @@ requires 'stop';
 requires 'as_uri';
 requires 'as_pairs';
 requires 'get_server';
+requires 'all_servers';
 
 has config => (
     is => 'ro',

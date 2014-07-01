@@ -28,7 +28,7 @@ use namespace::clean;
 has server_set => (
     is => 'lazy',
     isa => ConsumerOf['MongoDBTest::Role::ServerSet'],
-    handles => [qw/start stop as_uri as_pairs get_server/]
+    handles => [qw/start stop as_uri as_pairs get_server all_servers/]
 );
 
 my $anon_rs_number = 0;
