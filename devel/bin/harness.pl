@@ -42,6 +42,16 @@ unless ( $config_file && @command ) {
     die "usage: $0 <config-file> <command> [args ...]\n"
 }
 
+if ( ! -f $config_file ) {
+    my $new_config = "devel/clusters/$config_file";
+    if ( -f $new_config ) {
+        $config_file = $new_config;
+    }
+    else {
+        die "$config_file could not be found\n";
+    }
+}
+
 say "Creating a cluster from $config_file";
 
 my $orc = MongoDBTest::Orchestrator->new( config_file => $config_file );
