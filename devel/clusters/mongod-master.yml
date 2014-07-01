@@ -1,6 +1,6 @@
 ---
 type: single
-default_args: --noprealloc --smallfiles --nohttpinterface --nssize 6 --master
+default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --master
 default_version: ">=2.0"
 mongod:
     - name: host1

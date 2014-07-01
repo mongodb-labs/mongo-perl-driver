@@ -1,7 +1,7 @@
 ---
 type: replica
 setName: foo
-default_args: --noprealloc --smallfiles --nohttpinterface --nssize 6 --quiet
+default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --quiet
 default_version: 2.4
 mongod:
     - name: host1
