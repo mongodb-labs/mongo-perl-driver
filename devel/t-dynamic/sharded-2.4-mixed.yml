@@ -4,6 +4,7 @@ default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssiz
 default_version: 2.4
 mongoc:
     - name: config1
+      version: 2.6
 mongos:
     - name: router1
 shards:
