@@ -848,22 +848,22 @@ subtest "aggregation \$out" => sub {
 # aggregation explain
 subtest "aggregation explain" => sub {
     plan skip_all => "Aggregation explain unsupported on MongoDB $server_version"
-        unless $server_version >= v2.5.0;
+        unless $server_version >= v2.4.0;
 
-    for ( 1..20 ) { 
+    for ( 1..20 ) {
         $coll->insert( { count => $_ } );
     }
-    
+
     my $result = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$sort' => { count => 1 } } ], 
                                    { explain => 1 } );
 
+    is( ref( $result ), 'HASH', "aggregate with explain returns a hashref" );
 
-    ok $result;
+    my $expected = $server_version >= v2.6.0 ? 'stages' : 'serverPipeline';
 
-    is( ref( $result ), ref { } );
-    
-    ok exists $result->{stages};
-    
+    ok( exists $result->{$expected}, "result had '$expected' field" )
+        or diag explain $result;
+
     $coll->drop;
 };
 
