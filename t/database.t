@@ -68,6 +68,7 @@ subtest 'getlasterror' => sub {
     plan skip_all => "MongoDB 1.5+ needed"
         unless $server_version >= v1.5.0;
 
+    $testdb->run_command([ismaster => 1]);
     my $result = $testdb->last_error({fsync => 1});
     is($result->{ok}, 1);
     is($result->{err}, undef);
