@@ -21,6 +21,7 @@ package MongoDB::Connection;
 use version;
 our $VERSION = 'v0.704.1.1';
 
+use Moose;
 use MongoDB;
 use MongoDB::Cursor;
 use MongoDB::MongoClient;
@@ -30,7 +31,6 @@ use Digest::MD5;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
-use Moose;
 use namespace::clean -except => 'meta';
 
 has '_client' => (

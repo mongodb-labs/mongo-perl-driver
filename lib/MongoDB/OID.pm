@@ -22,6 +22,7 @@ use version;
 our $VERSION = 'v0.704.1.1';
 
 use Moose;
+use MongoDB;
 use namespace::clean -except => 'meta';
 
 =head1 NAME
