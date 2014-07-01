@@ -93,7 +93,7 @@ sub start {
     my $admin_db = $client->get_database("admin");
 
     # XXX later maybe do shard start in parallel with other start and loop later to add
-    for my $k ( keys %{ $self->shard_sets } ) {
+    for my $k ( sort keys %{ $self->shard_sets } ) {
         my $shard = $self->shard_sets->{$k};
 
         $self->_logger->debug("starting shard $k");
