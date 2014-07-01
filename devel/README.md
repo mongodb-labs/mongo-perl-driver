@@ -18,10 +18,16 @@ Contents
 Subdirectories include:
 
 * bin — harnesses and other helper programs
-* clusters — cluster definition files in YAML format
+* clusters — general-purpose cluster definition files in YAML format
 * lib - Perl modules for orchestration
 * t-dynamic — Perl test files that spin up own cluster for testing
 * stale -- legacy test files not yet adapted for new orchestration
+
+The `t-dynamic` directory may also contain cluster definition YAML files
+if these are so specialized that the regular test suite would fail.
+
+The files in `clusters` should be limited to those for which the
+test suite can succeed.
 
 Configuration
 -------------

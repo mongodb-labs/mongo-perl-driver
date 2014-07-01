@@ -41,11 +41,13 @@ sub build_client {
     );
 }
 
+sub rand_db_name {'testdb' . int(rand(2**31))}
+
 # set up connection to a test database if we can
 BEGIN { 
     eval { 
         $conn = build_client();
-        $testdb = $conn->get_database('testdb' . int(rand(2**31))) or
+        $testdb = $conn->get_database( rand_db_name() ) or
             die "Can't get database\n";
         eval { $conn->get_database("admin")->_try_run_command({ serverStatus => 1 }) }
             or die "Database has auth enabled\n";
