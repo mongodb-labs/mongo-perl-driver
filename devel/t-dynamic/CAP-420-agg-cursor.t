@@ -43,26 +43,9 @@ subtest "2.6 Mongos + 2.4, 2.6 shards" => sub {
     $orc->start;
     $ENV{MONGOD} = $orc->as_uri;
     diag "MONGOD: $ENV{MONGOD}";
-    test_aggregation();
-
-};
-
-subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
-    my $orc =
-    MongoDBTest::Orchestrator->new(
-        config_file => "devel/t-dynamic/sharded-2.4-mixed.yml" );
-    diag "starting cluster";
-    $orc->start;
-    $ENV{MONGOD} = $orc->as_uri;
-    diag "MONGOD: $ENV{MONGOD}";
-    test_aggregation();
-
-};
-
-sub test_aggregation {
-    local $Test::Builder::Level = $Test::Builder::Level+1;
 
     my $conn = MongoDBTest::build_client( dt_type => undef );
+
     my $testdb = $conn->get_database( MongoDBTest::rand_db_name() );
     my $coll   = $testdb->get_collection("test_collection");
 
@@ -73,6 +56,13 @@ sub test_aggregation {
                            { wanted => 1, score => 61 },
                            { wanted => 1, score => 33 },
                            { wanted => 0, score => 1000 } ] );
+
+    # put DB on shard1, which is the 2.4 one, which should fail with cursor
+    eval {
+        my $admin = $conn->get_database("admin");
+        $admin->_try_run_command([movePrimary => $testdb->name, to => 'sh1']);
+        $admin->_try_run_command([flushRouterConfig => 1]);
+    };
 
     my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
                                   { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
@@ -86,6 +76,92 @@ sub test_aggregation {
         qr/unrecognized field.*cursor/,
         "asking for cursor when unsupported throws error"
     );
-}
+
+    # put DB on shard2, which is the 2.6 one, which should succeed
+    eval {
+        my $admin = $conn->get_database("admin");
+        $admin->_try_run_command([movePrimary => $testdb->name, to => 'sh2']);
+        $admin->_try_run_command([flushRouterConfig => 1]);
+    };
+
+    $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
+                                  { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
+
+    is( ref( $res ), ref [ ] );
+    ok $res->[0]{avgScore} < 59;
+    ok $res->[0]{avgScore} > 57;
+
+    is(
+        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
+        undef,
+        "asking for cursor when supported is fine"
+    );
+
+};
+
+subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
+    my $orc =
+    MongoDBTest::Orchestrator->new(
+        config_file => "devel/t-dynamic/sharded-2.4-mixed.yml" );
+    diag "starting cluster";
+    $orc->start;
+    $ENV{MONGOD} = $orc->as_uri;
+    diag "MONGOD: $ENV{MONGOD}";
+
+    my $conn = MongoDBTest::build_client( dt_type => undef );
+
+    my $testdb = $conn->get_database( MongoDBTest::rand_db_name() );
+    my $coll   = $testdb->get_collection("test_collection");
+
+    $coll->batch_insert( [ { wanted => 1, score => 56 },
+                           { wanted => 1, score => 72 },
+                           { wanted => 1, score => 96 },
+                           { wanted => 1, score => 32 },
+                           { wanted => 1, score => 61 },
+                           { wanted => 1, score => 33 },
+                           { wanted => 0, score => 1000 } ] );
+
+    # put DB on shard1, which is the 2.4 one, which should fail with cursor
+    eval {
+        my $admin = $conn->get_database("admin");
+        $admin->_try_run_command([movePrimary => $testdb->name, to => 'sh1']);
+        $admin->_try_run_command([flushRouterConfig => 1]);
+    };
+
+    my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
+                                  { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
+
+    is( ref( $res ), ref [ ] );
+    ok $res->[0]{avgScore} < 59;
+    ok $res->[0]{avgScore} > 57;
+
+    like(
+        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
+        qr/unrecognized field.*cursor/,
+        "asking for cursor when unsupported throws error"
+    );
+
+    # put DB on shard2, which is the 2.6 one, which should still fail 
+    eval {
+        my $admin = $conn->get_database("admin");
+        $admin->_try_run_command([movePrimary => $testdb->name, to => 'sh2']);
+        $admin->_try_run_command([flushRouterConfig => 1]);
+    };
+
+    $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
+                                  { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
+
+    is( ref( $res ), ref [ ] );
+    ok $res->[0]{avgScore} < 59;
+    ok $res->[0]{avgScore} > 57;
+
+    like(
+        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
+        qr/unrecognized field.*cursor/,
+        "asking for cursor when unsupported throws error"
+    );
+
+};
+
 
 done_testing;
