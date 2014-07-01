@@ -49,15 +49,15 @@ subtest "expected behaviors" => sub {
 
     is( exception { $coll->find->max_time_ms()->next },  undef, "find->max_time_ms()" );
     is( exception { $coll->find->max_time_ms(0)->next }, undef, "find->max_time_ms(0)" );
-    is( exception { $coll->find->max_time_ms(1000)->next },
-        undef, "find->max_time_ms(1000)" );
+    is( exception { $coll->find->max_time_ms(5000)->next },
+        undef, "find->max_time_ms(5000)" );
 
     like( exception { $coll->find->max_time_ms(-1)->next },
         qr/non-negative/, "find->max_time_ms(-1) throws exception" );
 
     is(
         exception {
-            my $doc = $coll->find_one( { '$query' => { _id => 1 }, '$maxTimeMS' => 10 } );
+            my $doc = $coll->find_one( { '$query' => { _id => 1 }, '$maxTimeMS' => 5000 } );
         },
         undef,
         "find_one with \$query and \$maxTimeMS works"
@@ -65,7 +65,7 @@ subtest "expected behaviors" => sub {
 
     is(
         exception {
-            my $doc = $testdb->_try_run_command( [ count => $coll->name, maxTimeMS => 1000 ] );
+            my $doc = $testdb->_try_run_command( [ count => $coll->name, maxTimeMS => 5000 ] );
         },
         undef,
         "count command with maxTimeMS works"
@@ -75,7 +75,7 @@ subtest "expected behaviors" => sub {
         exception {
             my $doc = $coll->aggregate(
                 [ { '$project' => { name => 1, count => 1 } } ],
-                { maxTimeMS => 1000 },
+                { maxTimeMS => 5000 },
             );
         },
         undef,
@@ -91,7 +91,7 @@ subtest "force maxTimeMS failures" => sub {
     plan skip_all => "fail points not supported via mongos"
       if $server_type eq 'Mongos';
 
-    my $cursor = $coll->find( {} )->max_time_ms(100);
+    my $cursor = $coll->find( {} )->max_time_ms(5000);
     $cursor->_batch_size(5); # force multiple batches to get all docs
     $cursor->next;           # before turning on fail point
 
