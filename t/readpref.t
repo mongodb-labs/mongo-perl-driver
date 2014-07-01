@@ -156,9 +156,7 @@ subtest "replica set" => sub {
         ok(!$cursor->slave_okay, 'slave_okay false');
         ok(!$cursor->_query->FETCH('$readPreference'), 'no $readPreference field');
         my $cmd_result;
-        lives_ok {
-            $cmd_result = $admin->run_command({resetError => 1});
-        } 'command lives';
+        is( exception { $cmd_result = $admin->run_command({resetError => 1}); }, undef, 'command lives' );
         ok($cmd_result->{'ok'}, 'command ok');
 
         # a command that obeys read pref
@@ -168,9 +166,7 @@ subtest "replica set" => sub {
         is($cursor->_client, $conn->_readpref_pinned, 'query runs on pinned node');
         ok($cursor->slave_okay, 'slave_okay true');
         ok(!$cursor->_query->FETCH('$readPreference'), 'no $readPreference field');
-        lives_ok {
-            $cmd_result = $admin->run_command([dbStats => 1, scale => 1024]);
-        } 'command lives';
+        is( exception { $cmd_result = $admin->run_command([dbStats => 1, scale => 1024]); }, undef, 'command lives');
         ok($cmd_result->{'ok'}, 'command ok');
     }
 
