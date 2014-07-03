@@ -86,7 +86,9 @@ sub _build_shard_sets {
 sub start {
     my ($self) = @_;
 
+    $self->_logger->debug("starting config servers");
     $self->config_servers->start;
+    $self->_logger->debug("starting mongos servers");
     $self->routers->start;
 
     my $client = MongoDB::MongoClient->new( host => $self->routers->as_uri );
