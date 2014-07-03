@@ -36,6 +36,7 @@ note("CAP-455 createIndexes");
 
 my %config_map = (
     'mongod-2.6'  => 'host1',
+    'sharded-2.6' => 'db1',
 );
 
 for my $cluster ( sort keys %config_map ) {
