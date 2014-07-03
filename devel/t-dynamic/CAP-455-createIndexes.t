@@ -40,7 +40,7 @@ my %config_map = (
 );
 
 for my $cluster ( sort keys %config_map ) {
-    subtest $cluster => sub {
+    subtest "$cluster log check"=> sub {
         my $orc =
           MongoDBTest::Orchestrator->new( config_file => "devel/clusters/$cluster.yml" );
         diag "starting cluster";
@@ -64,5 +64,38 @@ for my $cluster ( sort keys %config_map ) {
 
     };
 }
+
+subtest "2.6 mongos with mixed-version mongod" => sub {
+    my $orc =
+        MongoDBTest::Orchestrator->new( config_file => "devel/t-dynamic/sharded-2.6-mixed.yml" );
+    $orc->start;
+    diag "starting cluster";
+    $ENV{MONGOD} = $orc->as_uri;
+    diag "MONGOD: $ENV{MONGOD}";
+
+    my $conn   = MongoDBTest::build_client( dt_type => undef );
+    my $admin  = $conn->get_database("admin");
+    my $testdb = $conn->get_database( MongoDBTest::rand_db_name() );
+    my $coll   = $testdb->get_collection("test_collection");
+
+    # shard and pre-split
+    $admin->_try_run_command([enableSharding => $testdb->name]);
+    $admin->_try_run_command([shardCollection => $coll->full_name, key => { number => 1 }]);
+    $admin->_try_run_command([split => $coll->full_name, middle => { number => 500 }]);
+
+    # wrap in eval since moving cluster to current shard is an error
+    eval { $admin->_try_run_command([moveChunk => $coll->full_name, find => { number => 1}, to => 'sh1']) };
+    eval { $admin->_try_run_command([moveChunk => $coll->full_name, find => { number => 1000}, to => 'sh2']) };
+
+    my $bulk=$coll->ordered_bulk;
+    $bulk->insert( { number => $_, rand => int(rand(2**16)) } ) for 1 .. 1000;
+    $bulk->execute;
+
+    my $res = $coll->ensure_index( [ rand => 1 ] );
+
+    is( $res->{ok}, 1, "index created successfully on sharded collection" )
+        or diag explain $res;
+
+};
 
 done_testing;
