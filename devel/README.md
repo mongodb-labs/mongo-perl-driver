@@ -21,10 +21,14 @@ Subdirectories include:
 * clusters — general-purpose cluster definition files in YAML format
 * lib - Perl modules for orchestration
 * t-dynamic — Perl test files that spin up own cluster for testing
+* t-special — Perl test files that should only be run manually
 * stale -- legacy test files not yet adapted for new orchestration
 
 The `t-dynamic` directory may also contain cluster definition YAML files
 if these are so specialized that the regular test suite would fail.
+
+The `t-special` directory has files with special prerequisites that must
+be satisfied before tests will pass (e.g. compiling with SASL support).
 
 The files in `clusters` should be limited to those for which the
 test suite can succeed.
