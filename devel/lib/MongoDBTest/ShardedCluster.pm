@@ -91,7 +91,9 @@ sub start {
     $self->_logger->debug("starting mongos servers");
     $self->routers->start;
 
-    my $client = MongoDB::MongoClient->new( host => $self->routers->as_uri );
+    my $uri = $self->routers->as_uri;
+    $self->_logger->debug("connecting to mongos at $uri");
+    my $client = MongoDB::MongoClient->new( host => $uri );
     my $admin_db = $client->get_database("admin");
 
     # XXX later maybe do shard start in parallel with other start and loop later to add
