@@ -1,0 +1,13 @@
+---
+type: sharded
+default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --quiet
+mongoc:
+    - name: config1
+mongos:
+    - name: router1
+shards:
+    - name: sh1
+      type: single
+      mongod:
+          - name: db1
+# vim: ts=4 sts=4 sw=4 et:
