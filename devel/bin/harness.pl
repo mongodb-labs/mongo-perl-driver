@@ -18,8 +18,6 @@ use v5.10;
 use strict;
 use warnings;
 
-use if -d 'blib', 'blib';
-
 use lib 'devel/lib';
 use MongoDBTest::Orchestrator;
 
