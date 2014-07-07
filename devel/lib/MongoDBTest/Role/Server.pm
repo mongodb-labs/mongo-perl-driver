@@ -239,7 +239,8 @@ sub start {
     $self->_set_guard( $guard );
     $self->_logger->debug("Waiting for port " . $self->port);
     # XXX eventually refactor out so this can be done in parallel
-    wait_port($self->port, $self->timeout);
+    wait_port($self->port, $self->timeout)
+        or die sprintf("Timed out waiting for %s on port %d after %d seconds", $self->name, $self->port, $self->timeout);t;
     if ( $self->auth_config && ! $self->did_auth_setup ) {
         my ($user, $password) = @{ $self->auth_config }{qw/user password/};
         $self->add_user($user, $password, [ 'root' ]);
