@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.704.2.0 2014-07-08 12:04:02-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-376 fixed fatal error loading the MongoDB::MongoClient module before

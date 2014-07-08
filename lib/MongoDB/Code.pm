@@ -20,7 +20,7 @@ package MongoDB::Code;
 # ABSTRACT: JavaScript Code
 
 use version;
-our $VERSION = 'v0.704.1.1';
+our $VERSION = 'v0.704.2.1';
 
 =head1 NAME
 

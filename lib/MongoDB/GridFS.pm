@@ -20,7 +20,7 @@ package MongoDB::GridFS;
 # ABSTRACT: A file storage utility
 
 use version;
-our $VERSION = 'v0.704.1.1';
+our $VERSION = 'v0.704.2.1';
 
 use MongoDB::GridFS::File;
 use DateTime 0.78; # drops dependency on bug-prone Math::Round
