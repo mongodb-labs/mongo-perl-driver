@@ -235,8 +235,8 @@ sub start {
         $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
         my $guard = proc_guard(
             sub {
-                close STDOUT;
-                close STDERR;
+                close STDOUT unless $ENV{MONGOVERBOSE};
+                close STDERR unless $ENV{MONGOVERBOSE};
                 close STDIN;
                 exec( $self->executable, $self->_command_args );
             }
