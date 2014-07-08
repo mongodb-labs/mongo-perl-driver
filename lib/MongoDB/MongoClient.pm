@@ -474,6 +474,10 @@ sub _get_a_specific_connection {
 sub _get_any_connection {
     my ($self) = @_;
 
+    if ( ! keys %{$self->_servers} ) {
+        return $self;
+    }
+
     while ((my $key, my $value) = each(%{$self->_servers})) {
         my $conn = $self->_get_a_specific_connection($key);
         if ($conn) {
