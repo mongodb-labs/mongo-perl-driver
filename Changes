@@ -4,8 +4,27 @@
 
   [Bug fixes]
 
+  - PERL-376 fixed fatal error loading the MongoDB::MongoClient module before
+    loading the top-level MongoDB module
+
+  - Fixed cursor to catch query or timeout errors that occur after the initial
+    query batch is received
+
   - Fixed primary server selection to retry for 60 seconds instead of
     immediately failing with an error
+
+  - Changed bulk insert to shallow copy inserted documents before adding
+    an '_id' field (if it didn't exist) to avoid modifying the original
+
+  [Testing]
+
+  - Fixed t/database.t for old versions of mongos
+
+  - PERL-355 Added support for parallel testing
+
+  - Finished converting from Test::Exception to the more robust Test::Fatal
+
+  - Improved test coverage
 
 v0.704.1.0 2014-06-17 21:55:18-04:00 America/New_York
 
