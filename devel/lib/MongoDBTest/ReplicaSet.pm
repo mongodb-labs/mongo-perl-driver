@@ -22,6 +22,7 @@ use MongoDB;
 
 use JSON;
 use Moo;
+use Try::Tiny::Retry qw/:all/;
 use Types::Standard -types;
 use namespace::clean;
 
@@ -84,29 +85,33 @@ sub rs_initiate {
     $client->get_database("admin")->_try_run_command({replSetInitiate => $rs_config});
 
     $self->_logger->debug("waiting for primary");
-    my $c = 1;
-    $self->client->get_master;
+
+    $self->wait_for_all_hosts;
 
     return;
 }
 
 sub wait_for_all_hosts {
     my ($self) = @_;
-    my $client = eval {$self->client};
-    die "Couldn't get client: $@" if $@;
-    my $admin = $client->get_database("admin");
-    my $c = 1;
-    while (1) {
+    my ($first) = $self->all_servers;
+    retry {
+        my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
+        my $admin = $client->get_database("admin");
         if ( my $status = eval { $admin->_try_run_command({replSetGetStatus => 1}) } ) {
             my @member_states = map { $_->{state} } @{ $status->{members} };
             $self->_logger->debug("host states: @member_states");
-            last if @member_states == grep { $_ == 1 || $_ == 2 } @member_states; # all primary or secondary
+            die "Hosts not all PRIMARY or SECONDARY or ARBITER\n"
+              unless @member_states == grep { $_ == 1 || $_ == 2 || $_ == 7 } @member_states;
         }
-        $self->_logger->debug("waiting for all hosts to be online")
-            if $c++ % 5 == 0;
-        die "never got all hosts up\n" if $c > 120; # XXX hard coded
+        else {
+            die "Can't get replica set status";
+        }
     }
-    continue { sleep 1 }
+    delay {
+        return if $_[0] >= 180;
+        sleep 1;
+    }
+    catch { chomp; die "$_. Giving up!" };
 
     return;
 }
