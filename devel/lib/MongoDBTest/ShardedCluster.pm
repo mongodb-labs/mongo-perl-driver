@@ -23,6 +23,7 @@ use MongoDBTest::Cluster;
 use MongoDBTest::ServerSet;
 
 use Moo;
+use Try::Tiny::Retry qw/:all/;
 use Types::Standard -types;
 use Type::Utils -all;
 use namespace::clean;
@@ -93,7 +94,9 @@ sub start {
 
     my $uri = $self->routers->as_uri;
     $self->_logger->debug("connecting to mongos at $uri");
-    my $client = MongoDB::MongoClient->new( host => $uri );
+    my $client = retry { MongoDB::MongoClient->new( host => $uri ) }
+        catch { chomp; die "$_. Giving up!\n" };
+
     my $admin_db = $client->get_database("admin");
 
     # XXX later maybe do shard start in parallel with other start and loop later to add
