@@ -40,6 +40,7 @@ sub _build_server_set {
     return $class->new(
         default_args => $self->default_args,
         default_version => $self->default_version,
+        timeout => $self->timeout,
         auth_config => $self->auth_config,
         server_config_list => $self->config->{mongod},
         $self->is_replica ? ( set_name => $self->config->{setName} // "rs" . $anon_rs_number++ ) : (),

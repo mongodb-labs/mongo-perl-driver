@@ -24,6 +24,7 @@ use CPAN::Meta::Requirements;
 use Path::Tiny;
 use Proc::Guard;
 use Sys::Hostname;
+use Try::Tiny::Retry 0.004 ":all";
 use Net::EmptyPort qw/empty_port wait_port/;
 use Version::Next qw/next_version/;
 use version;
@@ -84,7 +85,7 @@ has default_version => (
 has timeout => (
     is => 'ro',
     isa => Str,
-    default => 60,
+    default => 120,
 );
 
 has hostname => (
@@ -226,21 +227,33 @@ sub _build_client {
 
 sub start {
     my ($self) = @_;
-    $self->_set_port(empty_port());
-    $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
-    my $guard = proc_guard(
-        sub {
-            close STDOUT;
-            close STDERR;
-            close STDIN;
-            exec( $self->executable, $self->_command_args );
-        }
-    );
-    $self->_set_guard( $guard );
-    $self->_logger->debug("Waiting for port " . $self->port);
-    # XXX eventually refactor out so this can be done in parallel
-    wait_port($self->port, $self->timeout)
-        or die sprintf("Timed out waiting for %s on port %d after %d seconds", $self->name, $self->port, $self->timeout);t;
+    retry {
+        $self->_set_port(empty_port());
+        $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
+        my $guard = proc_guard(
+            sub {
+                close STDOUT;
+                close STDERR;
+                close STDIN;
+                exec( $self->executable, $self->_command_args );
+            }
+        );
+        $self->_set_guard( $guard );
+        $self->_logger->debug("Waiting for port " . $self->port);
+        # XXX eventually refactor out so this can be done in parallel
+        wait_port($self->port, $self->timeout)
+            or die sprintf("Timed out waiting for %s on port %d after %d seconds\n", $self->name, $self->port, $self->timeout);
+    }
+    on_retry {
+        warn $_;
+        $self->clear_guard;
+        $self->_logger->debug("Retrying server start for " . $self->name);
+    }
+    delay {
+        return if $_[0] > 1;
+    }
+    catch { chomp; die "$_. Giving up!\n" };
+
     if ( $self->auth_config && ! $self->did_auth_setup ) {
         my ($user, $password) = @{ $self->auth_config }{qw/user password/};
         $self->add_user($user, $password, [ 'root' ]);

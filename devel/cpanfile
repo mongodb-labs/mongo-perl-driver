@@ -9,6 +9,7 @@ requires "Net::EmptyPort";
 requires "Path::Tiny";
 requires "Proc::Guard";
 requires "Sys::Hostname";
+requires "Try::Tiny::Retry" => 0.004;
 requires "Type::Utils";
 requires "Types::Path::Tiny";
 requires "Types::Standard";

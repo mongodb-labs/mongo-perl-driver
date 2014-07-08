@@ -50,6 +50,16 @@ has default_version => (
     isa => Str,
 );
 
+has timeout => (
+    is => 'lazy',
+    isa => Maybe[Num],
+);
+
+sub _build_timeout {
+    my ($self) = @_;
+    return $self->config->{timeout};
+}
+
 sub _build_default_version {
     my ($self) = @_;
     return $self->config->{default_version} // '';

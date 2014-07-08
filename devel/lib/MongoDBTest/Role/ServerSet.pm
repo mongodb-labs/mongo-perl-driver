@@ -43,6 +43,11 @@ has default_version => (
     required => 1,
 );
 
+has timeout => (
+    is => 'ro',
+    isa => Maybe[Num],
+);
+
 has auth_config => (
     is => 'ro',
     isa => Maybe[HashRef],
@@ -79,6 +84,7 @@ sub _build__servers {
             default_args => $self->default_args,
             default_version => $self->default_version,
             auth_config => $self->auth_config,
+            ( $self->timeout ? ( timeout => $self->timeout ) : () ),
         );
     }
     return $set;
