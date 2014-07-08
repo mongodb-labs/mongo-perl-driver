@@ -257,6 +257,13 @@ sub start {
     }
     catch { chomp; die "$_. Giving up!\n" };
 
+    retry {
+        $self->_logger->debug("Pinging " . $self->name . " with ismaster");
+        MongoDB::MongoClient->new(host => $self->as_uri)->get_database("admin")->_try_run_command([ismaster => 1]);
+    }
+    delay_exp { 10, 1e5 }
+    catch { chomp; die "Host is up, but ismaster is failing: $_. Giving up!" };
+
     if ( $self->auth_config && ! $self->did_auth_setup ) {
         my ($user, $password) = @{ $self->auth_config }{qw/user password/};
         $self->add_user($user, $password, [ 'root' ]);
