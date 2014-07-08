@@ -184,6 +184,9 @@ has logfile => (
 
 sub _build_logfile {
     my ($self) = @_;
+    if ( $ENV{MONGOLOGDIR} ) {
+        return path($ENV{MONGOLOGDIR})->absolute->child( $self->name . ".log" );
+    }
     return $self->tempdir->child("mongodb.log");
 }
 
