@@ -94,7 +94,9 @@ sub start {
 
     my $uri = $self->routers->as_uri;
     $self->_logger->debug("connecting to mongos at $uri");
-    my $client = retry { MongoDB::MongoClient->new( host => $uri ) }
+    my $client =
+        retry { MongoDB::MongoClient->new( host => $uri ) }
+        delay_exp { 15, 1e4 }
         catch { chomp; die "$_. Giving up!\n" };
 
     my $admin_db = $client->get_database("admin");
