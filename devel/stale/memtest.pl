@@ -34,7 +34,7 @@ sub test_safe_insert {
     mstat;
 
     for (my $i=0; $i<100000; $i++) {
-        $coll->insert({foo => 1, bar => "baz"}, {safe => 1});
+        $coll->insert({foo => 1, bar => "baz"}, {write_concern => {w => 1}});
         if ($i % 1000 == 0) { 
             print DateTime->now."\n";
             mstat;

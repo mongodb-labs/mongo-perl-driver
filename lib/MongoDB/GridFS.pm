@@ -27,6 +27,7 @@ use DateTime 0.78; # drops dependency on bug-prone Math::Round
 use Digest::MD5;
 use Moose;
 use namespace::clean -except => 'meta';
+use Carp 'carp';
 
 =head1 NAME
 
@@ -137,8 +138,8 @@ sub _ensure_indexes {
     my ($self) = @_;
 
     # ensure the necessary index is present (this may be first usage)
-    $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
-    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1, "unique" => 1});
+    $self->files->ensure_index(Tie::IxHash->new(filename => 1), {write_concern => {w => 1}});
+    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {write_concern => {w => 1}, unique => 1});
 }
 
 =head1 METHODS
@@ -181,7 +182,7 @@ Returns the _id field.
 sub put {
     my ($self, $fh, $metadata) = @_;
 
-    return $self->insert($fh, $metadata, {safe => 1});
+    return $self->insert($fh, $metadata, {write_concern => {w => 1}});
 }
 
 =head2 delete($id)
@@ -196,7 +197,7 @@ Does not return anything on success.
 sub delete {
     my ($self, $id) = @_;
 
-    $self->remove({_id => $id}, {safe => 1});
+    $self->remove({_id => $id}, {write_concern => {w => 1}});
 }
 
 =head2 find_one ($criteria?, $fields?)
@@ -227,9 +228,6 @@ the remove.  Possible options are:
 =item just_one
 If true, only one file matching the criteria will be removed.
 
-=item safe
-If true, each remove will be checked for success and die on failure.
-
 =back
 
 This method doesn't return anything.
@@ -240,12 +238,21 @@ sub remove {
     my ($self, $criteria, $options) = @_;
 
     my $just_one = 0;
-    my $safe = 0;
+    my $wc = $self->_database->_client->_write_concern;
 
     if (defined $options) {
         if (ref $options eq 'HASH') {
             $just_one = $options->{just_one} && 1;
-            $safe = $options->{safe} && 1;
+
+            my $new_wc = $options->{write_concern} || $options->{safe};
+
+            # XXX Remove ability to use safe in next MAJOR version.
+            if ($options->{safe}) {
+                carp "safe is deprecated, use write concern instead.";
+                $new_wc = {w => 1};
+            }
+
+            $wc = $new_wc || $wc;
         }
         elsif ($options) {
             $just_one = $options && 1;
@@ -254,15 +261,15 @@ sub remove {
 
     if ($just_one) {
         my $meta = $self->files->find_one($criteria);
-        $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
-        $self->files->remove({"_id" => $meta->{'_id'}}, {safe => $safe});
+        $self->chunks->remove({"files_id" => $meta->{'_id'}}, {write_concern => $wc});
+        $self->files->remove({"_id" => $meta->{'_id'}}, {write_concern => $wc});
     }
     else {
         my $cursor = $self->files->query($criteria);
         while (my $meta = $cursor->next) {
-            $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
+            $self->chunks->remove({"files_id" => $meta->{'_id'}}, {write_concern => $wc});
         }
-        $self->files->remove($criteria, {safe => $safe});
+        $self->files->remove($criteria, {write_concern => $wc});
     }
 }
 
@@ -273,7 +280,7 @@ sub remove {
 
 Reads from a file handle into the database.  Saves the file with the given
 metadata.  The file handle must be readable.  C<$options> can be
-C<{"safe" => true}>, which will do safe inserts and check the MD5 hash
+C<{"write_concern" => {"w" => 1}}>, which will do safe inserts and check the MD5 hash
 calculated by the database against an MD5 hash calculated by the local
 filesystem.  If the two hashes do not match, then the chunks already inserted
 will be removed and the program will die.
@@ -325,7 +332,9 @@ sub insert {
 
     my %copy = %{$metadata};
     # compare the md5 hashes
-    if ($options->{safe}) {
+    if ($options->{write_concern} or $options->{safe}) {
+        carp "safe is deprecated, use write concern instead." if $options->{safe};
+
         # get an md5 hash for the file. set the retry flag to 'true' incase the 
         # database, collection, or indexes are missing. That way we can recreate them 
         # retry the md5 calc.

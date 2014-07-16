@@ -241,7 +241,7 @@ $grid->drop;
     $grid->drop;
     my $img = new IO::File("t/img.png", "r") or die $!;
     $img->binmode;
-    $grid->insert($img, {filename => 'img.png'}, {safe => boolean::true});
+    $grid->insert($img, {filename => 'img.png'}, {write_concern => {w => 1}});
 
     $file = $grid->find_one;
     is($file->info->{filename}, 'img.png', 'safe insert');

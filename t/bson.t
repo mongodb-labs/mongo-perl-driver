@@ -283,10 +283,10 @@ package main;
     my $insert1 = ['_id' => 1];
     my $insert2 = Tie::IxHash->new('_id' => 2);
 
-    my $id = $c->insert($insert1, {safe => 1});
+    my $id = $c->insert($insert1, {write_concern => {w => 1}});
     is($id, 1);
 
-    $id = $c->insert($insert2, {safe => 1});
+    $id = $c->insert($insert2, {write_concern => {w => 1}});
     is($id, 2);
 }
 
@@ -319,8 +319,8 @@ package main;
 
     my $num = "001";
 
-    $c->insert({num => $num}, {safe => 1});
-    $c->insert({num => bless(\$num, "MongoDB::BSON::String")}, {safe => 1});
+    $c->insert({num => $num}, {write_concern => {w => 1}});
+    $c->insert({num => bless(\$num, "MongoDB::BSON::String")}, {write_concern => {w => 1}});
 
     $MongoDB::BSON::looks_like_number = 0;
 
@@ -347,7 +347,7 @@ package main;
                    MongoDB::BSON::Binary->new(data => $str, subtype => MongoDB::BSON::Binary->SUBTYPE_MD5),
                    MongoDB::BSON::Binary->new(data => $str, subtype => MongoDB::BSON::Binary->SUBTYPE_USER_DEFINED)]};
 
-    $c->insert($bin, {safe => 1});
+    $c->insert($bin, {write_concern => {w => 1}});
 
     my $doc = $c->find_one;
 
@@ -381,7 +381,7 @@ package main;
     my $hash = { $testkey => 1 };
 
     my $oid;
-    eval { $oid = $c->insert( $hash, {safe => 1}); };
+    eval { $oid = $c->insert( $hash, {write_concern => {w => 1}}); };
     is ( $@, '' );
     my $obj = $c->find_one( { _id => $oid } );
     is ( $obj->{$testkey}, 1 );
