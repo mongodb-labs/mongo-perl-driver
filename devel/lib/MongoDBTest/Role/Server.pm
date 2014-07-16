@@ -229,9 +229,9 @@ sub _build_client {
 # Methods
 
 sub start {
-    my ($self) = @_;
+    my ($self, $port) = @_;
     retry {
-        $self->_set_port(empty_port());
+        defined $port ? $self->_set_port($port) : $self->_set_port(empty_port());
         $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
         my $guard = proc_guard(
             sub {
