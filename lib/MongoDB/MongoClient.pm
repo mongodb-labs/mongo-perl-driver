@@ -352,24 +352,29 @@ sub BUILD {
     }
 
     # multiple servers
+    my $first_server;
     my $connected = 0;
     my %errors;
-    foreach (@pairs) {
+    for my $i (0..(@pairs-1)) {
+
+        my $pair = $pairs[$i];
+
         # override host, find_master and auto_connect
         my $args = {
             %$opts,
-            host => "mongodb://$_",
+            host => "mongodb://$pair",
             find_master => 0,
             auto_connect => 0,
         };
 
-        $self->_servers->{$_} = MongoDB::MongoClient->new($args);
+        $self->_servers->{$pair} = MongoDB::MongoClient->new($args);
+        $first_server = $self->_servers->{$pair} if $i == 0;
 
         next unless $self->auto_connect;
 
         # it's okay if we can't connect, so long as someone can
         eval {
-            $self->_servers->{$_}->connect;
+            $self->_servers->{$pair}->connect;
         };
 
         # at least one connection worked
@@ -377,8 +382,8 @@ sub BUILD {
             $connected = 1;
         }
         else {
-            $errors{$_} = $@;
-            $errors{$_} =~ s/at \S+ line \d+.*//;
+            $errors{$pair} = $@;
+            $errors{$pair} =~ s/at \S+ line \d+.*//;
         }
     }
 
@@ -391,12 +396,12 @@ sub BUILD {
             die "couldn't connect to any servers listed:\n" . join("", map { "$_: $errors{$_}" } keys %errors );
         }
 
-        $master = $self->get_master;
+        $master = $self->get_master($first_server);
         $self->max_bson_size($master->max_bson_size);
     }
     else {
         # no auto-connect so just pick one. if auto-reconnect is set then it will connect as needed
-        ($master) = values %{$self->_servers};
+        $master = $first_server;
     }
 
     # create a struct that just points to the master's connection
