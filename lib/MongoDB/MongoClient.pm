@@ -308,26 +308,18 @@ sub BUILD {
 
     my @pairs;
 
-    # supported syntax (see http://docs.mongodb.org/manual/reference/connection-string/)
-    if ($self->host =~ m{ ^
-            mongodb://
-            (?: ([^:]*) : ([^@]*) @ )? # [username:password@]
-            ([^/]*) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
-            (?:
-               / ([^?]*) # /[database]
-                (?: [?] (.*) )? # [?options]
-            )?
-            $ }x ) {
+    my %parsed_connection = _parse_connection_string($self->host);
 
-        my ($username, $password, $hostpairs, $database, $options) = ($1, $2, $3, $4, $5);
+    # supported syntax (see http://docs.mongodb.org/manual/reference/connection-string/)
+    if (%parsed_connection) {
+
+        @pairs = @{$parsed_connection{hostpairs}};
+        my $options = $parsed_connection{options};
 
         # we add these things to $opts as well as self so that they get propagated when we recurse for multiple servers
-        $self->username($opts->{username} = $username) if $username;
-        $self->password($opts->{password} = $password) if $password;
-        $self->db_name($opts->{db_name} = $database) if $database;
-
-        $hostpairs = 'localhost' unless $hostpairs;
-        @pairs =  map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $hostpairs;
+        $self->username($opts->{username} = $parsed_connection{username}) if (defined $parsed_connection{username} && $parsed_connection{username});
+        $self->password($opts->{password} = $parsed_connection{password}) if (defined $parsed_connection{password} && $parsed_connection{password});
+        $self->db_name($opts->{db_name} = $parsed_connection{database}) if (defined $parsed_connection{database} && $parsed_connection{database});
 
         # TODO handle standard options from $options
     }
@@ -406,6 +398,33 @@ sub BUILD {
 
     # create a struct that just points to the master's connection
     $self->_init_conn_holder($master);
+}
+
+sub _parse_connection_string {
+
+    my ($host) = @_;
+    my %result;
+
+    if ($host =~ m{ ^
+            mongodb://
+            (?: ([^:]*) : ([^@]*) @ )? # [username:password@]
+            ([^/]*) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
+            (?:
+               / ([^?]*) # /[database]
+                (?: [?] (.*) )? # [?options]
+            )?
+            $ }x ) {
+
+        ($result{username}, $result{password}, $result{hostpairs}, $result{database}, $result{options}) = ($1, $2, $3, $4, $5);
+
+        $result{hostpairs} = 'localhost' unless $result{hostpairs};
+        my @pairs =  map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $result{hostpairs};
+        $result{hostpairs} = \@pairs;
+
+        # TODO parse options
+    }
+
+    return %result;
 }
 
 sub _update_server_attributes {
