@@ -355,9 +355,7 @@ sub BUILD {
     my $first_server;
     my $connected = 0;
     my %errors;
-    for my $i (0..(@pairs-1)) {
-
-        my $pair = $pairs[$i];
+    for my $pair (@pairs) {
 
         # override host, find_master and auto_connect
         my $args = {
@@ -368,7 +366,7 @@ sub BUILD {
         };
 
         $self->_servers->{$pair} = MongoDB::MongoClient->new($args);
-        $first_server = $self->_servers->{$pair} if $i == 0;
+        $first_server = $self->_servers->{$pair} unless defined $first_server;
 
         next unless $self->auto_connect;
 
