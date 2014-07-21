@@ -24,14 +24,11 @@ use MongoDB;
 use DateTime;
 use DateTime::Tiny;
 
-use lib "t/lib";
-use MongoDBTest '$conn';
-
 plan skip_all => "connecting to default host/port won't work with a remote db" if exists $ENV{MONGOD};
 
 plan tests => 1;
 
 # test that Connection delegates constructor params to MongoClient correctly
-my $conn2 = MongoDB::Connection->new( host => '127.0.0.1' );
+my $conn = MongoDB::Connection->new( host => '127.0.0.1' );
 
-is ( $conn2->host, '127.0.0.1' );
+is ( $conn->host, '127.0.0.1' );

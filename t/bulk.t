@@ -28,14 +28,16 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb', '$server_version';
+use MongoDBTest qw/build_client get_test_db server_version/;
 
+my $conn = build_client();
+my $testdb = get_test_db($conn);
 my $coll = $testdb->get_collection("test_collection");
 
 my $ismaster      = $testdb->run_command( { ismaster     => 1 } );
 my $server_status = $testdb->run_command( { serverStatus => 1 } );
 my $is_standalone = !( $conn->_is_mongos || exists $server_status->{repl} );
-my $server_does_bulk = $server_version >= v2.5.5;
+my $server_does_bulk = server_version($conn) >= v2.5.5;
 
 subtest "constructors" => sub {
     my @constructors = qw(

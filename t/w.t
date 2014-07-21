@@ -21,7 +21,9 @@ use Test::More;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest qw/build_client/;
+
+my $conn = build_client();
 
 plan tests => 6;
 

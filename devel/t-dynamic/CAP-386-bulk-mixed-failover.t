@@ -42,12 +42,11 @@ $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 diag "MONGOD: $ENV{MONGOD}";
 
-use MongoDBTest;
+use MongoDBTest qw/build_client get_test_db/;
 
-my $conn = MongoDBTest::build_client( dt_type => undef );
-
+my $conn = build_client( dt_type => undef );
 my $admin  = $conn->get_database("admin");
-my $testdb = $conn->get_database( 'testdb' . time() );
+my $testdb = get_test_db($conn);
 my $coll   = $testdb->get_collection("test_collection");
 
 note("QA-447 FAILOVER WITH MIXED VERSION");

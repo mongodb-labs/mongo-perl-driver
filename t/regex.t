@@ -24,7 +24,9 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb';
+use MongoDBTest qw/build_client get_test_db/;
+
+my $testdb = get_test_db(build_client());
 
 if ( $^V lt 5.14.0 ) { 
     plan skip_all => 'we need perl 5.14 for regex tests';

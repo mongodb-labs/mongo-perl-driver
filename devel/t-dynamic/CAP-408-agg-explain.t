@@ -29,7 +29,7 @@ use lib "t/lib";
 use lib "devel/lib";
 
 use MongoDBTest::Orchestrator;
-use MongoDBTest;
+use MongoDBTest qw/build_client get_test_db/;
 
 note("CAP-408 aggregation explain");
 
@@ -40,9 +40,9 @@ $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 diag "MONGOD: $ENV{MONGOD}";
 
-my $conn   = MongoDBTest::build_client( dt_type => undef );
+my $conn   = build_client( dt_type => undef );
 my $admin  = $conn->get_database("admin");
-my $testdb = $conn->get_database( MongoDBTest::rand_db_name() );
+my $testdb = get_test_db($conn);
 my $coll   = $testdb->get_collection("test_collection");
 
 $admin->_try_run_command([enableSharding => $testdb->name]);

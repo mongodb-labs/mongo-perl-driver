@@ -42,12 +42,11 @@ $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 diag "MONGOD: $ENV{MONGOD}";
 
-use MongoDBTest;
+use MongoDBTest qw/build_client get_test_db/;
 
-my $conn = MongoDBTest::build_client( dt_type => undef );
-
+my $conn = build_client( dt_type => undef );
 my $admin  = $conn->get_database("admin");
-my $testdb = $conn->get_database( 'testdb' . time() );
+my $testdb = get_test_db($conn);
 my $coll   = $testdb->get_collection("test_collection");
 
 note("QA-447 MIXED OPERATIONS, AUTH");
@@ -73,7 +72,7 @@ $testdb->_try_run_command(
 
 local $ENV{MONGOD} = $ENV{MONGOD};
 $ENV{MONGOD} =~ s{mongodb://.*?\@}{mongodb://};
-my $limited = MongoDBTest::build_client( db_name => $testdb->name, username => 'limited', password => 'limited' );
+my $limited = build_client( db_name => $testdb->name, username => 'limited', password => 'limited' );
 my $coll2 = $limited->get_database($testdb->name)->get_collection($coll->name);
 my $bulk = $coll2->initialize_ordered_bulk_op;
 $bulk->insert( { _id => 1 } );

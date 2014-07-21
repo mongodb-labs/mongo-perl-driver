@@ -21,7 +21,12 @@ use Test::Fatal;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb', '$server_version', '$server_type';
+use MongoDBTest qw/build_client get_test_db server_type server_version/;
+
+my $conn = build_client();
+my $testdb = get_test_db($conn);
+my $server_type = server_type($conn);
+my $server_version = server_version($conn);
 
 plan skip_all => "maxTimeMS not available before 2.6"
   unless $server_version >= v2.6.0;
