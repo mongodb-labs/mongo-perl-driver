@@ -26,7 +26,10 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb';
+use MongoDBTest qw/build_client get_test_db/;
+
+my $conn = build_client();
+my $testdb = get_test_db($conn);
 
 like(
     exception { MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL}); },

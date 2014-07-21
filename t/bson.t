@@ -30,10 +30,12 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::BSON::Binary;
 
 use lib "t/lib";
-use MongoDBTest '$testdb';
+use MongoDBTest qw/build_client get_test_db/;
 
 plan tests => 75;
 
+
+my $testdb = get_test_db(build_client());
 
 my $c = $testdb->get_collection('bar');
 

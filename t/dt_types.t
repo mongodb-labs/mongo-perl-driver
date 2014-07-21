@@ -27,7 +27,10 @@ use DateTime;
 use DateTime::Tiny;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb';
+use MongoDBTest qw/build_client get_test_db/;
+
+my $conn = build_client();
+my $testdb = get_test_db($conn);
 
 plan tests => 22;
 

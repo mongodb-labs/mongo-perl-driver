@@ -31,7 +31,7 @@ use lib "t/lib";
 use lib "devel/lib";
 
 use MongoDBTest::Orchestrator;
-use MongoDBTest;
+use MongoDBTest qw/build_client get_test_db/;
 
 note("CAP-420 Mixed mode cluster testing");
 
@@ -44,9 +44,8 @@ subtest "2.6 Mongos + 2.4, 2.6 shards" => sub {
     $ENV{MONGOD} = $orc->as_uri;
     diag "MONGOD: $ENV{MONGOD}";
 
-    my $conn = MongoDBTest::build_client( dt_type => undef );
-
-    my $testdb = $conn->get_database( MongoDBTest::rand_db_name() );
+    my $conn = build_client( dt_type => undef );
+    my $testdb = get_test_db($conn);
     my $coll   = $testdb->get_collection("test_collection");
 
     $coll->batch_insert( [ { wanted => 1, score => 56 },
@@ -108,9 +107,9 @@ subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
     $ENV{MONGOD} = $orc->as_uri;
     diag "MONGOD: $ENV{MONGOD}";
 
-    my $conn = MongoDBTest::build_client( dt_type => undef );
+    my $conn = build_client( dt_type => undef );
 
-    my $testdb = $conn->get_database( MongoDBTest::rand_db_name() );
+    my $testdb = get_test_db($conn)   ;
     my $coll   = $testdb->get_collection("test_collection");
 
     $coll->batch_insert( [ { wanted => 1, score => 56 },

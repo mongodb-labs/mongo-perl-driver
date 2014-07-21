@@ -23,8 +23,10 @@ use Tie::IxHash;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$testdb';
- 
+use MongoDBTest qw/build_client get_test_db/;
+
+my $testdb = get_test_db(build_client());
+
 plan tests => 74;
 
 my $coll;

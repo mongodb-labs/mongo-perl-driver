@@ -25,7 +25,9 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn';
+use MongoDBTest qw/build_client/;
+
+my $conn = build_client();
 
 my $ret;
 
