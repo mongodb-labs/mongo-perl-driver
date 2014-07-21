@@ -92,6 +92,10 @@ static mongo_cursor* get_cursor(SV *self) {
 
 static SV *request_id;
 
+#define cursor_limit_reached(cursor, limit) ((SvIV(limit) > 0) && (cursor->at >= SvIV(limit)))
+#define cursor_no_results(cursor, is_parallel) ((cursor->num == 0) && !SvTRUE(is_parallel) && (cursor->cursor_id == 0))
+#define cursor_exhausted(cursor) ((cursor->at == cursor->num) && (cursor->cursor_id == 0))
+
 static int has_next(SV *self, mongo_cursor *cursor) {
   SV *link, *limit, *ns, *response_to, *agg_batch_size_sv, *batch_size, *is_parallel;
   mongo_msg_header header;
@@ -112,9 +116,10 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   limit = perl_mongo_call_reader (self, "_limit");
   is_parallel = perl_mongo_call_reader (self, "_is_parallel");
 
-  if ((SvIV(limit) > 0 && cursor->at >= SvIV(limit)) || 
-      (cursor->num == 0 && ! SvTRUE(is_parallel) ) ||
-      (cursor->at == cursor->num && cursor->cursor_id == 0)) {
+  if (cursor_limit_reached(cursor, limit)    ||
+      cursor_no_results(cursor, is_parallel) ||
+      cursor_exhausted(cursor) ) {
+
     SvREFCNT_dec(limit);
     SvREFCNT_dec(is_parallel);
     return 0;
