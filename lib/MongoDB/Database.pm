@@ -109,7 +109,7 @@ sub _try_run_command {
     my $obj = $self->get_collection('$cmd')->find_one($command);
     return $obj if $obj->{ok};
     MongoDB::DatabaseError->throw(
-        message => $obj->{errmsg},
+        message => $obj->{errmsg} || $obj->{'$err'},
         result => MongoDB::CommandResult->new(result => $obj),
     );
 }
