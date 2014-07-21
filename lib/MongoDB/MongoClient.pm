@@ -317,9 +317,9 @@ sub BUILD {
         my $options = $parsed_connection{options};
 
         # we add these things to $opts as well as self so that they get propagated when we recurse for multiple servers
-        $self->username($opts->{username} = $parsed_connection{username}) if (defined $parsed_connection{username} && $parsed_connection{username});
-        $self->password($opts->{password} = $parsed_connection{password}) if (defined $parsed_connection{password} && $parsed_connection{password});
-        $self->db_name($opts->{db_name} = $parsed_connection{database}) if (defined $parsed_connection{database} && $parsed_connection{database});
+        for my $k ( qw/username password db_name/ ) {
+            $self->$k($opts->{$k} = $parsed_connection{$k}) if exists $parsed_connection{$k};
+        }
 
         # TODO handle standard options from $options
     }
@@ -413,11 +413,15 @@ sub _parse_connection_string {
             )?
             $ }x ) {
 
-        ($result{username}, $result{password}, $result{hostpairs}, $result{database}, $result{options}) = ($1, $2, $3, $4, $5);
+        ($result{username}, $result{password}, $result{hostpairs}, $result{db_name}, $result{options}) = ($1, $2, $3, $4, $5);
 
         $result{hostpairs} = 'localhost' unless $result{hostpairs};
         my @pairs =  map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $result{hostpairs};
         $result{hostpairs} = \@pairs;
+
+        delete $result{username} unless defined $result{username} && length $result{username};
+        delete $result{password} unless defined $result{password}; # can be empty string
+        delete $result{db_name} unless defined $result{db_name} && length $result{db_name};
 
         # TODO parse options
     }

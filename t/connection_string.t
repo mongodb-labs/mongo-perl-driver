@@ -57,7 +57,7 @@ subtest "localhost with username/password and db" => sub {
     is_deeply($parsed_connection{hostpairs}, \@hostpairs);
     is($parsed_connection{username}, 'fred');
     is($parsed_connection{password}, 'foobar');
-    is($parsed_connection{database}, 'baz');
+    is($parsed_connection{db_name}, 'baz');
 };
 
 subtest "localhost with username/password and db (trailing comma)" => sub {
@@ -68,7 +68,7 @@ subtest "localhost with username/password and db (trailing comma)" => sub {
     is_deeply($parsed_connection{hostpairs}, \@hostpairs);
     is($parsed_connection{username}, 'fred');
     is($parsed_connection{password}, 'foobar');
-    is($parsed_connection{database}, 'baz');
+    is($parsed_connection{db_name}, 'baz');
 };
 
 subtest "localhost with username/password and db (trailing question)" => sub {
@@ -79,7 +79,7 @@ subtest "localhost with username/password and db (trailing question)" => sub {
     is_deeply($parsed_connection{hostpairs}, \@hostpairs);
     is($parsed_connection{username}, 'fred');
     is($parsed_connection{password}, 'foobar');
-    is($parsed_connection{database}, 'baz');
+    is($parsed_connection{db_name}, 'baz');
 };
 
 subtest "localhost with empty extras" => sub {
