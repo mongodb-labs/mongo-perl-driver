@@ -24,26 +24,19 @@ use lib "devel/lib";
 use MongoDBTest::Orchestrator;
 # use Log::Any::Adapter qw/Stderr/;
 
-my $orc;
+my $orc = MongoDBTest::Orchestrator->new( config_file => "devel/clusters/mongod-2.6.yml" );
+$orc->start;
+$ENV{MONGOD} = $orc->as_uri;
 
-BEGIN {
-
-	$orc = MongoDBTest::Orchestrator->new( config_file => "devel/clusters/mongod-2.6.yml" );
-	$orc->start;
-	$ENV{MONGOD} = $orc->as_uri;
-}
-
-use MongoDBTest '$testdb';
-# We don't want any cleanup from MongoDBTest's END
-our $testdb = undef;
+use MongoDBTest qw/build_client get_test_db/;
 
 my $server = $orc->cluster->get_server("host1");
 my $orig_port = $server->port;
 
 is ($server->is_alive, 1, "Server is alive");
 
-my $c = MongoDBTest::build_client();
-my $coll = $c->get_database("test")->get_collection("testc");
+my $c = build_client();
+my $coll = get_test_db($c)->get_collection("testc");
 inserted_ok($coll, $coll->insert({pre => 'stop'}));
 
 $server->stop();

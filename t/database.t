@@ -26,7 +26,11 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb', '$server_version';
+use MongoDBTest qw/build_client get_test_db server_version/;
+
+my $conn = build_client();
+my $testdb = get_test_db($conn);
+my $server_version = server_version($conn);
 
 # get_database
 {

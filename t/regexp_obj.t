@@ -23,7 +23,9 @@ use Test::Fatal;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb';
+use MongoDBTest qw/build_client/;
+
+my $conn = build_client();
 
 plan tests => 9;
 

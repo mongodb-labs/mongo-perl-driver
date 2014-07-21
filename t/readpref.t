@@ -25,7 +25,11 @@ use MongoDB;
 use Tie::IxHash;
 
 use lib "t/lib";
-use MongoDBTest '$testdb', '$conn', '$server_type';
+use MongoDBTest qw/build_client get_test_db server_type/;
+
+my $conn = build_client();
+my $testdb = get_test_db($conn);
+my $server_type = server_type($conn);
 
 subtest "standalone" => sub {
     plan skip_all => 'needs a standalone server'

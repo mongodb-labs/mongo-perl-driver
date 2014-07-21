@@ -29,7 +29,7 @@ use lib "t/lib";
 use lib "devel/lib";
 
 use MongoDBTest::Orchestrator;
-use MongoDBTest;
+use MongoDBTest qw/build_client get_test_db/;
 use Path::Tiny;
 
 note("CAP-455 createIndexes");
@@ -48,8 +48,8 @@ for my $cluster ( sort keys %config_map ) {
         $ENV{MONGOD} = $orc->as_uri;
         diag "MONGOD: $ENV{MONGOD}";
 
-        my $conn   = MongoDBTest::build_client( dt_type => undef );
-        my $testdb = $conn->get_database( MongoDBTest::rand_db_name() );
+        my $conn = build_client( dt_type => undef );
+        my $testdb = get_test_db($conn);
         my $coll   = $testdb->get_collection("test_collection");
 
         $coll->insert( { count => $_ } ) for 1 .. 10;
@@ -73,9 +73,9 @@ subtest "2.6 mongos with mixed-version mongod" => sub {
     $ENV{MONGOD} = $orc->as_uri;
     diag "MONGOD: $ENV{MONGOD}";
 
-    my $conn   = MongoDBTest::build_client( dt_type => undef );
+    my $conn = build_client( dt_type => undef );
     my $admin  = $conn->get_database("admin");
-    my $testdb = $conn->get_database( MongoDBTest::rand_db_name() );
+    my $testdb = get_test_db($conn);
     my $coll   = $testdb->get_collection("test_collection");
 
     # shard and pre-split

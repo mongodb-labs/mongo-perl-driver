@@ -26,64 +26,62 @@ use MongoDB;
 use Test::More;
 use version;
 
-our @EXPORT_OK = ( '$conn', '$testdb', '$server_type', '$server_version' );
-our $conn;
-our $testdb;
-our $server_type;
-our $server_version;
+our @EXPORT_OK = ( 'build_client', 'get_test_db', 'server_version', 'server_type' );
+my @testdbs;
 
 # abstract building a connection
 sub build_client {
     my @args = @_;
     my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
+
     return MongoDB::MongoClient->new(
         host => $host, ssl => $ENV{MONGO_SSL}, find_master => 1, @args,
     );
 }
 
-sub rand_db_name {'testdb' . int(rand(2**31))}
+sub get_test_db {
 
-# set up connection to a test database if we can
-BEGIN { 
-    eval { 
-        $conn = build_client();
-        $testdb = $conn->get_database( rand_db_name() ) or
-            die "Can't get database\n";
-        eval { $conn->get_database("admin")->_try_run_command({ serverStatus => 1 }) }
-            or die "Database has auth enabled\n";
-    };
+    my $conn = shift;
+    my $testdb = 'testdb' . int(rand(2**31));
+    my $db = $conn->get_database($testdb) or die "Can't get database\n";
+    push(@testdbs, $db);
+    return  $db;
+}
 
-    if ( $@ ) { 
-        plan skip_all => $@;
-        exit 0;
+sub server_version {
+
+    my $conn = shift;
+    my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
+    my ($version_str) = $build->{version} =~ m{^([0-9.]+)};
+    return version->parse("v$version_str");
+}
+
+sub server_type {
+
+    my $conn = shift;
+    my $server_type;
+
+    # check database type
+    my $ismaster = $conn->get_database('admin')->_try_run_command({ismaster => 1});
+    if (exists $ismaster->{msg} && $ismaster->{msg} eq 'isdbgrid') {
+        $server_type = 'Mongos';
     }
-};
-
-# check database version
-my $build = $conn->get_database( 'admin' )->get_collection( '$cmd' )->find_one( { buildInfo => 1 } );
-my ($version_str) = $build->{version} =~ m{^([0-9.]+)};
-$server_version = version->parse("v$version_str");
-
-# check database type
-my $ismaster = $conn->get_database('admin')->_try_run_command({ismaster => 1});
-if (exists $ismaster->{msg} && $ismaster->{msg} eq 'isdbgrid') {
-    $server_type = 'Mongos';
-}
-elsif ( $ismaster->{ismaster} && exists $ismaster->{setName} ) {
-    $server_type = 'RSPrimary'
-}
-elsif ( ! exists $ismaster->{setName} && ! $ismaster->{isreplicaset} ) {
-    $server_type = 'Standalone'
-}
-else {
-    $server_type = 'Unknown';
+    elsif ( $ismaster->{ismaster} && exists $ismaster->{setName} ) {
+        $server_type = 'RSPrimary'
+    }
+    elsif ( ! exists $ismaster->{setName} && ! $ismaster->{isreplicaset} ) {
+        $server_type = 'Standalone'
+    }
+    else {
+        $server_type = 'Unknown';
+    }
 }
 
-# clean up any detritus from failed tests
-END { 
-    return unless $testdb;
-
-    $testdb->drop;
-};
+# cleanup test dbs
+END {
+    for my $db (@testdbs) {
+        $db->drop;
+    }
+}
 
 1;

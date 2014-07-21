@@ -30,7 +30,9 @@ use DateTime;
 use FileHandle;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb';
+use MongoDBTest qw/build_client get_test_db/;
+
+my $testdb = get_test_db(build_client());
 
 plan tests => 62;
 

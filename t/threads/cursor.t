@@ -26,7 +26,9 @@ use Try::Tiny;
 use threads;
 
 use lib "t/lib";
-use MongoDBTest '$conn', '$testdb';
+use MongoDBTest qw/build_client get_test_db/;
+
+my $testdb = get_test_db(build_client());
 
 my $col = $testdb->get_collection('tiger');
 $col->drop;
