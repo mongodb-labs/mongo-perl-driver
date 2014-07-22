@@ -323,7 +323,7 @@ my $tied;
     my $keys = tie(my %idx, 'Tie::IxHash');
     %idx = ('sn' => 1, 'ts' => -1);
 
-    $coll->ensure_index($keys, {safe => 1});
+    $coll->ensure_index($keys, {write_concern => {w => 1}});
 
     my @tied = $coll->get_indexes;
     is(scalar @tied, 2, 'num indexes');
@@ -514,11 +514,11 @@ SKIP: {
     $conn->query_timeout($timeout);
 }
 
-# safe insert
+# w1 insert
 {
     $coll->drop;
-    $coll->insert({_id => 1}, {safe => 1});
-    eval {$coll->insert({_id => 1}, {safe => 1})};
+    $coll->insert({_id => 1}, {write_concern => {w => 1}});
+    eval {$coll->insert({_id => 1}, {write_concern => {w => 1}})};
     ok($@ and $@ =~ /^E11000/, 'duplicate key exception');
 
   SKIP: {
@@ -528,17 +528,17 @@ SKIP: {
     }
 }
 
-# safe remove/update
+# w1 remove/update
 {
     $coll->drop;
 
-    $ok = $coll->remove;
+    $ok = $coll->remove({}, {write_concern => {w => 0}});
     is($ok, 1, 'unsafe remove');
     is($testdb->last_error->{n}, 0);
 
     my $syscoll = $testdb->get_collection('system.indexes');
     eval {
-        $ok = $syscoll->remove({}, {safe => 1});
+        $ok = $syscoll->remove({}, {write_concern => {w => 1}});
     };
 
     like($@, qr/cannot delete from system namespace|not authorized/, 'remove from system.indexes should fail');
@@ -547,7 +547,7 @@ SKIP: {
     $ok = $coll->update({}, {'$inc' => {x => 1}});
     is($ok->{ok}, 1);
 
-    $ok = $coll->update({}, {'$inc' => {x => 2}}, {safe => 1});
+    $ok = $coll->update({}, {'$inc' => {x => 2}}, {write_concern => {w => 1}});
     is($ok->{ok}, 1);
 }
 
@@ -569,7 +569,7 @@ SKIP: {
 
     my $syscoll = $testdb->get_collection('system.indexes');
     eval {
-        $ok = $syscoll->save({_id => 'foo'}, {safe => 1});
+        $ok = $syscoll->save({_id => 'foo'}, {write_concern => {w => 1}});
     };
 
     like($@, qr/cannot update system collection|not authorized/, 'save to system.indexes should fail');
@@ -631,8 +631,8 @@ SKIP: {
 # sparse indexes
 {
     for (1..10) {
-        $coll->insert({x => $_, y => $_}, {safe => 1});
-        $coll->insert({x => $_}, {safe => 1});
+        $coll->insert({x => $_, y => $_}, {write_concern => {w => 1}});
+        $coll->insert({x => $_}, {write_concern => {w => 1}});
     }
     is($coll->count, 20);
 

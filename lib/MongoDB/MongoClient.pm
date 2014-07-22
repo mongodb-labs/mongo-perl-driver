@@ -863,6 +863,13 @@ sub _w_want_safe {
 
     my $w = $self->w;
 
+    return $self->_w_is_safe($w);
+}
+
+sub _w_is_safe {
+
+    my ( $self, $w ) = @_;
+
     return 0 if $w =~ /^-?\d+$/ && $w <= 0;
     return 1;
 }

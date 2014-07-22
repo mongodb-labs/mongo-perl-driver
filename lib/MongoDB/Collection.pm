@@ -25,7 +25,7 @@ our $VERSION = 'v0.704.2.1';
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
-use Scalar::Util qw/blessed/;
+use Scalar::Util qw/blessed looks_like_number/;
 use Try::Tiny;
 use Moose;
 use namespace::clean -except => 'meta';
@@ -237,8 +237,24 @@ sub batch_insert {
         return 0;
     }
 
-    if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
-        my $ok = $self->_make_safe($insert);
+    my $wc = $conn->_write_concern;
+
+    if (defined $options && ref $options eq 'HASH') {
+
+        my $new_wc = $options->{write_concern} || $options->{safe};
+
+        # XXX Remove ability to use safe in next MAJOR version.
+        if ($options->{safe}) {
+            carp "safe is deprecated, use write concern instead.";
+            $new_wc = {w => 1};
+        }
+
+        $wc = $new_wc || $wc;
+    }
+
+    if($conn->_w_is_safe($wc->{w})) {
+
+        my $ok = $self->_make_safe($insert, $wc);
 
         if (!$ok) {
             return 0;
@@ -285,8 +301,24 @@ sub legacy_update {
     my $ns = $self->full_name;
 
     my $update = MongoDB::write_update($ns, $query, $object, $flags);
-    if ($opts->{safe} or $conn->_w_want_safe ) {
-        return $self->_make_safe($update);
+    my $wc = $conn->_write_concern;
+
+    if (defined $opts && ref $opts eq 'HASH') {
+
+        my $new_wc = $opts->{write_concern} || $opts->{safe};
+
+        # XXX Remove ability to use safe in next MAJOR version.
+        if ($opts->{safe}) {
+            carp "safe is deprecated, use write concern instead.";
+            $new_wc = {w => 1};
+        }
+
+        $wc = $new_wc || $wc;
+    }
+
+    if($conn->_w_is_safe($wc->{w})) {
+
+        return $self->_make_safe($update, $wc);
     }
 
     if ($conn->send($update) == -1) {
@@ -430,10 +462,20 @@ sub legacy_remove {
 
     my $conn = $self->_database->_client;
 
-    my ($just_one, $safe);
+    my ($just_one, $wc);
+    $wc = $conn->_write_concern;
+
     if (defined $options && ref $options eq 'HASH') {
         $just_one = exists $options->{just_one} ? $options->{just_one} : 0;
-        $safe = $options->{safe} or $conn->_w_want_safe;
+        my $new_wc = $options->{write_concern} || $options->{safe};
+
+        # XXX Remove ability to use safe in next MAJOR version.
+        if ($options->{safe}) {
+            carp "safe is deprecated, use write concern instead.";
+            $new_wc = {w => 1};
+        }
+
+        $wc = $new_wc || $wc;
     }
     else {
         $just_one = $options || 0;
@@ -443,8 +485,8 @@ sub legacy_remove {
     $query ||= {};
 
     my $remove = MongoDB::write_remove($ns, $query, $just_one);
-    if ($safe) {
-        return $self->_make_safe($remove);
+    if ($conn->_w_is_safe($wc->{w})) {
+        return $self->_make_safe($remove, $wc);
     }
 
     if ($conn->send($remove) == -1) {
@@ -527,9 +569,9 @@ sub ensure_index {
 
 
 sub _make_safe {
-    my ($self, $req) = @_;
+    my ($self, $req, $write_concern) = @_;
 
-    my $ok = $self->_make_safe_cursor($req)->next();
+    my $ok = $self->_make_safe_cursor($req, $write_concern)->next();
 
     # $ok->{ok} is 1 if err is set
     Carp::croak $ok->{err} if $ok->{err};
@@ -547,7 +589,10 @@ sub _make_safe_cursor {
     my $db = $self->_database->name;
     $write_concern ||= $conn->_write_concern;
 
-    my $last_error = Tie::IxHash->new(getlasterror => 1, %$write_concern);
+    my $last_error = Tie::IxHash->new(getlasterror => 1);
+    if (($write_concern->{w} =~ /^-?\d+$/ && $write_concern->{w} > 1) || !looks_like_number($write_concern->{w})) {
+        $last_error->Push(%$write_concern);
+    }
     my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
 
     $conn->send("$req$query");
@@ -758,17 +803,11 @@ wire traffic.
 =method insert ($object, $options?)
 
     my $id1 = $coll->insert({ name => 'mongo', type => 'database' });
-    my $id2 = $coll->insert({ name => 'mongo', type => 'database' }, {safe => 1});
 
 Inserts the given C<$object> into the database and returns it's id
 value. C<$object> can be a hash reference, a reference to an array with an
 even number of elements, or a L<Tie::IxHash>.  The id is the C<_id> value
 specified in the data or a L<MongoDB::OID>.
-
-The optional C<$options> parameter can be used to specify if this is a safe
-insert.  A safe insert will check with the database if the insert succeeded and
-croak if it did not.  You can also check if the insert succeeded by doing an
-unsafe insert, then calling L<MongoDB::Database/"last_error($options?)">.
 
 See also core documentation on insert: L<http://docs.mongodb.org/manual/core/create/>.
 
@@ -779,23 +818,11 @@ See also core documentation on insert: L<http://docs.mongodb.org/manual/core/cre
 Inserts each of the documents in the array into the database and returns an
 array of their _id fields.
 
-The optional C<$options> parameter can be used to specify if this is a safe
-insert.  A safe insert will check with the database if the insert succeeded and
-croak if it did not. You can also check if the inserts succeeded by doing an
-unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
-
-
 =method update (\%criteria, \%object, \%options?)
 
     $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
 
 Updates an existing C<$object> matching C<$criteria> in the database.
-
-Returns 1 unless the C<safe> option is set. If C<safe> is set, this will return
-a hash of information about the update, including number of documents updated
-(C<n>).  If C<safe> is set and the update fails, C<update> will croak. You can
-also check if the update succeeded by doing an unsafe update, then calling
-L<MongoDB::Database/"last_error($options?)">.
 
 C<update> can take a hash reference of options.  The options currently supported
 are:
@@ -809,9 +836,6 @@ If no object matching C<$criteria> is found, C<$object> will be inserted.
 All of the documents that match C<$criteria> will be updated, not just
 the first document found. (Only available with database version 1.1.3 and
 newer.)
-
-=item C<safe>
-If the update fails and safe is set, the update will croak.
 
 =back
 
@@ -926,17 +950,13 @@ die.
     $post->{author} = {"name" => "joe", "id" => 123, "phone" => "555-5555"};
 
     $collection->save( $post );
-    $collection->save( $post, { safe => 1 } )
 
 Inserts a document into the database if it does not have an _id field, upserts
 it if it does have an _id field.
 
 The return types for this function are a bit of a mess, as it will return the
 _id if a new document was inserted, 1 if an upsert occurred, and croak if the
-safe option was set and an error occurred.  You can also check if the save
-succeeded by doing an unsafe save, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
+write concern was >= 1 and an error occurred.
 
 =method remove ($query?, $options?)
 
@@ -946,13 +966,6 @@ Removes all objects matching the given C<$query> from the database. If no
 parameters are given, removes all objects from the collection (but does not
 delete indexes, as C<MongoDB::Collection::drop> does).
 
-Returns 1 unless the C<safe> option is set.  If C<safe> is set and the remove
-succeeds, C<remove> will return a hash of information about the remove,
-including how many documents were removed (C<n>).  If the remove fails and
-C<safe> is set, C<remove> will croak.  You can also check if the remove
-succeeded by doing an unsafe remove, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
 C<remove> can take a hash reference of options.  The options currently supported
 are
 
@@ -960,9 +973,6 @@ are
 
 =item C<just_one>
 Only one matching document to be removed.
-
-=item C<safe>
-If the update fails and safe is set, this function will croak.
 
 =back
 
@@ -977,12 +987,6 @@ Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be an
 array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is preferred
 for multi-key indexes, so that the keys are in the correct order.  1 creates an
 ascending index, -1 creates a descending index.
-
-If the C<safe> option is not set, C<ensure_index> will not return anything
-unless there is a socket error (in which case it will croak).  If the C<safe>
-option is set and the index creation fails, it will also croak. You can also
-check if the indexing succeeded by doing an unsafe index creation, then calling
-L<MongoDB::Database/"last_error($options?)">.
 
 See the L<MongoDB::Indexing> pod for more information on indexing.
 
