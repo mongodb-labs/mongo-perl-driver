@@ -912,6 +912,14 @@ subtest "parallel scan" => sub {
         my @cursors = $coll->parallel_scan($max);
         _check_parallel_results( $num_docs, @cursors );
     };
+
+    # empty collection
+    subtest "empty collection" => sub {
+        $coll->remove({});
+        my @cursors = $coll->parallel_scan($max);
+        _check_parallel_results( 0, @cursors );
+    }
+
 };
 
 sub _check_parallel_results {
@@ -922,7 +930,12 @@ sub _check_parallel_results {
     my $count;
     for my $i (0 .. $#cursors ) {
         my @chunk = $cursors[$i]->all;
-        ok( @chunk > 0, "cursor $i had some results" );
+        if ( $num_docs ) {
+            ok( @chunk > 0, "cursor $i had some results" );
+        }
+        else {
+            is( scalar @chunk, 0, "cursor $i had no results" );
+        }
         $seen{$_}++ for map { $_->{_id} } @chunk;
         $count += @chunk;
     }
