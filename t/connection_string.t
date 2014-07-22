@@ -122,4 +122,14 @@ subtest "multiple hostnames (localhost/domain)" => sub {
     is_deeply($parsed_connection{hostpairs}, \@hostpairs);
 };
 
+subtest "percent encoded username and password" => sub {
+
+    my %parsed_connection = MongoDB::MongoClient::_parse_connection_string('mongodb://dog%3Adogston:p%40ssword@localhost');
+    my @hostpairs = ('localhost:27017');
+
+    is($parsed_connection{username}, 'dog:dogston');
+    is($parsed_connection{password}, 'p@ssword');
+    is_deeply($parsed_connection{hostpairs}, \@hostpairs);
+};
+
 done_testing;

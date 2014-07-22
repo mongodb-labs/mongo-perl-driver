@@ -139,7 +139,7 @@ has auto_connect => (
 );
 
 has timeout => (
-    is       => 'ro',
+    is       => 'rw',
     isa      => 'Int',
     required => 1,
     default  => 20000,
@@ -210,7 +210,7 @@ has _is_mongos => (
 );
 
 has ssl => (
-    is       => 'ro',
+    is       => 'rw',
     isa      => 'Bool',
     required => 1,
     default  => 0,
@@ -315,14 +315,23 @@ sub BUILD {
     if (%parsed_connection) {
 
         @pairs = @{$parsed_connection{hostpairs}};
-        my $options = $parsed_connection{options};
 
         # we add these things to $opts as well as self so that they get propagated when we recurse for multiple servers
         for my $k ( qw/username password db_name/ ) {
             $self->$k($opts->{$k} = $parsed_connection{$k}) if exists $parsed_connection{$k};
         }
 
-        # TODO handle standard options from $options
+        # Process options
+        my %options = %{$parsed_connection{options}} if defined $parsed_connection{options};
+
+        # Add connection options
+        $self->ssl($opts->{ssl} = _str_to_bool($options{ssl})) if exists $options{ssl};
+        $self->timeout($opts->{timeout} = $options{connectTimeoutMS}) if exists $options{connectTimeoutMS};
+
+        # Add write concern options
+        $self->w($opts->{w} = $options{w}) if exists $options{w};
+        $self->wtimeout($opts->{wtimeout} = $options{wtimeoutMS}) if exists $options{wtimeoutMS};
+        $self->j($opts->{j} = _str_to_bool($options{journal})) if exists $options{journal};
     }
     # deprecated syntax
     else {
@@ -399,6 +408,20 @@ sub BUILD {
     $self->_init_conn_holder($master);
 }
 
+sub _str_to_bool {
+    my $str = shift;
+    confess "cannot convert undef to bool" unless defined $str;
+    my $ret = $str eq "true" ? 1 : $str eq "false" ? 0 : undef;
+    return $ret unless !defined $ret;
+    confess "expected boolean string 'true' or 'false' but instead received '$str'";
+}
+
+sub _unescape_all {
+    my $str = shift;
+    $str =~ s/%([0-9a-f]{2})/chr(hex($1))/ieg;
+    return $str;
+}
+
 sub _parse_connection_string {
 
     my ($host) = @_;
@@ -416,15 +439,29 @@ sub _parse_connection_string {
 
         ($result{username}, $result{password}, $result{hostpairs}, $result{db_name}, $result{options}) = ($1, $2, $3, $4, $5);
 
+        # Decode components
+        for my $subcomponent ( qw/username password db_name/ ) {
+            $result{$subcomponent} = _unescape_all($result{$subcomponent}) unless !(defined $result{$subcomponent});
+        }
+
         $result{hostpairs} = 'localhost' unless $result{hostpairs};
-        my @pairs =  map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $result{hostpairs};
-        $result{hostpairs} = \@pairs;
+        $result{hostpairs} = [
+            map { @_ = split ':', $_; _unescape_all($_[0]).":"._unescape_all($_[1]) }
+            map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $result{hostpairs}
+        ];
+
+        $result{options} =
+            { map {
+                 my @kv = split '=', $_;
+                 confess 'expected key value pair' unless @kv == 2;
+                 ($kv[0], $kv[1]) = (_unescape_all($kv[0]), _unescape_all($kv[1]));
+                 @kv;
+              } split '&', $result{options}
+            } if defined $result{options};
 
         delete $result{username} unless defined $result{username} && length $result{username};
         delete $result{password} unless defined $result{password}; # can be empty string
         delete $result{db_name} unless defined $result{db_name} && length $result{db_name};
-
-        # TODO parse options
     }
 
     return %result;
@@ -1020,6 +1057,8 @@ is true, then connections will be re-established as needed.
 =head1 SEE ALSO
 
 Core documentation on connections: L<http://docs.mongodb.org/manual/reference/connection-string/>.
+
+The currently supported connection string options are ssl, connectTimeoutMS, w, wtimeoutMS, and journal.
 
 =attr host
 

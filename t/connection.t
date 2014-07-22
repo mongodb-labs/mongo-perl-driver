@@ -131,6 +131,40 @@ SKIP: {
     $testdb->drop;
 }
 
+subtest "options" => sub {
+
+    subtest "connection" => sub {
+
+        my $ssl = "true";
+        my $timeout = 40000;
+        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl=$ssl&connectTimeoutMS=$timeout"});
+
+        is( $client->ssl, 1, "connect with ssl set" );
+        is( $client->timeout, $timeout, "connection timeout set" );
+    };
+
+    subtest "invalid option value" => sub {
+
+        like(
+            exception { MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl="}) },
+            qr/expected key value pair/,
+            'key should have value'
+        );
+    };
+
+    subtest "write concern" => sub {
+
+        my $w = 2;
+        my $wtimeout = 200;
+        my $j = "true";
+        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?w=$w&wtimeoutMS=$wtimeout&journal=$j"});
+
+        is( $client->w, $w, "write acknowledgement set" );
+        is( $client->wtimeout, $wtimeout, "write acknowledgement timeout set" );
+        is( $client->j, 1, "sync to journal" );
+    };
+};
+
 
 # query_timeout
 {
