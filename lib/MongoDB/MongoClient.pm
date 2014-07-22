@@ -463,12 +463,30 @@ sub _get_max_bson_size {
 
 sub database_names {
     my ($self) = @_;
-    my $ret = $self->get_database('admin')->run_command({ listDatabases => 1 });
-    if (ref($ret) eq 'HASH' && exists $ret->{databases}) {
-        return map { $_->{name} } @{ $ret->{databases} };
-    }
-    else {
-        die ($ret);
+
+    my $max_tries = 3;
+    for ( my $try = 0; $try < $max_tries; $try++ ) {
+
+        my @databases;
+        my $success = try {
+            my $result = $self->get_database('admin')->_try_run_command({ listDatabases => 1 });
+
+            if (ref($result) eq 'HASH' && exists $result->{databases}) {
+                @databases = map { $_->{name} } @{ $result->{databases} };
+            }
+
+            return 1;
+
+        } catch {
+
+            # can't open db in a read lock
+            die $_ if ($_->{result}->{result}{code} != 15927 || $try == ($max_tries-1));
+
+            # retry
+            return undef;
+        };
+
+        return @databases unless !defined $success;
     }
 }
 
