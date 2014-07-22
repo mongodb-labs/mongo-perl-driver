@@ -24,8 +24,6 @@ use MongoDB;
 
 use lib "t/lib";
 use MongoDBTest '$testdb';
- 
-plan tests => 74;
 
 my $coll;
 my $cursor;
@@ -324,3 +322,33 @@ $testdb->drop;
     is($cursor->count(), 5);
 }
 
+# delayed tailable cursor
+{
+    $coll = $testdb->get_collection( 'test_collection' );
+    $coll->drop;
+
+    my $cmd = [ create => "test_collection", capped => 1, size => 10000 ];
+    $testdb->run_command($cmd);
+
+    $coll->insert( { x => $_ } ) for 0 .. 9;
+
+    # Get last doc
+    my $cursor = $coll->find()->sort({x => -1})->limit(1);
+    my $last_doc = $cursor->next();
+
+    $cursor = $coll->find({_id => {'$gt' => $last_doc->{_id}}})->tailable(1);
+
+    # We won't get anything yet
+    $cursor->next();
+
+    for (my $i=10; $i < 20; $i++) {
+        $coll->insert({x => $i});
+    }
+
+    # We should retrieve documents here since we are tailable.
+    my $count =()= $cursor->all;
+
+    is($count, 10);
+}
+
+done_testing;
