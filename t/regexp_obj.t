@@ -23,11 +23,9 @@ use Test::Fatal;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client/;
+use MongoDBTest qw/build_client get_test_db/;
 
 my $conn = build_client();
-
-plan tests => 9;
 
 {
     my $regexp = MongoDB::BSON::Regexp->new( pattern => 'foo*bar' );
@@ -50,18 +48,21 @@ like(
 {
     $conn->inflate_regexps( 1 );
 
-    $conn->get_database( "test_database" )->get_collection( "test_collection" )->insert( {
+    my $testdb = get_test_db($conn);
+    my $coll = $testdb->get_collection("test_collection");
+    
+    $coll->insert( {
         _id => 'spl0rt',
         foo => MongoDB::BSON::Regexp->new( pattern => 'foo.+bar', flags => 'ims' ) } 
     );
 
-    my $doc = $conn->get_database( "test_database" )->get_collection( "test_collection" )->find_one( { _id => 'spl0rt' } );
+    my $doc = $coll->find_one( { _id => 'spl0rt' } );
     ok $doc->{foo};
     ok ref $doc->{foo};
     isa_ok $doc->{foo}, 'MongoDB::BSON::Regexp';
 
     is $doc->{foo}->pattern, 'foo.+bar';
     is $doc->{foo}->flags, 'ims';
-
-    $conn->get_database( "test_database" )->drop;
 }
+
+done_testing;
