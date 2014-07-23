@@ -60,11 +60,13 @@ $ENV{MONGOD} = $orc->as_uri;
 say "MONGOD=".$ENV{MONGOD};
 
 say "@command";
-system(@command);
+my $exit_val = system(@command);
+my $signal = $exit_val & 127;
+$exit_val = $exit_val >> 8;
 
 $orc->stop;
 
-exit;
+exit( $signal || $exit_val );
 
 __END__
 
