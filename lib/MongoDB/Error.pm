@@ -34,9 +34,10 @@ my $ERROR_CODES;
 
 BEGIN {
     $ERROR_CODES = {
-        BAD_VALUE           => 2,
-        UNKNOWN_ERROR       => 8,
-        WRITE_CONCERN_ERROR => 64,
+        BAD_VALUE                   => 2,
+        UNKNOWN_ERROR               => 8,
+        WRITE_CONCERN_ERROR         => 64,
+        CANT_OPEN_DB_IN_READ_LOCK   => 15927,
     };
 }
 

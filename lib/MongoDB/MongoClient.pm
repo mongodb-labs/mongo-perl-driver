@@ -26,6 +26,7 @@ use MongoDB;
 use MongoDB::Cursor;
 use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
+use MongoDB::Error;
 use Digest::MD5;
 use Tie::IxHash;
 use Time::HiRes qw/usleep/;
@@ -464,30 +465,23 @@ sub _get_max_bson_size {
 sub database_names {
     my ($self) = @_;
 
+    my @databases;
     my $max_tries = 3;
-    for ( my $try = 0; $try < $max_tries; $try++ ) {
-
-        my @databases;
-        my $success = try {
+    for my $try ( 1 .. $max_tries ) {
+        last if try {
             my $result = $self->get_database('admin')->_try_run_command({ listDatabases => 1 });
-
             if (ref($result) eq 'HASH' && exists $result->{databases}) {
                 @databases = map { $_->{name} } @{ $result->{databases} };
             }
-
             return 1;
-
         } catch {
-
             # can't open db in a read lock
-            die $_ if ($_->{result}->{result}{code} != 15927 || $try == ($max_tries-1));
-
-            # retry
-            return undef;
+            return if $_->{result}->{result}{code} == CANT_OPEN_DB_IN_READ_LOCK() || $try < $max_tries;
+            die $_;
         };
-
-        return @databases unless !defined $success;
     }
+
+    return @databases;
 }
 
 sub get_database {
