@@ -159,17 +159,19 @@ $testdb->drop;
     $coll->drop;
     $coll->ensure_index({'sn'=>1});
 
-    my $sn = 0;
-    while ($sn <= 500) {
-      $coll->insert({sn => $sn++});
-    }
+    my $bulk = $coll->unordered_bulk;
+    $bulk->insert({sn => $_}) for 0 .. 5000;
+    $bulk->execute;
 
     $cursor = $coll->query;
     my $count = 0;
     while (my $doc = $cursor->next()) {
         $count++;
     }
-    is(501, $count);
+    is(5001, $count);
+
+    my @all = $coll->find->limit(3999)->all;
+    is( 0+@all, 3999, "got limited documents" );
 }
 
 # reset
@@ -185,7 +187,7 @@ $testdb->drop;
 # explain
 {
     my $exp = $cursor->explain;
-    is($exp->{'n'}, 501, 'explain');
+    is($exp->{'n'}, 5001, 'explain');
     is($exp->{'cursor'}, 'BasicCursor');
 
     $cursor->reset;

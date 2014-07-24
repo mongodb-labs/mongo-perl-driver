@@ -702,8 +702,11 @@ sub _get_more {
     my ($self) = @_;
     return 0 if $self->_cursor_id eq CURSOR_ZERO;
 
+    my $limit = $self->_limit;
+    my $want = $limit > 0 ? ( $limit - $self->_cursor_at  ) : $self->_batch_size;
+
     my ($get_more, $request_id) = MongoDB::_Protocol::write_get_more(
-        $self->_ns, $self->_cursor_id, $self->_batch_size );
+        $self->_ns, $self->_cursor_id, $want );
     $self->_client->send($get_more);
     my $reply = $self->_client->recv;
     # XXX should we blank out cursor if this fails?
