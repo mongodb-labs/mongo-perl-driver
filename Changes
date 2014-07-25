@@ -2,6 +2,24 @@
 
 {{ $NEXT }}
 
+  [Enhancements]
+
+  - PERL-130 improved support for connection string URI; added support for
+    options: ssl, connectTimeoutMS, w, wtimeoutMS, and journal
+
+  [Bug fixes]
+
+  - PERL-130 fixed parsing of connection string to allow for usernames containing :
+    and passwords containing @ if they are percent encoded (RFC 3986)
+
+  [Documentation]
+
+  - PERL-130 documented supported connection string options
+
+  [Testing]
+
+  - PERL-130 added tests for connection string options and percent encoded username/password
+
 v0.704.2.0 2014-07-08 12:04:02-04:00 America/New_York
 
   [Bug fixes]
