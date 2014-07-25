@@ -2,6 +2,24 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - PERL-130 improved support for connection string URI; added support for
+    options: ssl, connectTimeoutMS, w, wtimeoutMS, and journal
+
+  [Bug fixes]
+
+  - PERL-130 fixed parsing of connection string to allow for usernames containing :
+    and passwords containing @ if they are percent encoded (RFC 3986)
+
+  - PERL-166 fixed tailable cursors with no initial results
+
+  - PERL-290 when find_master is 0, the driver now consistently picks the first
+    server in the list
+
+  - PERL-387 made database_names() retry up to three times if the server returns
+    a lock error
+
 v0.704.2.0 2014-07-08 12:04:02-04:00 America/New_York
 
   [Bug fixes]
