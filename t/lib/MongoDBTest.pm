@@ -34,8 +34,9 @@ sub build_client {
     my @args = @_;
     my $host = exists $ENV{MONGOD} ? $ENV{MONGOD} : 'localhost';
 
+    # long query timeout may help spurious failures on heavily loaded CI machines
     return MongoDB::MongoClient->new(
-        host => $host, ssl => $ENV{MONGO_SSL}, find_master => 1, @args,
+        host => $host, ssl => $ENV{MONGO_SSL}, find_master => 1, query_timeout => 60000, @args,
     );
 }
 

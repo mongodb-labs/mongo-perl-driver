@@ -168,16 +168,12 @@ subtest "options" => sub {
 
 # query_timeout
 {
-    my $timeout = $MongoDB::Cursor::timeout;
+    my $client = MongoDB::MongoClient->new(auto_connect => 0);
+    is($client->query_timeout, $MongoDB::Cursor::timeout, 'default query timeout');
 
-    my $conn2 = MongoDBTest::build_client(auto_connect => 0);
-    is($conn2->query_timeout, $timeout, 'query timeout');
-
-    $MongoDB::Cursor::timeout = 40;
-    $conn2 = MongoDBTest::build_client(auto_connect => 0);
-    is($conn2->query_timeout, 40, 'query timeout');
-
-    $MongoDB::Cursor::timeout = $timeout;
+    local $MongoDB::Cursor::timeout = 40;
+    $client = MongoDB::MongoClient->new(auto_connect => 0);
+    is($client->query_timeout, 40, 'changed default query timeout');
 }
 
 # max_bson_size
