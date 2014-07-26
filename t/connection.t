@@ -137,7 +137,7 @@ subtest "options" => sub {
 
         my $ssl = "true";
         my $timeout = 40000;
-        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl=$ssl&connectTimeoutMS=$timeout"});
+        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl=$ssl&connectTimeoutMS=$timeout", auto_connect => 0});
 
         is( $client->ssl, 1, "connect with ssl set" );
         is( $client->timeout, $timeout, "connection timeout set" );
@@ -146,7 +146,7 @@ subtest "options" => sub {
     subtest "invalid option value" => sub {
 
         like(
-            exception { MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl="}) },
+            exception { MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl=", auto_connect => 0}) },
             qr/expected key value pair/,
             'key should have value'
         );
@@ -157,7 +157,7 @@ subtest "options" => sub {
         my $w = 2;
         my $wtimeout = 200;
         my $j = "true";
-        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?w=$w&wtimeoutMS=$wtimeout&journal=$j"});
+        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?w=$w&wtimeoutMS=$wtimeout&journal=$j", auto_connect => 0});
 
         is( $client->w, $w, "write acknowledgement set" );
         is( $client->wtimeout, $wtimeout, "write acknowledgement timeout set" );
