@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.704.3.0 2014-07-28 17:02:13-04:00 America/New_York
+
   [Additions]
 
   - PERL-130 improved support for connection string URI; added support for
