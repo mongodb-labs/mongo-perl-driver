@@ -6,7 +6,8 @@ install:
   - cpanm -n -q --skip-satisfied --installdeps .
 script: perl Makefile.PL && make test
 perl:
-  - "5.19"
+  - "5.21"
+  - "5.20"
   - "5.18"
   - "5.16"
   - "5.14"
