@@ -49,6 +49,25 @@ sub get_test_db {
     return  $db;
 }
 
+
+BEGIN {
+    eval {
+        my $conn = build_client();
+        my $testdb = get_test_db($conn);
+        eval { $conn->get_database("admin")->_try_run_command({ serverStatus => 1 }) }
+            or die "Database has auth enabled\n";
+    };
+
+    if ( $@ ) {
+        (my $err = $@) =~ s/\n//g;
+        if ( $err =~ /couldn't connect/ ) {
+            $err = "no mongod on " . ($ENV{MONGOD} || "localhost:27017");
+            $err .= ' and $ENV{MONGOD} not set' unless $ENV{MONGOD};
+        }
+        plan skip_all => "$err";
+    }
+};
+
 sub server_version {
 
     my $conn = shift;
