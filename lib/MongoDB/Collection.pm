@@ -263,21 +263,19 @@ sub _add_oids {
 }
 
 sub batch_insert {
-    my ($self, $object, $options) = @_;
+    my ($self, $docs, $options) = @_;
 
-    confess 'not an array reference' unless ref $object eq 'ARRAY';
+    confess 'not an array reference' unless ref $docs eq 'ARRAY';
 
     my $ids = [];
     unless ($options->{'no_ids'}) {
-        $ids = $self->_add_oids($object);
+        $ids = $self->_add_oids($docs);
     }
 
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
-    # inserts into system.indexes allows dots in key names
-    my $check_keys = $self->name eq 'system.indexes' ? 0 : 1;
 
-    my $insert = MongoDB::_Protocol::write_insert($ns, $object, $check_keys);
+    my $insert = MongoDB::_Protocol::write_insert($ns, $docs, 1); # checks keys for "."
     if (length($insert) > $conn->max_bson_size) {
         Carp::croak("insert is too large: ".length($insert)." max: ".$conn->max_bson_size);
     }
@@ -290,6 +288,24 @@ sub batch_insert {
     }
 
     return @$ids;
+}
+
+sub _legacy_index_insert {
+    my ($self, $doc, $options) = @_;
+
+    my $conn = $self->_database->_client;
+    my $ns = $self->full_name;
+
+    my $insert = MongoDB::_Protocol::write_insert($ns, [$doc], 0); # does not check keys for "."
+
+    if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
+        $self->_make_safe($insert);
+    }
+    else {
+        $conn->send($insert);
+    }
+
+    return;
 }
 
 sub update { 
@@ -560,7 +576,7 @@ sub ensure_index {
          ( not exists $res->{code} or $res->{code} == 59 or $res->{code} == 13390) ) { 
         $obj->Unshift( ns => $tmp_ns );     # restore ns to spec
         my $indexes = $self->_database->get_collection("system.indexes");
-        return $indexes->insert($obj, $options);
+        return $indexes->_legacy_index_insert($obj, $options);
     } else { 
         die "error creating index: " . $res->{errmsg};
     }
