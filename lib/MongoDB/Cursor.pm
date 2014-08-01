@@ -363,7 +363,7 @@ sub _send_and_recv {
 }
 
 sub _read_reply {
-    my ($self, $reply, $request_id) = @_;
+    my ($self, $reply, $request_id, $getmore) = @_;
     my $result = MongoDB::_Protocol::parse_reply($reply, $request_id, $self->_client);
 
     if ( vec( $result->{response_flags}, MongoDB::_Protocol::QUERY_FAILURE(), 1 ) && $self->_ns !~ /\$cmd$/ ) {
@@ -380,7 +380,7 @@ sub _read_reply {
 
     $self->_cursor_flags( $result->{response_flags} );
     $self->_cursor_id( $result->{cursor_id} );
-    $self->_cursor_start( $result->{starting_from} );
+    $self->_cursor_start( $result->{starting_from} ) unless $getmore;
     $self->_inc_cursor_num( $result->{number_returned} );
     $self->_add_docs( @{ $result->{docs} } );
     return scalar @{ $result->{docs} };
@@ -712,7 +712,7 @@ sub _get_more {
     $self->_client->send($get_more);
     my $reply = $self->_client->recv;
     # XXX should we blank out cursor if this fails?
-    return $self->_read_reply($reply, $request_id);
+    return $self->_read_reply($reply, $request_id, 1);
 }
 
 =head2 reset
