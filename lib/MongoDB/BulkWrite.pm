@@ -621,9 +621,7 @@ sub _gen_legacy_insert {
     my ( $self, $ns, $doc ) = @_;
     # $doc is a document to insert
 
-    my $insert = MongoDB::_Protocol::write_insert($ns, [$doc], 1);
-
-    return $insert;
+    return MongoDB::_Protocol::write_insert($ns, [$doc], 1);
 }
 
 sub _gen_legacy_update {
