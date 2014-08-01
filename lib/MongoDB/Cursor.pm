@@ -370,7 +370,9 @@ sub _read_reply {
         my $doc = $result->{docs}[0];
         my $err = $doc->{'$err'} || 'unspecified error';
         my $code = $doc->{code};
-        if ( $code && grep { $code == $_ } NOT_MASTER(), NOT_MASTER_NO_SLAVE_OK(), NOT_MASTER_OR_SECONDARY() ) {
+        if ( $code && grep { $code == $_ } NOT_MASTER(), NOT_MASTER_NO_SLAVE_OK(), NOT_MASTER_OR_SECONDARY()
+            || $err =~ /not master/
+        ) {
             $self->_client->disconnect;
         }
         Carp::croak("query error: $err");
