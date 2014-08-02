@@ -1077,7 +1077,7 @@ const char * clean_key(const char * str, int is_insert) {
   }
 
   if (is_insert && strchr(str, '.')) {
-    croak("inserts cannot contain the . character");
+    croak("documents for storage cannot contain the . character");
   }
 
   if (special_char && SvPOK(special_char) && SvPV_nolen(special_char)[0] == str[0]) {

@@ -948,4 +948,21 @@ sub _check_parallel_results {
 
 }
 
+subtest "deep update" => sub {
+    $coll->drop;
+    $coll->insert( { _id => 1 } );
+
+    $coll->update( { _id => 1 }, { '$set' => { 'x.y' => 42 } } );
+
+    my $doc = $coll->find_one( { _id => 1 } );
+    is( $doc->{x}{y}, 42, "deep update worked" );
+
+    like(
+        exception { $coll->update( { _id => 1 }, { 'p.q' => 23 } ) },
+        qr/documents for storage cannot contain/,
+        "replace with dots in field dies"
+    );
+
+};
+
 done_testing;

@@ -109,12 +109,17 @@ use constant {
 # }
 sub write_update {
     my ( $ns, $selector, $update, $flags ) = @_;
+    my $type = ref $update;
+    my $first_key = $type eq 'ARRAY' ? $update->[0]
+                  : $type eq 'HASH'  ? each %$update
+                  : $update->Keys(0);
+
     utf8::encode($ns);
     my $msg = pack( P_HEADER, 0, _request_id(), 0, OP_UPDATE );
     $msg .=
         pack( P_UPDATE, 0, $ns, $flags )
       . MongoDB::BSON::encode_bson( $selector, NO_CLEAN_KEYS )
-      . MongoDB::BSON::encode_bson( $update,   NO_CLEAN_KEYS );
+      . MongoDB::BSON::encode_bson( $update,   substr($first_key,0,1) ne '$' );
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
     return $msg;
 }
