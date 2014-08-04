@@ -28,6 +28,8 @@ use MongoDB::Error;
 use boolean;
 use Tie::IxHash;
 use namespace::clean -except => 'meta';
+use threads;
+use threads::shared;
 
 =head1 NAME
 
@@ -53,7 +55,7 @@ Core documentation on cursors: L<http://dochub.mongodb.org/core/cursors>.
 
 =cut
 
-$MongoDB::Cursor::_request_id = int(rand(1000000));
+our $_request_id : shared = int(rand(1000000));
 
 =head1 STATIC ATTRIBUTES
 
@@ -286,8 +288,9 @@ sub _do_query {
         ($self->immortal << 4) |
         ($self->partial << 7);
 
-    my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit || $self->_batch_size, $self->_query, $self->_fields);
-    $self->_request_id($info->{'request_id'});
+    my $request_id = ++$MongoDB::Cursor::_request_id;
+    my ($query, $info) = MongoDB::write_query($self->_ns, $opts, $self->_skip, $self->_limit || $self->_batch_size, $self->_query, $self->_fields, $request_id);
+    $self->_request_id( $request_id );
 
     if ( length($query) > $self->_client->_max_bson_wire_size ) {
         MongoDB::_CommandSizeError->throw(
