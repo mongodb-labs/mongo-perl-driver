@@ -22,8 +22,6 @@ extern XS(boot_MongoDB__BSON);
 extern XS(boot_MongoDB__Cursor);
 extern XS(boot_MongoDB__OID);
 
-static SV *request_id;
-
 MODULE = MongoDB  PACKAGE = MongoDB
 
 PROTOTYPES: DISABLE
@@ -33,8 +31,6 @@ BOOT:
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__BSON);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Cursor);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__OID);
-        request_id =
-          GvSV(gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV));
         gv_fetchpv("MongoDB::Cursor::slave_okay",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::looks_like_number",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::char",  GV_ADDMULTI, SVt_IV);
@@ -44,13 +40,14 @@ BOOT:
         perl_mongo_init();
 
 void
-write_query(ns, opts, skip, limit, query, fields = 0)
+write_query(ns, opts, skip, limit, query, fields = 0, request_id)
          char *ns
          int opts
          int skip
          int limit
          SV *query
          SV *fields
+         SV *request_id
      PREINIT:
          buffer buf;
          mongo_msg_header header;
@@ -71,8 +68,6 @@ write_query(ns, opts, skip, limit, query, fields = 0)
 
          perl_mongo_serialize_size(buf.start, &buf);
 
-         /* this must come after CREATE_HEADER_WITH_OPTS because that
-          * increments the request_id */
          heval = hv_stores(info, "ns", newSVpv(ns, strlen(ns)));
          heval = hv_stores(info, "opts", newSViv(opts));
          heval = hv_stores(info, "skip", newSViv(skip));
@@ -86,10 +81,11 @@ write_query(ns, opts, skip, limit, query, fields = 0)
 
 
 void
-write_insert(ns, a, add_ids)
+write_insert(ns, a, add_ids, request_id)
          char *ns
          AV *a
          int add_ids
+         SV *request_id
      PREINIT:
          buffer buf;
          mongo_msg_header header;
@@ -117,10 +113,11 @@ write_insert(ns, a, add_ids)
          Safefree(buf.start);
 
 void
-write_remove(ns, criteria, flags)
+write_remove(ns, criteria, flags, request_id)
          char *ns
          SV *criteria
          int flags
+         SV *request_id
      PREINIT:
          buffer buf;
          mongo_msg_header header;
@@ -135,11 +132,12 @@ write_remove(ns, criteria, flags)
          Safefree(buf.start);
 
 void
-write_update(ns, criteria, obj, flags)
+write_update(ns, criteria, obj, flags, request_id)
          char *ns
          SV *criteria
          SV *obj
          int flags
+         SV *request_id
     PREINIT:
          buffer buf;
          mongo_msg_header header;

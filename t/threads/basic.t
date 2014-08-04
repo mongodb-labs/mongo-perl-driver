@@ -56,11 +56,11 @@ $col->drop;
     my @threads = map {
         threads->create(sub {
             my $col = $conn->get_database($testdb->name)->get_collection('kooh');
-            $col->insert({ foo => threads->self->tid }, { safe => 1 });
+            map { $col->insert({ foo => threads->self->tid }, { safe => 1 }) } 0..999;
         })
-    } 0 .. 9;
+    } 0 .. 99;
 
-    my @vals = map { $_->tid } @threads;
+    my @vals = map { ( $_->tid ) x 1000 } @threads;
     my @ids = map { $_->join } @threads;
 
     is scalar keys %{ { map { ($_ => 1) } @ids } }, scalar @ids,

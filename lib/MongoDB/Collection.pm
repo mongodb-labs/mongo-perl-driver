@@ -231,7 +231,7 @@ sub batch_insert {
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
-    my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids);
+    my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids, ++$MongoDB::Cursor::_request_id);
     if (length($insert) > $conn->max_bson_size) {
         Carp::croak("insert is too large: ".length($insert)." max: ".$conn->max_bson_size);
         return 0;
@@ -284,7 +284,7 @@ sub legacy_update {
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
-    my $update = MongoDB::write_update($ns, $query, $object, $flags);
+    my $update = MongoDB::write_update($ns, $query, $object, $flags, ++$MongoDB::Cursor::_request_id);
     if ($opts->{safe} or $conn->_w_want_safe ) {
         return $self->_make_safe($update);
     }
@@ -442,7 +442,7 @@ sub legacy_remove {
     my $ns = $self->full_name;
     $query ||= {};
 
-    my $remove = MongoDB::write_remove($ns, $query, $just_one);
+    my $remove = MongoDB::write_remove($ns, $query, $just_one, ++$MongoDB::Cursor::_request_id);
     if ($safe) {
         return $self->_make_safe($remove);
     }
@@ -548,7 +548,8 @@ sub _make_safe_cursor {
     $write_concern ||= $conn->_write_concern;
 
     my $last_error = Tie::IxHash->new(getlasterror => 1, %$write_concern);
-    my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
+    my $request_id = ++$MongoDB::Cursor::_request_id;
+    my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error, 0, $request_id);
 
     $conn->send("$req$query");
 
@@ -557,7 +558,7 @@ sub _make_safe_cursor {
                                       _client => $conn,
                                       _query => Tie::IxHash->new());
     $cursor->_init;
-    $cursor->_request_id($info->{'request_id'});
+    $cursor->_request_id( $request_id );
 
     $conn->recv($cursor);
     $cursor->started_iterating(1);
