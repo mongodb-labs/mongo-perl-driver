@@ -53,18 +53,21 @@ $col->drop;
 }
 
 {
+    my ($n_threads, $n_inserts) = $ENV{AUTOMATED_TESTING} ? (100,1000) : (10, 100);
+    note "inserting $n_inserts items each in $n_threads threads";
     my @threads = map {
         threads->create(sub {
             my $col = $conn->get_database($testdb->name)->get_collection('kooh');
-            $col->insert({ foo => threads->self->tid }, { safe => 1 });
+            map { $col->insert({ foo => threads->self->tid }, { safe => 1 }) } 1 .. $n_inserts;
         })
-    } 0 .. 9;
+    } 1 .. $n_threads;
 
-    my @vals = map { $_->tid } @threads;
+    my @vals = map { ( $_->tid ) x $n_inserts } @threads;
     my @ids = map { $_->join } @threads;
 
-    is scalar keys %{ { map { ($_ => 1) } @ids } }, scalar @ids,
-        'we got 10 unique OIDs';
+    my $expected = scalar @ids;
+    is scalar keys %{ { map { ($_ => undef) } @ids } }, $expected,
+        "we got $expected unique OIDs";
 
     is_deeply(
         [map { $col->find_one({ _id => $_ })->{foo} } @ids],
