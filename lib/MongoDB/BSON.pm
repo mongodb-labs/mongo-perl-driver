@@ -22,6 +22,9 @@ package MongoDB::BSON;
 use version;
 our $VERSION = 'v0.704.4.1';
 
+use XSLoader;
+XSLoader::load("MongoDB", $VERSION);
+
 use Moose;
 use MongoDB;
 use namespace::clean -except => 'meta';
@@ -108,6 +111,27 @@ you would like to have it deserialized as instances of L<MongoDB::BSON::Binary>
 =cut
 
 $MongoDB::BSON::use_binary = 0;
+
+sub decode_bson {
+    my ($msg,$client) = @_;
+    my $struct = eval { MongoDB::BSON::_decode_bson(
+        $msg,
+        $client->dt_type,
+        $client->inflate_dbrefs,
+        $client->inflate_regexps,
+        $client,
+        );
+    };
+    Carp::confess($@) if $@;
+    return $struct;
+}
+
+sub encode_bson {
+    my ($struct, $clean_keys) = @_;
+    my $bson = eval { MongoDB::BSON::_encode_bson($struct, $clean_keys) };
+    Carp::confess($@) if $@;
+    return $bson;
+}
 
 __PACKAGE__->meta->make_immutable;
 

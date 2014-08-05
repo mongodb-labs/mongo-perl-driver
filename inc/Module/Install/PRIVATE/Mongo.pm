@@ -34,6 +34,9 @@ sub mongo {
     my $endianess = $Config{byteorder};
     if ($endianess == 4321 || $endianess == 87654321) {
         $ccflags .= " -DMONGO_BIG_ENDIAN=1 ";
+        if ( $] lt '5.010' ) {
+            die "OS unsupported: Perl 5.10 or greater is required for big-endian platforms";
+        }
     }
 
     # needed to compile bson library

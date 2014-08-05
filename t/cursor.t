@@ -73,7 +73,7 @@ $testdb->drop;
 # limit
 {
     @values = $coll->query({}, { limit => 3, sort_by => { foo => 1 } })->all;
-    is(scalar @values, 3);
+    is(scalar @values, 3) or diag explain \@values;
     is ($values[0]->{foo}, -3);
     is ($values[1]->{foo}, 2);
     is ($values[2]->{foo}, 4);
@@ -159,17 +159,19 @@ $testdb->drop;
     $coll->drop;
     $coll->ensure_index({'sn'=>1});
 
-    my $sn = 0;
-    while ($sn <= 500) {
-      $coll->insert({sn => $sn++});
-    }
+    my $bulk = $coll->unordered_bulk;
+    $bulk->insert({sn => $_}) for 0 .. 5000;
+    $bulk->execute;
 
     $cursor = $coll->query;
     my $count = 0;
     while (my $doc = $cursor->next()) {
         $count++;
     }
-    is(501, $count);
+    is(5001, $count);
+
+    my @all = $coll->find->limit(3999)->all;
+    is( 0+@all, 3999, "got limited documents" );
 }
 
 # reset
@@ -185,7 +187,7 @@ $testdb->drop;
 # explain
 {
     my $exp = $cursor->explain;
-    is($exp->{'n'}, 501, 'explain');
+    is($exp->{'n'}, 5001, 'explain');
     is($exp->{'cursor'}, 'BasicCursor');
 
     $cursor->reset;
@@ -212,7 +214,7 @@ $testdb->drop;
         $aok = 0;
     };
 
-    ok($@ =~ m/query error/);
+    like($@, qr/query error/, "check query error on hint");
 }
 
 # slave_okay
@@ -305,7 +307,7 @@ $testdb->drop;
     is($info->{'at'}, 0);
     is($info->{'num'}, $count);
     is($info->{'start'}, 0);
-    is($info->{'cursor_id'}, 0);
+    is($info->{'cursor_id'}, scalar("\0" x 8));
 
     $cursor->next;
     $info = $cursor->info;

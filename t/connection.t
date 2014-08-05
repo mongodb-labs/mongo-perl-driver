@@ -33,7 +33,7 @@ my $testdb = get_test_db($conn);
 
 like(
     exception { MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL}); },
-    qr/couldn't connect to server/,
+    qr/could not connect/i,
     'exception on connection failure'
 );
 
@@ -177,7 +177,8 @@ subtest "options" => sub {
 }
 
 # max_bson_size
-{
+TODO: {
+    local $TODO = "pending cluster monitoring";
     my $size = $conn->max_bson_size;
     my $result = $conn->get_database( 'admin' )->run_command({buildinfo => 1});
     if (exists $result->{'maxBsonObjectSize'}) {
@@ -190,7 +191,8 @@ subtest "options" => sub {
 
 # wire protocol versions
 
-{
+TODO: {
+    local $TODO = "pending cluster monitoring";
 
     is $conn->min_wire_version, 0, 'default min wire version';
     is $conn->max_wire_version, 2, 'default max wire version';

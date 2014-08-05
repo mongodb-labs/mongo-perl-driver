@@ -87,7 +87,8 @@ subtest "replica set" => sub {
     }
 
     # check pinning secondary with readpref SECONDARY
-    {
+    TODO: {
+        local $TODO = "pending cluster monitoring";
         $conn->read_preference(MongoDB::MongoClient->SECONDARY_PREFERRED);
         my $pinhost = $conn->_readpref_pinned->host;
         ok($pinhost && $pinhost ne $conn->_master->host, 'secondary is pinned');
@@ -127,7 +128,8 @@ subtest "replica set" => sub {
     }
 
     # set read preference on the cursor
-    {
+    TODO: {
+        local $TODO = "pending cluster monitoring";
         $collection = $conn->get_database('test_database')->get_collection('test_collection');
 
         my $cursor = $collection->find()->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED);
@@ -138,8 +140,13 @@ subtest "replica set" => sub {
     }
 
     # commands
-    {
-        $conn->read_preference(MongoDB::MongoClient->SECONDARY);
+    TODO: {
+        local $TODO = "pending cluster monitoring";
+        is(
+            exception { $conn->read_preference(MongoDB::MongoClient->SECONDARY) },
+            undef,
+            "read pref set to secondary without error"
+        );
         isnt($conn->_master, $conn->_readpref_pinned, 'secondary pinned');
 
         my $admin = $conn->get_database('admin');

@@ -28,7 +28,8 @@ our $VERSION = 'v0.704.4.1';
 # function implementation on 5.10, and was automatically available in 5.10.1
 use if ($] eq '5.010000'), 're', 'regexp_pattern';
 
-use XSLoader;
+use Carp ();
+use MongoDB::BSON;
 use MongoDB::Connection;
 use MongoDB::MongoClient;
 use MongoDB::Database;
@@ -39,10 +40,31 @@ use MongoDB::Timestamp;
 use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use MongoDB::BulkWrite;
-
-XSLoader::load(__PACKAGE__, $MongoDB::VERSION);
+use MongoDB::_Link;
+use MongoDB::_Protocol;
 
 *read_documents = \&MongoDB::BSON::decode_bson;
+
+# regexp_pattern was unavailable before 5.10, had to be exported to load the
+# function implementation on 5.10, and was automatically available in 5.10.1
+if ( $] eq '5.010' ) {
+    require re;
+    re->import('regexp_pattern');
+}
+
+sub force_double {
+    if ( ref $_[0] ) {
+        Carp::croak("Can't force a reference into a double");
+    }
+    return $_[0] = unpack("d",pack("d", $_[0]));
+}
+
+sub force_int {
+    if ( ref $_[0] ) {
+        Carp::croak("Can't force a reference into an int");
+    }
+    return $_[0] = int($_[0]);
+}
 
 1;
 

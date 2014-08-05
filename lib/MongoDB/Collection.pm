@@ -25,7 +25,7 @@ our $VERSION = 'v0.704.4.1';
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
-use Scalar::Util qw/blessed/;
+use Scalar::Util qw/blessed reftype/;
 use Try::Tiny;
 use Moose;
 use namespace::clean -except => 'meta';
@@ -181,7 +181,6 @@ sub find {
         $cursor->_add_readpref({mode => $modeName, tags => $conn->_readpref_tagsets});
     }
 
-    $cursor->_init;
     if ($sort_by) {
         $cursor->sort($sort_by);
     }
@@ -211,44 +210,102 @@ sub insert {
 
 sub legacy_insert {
     my ($self, $object, $options) = @_;
-    
+
+    # XXX if legacy insert doesn't croak on error for unsafe inserts, then we
+    # must trap the batch_insert and return whatever is appropriate (probably
+    # return undef as that's not a valid OID)
     my ($id) = $self->batch_insert( [ $object ], $options);
 
     return $id;
 }
 
+sub _add_oids {
+    my ($self, $docs) = @_;
+    my @ids;
+
+    for my $d ( @$docs ) {
+        my $type = reftype($d);
+        my $found_id;
+        if (ref($d) eq 'Tie::IxHash') {
+            $found_id = $d->FETCH('_id');
+            unless ( defined $found_id ) {
+                $d->Unshift( '_id', $found_id = MongoDB::OID->new );
+            }
+        }
+        elsif ($type eq 'ARRAY') {
+            # search for an _id or prepend one
+            for my $i ( 0 .. (@$d/2 - 1) ) {
+                if ( $d->[2*$i] eq '_id' ) {
+                    $found_id = $d->[2*$i+1];
+                    last;
+                }
+            }
+            unless (defined $found_id) {
+                unshift @$d, '_id', $found_id = MongoDB::OID->new;
+            }
+        }
+        elsif ($type eq 'HASH') {
+            # hash or IxHash
+            $found_id = $d->{_id};
+            unless ( defined $found_id ) {
+                $found_id = MongoDB::OID->new;
+                $d->{_id} = $found_id;
+            }
+        }
+        else {
+            $type = 'scalar' unless $type;
+            Carp::croak("unhandled type $type")
+        }
+        push @ids, $found_id;
+    }
+
+    return \@ids;
+}
 
 sub batch_insert {
-    my ($self, $object, $options) = @_;
+    my ($self, $docs, $options) = @_;
 
-    confess 'not an array reference' unless ref $object eq 'ARRAY';
+    confess 'not an array reference' unless ref $docs eq 'ARRAY';
 
-    my $add_ids = 1;
-    if ($options->{'no_ids'}) {
-        $add_ids = 0;
+    my $ids = [];
+    unless ($options->{'no_ids'}) {
+        $ids = $self->_add_oids($docs);
     }
 
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
-    my ($insert, $ids) = MongoDB::write_insert($ns, $object, $add_ids);
+    my $insert = MongoDB::_Protocol::write_insert($ns, $docs, 1); # checks keys for "."
     if (length($insert) > $conn->max_bson_size) {
         Carp::croak("insert is too large: ".length($insert)." max: ".$conn->max_bson_size);
-        return 0;
     }
 
     if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
-        my $ok = $self->_make_safe($insert);
-
-        if (!$ok) {
-            return 0;
-        }
+        $self->_make_safe($insert);
     }
     else {
         $conn->send($insert);
     }
 
-    return $ids ? @$ids : $ids;
+    return @$ids;
+}
+
+sub _legacy_index_insert {
+    my ($self, $doc, $options) = @_;
+
+    my $conn = $self->_database->_client;
+    my $ns = $self->full_name;
+
+    my $insert = MongoDB::_Protocol::write_insert($ns, [$doc], 0); # does not check keys for "."
+
+    if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
+        $self->_make_safe($insert);
+    }
+    else {
+        $conn->send($insert);
+    }
+
+    return;
 }
 
 sub update { 
@@ -284,7 +341,7 @@ sub legacy_update {
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
-    my $update = MongoDB::write_update($ns, $query, $object, $flags);
+    my $update = MongoDB::_Protocol::write_update($ns, $query, $object, $flags);
     if ($opts->{safe} or $conn->_w_want_safe ) {
         return $self->_make_safe($update);
     }
@@ -348,12 +405,12 @@ sub aggregate {
             _client                => $db->_client,
             _master                => $db->_client,   # fake this because we're already iterating
             _ns                    => $result->{cursor}{ns},
-            _agg_first_batch       => $result->{cursor}{firstBatch}, 
-            _agg_batch_size        => scalar @{ $result->{cursor}{firstBatch} },  # for has_next
+            _docs                  => $result->{cursor}{firstBatch}, 
+            _batch_size            => scalar @{ $result->{cursor}{firstBatch} },  # for has_next
             _query                 => Tie::IxHash->new(@command),
+            _cursor_id             => MongoDB::Cursor::_pack_cursor_id($result->{cursor}{id}),
         );
 
-        $cursor->_init( $result->{cursor}{id} );
         return $cursor;
     }
 
@@ -394,9 +451,9 @@ sub parallel_scan {
             _ns                    => $c->{ns},
             _query                 => Tie::IxHash->new(@command),
             _is_parallel           => 1,
+            _cursor_id             => MongoDB::Cursor::_pack_cursor_id($c->{id}),
         );
 
-        $cursor->_init( $c->{id} );
         push @cursors, $cursor;
     }
 
@@ -442,7 +499,7 @@ sub legacy_remove {
     my $ns = $self->full_name;
     $query ||= {};
 
-    my $remove = MongoDB::write_remove($ns, $query, $just_one);
+    my $remove = MongoDB::_Protocol::write_delete($ns, $query, $just_one);
     if ($safe) {
         return $self->_make_safe($remove);
     }
@@ -519,7 +576,7 @@ sub ensure_index {
          ( not exists $res->{code} or $res->{code} == 59 or $res->{code} == 13390) ) { 
         $obj->Unshift( ns => $tmp_ns );     # restore ns to spec
         my $indexes = $self->_database->get_collection("system.indexes");
-        return $indexes->insert($obj, $options);
+        return $indexes->_legacy_index_insert($obj, $options);
     } else { 
         die "error creating index: " . $res->{errmsg};
     }
@@ -548,19 +605,17 @@ sub _make_safe_cursor {
     $write_concern ||= $conn->_write_concern;
 
     my $last_error = Tie::IxHash->new(getlasterror => 1, %$write_concern);
-    my ($query, $info) = MongoDB::write_query($db.'.$cmd', 0, 0, -1, $last_error);
+    my ($query, $info) = MongoDB::_Protocol::write_query($db.'.$cmd', 0, 0, -1, $last_error);
 
-    $conn->send("$req$query");
+    my $cursor = MongoDB::Cursor->new(
+        _master                         => $conn,
+        _client                         => $conn,
+        _ns                             => $info->{ns},
+        _query                          => Tie::IxHash->new(),
+    );
 
-    my $cursor = MongoDB::Cursor->new(_ns => $info->{ns},
-                                      _master => $conn,
-                                      _client => $conn,
-                                      _query => Tie::IxHash->new());
-    $cursor->_init;
-    $cursor->_request_id($info->{'request_id'});
+    $cursor->_send_and_recv("$req$query", $info->{request_id});
 
-    $conn->recv($cursor);
-    $cursor->started_iterating(1);
     return $cursor;
 }
 
