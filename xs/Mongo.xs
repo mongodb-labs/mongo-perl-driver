@@ -22,8 +22,6 @@ extern XS(boot_MongoDB__BSON);
 extern XS(boot_MongoDB__Cursor);
 extern XS(boot_MongoDB__OID);
 
-static SV *request_id;
-
 MODULE = MongoDB  PACKAGE = MongoDB
 
 PROTOTYPES: DISABLE
@@ -33,8 +31,6 @@ BOOT:
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__BSON);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__Cursor);
 	PERL_MONGO_CALL_BOOT (boot_MongoDB__OID);
-        request_id =
-          GvSV(gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV));
         gv_fetchpv("MongoDB::Cursor::slave_okay",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::looks_like_number",  GV_ADDMULTI, SVt_IV);
         gv_fetchpv("MongoDB::BSON::char",  GV_ADDMULTI, SVt_IV);
@@ -54,6 +50,7 @@ write_query(ns, opts, skip, limit, query, fields = 0)
      PREINIT:
          buffer buf;
          mongo_msg_header header;
+         SV *request_id = GvSV(gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV));
          HV *info = newHV();
          SV **heval;
      PPCODE:
@@ -93,6 +90,7 @@ write_insert(ns, a, add_ids)
      PREINIT:
          buffer buf;
          mongo_msg_header header;
+         SV *request_id = GvSV(gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV));
          int i;
          AV *ids = 0;
      INIT:
@@ -124,6 +122,7 @@ write_remove(ns, criteria, flags)
      PREINIT:
          buffer buf;
          mongo_msg_header header;
+         SV *request_id = GvSV(gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV));
      PPCODE:
          CREATE_BUF(INITIAL_BUF_SIZE);
          CREATE_HEADER(buf, ns, OP_DELETE);
@@ -143,6 +142,7 @@ write_update(ns, criteria, obj, flags)
     PREINIT:
          buffer buf;
          mongo_msg_header header;
+         SV *request_id = GvSV(gv_fetchpv("MongoDB::Cursor::_request_id",  GV_ADDMULTI, SVt_IV));
     PPCODE:
          CREATE_BUF(INITIAL_BUF_SIZE);
          CREATE_HEADER(buf, ns, OP_UPDATE);
