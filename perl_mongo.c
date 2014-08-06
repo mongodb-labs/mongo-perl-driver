@@ -382,6 +382,10 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
       str = bson_iter_utf8(iter, &len);
     }
 
+    if ( ! is_utf8_string((const U8*)str,len)) {
+      croak( "Invalid UTF-8 detected while decoding BSON" );
+    }
+
     // this makes a copy of the buffer
     // len includes \0
     value = newSVpvn(str, len);
@@ -738,6 +742,11 @@ bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_r
     SV *value;
 
     name = bson_iter_key(iter);
+
+    if ( ! is_utf8_string((const U8*)name,strlen(name))) {
+      croak( "Invalid UTF-8 detected while decoding BSON" );
+    }
+
     key_num++;
     /* check if this is a DBref. We must see the keys
        $ref, $id, and $db in that order, with no extra keys */
@@ -927,6 +936,11 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert)
     if (!utf8) {
       key = (const char *) bytes_to_utf8((U8 *)key, &len);
     }
+
+    if ( ! is_utf8_string((const U8*)key,len)) {
+        croak( "Invalid UTF-8 detected while encoding BSON" );
+    }
+
     append_sv (bson, key, *hval, stack, is_insert);
     if (!utf8) {
       Safefree(key);
@@ -1299,7 +1313,11 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
           croak("MongoDB::BSON::String must be a blessed string reference");
         }
 
-        str = SvPV(str_sv, str_len);
+        str = SvPVutf8(str_sv, str_len);
+
+        if ( ! is_utf8_string((const U8*)str,str_len)) {
+          croak( "Invalid UTF-8 detected while encoding BSON" );
+        }
 
         bson_append_utf8(bson, key, -1, str, str_len);
       }
@@ -1443,6 +1461,10 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
       else {
         STRLEN len;
         const char *str = SvPVutf8(sv, len);
+
+        if ( ! is_utf8_string((const U8*)str,len)) {
+          croak( "Invalid UTF-8 detected while encoding BSON" );
+        }
 
         bson_append_utf8(bson, key, -1, str, len);
       }
