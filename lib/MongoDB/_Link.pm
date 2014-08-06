@@ -25,7 +25,7 @@ use warnings;
 package MongoDB::_Link;
 
 use version;
-our $VERSION = 'v0.703.5'; # TRIAL
+our $VERSION = 'v0.704.4.1';
 
 use Config;
 use Errno qw[EINTR EPIPE];
