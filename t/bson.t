@@ -18,22 +18,21 @@
 
 use strict;
 use warnings;
-use Test::More;
+use Test::More 0.88;
 
 use MongoDB;
 use MongoDB::OID;
 use boolean;
 use DateTime;
 use Data::Types qw(:float);
+use Encode;
 use Tie::IxHash;
+use Test::Fatal;
 use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::BSON::Binary;
 
 use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db/;
-
-plan tests => 75;
-
 
 my $testdb = get_test_db(build_client());
 
@@ -133,6 +132,31 @@ my $c = $testdb->get_collection('bar');
     ok(utf8::is_utf8($x->{char}));
     is(length $x->{char}, 2);
 }
+
+subtest "bad UTF8" => sub {
+
+    my @bad = (
+        "\xC0\x80"            , # Non-shortest form representation of U+0000
+        "\xC0\xAF"            , # Non-shortest form representation of U+002F
+        "\xE0\x80\x80"        , # Non-shortest form representation of U+0000
+        "\xF0\x80\x80\x80"    , # Non-shortest form representation of U+0000
+        "\xE0\x83\xBF"        , # Non-shortest form representation of U+00FF
+        "\xF0\x80\x83\xBF"    , # Non-shortest form representation of U+00FF
+        "\xF0\x80\xA3\x80"    , # Non-shortest form representation of U+08C0
+    );
+
+    for my $bad_utf8 ( @bad ) {
+    # invalid should throw
+        my $label = "0x" . unpack("H*", $bad_utf8);
+        Encode::_utf8_on($bad_utf8); # force on internal UTF8 flag
+        like(
+            exception { $c->insert({char => $bad_utf8}) },
+            qr/Invalid UTF-8 detected while encoding/,
+            "invalid UTF-8 throws an error inserting $label"
+        );
+    }
+
+};
 
 # undefined
 {
@@ -389,3 +413,4 @@ package main;
     is ( $obj->{$testkey}, 1 );
 }
 
+done_testing;
