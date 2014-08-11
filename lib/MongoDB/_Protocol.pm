@@ -24,7 +24,6 @@ use version;
 our $VERSION = 'v0.704.4.1';
 
 use Carp ();
-use MongoDB::BSON;
 
 use constant {
     OP_REPLY        => 1,    # Reply to a client request. responseTo is set
@@ -39,12 +38,11 @@ use constant {
 };
 
 use constant {
-    PERL58 => $] lt '5.010',
+    PERL58           => $] lt '5.010',
     MIN_REPLY_LENGTH => 4 * 5 + 8 + 4 * 2,
     NO_CLEAN_KEYS    => 0,
     CLEAN_KEYS       => 1,
 };
-
 
 # Perl < 5.10, pack doesn't have endianness modifiers, and the MongoDB wire
 # protocol mandates little-endian order. For 5.10, we can use modifiers but
@@ -52,15 +50,19 @@ use constant {
 # die during configuration on big endian platforms on 5.8
 
 use constant {
-    P_INT32         => PERL58 ? "l"         : "l<",
-    P_HEADER        => PERL58 ? "l4"        : "l<4",
-    P_UPDATE        => PERL58 ? "lZ*l"      : "l<Z*l<",
-    P_INSERT        => PERL58 ? "lZ*"       : "l<Z*",
-    P_QUERY         => PERL58 ? "lZ*l2"     : "l<Z*l<2",
-    P_GET_MORE      => PERL58 ? "lZ*la8"    : "l<Z*l<a8",
-    P_DELETE        => PERL58 ? "lZ*l"      : "l<Z*l<",
-    P_KILL_CURSORS  => PERL58 ? "l2(a8)*"   : "l<2(a8)*",
-    P_REPLY_HEADER  => PERL58 ? "l5a8l2"    : "l<5a8l<2", # P_HEADER + lql2
+    P_INT32  => PERL58 ? "l"  : "l<",
+    P_HEADER => PERL58 ? "l4" : "l<4",
+};
+
+# These ops all include P_HEADER already
+use constant {
+    P_UPDATE       => PERL58 ? "l5Z*l"   : "l<5Z*l<",
+    P_INSERT       => PERL58 ? "l5Z*"    : "l<5Z*",
+    P_QUERY        => PERL58 ? "l5Z*l2"  : "l<5Z*l<2",
+    P_GET_MORE     => PERL58 ? "l5Z*la8" : "l<5Z*l<a8",
+    P_DELETE       => PERL58 ? "l5Z*l"   : "l<5Z*l<",
+    P_KILL_CURSORS => PERL58 ? "l6(a8)*" : "l<6(a8)*",
+    P_REPLY_HEADER => PERL58 ? "l5a8l2"  : "l<5a8l<2",
 };
 
 # XXX this way of seeding/reseeding request ID is a bit of a hack
@@ -95,8 +97,7 @@ use constant {
 #
 # Approach for MsgHeader is to write a header with 0 for length, then
 # fix it up after the message is constructed.  E.g.
-#     my $msg = pack( P_HEADER, 0, _request_id(), 0, $op_code );
-#     $msg .= whatever_the_op_requires()
+#     my $msg = pack( P_INSERT, 0, _request_id(), 0, OP_INSERT, 0, $ns ) . $bson_docs;
 #     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
 
 # struct OP_UPDATE {
@@ -109,17 +110,11 @@ use constant {
 # }
 sub write_update {
     my ( $ns, $selector, $update, $flags ) = @_;
-    my $type = ref $update;
-    my $first_key = $type eq 'ARRAY' ? $update->[0]
-                  : $type eq 'HASH'  ? each %$update
-                  : $update->Keys(0);
-
     utf8::encode($ns);
-    my $msg = pack( P_HEADER, 0, _request_id(), 0, OP_UPDATE );
-    $msg .=
-        pack( P_UPDATE, 0, $ns, $flags )
-      . MongoDB::BSON::encode_bson( $selector, NO_CLEAN_KEYS )
-      . MongoDB::BSON::encode_bson( $update,   substr($first_key,0,1) ne '$' );
+    my $msg =
+        pack( P_UPDATE, 0, _request_id(), 0, OP_UPDATE, 0, $ns, $flags )
+      . $selector
+      . $update;
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
     return $msg;
 }
@@ -131,14 +126,10 @@ sub write_update {
 #     document* documents;          // one or more documents to insert into the collection
 # }
 sub write_insert {
-    my ( $ns, $docs, $check_keys ) = @_;
+    my ( $ns, $bson_docs ) = @_;
     utf8::encode($ns);
-    my $msg = pack( P_HEADER, 0, _request_id(), 0, OP_INSERT );
-    # we don't implement flags, so pack 0
-    $msg .= pack( P_INSERT, 0, $ns );
-    for my $d (@$docs) {
-        $msg .= MongoDB::BSON::encode_bson( $d, $check_keys ? CLEAN_KEYS : NO_CLEAN_KEYS );
-    }
+    # we don't implement flags, so pack 0 for flags
+    my $msg = pack( P_INSERT, 0, _request_id(), 0, OP_INSERT, 0, $ns ) . $bson_docs;
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
     return $msg;
 }
@@ -165,10 +156,10 @@ sub write_query {
     };
 
     utf8::encode($ns);
-    my $msg = pack( P_HEADER, 0, $info->{request_id}, 0, OP_QUERY );
-    $msg .= pack( P_QUERY, $flags, $ns, $skip, $limit )
-      . MongoDB::BSON::encode_bson( $query, NO_CLEAN_KEYS );
-    $msg .= MongoDB::BSON::encode_bson( $fields, NO_CLEAN_KEYS ) if ref $fields;
+    my $msg =
+        pack( P_QUERY, 0, $info->{request_id}, 0, OP_QUERY, $flags, $ns, $skip, $limit )
+      . $query
+      . ( defined $fields && length $fields ? $fields : '' );
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
     return ( $msg, $info );
 }
@@ -188,8 +179,8 @@ sub write_get_more {
     my ( $ns, $cursor_id, $limit ) = @_;
     utf8::encode($ns);
     my $request_id = _request_id();
-    my $msg = pack( P_HEADER, 0, $request_id, 0, OP_GET_MORE );
-    $msg .= pack( P_GET_MORE, 0, $ns, $limit, $cursor_id );
+    my $msg =
+      pack( P_GET_MORE, 0, $request_id, 0, OP_GET_MORE, 0, $ns, $limit, $cursor_id );
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
     return ( $msg, $request_id );
 }
@@ -204,9 +195,8 @@ sub write_get_more {
 sub write_delete {
     my ( $ns, $selector, $flags ) = @_;
     utf8::encode($ns);
-    my $msg = pack( P_HEADER, 0, _request_id(), 0, OP_DELETE );
-    $msg .= pack( P_DELETE, 0, $ns, $flags )
-      . MongoDB::BSON::encode_bson( $selector, NO_CLEAN_KEYS );
+    my $msg =
+      pack( P_DELETE, 0, _request_id(), 0, OP_DELETE, 0, $ns, $flags ) . $selector;
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
     return $msg;
 }
@@ -231,8 +221,8 @@ sub write_delete {
 # is expected to be the common case.
 sub write_kill_cursor {
     my ($cursor) = @_;
-    my $msg = pack( P_HEADER, 0, _request_id(), 0, OP_KILL_CURSORS );
-    $msg .= pack( P_KILL_CURSORS, 0, 1, $cursor );
+    my $msg =
+      pack( P_KILL_CURSORS, 0, _request_id(), 0, OP_KILL_CURSORS, 0, 1, $cursor );
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
     return $msg;
 }
@@ -262,7 +252,7 @@ use constant {
 };
 
 sub parse_reply {
-    my ( $msg, $request_id, $client ) = @_;
+    my ( $msg, $request_id ) = @_;
 
     if ( length($msg) < MIN_REPLY_LENGTH ) {
         Carp::croak("response was truncated");
@@ -288,29 +278,12 @@ sub parse_reply {
         Carp::croak("cursor not found"); # XXX should this return something without croaking?
     }
 
-    my @documents;
-    for ( 1 .. $number_returned ) {
-        my $len = unpack( P_INT32, substr( $msg, 0, 4 ) );
-        if ( $len > length($msg) ) {
-            Carp::croak("document in response was truncated");
-        }
-        push @documents, MongoDB::BSON::decode_bson( substr( $msg, 0, $len, '' ), $client );
-    }
-
-    if ( @documents != $number_returned ) {
-        Carp::croak("unepxected number of documents");
-    }
-
-    if ( length($msg) > 0 ) {
-        Carp::croak("unexpected extra data in response");
-    }
-
     return {
         response_flags  => $flags,
         cursor_id       => $cursor_id,
         starting_from   => $starting_from,
         number_returned => $number_returned,
-        docs            => \@documents,
+        docs            => $msg,
     };
 }
 

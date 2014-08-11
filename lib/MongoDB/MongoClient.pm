@@ -304,8 +304,9 @@ has _use_write_cmd => (
 has _link => (
     is        => 'rw', # XXX rw to proxy to master connection
     isa       => 'MongoDB::_Link',
-    lazy_build => 1,
-    handles => {
+    lazy      => 1,
+    builder   => '_build__link',
+    handles   => {
         connected => 'connected',
         send => 'write',
         recv => 'read',
@@ -1391,7 +1392,7 @@ L<http://docs.mongodb.org/manual/core/access-control/>.
 
 =method send($str)
 
-    my ($insert, $ids) = MongoDB::write_insert('foo.bar', [{name => "joe", age => 40}]);
+    my ($insert, $ids) = MongoDB::write_insert('foo.bar', $bson_document );
     $client->send($insert);
 
 Low-level function to send a string directly to the database.  Use
