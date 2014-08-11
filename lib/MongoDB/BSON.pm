@@ -26,7 +26,6 @@ use XSLoader;
 XSLoader::load("MongoDB", $VERSION);
 
 use Moose;
-use MongoDB;
 use namespace::clean -except => 'meta';
 
 =head1 NAME
@@ -114,20 +113,22 @@ $MongoDB::BSON::use_binary = 0;
 
 sub decode_bson {
     my ($msg,$client) = @_;
-    my $struct = eval { MongoDB::BSON::_decode_bson(
-        $msg,
-        $client->dt_type,
-        $client->inflate_dbrefs,
-        $client->inflate_regexps,
-        $client,
-        );
-    };
+    my @decode_args;
+    if ( $client ) {
+        @decode_args = map { $client->$_ } qw/dt_type inflate_dbrefs inflate_regexps/;
+        push @decode_args, $client;
+    }
+    else {
+        @decode_args = (undef, 0, 0, undef);
+    }
+    my $struct = eval { MongoDB::BSON::_decode_bson($msg, @decode_args) };
     Carp::confess($@) if $@;
     return $struct;
 }
 
 sub encode_bson {
     my ($struct, $clean_keys) = @_;
+    $clean_keys = 0 unless defined $clean_keys;
     my $bson = eval { MongoDB::BSON::_encode_bson($struct, $clean_keys) };
     Carp::confess($@) if $@;
     return $bson;
