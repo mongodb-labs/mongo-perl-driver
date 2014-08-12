@@ -195,11 +195,15 @@ sub query {
 
 
 sub find_one {
-    my ($self, $query, $fields) = @_;
+    my ($self, $query, $fields, $options) = @_;
     $query ||= {};
     $fields ||= {};
+    $options ||= {};
 
-    return $self->find($query)->limit(-1)->fields($fields)->next;
+    my $cursor = $self->find($query)->limit(-1)->fields($fields);
+    $cursor->$_($options->{$_}) for keys %$options;
+
+    return $cursor->next;
 }
 
 sub insert { 
@@ -799,16 +803,17 @@ Order results.
 
 =back
 
-=method find_one($query, $fields?)
+=method find_one($query, $fields?, $options?)
 
     my $object = $collection->find_one({ name => 'Resi' });
     my $object = $collection->find_one({ name => 'Resi' }, { name => 1, age => 1});
+    my $object = $collection->find_one({ name => 'Resi' }, {}, {max_time_ms => 100});
 
 Executes the given C<$query> and returns the first object matching it.
 C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
 even number of elements).  If C<$fields> is specified, the resulting document
 will only include the fields given (and the C<_id> field) which can cut down on
-wire traffic.
+wire traffic. If C<$options> is specified, the cursor will be set with the contained options.
 
 =method insert ($object, $options?)
 

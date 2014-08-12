@@ -118,6 +118,13 @@ my $tied;
     is($obj->{just}, "an\xE4oth\0er");
 }
 
+# find_one MaxTimeMS
+{
+    my $err_re = qr/must be non-negative/;
+    eval { $coll->find_one({}, {}, { max_time_ms => -1 }) };
+    like( $@, $err_re, "find_one sets max_time_ms");
+}
+
 # validate and remove
 {
     is( exception { $coll->validate }, undef, 'validate' );
