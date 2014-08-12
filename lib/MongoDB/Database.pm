@@ -151,7 +151,7 @@ The MongoDB::Database class accesses to a database.
     # accesses the foo database
     my $db = $connection->foo;
 
-You can also access databases with the L<MongoDB::Connection/"get_database($name)">
+You can also access databases with the L<MongoDB::MongoClient/"get_database($name)">
 method.
 
 =head1 SEE ALSO
@@ -212,7 +212,7 @@ the following:
 =item w
 
 Guarantees that the previous operation will be replicated to C<w> servers before
-this command will return success. See C<MongoDB::Connection::w> for more
+this command will return success. See C<MongoDB::MongoClient> for more
 information.
 
 =item wtimeout
@@ -310,7 +310,7 @@ occurred).
 
 =back
 
-See L<MongoDB::Connection/w> for more information.
+See L<MongoDB::MongoClient/w> for more information.
 
 =head2 run_command ($command)
 

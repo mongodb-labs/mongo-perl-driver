@@ -241,7 +241,6 @@ has _servers => (
 # actual connection to a server in the set
 has _master => (
     is       => 'rw',
-#    isa      => 'MongoDB::Connection',
     required => 0,
 );
 

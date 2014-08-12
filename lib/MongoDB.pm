@@ -30,7 +30,6 @@ use if ($] eq '5.010000'), 're', 'regexp_pattern';
 
 use Carp ();
 use MongoDB::BSON;
-use MongoDB::Connection;
 use MongoDB::MongoClient;
 use MongoDB::Database;
 use MongoDB::Collection;
