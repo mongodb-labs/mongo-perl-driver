@@ -50,6 +50,7 @@ class_type 'MongoDBCollection' => { class => 'MongoDB::Collection' };
 class_type 'MongoDBDatabase'   => { class => 'MongoDB::Database' };
 
 subtype ArrayOfHashRef => as 'ArrayRef[HashRef]';
+
 subtype DBRefColl      => as 'Str';
 subtype DBRefDB        => as 'Str';
 subtype SASLMech       => as 'Str', where { /^GSSAPI|PLAIN$/ };
@@ -62,10 +63,14 @@ subtype
 # IPv4/IPv6 literals
 subtype HostAddress => as 'Str', where { $_ =~ /^[^:]+:[0-9]+$/ }, message {
     "Address '$_' not formatted as 'hostname:port'" };
+subtype HostAddressList => as 'ArrayRef[HostAddress]', message {
+    "Address list <@$_> is not all hostname:port pairs" };
 
 coerce ArrayOfHashRef => from 'HashRef', via { [$_] };
 coerce DBRefColl => from 'MongoDBCollection' => via { $_->name };
 coerce DBRefDB   => from 'MongoDBDatabase'   => via { $_->name };
+coerce HostAddress => from 'Str', via { /:/ ? $_ : "$_:27017" };
+coerce HostAddressList => from 'ArrayRef' => via { [ map { /:/ ? $_ : "$_:27017" } @$_ ] };
 
 no Moose::Util::TypeConstraints;
 

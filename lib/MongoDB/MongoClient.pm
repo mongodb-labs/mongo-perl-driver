@@ -27,6 +27,7 @@ use MongoDB::Cursor;
 use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use MongoDB::Error;
+use MongoDB::_Cluster;
 use MongoDB::_URI;
 use Digest::MD5;
 use Tie::IxHash;
@@ -320,6 +321,17 @@ sub _build_uri {
                 : sprintf("%s:%s", map { $self->$_ } qw/host port/ );
         return MongoDB::_URI->new( uri => ("mongodb://$uri") );
     }
+}
+
+has _cluster => (
+    is  => 'ro',
+    isa => 'MongoDB::_Cluster',
+    lazy_build => 1,
+);
+
+sub _build__cluster {
+    my ($self) = @_;
+    MongoDB::_Cluster->new( uri => $self->_uri );
 }
 
 has _link => (
