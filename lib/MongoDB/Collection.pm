@@ -201,7 +201,14 @@ sub find_one {
     $options ||= {};
 
     my $cursor = $self->find($query)->limit(-1)->fields($fields);
-    $cursor->$_($options->{$_}) for keys %$options;
+
+    for my $key (keys %$options) {
+
+        if (!MongoDB::Cursor->can($key)) {
+            confess("$key is not a known method in MongoDB::Cursor");
+        }
+        $cursor->$key($options->{$key});
+    }
 
     return $cursor->next;
 }
