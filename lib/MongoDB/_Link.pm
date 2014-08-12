@@ -47,13 +47,20 @@ my $SOCKET_CLASS =
 my %LINKS;
 
 sub new {
-    my ( $class, %args ) = @_;
+    @_ == 2 || @_ == 3 || Carp::confess( q/Usage: MongoDB::_Link->new(address, [arg hashref])/ . "\n" );
+    my ( $class, $address, $args ) = @_;
+    my ( $host, $port ) = split /:/, $address;
+    Carp::confess("new requires 'host:port' address argument")
+        unless defined($host) && length($host) && defined($port) && length($port);
     my $self = bless {
+        host        => $host,
+        port        => $port,
         timeout     => 60,
-        verify_SSL  => 0,
         reconnect   => 0,
+        with_ssl    => 0,
+        verify_SSL  => 0,
         SSL_options => {},
-        %args
+        ( $args ? (%$args) : () ),
     }, $class;
     if ( HAS_THREADS ) {
         Scalar::Util::weaken( $LINKS{ refaddr $self } = $self );
@@ -62,13 +69,15 @@ sub new {
 }
 
 sub connect {
-    @_ == 4 || Carp::confess( q/Usage: $handle->connect(host, port, ssl)/ . "\n" );
-    my ( $self, $host, $port, $ssl ) = @_;
+    @_ == 1 || Carp::confess( q/Usage: $handle->connect()/ . "\n" );
+    my ( $self ) = @_;
 
-    if ($ssl) {
+    if ($self->{with_ssl}) {
         $self->_assert_ssl;
         # XXX possibly make SOCKET_CLASS an instance variable and set it here to IO::Socket::SSL
     }
+
+    my ($host, $port) = @{$self}{qw/host port/};
 
     $self->{fh} = $SOCKET_CLASS->new(
         PeerHost => $host,
@@ -82,11 +91,7 @@ sub connect {
     binmode( $self->{fh} )
       or Carp::confess(qq/Could not binmode() socket: '$!'\n/);
 
-    $self->start_ssl($host) if $ssl;
-
-    $self->{host} = $host;
-    $self->{port} = $port;
-    $self->{ssl}  = $ssl;
+    $self->start_ssl($host) if $self->{with_ssl};
 
     return $self;
 }
@@ -130,7 +135,7 @@ sub assert_connected {
     unless ( $self->{fh} && $self->{fh}->connected ) {
         my ( $host, $port, $ssl ) = @{$self}{qw/host port ssl/};
         if ( $self->{reconnect} ) {
-            $self->connect( $host, $port, $ssl );
+            $self->connect();
         }
         else {
             Carp::confess("connection lost to $host");

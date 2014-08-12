@@ -27,6 +27,7 @@ use MongoDB::Cursor;
 use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use MongoDB::Error;
+use MongoDB::_URI;
 use Digest::MD5;
 use Tie::IxHash;
 use Time::HiRes qw/usleep/;
@@ -301,6 +302,26 @@ has _use_write_cmd => (
     lazy_build => 1
 );
 
+has _uri => (
+    is       => 'ro',
+    isa      => 'MongoDB::_URI',
+    lazy     => 1,
+    builder  => '_build_uri',
+);
+
+sub _build_uri {
+    my ($self) = @_;
+    if ( $self->host =~ m{^mongodb://} ) {
+        return MongoDB::_URI->new( uri => $self->host );
+    }
+    else {
+        my $uri = $self->host =~ /:\d+$/
+                ? $self->host
+                : sprintf("%s:%s", map { $self->$_ } qw/host port/ );
+        return MongoDB::_URI->new( uri => ("mongodb://$uri") );
+    }
+}
+
 has _link => (
     is        => 'rw', # XXX rw to proxy to master connection
     isa       => 'MongoDB::_Link',
@@ -313,118 +334,24 @@ has _link => (
     },
 );
 
-has _conn_params => (
-    is  => 'rw',
-    isa => 'ArrayRef',
-);
-
 sub BUILD {
     my ($self, $opts) = @_;
-    eval "use ${_}" # no Any::Moose::load_class because the namespaces already have symbols from the xs bootstrap
-        for qw/MongoDB::Database MongoDB::Cursor MongoDB::OID MongoDB::Timestamp/;
 
-    my @pairs;
+    my $uri = $self->_uri;
+    $self->db_name( $uri->db_name ) if $uri->db_name;
 
-    my %parsed_connection = _parse_connection_string($self->host);
+    my $options = $uri->options;
 
-    # supported syntax (see http://docs.mongodb.org/manual/reference/connection-string/)
-    if (%parsed_connection) {
-
-        @pairs = @{$parsed_connection{hostpairs}};
-
-        # we add these things to $opts as well as self so that they get propagated when we recurse for multiple servers
-        for my $k ( qw/username password db_name/ ) {
-            $self->$k($opts->{$k} = $parsed_connection{$k}) if exists $parsed_connection{$k};
-        }
-
-        # Process options
-        my %options = %{$parsed_connection{options}} if defined $parsed_connection{options};
-
-        # Add connection options
-        $self->ssl($opts->{ssl} = _str_to_bool($options{ssl})) if exists $options{ssl};
-        $self->timeout($opts->{timeout} = $options{connectTimeoutMS}) if exists $options{connectTimeoutMS};
-
-        # Add write concern options
-        $self->w($opts->{w} = $options{w}) if exists $options{w};
-        $self->wtimeout($opts->{wtimeout} = $options{wtimeoutMS}) if exists $options{wtimeoutMS};
-        $self->j($opts->{j} = _str_to_bool($options{journal})) if exists $options{journal};
-    }
-    # deprecated syntax
-    else {
-        push @pairs, $self->host.":".$self->port;
-    }
-
-    # We cache our updated constructor arguments because we need them again for
-    # creating new, per-host objects
-    $self->_opts( $opts );
-
-    # a simple single server is special-cased (so we don't recurse forever)
-    if (@pairs == 1 && !$self->find_master) {
-        my @hp = split ":", $pairs[0];
-
-        $self->_init_conn($hp[0], $hp[1], $self->ssl);
-        if ($self->auto_connect) {
-            $self->connect;
-        }
-        return;
-    }
-
-    # multiple servers
-    my $first_server;
-    my $connected = 0;
-    my %errors;
-    for my $pair (@pairs) {
-
-        # override host, find_master and auto_connect
-        my $args = {
-            %$opts,
-            host => "mongodb://$pair",
-            find_master => 0,
-            auto_connect => 0,
-        };
-
-        $self->_servers->{$pair} = MongoDB::MongoClient->new($args);
-        $first_server = $self->_servers->{$pair} unless defined $first_server;
-
-        next unless $self->auto_connect;
-
-        # it's okay if we can't connect, so long as someone can
-        eval {
-            $self->_servers->{$pair}->connect;
-        };
-
-        # at least one connection worked
-        if (!$@) {
-            $connected = 1;
-        }
-        else {
-            $errors{$pair} = $@;
-            $errors{$pair} =~ s/at \S+ line \d+.*//;
-        }
-    }
-
-    my $master;
+    # Add options from URI
+    $self->ssl(_str_to_bool($options->{ssl}))       if exists $options->{ssl};
+    $self->timeout($options->{connectTimeoutMS})    if exists $options->{connectTimeoutMS};
+    $self->w($options->{w})                         if exists $options->{w};
+    $self->wtimeout($options->{wtimeoutMS})         if exists $options->{wtimeoutMS};
+    $self->j(_str_to_bool($options->{journal}))     if exists $options->{journal};
 
     if ($self->auto_connect) {
-
-        # if we still aren't connected to anyone, give up
-        if (!$connected) {
-            die "couldn't connect to any servers listed:\n" . join("", map { "$_: $errors{$_}" } keys %errors );
-        }
-
-        $master = $self->get_master($first_server);
-        $self->max_bson_size($master->max_bson_size);
+        $self->connect;
     }
-    else {
-        # no auto-connect so just pick one. if auto-reconnect is set then it will connect as needed
-        $master = $first_server;
-    }
-
-    # user master's link directly
-    # XXX alternatively, we could store master and proxy all send/recv through it.  Eventually,
-    # the common architecture will replace this with a cluster/node abstraction and we won't
-    # use MongoClient to play so many roles at the same time.
-    $self->_link($master->_link);
 }
 
 sub _str_to_bool {
@@ -433,57 +360,6 @@ sub _str_to_bool {
     my $ret = $str eq "true" ? 1 : $str eq "false" ? 0 : undef;
     return $ret unless !defined $ret;
     confess "expected boolean string 'true' or 'false' but instead received '$str'";
-}
-
-sub _unescape_all {
-    my $str = shift;
-    $str =~ s/%([0-9a-f]{2})/chr(hex($1))/ieg;
-    return $str;
-}
-
-sub _parse_connection_string {
-
-    my ($host) = @_;
-    my %result;
-
-    if ($host =~ m{ ^
-            mongodb://
-            (?: ([^:]*) : ([^@]*) @ )? # [username:password@]
-            ([^/]*) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
-            (?:
-               / ([^?]*) # /[database]
-                (?: [?] (.*) )? # [?options]
-            )?
-            $ }x ) {
-
-        ($result{username}, $result{password}, $result{hostpairs}, $result{db_name}, $result{options}) = ($1, $2, $3, $4, $5);
-
-        # Decode components
-        for my $subcomponent ( qw/username password db_name/ ) {
-            $result{$subcomponent} = _unescape_all($result{$subcomponent}) unless !(defined $result{$subcomponent});
-        }
-
-        $result{hostpairs} = 'localhost' unless $result{hostpairs};
-        $result{hostpairs} = [
-            map { @_ = split ':', $_; _unescape_all($_[0]).":"._unescape_all($_[1]) }
-            map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $result{hostpairs}
-        ];
-
-        $result{options} =
-            { map {
-                 my @kv = split '=', $_;
-                 confess 'expected key value pair' unless @kv == 2;
-                 ($kv[0], $kv[1]) = (_unescape_all($kv[0]), _unescape_all($kv[1]));
-                 @kv;
-              } split '&', $result{options}
-            } if defined $result{options};
-
-        delete $result{username} unless defined $result{username} && length $result{username};
-        delete $result{password} unless defined $result{password}; # can be empty string
-        delete $result{db_name} unless defined $result{db_name} && length $result{db_name};
-    }
-
-    return %result;
 }
 
 sub _update_server_attributes {
@@ -511,14 +387,13 @@ sub _build__link {
     my ($self) = @_;
     # XXX eventually add SSL CA parameters
     return MongoDB::_Link->new(
-        timeout => $self->timeout,
-        reconnect => $self->auto_reconnect,
+        $self->_uri->hostpairs->[0], # XXX first for now
+        {
+            timeout => $self->timeout,
+            reconnect => $self->auto_reconnect,
+            with_ssl => $self->ssl,
+        }
     );
-}
-
-sub _init_conn {
-    my ($self, @params) = @_;
-    $self->_conn_params( \@params );
 }
 
 sub _get_max_bson_size {
@@ -533,7 +408,7 @@ sub _get_max_bson_size {
 
 sub connect {
     my ($self) = @_;
-    return $self->_link->connect(@{$self->_conn_params});
+    return $self->_link->connect;
 }
 
 sub disconnect {
@@ -1040,11 +915,6 @@ sub _write_concern {
     };
     $wc->{j} = $self->j if $self->j;
     return $wc;
-}
-
-sub DESTROY {
-    my ($self) = @_;
-    $self->disconnect;
 }
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
