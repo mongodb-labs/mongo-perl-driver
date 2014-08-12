@@ -23,6 +23,28 @@ our $VERSION = 'v0.704.4.1';
 
 use Moose::Util::TypeConstraints;
 
+sub connection_uri_re {
+    return qr{
+            mongodb://
+            (?: ([^:]*) : ([^@]*) @ )? # [username:password@]
+            ([^/]*) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
+            (?:
+               / ([^?]*) # /[database]
+                (?: [?] (.*) )? # [?options]
+            )?
+    }x;
+}
+
+my $uri_re = MongoDB::_Types::connection_uri_re();
+
+enum 'ClusterType',
+  [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Unknown/];
+
+enum 'ServerType',
+  [
+    qw/Standalone Mongos PossiblePrimary RSPrimary RSSecondary RSArbiter RSOther RSGhost Unknown/
+  ];
+
 class_type 'IxHash'            => { class => 'Tie::IxHash' };
 class_type 'MongoDBCollection' => { class => 'MongoDB::Collection' };
 class_type 'MongoDBDatabase'   => { class => 'MongoDB::Database' };
@@ -31,6 +53,15 @@ subtype ArrayOfHashRef => as 'ArrayRef[HashRef]';
 subtype DBRefColl      => as 'Str';
 subtype DBRefDB        => as 'Str';
 subtype SASLMech       => as 'Str', where { /^GSSAPI|PLAIN$/ };
+subtype
+  ConnectionStr => as 'Str',
+  where { $_ =~ /^$uri_re$/ },
+  message { "Could not parse URI '$_'" };
+
+# XXX loose address validation for now.  Host part should really be hostname or
+# IPv4/IPv6 literals
+subtype HostAddress => as 'Str', where { $_ =~ /^[^:]+:[0-9]+$/ }, message {
+    "Address '$_' not formatted as 'hostname:port'" };
 
 coerce ArrayOfHashRef => from 'HashRef', via { [$_] };
 coerce DBRefColl => from 'MongoDBCollection' => via { $_->name };
