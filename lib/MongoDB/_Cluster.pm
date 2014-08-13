@@ -125,7 +125,7 @@ sub BUILD {
 
     if ( my $set_name = $self->uri->options->{replicaSet} ) {
         $self->_set_replica_set_name($set_name);
-        if ( $type eq 'Single' && $type eq 'ReplicaSetNoPrimary' ) {
+        if ( $type eq 'Single' || $type eq 'ReplicaSetNoPrimary' ) {
             # these are valid, so nothing to do here
         }
         elsif ( $type eq 'Unknown' ) {
@@ -171,7 +171,7 @@ sub check_address {
     return;
 }
 
-sub no_primaries {
+sub has_no_primaries {
     my ($self) = @_;
     return 0 == $self->all_primaries;
 }
@@ -289,15 +289,22 @@ sub _update_cluster_from_link {
         is_master        => $is_master,
     );
 
-    return $self->_update_cluster_from_server_desc( $address, $new_server );
+    $self->_update_cluster_from_server_desc( $address, $new_server );
+
+    return;
 }
 
 sub _update_cluster_from_server_desc {
     my ($self, $address, $new_server) = @_;
 
+    # ignore spurious result not in the set; this isn't strictly necessary
+    # for single-threaded operation, but spec tests expect it and if we
+    # have async monitoring in the future, late responses could come back
+    # after a server has been removed
+    return unless $self->servers->{$address};
+
     $self->_update_ewma( $address, $new_server );
 
-    # must come after ewma update
     $self->servers->{$address} = $new_server;
 
     my $method = "_update_" . $self->type;
@@ -326,11 +333,13 @@ sub _update_ewma {
 sub _update_rs_with_primary_from_member {
     my ( $self, $new_server ) = @_;
 
-    if ( $self->replica_set_name ne $new_server->set_name ) {
+    if (  !$self->servers->{ $new_server->address }
+        || $self->replica_set_name ne $new_server->set_name )
+    {
         $self->_remove_server($new_server);
     }
 
-    if ( $self->no_primaries ) {
+    if ( $self->has_no_primaries ) {
         $self->_set_type('ReplicaSetNoPrimary');
 
         # flag possible primary to amend scanning order
@@ -356,7 +365,6 @@ sub _update_rs_with_primary_from_primary {
         # We found a primary but it doesn't have the setName
         # provided by the user or previously discovered
         $self->_remove_server($new_server);
-        $self->_set_type('ReplicaSetNoPrimary');
         return;
     }
 
@@ -423,6 +431,9 @@ sub _update_ReplicaSetNoPrimary {
     if ( $server_type eq 'RSPrimary' ) {
         $self->_set_type('ReplicaSetWithPrimary');
         $self->_update_rs_with_primary_from_primary($new_server);
+        # cluster changes might have removed all primaries
+        $self->_set_type('ReplicaSetNoPrimary')
+          if $self->has_no_primaries;
     }
     elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
         $self->_update_rs_without_primary($new_server);
@@ -451,12 +462,14 @@ sub _update_ReplicaSetWithPrimary {
     elsif ( $server_type eq any(qw/Unknown Standalone Mongos/) ) {
         $self->_remove_server($new_server)
           unless $server_type eq 'Unknown';
-        $self->_set_type('ReplicaSetNoPrimary')
-          if $self->no_primaries;
     }
     else {
         # RSGhost is no-op
     }
+
+    # cluster changes might have removed all primaries
+    $self->_set_type('ReplicaSetNoPrimary')
+        if $self->has_no_primaries;
 
     return;
 }
@@ -501,6 +514,10 @@ sub _update_Unknown {
     elsif ( $server_type eq 'RSPrimary' ) {
         $self->_set_type('ReplicaSetWithPrimary');
         $self->_update_rs_with_primary_from_primary($new_server);
+        # cluster changes might have removed all primaries
+        $self->_set_type('ReplicaSetNoPrimary')
+            if $self->has_no_primaries;
+
     }
     elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
         $self->_set_type('ReplicaSetNoPrimary');
