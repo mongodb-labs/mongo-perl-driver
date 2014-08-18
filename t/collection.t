@@ -948,4 +948,43 @@ sub _check_parallel_results {
 
 }
 
+subtest "count w/ hint" => sub {
+
+    $coll->drop;
+    $coll->insert( { i => 1 } );
+    $coll->insert( { i => 2 } );
+    is ($coll->count(), 2, 'count = 2');
+
+    $coll->ensure_index( { i => 1 } );
+
+    is( $coll->count( { i => 1 }, { hint => '_id_' } ), 1, 'count w/ hint & spec');
+    is( $coll->count( {}, { hint => '_id_' } ), 2, 'count w/ hint');
+
+    my $current_version = version->parse($server_version);
+    my $version_2_6 = version->parse('v2.6');
+
+    if ( $current_version > $version_2_6 ) {
+
+        eval { $coll->count( { i => 1 } , { hint => 'BAD HINT' } ) };
+        like($@, qr/bad hint/, 'check bad hint error');
+
+    } else {
+
+        is( $coll->count( { i => 1 } , { hint => 'BAD HINT' } ), 1, 'bad hint and spec');
+    }
+
+    $coll->ensure_index( { x => 1 }, { sparse => 1 } );
+
+    if ($current_version > $version_2_6 ) {
+
+        is( $coll->count( {  i => 1 } , { hint => 'x_1' } ), 0, 'spec & hint on empty sparse index');
+
+    } else {
+
+        is( $coll->count( {  i => 1 } , { hint => 'x_1' } ), 1, 'spec & hint on empty sparse index');
+    }
+
+    is( $coll->count( {}, { hint => 'x_1' } ), 2, 'hint on empty sparse index');
+};
+
 done_testing;

@@ -19,13 +19,16 @@ use strict;
 use warnings;
 use Test::More;
 use Tie::IxHash;
+use version;
 
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/build_client get_test_db server_version/;
 
-my $testdb = get_test_db(build_client());
+my $conn = build_client();
+my $testdb = get_test_db($conn);
+my $server_version = server_version($conn);
 
 my $coll;
 my $cursor;
@@ -352,5 +355,44 @@ $testdb->drop;
 
     is($count, 10);
 }
+
+subtest "count w/ hint" => sub {
+
+    $coll->drop;
+    $coll->insert( { i => 1 } );
+    $coll->insert( { i => 2 } );
+    is ($coll->find()->count(), 2, 'count = 2');
+
+    $coll->ensure_index( { i => 1 } );
+
+    is( $coll->find( { i => 1 } )->hint( '_id_' )->count(), 1, 'count w/ hint & spec');
+    is( $coll->find()->hint( '_id_' )->count(), 2, 'count w/ hint');
+
+    my $current_version = version->parse($server_version);
+    my $version_2_6 = version->parse('v2.6');
+
+    if ( $current_version > $version_2_6 ) {
+
+        eval { $coll->find( { i => 1 } )->hint( 'BAD HINT')->count() };
+        like($@, qr/bad hint/, 'check bad hint error');
+
+    } else {
+
+        is( $coll->find( { i => 1 } )->hint( 'BAD HINT' )->count(), 1, 'bad hint and spec');
+    }
+
+    $coll->ensure_index( { x => 1 }, { sparse => 1 } );
+
+    if ($current_version > $version_2_6 ) {
+
+        is( $coll->find( {  i => 1 } )->hint( 'x_1' )->count(), 0, 'spec & hint on empty sparse index');
+
+    } else {
+
+        is( $coll->find( {  i => 1 } )->hint( 'x_1' )->count(), 1, 'spec & hint on empty sparse index');
+    }
+
+    is( $coll->find()->hint( 'x_1' )->count(), 2, 'hint on empty sparse index');
+};
 
 done_testing;
