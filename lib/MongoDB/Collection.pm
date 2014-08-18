@@ -668,23 +668,21 @@ sub save {
 
 
 sub count {
-    my ($self, $query) = @_;
+    my ($self, $query, $options) = @_;
     $query ||= {};
+    $options ||= {};
 
-    my $obj;
-    try {
-        $obj = $self->_database->_try_run_command([
-            count => $self->name,
-            query => $query,
-        ]);
+    my $cursor = $self->find($query);
+
+    for my $key (keys %$options) {
+
+        if (!MongoDB::Cursor->can($key)) {
+            confess("$key is not a known method in MongoDB::Cursor");
+        }
+        $cursor->$key($options->{$key});
     }
-    catch {
-        # if there was an error, check if it was the "ns missing" one that means the
-        # collection hasn't been created or a real error.
-        die $_ unless /^ns missing/;
-    };
 
-    return $obj ? $obj->{n} : 0;
+    return $cursor->count;
 }
 
 

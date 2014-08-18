@@ -29,6 +29,7 @@ use MongoDB::Error;
 use MongoDB::_Protocol;
 use boolean;
 use Tie::IxHash;
+use Try::Tiny;
 use namespace::clean -except => 'meta';
 
 use constant {
@@ -591,6 +592,8 @@ sub snapshot {
 =head2 hint
 
     my $cursor = $coll->query->hint({'x' => 1});
+    my $cursor = $coll->query->hint(['x', 1]);
+    my $cursor = $coll->query->hint('x_1');
 
 Force Mongo to use a specific index for a query.
 
@@ -599,9 +602,17 @@ Force Mongo to use a specific index for a query.
 sub hint {
     my ($self, $index) = @_;
     confess "cannot set hint after querying"
-	if $self->started_iterating;
-    confess 'not a hash reference'
-    	unless ref $index eq 'HASH' || ref $index eq 'Tie::IxHash';
+        if $self->started_iterating;
+
+    # $index must either be a string or a reference to an array, hash, or IxHash
+    if (ref $index eq 'ARRAY') {
+
+        $index = Tie::IxHash->new(@$index);
+
+    } elsif (ref $index && !(ref $index eq 'HASH' || ref $index eq 'Tie::IxHash')) {
+
+        confess 'not a hash reference';
+    }
 
     $self->_ensure_nested;
     $self->_query->STORE('$hint', $index);
@@ -676,11 +687,23 @@ sub count {
         $cmd->Push(skip => $self->_skip) if $self->_skip;
     }
 
-    my $result = $self->_client->get_database($db)->run_command($cmd);
+    if ($self->_query->EXISTS('$hint')) {
+        $cmd->Push(hint => $self->_query->FETCH('$hint'));
+    }
 
-    # returns "ns missing" if collection doesn't exist
-    return 0 unless ref $result eq 'HASH';
-    return $result->{'n'};
+    my $result;
+
+    try {
+        $result = $self->_client->get_database($db)->_try_run_command($cmd);
+    }
+    catch {
+
+        # if there was an error, check if it was the "ns missing" one that means the
+        # collection hasn't been created or a real error.
+        die $_ unless /^ns missing/;
+    };
+
+    return $result ? $result->{n} : 0;
 }
 
 
