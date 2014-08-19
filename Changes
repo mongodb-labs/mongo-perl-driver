@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.704.5.0 2014-08-19 14:17:00-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-407 fixed request_id race condition under threads
