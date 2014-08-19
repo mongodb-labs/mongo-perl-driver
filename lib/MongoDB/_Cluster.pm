@@ -49,7 +49,14 @@ has type => (
     is      => 'ro',
     isa     => 'ClusterType',
     writer  => '_set_type',
-    default => 'Unknown'
+    builder => '_build_type',
+    lazy    => 1
+);
+
+has direct => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0
 );
 
 has replica_set_name => (
@@ -117,6 +124,23 @@ has rtt_ewma_ms => (
 sub _build_number_of_seeds {
     my ($self) = @_;
     return scalar @{ $self->uri->hostpairs };
+}
+
+sub _build_type {
+    my ($self) = @_;
+    my $type = 'Unknown';
+
+    if (exists $self->uri->options->{connect}) {
+
+        if ($self->uri->options->{connect} eq 'replicaSet') {
+            $type ='ReplicaSetNoPrimary';
+        } elsif ($self->uri->options->{connect} eq 'direct') {
+            $type = 'Single';
+            $self->direct(1);
+        }
+    }
+
+    return $type;
 }
 
 sub BUILD {
