@@ -36,15 +36,27 @@ sub wanted {
     };
 }
 
+sub create_mock_cluster {
+
+    my $uri = MongoDB::_URI->new( uri => $_[0] );
+    my $type = 'Unknown';
+    if (exists $uri->options->{connect}) {
+        if ($uri->options->{connect} eq 'replicaSet') {
+            $type ='ReplicaSetNoPrimary';
+        } elsif ($uri->options->{connect} eq 'direct') {
+            $type = 'Single';
+        }
+    }
+    return MongoDB::_Cluster->new( uri => $uri, type => $type );
+}
+
 sub run_test {
 
     my ($test_name, $plan) = @_;
 
     subtest "test_$test_name" => sub {
 
-        # Create mock cluster
-        my $uri = MongoDB::_URI->new( uri => $plan->{'uri'} );
-        my $cluster = MongoDB::_Cluster->new( uri => $uri );
+        my $cluster = create_mock_cluster( $plan->{'uri'} );
 
         for my $phase (@{$plan->{'phases'}}) {
 
