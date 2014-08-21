@@ -132,14 +132,16 @@ sub BUILD {
             $self->_set_type('ReplicaSetNoPrimary');
         }
         else {
-            confess "Cluster with set name '$set_name' may not be initialized as type '$type'";
+            confess
+              "Internal error: cluster with set name '$set_name' may not be initialized as type '$type'";
         }
     }
 
     my @addresses = @{ $self->uri->hostpairs };
 
     if ( $type eq 'Single' && @addresses > 1 ) {
-        confess "Cluster type 'Single' cannot be used with multiple addresses: @addresses";
+        confess
+          "Internal error: cluster type 'Single' cannot be used with multiple addresses: @addresses";
     }
 
     $self->_add_address_as_unknown($_) for @addresses;
