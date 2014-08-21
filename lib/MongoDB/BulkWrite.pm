@@ -21,10 +21,12 @@ package MongoDB::BulkWrite;
 use version;
 our $VERSION = 'v0.704.4.1';
 
+use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::OID;
 use MongoDB::WriteResult;
 use MongoDB::BulkWriteView;
+use MongoDB::_Protocol;
 use Try::Tiny;
 use Safe::Isa;
 use Syntax::Keyword::Junction qw/any/;
@@ -621,7 +623,7 @@ sub _gen_legacy_insert {
     my ( $self, $ns, $doc ) = @_;
     # $doc is a document to insert
 
-    return MongoDB::_Protocol::write_insert($ns, [$doc], 1);
+    return MongoDB::_Protocol::write_insert( $ns, MongoDB::BSON::encode_bson( $doc, 1 ) );
 }
 
 sub _gen_legacy_update {
@@ -632,14 +634,27 @@ sub _gen_legacy_update {
     $flags |= 1 << 0 if $doc->{upsert};
     $flags |= 1 << 1 if $doc->{multi};
 
-    return MongoDB::_Protocol::write_update( $ns, $doc->{q}, $doc->{u}, $flags );
+    my $update = $doc->{u};
+    my $type = ref $update;
+    my $first_key =
+        $type eq 'ARRAY' ? $update->[0]
+      : $type eq 'HASH'  ? each %$update
+      :                    $update->Keys(0);
+
+    return MongoDB::_Protocol::write_update(
+        $ns,
+        MongoDB::BSON::encode_bson( $doc->{q}, 0 ),
+        MongoDB::BSON::encode_bson( $update, substr( $first_key, 0, 1 ) ne '$' ),
+        $flags
+    );
 }
 
 sub _gen_legacy_delete {
     my ( $self, $ns, $doc ) = @_;
     # $doc is { q: $query, limit: $limit }
 
-    return MongoDB::_Protocol::write_delete( $ns, $doc->{q}, $doc->{limit} ? 1 : 0 );
+    my $bson = MongoDB::BSON::encode_bson( $doc->{q}, 0 );
+    return MongoDB::_Protocol::write_delete( $ns, $bson, $doc->{limit} ? 1 : 0 );
 }
 
 sub _check_no_dollar_keys {

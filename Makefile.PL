@@ -47,6 +47,7 @@ test_requires 'Test::Fatal';
 test_requires 'Test::More' => 0.96;
 test_requires 'Test::Warn';
 test_requires 'bigint';
+test_requires 'YAML::XS';
 
 mongo;
 

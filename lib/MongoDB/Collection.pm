@@ -22,6 +22,8 @@ package MongoDB::Collection;
 use version;
 our $VERSION = 'v0.704.4.1';
 
+use MongoDB::BSON;
+use MongoDB::_Protocol;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
@@ -286,7 +288,8 @@ sub batch_insert {
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
-    my $insert = MongoDB::_Protocol::write_insert($ns, $docs, 1); # checks keys for "."
+    my $bson = join( "", map { MongoDB::BSON::encode_bson($_, 1) } @$docs ); # checks keys for "."
+    my $insert = MongoDB::_Protocol::write_insert($ns, $bson);
     if (length($insert) > $conn->max_bson_size) {
         Carp::croak("insert is too large: ".length($insert)." max: ".$conn->max_bson_size);
     }
@@ -307,7 +310,8 @@ sub _legacy_index_insert {
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
-    my $insert = MongoDB::_Protocol::write_insert($ns, [$doc], 0); # does not check keys for "."
+    my $bson = MongoDB::BSON::encode_bson($doc, 0); # does not check keys for "."
+    my $insert = MongoDB::_Protocol::write_insert($ns, $bson);
 
     if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
         $self->_make_safe($insert);
@@ -352,13 +356,25 @@ sub legacy_update {
     my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
-    my $update = MongoDB::_Protocol::write_update($ns, $query, $object, $flags);
+    my $type = ref $object;
+    my $first_key =
+        $type eq 'ARRAY' ? $object->[0]
+      : $type eq 'HASH'  ? each %$object
+      :                    $object->Keys(0);
+
+    my $update = MongoDB::_Protocol::write_update(
+        $ns,
+        MongoDB::BSON::encode_bson( $query, 0 ),
+        MongoDB::BSON::encode_bson( $object, substr( $first_key, 0, 1 ) ne '$' ),
+        $flags
+    );
+
     if ($opts->{safe} or $conn->_w_want_safe ) {
         return $self->_make_safe($update);
     }
 
     if ($conn->send($update) == -1) {
-        $conn->connect;
+        $conn->connect; # XXX this should go away
         die("can't get db response, not connected");
     }
 
@@ -510,13 +526,14 @@ sub legacy_remove {
     my $ns = $self->full_name;
     $query ||= {};
 
-    my $remove = MongoDB::_Protocol::write_delete($ns, $query, $just_one);
+    my $bson = MongoDB::BSON::encode_bson( $query, 0 );
+    my $remove = MongoDB::_Protocol::write_delete($ns, $bson, $just_one);
     if ($safe) {
         return $self->_make_safe($remove);
     }
 
     if ($conn->send($remove) == -1) {
-        $conn->connect;
+        $conn->connect; # XXX this should go away
         die("can't get db response, not connected");
     }
 
@@ -615,7 +632,7 @@ sub _make_safe_cursor {
     my $db = $self->_database->name;
     $write_concern ||= $conn->_write_concern;
 
-    my $last_error = Tie::IxHash->new(getlasterror => 1, %$write_concern);
+    my $last_error = MongoDB::BSON::encode_bson(Tie::IxHash->new(getlasterror => 1, %$write_concern), 0);
     my ($query, $info) = MongoDB::_Protocol::write_query($db.'.$cmd', 0, 0, -1, $last_error);
 
     my $cursor = MongoDB::Cursor->new(
