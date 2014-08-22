@@ -4,6 +4,14 @@
 
 {{ $NEXT }}
 
+v0.704.5.0 2014-08-19 14:17:00-04:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-407 fixed request_id race condition under threads
+
+  - PERL-410 dies on BSON encoding/decoding if invalid UTF-8 is detected
+
 v0.704.4.0 2014-07-30 05:43:11-04:00 America/New_York
 
   [Testing]
