@@ -45,6 +45,11 @@ enum 'ServerType',
     qw/Standalone Mongos PossiblePrimary RSPrimary RSSecondary RSArbiter RSOther RSGhost Unknown/
   ];
 
+enum 'ConnectType',
+  [
+    qw/replicaSet direct none/
+  ];
+
 class_type 'IxHash'            => { class => 'Tie::IxHash' };
 class_type 'MongoDBCollection' => { class => 'MongoDB::Collection' };
 class_type 'MongoDBDatabase'   => { class => 'MongoDB::Database' };

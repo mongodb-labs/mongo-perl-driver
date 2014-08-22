@@ -310,6 +310,22 @@ has _uri => (
     builder  => '_build_uri',
 );
 
+has connect_type => (
+    is      => 'ro',
+    isa     => 'ConnectType',
+    builder => '_build_connect_type',
+    lazy => 1
+);
+
+sub _build_connect_type {
+    my ($self) = @_;
+    my $connect_type = 'none';
+    if (exists $self->_uri->options->{connect}) {
+        $connect_type = $self->_uri->options->{connect};
+    }
+    return $connect_type;
+}
+
 sub _build_uri {
     my ($self) = @_;
     if ( $self->host =~ m{^mongodb://} ) {
@@ -331,7 +347,15 @@ has _cluster => (
 
 sub _build__cluster {
     my ($self) = @_;
-    MongoDB::_Cluster->new( uri => $self->_uri );
+
+    my $type = 'Unknown';
+    if ($self->connect_type eq 'replicaSet') {
+        $type ='ReplicaSetNoPrimary';
+    } elsif ($self->connect_type eq 'direct') {
+        $type = 'Single';
+    }
+
+    MongoDB::_Cluster->new( uri => $self->_uri, type => $type );
 }
 
 has _link => (
@@ -351,6 +375,11 @@ sub BUILD {
 
     my $uri = $self->_uri;
     $self->db_name( $uri->db_name ) if $uri->db_name;
+
+    my @addresses = @{ $uri->hostpairs };
+    if ( $self->connect_type eq 'direct' && @addresses > 1 ) {
+        confess "Connect type 'direct' cannot be used with multiple addresses: @addresses";
+    }
 
     my $options = $uri->options;
 
