@@ -319,11 +319,8 @@ has connect_type => (
 
 sub _build_connect_type {
     my ($self) = @_;
-    my $connect_type = 'none';
-    if (exists $self->_uri->options->{connect}) {
-        $connect_type = $self->_uri->options->{connect};
-    }
-    return $connect_type;
+    return
+      exists $self->_uri->options->{connect} ? $self->_uri->options->{connect} : 'none';
 }
 
 sub _build_uri {
@@ -348,12 +345,10 @@ has _cluster => (
 sub _build__cluster {
     my ($self) = @_;
 
-    my $type = 'Unknown';
-    if ($self->connect_type eq 'replicaSet') {
-        $type ='ReplicaSetNoPrimary';
-    } elsif ($self->connect_type eq 'direct') {
-        $type = 'Single';
-    }
+    my $type =
+        $self->connect_type eq 'replicaSet' ? 'ReplicaSetNoPrimary'
+      : $self->connect_type                 ? 'Single'
+      :                                       'Unknown';
 
     MongoDB::_Cluster->new( uri => $self->_uri, type => $type );
 }
