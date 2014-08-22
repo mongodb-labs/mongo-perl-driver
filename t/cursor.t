@@ -24,11 +24,12 @@ use version;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db server_version/;
+use MongoDBTest qw/build_client get_test_db server_version server_type/;
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
 my $server_version = server_version($conn);
+my $server_type = server_type($conn);
 
 my $coll;
 my $cursor;
@@ -374,7 +375,7 @@ subtest "count w/ hint" => sub {
     if ( $current_version > $version_2_6 ) {
 
         eval { $coll->find( { i => 1 } )->hint( 'BAD HINT')->count() };
-        like($@, qr/bad hint/, 'check bad hint error');
+        like($@, ($server_type eq "Mongos" ? qr/failed/ : qr/bad hint/ ), 'check bad hint error');
 
     } else {
 

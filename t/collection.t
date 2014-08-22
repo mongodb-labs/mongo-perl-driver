@@ -966,7 +966,7 @@ subtest "count w/ hint" => sub {
     if ( $current_version > $version_2_6 ) {
 
         eval { $coll->count( { i => 1 } , { hint => 'BAD HINT' } ) };
-        like($@, qr/bad hint/, 'check bad hint error');
+        like($@, ($server_type eq "Mongos" ? qr/failed/ : qr/bad hint/ ), 'check bad hint error');
 
     } else {
 
