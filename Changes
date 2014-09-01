@@ -4,7 +4,7 @@
 
   [Additions]
 
-  - PERL 406 allow count() to use hints
+  - PERL-406 allow count() to use hints
 
   [Prerequisites]
 
