@@ -4,6 +4,10 @@
 
 {{ $NEXT }}
 
+  [Prerequisites]
+
+  - Clarified that Test::Deep 0.111 is required rather than any version
+
 v0.704.5.0 2014-08-19 14:17:00-04:00 America/New_York
 
   [Bug fixes]

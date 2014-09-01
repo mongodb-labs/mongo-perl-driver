@@ -19,7 +19,7 @@ use warnings;
 use utf8;
 use Test::More 0.88;
 use Test::Fatal;
-use Test::Deep qw/!blessed/;
+use Test::Deep 0.111 qw/!blessed/;
 use Scalar::Util qw/refaddr/;
 use Tie::IxHash;
 use boolean;
