@@ -34,13 +34,13 @@ my $ERROR_CODES;
 
 BEGIN {
     $ERROR_CODES = {
-        BAD_VALUE                   => 2,
-        UNKNOWN_ERROR               => 8,
-        WRITE_CONCERN_ERROR         => 64,
-        NOT_MASTER                  => 10107,
-        NOT_MASTER_NO_SLAVE_OK      => 13435,
-        NOT_MASTER_OR_SECONDARY     => 13436,
-        CANT_OPEN_DB_IN_READ_LOCK   => 15927,
+        BAD_VALUE                 => 2,
+        UNKNOWN_ERROR             => 8,
+        WRITE_CONCERN_ERROR       => 64,
+        NOT_MASTER                => 10107,
+        NOT_MASTER_NO_SLAVE_OK    => 13435,
+        NOT_MASTER_OR_SECONDARY   => 13436,
+        CANT_OPEN_DB_IN_READ_LOCK => 15927,
     };
 }
 
@@ -62,11 +62,8 @@ has message => (
 
 =method throw
 
-    MongoDB::Error->throw("message");
-    MongoDB::Error->throw(
-        msg => "message",
-        result => $data,
-    );
+    MongoDB::Error->throw( "message" );
+    MongoDB::Error->throw( message => "message" );
     MongoDB::Error->throw( $error_object );
 
 =cut
@@ -91,10 +88,19 @@ use Moose;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
 
+# XXX should rename to 'details' or 'error' or something less confusing than
+# the word 'result'
+
 has result => (
     is       => 'ro',
     does     => 'MongoDB::Role::_LastError',
     required => 1,
+);
+
+has code => (
+    is      => 'ro',
+    isa     => 'Num',
+    default => MongoDB::Error::UNKNOWN_ERROR(),
 );
 
 package MongoDB::DocumentSizeError;
@@ -114,13 +120,18 @@ has document => (
 #--------------------------------------------------------------------------#
 
 package MongoDB::ConnectionError;
-Moose::Meta::Class->create( __PACKAGE__, superclasses => [ 'MongoDB::Error' ] );
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+package MongoDB::ProtocolError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
 package MongoDB::WriteError;
-Moose::Meta::Class->create( __PACKAGE__, superclasses => [ 'MongoDB::DatabaseError' ] );
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::DatabaseError'] );
 
 package MongoDB::WriteConcernError;
-Moose::Meta::Class->create( __PACKAGE__, superclasses => [ 'MongoDB::DatabaseError' ] );
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::DatabaseError'] );
 
 #--------------------------------------------------------------------------#
 # Internal error classes
@@ -165,11 +176,13 @@ All error classes have the attribute:
 =for :list
 * message — a text representation of the error
 
-=cut
-
 =head2 MongoDB::ConnectionError
 
 Errors related to network connections.
+
+=head2 MongoDB::ProtocolError
+
+Errors related to the MongoDB wire protocol.
 
 =head2 MongoDB::DatabaseError
 
