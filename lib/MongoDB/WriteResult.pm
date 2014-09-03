@@ -22,6 +22,7 @@ use version;
 our $VERSION = 'v0.704.4.1';
 
 use Moose;
+use MongoDB::Error;
 use MongoDB::_Types;
 use Syntax::Keyword::Junction qw/any/;
 use namespace::clean -except => 'meta';
@@ -92,6 +93,9 @@ sub _parse {
     my ( $op, $op_count, $batch_count, $result ) =
       @{$args}{qw/op op_count batch_count result/};
 
+    $result = $result->result
+      if eval { $result->isa("MongoDB::CommandResult") };
+
     confess "op argument to parse must be one of: @op_map_keys"
       unless $op eq any(@op_map_keys);
     confess "results argument to parse must be a hash reference"
@@ -131,6 +135,58 @@ sub _parse {
       ( $op eq 'update' || $op eq 'upsert' ) ? $result->{nModified} : 0;
 
     return $class->new($attrs);
+}
+
+=method assert
+
+Throws an error if write errors or write concern errors occurred.
+
+=cut
+
+sub assert {
+    my ($self) = @_;
+    $self->assert_no_write_error;
+    $self->assert_no_write_concern_error;
+    return 1;
+}
+
+=method assert_no_write_error
+
+Throws a MongoDB::WriteError if C<count_writeErrors> is non-zero; otherwise
+returns 1.
+
+=cut
+
+sub assert_no_write_error {
+    my ($self) = @_;
+    if ( my $write_errors = $self->count_writeErrors ) {
+        MongoDB::WriteError->throw(
+            message => $self->last_errmsg,
+            result  => $self,
+            code => $self->writeErrors->[0]{code} || UNKNOWN_ERROR,
+        );
+    }
+
+    return 1;
+}
+
+=method assert_no_write_concern_error
+
+Throws a MongoDB::WriteConcernError if C<count_writeConcernErrors> is non-zero; otherwise
+returns 1.
+
+=cut
+
+sub assert_no_write_concern_error {
+    my ($self) = @_;
+    if ( my $write_concern_errors = $self->count_writeConcernErrors ) {
+        MongoDB::WriteConcernError->throw(
+            message => $self->last_errmsg,
+            result  => $self,
+            code    => WRITE_CONCERN_ERROR,
+        );
+    }
+    return;
 }
 
 =method count_writeErrors
