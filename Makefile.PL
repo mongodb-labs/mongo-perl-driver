@@ -53,10 +53,7 @@ mongo;
 
 repository 'git://github.com/mongodb/mongo-perl-driver.git';
 
-
-if ($Config::Config{useithreads}) {
-    tests 't/*.t t/threads/*.t';
-}
+tests_recursive;
 
 WriteAll;
 
