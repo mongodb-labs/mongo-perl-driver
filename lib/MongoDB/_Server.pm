@@ -21,6 +21,8 @@ our $VERSION = 'v0.704.4.1';
 
 use Moose;
 use MongoDB::_Types;
+use List::Util qw/first/;
+use Syntax::Keyword::Junction qw/any none/;
 use Time::HiRes qw/tv_interval/;
 use namespace::clean -except => 'meta';
 
@@ -164,11 +166,54 @@ sub _build_tags {
     return $self->is_master->{tags} || {};
 }
 
+has is_available => (
+    is      => 'ro',
+    isa     => 'Bool',
+    lazy    => 1,
+    builder => "_build_is_available",
+);
+
+sub _build_is_available {
+    my ($self) = @_;
+    return $self->type eq none(qw/Unknown PossiblePrimary/);
+}
+
+has is_writable => (
+    is      => 'ro',
+    isa     => 'Bool',
+    lazy    => 1,
+    builder => "_build_is_writable",
+);
+
+# any of these can take writes. Clusters will screen inapprpriate
+# ones out. E.g. "Standalone" won't be found in a replica set cluster.
+sub _build_is_writable {
+    my ($self) = @_;
+    return $self->type eq any(qw/Standalone RSPrimary Mongos/);
+}
+
 sub updated_since {
     my ( $self, $tv ) = @_;
     return tv_interval( $tv, $self->last_update_time ) > 0;
 }
 
+sub matches_tagset {
+    my ( $self, $tagset ) = @_;
+
+    my $tg = $self->tags;
+    for my $ts ( @{$tagset} ) {
+        no warnings 'uninitialized'; # let undef equal empty string without complaint
+
+        # any tagset key we don't have or that we don't match will give a defined answer
+        # below, meaning we fail that tagset; if we didn't get any bad keys, then we
+        # have a match and can stop
+        if ( !defined first { !exists( $tg->{$_} ) || $tg->{$_} ne $ts->{$_} } keys %$ts ) {
+            return 1;
+        }
+    }
+
+    return;
+}
 __PACKAGE__->meta->make_immutable;
 
 1;
