@@ -56,7 +56,7 @@ subtest "async fsync" => sub {
 # Test fsync with lock.
 subtest "fsync with lock" => sub {
     plan skip_all => "lock not supported through mongos"
-        if $conn->_is_mongos;
+        if $conn->cluster_type eq 'Sharded';
 
     # Lock
     $ret = $conn->fsync({lock => 1});

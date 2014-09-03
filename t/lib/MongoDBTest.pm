@@ -26,7 +26,7 @@ use MongoDB;
 use Test::More;
 use version;
 
-our @EXPORT_OK = ( 'build_client', 'get_test_db', 'server_version', 'server_type' );
+our @EXPORT_OK = ( 'build_client', 'get_test_db', 'server_version', 'server_type', 'clear_testdbs' );
 my @testdbs;
 
 # abstract building a connection
@@ -50,17 +50,21 @@ sub get_test_db {
 }
 
 
+# XXX eventually, should move away from this and towards a fixture object instead
 BEGIN {
     eval {
-        my $conn = build_client();
-        my $testdb = get_test_db($conn);
-        eval { $conn->get_database("admin")->_try_run_command({ serverStatus => 1 }) }
+        my $conn = build_client( server_selection_timeout_ms => 1000 );
+        $conn->_cluster->scan_all_servers;
+        $conn->_cluster->_dump;
+        eval { $conn->_cluster->get_writable_link }
+            or die "couldn't connect";
+        $conn->get_database("admin")->_try_run_command({ serverStatus => 1 })
             or die "Database has auth enabled\n";
     };
 
     if ( $@ ) {
         (my $err = $@) =~ s/\n//g;
-        if ( $err =~ /couldn't connect/ ) {
+        if ( $err =~ /couldn't connect|connection refused/i ) {
             $err = "no mongod on " . ($ENV{MONGOD} || "localhost:27017");
             $err .= ' and $ENV{MONGOD} not set' unless $ENV{MONGOD};
         }
@@ -96,6 +100,8 @@ sub server_type {
         $server_type = 'Unknown';
     }
 }
+
+sub clear_testdbs { @testdbs = () }
 
 # cleanup test dbs
 END {

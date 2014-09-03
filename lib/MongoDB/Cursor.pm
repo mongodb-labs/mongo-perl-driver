@@ -27,6 +27,7 @@ use MongoDB;
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::_Protocol;
+use MongoDB::_Types;
 use boolean;
 use Tie::IxHash;
 use Try::Tiny;
@@ -100,6 +101,8 @@ after the database is queried.
 
 =cut
 
+with 'MongoDB::Role::_HasReadPreference';
+
 has started_iterating => (
     is => 'rw',
     isa => 'Bool',
@@ -135,8 +138,8 @@ has _cursor_id => (
 
 has _cursor_flags => (
     is => 'rw',
-    isa => 'Str',
-    default => FLAG_ZERO,
+    isa => 'HashRef',
+    default => sub { {} },
 );
 
 has _cursor_num => (
@@ -161,10 +164,10 @@ has _cursor_at => (
     },
 );
 
-has _master => (
-    is => 'ro',
-    isa => 'MongoDB::MongoClient',
-    required => 1,
+has _cursor_from => (
+    is     => 'ro',
+    isa    => 'HostAddress',
+    writer => '_set_cursor_from',
 );
 
 has _client => (
@@ -181,8 +184,10 @@ has _ns => (
 
 has _query => (
     is => 'rw',
-    isa => 'Tie::IxHash',
+    isa => 'MongoDBQuery',
     required => 1,
+    coerce => 1,
+    writer => '_set_query',
 );
 
 has _fields => (
@@ -211,14 +216,11 @@ has _skip => (
     default => 0,
 );
 
-has _tailable => (
-    is => 'rw',
-    isa => 'Bool',
-    required => 0,
-    default => 0,
+has _query_options => (
+    is => 'ro',
+    isa => 'HashRef',
+    default => sub { { slave_ok => !! $MongoDB::Cursor::slave_okay } },
 );
-
-
 
 =head2 immortal
 
@@ -242,50 +244,14 @@ See L<MongoDB::MongoClient/query_timeout>.
 
 =cut
 
+sub immortal {
+    my ( $self, $bool ) = @_;
+    confess "cannot set immortal after querying"
+        if $self->started_iterating;
 
-
-has immortal => (
-    is => 'rw',
-    isa => 'Bool',
-    required => 0,
-    default => 0,
-);
-
-
-
-=head2 partial
-
-If a shard is down, mongos will return an error when it tries to query that
-shard.  If this is set, mongos will just skip that shard, instead.
-
-Boolean value, defaults to 0.
-
-=cut
-
-
-has partial => (
-    is => 'rw',
-    isa => 'Bool',
-    required => 0,
-    default => 0,
-);
-
-=head2 slave_okay
-
-    $cursor->slave_okay(1);
-
-If a query can be done on a slave database server.
-
-Boolean value, defaults to 0.
-
-=cut
-
-has slave_okay => (
-    is => 'rw',
-    isa => 'Bool',
-    required => 0,
-    default => 0,
-);
+    $self->_query_options->{immortal} = !!$bool;
+    return $self;
+}
 
 # special flag for parallel scan cursors, since they
 # start out empty
@@ -300,118 +266,35 @@ has _is_parallel => (
 
 =cut
 
-
-sub _ensure_nested {
-    my ($self) = @_;
-    if ( ! $self->_query->EXISTS('$query') ) {
-        $self->_query( Tie::IxHash->new('$query' => $self->_query) );
-    }
-    return;
-}
-
 # this does the query if it hasn't been done yet
 sub _do_query {
     my ($self) = @_;
 
-    $self->_master->rs_refresh();
-
-    # in case the refresh caused a repin
-    $self->_client(MongoDB::Collection::_select_cursor_client($self->_master, $self->_ns, $self->_query));
-
     if ($self->started_iterating) {
         return;
     }
+    else {
+        $self->started_iterating(1);
+    }
 
-    my $opts = ($self->_tailable() << 1) |
-        (($MongoDB::Cursor::slave_okay | $self->slave_okay) << 2) |
-        ($self->immortal << 4) |
-        ($self->partial << 7);
-
-    my $bson_query = MongoDB::BSON::encode_bson( $self->_query, 0 );
-    my $bson_fields = MongoDB::BSON::encode_bson( $self->_fields, 0 ) if $self->_fields;
-    my ($query, $info) = MongoDB::_Protocol::write_query(
-        $self->_ns, $opts, $self->_skip, $self->_limit || $self->_batch_size, $bson_query, $bson_fields
+    my $result = $self->_client->send_query(
+        $self->_ns,
+        $self->_query,
+        $self->_fields,
+        $self->_skip,
+        $self->_limit || $self->_batch_size,
+        $self->_query_options,
+        ( $self->_has_read_preference ? $self->_read_preference : () )
     );
 
-    if ( length($query) > $self->_client->_max_bson_wire_size ) {
-        MongoDB::_CommandSizeError->throw(
-            message => "database command too large",
-            size => length $query,
-        );
-    }
-
-    return $self->_send_and_recv($query, $info->{request_id});
-}
-
-sub _send_and_recv {
-    my ($self, $query, $request_id) = @_;
-
-    my $reply;
-    eval {
-        $self->_client->send($query);
-        $reply = $self->_client->recv;
-    };
-    if ($@ && $self->_master->_readpref_pinned) {
-        $self->_master->repin();
-        $self->_client($self->_master->_readpref_pinned);
-        $self->_client->send($query); 
-        $reply = $self->_client->recv;
-    }
-    elsif ($@) {
-        # rethrow the exception if read preference
-        # has not been set
-        die $@;
-    }
-
-    $self->started_iterating(1);
-    return $self->_read_reply($reply, $request_id);
-}
-
-sub _read_reply {
-    my ($self, $reply, $request_id, $getmore) = @_;
-    my $result = MongoDB::_Protocol::parse_reply($reply, $request_id, $self->_client);
-
-    my $doc_bson = $result->{docs};
-    my $client = $self->_client;
-    my $number_returned = $result->{number_returned};
-
-    my @documents;
-    for ( 1 .. $number_returned ) {
-        my $len = unpack( MongoDB::_Protocol::P_INT32(), substr( $doc_bson, 0, 4 ) );
-        if ( $len > length($doc_bson) ) {
-            Carp::croak("document in response was truncated");
-        }
-        push @documents, MongoDB::BSON::decode_bson( substr( $doc_bson, 0, $len, '' ), $client );
-    }
-
-    if ( @documents != $number_returned ) {
-        Carp::croak("unepxected number of documents");
-    }
-
-    if ( length($doc_bson) > 0 ) {
-        Carp::croak("unexpected extra data in response");
-    }
-
-    $result->{docs} = \@documents;
-
-    if ( vec( $result->{response_flags}, MongoDB::_Protocol::QUERY_FAILURE(), 1 ) && $self->_ns !~ /\$cmd$/ ) {
-        my $doc = $result->{docs}[0];
-        my $err = $doc->{'$err'} || 'unspecified error';
-        my $code = $doc->{code};
-        if ( $code && grep { $code == $_ } NOT_MASTER(), NOT_MASTER_NO_SLAVE_OK(), NOT_MASTER_OR_SECONDARY()
-            || $err =~ /not master/
-        ) {
-            $self->_client->disconnect;
-        }
-        Carp::croak("query error: $err");
-    }
-
-    $self->_cursor_flags( $result->{response_flags} );
+    $self->_cursor_flags( $result->{flags} );
     $self->_cursor_id( $result->{cursor_id} );
-    $self->_cursor_start( $result->{starting_from} ) unless $getmore;
+    $self->_cursor_start( $result->{starting_from} );
     $self->_inc_cursor_num( $result->{number_returned} );
     $self->_add_docs( @{ $result->{docs} } );
+    $self->_set_cursor_from( $result->{address} );
     return scalar @{ $result->{docs} };
+
 }
 
 sub info {
@@ -468,8 +351,7 @@ sub sort {
     confess 'not a hash reference'
 	    unless ref $order eq 'HASH' || ref $order eq 'Tie::IxHash';
 
-    $self->_ensure_nested;
-    $self->_query->STORE('orderby', $order);
+    $self->_query->set_modifier('$orderby', $order);
     return $self;
 }
 
@@ -510,8 +392,7 @@ sub max_time_ms {
     confess "can not set max_time_ms after querying"
       if $self->started_iterating;
 
-    $self->_ensure_nested;
-    $self->_query->STORE( '$maxTimeMS', $num );
+    $self->_query->set_modifier( '$maxTimeMS', $num );
     return $self;
 
 }
@@ -533,12 +414,12 @@ Returns this cursor for chaining operations.
 =cut
 
 sub tailable {
-	my($self, $bool) = @_;
-	confess "cannot set tailable after querying"
-	if $self->started_iterating;
-	
-	$self->_tailable($bool);
-	return $self;
+    my ( $self, $bool ) = @_;
+    confess "cannot set tailable after querying"
+        if $self->started_iterating;
+
+    $self->_query_options->{tailable} = !!$bool;
+    return $self;
 }
 
 
@@ -584,8 +465,7 @@ sub snapshot {
     confess "cannot set snapshot after querying"
 	if $self->started_iterating;
 
-    $self->_ensure_nested;
-    $self->_query->STORE('$snapshot', 1);
+    $self->_query->set_modifier('$snapshot', 1);
     return $self;
 }
 
@@ -614,8 +494,7 @@ sub hint {
         confess 'not a hash reference';
     }
 
-    $self->_ensure_nested;
-    $self->_query->STORE('$hint', $index);
+    $self->_query->set_modifier('$hint', $index);
     return $self;
 }
 
@@ -644,13 +523,16 @@ sub explain {
         $self->_limit($self->_limit * -1);
     }
 
-    $self->_ensure_nested;
-    $self->_query->STORE('$explain', boolean::true);
+    my $old_query = $self->_query;
+    my $new_query = $old_query->clone;
+    $new_query->set_modifier('$explain', boolean::true);
+
+    $self->_set_query( $new_query  );
 
     my $retval = $self->reset->next;
-    $self->reset->limit($temp);
 
-    $self->_query->DELETE('$explain');
+    $self->_set_query( $old_query );
+    $self->reset->limit($temp);
 
     return $retval;
 }
@@ -668,6 +550,7 @@ used in calculating the count.
 
 sub count {
     my ($self, $all) = @_;
+    # XXX deprecate this unintuitive API?
 
     confess "cannot count a parallel scan"
         if $self->_is_parallel;
@@ -675,42 +558,27 @@ sub count {
     my ($db, $coll) = $self->_ns =~ m/^([^\.]+)\.(.*)/;
     my $cmd = new Tie::IxHash(count => $coll);
 
-    if ($self->_query->EXISTS('$query')) {
-        $cmd->Push(query => $self->_query->FETCH('$query'));
-    }
-    else {
-        $cmd->Push(query => $self->_query);
-    }
+    $cmd->Push(query => $self->_query->query_doc);
 
     if ($all) {
         $cmd->Push(limit => $self->_limit) if $self->_limit;
         $cmd->Push(skip => $self->_skip) if $self->_skip;
     }
 
-    if ($self->_query->EXISTS('$hint')) {
-        $cmd->Push(hint => $self->_query->FETCH('$hint'));
+    if (my $hint = $self->_query->get_modifier('$hint')) {
+        $cmd->Push(hint => $hint);
     }
 
-    my $result;
-
-    try {
-        $result = $self->_client->get_database($db)->_try_run_command($cmd);
+    my $result = try {
+        $self->_client->get_database($db)->_try_run_command($cmd);
     }
     catch {
-
         # if there was an error, check if it was the "ns missing" one that means the
         # collection hasn't been created or a real error.
         die $_ unless /^ns missing/;
     };
 
     return $result ? $result->{n} : 0;
-}
-
-
-sub _add_readpref {
-    my ($self, $prefdoc) = @_;
-    $self->_ensure_nested;
-    $self->_query->STORE('$readPreference', $prefdoc);
 }
 
 
@@ -757,12 +625,15 @@ sub _get_more {
     my $limit = $self->_limit;
     my $want = $limit > 0 ? ( $limit - $self->_cursor_at  ) : $self->_batch_size;
 
-    my ($get_more, $request_id) = MongoDB::_Protocol::write_get_more(
-        $self->_ns, $self->_cursor_id, $want );
-    $self->_client->send($get_more);
-    my $reply = $self->_client->recv;
-    # XXX should we blank out cursor if this fails?
-    return $self->_read_reply($reply, $request_id, 1);
+    my $result = $self->_client->send_get_more(
+        $self->_cursor_from, $self->_ns, $self->_cursor_id, $want,
+    );
+
+    $self->_cursor_flags( $result->{flags} );
+    $self->_cursor_id( $result->{cursor_id} );
+    $self->_inc_cursor_num( $result->{number_returned} );
+    $self->_add_docs( @{ $result->{docs} } );
+    return scalar @{ $result->{docs} };
 }
 
 sub _unpack_docs {
@@ -856,13 +727,32 @@ sub all {
     return @ret;
 }
 
+=head2 partial
+
+    $cursor->partial(1);
+
+If a shard is down, mongos will return an error when it tries to query that
+shard.  If this is set, mongos will just skip that shard, instead.
+
+Boolean value, defaults to 0.
+
+=cut
+
+sub partial {
+    my ($self, $value) = @_;
+    $self->_query_options->{partial} = !! $value;
+
+    # XXX returning self is an API change but more consistent with other cursor methods
+    return $self;
+}
+
 =head2 read_preference ($mode, $tagsets)
 
     my $cursor = $coll->find()->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED, [{foo => 'bar'}]);
 
 Sets read preference for the cursor's connection. The $mode argument
 should be a constant in MongoClient (PRIMARY, PRIMARY_PREFERRED, SECONDARY,
-SECONDARY_PREFERRED). The $tagsets specify selection criteria for secondaries
+SECONDARY_PREFERRED, NEAREST). The $tagsets specify selection criteria for secondaries
 in a replica set and should be an ArrayRef whose array elements are HashRefs.
 This is a convenience method which is identical in function to
 L<MongoDB::MongoClient/read_preference>.
@@ -873,19 +763,30 @@ Returns $self so that this method can be chained.
 
 =cut
 
-sub read_preference {
-    my ($self, $mode, $tagsets) = @_;
+=head2 slave_okay
 
-    $self->_master->read_preference($mode, $tagsets);
+    $cursor->slave_okay(1);
 
-    $self->_client($self->_master->_readpref_pinned);
+If a query can be done on a slave database server.
+
+Boolean value, defaults to 0.
+
+Returns the cursor object
+
+=cut
+
+sub slave_okay {
+    my ($self, $value) = @_;
+    $self->_query_options->{slave_ok} = !! $value;
+
+    # XXX returning self is an API change but more consistent with other cursor methods
     return $self;
 }
 
 sub _kill_cursor {
     my ($self) = @_;
     return if $self->_cursor_id eq CURSOR_ZERO;
-    $self->_client->send(MongoDB::_Protocol::write_kill_cursor($self->_cursor_id));
+    $self->_client->send_kill_cursors( $self->_cursor_from, $self->_cursor_id );
     $self->_cursor_id(CURSOR_ZERO);
 }
 

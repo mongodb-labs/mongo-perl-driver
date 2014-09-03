@@ -31,10 +31,10 @@ use MongoDBTest qw/build_client get_test_db/;
 my $conn = build_client();
 my $testdb = get_test_db($conn);
 
-like(
+is(
     exception { MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL}); },
-    qr/could not connect/i,
-    'exception on connection failure'
+    undef,
+    'no exception on connection failure during cluster scan'
 );
 
 SKIP: {
@@ -69,8 +69,7 @@ SKIP: {
         'extra comma'
     );
 
-    TODO: {
-        local $TODO = "pending proper server selection";
+    {
         is(
             exception {
                 my $ip = 27020;
@@ -179,29 +178,14 @@ subtest "options" => sub {
     is($client->query_timeout, 40, 'changed default query timeout');
 }
 
-# max_bson_size
-TODO: {
-    local $TODO = "pending cluster monitoring";
-    my $size = $conn->max_bson_size;
-    my $result = $conn->get_database( 'admin' )->run_command({buildinfo => 1});
-    if (exists $result->{'maxBsonObjectSize'}) {
-        is($size, $result->{'maxBsonObjectSize'}, 'max bson size');
-    }
-    else {
-        is($size, 4*1024*1024, 'max bson size');
-    }
-}
-
 # wire protocol versions
 
-TODO: {
-    local $TODO = "pending cluster monitoring";
-
-    is $conn->min_wire_version, 0, 'default min wire version';
-    is $conn->max_wire_version, 2, 'default max wire version';
+{
+    is $conn->_min_wire_version, 0, 'default min wire version';
+    is $conn->_max_wire_version, 2, 'default max wire version';
 
     like(
-        exception { MongoDBTest::build_client( min_wire_version => 99, max_wire_version => 100) },
+        exception { MongoDBTest::build_client( _min_wire_version => 99, _max_wire_version => 100)->send_admin_command([is_master => 1]) },
         qr/Incompatible wire protocol/i,
         'exception on wire protocol'
     );

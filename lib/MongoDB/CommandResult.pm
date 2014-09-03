@@ -48,7 +48,7 @@ Address ("host:port") of server that ran the command
 has address => (
     is       => 'ro',
     isa      => 'HostAddress',
-#    required => 1,
+    required => 1,
 );
 
 =method last_errmsg

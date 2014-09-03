@@ -36,7 +36,7 @@ my $coll = $testdb->get_collection("test_collection");
 
 my $ismaster      = $testdb->run_command( { ismaster     => 1 } );
 my $server_status = $testdb->run_command( { serverStatus => 1 } );
-my $is_standalone = !( $conn->_is_mongos || exists $server_status->{repl} );
+my $is_standalone = $conn->cluster_type eq 'Single';
 my $server_does_bulk = server_version($conn) >= v2.5.5;
 
 subtest "constructors" => sub {
@@ -98,7 +98,6 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my $err = exception { $bulk->execute };
         isa_ok( $err, 'MongoDB::WriteError', "executing insertion with \$key" );
 
-        is( $err->message, "writeErrors: 1", "WriteError message" );
         like( $err->result->last_errmsg, qr/\$key/, "WriteError details mentions \$key" );
     };
 
@@ -121,7 +120,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => 1,
             ),
             "result object correct"
-        );
+        ) or diag explain $result;
     };
 
     subtest "$method insert without _id" => sub {
@@ -804,7 +803,7 @@ subtest "unordered batch with errors" => sub {
 
     # Check if all ops ran in two batches (unless we're on a legacy server)
     is( $details->op_count, 6, "op_count" );
-    is( $details->batch_count, $server_does_bulk ? 2 : 6, "op_count" );
+    is( $details->batch_count, $server_does_bulk ? 2 : 6, "batch_count" );
 
     # XXX QA 477 doesn't cover *both* possible orders.  Either the inserts go
     # first or the upsert/update_ones goes first and different result states
@@ -908,7 +907,7 @@ subtest "ordered batch split on size" => sub {
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     isa_ok( $err, 'MongoDB::WriteError', 'caught error' )
-      or diag $err;
+      or diag "CAUGHT ERROR: $err";
     my $details = $err->result;
     my $errdoc  = $details->writeErrors->[0];
     is( $details->nInserted,         6,     "nInserted" );
@@ -1098,7 +1097,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         $bulk->insert( { _id => 1 } );
         $bulk->insert( { _id => 1 } );
-        $bulk->insert( { _id => 2 } );
+        $bulk->insert( { _id => 2 } ); # ensure success after failure
         my ( $result, $err );
         $err = exception { $result = $bulk->execute( { w => 0 } ) };
         is( $err, undef, "execute with w = 0 doesn't throw error" )
