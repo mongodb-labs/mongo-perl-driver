@@ -42,7 +42,7 @@ $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 diag "MONGOD: $ENV{MONGOD}";
 
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
 my $conn = build_client( dt_type => undef );
 my $admin  = $conn->get_database("admin");
@@ -83,5 +83,7 @@ $err = exception { $result = $bulk->execute };
 like( $err->message, qr/not authorized/, "no error on bulk op by limited user" ) or diag explain $err;
 
 is( $coll2->find({})->count, 1, "document inserted but not removed"); 
+
+clear_testdbs;
 
 done_testing;

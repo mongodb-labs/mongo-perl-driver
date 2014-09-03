@@ -223,7 +223,7 @@ has client => (
 
 sub _build_client {
     my ($self) = @_;
-    return MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef );
+    return MongoDB::MongoClient->new( host => $self->as_direct_uri, dt_type => undef );
 }
 
 # Methods
@@ -259,16 +259,20 @@ sub start {
 
     retry {
         $self->_logger->debug("Pinging " . $self->name . " with ismaster");
-        MongoDB::MongoClient->new(host => $self->as_uri)->get_database("admin")->_try_run_command([ismaster => 1]);
+        MongoDB::MongoClient->new(host => $self->as_direct_uri)->get_database("admin")->_try_run_command([ismaster => 1]);
     }
     delay_exp { 10, 1e5 }
+    on_retry {
+        warn $_;
+    }
     catch { chomp; die "Host is up, but ismaster is failing: $_. Giving up!" };
 
     if ( $self->auth_config && ! $self->did_auth_setup ) {
         my ($user, $password) = @{ $self->auth_config }{qw/user password/};
         $self->add_user($user, $password, [ 'root' ]);
         $self->_set_did_auth_setup(1);
-        eval { MongoDB::MongoClient->new(host => "mongodb://localhost:" . $self->port)->get_database("admin")->_try_run_command([shutdown => 1]) };
+        # must be localhost for shutdown command
+        eval { MongoDB::MongoClient->new(host => "mongodb://localhost:" . $self->port, connect_type => 'direct')->get_database("admin")->_try_run_command([shutdown => 1]) };
         $self->_logger->debug("Restarting original server with --auth");
         $self->stop;
         $self->start;
@@ -278,9 +282,11 @@ sub start {
 
 sub stop {
     my ($self) = @_;
-    $self->clear_guard;
+    $DB::single = 1;
+    $self->clear_guard if $self->has_guard;
     $self->clear_port;
     $self->clear_client;
+    $self->_logger->debug("cleared guard and client for " . $self->name);
 }
 
 sub is_alive {
@@ -296,6 +302,11 @@ sub as_host_port {
 sub as_uri {
     my ($self) = @_;
     return "mongodb://" . $self->as_host_port;
+}
+
+sub as_direct_uri {
+    my ($self) = @_;
+    return "mongodb://" . $self->as_host_port . "/?connect=direct";
 }
 
 sub _command_args {
@@ -334,7 +345,7 @@ sub add_user {
 
 sub DEMOLISH {
     my ($self) = @_;
-    $self->stop;
+    $self->stop if $self->is_alive;
 }
 
 1;

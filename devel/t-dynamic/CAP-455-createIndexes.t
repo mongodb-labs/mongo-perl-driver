@@ -29,7 +29,7 @@ use lib "t/lib";
 use lib "devel/lib";
 
 use MongoDBTest::Orchestrator;
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 use Path::Tiny;
 
 note("CAP-455 createIndexes");
@@ -97,5 +97,7 @@ subtest "2.6 mongos with mixed-version mongod" => sub {
         or diag explain $res;
 
 };
+
+clear_testdbs;
 
 done_testing;

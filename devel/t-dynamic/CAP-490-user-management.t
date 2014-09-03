@@ -42,7 +42,7 @@ $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 diag "MONGOD: $ENV{MONGOD}";
 
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
 my $conn = build_client( dt_type => undef );
 my $admin  = $conn->get_database("admin");
@@ -102,5 +102,7 @@ is(
 );
 
 is( $admin->get_collection('system.users')->find({})->count, 1, "1 user left in system.users");
+
+clear_testdbs;
 
 done_testing;

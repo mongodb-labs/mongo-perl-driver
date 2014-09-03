@@ -31,7 +31,7 @@ use lib "t/lib";
 use lib "devel/lib";
 
 use MongoDBTest::Orchestrator;
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
 note("CAP-420 Mixed mode cluster testing");
 
@@ -162,5 +162,6 @@ subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
 
 };
 
+clear_testdbs;
 
 done_testing;

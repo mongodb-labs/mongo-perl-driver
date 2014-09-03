@@ -41,7 +41,7 @@ has client => (
 
 sub _build_client {
     my ($self) = @_;
-    return MongoDB::MongoClient->new( host => $self->as_uri, find_master => 1, dt_type => undef );
+    return MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef );
 }
 
 after 'start' => sub {
@@ -81,7 +81,7 @@ sub rs_initiate {
     $self->_logger->debug("configuring replica set with: " . to_json($rs_config));
 
     # not $self->client because this needs to be a direct connection
-    my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
+    my $client = MongoDB::MongoClient->new( host => $first->as_direct_uri, dt_type => undef );
     $client->get_database("admin")->_try_run_command({replSetInitiate => $rs_config});
 
     $self->_logger->debug("waiting for primary");
@@ -95,7 +95,7 @@ sub wait_for_all_hosts {
     my ($self) = @_;
     my ($first) = $self->all_servers;
     retry {
-        my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
+        my $client = MongoDB::MongoClient->new( host => $first->as_direct_uri, dt_type => undef );
         my $admin = $client->get_database("admin");
         if ( my $status = eval { $admin->_try_run_command({replSetGetStatus => 1}) } ) {
             my @member_states = map { $_->{state} } @{ $status->{members} };
