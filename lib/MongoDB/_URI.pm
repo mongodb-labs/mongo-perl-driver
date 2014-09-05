@@ -87,6 +87,7 @@ sub BUILD {
 
         $result{hostpairs} = 'localhost' unless $result{hostpairs};
         $result{hostpairs} = [
+            map { lc $_ }
             map { @_ = split ':', $_; _unescape_all($_[0]).":"._unescape_all($_[1]) }
             map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $result{hostpairs}
         ];

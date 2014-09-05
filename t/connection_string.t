@@ -132,4 +132,12 @@ subtest "percent encoded username and password" => sub {
     is_deeply($uri->hostpairs, \@hostpairs);
 };
 
+subtest "case normalization" => sub {
+
+    my $uri = MongoDB::_URI->new( uri => 'mongodb://eXaMpLe1.cOm:27017,eXAMPLe2.com:27017');
+    my @hostpairs = ('example1.com:27017', 'example2.com:27017');
+
+    is_deeply($uri->hostpairs, \@hostpairs);
+};
+
 done_testing;
