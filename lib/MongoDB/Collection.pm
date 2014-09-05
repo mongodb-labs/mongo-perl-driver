@@ -22,8 +22,7 @@ package MongoDB::Collection;
 use version;
 our $VERSION = 'v0.704.4.1';
 
-use MongoDB::BSON;
-use MongoDB::_Protocol;
+use MongoDB::_Query;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
@@ -38,6 +37,12 @@ has _database => (
     required => 1,
 );
 
+has _client => (
+    is      => 'ro',
+    isa     => 'MongoDB::MongoClient',
+    lazy    => 1,
+    builder => '_build__client',
+);
 
 has name => (
     is       => 'ro',
@@ -51,6 +56,11 @@ has full_name => (
     lazy    => 1,
     builder => '_build_full_name',
 );
+
+sub _build__client {
+    my ($self) = @_;
+    return $self->_database->_client;
+}
 
 sub _build_full_name {
     my ($self) = @_;
@@ -93,99 +103,32 @@ sub to_index_string {
     return join("_", @name);
 }
 
-
-sub _select_cursor_client {
-    my ($conn, $ns, $query) = @_;
-
-    return $conn if !$conn->_readpref_pinned || !$conn->find_master;
-    return $conn->_master if _cmd_primary_only($ns, $query);
-    return $conn->_readpref_pinned;
-}
-
-sub _cmd_primary_only {
-    my ($ns, $query) = @_;
-
-    # these commands allow read preferences
-    my %readpref_commands = (
-        'group' => 1,
-        'aggregate' => 1,
-        'mapreduce' => 1,
-        'collstats' => 1,
-        'dbstats' => 1,
-        'count' => 1,
-        'distinct' => 1,
-        'geonear' => 1,
-        'geosearch' => 1,
-        'geowalk' => 1,
-        'text' => 1
-    );
-
-    if ($ns =~ /\$cmd/) {
-        foreach ($query->Keys) {
-            return 0 if $readpref_commands{lc($_)};
-        }
-        return 1;
-    }
-    else {
-        return 0;
-    }
-}
-
-
 sub find {
     my ($self, $query, $attrs) = @_;
     # old school options - these should be set with MongoDB::Cursor methods
     my ($limit, $skip, $sort_by) = @{ $attrs || {} }{qw/limit skip sort_by/};
 
-    if ( ! $query ) {
-        $query = Tie::IxHash->new();
-    }
-    elsif ( ref $query eq 'ARRAY' ) {
-        $query = Tie::IxHash->new( @$query );
-    }
-    elsif ( ref $query eq 'HASH' ) {
-        $query = Tie::IxHash->new( %$query );
-    }
-    elsif ( (blessed($query) || '') ne 'Tie::IxHash' ) {
-        confess "argument to find must be a hashref, arrayref or Tie::IxHash";
-    }
+    # XXX validate $query or rely on failure to coerce 'spec' below
 
-
-    # if the first key is 'query' we must nest under the '$query' operator
-    my @keys = $query->Keys;
-    if ( @keys && $keys[0] eq 'query' ) {
-        $query = Tie::IxHash->new( '$query' => $query );
+    $query = MongoDB::_Query->new( spec => $query );
+    if ($sort_by) {
+        # XXX validate sort_by
+        $query->set_modifier( '$orderby' => $sort_by );
     }
 
     $limit   ||= 0;
     $skip    ||= 0;
 
-    my $conn = $self->_database->_client;
     my $ns = $self->full_name;
 
-    my $slave_ok = ($conn->_readpref_mode == MongoDB::MongoClient->PRIMARY) ||
-                   _cmd_primary_only($ns, $query)
-                   ? 0 : 1;
-
     my $cursor = MongoDB::Cursor->new(
-        _master    => $conn,
-        _client    => _select_cursor_client($conn, $ns, $query),
+        _client    => $self->_client,
         _ns        => $ns,
         _query     => $query,
         _limit     => $limit,
         _skip      => $skip,
-        slave_okay => $slave_ok
     );
 
-    # add readpref info if connected to mongos
-    if ($conn->_readpref_pinned && $conn->_is_mongos && !_cmd_primary_only($ns, $query)) {
-        my $modeName = MongoDB::MongoClient->_READPREF_MODENAMES->[$conn->_readpref_mode];
-        $cursor->_add_readpref({mode => $modeName, tags => $conn->_readpref_tagsets});
-    }
-
-    if ($sort_by) {
-        $cursor->sort($sort_by);
-    }
     return $cursor;
 }
 
@@ -215,7 +158,7 @@ sub find_one {
     return $cursor->next;
 }
 
-sub insert { 
+sub insert {
     my $self = shift;
     my ( $object, $options ) = @_;
     $self->legacy_insert( @_ );
@@ -285,21 +228,11 @@ sub batch_insert {
         $ids = $self->_add_oids($docs);
     }
 
-    my $conn = $self->_database->_client;
-    my $ns = $self->full_name;
+    # XXX ought to handle continue_on_error somehow here
+    my $wc = $self->_dynamic_write_concern( $options );
+    my $result = $self->_client->send_insert($self->full_name, $docs, $wc, undef, 1);
 
-    my $bson = join( "", map { MongoDB::BSON::encode_bson($_, 1) } @$docs ); # checks keys for "."
-    my $insert = MongoDB::_Protocol::write_insert($ns, $bson);
-    if (length($insert) > $conn->max_bson_size) {
-        Carp::croak("insert is too large: ".length($insert)." max: ".$conn->max_bson_size);
-    }
-
-    if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
-        $self->_make_safe($insert);
-    }
-    else {
-        $conn->send($insert);
-    }
+    $result->assert;
 
     return @$ids;
 }
@@ -307,85 +240,40 @@ sub batch_insert {
 sub _legacy_index_insert {
     my ($self, $doc, $options) = @_;
 
-    my $conn = $self->_database->_client;
-    my $ns = $self->full_name;
+    my $wc = $self->_dynamic_write_concern( $options );
+    my $result = $self->_client->send_insert($self->full_name, [$doc], $wc, undef, 0);
 
-    my $bson = MongoDB::BSON::encode_bson($doc, 0); # does not check keys for "."
-    my $insert = MongoDB::_Protocol::write_insert($ns, $bson);
-
-    if ( ( defined($options) && $options->{safe} ) or $conn->_w_want_safe ) {
-        $self->_make_safe($insert);
-    }
-    else {
-        $conn->send($insert);
-    }
-
-    return;
-}
-
-sub update { 
-    my $self = shift;
-    my ( $query, $object, $opts ) = @_;
-
-    return $self->legacy_update( @_ );
-}
-
-sub legacy_update {
-    my ($self, $query, $object, $opts) = @_;
-    #$self->update_cmd( $query, $object, $opts ) if $self->_database->_client->_use_write_cmd;
-    
-    # there used to be one option: upsert=0/1
-    # now there are two, there will probably be
-    # more in the future.  So, to support old code,
-    # passing "1" will still be supported, but not
-    # documented, so we can phase that out eventually.
-    #
-    # The preferred way of passing options will be a
-    # hash of {optname=>value, ...}
-    my $flags = 0;
-    if ($opts && ref $opts eq 'HASH') {
-        $flags |= $opts->{'upsert'} << 0
-            if exists $opts->{'upsert'};
-        $flags |= $opts->{'multiple'} << 1
-            if exists $opts->{'multiple'};
-    }
-    else {
-        $flags = !(!$opts);
-    }
-
-    my $conn = $self->_database->_client;
-    my $ns = $self->full_name;
-
-    my $type = ref $object;
-    my $first_key =
-        $type eq 'ARRAY' ? $object->[0]
-      : $type eq 'HASH'  ? each %$object
-      :                    $object->Keys(0);
-
-    my $update = MongoDB::_Protocol::write_update(
-        $ns,
-        MongoDB::BSON::encode_bson( $query, 0 ),
-        MongoDB::BSON::encode_bson( $object, substr( $first_key, 0, 1 ) ne '$' ),
-        $flags
-    );
-
-    if ($opts->{safe} or $conn->_w_want_safe ) {
-        return $self->_make_safe($update);
-    }
-
-    if ($conn->send($update) == -1) {
-        $conn->connect; # XXX this should go away
-        die("can't get db response, not connected");
-    }
+    $result->assert;
 
     return 1;
 }
 
+sub update {
+    my ( $self, $query, $object, $opts ) = @_;
 
-sub find_and_modify { 
+    if ( exists $opts->{multi} ) {
+        $opts->{multiple} = delete $opts->{multi}
+    }
+
+    my $op_doc = {
+        q      => $query,
+        u      => $object,
+        multi  => ( $opts->{multiple} ? 1 : 0 ),
+        upsert => ( $opts->{upsert} ? 1 : 0 ),
+    };
+
+    my $wc = $self->_dynamic_write_concern( $opts );
+    my $result = $self->_client->send_update($self->full_name, $op_doc, $wc);
+
+    $result->assert;
+
+    return $result;
+}
+
+sub find_and_modify {
     my ( $self, $opts ) = @_;
 
-    my $conn = $self->_database->_client;
+    my $conn = $self->_client;
     my $db   = $self->_database;
 
     my $result;
@@ -401,54 +289,55 @@ sub find_and_modify {
 }
 
 
-sub aggregate { 
+sub aggregate {
     my ( $self, $pipeline, $opts ) = @_;
     $opts = ref $opts eq 'HASH' ? $opts : { };
 
     my $db   = $self->_database;
 
-    if ( exists $opts->{cursor} ) { 
+    if ( exists $opts->{cursor} ) {
         $opts->{cursor} = { } unless ref $opts->{cursor} eq 'HASH';
     }
 
     # explain requires a boolean
-    if ( exists $opts->{explain} ) { 
+    if ( exists $opts->{explain} ) {
         $opts->{explain} = $opts->{explain} ? true : false;
     }
 
     my @command = ( aggregate => $self->name, pipeline => $pipeline, %$opts );
-    my $result = $db->_try_run_command( \@command );
+    my $result = $self->_client->send_command( $db->name, \@command );
+    my $response = $result->result;
 
     # if we got a cursor option then we need to construct a wonky cursor
-    # object on our end and populate it with the first batch, since 
-    # commands can't actually return cursors. 
-    if ( exists $opts->{cursor} ) { 
-        unless ( exists $result->{cursor} ) { 
+    # object on our end and populate it with the first batch, since
+    # commands can't actually return cursors.
+    if ( exists $opts->{cursor} ) {
+        unless ( exists $response->{cursor} ) {
             die "no cursor returned from aggregation";
         }
 
-        my $cursor = MongoDB::Cursor->new( 
+        my $cursor = MongoDB::Cursor->new(
             started_iterating      => 1,              # we have the first batch
-            _client                => $db->_client,
-            _master                => $db->_client,   # fake this because we're already iterating
-            _ns                    => $result->{cursor}{ns},
-            _docs                  => $result->{cursor}{firstBatch}, 
-            _batch_size            => scalar @{ $result->{cursor}{firstBatch} },  # for has_next
-            _query                 => Tie::IxHash->new(@command),
-            _cursor_id             => MongoDB::Cursor::_pack_cursor_id($result->{cursor}{id}),
+            _client                => $self->_client,
+            _ns                    => $response->{cursor}{ns},
+            _docs                  => $response->{cursor}{firstBatch},
+            _batch_size            => scalar @{ $response->{cursor}{firstBatch} },  # for has_next
+            _query                 => {}, # fake
+            _cursor_id             => MongoDB::Cursor::_pack_cursor_id($response->{cursor}{id}),
+            _cursor_from           => $result->address,
         );
 
         return $cursor;
     }
 
-    # return the whole result document if they want an explain
-    if ( $opts->{explain} ) { 
-        return $result;
+    # return the whole response document if they want an explain
+    if ( $opts->{explain} ) {
+        return $response;
     }
 
     # TODO: handle errors?
 
-    return $result->{result};
+    return $response->{result};
 }
 
 sub parallel_scan {
@@ -463,22 +352,23 @@ sub parallel_scan {
     my $db   = $self->_database;
 
     my @command = ( parallelCollectionScan => $self->name, numCursors => $num_cursors );
-    my $result = $db->_try_run_command( \@command );
+    my $result = $self->_client->send_command( $db->name, \@command );
+    my $response = $result->result;
 
     Carp::croak("No cursors returned")
-        unless $result->{cursors} && ref $result->{cursors} eq 'ARRAY';
+        unless $response->{cursors} && ref $response->{cursors} eq 'ARRAY';
 
     my @cursors;
-    for my $c ( map { $_->{cursor} } @{$result->{cursors}} ) {
+    for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
         # fake up a post-query cursor
         my $cursor = MongoDB::Cursor->new(
             started_iterating      => 1,              # we have the first batch
-            _client                => $db->_client,
-            _master                => $db->_client,   # fake this because we're already iterating
+            _client                => $self->_client,
             _ns                    => $c->{ns},
-            _query                 => Tie::IxHash->new(@command),
+            _query                 => Tie::IxHash->new(@command), # XXX why are we faking this?
             _is_parallel           => 1,
             _cursor_id             => MongoDB::Cursor::_pack_cursor_id($c->{id}),
+            _cursor_from           => $result->address,
         );
 
         push @cursors, $cursor;
@@ -490,10 +380,10 @@ sub parallel_scan {
 sub rename {
     my ($self, $collectionname) = @_;
 
-    my $conn = $self->_database->_client;
+    my $conn = $self->_client;
     my $database = $conn->get_database( 'admin' );
     my $fullname = $self->full_name;
-  
+
     my ($db, @collection_bits) = split(/\./, $fullname);
     my $collection = join('.', @collection_bits);
     my $obj = $database->_try_run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
@@ -502,42 +392,24 @@ sub rename {
 }
 
 
-sub remove { 
-    my $self = shift;
-    my ( $query, $options ) = @_;
-    $self->legacy_remove( @_ );
-}
-
-sub legacy_remove {
+sub remove {
     my ($self, $query, $options) = @_;
-    #$self->delete_cmd( $query, $options ) if $self->_database->_client->_use_write_cmd;
+    confess "optional argument to remove must be a hash reference"
+        if defined $options && ref $options ne 'HASH';
 
-    my $conn = $self->_database->_client;
-
-    my ($just_one, $safe);
-    if (defined $options && ref $options eq 'HASH') {
-        $just_one = exists $options->{just_one} ? $options->{just_one} : 0;
-        $safe = $options->{safe} or $conn->_w_want_safe;
-    }
-    else {
-        $just_one = $options || 0;
-    }
-
-    my $ns = $self->full_name;
     $query ||= {};
 
-    my $bson = MongoDB::BSON::encode_bson( $query, 0 );
-    my $remove = MongoDB::_Protocol::write_delete($ns, $bson, $just_one);
-    if ($safe) {
-        return $self->_make_safe($remove);
-    }
+    my $op_doc = {
+        q      => $query,
+        limit   => $options->{just_one} ? 1 : 0,
+    };
 
-    if ($conn->send($remove) == -1) {
-        $conn->connect; # XXX this should go away
-        die("can't get db response, not connected");
-    }
+    my $wc = $self->_dynamic_write_concern( $options );
+    my $result = $self->_client->send_delete($self->full_name, $op_doc, $wc);
 
-    return 1;
+    $result->assert;
+
+    return $result;
 }
 
 
@@ -596,55 +468,18 @@ sub ensure_index {
 
     my $res = $self->_database->get_collection( '$cmd' )->find_one( Tie::IxHash->new( createIndexes => $self->name, indexes => [ $obj ] ) );
 
-    return $res if $res->{ok};    
+    return $res if $res->{ok};
 
     # if not ok, no code or code 59 or code 13390 mean "command not available",
     # per DRIVERS-103 and DRIVERS-132
-    if ( ( not $res->{ok} )  && 
-         ( not exists $res->{code} or $res->{code} == 59 or $res->{code} == 13390) ) { 
+    if ( ( not $res->{ok} )  &&
+         ( not exists $res->{code} or $res->{code} == 59 or $res->{code} == 13390) ) {
         $obj->Unshift( ns => $tmp_ns );     # restore ns to spec
         my $indexes = $self->_database->get_collection("system.indexes");
         return $indexes->_legacy_index_insert($obj, $options);
-    } else { 
+    } else {
         die "error creating index: " . $res->{errmsg};
     }
-} 
-
-
-sub _make_safe {
-    my ($self, $req) = @_;
-
-    my $ok = $self->_make_safe_cursor($req)->next();
-
-    # $ok->{ok} is 1 if err is set
-    Carp::croak $ok->{err} if $ok->{err};
-    # $ok->{ok} == 0 is still an error
-    if (!$ok->{ok}) {
-        Carp::croak $ok->{errmsg};
-    }
-
-    return $ok;
-}
-
-sub _make_safe_cursor {
-    my ($self, $req, $write_concern) = @_;
-    my $conn = $self->_database->_client;
-    my $db = $self->_database->name;
-    $write_concern ||= $conn->_write_concern;
-
-    my $last_error = MongoDB::BSON::encode_bson(Tie::IxHash->new(getlasterror => 1, %$write_concern), 0);
-    my ($query, $info) = MongoDB::_Protocol::write_query($db.'.$cmd', 0, 0, -1, $last_error);
-
-    my $cursor = MongoDB::Cursor->new(
-        _master                         => $conn,
-        _client                         => $conn,
-        _ns                             => $info->{ns},
-        _query                          => Tie::IxHash->new(),
-    );
-
-    $cursor->_send_and_recv("$req$query", $info->{request_id});
-
-    return $cursor;
 }
 
 sub save {
@@ -717,7 +552,12 @@ sub get_indexes {
 
 sub drop {
     my ($self) = @_;
-    $self->_database->run_command({ drop => $self->name });
+    try {
+        $self->_database->run_command({ drop => $self->name });
+    }
+    catch {
+        die $_ unless /ns not found/;
+    };
     return;
 }
 
@@ -729,6 +569,16 @@ sub initialize_unordered_bulk_op {
 sub initialize_ordered_bulk_op {
     my ($self) = @_;
     return MongoDB::BulkWrite->new( collection => $self, ordered => 1 );
+}
+
+sub _dynamic_write_concern {
+    my ( $self, $opts ) = @_;
+    if ( !exists( $opts->{safe} ) || $opts->{safe} ) {
+        return $self->_client->_write_concern;
+    }
+    else {
+        return MongoDB::WriteConcern->new( w => 0 );
+    }
 }
 
 {
@@ -926,7 +776,7 @@ The method C<unordered_bulk> may be used as an alias for C<initialize_unordered_
     my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
 
 Perform an atomic update. C<find_and_modify> guarantees that nothing else will come along
-and change the queried documents before the update is performed. 
+and change the queried documents before the update is performed.
 
 Returns the old version of the document, unless C<new => 1> is specified. If no documents
 match the query, it returns nothing.
@@ -935,8 +785,8 @@ match the query, it returns nothing.
 
     my $result = $collection->aggregate( [ ... ] );
 
-Run a query using the MongoDB 2.2+ aggregation framework. The first argument is an array-ref of 
-aggregation pipeline operators. 
+Run a query using the MongoDB 2.2+ aggregation framework. The first argument is an array-ref of
+aggregation pipeline operators.
 
 The type of return value from C<aggregate> depends on how you use it.
 
@@ -967,8 +817,8 @@ about how the server will process a query pipeline.
 In this case, C<aggregate> will return a document (not an array) containing the explanation
 structure.
 
-=item * Finally, MongoDB 2.6+ will return an empty results array if the C<$out> pipeline operator is used to 
-write aggregation results directly to a collection. Create a new C<Collection> object to 
+=item * Finally, MongoDB 2.6+ will return an empty results array if the C<$out> pipeline operator is used to
+write aggregation results directly to a collection. Create a new C<Collection> object to
 query the result collection.
 
 =back
@@ -995,7 +845,7 @@ If an error occurs, an exception will be thrown.
 
     my $newcollection = $collection->rename("mynewcollection");
 
-Renames the collection.  It expects that the new name is currently not in use.  
+Renames the collection.  It expects that the new name is currently not in use.
 
 Returns the new collection.  If a collection already exists with that new collection name this will
 die.

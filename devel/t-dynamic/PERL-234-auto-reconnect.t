@@ -28,12 +28,12 @@ my $orc = MongoDBTest::Orchestrator->new( config_file => "devel/clusters/mongod-
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
 my $server = $orc->cluster->get_server("host1");
 my $orig_port = $server->port;
 
-is ($server->is_alive, 1, "Server is alive");
+ok ($server->is_alive, "Server is alive");
 
 my $c = build_client();
 my $coll = get_test_db($c)->get_collection("testc");
@@ -41,10 +41,15 @@ inserted_ok($coll, $coll->insert({pre => 'stop'}));
 
 $server->stop();
 
-is ($server->is_alive, undef, "Server is dead");
+ok (! $server->is_alive, "Server is dead");
 
-$server->start($orig_port);	
+$server->start($orig_port);
+
+ok ($server->is_alive, "Server is alive");
+
 inserted_ok($coll, $coll->insert({post => 'reconnect'}));
+
+clear_testdbs;
 
 done_testing;
 

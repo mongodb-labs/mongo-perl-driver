@@ -20,12 +20,14 @@ use version;
 our $VERSION = 'v0.704.4.1';
 
 use Moose;
+use MongoDB::Error;
 use MongoDB::_Link;
 use MongoDB::_Types;
 use MongoDB::_Server;
 use List::Util qw/first/;
 use Syntax::Keyword::Junction qw/any none/;
-use Time::HiRes qw/gettimeofday tv_interval/;
+use Time::HiRes qw/gettimeofday tv_interval usleep/;
+use Try::Tiny;
 
 use namespace::clean -except => 'meta';
 
@@ -42,6 +44,18 @@ use constant {
 has uri => (
     is       => 'ro',
     isa      => 'MongoDB::_URI',
+    required => 1,
+);
+
+has max_wire_version => (
+    is       => 'ro',
+    isa      => 'Num',
+    required => 1,
+);
+
+has min_wire_version => (
+    is       => 'ro',
+    isa      => 'Num',
     required => 1,
 );
 
@@ -65,10 +79,22 @@ has heartbeat_frequency_ms => (
     default => 60_000,
 );
 
+has latency_threshold_ms => (
+    is      => 'ro',
+    isa     => 'Num',
+    default => 15,
+);
+
 has socket_check_interval_ms => (
     is      => 'ro',
     isa     => 'Num',
     default => 5_000,
+);
+
+has server_selection_timeout_ms => (
+    is      => 'ro',
+    isa     => 'Num',
+    default => 60_000,
 );
 
 has ewma_alpha => (
@@ -153,10 +179,6 @@ sub BUILD {
 # public methods
 #--------------------------------------------------------------------------#
 
-sub all_primaries {
-    return grep { $_->type eq 'RSPrimary' } $_[0]->all_servers;
-}
-
 sub all_servers { return values %{ $_[0]->servers } }
 
 sub check_address {
@@ -173,9 +195,53 @@ sub check_address {
     return;
 }
 
-sub has_no_primaries {
+sub close_all_links {
     my ($self) = @_;
-    return 0 == $self->all_primaries;
+    delete $self->links->{ $_->address } for $self->all_servers;
+    return;
+}
+
+sub get_readable_link {
+    my ( $self, $read_pref ) = @_;
+
+    my $mode = $read_pref ? lc $read_pref->mode : 'primary';
+    my $method =
+      $self->type eq any(qw/Single Sharded/) ? '_find_any_link' : "_find_${mode}_link";
+
+    if ( my $link = $self->_selection_timeout( $method, $read_pref ) ) {
+        return $link;
+    }
+    else {
+        MongoDB::ConnectionError->throw(
+            "No readable server matching read preference available");
+    }
+}
+
+sub get_specific_link {
+    my ( $self, $address ) = @_;
+    my $server = $self->servers->{$address};
+    if ( $server
+        && ( my $link = $self->_selection_timeout( '_get_server_link', $server ) ) )
+    {
+        return $link;
+    }
+    else {
+        MongoDB::ConnectionError->throw("Server $address is no longer available");
+    }
+}
+
+sub get_writable_link {
+    my ($self) = @_;
+
+    my $method =
+      $self->type eq any(qw/Single Sharded/) ? '_find_any_link' : "_find_primary_link";
+
+    if ( my $link = $self->_selection_timeout($method) ) {
+        return $link;
+    }
+    else {
+        MongoDB::ConnectionError->throw("No writable server available");
+    }
 }
 
 sub scan_all_servers {
@@ -236,6 +302,25 @@ sub _check_oldest_server {
     return;
 }
 
+sub _check_wire_versions {
+    my ($self) = @_;
+
+    for my $server ( grep { $_->is_available } $self->all_servers ) {
+        my ( $server_min_wire_version, $server_max_wire_version ) =
+          @{ $server->is_master }{qw/minWireVersion maxWireVersion/};
+
+        if (   ( $server_min_wire_version || 0 ) > $self->max_wire_version
+            || ( $server_max_wire_version || 0 ) < $self->min_wire_version )
+        {
+            MongoDB::Error->throw(
+                "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library."
+            );
+        }
+    }
+
+    return;
+}
+
 sub _dump {
     my ($self) = @_;
     printf( "Cluster type: %s\n", $self->type );
@@ -244,14 +329,104 @@ sub _dump {
     return;
 }
 
+sub _find_any_link {
+    my ( $self ) = @_;
+    return $self->_get_link_in_latency_window(
+        [ grep { $_->is_available } $self->all_servers ] );
+}
+
+sub _find_nearest_link {
+    my ( $self, $read_pref ) = @_;
+    my @candidates = ( $self->_primaries, $self->_secondaries($read_pref) );
+    return $self->_get_link_in_latency_window( \@candidates );
+}
+
+sub _find_primary_link {
+    my $self = shift;
+    if ( my $primary = first { $_->is_writable } $self->all_servers ) {
+        return $self->_get_server_link($primary);
+    }
+    return undef;
+}
+
+sub _find_primarypreferred_link {
+    my ( $self, $read_pref ) = @_;
+    return $self->_find_primary_link || $self->_find_secondary_link($read_pref);
+}
+
+sub _find_secondary_link {
+    my ( $self, $read_pref ) = @_;
+
+    my @candidates = $self->_secondaries($read_pref);
+    return $self->_get_link_in_latency_window( \@candidates );
+}
+
+sub _find_secondarypreferred_link {
+    my ( $self, $read_pref ) = @_;
+    return $self->_find_secondary_link($read_pref) || $self->_find_primary_link;
+}
+
+sub _get_link_in_latency_window {
+    my ( $self, $servers ) = @_;
+
+    # order servers by RTT EWMA
+    my $rtt_hash = $self->rtt_ewma_ms;
+    my @candidates =
+      sort { $a->{rtt} <=> $b->{rtt} }
+      map { { server => $_, address => $_->address, rtt => $rtt_hash->{ $_->address } } }
+      @$servers;
+
+    my ( @links, $max_rtt );
+
+    # take first valid link and any links from servers with RTT EWMA within
+    # the latency window from the first server
+    for my $c (@candidates) {
+        last if @links && $c->{rtt} < $max_rtt;
+        if ( $c->{link} = $self->_get_server_link( $c->{server} ) ) {
+            $max_rtt = $c->{rtt} + $self->latency_threshold_ms if !@links;
+            push @links, $c;
+        }
+    }
+
+    # return a randomly chosen link if there any to choose
+    return @links ? $links[ int( rand(@links) ) ]->{link} : undef;
+}
+
+sub _get_server_link {
+    my ( $self, $server ) = @_;
+    my $address = $server->address;
+    my $link = $self->links->{$address};
+    return $link && $link->remote_connected ? $link : $self->_initialize_link($address);
+}
+
+sub _has_no_primaries {
+    my ($self) = @_;
+    return 0 == $self->_primaries;
+}
+
 sub _initialize_link {
     my ( $self, $address ) = @_;
 
-    my $link = MongoDB::_Link->new( $address, $self->link_options )->connect;
-    $self->links->{$address} = $link;
-    $self->_update_cluster_from_link( $address, $link );
+    my $link = try { MongoDB::_Link->new( $address, $self->link_options )->connect };
 
+    if ( $link ) {
+        $self->links->{$address} = $link;
+        $self->_update_cluster_from_link( $address, $link );
+        return $self->links->{$address}; # might be undef if the update killed it
+    }
+
+    # connection failed, so update cluster with Unknown description
+    my $new_server = MongoDB::_Server->new(
+        address          => $address,
+        last_update_time => [ gettimeofday() ],
+        is_master        => {},
+    );
+    $self->_update_cluster_from_server_desc( $address, $new_server );
     return;
+}
+
+sub _primaries {
+    return grep { $_->type eq 'RSPrimary' } $_[0]->all_servers;
 }
 
 sub _remove_address {
@@ -276,19 +451,55 @@ sub _reset_server_to_unknown {
     return;
 }
 
+sub _secondaries {
+    my ( $self, $read_pref ) = @_;
+
+    my @secondaries = grep { $_->type eq 'RSSecondary' } $_[0]->all_servers;
+
+    if ( $read_pref->has_empty_tagsets ) {
+        return @secondaries;
+    }
+    else {
+        my $ts = $read_pref->tagset;
+        return grep { $_->matches_tagset($ts) } @secondaries;
+    }
+}
+
+# this implements the server selection timeout around whatever actual method
+# is used for returning a link
+sub _selection_timeout {
+    my ( $self, $method, @args ) = @_;
+
+    my $start_time = [ gettimeofday() ];
+
+    while (1) {
+        $self->_check_wire_versions;
+        if ( my $link = $self->$method(@args) ) {
+            return $link;
+        }
+        last if 1000 * tv_interval($start_time) > $self->server_selection_timeout_ms;
+    }
+    continue {
+        usleep(15_000); # 15ms delay before rescanning
+        $self->scan_all_servers;
+    }
+
+    return;             # caller has to throw appropriate timeout error
+}
+
 sub _update_cluster_from_link {
     my ( $self, $address, $link ) = @_;
 
     my $start_time = [ gettimeofday() ];
-    my $is_master  = eval { $self->_send_admin_command( $link, 0, [ ismaster => 1 ] ) };
+    my $is_master  = eval { $self->_send_admin_command( $link, [ ismaster => 1 ] )->result };
     my $end_time   = [ gettimeofday() ];
     my $rtt_ms     = int( 1000 * tv_interval( $start_time, $end_time ) );
 
+    # if no $is_master, then we're updating with an Unknown
     my $new_server = MongoDB::_Server->new(
         address          => $address,
         last_update_time => $end_time,
-        rtt_ms           => $rtt_ms,
-        is_master        => $is_master,
+        ( $is_master ? ( rtt_ms => $rtt_ms, is_master => $is_master ) : () ),
     );
 
     $self->_update_cluster_from_server_desc( $address, $new_server );
@@ -307,10 +518,14 @@ sub _update_cluster_from_server_desc {
 
     $self->_update_ewma( $address, $new_server );
 
+    # must come after ewma update
     $self->servers->{$address} = $new_server;
 
     my $method = "_update_" . $self->type;
     $self->$method( $address, $new_server );
+
+    # if link is still around, tag it with server specifics
+    $self->_update_link_metadata( $address, $new_server );
 
     return $new_server;
 }
@@ -332,6 +547,18 @@ sub _update_ewma {
     return;
 }
 
+sub _update_link_metadata {
+    my ( $self, $address, $server ) = @_;
+
+    # if the link didn't get dropped from the cluster during the update, we
+    # attach the server so the link knows where it came from
+    if ( $self->links->{$address} ) {
+        $self->links->{$address}->set_metadata($server);
+    }
+
+    return;
+}
+
 sub _update_rs_with_primary_from_member {
     my ( $self, $new_server ) = @_;
 
@@ -341,7 +568,7 @@ sub _update_rs_with_primary_from_member {
         $self->_remove_server($new_server);
     }
 
-    if ( $self->has_no_primaries ) {
+    if ( $self->_has_no_primaries ) {
         $self->_set_type('ReplicaSetNoPrimary');
 
         # flag possible primary to amend scanning order
@@ -371,7 +598,7 @@ sub _update_rs_with_primary_from_primary {
     }
 
     # possibly invalidate an old primary (even if more than one!)
-    for my $old_primary ( $self->all_primaries ) {
+    for my $old_primary ( $self->_primaries ) {
         $self->_reset_server_to_unknown($old_primary)
           unless $old_primary->address eq $new_server->address;
     }
@@ -435,7 +662,7 @@ sub _update_ReplicaSetNoPrimary {
         $self->_update_rs_with_primary_from_primary($new_server);
         # cluster changes might have removed all primaries
         $self->_set_type('ReplicaSetNoPrimary')
-          if $self->has_no_primaries;
+          if $self->_has_no_primaries;
     }
     elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
         $self->_update_rs_without_primary($new_server);
@@ -471,7 +698,7 @@ sub _update_ReplicaSetWithPrimary {
 
     # cluster changes might have removed all primaries
     $self->_set_type('ReplicaSetNoPrimary')
-        if $self->has_no_primaries;
+      if $self->_has_no_primaries;
 
     return;
 }
@@ -518,8 +745,7 @@ sub _update_Unknown {
         $self->_update_rs_with_primary_from_primary($new_server);
         # cluster changes might have removed all primaries
         $self->_set_type('ReplicaSetNoPrimary')
-            if $self->has_no_primaries;
-
+          if $self->_has_no_primaries;
     }
     elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
         $self->_set_type('ReplicaSetNoPrimary');

@@ -47,7 +47,12 @@ sub create_mock_cluster {
             $type = 'Single';
         }
     }
-    return MongoDB::_Cluster->new( uri => $uri, type => $type );
+    return MongoDB::_Cluster->new(
+        uri => $uri,
+        type => $type,
+        max_wire_version => 2,
+        min_wire_version => 0,
+    );
 }
 
 sub run_test {

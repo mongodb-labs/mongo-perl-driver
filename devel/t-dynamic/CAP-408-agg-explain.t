@@ -29,7 +29,7 @@ use lib "t/lib";
 use lib "devel/lib";
 
 use MongoDBTest::Orchestrator;
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
 note("CAP-408 aggregation explain");
 
@@ -55,5 +55,7 @@ like(
     qr/pipeline/,
     "caught exception running explain on mixed cluster"
 );
+
+clear_testdbs;
 
 done_testing;

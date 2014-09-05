@@ -33,18 +33,22 @@ use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
 
 use constant {
-    HAS_THREADS => $Config{usethreads},
-    P_INT32 => $] lt '5.010' ? 'l' : 'l<',
+    HAS_THREADS            => $Config{usethreads},
+    P_INT32                => $] lt '5.010' ? 'l' : 'l<',
+    MAX_BSON_OBJECT_SIZE   => 4_194_304,
+    MAX_MESSAGE_SIZE_BYTES => 48_000_000,
+    MAX_WRITE_BATCH_SIZE   => 1000,
 };
 
-use if HAS_THREADS, 'Scalar::Util';
+
+# fake thread-id for non-threaded perls
+use if HAS_THREADS, 'threads';
+*_get_tid = HAS_THREADS() ? sub { threads->tid } : sub () {0};
 
 my $SOCKET_CLASS =
   eval { require IO::Socket::IP; IO::Socket::IP->VERSION(0.25) }
   ? 'IO::Socket::IP'
   : 'IO::Socket::INET';
-
-my %LINKS;
 
 sub new {
     @_ == 2 || @_ == 3 || Carp::confess( q/Usage: MongoDB::_Link->new(address, [arg hashref])/ . "\n" );
@@ -53,18 +57,15 @@ sub new {
     Carp::confess("new requires 'host:port' address argument")
         unless defined($host) && length($host) && defined($port) && length($port);
     my $self = bless {
-        host        => $host,
-        port        => $port,
-        timeout     => 60,
-        reconnect   => 0,
-        with_ssl    => 0,
-        verify_SSL  => 0,
-        SSL_options => {},
+        host               => $host,
+        port               => $port,
+        address            => "$host:$port",
+        timeout            => 60,
+        with_ssl           => 0,
+        verify_SSL         => 0,
+        SSL_options        => {},
         ( $args ? (%$args) : () ),
     }, $class;
-    if ( HAS_THREADS ) {
-        Scalar::Util::weaken( $LINKS{ refaddr $self } = $self );
-    }
     return $self;
 }
 
@@ -93,7 +94,34 @@ sub connect {
 
     $self->start_ssl($host) if $self->{with_ssl};
 
+    $self->{pid} = $$;
+    $self->{tid} = _get_tid();
+
     return $self;
+}
+
+my @accessors = qw(
+    address server min_wire_version max_wire_version
+    max_message_size_bytes max_write_batch_size max_bson_object_size
+);
+
+for my $attr ( @accessors ) {
+    no strict 'refs';
+    *{$attr} = eval "sub { \$_[0]->{$attr} }";
+}
+
+sub set_metadata {
+    my ( $self, $server ) = @_;
+    $self->{server}           = $server;
+    $self->{min_wire_version} = $server->is_master->{minWireVersion} || "0";
+    $self->{max_wire_version} = $server->is_master->{maxWireVersion} || "0";
+    $self->{max_message_size_bytes} =
+      $server->is_master->{maxMessageSizeBytes} || MAX_MESSAGE_SIZE_BYTES;
+    $self->{max_bson_object_size} =
+      $server->is_master->{maxBsonObjectSize} || MAX_BSON_OBJECT_SIZE;
+    $self->{max_write_batch_size} =
+      $server->is_master->{maxWriteBatchSize} || MAX_WRITE_BATCH_SIZE;
+    return;
 }
 
 sub start_ssl {
@@ -125,30 +153,41 @@ sub close {
     }
 }
 
-sub connected {
+sub connection_valid {
     my ($self) = @_;
-    return $self->{fh} && $self->{fh}->connected;
+    return unless $self->{fh};
+
+    if (  !$self->{fh}->connected
+        || $self->{pid} != $$
+        || $self->{tid} != _get_tid()
+    ) {
+        $self->{fh}->close;
+        delete $self->{fh};
+        return;
+    }
+
+    return 1;
 }
 
-sub assert_connected {
+sub remote_connected {
     my ($self) = @_;
-    unless ( $self->{fh} && $self->{fh}->connected ) {
-        my ( $host, $port, $ssl ) = @{$self}{qw/host port ssl/};
-        if ( $self->{reconnect} ) {
-            $self->connect();
-        }
-        else {
-            Carp::confess("connection lost to $host");
-        }
-    }
-    return;
+    return unless $self->connection_valid;
+    return if $self->can_read(0) && $self->{fh}->eof;
+    return 1;
+}
+
+sub assert_valid_connection {
+    my ($self) = @_;
+    Carp::confess("connection lost to " . $self->address )
+        unless $self->connection_valid;
+    return 1;
 }
 
 sub write {
     @_ == 2 || Carp::confess( q/Usage: $handle->write(buf)/ . "\n" );
     my ( $self, $buf ) = @_;
 
-    $self->assert_connected;
+    $self->assert_valid_connection;
 
     if ( $] ge '5.008' ) {
         utf8::downgrade( $buf, 1 )
@@ -157,6 +196,10 @@ sub write {
 
     my $len = length $buf;
     my $off = 0;
+
+    if ( exists $self->{max_message_size} && $len > $self->{max_message_size} ) {
+        Carp::confess(qq/Message of size $len exceeds maximum of / . $self->{max_message_size});
+    }
 
     local $SIG{PIPE} = 'IGNORE';
 
@@ -191,7 +234,7 @@ sub read {
     my ($self) = @_;
     my $msg = '';
 
-    $self->assert_connected;
+    $self->assert_valid_connection;
 
     # read length
     $self->_read_bytes( 4, \$msg );
@@ -255,7 +298,7 @@ sub _do_timeout {
         if ( $nfound == -1 ) {
             $! == EINTR
               or Carp::confess(qq/select(2): '$!'\n/);
-            redo if !$timeout || ( $pending = $timeout - ( time - $initial ) ) > 0;
+            redo if !defined($timeout) || ( $pending = $timeout - ( time - $initial ) ) > 0;
             $nfound = 0;
         }
         last;
@@ -342,18 +385,6 @@ sub _ssl_args {
     }
 
     return \%ssl_args;
-}
-
-if ( HAS_THREADS ) {
-    *DEMOLISH = sub { delete $LINKS{ refaddr $_[0] } };
-}
-
-# Threads need to reconnect
-sub CLONE {
-    while ( my ($k, $v) = each %LINKS ) {
-        $v->close if ref $v;
-        delete $LINKS{ $k };
-    }
 }
 
 1;

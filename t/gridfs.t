@@ -270,7 +270,7 @@ $grid->drop;
         $id = $grid->put($img, {_id => 'img.png', filename => 'img.png'});
     };
 
-    like($@, qr/E11000/, 'duplicate key exception');
+    like($@->result->last_errmsg, qr/E11000/, 'duplicate key exception');
 
     $file = $grid->get('img.png');
     is($file->info->{filename}, 'img.png');

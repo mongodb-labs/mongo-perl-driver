@@ -28,6 +28,7 @@ use MongoDB::GridFS;
 use Carp 'carp';
 use boolean;
 use Moose;
+use Try::Tiny;
 use namespace::clean -except => 'meta';
 
 has _client => ( 
@@ -97,21 +98,20 @@ sub last_error {
 
 sub run_command {
     my ($self, $command) = @_;
-    my $obj = $self->get_collection('$cmd')->find_one($command);
-    return $obj if $obj->{ok};
-    return exists $obj->{errmsg} ? $obj->{errmsg} : $obj->{'$err'};
+
+    my $obj = $self->_client->send_command( $self->name, $command );
+
+    return $obj->result;
 }
 
 # same as run_command but throws an exception on error; private
 # for now until exception handling is overhauled
 sub _try_run_command {
     my ($self, $command) = @_;
-    my $obj = $self->get_collection('$cmd')->find_one($command);
-    return $obj if $obj->{ok};
-    MongoDB::DatabaseError->throw(
-        message => $obj->{errmsg} || $obj->{'$err'},
-        result => MongoDB::CommandResult->new(result => $obj),
-    );
+
+    my $obj = $self->_client->send_command( $self->name, $command );
+
+    return $obj->result;
 }
 
 sub eval {

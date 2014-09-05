@@ -127,10 +127,15 @@ sub decode_bson {
 }
 
 sub encode_bson {
-    my ($struct, $clean_keys) = @_;
+    my ($struct, $clean_keys, $max_size) = @_;
     $clean_keys = 0 unless defined $clean_keys;
     my $bson = eval { MongoDB::BSON::_encode_bson($struct, $clean_keys) };
     Carp::confess($@) if $@;
+
+    if ( $max_size && length($bson) > $max_size ) {
+        Carp::confess("Document exceeds maximum size $max_size");
+    }
+
     return $bson;
 }
 

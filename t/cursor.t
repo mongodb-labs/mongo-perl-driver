@@ -206,16 +206,14 @@ $testdb->drop;
 {
     $cursor->reset;
     my $hinted = $cursor->hint({'x' => 1});
-    is($hinted, $cursor);
+    is($hinted, $cursor, "hint returns self");
 
     $coll->drop;
 
     $coll->insert({'num' => 1, 'foo' => 1});
 
-    my $aok = 1;
     eval {
         $coll->query->hint({'num' => 1})->explain;
-        $aok = 0;
     };
 
     like($@, qr/query error/, "check query error on hint");
@@ -236,6 +234,7 @@ $testdb->drop;
 # count
 {
     $coll->drop;
+    is ($coll->count, 0, "empty" );
     $coll->batch_insert([{'x' => 1}, {'x' => 1}, {'y' => 1}, {'x' => 1, 'z' => 1}]);
 
     is($coll->query->count, 4, 'count');
@@ -251,34 +250,34 @@ $testdb->drop;
 {
     $cursor = $coll->find();
 
-	$cursor = $cursor->tailable(1);
-	is($cursor->_tailable, 1);
-	$cursor = $cursor->tailable(0);
-	is($cursor->_tailable, 0);
+    $cursor = $cursor->tailable(1);
+    is($cursor->_query_options->{tailable}, 1);
+    $cursor = $cursor->tailable(0);
+    is($cursor->_query_options->{tailable}, !1);
 
     $cursor = $coll->find()->tailable(1);
-    is($cursor->_tailable, 1);
+    is($cursor->_query_options->{tailable}, 1);
     $cursor = $coll->find()->tailable(0);
-    is($cursor->_tailable, 0);
-    
+    is($cursor->_query_options->{tailable}, !1);
+
     #test is actual cursor
     $coll->drop;
     $coll->insert({"x" => 1});
     $cursor = $coll->find()->tailable(0);
     my $doc = $cursor->next;
     is($doc->{'x'}, 1);
-    
-	$cursor = $coll->find();
+
+    $cursor = $coll->find();
 
     $cursor->immortal(1);
-    is($cursor->immortal, 1);
+    is($cursor->_query_options->{immortal}, 1);
     $cursor->immortal(0);
-    is($cursor->immortal, 0);
+    is($cursor->_query_options->{immortal}, !1);
 
     $cursor->slave_okay(1);
-    is($cursor->slave_okay, 1);
+    is($cursor->_query_options->{slave_ok}, 1);
     $cursor->slave_okay(0);
-    is($cursor->slave_okay, 0);
+    is($cursor->_query_options->{slave_ok}, !1);
 }
 
 # explain
@@ -295,7 +294,7 @@ $testdb->drop;
 
     # cursor should be reset
     $doc = $cursor->next;
-    is($doc->{'x'}, 1);
+    is($doc->{'x'}, 1) or diag explain $doc;
 }
 
 # info

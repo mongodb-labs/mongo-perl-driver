@@ -31,7 +31,7 @@ use lib "t/lib";
 use lib "devel/lib";
 
 use MongoDBTest::Orchestrator;
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 use Path::Tiny;
 
 note("CAP-501 aggregation allowDiskUse");
@@ -73,5 +73,7 @@ for my $cluster ( sort keys %config_map ) {
 
     };
 }
+
+clear_testdbs;
 
 done_testing;

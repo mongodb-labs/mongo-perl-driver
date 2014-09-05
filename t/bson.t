@@ -39,26 +39,26 @@ my $testdb = get_test_db(build_client());
 my $c = $testdb->get_collection('bar');
 
 # relloc
-{
+subtest "realloc" => sub {
     $c->drop;
 
     my $long_str = "y" x 8184;
     $c->insert({'text' => $long_str});
     my $result = $c->find_one;
     is($result->{'text'}, $long_str, 'realloc');
-}
+};
 
 # id realloc
-{
+subtest "id realloc" => sub {
     $c->drop;
 
     my $med_str = "z" x 4014;
     $c->insert({'text' => $med_str, 'id2' => MongoDB::OID->new});
     my $result = $c->find_one;
     is($result->{'text'}, $med_str, 'id realloc');
-}
+};
 
-{
+subtest "types" => sub {
     $c->drop;
 
     my $id = $c->insert({"n" => undef,
@@ -88,32 +88,31 @@ my $c = $testdb->get_collection('bar');
     isa_ok($obj->{'_id'}, 'MongoDB::OID');
     is($obj->{'_id'}, $id);
     is($obj->{'string'}, 'string');
-}
+};
 
-{
+subtest "\$MongoDB::BSON::char '='" => sub {
     local $MongoDB::BSON::char = "=";
     $c->drop;
     $c->update({x => 1}, {"=inc" => {x => 1}}, {upsert => true});
 
     my $up = $c->find_one;
     is($up->{x}, 2);
-}
+};
 
-{
+subtest "\$MongoDB::BSON::char ';'" => sub {
     local $MongoDB::BSON::char = ":";
     $c->drop;
     $c->batch_insert([{x => 1}, {x => 2}, {x => 3}, {x => 4}, {x => 5}]);
     my $cursor = $c->query({x => {":gt" => 2, ":lte" => 4}})->sort({x => 1});
-
     my $result = $cursor->next;
     is($result->{x}, 3);
     $result = $cursor->next;
     is($result->{x}, 4);
     ok(!$cursor->has_next);
-}
+};
 
 # utf8
-{
+subtest "UTF-8 strings" => sub {
     $c->drop;
 
     # latin1
@@ -131,7 +130,7 @@ my $c = $testdb->get_collection('bar');
     # make sure it's being returned as a utf8 string
     ok(utf8::is_utf8($x->{char}));
     is(length $x->{char}, 2);
-}
+};
 
 subtest "bad UTF8" => sub {
 
@@ -158,16 +157,14 @@ subtest "bad UTF8" => sub {
 
 };
 
-# undefined
-{
+subtest "undefined" => sub {
     my $err = $testdb->last_error();
     ok(!$err->{err}, "undef");
     $err->{err} = "foo";
     is($err->{err}, "foo", "assign to undef");
-}
+};
 
-# circular references
-{
+subtest "circular references" => sub {
     my $q = {};
     $q->{'q'} = $q;
 
@@ -195,10 +192,9 @@ subtest "bad UTF8" => sub {
     };
 
     ok($@ =~ /circular ref/);
-}
+};
 
-# no . in key names
-{
+subtest "no . in key names" => sub {
     eval {
         $c->insert({"x.y" => "foo"});
     };
@@ -228,15 +224,14 @@ subtest "bad UTF8" => sub {
         $c->batch_insert([{"x" => "foo"}, {"foo" => ["x", {"x.y" => "foo"}]}, {"y" => "foo"}]);
     };
     like($@, qr/documents for storage cannot contain/);
-}
+};
 
-# empty key name
-{
+subtest "empty key name" => sub {
     eval {
         $c->insert({"" => "foo"});
     };
     ok($@ =~ /empty key name/);
-}
+};
 
 
 # moose numbers
@@ -247,7 +242,8 @@ has 'age'  => ( is=>'rw', isa=>'Int' );
 has 'size' => ( is=>'rw', isa=>'Num' );
 
 package main;
-{
+
+subtest "Person object" => sub {
     $c->drop;
 
     my $p = Person->new( name=>'jay', age=>22 );
@@ -255,19 +251,17 @@ package main;
 
     my $person = $c->find_one;
     ok(is_float($person->{'age'}));
-}
+};
 
-# warn on floating timezone
-{
+subtest "warn on floating timezone" => sub {
     my $warned = 0;
     local $SIG{__WARN__} = sub { if ($_[0] =~ /floating/) { $warned = 1; } else { warn(@_); } };
     my $date = DateTime->new(year => 2010, time_zone => "floating");
     $c->insert({"date" => $date});
     is($warned, 1, "warn on floating timezone");
-}
+};
 
-# half-conversion to int type
-{
+subtest "half-conversion to int type" => sub {
     $c->drop;
 
     my $var = 'zzz';
@@ -281,10 +275,9 @@ package main;
 
     # make sure it was saved as string
     is($v->{'key'}, 'zzz');
-}
+};
 
-# store a scalar with magic that's both a float and int (PVMG w/pIOK set)
-{
+subtest "store a scalar with magic that's both a float and int (PVMG w/pIOK set)" => sub {
     $c->drop;
 
     # PVMG (NV is 11.5)
@@ -300,10 +293,9 @@ package main;
 
     # make sure it was saved as float
     is(($v->{'key'}), $size);
-}
+};
 
-# make sure _ids aren't double freed
-{
+subtest "make sure _ids aren't double freed" => sub {
     $c->drop;
 
     my $insert1 = ['_id' => 1];
@@ -314,10 +306,9 @@ package main;
 
     $id = $c->insert($insert2, {safe => 1});
     is($id, 2);
-}
+};
 
-# aggressively convert numbers
-{
+subtest "aggressively convert numbers" => sub {
     $MongoDB::BSON::looks_like_number = 1;
 
     $c->drop;
@@ -335,10 +326,9 @@ package main;
     is($c->count({num => {'$gte' => "4.1"}}), 4);
 
     $MongoDB::BSON::looks_like_number = 0;
-}
+};
 
-# MongoDB::BSON::String type
-{
+subtest "MongoDB::BSON::String type" => sub {
     $MongoDB::BSON::looks_like_number = 1;
 
     $c->drop;
@@ -353,10 +343,9 @@ package main;
     is($c->count({num => 1}), 1);
     is($c->count({num => "001"}), 1);
     is($c->count, 2);
-}
+};
 
-# MongoDB::BSON::Binary type
-{
+subtest "MongoDB::BSON::Binary type" => sub {
     $c->drop;
 
     local $MongoDB::BSON::use_binary = 0;
@@ -396,10 +385,9 @@ package main;
         is($arr[$i]->subtype, $bin->{'bindata'}->[$i]->subtype);
         is($arr[$i]->data, $bin->{'bindata'}->[$i]->data);
     }
-}
+};
 
-# Checking hash key unicode support
-{
+subtest "Checking hash key unicode support" => sub {
     use utf8;
     $c->drop;
     
@@ -411,6 +399,6 @@ package main;
     is ( $@, '' );
     my $obj = $c->find_one( { _id => $oid } );
     is ( $obj->{$testkey}, 1 );
-}
+};
 
 done_testing;

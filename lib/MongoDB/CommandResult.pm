@@ -22,6 +22,7 @@ use version;
 our $VERSION = 'v0.704.4.1';
 
 use Moose;
+use MongoDB::Error;
 use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_LastError';
@@ -38,6 +39,18 @@ has result => (
     required => 1,
 );
 
+=attr address
+
+Address ("host:port") of server that ran the command
+
+=cut
+
+has address => (
+    is       => 'ro',
+    isa      => 'HostAddress',
+    required => 1,
+);
+
 =method last_errmsg
 
 Error string (if any) or the empty string if there was no error.
@@ -50,6 +63,18 @@ sub last_errmsg {
         return $self->result->{$err_key} if exists $self->result->{$err_key};
     }
     return "";
+}
+
+sub assert {
+    my ($self) = @_;
+    if ( ! $self->result->{ok} ) {
+        MongoDB::DatabaseError->throw(
+            message => $self->last_errmsg,
+            result  => $self,
+            ( exists( $self->result->{code} ) ? ( code => $self->result->{code} ) : () ),
+        );
+    }
+    return 1;
 }
 
 __PACKAGE__->meta->make_immutable;
