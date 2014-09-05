@@ -23,14 +23,15 @@ use YAML::XS;
 
 use MongoDB;
 
-File::Find::find({wanted => \&wanted, no_chdir => 1}, 't/cluster');
+File::Find::find({wanted => \&wanted, no_chdir => 1}, 't/data/cm-tests');
 
 sub wanted {
 
     if (-f && /^.*\.ya?ml\z/) {
 
-        my $name = path($_)->basename(qr/.ya?ml/);
-        my $plan = YAML::XS::LoadFile($_);
+        my $name = path($_)->relative('t/data/cm-tests');
+        my $plan = eval { YAML::XS::LoadFile($_) };
+        die "$_: $@" if $@;
 
         run_test($name, $plan);
     };
@@ -57,9 +58,11 @@ sub create_mock_cluster {
 
 sub run_test {
 
-    my ($test_name, $plan) = @_;
+    my ($name, $plan) = @_;
 
-    subtest "test_$test_name" => sub {
+    $name =~ s/\.ya?ml$//;
+
+    subtest "$name" => sub {
 
         my $cluster = create_mock_cluster( $plan->{'uri'} );
 
@@ -96,13 +99,14 @@ sub check_outcome {
 
     while (my ($key, $value) = each %expected_servers) {
 
-        ok( (exists $actual_servers{$key}), "$key exists in outcome");
-        my $actual_server = $actual_servers{$key};
+        if ( ok( (exists $actual_servers{$key}), "$key exists in outcome") ) {
+            my $actual_server = $actual_servers{$key};
 
-        is($actual_server->type, $value->{'type'}, 'correct server type');
+            is($actual_server->type, $value->{'type'}, 'correct server type');
 
-        my $expected_set_name = defined $value->{'setName'} ? $value->{'setName'} : "";
-        is($actual_server->set_name, $expected_set_name, 'correct setName for server');
+            my $expected_set_name = defined $value->{'setName'} ? $value->{'setName'} : "";
+            is($actual_server->set_name, $expected_set_name, 'correct setName for server');
+        }
     }
 
     my $expected_set_name = defined $outcome->{'setName'} ? $outcome->{'setName'} : "";

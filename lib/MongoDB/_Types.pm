@@ -72,7 +72,7 @@ subtype
 # IPv4/IPv6 literals
 subtype
   HostAddress => as 'Str',
-  where { $_ =~ /^[^:]+:[0-9]+$/ }, message {
+  where { $_ =~ /^[^:]+:[0-9]+$/ and lc($_) eq $_ }, message {
     "Address '$_' not formatted as 'hostname:port'"
   };
 
@@ -85,7 +85,7 @@ subtype
 coerce ArrayOfHashRef => from 'HashRef'           => via { [$_] };
 coerce DBRefColl      => from 'MongoDBCollection' => via { $_->name };
 coerce DBRefDB        => from 'MongoDBDatabase'   => via { $_->name };
-coerce HostAddress    => from 'Str'               => via { /:/ ? $_ : "$_:27017" };
+coerce HostAddress    => from 'Str'               => via { /:/ ? lc $_ : lc "$_:27017" };
 coerce ReadPrefMode => from 'Str' =>
   via { $_ = lc $_; s/_?preferred/Preferred/; $_ };
 coerce booleanpm => from 'Any' => via { boolean($_) };
@@ -100,7 +100,7 @@ coerce MongoDBQuery => from 'IxHash'   => via { MongoDB::_Query->new( spec => $_
 coerce MongoDBQuery => from 'Undef'    => via { MongoDB::_Query->new( spec => [] ) };
 
 coerce HostAddressList => from 'ArrayRef' => via {
-    [ map { /:/ ? $_ : "$_:27017" } @$_ ]
+    [ map { /:/ ? lc $_ : lc "$_:27017" } @$_ ]
 };
 
 coerce ReadPreference => from 'HashRef' => via { MongoDB::ReadPreference->new($_) };
