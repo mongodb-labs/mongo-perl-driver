@@ -22,9 +22,6 @@ use Config;
 
 BEGIN { plan skip_all => 'requires threads' unless $Config{usethreads} }
 
-# XXX temporary until server selection fully implemented
-plan skip_all => 'thread support currently broken';
-
 use MongoDB;
 use Try::Tiny;
 use threads;
