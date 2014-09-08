@@ -431,11 +431,11 @@ sub _apply_read_prefs {
                 $flags->{slave_ok} = 1;
             }
             else {
-                $query->set_modifier( '$readPreference' => $read_preference );
+                $query->set_modifier( '$readPreference' => $read_preference->for_mongos );
             }
         }
         else {
-            $query->set_modifier( '$readPreference' => $read_preference );
+            $query->set_modifier( '$readPreference' => $read_preference->for_mongos );
         }
     }
     else {

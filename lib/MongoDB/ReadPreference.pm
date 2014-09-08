@@ -60,4 +60,12 @@ sub has_empty_tagsets {
     return @$tagsets == 0 || ( @$tagsets == 1 && !keys %{ $tagsets->[0] } );
 }
 
+sub for_mongos {
+    my ($self) = @_;
+    return {
+        mode => $self->mode,
+        tags => $self->tagsets,
+    };
+}
+
 1;
