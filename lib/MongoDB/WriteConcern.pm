@@ -30,12 +30,14 @@ has w => (
     is        => 'ro',
     isa       => 'Str',
     predicate => '_has_w',
+    default   => 1,
 );
 
 has wtimeout => (
     is        => 'ro',
     isa       => 'Num',
     predicate => '_has_wtimeout',
+    default   => 1000,
 );
 
 has j => (
