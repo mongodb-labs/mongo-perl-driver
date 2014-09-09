@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.705.0.0 2014-09-09 10:04:59-04:00 America/New_York
+
   [Additions]
 
   - PERL-406 allow count() to use hints
