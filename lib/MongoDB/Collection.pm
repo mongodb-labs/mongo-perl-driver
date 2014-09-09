@@ -22,11 +22,14 @@ package MongoDB::Collection;
 use version;
 our $VERSION = 'v0.704.4.1';
 
+use MongoDB::Error;
 use MongoDB::_Query;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
+use Safe::Isa;
 use Scalar::Util qw/blessed reftype/;
+use Syntax::Keyword::Junction qw/any/;
 use Try::Tiny;
 use Moose;
 use namespace::clean -except => 'meta';
@@ -466,20 +469,26 @@ sub ensure_index {
     # method if createIndexes is not available.
     my $tmp_ns = $obj->DELETE( 'ns' );     # ci command takes ns outside of index spec
 
-    my $res = $self->_database->get_collection( '$cmd' )->find_one( Tie::IxHash->new( createIndexes => $self->name, indexes => [ $obj ] ) );
-
-    return $res if $res->{ok};
-
-    # if not ok, no code or code 59 or code 13390 mean "command not available",
-    # per DRIVERS-103 and DRIVERS-132
-    if ( ( not $res->{ok} )  &&
-         ( not exists $res->{code} or $res->{code} == 59 or $res->{code} == 13390) ) {
-        $obj->Unshift( ns => $tmp_ns );     # restore ns to spec
-        my $indexes = $self->_database->get_collection("system.indexes");
-        return $indexes->_legacy_index_insert($obj, $options);
-    } else {
-        die "error creating index: " . $res->{errmsg};
+    my $res = try {
+        $self->_database->run_command( [ createIndexes => $self->name, indexes => [$obj] ] );
     }
+    catch {
+        # code 59 or code 13390 mean "command not available"; no code winds up as "unknown error"
+        # In these cases, fallback to the legacy insert
+        if (   $_->$_isa("MongoDB::DatabaseError")
+            && $_->code == any( UNKNOWN_ERROR(), 59, 13390 ) )
+        {
+            # fall back to legacy index creation
+            $obj->Unshift( ns => $tmp_ns ); # restore ns to spec
+            my $indexes = $self->_database->get_collection("system.indexes");
+            return $indexes->_legacy_index_insert( $obj, $options );
+        }
+        else {
+            die "error creating index: $_";
+        }
+    };
+
+    return $res;
 }
 
 sub save {
