@@ -36,7 +36,6 @@ use constant {
     HAS_THREADS            => $Config{usethreads},
     P_INT32                => $] lt '5.010' ? 'l' : 'l<',
     MAX_BSON_OBJECT_SIZE   => 4_194_304,
-    MAX_MESSAGE_SIZE_BYTES => 48_000_000,
     MAX_WRITE_BATCH_SIZE   => 1000,
 };
 
@@ -115,12 +114,15 @@ sub set_metadata {
     $self->{server}           = $server;
     $self->{min_wire_version} = $server->is_master->{minWireVersion} || "0";
     $self->{max_wire_version} = $server->is_master->{maxWireVersion} || "0";
-    $self->{max_message_size_bytes} =
-      $server->is_master->{maxMessageSizeBytes} || MAX_MESSAGE_SIZE_BYTES;
     $self->{max_bson_object_size} =
       $server->is_master->{maxBsonObjectSize} || MAX_BSON_OBJECT_SIZE;
     $self->{max_write_batch_size} =
       $server->is_master->{maxWriteBatchSize} || MAX_WRITE_BATCH_SIZE;
+
+    # Default is 2 * max BSON object size (DRIVERS-1)
+    $self->{max_message_size_bytes} =
+      $server->is_master->{maxMessageSizeBytes} || 2 * $self->{max_bson_object_size};
+
     return;
 }
 
@@ -197,8 +199,8 @@ sub write {
     my $len = length $buf;
     my $off = 0;
 
-    if ( exists $self->{max_message_size} && $len > $self->{max_message_size} ) {
-        Carp::confess(qq/Message of size $len exceeds maximum of / . $self->{max_message_size});
+    if ( exists $self->{max_message_size_bytes} && $len > $self->{max_message_size_bytes} ) {
+        Carp::confess(qq/Message of size $len exceeds maximum of / . $self->{max_message_size_bytes});
     }
 
     local $SIG{PIPE} = 'IGNORE';
