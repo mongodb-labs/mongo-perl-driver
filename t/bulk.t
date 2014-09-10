@@ -36,7 +36,11 @@ my $coll = $testdb->get_collection("test_collection");
 
 my $ismaster      = $testdb->run_command( { ismaster     => 1 } );
 my $server_status = $testdb->run_command( { serverStatus => 1 } );
-my $is_standalone = $conn->cluster_type eq 'Single';
+
+# Standalone in "--master" mode will have serverStatus.repl, but ordinary
+# standalone won't
+my $is_standalone = $conn->cluster_type eq 'Single' && ! exists $server_status->{repl};
+
 my $server_does_bulk = server_version($conn) >= v2.5.5;
 
 subtest "constructors" => sub {
