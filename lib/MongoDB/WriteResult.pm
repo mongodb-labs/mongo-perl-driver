@@ -159,14 +159,13 @@ returns 1.
 
 sub assert_no_write_error {
     my ($self) = @_;
-    if ( my $write_errors = $self->count_writeErrors ) {
+    if ( $self->count_writeErrors ) {
         MongoDB::WriteError->throw(
             message => $self->last_errmsg,
             result  => $self,
             code => $self->writeErrors->[0]{code} || UNKNOWN_ERROR,
         );
     }
-
     return 1;
 }
 
@@ -179,14 +178,14 @@ returns 1.
 
 sub assert_no_write_concern_error {
     my ($self) = @_;
-    if ( my $write_concern_errors = $self->count_writeConcernErrors ) {
+    if ( $self->count_writeConcernErrors ) {
         MongoDB::WriteConcernError->throw(
             message => $self->last_errmsg,
             result  => $self,
             code    => WRITE_CONCERN_ERROR,
         );
     }
-    return;
+    return 1;
 }
 
 =method count_writeErrors
