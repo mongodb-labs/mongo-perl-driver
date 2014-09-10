@@ -185,7 +185,7 @@ has is_writable => (
     builder => "_build_is_writable",
 );
 
-# any of these can take writes. Clusters will screen inapprpriate
+# any of these can take writes. Clusters will screen inappropriate
 # ones out. E.g. "Standalone" won't be found in a replica set cluster.
 sub _build_is_writable {
     my ($self) = @_;
