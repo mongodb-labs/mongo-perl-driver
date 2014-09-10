@@ -22,6 +22,7 @@ use version;
 our $VERSION = 'v0.704.4.1';
 
 use Moose;
+use MongoDB::Error;
 use MongoDB::_Types;
 use Scalar::Util qw/looks_like_number/;
 use namespace::clean -except => 'meta';
@@ -73,6 +74,14 @@ sub _build_as_struct {
         ( $self->_has_wtimeout ? ( wtimeout => $self->wtimeout ) : () ),
         ( $self->_has_j        ? ( j        => $self->j )        : () ),
     };
+}
+
+sub BUILD {
+    my ($self) = @_;
+    if ( ! $self->_w_is_safe && $self->j ) {
+        MongoDB::Error->throw("can't use write concern w=0 with j=" . $self->j );
+    }
+    return;
 }
 
 sub _w_is_safe {
