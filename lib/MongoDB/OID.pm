@@ -51,7 +51,7 @@ constructor.  For example:
     my $id3 = MongoDB::OID->new($id1->value);
     my $id4 = MongoDB::OID->new($id1);
 
-Now C<$id1>, C<$id2>, $<$id3> and C<$id4> will have the same value.
+Now C<$id1>, C<$id2>, C<$id3> and C<$id4> will have the same value.
 
 OID generation is thread safe.
 
