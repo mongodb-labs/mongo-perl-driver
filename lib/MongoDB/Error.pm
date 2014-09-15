@@ -56,7 +56,7 @@ use overload
 
 has message => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => 'ErrorStr',
     default => 'unspecified error',
 );
 

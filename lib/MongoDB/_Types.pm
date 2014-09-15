@@ -68,6 +68,9 @@ subtype
   where { $_ =~ /^$uri_re$/ },
   message { "Could not parse URI '$_'" };
 
+# Error string has to be a true value
+subtype ErrorStr => as 'Str' => where { $_ };
+
 # XXX loose address validation for now.  Host part should really be hostname or
 # IPv4/IPv6 literals
 subtype
@@ -108,6 +111,8 @@ coerce ReadPreference => from 'Str' =>
   via { MongoDB::ReadPreference->new( mode => $_ ) };
 coerce ReadPreference => from 'ArrayRef' =>
   via { MongoDB::ReadPreference->new( mode => $_->[0], tagsets => $_->[1] ) };
+
+coerce ErrorStr => from 'Str' => via { $_ || "unspecified error" };
 
 no Moose::Util::TypeConstraints;
 
