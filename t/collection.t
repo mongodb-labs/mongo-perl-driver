@@ -240,7 +240,7 @@ my $tied;
         if ( $server_version >= v2.6.0 ) {
             ok $res->{ok};
         } else {
-            ok(!defined $res);
+            ok($res);
         }
     }
 
