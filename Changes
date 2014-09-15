@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [*** Deprecations ***]
+
+  - PERL-425 the 'drop_dups' indexing option is deprecated because it is
+    ignored as of server version 2.7.5
+
 v0.705.0.0 2014-09-09 10:04:59-04:00 America/New_York
 
   [Additions]

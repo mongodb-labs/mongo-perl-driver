@@ -56,12 +56,16 @@ options.  Available options are:
 By default, indexes are not unique. To create a unique index, pass 
 C<< unique =E<gt> true >>.  C<true> can be L<boolean::true> or any other true value.
 
-=item C<< drop_dups => boolean >>
+=item C<< drop_dups => boolean >> (B<DEPRECATED>)
 
 If a unique index is being created on an existing set of data that has duplicate
 values, creating the index will fail.  To force the index creation by deleting 
 duplicate values, use this option.  Again, any value that evaluates to true will
 work.
+
+B<Warning>: this option is no longer supported MongoDB starting with server
+version 2.7.5.  This option is silently ignored by the server and unique
+index builds will fail if there are duplicate keys.
 
 =item C<safe =E<gt> boolean>
 
