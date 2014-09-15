@@ -233,12 +233,15 @@ my $tied;
         "got expected error creating unique index with dups"
     );
 
-    my $res = $coll->ensure_index({foo => 1}, {unique => 1, drop_dups => 1});
+    # prior to 2.7.5, drop_dups was respected
+    if ( $server_version < v2.7.5 ) {
+        my $res = $coll->ensure_index({foo => 1}, {unique => 1, drop_dups => 1});
 
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    } else {
-        ok($res);
+        if ( $server_version >= v2.6.0 ) {
+            ok $res->{ok};
+        } else {
+            ok(!defined $res);
+        }
     }
 
     $coll->drop;
