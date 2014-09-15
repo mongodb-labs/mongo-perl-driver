@@ -934,7 +934,7 @@ sub _check_parallel_results {
     local $Test::Builder::Level = $Test::Builder::Level+1;
 
     my %seen;
-    my $count;
+    my $count = 0;
     for my $i (0 .. $#cursors ) {
         my @chunk = $cursors[$i]->all;
         if ( $num_docs ) {
