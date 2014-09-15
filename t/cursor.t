@@ -191,15 +191,27 @@ $testdb->drop;
 # explain
 {
     my $exp = $cursor->explain;
-    is($exp->{'n'}, 5001, 'explain');
-    is($exp->{'cursor'}, 'BasicCursor');
 
-    $cursor->reset;
-    $exp = $cursor->limit(20)->explain;
-    is(20, $exp->{'n'}, 'explain limit');
-    $cursor->reset;
-    $exp = $cursor->limit(-20)->explain;
-    is(20, $exp->{'n'});
+    if ( $server_version >= v2.7.3 ) {
+        is ($exp->{executionStats}{nReturned}, 5001, "count of items" );
+        $cursor->reset;
+        $exp = $cursor->limit(20)->explain;
+        is ($exp->{executionStats}{nReturned}, 20, "explain with limit" );
+        $cursor->reset;
+        $exp = $cursor->limit(-20)->explain;
+        is ($exp->{executionStats}{nReturned}, 20, "explain with negative limit" );
+    }
+    else {
+        is($exp->{'n'}, 5001, 'explain');
+        is($exp->{'cursor'}, 'BasicCursor');
+
+        $cursor->reset;
+        $exp = $cursor->limit(20)->explain;
+        is(20, $exp->{'n'}, 'explain limit');
+        $cursor->reset;
+        $exp = $cursor->limit(-20)->explain;
+        is(20, $exp->{'n'});
+    }
 }
 
 # hint
