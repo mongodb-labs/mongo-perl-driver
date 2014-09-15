@@ -24,7 +24,8 @@ is( $obj->max_message_size_bytes, 2*4*1024*1024, "default max message size" );
 
 {
     # monkeypatch to let length check fire
-    no warnings 'redefine';
+    no warnings 'redefine', 'once';
+
     local *MongoDB::_Link::assert_valid_connection = sub { 1 };
     like(
         exception { $obj->write( "a" x ($obj->max_message_size_bytes + 1) ) },
