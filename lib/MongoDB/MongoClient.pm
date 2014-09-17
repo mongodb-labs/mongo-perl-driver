@@ -100,7 +100,7 @@ has query_timeout => (
 
 has ssl => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => 'Bool|HashRef',
     default => 0,
 );
 
@@ -254,6 +254,10 @@ sub _build__cluster {
         server_selection_timeout_ms => $self->server_selection_timeout_ms,
         max_wire_version            => $self->_max_wire_version,
         min_wire_version            => $self->_min_wire_version,
+        link_options                => {
+            with_ssl   => !!$self->ssl,
+            ( ref( $self->ssl ) eq 'HASH' ? ( SSL_options => $self->ssl ) : () ),
+        },
     );
 }
 
@@ -1092,23 +1096,37 @@ in the C<passives> field, and arbiters are in the C<arbiters> field.
 
 =attr ssl
 
+    ssl => 1
+    ssl => \%ssl_options
+
 This tells the driver that you are connecting to an SSL mongodb instance.
 
-This option will be ignored if the driver was not compiled with the SSL flag. You must
-also be using a database server that supports SSL.
+You must have L<IO::Socket::SSL> 1.42+ and L<Net::SSLeay> 1.49+ installed for
+SSL support.
 
-The driver must be built as follows for SSL support:
+The C<ssl> attribute takes either a boolean value or a hash reference of
+options to pass to IO::Socket::SSL.  For example, to set a CA file to validate
+the server certificate and set a client certificate for the server to validate,
+you could set the attribute like this:
 
-    perl Makefile.PL --ssl
-    make
-    make install
+    ssl => {
+        SSL_ca_file   => "/path/to/ca.pem",
+        SSL_cert_file => "/path/to/client.pem",
+    }
 
-Alternatively, you can set the C<PERL_MONGODB_WITH_SSL> environment variable before
-installing:
+If C<SSL_ca_file> is not provided, server certificates are verified against a
+default list of CAs, either L<Mozilla::CA> or an operating-system-specific
+default CA file.  To disable verification, you can use
+C<< SSL_verify_mode => 0x00 >>.
 
-    PERL_MONGODB_WITH_SSL=1 cpan MongoDB
+B<You are strongly encouraged to use your own CA file for increased security>.
 
-The C<libcrypto> and C<libssl> libraries are required for SSL support.
+Server hostnames are also validated against the CN name in the server
+certificate using C<< SSL_verifycn_scheme => 'default' >>.  You can use the
+scheme 'none' to disable this check.
+
+B<Disabling certificate or hostname verification is a security risk and is not
+recommended>.
 
 =attr sasl
 

@@ -61,7 +61,6 @@ sub new {
         address            => "$host:$port",
         timeout            => 60,
         with_ssl           => 0,
-        verify_SSL         => 0,
         SSL_options        => {},
         ( $args ? (%$args) : () ),
     }, $class;
@@ -370,18 +369,12 @@ sub _ssl_args {
         $ssl_args{SSL_hostname} = $host, # Sane SNI support
     }
 
-    if ( $self->{verify_SSL} ) {
-        $ssl_args{SSL_verifycn_scheme} = 'default';           # enable CN validation
-        $ssl_args{SSL_verifycn_name}   = $host;               # set validation hostname
-        $ssl_args{SSL_verify_mode}     = 0x01;                # enable cert validation
-        $ssl_args{SSL_ca_file}         = $self->_find_CA_file;
-    }
-    else {
-        $ssl_args{SSL_verifycn_scheme} = 'none';              # disable CN validation
-        $ssl_args{SSL_verify_mode}     = 0x00;                # disable cert validation
-    }
+    $ssl_args{SSL_verifycn_scheme} = 'default';           # enable CN validation
+    $ssl_args{SSL_verifycn_name}   = $host;               # set validation hostname
+    $ssl_args{SSL_verify_mode}     = 0x01;                # enable cert validation
+    $ssl_args{SSL_ca_file}         = $self->_find_CA_file;
 
-    # user options override settings from verify_SSL
+    # user options override default settings
     for my $k ( keys %{ $self->{SSL_options} } ) {
         $ssl_args{$k} = $self->{SSL_options}{$k} if $k =~ m/^SSL_/;
     }
