@@ -38,6 +38,8 @@ sub connection_uri_re {
 
 my $uri_re = MongoDB::_Types::connection_uri_re();
 
+enum 'AuthMechanism', [qw/NONE MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1/];
+
 enum 'ClusterType',
   [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Unknown/];
 
@@ -62,14 +64,16 @@ subtype ArrayOfHashRef => as 'ArrayRef[HashRef]';
 
 subtype DBRefColl => as 'Str';
 subtype DBRefDB   => as 'Str';
-subtype SASLMech  => as 'Str', where { /^GSSAPI|PLAIN$/ };
 subtype
   ConnectionStr => as 'Str',
   where { $_ =~ /^$uri_re$/ },
   message { "Could not parse URI '$_'" };
 
+subtype NonEmptyStr => as 'Str' => where { defined $_ && length $_ };
+
 # Error string has to be a true value
 subtype ErrorStr => as 'Str' => where { $_ };
+
 
 # XXX loose address validation for now.  Host part should really be hostname or
 # IPv4/IPv6 literals

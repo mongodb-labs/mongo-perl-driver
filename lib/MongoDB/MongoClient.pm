@@ -30,6 +30,7 @@ use MongoDB::Error;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
 use MongoDB::_Cluster;
+use MongoDB::_Credential;
 use MongoDB::_URI;
 use Digest::MD5;
 use Tie::IxHash;
@@ -71,12 +72,6 @@ has port => (
     is      => 'ro',
     isa     => 'Int',
     default => 27017,
-);
-
-has db_name => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => 'admin',
 );
 
 has connect_type => (
@@ -138,24 +133,53 @@ has server_selection_timeout_ms => (
 # authentication attributes
 
 has username => (
-    is  => 'rw',
-    isa => 'Str',
+    is      => 'rw',
+    isa     => 'Str',
+    lazy    => 1,
+    builder => '_build_username',
 );
 
 has password => (
-    is  => 'rw',
-    isa => 'Str',
+    is      => 'rw',
+    isa     => 'Str',
+    lazy    => 1,
+    builder => '_build_password',
 );
 
+has db_name => (
+    is      => 'rw',
+    isa     => 'Str',
+    lazy    => 1,
+    builder => '_build_db_name',
+);
+
+has auth_mechanism => (
+    is      => 'ro',
+    isa     => 'AuthMechanism',
+    lazy    => 1,
+    builder => '_build_auth_mechanism',
+    writer  => '_set_auth_mechanism',
+);
+
+has auth_mechanism_properties => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    lazy    => 1,
+    builder => '_build_auth_mechanism_properties',
+    writer  => '_set_auth_mechanism_properties',
+);
+
+# XXX deprecate this
 has sasl => (
     is      => 'ro',
     isa     => 'Bool',
     default => 0
 );
 
+# XXX deprecate this
 has sasl_mechanism => (
     is      => 'ro',
-    isa     => 'SASLMech',
+    isa     => 'AuthMechanism',
     default => 'GSSAPI',
 );
 
@@ -209,6 +233,14 @@ has _cluster => (
     isa        => 'MongoDB::_Cluster',
     lazy_build => 1,
     handles    => { cluster_type => 'type' },
+    clearer    => '_clear__cluster',
+);
+
+has _credential => (
+    is         => 'ro',
+    isa        => 'MongoDB::_Credential',
+    lazy_build => 1,
+    writer     => '_set__credential',
 );
 
 has _min_wire_version => (
@@ -240,6 +272,31 @@ has _write_concern => (
 # builders
 #--------------------------------------------------------------------------#
 
+sub _build_auth_mechanism {
+    my ($self) = @_;
+    # XXX very dumb for now; try to support legacy attributes and impute
+    # mechanism. Eventually, have to support getting this from URI options
+
+    if ( $self->sasl ) {
+        # XXX support deprecated legacy experimental API
+        return $self->sasl_mechanism;
+    }
+    elsif ( $self->username ) {
+        # XXX assuming mechanism isn't set explicitly or via URI, then
+        # having a username means CR
+        return 'MONGODB-CR';
+    }
+    else {
+        return 'NONE';
+    }
+}
+
+sub _build_auth_mechanism_properties {
+    my ($self) = @_;
+    # XXX eventually, parse/merge(?) from URI options
+    return {};
+}
+
 sub _build__cluster {
     my ($self) = @_;
 
@@ -254,6 +311,7 @@ sub _build__cluster {
         server_selection_timeout_ms => $self->server_selection_timeout_ms,
         max_wire_version            => $self->_max_wire_version,
         min_wire_version            => $self->_min_wire_version,
+        credential                  => $self->_credential,
         link_options                => {
             with_ssl   => !!$self->ssl,
             ( ref( $self->ssl ) eq 'HASH' ? ( SSL_options => $self->ssl ) : () ),
@@ -265,6 +323,34 @@ sub _build_connect_type {
     my ($self) = @_;
     return
       exists $self->_uri->options->{connect} ? $self->_uri->options->{connect} : 'none';
+}
+
+sub _build_db_name {
+    my ($self) = @_;
+    return $self->_uri->db_name;
+}
+
+sub _build_password {
+    my ($self) = @_;
+    return $self->_uri->password;
+}
+
+sub _build_username {
+    my ($self) = @_;
+    return $self->_uri->username;
+}
+
+sub _build__credential {
+    my ($self) = @_;
+    my $mechanism = $self->auth_mechanism;
+    my $cred = MongoDB::_Credential->new(
+        mechanism            => $mechanism,
+        mechanism_properties => $self->auth_mechanism_properties,
+        ( $self->username ? ( username => $self->username ) : () ),
+        ( $self->password ? ( password => $self->password ) : () ),
+        ( $self->db_name  ? ( source   => $self->db_name )  : () ),
+    );
+    return $cred;
 }
 
 sub _build__uri {
@@ -284,7 +370,6 @@ sub BUILD {
     my ($self, $opts) = @_;
 
     my $uri = $self->_uri;
-    $self->db_name( $uri->db_name ) if $uri->db_name;
 
     my @addresses = @{ $uri->hostpairs };
     if ( $self->connect_type eq 'direct' && @addresses > 1 ) {
@@ -717,34 +802,53 @@ sub _check_no_dollar_keys {
 # authentication methods
 #--------------------------------------------------------------------------#
 
+=method authenticate (DEPRECATED)
+
+    $client->authenticate($dbname, $username, $password, $is_digest);
+
+This legacy method is deprecated but kept for backwards compatibility.
+Authentication credentials should be provided as constructor arguments are as
+part of the connection URI.
+
+When C<authenticate> is called, it disconnects the client (if any connections
+had been made), sets client attributes as if MONGODB-CR authentication had been
+used initially in the client constructor, and reconnects to the configured
+servers.
+
+Passwords are expected to be cleartext and will be automatically hashed before
+sending over the wire, unless C<$is_digest> is true, which will assume you
+already did the proper hashing yourself.
+
+See also the L</AUTHENTICATION> section.
+
+=cut
+
 sub authenticate {
-    my ($self, $dbname, $username, $password, $is_digest) = @_;
-    my $hash = $password;
+    my ( $self, $db_name, $username, $password, $is_digest ) = @_;
 
-    # create a hash if the password isn't yet encrypted
-    if (!$is_digest) {
-        $hash = Digest::MD5::md5_hex("${username}:mongo:${password}");
-    }
+    # set client properties
+    $self->_set_auth_mechanism('MONGODB-CR');
+    $self->_set_auth_mechanism_properties( {} );
+    $self->db_name($db_name);
+    $self->username($username);
+    $self->password($password);
 
-    # get the nonce
-    my $db = $self->get_database($dbname);
-    my $result = eval { $db->_try_run_command({getnonce => 1}) };
-    if (!$result) {
-        return $@
-    }
+    my $cred = MongoDB::_Credential->new(
+        mechanism            => $self->auth_mechanism,
+        mechanism_properties => $self->auth_mechanism_properties,
+        username             => $self->username,
+        password             => $self->password,
+        source               => $self->db_name,
+        pw_is_digest         => $is_digest,
+    );
+    $self->_set__credential($cred);
 
-    my $nonce = $result->{'nonce'};
-    my $digest = Digest::MD5::md5_hex($nonce.$username.$hash);
+    # ensure that we've authenticated by clearing the cluster and trying a
+    # command that opens a socket
+    $self->_clear__cluster;
+    $self->send_admin_command( { ismaster => 1 } );
 
-    # run the login command
-    my $login = tie(my %hash, 'Tie::IxHash');
-    %hash = (authenticate => 1,
-             user => $username,
-             nonce => $nonce,
-             key => $digest);
-    $result = $db->run_command($login);
-
-    return $result;
+    return 1;
 }
 
 sub _sasl_check {
@@ -906,7 +1010,7 @@ See the L</"host"> section for more options for connecting to MongoDB.
 MongoDB can be started in I<authentication mode>, which requires clients to log in
 before manipulating data.  By default, MongoDB does not start in this mode, so no
 username or password is required to make a fully functional connection.  If you
-would like to learn more about authentication, see the C<authenticate> method.
+would like to learn more about authentication, see the L</AUTHENTICATE> section.
 
 Connecting is relatively expensive, so try not to open superfluous connections.
 
@@ -914,6 +1018,13 @@ There is no way to explicitly disconnect from the database.  However, the
 connection will automatically be closed and cleaned up when no references to
 the C<MongoDB::MongoClient> object exist, which occurs when C<$client> goes out of
 scope (or earlier if you undefine it with C<undef>).
+
+=head1 AUTHENTICATION
+
+TBD
+
+See also the core documentation on authentication:
+L<http://docs.mongodb.org/manual/core/access-control/>.
 
 =head1 MULTITHREADING
 
@@ -1219,18 +1330,6 @@ Lists all databases on the MongoDB server.
     my $database = $client->get_database('foo');
 
 Returns a L<MongoDB::Database> instance for the database with the given C<$name>.
-
-=method authenticate ($dbname, $username, $password, $is_digest?)
-
-    $client->authenticate('foo', 'username', 'secret');
-
-Attempts to authenticate for use of the C<$dbname> database with C<$username>
-and C<$password>. Passwords are expected to be cleartext and will be
-automatically hashed before sending over the wire, unless C<$is_digest> is
-true, which will assume you already did the hashing on yourself.
-
-See also the core documentation on authentication:
-L<http://docs.mongodb.org/manual/core/access-control/>.
 
 
 =method send($str)

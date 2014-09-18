@@ -22,6 +22,7 @@ use Path::Tiny;
 use YAML::XS;
 
 use MongoDB;
+use MongoDB::_Credential;
 
 File::Find::find({wanted => \&wanted, no_chdir => 1}, 't/data/cm-tests');
 
@@ -53,6 +54,7 @@ sub create_mock_cluster {
         type => $type,
         max_wire_version => 2,
         min_wire_version => 0,
+        credential => MongoDB::_Credential->new( mechanism => 'NONE' ),
     );
 }
 

@@ -24,25 +24,54 @@ use boolean;
 
 use MongoDB;
 
-# REQUIRES DRIVER COMPILED WITH SASL SUPPORT
+# REQUIRES DRIVER WITH SASL SUPPORT
 #
 # See also https://wiki.mongodb.com/display/DH/Testing+Kerberos
 #
 # Set host, username, password in ENV vars: MONGOD, MONGOUSER, MONGOPASS
 
-my $mc = MongoDB::MongoClient->new(
-    host     => $ENV{MONGOD},
-    username => $ENV{MONGOUSER},
-    password => $ENV{MONGOPASS},
-    sasl     => 1,
-    sasl_mechanism => 'PLAIN',
-);
+subtest "no authentication" => sub {
+    my $conn   = MongoDB::MongoClient->new(
+        host => $ENV{MONGOD},
+        dt_type => undef,
+    );
+    my $testdb = $conn->get_database("ldap");
+    my $coll   = $testdb->get_collection("test");
 
-ok( $mc, "authentication succeeded" );
-is(
-    exception { $mc->get_database("test")->_try_run_command([ismaster => 1]) },
-    undef,
-    "ismaster succeeded"
-);
+    like(
+        exception { $coll->count },
+        qr/not authorized/,
+        "can't read collection when not authenticated"
+    );
+};
+
+subtest "with authentication" => sub {
+    my $conn   = MongoDB::MongoClient->new(
+        host => $ENV{MONGOD},
+        username => $ENV{MONGOUSER},
+        password => $ENV{MONGOPASS},
+        auth_mechanism => 'PLAIN',
+        dt_type => undef,
+    );
+    my $testdb = $conn->get_database("ldap");
+    my $coll   = $testdb->get_collection("test");
+
+    is( exception { $coll->count }, undef, "no exception reading from new client" );
+};
+
+subtest "with legacy sasl attributes" => sub {
+    my $conn   = MongoDB::MongoClient->new(
+        host => $ENV{MONGOD},
+        username => $ENV{MONGOUSER},
+        password => $ENV{MONGOPASS},
+        sasl     => 1,
+        sasl_mechanism => 'PLAIN',
+        dt_type => undef,
+    );
+    my $testdb = $conn->get_database("ldap");
+    my $coll   = $testdb->get_collection("test");
+
+    is( exception { $coll->count }, undef, "no exception reading from new client" );
+};
 
 done_testing;

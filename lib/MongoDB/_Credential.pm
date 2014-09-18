@@ -76,22 +76,31 @@ sub _build_source {
 #<<< No perltidy
 my %CONSTRAINTS = (
     'MONGODB-CR' => {
+        username             => sub { length },
         password             => sub { length },
+        source               => sub { length },
         mechanism_properties => sub { !keys %$_ },
     },
     'MONGODB-X509' => {
-        password             => sub { length },
+        username             => sub { length },
+        password             => sub { ! length },
         source               => sub { $_ eq '$external' },
         mechanism_properties => sub { !keys %$_ },
     },
     'GSSAPI'      => {
+        username             => sub { length },
         source               => sub { $_ eq '$external' },
     },
     'PLAIN'       => {
+        username             => sub { length },
+        password             => sub { length },
         source               => sub { $_ eq '$external' },
+        mechanism_properties => sub { !keys %$_ },
     },
     'SCRAM-SHA-1' => {
-        source               => sub { $_ eq '$external' },
+        username             => sub { length },
+        password             => sub { length },
+        source               => sub { length },
         mechanism_properties => sub { !keys %$_ },
     },
 );
