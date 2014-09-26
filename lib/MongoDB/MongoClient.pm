@@ -239,7 +239,8 @@ has _cluster => (
 has _credential => (
     is         => 'ro',
     isa        => 'MongoDB::_Credential',
-    lazy_build => 1,
+    builder    => '_build__credential',
+    lazy       => 1,
     writer     => '_set__credential',
 );
 
@@ -849,61 +850,6 @@ sub authenticate {
     $self->send_admin_command( { ismaster => 1 } );
 
     return 1;
-}
-
-sub _sasl_check {
-    my ( $self, $res ) = @_;
-
-    die "Invalid SASL response document from server:"
-        unless reftype $res eq reftype { };
-
-    if ( $res->{ok} != 1 ) {
-        die "SASL authentication error: $res->{errmsg}";
-    }
-
-    return $res->{conversationId};
-}
-
-sub _sasl_continue {
-    my ( $self, $payload, $conv_id ) = @_;
-
-    # warn "SASL continue, payload = [$payload], conv ID = [$conv_id]";
-
-    my $res = $self->get_database( '$external' )->run_command( [
-        saslContinue     => 1,
-        conversationId   => $conv_id,
-        payload          => $payload
-    ] );
-
-    $self->_sasl_check( $res );
-    return $res;
-}
-
-sub _sasl_plain_authenticate {
-    my ( $self ) = @_;
-
-    my $username = defined $self->username ? $self->username : "";
-    my $password = defined $self->password ? $self->password : "";
-
-    my $auth_bytes = encode( "UTF-8", "\x00" . $username . "\x00" . $password );
-    my $payload = MongoDB::BSON::Binary->new( data => $auth_bytes );
-
-    $self->_sasl_start( $payload, "PLAIN" );
-}
-
-sub _sasl_start {
-    my ( $self, $payload, $mechanism ) = @_;
-
-    # warn "SASL start, payload = [$payload], mechanism = [$mechanism]\n";
-
-    my $res = $self->get_database( '$external' )->run_command( [
-        saslStart     => 1,
-        mechanism     => $mechanism,
-        payload       => $payload,
-        autoAuthorize => 1 ] );
-
-    $self->_sasl_check( $res );
-    return $res;
 }
 
 #--------------------------------------------------------------------------#

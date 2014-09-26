@@ -413,10 +413,10 @@ sub _has_no_primaries {
 sub _initialize_link {
     my ( $self, $address ) = @_;
 
-    my $link;
-    try {
-        $link = MongoDB::_Link->new( $address, $self->link_options )->connect;
-        $self->credential->authenticate( $link );
+    my $link = try {
+        my $inner = MongoDB::_Link->new( $address, $self->link_options )->connect;
+        $self->credential->authenticate( $inner );
+        return $inner;
     };
 
     if ( $link ) {

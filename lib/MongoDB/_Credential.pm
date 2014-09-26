@@ -26,8 +26,10 @@ use MongoDB::_Types;
 
 use Digest::MD5 qw/md5_hex/;
 use Encode qw/encode/;
+use MIME::Base64 qw/encode_base64 decode_base64/;
 use Syntax::Keyword::Junction 'any';
 use Tie::IxHash;
+use Try::Tiny;
 use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_Client';
@@ -138,6 +140,10 @@ sub authenticate {
     return $self->$method($link);
 }
 
+#--------------------------------------------------------------------------#
+# authentication mechanisms
+#--------------------------------------------------------------------------#
+
 sub _authenticate_NONE () { 1 }
 
 sub _authenticate_MONGODB_CR {
@@ -181,15 +187,50 @@ sub _authenticate_PLAIN {
 
     my $auth_bytes =
       encode( "UTF-8", "\x00" . $self->username . "\x00" . $self->password );
-    my $payload = MongoDB::BSON::Binary->new( data => $auth_bytes );
-    $self->_sasl_start( $link, $payload );
+    $self->_sasl_start( $link, $auth_bytes );
 
     return 1;
 }
 
 sub _authenticate_GSSAPI {
-    my ($self) = @_;
-    die "unimplemented";
+    my ( $self, $link ) = @_;
+
+    eval { require Authen::SASL; 1 }
+      or MongoDB::Error->throw(
+        "GSSAPI requires Authen::SASL and GSSAPI or Authen::SASL::XS from CPAN");
+
+    my ( $sasl, $client );
+    try {
+        $sasl = Authen::SASL->new(
+            mechanism => 'GSSAPI',
+            callback  => {
+                user     => $self->username,
+                authname => $self->username,
+            },
+        );
+        $client = $sasl->client_new( 'mongodb', $link->{host} );
+    }
+    catch {
+        MongoDB::Error->throw(
+            "Failed to initialize a GSSAPI backend (did you install GSSAPI or Authen::SASL::XS?) Error was: $_"
+        );
+    };
+
+    # start conversation
+    my $step = $client->client_start;
+    $self->_assert_gssapi( $client,
+        "Could not start GSSAPI. Did you run kinit?  Error was: " );
+    my ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $step );
+
+    # iterate, but with maximum number of exchanges to prevent endless loop
+    for my $i ( 1 .. 10 ) {
+        last if $done;
+        $step = $client->client_step($sasl_resp);
+        $self->_assert_gssapi( $client, "GSSAPI step error: " );
+        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $step, $conv_id );
+    }
+
+    return 1;
 }
 
 sub _authenticate_SCRAM_SHA_1 {
@@ -197,17 +238,62 @@ sub _authenticate_SCRAM_SHA_1 {
     die "unimplemented";
 }
 
+#--------------------------------------------------------------------------#
+# GSSAPI/SASL methods
+#--------------------------------------------------------------------------#
+
+# GSSAPI backends report status/errors differently
+sub _assert_gssapi {
+    my ( $self, $client, $prefix ) = @_;
+    my $type = ref $client;
+
+    if ( $type =~ m{^Authen::SASL::(?:XS|Cyrus)$} ) {
+        my $code = $client->code;
+        if ( $code != 0 && $code != 1 ) { # not OK or CONTINUE
+            my $error = join( "; ", $client->error );
+            MongoDB::Error->throw("$prefix$error");
+        }
+    }
+    else {
+        # Authen::SASL::Perl::GSSAPI or some unknown backend
+        if ( my $error = $client->error ) {
+            MongoDB::Error->throw("$prefix$error");
+        }
+    }
+
+    return 1;
+}
+
 sub _sasl_start {
     my ( $self, $link, $payload ) = @_;
 
     my $command = Tie::IxHash->new(
-        saslStart     => 1,
-        mechanism     => $self->mechanism,
-        payload       => $payload,
-        autoAuthorize => 1,
+        saslStart => 1,
+        mechanism => $self->mechanism,
+        payload   => $payload ? encode_base64( $payload, "" ) : "",
     );
 
-    return $self->_send_command( $link, $self->source, $command )->result;
+    return $self->_sasl_send( $link, $command );
+}
+
+sub _sasl_continue {
+    my ( $self, $link, $payload, $conv_id ) = @_;
+
+    my $command = Tie::IxHash->new(
+        saslContinue   => 1,
+        conversationId => $conv_id,
+        payload        => $payload ? encode_base64( $payload, "" ) : "",
+    );
+
+    return $self->_sasl_send( $link, $command );
+}
+
+sub _sasl_send {
+    my ( $self, $link, $command ) = @_;
+    my $result = $self->_send_command( $link, $self->source, $command )->result;
+
+    my $sasl_resp = $result->{payload} ? decode_base64( $result->{payload} ) : "";
+    return ( $sasl_resp, $result->{conversationId}, $result->{done} );
 }
 
 1;
