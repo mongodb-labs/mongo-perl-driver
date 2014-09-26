@@ -36,6 +36,25 @@ my $coll = $testdb->get_collection("test_coll");
 my @modes = map { MongoDB::MongoClient->$_ }
   qw( PRIMARY SECONDARY PRIMARY_PREFERRED SECONDARY_PREFERRED NEAREST );
 
+subtest "read preference connection string" => sub {
+
+    $ENV{MONGOD} ||= "mongodb://localhost/";
+    $ENV{MONGOD} =~ s{/?$}{/};
+    my $conn2 = build_client(
+        host =>
+          "$ENV{MONGOD}?readPreference=primaryPreferred&readPreferenceTags=dc:ny,rack:1&readPreferenceTags=dc:ny&readPreferenceTags=",
+        auto_connect => 0
+    );
+    my $rp = $conn2->_read_preference;
+    is( $rp->mode, 'primaryPreferred', "mode from" );
+    is_deeply(
+        $rp->tagsets,
+        [ { dc => 'ny', rack => 1 }, { dc => 'ny'}, {} ],
+        "tag set list"
+    );
+
+};
+
 subtest "insert and query" => sub {
     for my $m ( @modes ) {
         is(

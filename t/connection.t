@@ -149,8 +149,8 @@ subtest "options" => sub {
 
         like(
             exception { MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl=", auto_connect => 0}) },
-            qr/expected key value pair/,
-            'key should have value'
+            qr/expected boolean/,
+            'key with invalid value'
         );
     };
 

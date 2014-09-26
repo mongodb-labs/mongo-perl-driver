@@ -70,6 +70,20 @@ sub _unescape_all {
     return $str;
 }
 
+sub _parse_tagset {
+    my ($string) = @_;
+    my $set = {};
+    for my $tag ( split /,/, $string ) {
+        if ( $tag =~ /\S/ ) {
+            my @kv = map { s{^\s*}{}; s{\s*$}{}; $_ } split /:/, $tag, 2;
+            confess "readPreferenceTagSet '$tag' is not a key:value pair"
+              unless @kv == 2;
+            $set->{$kv[0]} = $kv[1];
+        }
+    }
+    return $set;
+}
+
 sub BUILD {
     my ($self) = @_;
 
@@ -92,14 +106,23 @@ sub BUILD {
             map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $result{hostpairs}
         ];
 
-        $result{options} =
-            { map {
-                 my @kv = split '=', $_;
-                 confess 'expected key value pair' unless @kv == 2;
-                 ($kv[0], $kv[1]) = (_unescape_all($kv[0]), _unescape_all($kv[1]));
-                 @kv;
-              } split '&', $result{options}
-            } if defined $result{options};
+        if ( defined $result{options} ) {
+            my %parsed;
+            for my $opt ( split '&', $result{options} ) {
+                my @kv = split '=', $opt;
+                push @kv, '' if @kv == 1;
+                confess 'expected key value pair' unless @kv == 2;
+                my ($k, $v) = map { _unescape_all($_) } @kv;
+                if ( $k eq 'readPreferenceTags' ) {
+                    $parsed{$k} ||= [];
+                    push @{$parsed{$k}}, _parse_tagset($v);
+                }
+                else {
+                    $parsed{$k} = $v;
+                }
+            }
+            $result{options} = \%parsed;
+        }
 
         delete $result{username} unless defined $result{username} && length $result{username};
         delete $result{password} unless defined $result{password}; # can be empty string

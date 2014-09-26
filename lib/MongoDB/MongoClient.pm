@@ -302,6 +302,9 @@ sub BUILD {
 
     $self->_update_write_concern;
 
+    $self->read_preference( $options->{readPreference}, $options->{readPreferenceTags} )
+        if exists $options->{readPreference} || exists $options->{readPreferenceTags};
+
     # XXX this should be deprecated or removed
     if ($self->auto_connect) {
         $self->connect;
