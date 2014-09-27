@@ -920,11 +920,22 @@ scope (or earlier if you undefine it with C<undef>).
 Existing connections are closed when a thread is created.  If C<auto_reconnect>
 is true, then connections will be re-established as needed.
 
-=head1 SEE ALSO
+=head1 CONNECTION STRING URI
 
 Core documentation on connections: L<http://docs.mongodb.org/manual/reference/connection-string/>.
 
-The currently supported connection string options are ssl, connectTimeoutMS, w, wtimeoutMS, and journal.
+The currently supported connection string options are:
+
+=for :list
+*connect
+*connectTimeoutMS
+*journal
+*readPreference
+*readPreferenceTags
+*ssl
+*w
+*wtimeoutMS
+
 
 =attr host
 
