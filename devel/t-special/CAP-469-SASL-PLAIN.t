@@ -33,10 +33,14 @@ use MongoDB;
 # DO NOT put username:password in MONGOD, as some tests need to see that it
 # fails without username/password.
 
+BAIL_OUT("You must set MONGOD, MONGOUSER and MONGOPASS")
+    unless 3 == grep { defined $ENV{$_} } qw/MONGOD MONGOUSER MONGOPASS/;
+
 subtest "no authentication" => sub {
     my $conn   = MongoDB::MongoClient->new(
         host => $ENV{MONGOD},
         dt_type => undef,
+        server_selection_timeout_ms => 1000,
     );
     my $testdb = $conn->get_database("ldap");
     my $coll   = $testdb->get_collection("test");
@@ -55,6 +59,7 @@ subtest "with authentication" => sub {
         password => $ENV{MONGOPASS},
         auth_mechanism => 'PLAIN',
         dt_type => undef,
+        server_selection_timeout_ms => 1000,
     );
     my $testdb = $conn->get_database("ldap");
     my $coll   = $testdb->get_collection("test");
@@ -70,11 +75,40 @@ subtest "with legacy sasl attributes" => sub {
         sasl     => 1,
         sasl_mechanism => 'PLAIN',
         dt_type => undef,
+        server_selection_timeout_ms => 1000,
     );
     my $testdb = $conn->get_database("ldap");
     my $coll   = $testdb->get_collection("test");
 
     is( exception { $coll->count }, undef, "no exception reading from new client" );
 };
+
+my $connect_string = $ENV{MONGOD};
+$connect_string =~ s{mongodb://}{mongodb://$ENV{MONGOUSER}:$ENV{MONGOPASS}\@};
+$connect_string =~ s{/?$}{};
+
+my @strings = (
+    "$connect_string/\$external?authMechanism=PLAIN",
+    "$connect_string/?authMechanism=PLAIN&authSource=\$external",
+    "$connect_string/?authMechanism=PLAIN",
+);
+
+for my $uri ( @strings ) {
+    subtest "connect string: $uri" => sub {
+        $connect_string .= '$external?authMechanism=PLAIN';
+        ok( my $conn   = MongoDB::MongoClient->new(
+                host => $uri,
+                dt_type => undef,
+                server_selection_timeout_ms => 1000,
+            ),
+            "new client",
+        );
+
+        my $testdb = $conn->get_database("ldap");
+        my $coll   = $testdb->get_collection("test");
+
+        is( exception { $coll->count }, undef, "no exception reading" );
+    };
+}
 
 done_testing;
