@@ -275,8 +275,6 @@ has _write_concern => (
 
 sub _build_auth_mechanism {
     my ($self) = @_;
-    # XXX very dumb for now; try to support legacy attributes and impute
-    # mechanism. Eventually, have to support getting this from URI options
 
     if ( $self->sasl ) {
         # XXX support deprecated legacy experimental API
@@ -287,7 +285,8 @@ sub _build_auth_mechanism {
     }
     elsif ( $self->username ) {
         # XXX assuming mechanism isn't set explicitly or via URI, then
-        # having a username means CR
+        # having a username means CR; this will change with SCRAM-SHA-1
+        # for server version 2.8
         return 'MONGODB-CR';
     }
     else {
