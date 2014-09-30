@@ -29,6 +29,9 @@ use MongoDB;
 # See also https://wiki.mongodb.com/display/DH/Testing+Kerberos
 #
 # Set host, username, password in ENV vars: MONGOD, MONGOUSER, MONGOPASS
+#
+# DO NOT put username:password in MONGOD, as some tests need to see that it
+# fails without username/password.
 
 subtest "no authentication" => sub {
     my $conn   = MongoDB::MongoClient->new(
