@@ -124,8 +124,7 @@ sub BUILD {
     # fix up GSSAPI property defaults if not given
     if ( $mech eq 'GSSAPI' ) {
         my $mp = $self->mechanism_properties;
-        $mp->{SERVICE_NAME}           ||= 'mongodb';
-        $mp->{CANONICALIZE_HOST_NAME} ||= 0;
+        $mp->{SERVICE_NAME} ||= 'mongodb';
     }
 
     return;
@@ -208,7 +207,8 @@ sub _authenticate_GSSAPI {
                 authname => $self->username,
             },
         );
-        $client = $sasl->client_new( 'mongodb', $link->{host} );
+        $client =
+          $sasl->client_new( $self->mechanism_properties->{SERVICE_NAME}, $link->{host} );
     }
     catch {
         MongoDB::Error->throw(

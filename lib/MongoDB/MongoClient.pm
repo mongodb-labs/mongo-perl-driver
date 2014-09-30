@@ -282,6 +282,9 @@ sub _build_auth_mechanism {
         # XXX support deprecated legacy experimental API
         return $self->sasl_mechanism;
     }
+    elsif ( my $mech = $self->_uri->options->{authMechanism} ) {
+        return $mech;
+    }
     elsif ( $self->username ) {
         # XXX assuming mechanism isn't set explicitly or via URI, then
         # having a username means CR
@@ -294,8 +297,10 @@ sub _build_auth_mechanism {
 
 sub _build_auth_mechanism_properties {
     my ($self) = @_;
-    # XXX eventually, parse/merge(?) from URI options
-    return {};
+    my $service_name = $self->_uri->options->{'authMechanism.SERVICE_NAME'};
+    return {
+        ( defined $service_name ? ( SERVICE_NAME => $service_name ) : () ),
+    };
 }
 
 sub _build__cluster {
@@ -328,7 +333,7 @@ sub _build_connect_type {
 
 sub _build_db_name {
     my ($self) = @_;
-    return $self->_uri->db_name;
+    return $self->_uri->options->{authSource} || $self->_uri->db_name;
 }
 
 sub _build_password {
