@@ -70,6 +70,19 @@ has mechanism_properties => (
     default => sub { {} },
 );
 
+has _digested_password => (
+    is => 'ro',
+    isa => 'Str',
+    lazy => 1,
+    builder => '_build__digested_password',
+);
+
+sub _build__digested_password {
+    my ($self) = @_;
+    return $self->password if $self->pw_is_digest;
+    return md5_hex( Encode("UTF-8", $self->username . ":mongo:" . $self->password ) );
+}
+
 sub _build_source {
     my ($self) = @_;
     return $self->mechanism eq any(qw/MONGODB-CR SCRAM-SHA-1/) ? 'admin' : '$external';
@@ -149,13 +162,7 @@ sub _authenticate_MONGODB_CR {
     my ( $self, $link ) = @_;
 
     my $nonce = $self->_send_admin_command( $link, { getnonce => 1 } )->result->{nonce};
-
-    my $password_digest =
-        $self->pw_is_digest
-      ? $self->password
-      : md5_hex( $self->username . ":mongo:" . $self->password );
-
-    my $key = Digest::MD5::md5_hex( $nonce . $self->username . $password_digest );
+    my $key = md5_hex( Encode("UTF-8", $nonce . $self->username . $self->digested_password ) );
 
     my $command = Tie::IxHash->new(
         authenticate => 1,
