@@ -973,10 +973,156 @@ scope (or earlier if you undefine it with C<undef>).
 
 =head1 AUTHENTICATION
 
-TBD
+The MongoDB server provides several authentication mechanisms, though some
+are only available in the Enterprise edition.
 
-See also the core documentation on authentication:
+MongoDB client authentication is controlled via the L</auth_mechanism>
+attribute, which takes one of the following values:
+
+=for :list
+* MONGODB-CR -- legacy username-password challenge-response
+* SCRAM-SHA-1 -- secure username-password challenge-response (2.8+)
+* MONGODB-X509 -- SSL client certificate authentication (2.6+)
+* PLAIN -- LDAP authentication via SASL PLAIN (Enterprise only)
+* GSSAPI -- Kerberos authentication (Enterprise only)
+
+The mechanism to use depends on the authentication configuration of the
+server.  See the core documentation on authentication:
 L<http://docs.mongodb.org/manual/core/access-control/>.
+
+Usage information for each mechanism is given below.
+
+=head2 MONGODB-CR and SCRAM-SHA-1 (for username/password)
+
+These mechnisms require a username and password, given either as
+constructor attributes or in the C<host> connection string.
+
+If a username is provided and an authentication mechanism is not specified,
+the client will use SCRAM-SHA-1 for version 2.8 or later servers and will
+fall back to MONGODB-CR for older servers.
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://mongo.example.com/",
+        username => "johndoe",
+        password => "trustno1",
+    );
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://johndoe:trustno1@mongo.example.com/",
+    );
+
+Usernames and passwords will be UTF-8 encoded before use.  The password is
+never sent over the wire -- only a secure digest is used.  The SCRAM-SHA-1
+mechanism is the Salted Challenge Response Authentication Mechanism
+definedin L<RFC 5802|http://tools.ietf.org/html/rfc5802>.
+
+The default database for authentication is 'admin'.  If another database
+name should be used, specify it with the C<db_name> attribute or via the
+connection string.
+
+    db_name => auth_db
+
+    mongodb://johndoe:trustno1@mongo.example.com/auth_db
+
+=head2 MONGODB-X509 (for SSL client certificate)
+
+X509 authentication requires SSL support (L<IO::Socket::SSL>) and requires
+that a client certificate be configured and that the username attribute be
+set to the "Subject" field, formatted according to RFC 2253.  To find the
+correct username, run the C<openssl> program as follows:
+
+  $ openssl x509 -in certs/client.pem -inform PEM -subject -nameopt RFC2253
+  subject= CN=XXXXXXXXXXX,OU=XXXXXXXX,O=XXXXXXX,ST=XXXXXXXXXX,C=XX
+
+In this case the C<username> attribute would be
+C<CN=XXXXXXXXXXX,OU=XXXXXXXX,O=XXXXXXX,ST=XXXXXXXXXX,C=XX>.
+
+Configure your client with the correct username and ssl parameters, and
+specify the "MONGODB-X509" authentication mechanism.
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://sslmongo.example.com/",
+        ssl => {
+            SSL_ca_file   => "certs/ca.pem",
+            SSL_cert_file => "certs/client.pem",
+        },
+        auth_mechanism => "MONGODB-X509",
+        username       => "CN=XXXXXXXXXXX,OU=XXXXXXXX,O=XXXXXXX,ST=XXXXXXXXXX,C=XX"
+    );
+
+=head2 PLAIN (for LDAP)
+
+This mechanism requires a username and password, which will be UTF-8
+encoded before use.  The C<auth_mechanism> parameter must be given as a
+constructor attribute or in the C<host> connection string:
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://mongo.example.com/",
+        username => "johndoe",
+        password => "trustno1",
+        auth_mechanism => "PLAIN",
+    );
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://johndoe:trustno1@mongo.example.com/authMechanism=PLAIN",
+    );
+
+=head2 GSSAPI (for Kerberos)
+
+Kerberos authentication requires the CPAN module L<Authen::SASL> and a
+GSSAPI-capable backend.
+
+On Debian systems, L<Authen::SASL> may be available as
+C<libauthen-sasl-perl>; on RHEL systems, it may be available as
+C<perl-Authen-SASL>.
+
+The L<Authen::SASL::Perl> backend comes with L<Authen::SASL> and requires
+the L<GSSAPI> CPAN module for GSSAPI support.  On Debian systems, this may
+be available as C<libgssapi-perl>; on RHEL systems, it may be available as
+C<perl-GSSAPI>.
+
+Installing the L<GSSAPI> module from CPAN rather than an OS package
+requires C<libkrb5> and the C<krb5-config> utility (available for
+Debian/RHEL systems in the C<libkrb5-dev> package).
+
+Alternatively, the L<Authen::SASL::XS> or L<Authen::SASL::Cyrus> modules
+may be used.  Both rely on Cyrus C<libsasl>.  L<Authen::SASL::XS> is
+preferred, but not yet available as an OS package.  L<Authen::SASL::Cyrus>
+is available on Debian as C<libauthen-sasl-cyrus-perl> and on RHEL as
+C<perl-Authen-SASL-Cyrus>.
+
+Installing L<Authen::SASL::XS> or L<Authen::SASL::Cyrus> from CPAM requires
+C<libsasl>.  On Debian systems, it is available from C<libsasl2-dev>; on
+RHEL, it is available in C<cyrus-sasl-devel>.
+
+To use the GSSAPI mechanism, first run C<kinit> to authenticate with the ticket
+granting service:
+
+    $ kinit johndoe@EXAMPLE.COM
+
+Configure MongoDB::MongoClient with the principal name as the C<username>
+parameter and specify 'GSSAPI' as the C<auth_mechanism>:
+
+    my $mc = MongoDB::MongoClient->new(
+        host => 'mongodb://mongo.example.com',
+        username => 'johndoe@EXAMPLE.COM',
+        auth_mechanism => 'GSSAPI',
+    );
+
+Both can be specified in the C<host> connection string, keeping in mind
+that the '@' in the principal name must be encoded as "%40":
+
+    my $mc = MongoDB::MongoClient->new(
+        host =>
+          'mongodb://johndoe%40EXAMPLE.COM@mongo.examplecom/?authMechanism=GSSAPI',
+    );
+
+The default service name is 'mongodb'.  It can be changed with the
+C<auth_mechanism_properties> attribute or in the connection string.
+
+    auth_mechanism_properties => { SERVICE_NAME => 'other_service' }
+
+    mongodb://.../?authMechanism=GSSAPI&authMechanism.SERVICE_NAME=other_service
 
 =head1 MULTITHREADING
 
@@ -990,6 +1136,8 @@ Core documentation on connections: L<http://docs.mongodb.org/manual/reference/co
 The currently supported connection string options are:
 
 =for :list
+*authMechanism
+*authMechanism.SERVICE_NAME
 *connect
 *connectTimeoutMS
 *journal
