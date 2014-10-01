@@ -811,14 +811,16 @@ sub _check_no_dollar_keys {
 
     $client->authenticate($dbname, $username, $password, $is_digest);
 
-This legacy method is deprecated but kept for backwards compatibility.
-Authentication credentials should be provided as constructor arguments are as
-part of the connection URI.
+B<This legacy method is deprecated but kept for backwards compatibility.>
+
+Instead, authentication credentials should be provided as constructor arguments
+or as part of the connection URI.
 
 When C<authenticate> is called, it disconnects the client (if any connections
-had been made), sets client attributes as if MONGODB-CR authentication had been
+had been made), sets client attributes as if the username and password had been
 used initially in the client constructor, and reconnects to the configured
-servers.
+servers.  The authentication mechanism will be MONGO-CR for servers before
+version 2.8 and SCRAM-SHA-1 for 2.8 or later.
 
 Passwords are expected to be cleartext and will be automatically hashed before
 sending over the wire, unless C<$is_digest> is true, which will assume you
