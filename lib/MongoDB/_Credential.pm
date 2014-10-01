@@ -278,6 +278,7 @@ sub _sasl_start {
         saslStart => 1,
         mechanism => $self->mechanism,
         payload   => $payload ? encode_base64( $payload, "" ) : "",
+        autoAuthorize => 1,
     );
 
     return $self->_sasl_send( $link, $command );
