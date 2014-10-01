@@ -369,7 +369,7 @@ sub _ssl_args {
         $ssl_args{SSL_hostname} = $host, # Sane SNI support
     }
 
-    $ssl_args{SSL_verifycn_scheme} = 'default';           # enable CN validation
+    $ssl_args{SSL_verifycn_scheme} = 'http';              # enable CN validation
     $ssl_args{SSL_verifycn_name}   = $host;               # set validation hostname
     $ssl_args{SSL_verify_mode}     = 0x01;                # enable cert validation
     $ssl_args{SSL_ca_file}         = $self->_find_CA_file;
