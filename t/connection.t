@@ -49,7 +49,7 @@ SKIP: {
     isa_ok($conn, 'MongoDB::MongoClient');
 
     is($conn->host, 'mongodb://localhost:27017', 'host default value');
-    is($conn->db_name, 'admin', 'db_name default value');
+    is($conn->db_name, '', 'db_name default value');
 
     # just make sure a couple timeouts work
     my $to = MongoDB::MongoClient->new('timeout' => 1, ssl => $ENV{MONGO_SSL});
@@ -88,8 +88,8 @@ SKIP: {
     is(MongoDB::MongoClient->new('host' => 'mongodb://localhost,/example_db')->db_name, 'example_db', 'connection uri database trailing comma');
     is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/example_db?')->db_name, 'example_db', 'connection uri database trailing question');
     is(MongoDB::MongoClient->new('host' => 'mongodb://localhost,localhost:27020,localhost:27021/example_db')->db_name, 'example_db', 'connection uri database, many hosts');
-    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/?')->db_name, 'admin', 'connection uri no database');
-    is(MongoDB::MongoClient->new('host' => 'mongodb://:@localhost/?')->db_name, 'admin', 'connection uri empty extras');
+    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/?')->db_name, '', 'connection uri no database');
+    is(MongoDB::MongoClient->new('host' => 'mongodb://:@localhost/?')->db_name, '', 'connection uri empty extras');
 }
 
 # get_database and drop 

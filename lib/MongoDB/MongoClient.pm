@@ -30,6 +30,7 @@ use MongoDB::Error;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
 use MongoDB::_Cluster;
+use MongoDB::_Credential;
 use MongoDB::_URI;
 use Digest::MD5;
 use Tie::IxHash;
@@ -71,12 +72,6 @@ has port => (
     is      => 'ro',
     isa     => 'Int',
     default => 27017,
-);
-
-has db_name => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => 'admin',
 );
 
 has connect_type => (
@@ -138,24 +133,53 @@ has server_selection_timeout_ms => (
 # authentication attributes
 
 has username => (
-    is  => 'rw',
-    isa => 'Str',
+    is      => 'rw',
+    isa     => 'Str',
+    lazy    => 1,
+    builder => '_build_username',
 );
 
 has password => (
-    is  => 'rw',
-    isa => 'Str',
+    is      => 'rw',
+    isa     => 'Str',
+    lazy    => 1,
+    builder => '_build_password',
 );
 
+has db_name => (
+    is      => 'rw',
+    isa     => 'Str',
+    lazy    => 1,
+    builder => '_build_db_name',
+);
+
+has auth_mechanism => (
+    is      => 'ro',
+    isa     => 'AuthMechanism',
+    lazy    => 1,
+    builder => '_build_auth_mechanism',
+    writer  => '_set_auth_mechanism',
+);
+
+has auth_mechanism_properties => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    lazy    => 1,
+    builder => '_build_auth_mechanism_properties',
+    writer  => '_set_auth_mechanism_properties',
+);
+
+# XXX deprecate this
 has sasl => (
     is      => 'ro',
     isa     => 'Bool',
     default => 0
 );
 
+# XXX deprecate this
 has sasl_mechanism => (
     is      => 'ro',
-    isa     => 'SASLMech',
+    isa     => 'AuthMechanism',
     default => 'GSSAPI',
 );
 
@@ -209,6 +233,15 @@ has _cluster => (
     isa        => 'MongoDB::_Cluster',
     lazy_build => 1,
     handles    => { cluster_type => 'type' },
+    clearer    => '_clear__cluster',
+);
+
+has _credential => (
+    is         => 'ro',
+    isa        => 'MongoDB::_Credential',
+    builder    => '_build__credential',
+    lazy       => 1,
+    writer     => '_set__credential',
 );
 
 has _min_wire_version => (
@@ -240,6 +273,35 @@ has _write_concern => (
 # builders
 #--------------------------------------------------------------------------#
 
+sub _build_auth_mechanism {
+    my ($self) = @_;
+
+    if ( $self->sasl ) {
+        # XXX support deprecated legacy experimental API
+        return $self->sasl_mechanism;
+    }
+    elsif ( my $mech = $self->_uri->options->{authMechanism} ) {
+        return $mech;
+    }
+    elsif ( $self->username ) {
+        # XXX assuming mechanism isn't set explicitly or via URI, then
+        # having a username means CR; this will change with SCRAM-SHA-1
+        # for server version 2.8
+        return 'MONGODB-CR';
+    }
+    else {
+        return 'NONE';
+    }
+}
+
+sub _build_auth_mechanism_properties {
+    my ($self) = @_;
+    my $service_name = $self->_uri->options->{'authMechanism.SERVICE_NAME'};
+    return {
+        ( defined $service_name ? ( SERVICE_NAME => $service_name ) : () ),
+    };
+}
+
 sub _build__cluster {
     my ($self) = @_;
 
@@ -254,6 +316,7 @@ sub _build__cluster {
         server_selection_timeout_ms => $self->server_selection_timeout_ms,
         max_wire_version            => $self->_max_wire_version,
         min_wire_version            => $self->_min_wire_version,
+        credential                  => $self->_credential,
         link_options                => {
             with_ssl   => !!$self->ssl,
             ( ref( $self->ssl ) eq 'HASH' ? ( SSL_options => $self->ssl ) : () ),
@@ -265,6 +328,34 @@ sub _build_connect_type {
     my ($self) = @_;
     return
       exists $self->_uri->options->{connect} ? $self->_uri->options->{connect} : 'none';
+}
+
+sub _build_db_name {
+    my ($self) = @_;
+    return $self->_uri->options->{authSource} || $self->_uri->db_name;
+}
+
+sub _build_password {
+    my ($self) = @_;
+    return $self->_uri->password;
+}
+
+sub _build_username {
+    my ($self) = @_;
+    return $self->_uri->username;
+}
+
+sub _build__credential {
+    my ($self) = @_;
+    my $mechanism = $self->auth_mechanism;
+    my $cred = MongoDB::_Credential->new(
+        mechanism            => $mechanism,
+        mechanism_properties => $self->auth_mechanism_properties,
+        ( $self->username ? ( username => $self->username ) : () ),
+        ( $self->password ? ( password => $self->password ) : () ),
+        ( $self->db_name  ? ( source   => $self->db_name )  : () ),
+    );
+    return $cred;
 }
 
 sub _build__uri {
@@ -284,7 +375,6 @@ sub BUILD {
     my ($self, $opts) = @_;
 
     my $uri = $self->_uri;
-    $self->db_name( $uri->db_name ) if $uri->db_name;
 
     my @addresses = @{ $uri->hostpairs };
     if ( $self->connect_type eq 'direct' && @addresses > 1 ) {
@@ -717,89 +807,55 @@ sub _check_no_dollar_keys {
 # authentication methods
 #--------------------------------------------------------------------------#
 
+=method authenticate (DEPRECATED)
+
+    $client->authenticate($dbname, $username, $password, $is_digest);
+
+B<This legacy method is deprecated but kept for backwards compatibility.>
+
+Instead, authentication credentials should be provided as constructor arguments
+or as part of the connection URI.
+
+When C<authenticate> is called, it disconnects the client (if any connections
+had been made), sets client attributes as if the username and password had been
+used initially in the client constructor, and reconnects to the configured
+servers.  The authentication mechanism will be MONGO-CR for servers before
+version 2.8 and SCRAM-SHA-1 for 2.8 or later.
+
+Passwords are expected to be cleartext and will be automatically hashed before
+sending over the wire, unless C<$is_digest> is true, which will assume you
+already did the proper hashing yourself.
+
+See also the L</AUTHENTICATION> section.
+
+=cut
+
 sub authenticate {
-    my ($self, $dbname, $username, $password, $is_digest) = @_;
-    my $hash = $password;
+    my ( $self, $db_name, $username, $password, $is_digest ) = @_;
 
-    # create a hash if the password isn't yet encrypted
-    if (!$is_digest) {
-        $hash = Digest::MD5::md5_hex("${username}:mongo:${password}");
-    }
+    # set client properties
+    $self->_set_auth_mechanism('MONGODB-CR');
+    $self->_set_auth_mechanism_properties( {} );
+    $self->db_name($db_name);
+    $self->username($username);
+    $self->password($password);
 
-    # get the nonce
-    my $db = $self->get_database($dbname);
-    my $result = eval { $db->_try_run_command({getnonce => 1}) };
-    if (!$result) {
-        return $@
-    }
+    my $cred = MongoDB::_Credential->new(
+        mechanism            => $self->auth_mechanism,
+        mechanism_properties => $self->auth_mechanism_properties,
+        username             => $self->username,
+        password             => $self->password,
+        source               => $self->db_name,
+        pw_is_digest         => $is_digest,
+    );
+    $self->_set__credential($cred);
 
-    my $nonce = $result->{'nonce'};
-    my $digest = Digest::MD5::md5_hex($nonce.$username.$hash);
+    # ensure that we've authenticated by clearing the cluster and trying a
+    # command that opens a socket
+    $self->_clear__cluster;
+    $self->send_admin_command( { ismaster => 1 } );
 
-    # run the login command
-    my $login = tie(my %hash, 'Tie::IxHash');
-    %hash = (authenticate => 1,
-             user => $username,
-             nonce => $nonce,
-             key => $digest);
-    $result = $db->run_command($login);
-
-    return $result;
-}
-
-sub _sasl_check {
-    my ( $self, $res ) = @_;
-
-    die "Invalid SASL response document from server:"
-        unless reftype $res eq reftype { };
-
-    if ( $res->{ok} != 1 ) {
-        die "SASL authentication error: $res->{errmsg}";
-    }
-
-    return $res->{conversationId};
-}
-
-sub _sasl_continue {
-    my ( $self, $payload, $conv_id ) = @_;
-
-    # warn "SASL continue, payload = [$payload], conv ID = [$conv_id]";
-
-    my $res = $self->get_database( '$external' )->run_command( [
-        saslContinue     => 1,
-        conversationId   => $conv_id,
-        payload          => $payload
-    ] );
-
-    $self->_sasl_check( $res );
-    return $res;
-}
-
-sub _sasl_plain_authenticate {
-    my ( $self ) = @_;
-
-    my $username = defined $self->username ? $self->username : "";
-    my $password = defined $self->password ? $self->password : "";
-
-    my $auth_bytes = encode( "UTF-8", "\x00" . $username . "\x00" . $password );
-    my $payload = MongoDB::BSON::Binary->new( data => $auth_bytes );
-
-    $self->_sasl_start( $payload, "PLAIN" );
-}
-
-sub _sasl_start {
-    my ( $self, $payload, $mechanism ) = @_;
-
-    # warn "SASL start, payload = [$payload], mechanism = [$mechanism]\n";
-
-    my $res = $self->get_database( '$external' )->run_command( [
-        saslStart     => 1,
-        mechanism     => $mechanism,
-        payload       => $payload,
-        autoAuthorize => 1 ] );
-
-    $self->_sasl_check( $res );
-    return $res;
+    return 1;
 }
 
 #--------------------------------------------------------------------------#
@@ -906,7 +962,7 @@ See the L</"host"> section for more options for connecting to MongoDB.
 MongoDB can be started in I<authentication mode>, which requires clients to log in
 before manipulating data.  By default, MongoDB does not start in this mode, so no
 username or password is required to make a fully functional connection.  If you
-would like to learn more about authentication, see the C<authenticate> method.
+would like to learn more about authentication, see the L</AUTHENTICATE> section.
 
 Connecting is relatively expensive, so try not to open superfluous connections.
 
@@ -914,6 +970,159 @@ There is no way to explicitly disconnect from the database.  However, the
 connection will automatically be closed and cleaned up when no references to
 the C<MongoDB::MongoClient> object exist, which occurs when C<$client> goes out of
 scope (or earlier if you undefine it with C<undef>).
+
+=head1 AUTHENTICATION
+
+The MongoDB server provides several authentication mechanisms, though some
+are only available in the Enterprise edition.
+
+MongoDB client authentication is controlled via the L</auth_mechanism>
+attribute, which takes one of the following values:
+
+=for :list
+* MONGODB-CR -- legacy username-password challenge-response
+* SCRAM-SHA-1 -- secure username-password challenge-response (2.8+)
+* MONGODB-X509 -- SSL client certificate authentication (2.6+)
+* PLAIN -- LDAP authentication via SASL PLAIN (Enterprise only)
+* GSSAPI -- Kerberos authentication (Enterprise only)
+
+The mechanism to use depends on the authentication configuration of the
+server.  See the core documentation on authentication:
+L<http://docs.mongodb.org/manual/core/access-control/>.
+
+Usage information for each mechanism is given below.
+
+=head2 MONGODB-CR and SCRAM-SHA-1 (for username/password)
+
+These mechnisms require a username and password, given either as
+constructor attributes or in the C<host> connection string.
+
+If a username is provided and an authentication mechanism is not specified,
+the client will use SCRAM-SHA-1 for version 2.8 or later servers and will
+fall back to MONGODB-CR for older servers.
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://mongo.example.com/",
+        username => "johndoe",
+        password => "trustno1",
+    );
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://johndoe:trustno1@mongo.example.com/",
+    );
+
+Usernames and passwords will be UTF-8 encoded before use.  The password is
+never sent over the wire -- only a secure digest is used.  The SCRAM-SHA-1
+mechanism is the Salted Challenge Response Authentication Mechanism
+definedin L<RFC 5802|http://tools.ietf.org/html/rfc5802>.
+
+The default database for authentication is 'admin'.  If another database
+name should be used, specify it with the C<db_name> attribute or via the
+connection string.
+
+    db_name => auth_db
+
+    mongodb://johndoe:trustno1@mongo.example.com/auth_db
+
+=head2 MONGODB-X509 (for SSL client certificate)
+
+X509 authentication requires SSL support (L<IO::Socket::SSL>) and requires
+that a client certificate be configured and that the username attribute be
+set to the "Subject" field, formatted according to RFC 2253.  To find the
+correct username, run the C<openssl> program as follows:
+
+  $ openssl x509 -in certs/client.pem -inform PEM -subject -nameopt RFC2253
+  subject= CN=XXXXXXXXXXX,OU=XXXXXXXX,O=XXXXXXX,ST=XXXXXXXXXX,C=XX
+
+In this case the C<username> attribute would be
+C<CN=XXXXXXXXXXX,OU=XXXXXXXX,O=XXXXXXX,ST=XXXXXXXXXX,C=XX>.
+
+Configure your client with the correct username and ssl parameters, and
+specify the "MONGODB-X509" authentication mechanism.
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://sslmongo.example.com/",
+        ssl => {
+            SSL_ca_file   => "certs/ca.pem",
+            SSL_cert_file => "certs/client.pem",
+        },
+        auth_mechanism => "MONGODB-X509",
+        username       => "CN=XXXXXXXXXXX,OU=XXXXXXXX,O=XXXXXXX,ST=XXXXXXXXXX,C=XX"
+    );
+
+=head2 PLAIN (for LDAP)
+
+This mechanism requires a username and password, which will be UTF-8
+encoded before use.  The C<auth_mechanism> parameter must be given as a
+constructor attribute or in the C<host> connection string:
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://mongo.example.com/",
+        username => "johndoe",
+        password => "trustno1",
+        auth_mechanism => "PLAIN",
+    );
+
+    my $mc = MongoDB::MongoClient->new(
+        host => "mongodb://johndoe:trustno1@mongo.example.com/authMechanism=PLAIN",
+    );
+
+=head2 GSSAPI (for Kerberos)
+
+Kerberos authentication requires the CPAN module L<Authen::SASL> and a
+GSSAPI-capable backend.
+
+On Debian systems, L<Authen::SASL> may be available as
+C<libauthen-sasl-perl>; on RHEL systems, it may be available as
+C<perl-Authen-SASL>.
+
+The L<Authen::SASL::Perl> backend comes with L<Authen::SASL> and requires
+the L<GSSAPI> CPAN module for GSSAPI support.  On Debian systems, this may
+be available as C<libgssapi-perl>; on RHEL systems, it may be available as
+C<perl-GSSAPI>.
+
+Installing the L<GSSAPI> module from CPAN rather than an OS package
+requires C<libkrb5> and the C<krb5-config> utility (available for
+Debian/RHEL systems in the C<libkrb5-dev> package).
+
+Alternatively, the L<Authen::SASL::XS> or L<Authen::SASL::Cyrus> modules
+may be used.  Both rely on Cyrus C<libsasl>.  L<Authen::SASL::XS> is
+preferred, but not yet available as an OS package.  L<Authen::SASL::Cyrus>
+is available on Debian as C<libauthen-sasl-cyrus-perl> and on RHEL as
+C<perl-Authen-SASL-Cyrus>.
+
+Installing L<Authen::SASL::XS> or L<Authen::SASL::Cyrus> from CPAM requires
+C<libsasl>.  On Debian systems, it is available from C<libsasl2-dev>; on
+RHEL, it is available in C<cyrus-sasl-devel>.
+
+To use the GSSAPI mechanism, first run C<kinit> to authenticate with the ticket
+granting service:
+
+    $ kinit johndoe@EXAMPLE.COM
+
+Configure MongoDB::MongoClient with the principal name as the C<username>
+parameter and specify 'GSSAPI' as the C<auth_mechanism>:
+
+    my $mc = MongoDB::MongoClient->new(
+        host => 'mongodb://mongo.example.com',
+        username => 'johndoe@EXAMPLE.COM',
+        auth_mechanism => 'GSSAPI',
+    );
+
+Both can be specified in the C<host> connection string, keeping in mind
+that the '@' in the principal name must be encoded as "%40":
+
+    my $mc = MongoDB::MongoClient->new(
+        host =>
+          'mongodb://johndoe%40EXAMPLE.COM@mongo.examplecom/?authMechanism=GSSAPI',
+    );
+
+The default service name is 'mongodb'.  It can be changed with the
+C<auth_mechanism_properties> attribute or in the connection string.
+
+    auth_mechanism_properties => { SERVICE_NAME => 'other_service' }
+
+    mongodb://.../?authMechanism=GSSAPI&authMechanism.SERVICE_NAME=other_service
 
 =head1 MULTITHREADING
 
@@ -927,6 +1136,8 @@ Core documentation on connections: L<http://docs.mongodb.org/manual/reference/co
 The currently supported connection string options are:
 
 =for :list
+*authMechanism
+*authMechanism.SERVICE_NAME
 *connect
 *connectTimeoutMS
 *journal
@@ -1219,18 +1430,6 @@ Lists all databases on the MongoDB server.
     my $database = $client->get_database('foo');
 
 Returns a L<MongoDB::Database> instance for the database with the given C<$name>.
-
-=method authenticate ($dbname, $username, $password, $is_digest?)
-
-    $client->authenticate('foo', 'username', 'secret');
-
-Attempts to authenticate for use of the C<$dbname> database with C<$username>
-and C<$password>. Passwords are expected to be cleartext and will be
-automatically hashed before sending over the wire, unless C<$is_digest> is
-true, which will assume you already did the hashing on yourself.
-
-See also the core documentation on authentication:
-L<http://docs.mongodb.org/manual/core/access-control/>.
 
 
 =method send($str)

@@ -24,25 +24,91 @@ use boolean;
 
 use MongoDB;
 
-# REQUIRES DRIVER COMPILED WITH SASL SUPPORT
+# REQUIRES DRIVER WITH SASL SUPPORT
 #
 # See also https://wiki.mongodb.com/display/DH/Testing+Kerberos
 #
 # Set host, username, password in ENV vars: MONGOD, MONGOUSER, MONGOPASS
+#
+# DO NOT put username:password in MONGOD, as some tests need to see that it
+# fails without username/password.
 
-my $mc = MongoDB::MongoClient->new(
-    host     => $ENV{MONGOD},
-    username => $ENV{MONGOUSER},
-    password => $ENV{MONGOPASS},
-    sasl     => 1,
-    sasl_mechanism => 'PLAIN',
+BAIL_OUT("You must set MONGOD, MONGOUSER and MONGOPASS")
+    unless 3 == grep { defined $ENV{$_} } qw/MONGOD MONGOUSER MONGOPASS/;
+
+subtest "no authentication" => sub {
+    my $conn   = MongoDB::MongoClient->new(
+        host => $ENV{MONGOD},
+        dt_type => undef,
+        server_selection_timeout_ms => 1000,
+    );
+    my $testdb = $conn->get_database("ldap");
+    my $coll   = $testdb->get_collection("test");
+
+    like(
+        exception { $coll->count },
+        qr/not authorized/,
+        "can't read collection when not authenticated"
+    );
+};
+
+subtest "with authentication" => sub {
+    my $conn   = MongoDB::MongoClient->new(
+        host => $ENV{MONGOD},
+        username => $ENV{MONGOUSER},
+        password => $ENV{MONGOPASS},
+        auth_mechanism => 'PLAIN',
+        dt_type => undef,
+        server_selection_timeout_ms => 1000,
+    );
+    my $testdb = $conn->get_database("ldap");
+    my $coll   = $testdb->get_collection("test");
+
+    is( exception { $coll->count }, undef, "no exception reading from new client" );
+};
+
+subtest "with legacy sasl attributes" => sub {
+    my $conn   = MongoDB::MongoClient->new(
+        host => $ENV{MONGOD},
+        username => $ENV{MONGOUSER},
+        password => $ENV{MONGOPASS},
+        sasl     => 1,
+        sasl_mechanism => 'PLAIN',
+        dt_type => undef,
+        server_selection_timeout_ms => 1000,
+    );
+    my $testdb = $conn->get_database("ldap");
+    my $coll   = $testdb->get_collection("test");
+
+    is( exception { $coll->count }, undef, "no exception reading from new client" );
+};
+
+my $connect_string = $ENV{MONGOD};
+$connect_string =~ s{mongodb://}{mongodb://$ENV{MONGOUSER}:$ENV{MONGOPASS}\@};
+$connect_string =~ s{/?$}{};
+
+my @strings = (
+    "$connect_string/\$external?authMechanism=PLAIN",
+    "$connect_string/?authMechanism=PLAIN&authSource=\$external",
+    "$connect_string/?authMechanism=PLAIN",
 );
 
-ok( $mc, "authentication succeeded" );
-is(
-    exception { $mc->get_database("test")->_try_run_command([ismaster => 1]) },
-    undef,
-    "ismaster succeeded"
-);
+for my $uri ( @strings ) {
+    subtest "connect string: $uri" => sub {
+        $connect_string .= '$external?authMechanism=PLAIN';
+        ok( my $conn   = MongoDB::MongoClient->new(
+                host => $uri,
+                dt_type => undef,
+                server_selection_timeout_ms => 1000,
+            ),
+            "new client",
+        );
+
+        my $testdb = $conn->get_database("ldap");
+        my $coll   = $testdb->get_collection("test");
+
+        is( exception { $coll->count }, undef, "no exception reading" );
+    };
+}
 
 done_testing;

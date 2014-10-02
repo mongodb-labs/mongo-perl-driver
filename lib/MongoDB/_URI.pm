@@ -35,18 +35,21 @@ has username => (
     is => 'ro',
     isa => 'Str',
     writer => '_set_username',
+    default => '',
 );
 
 has password => (
     is => 'ro',
     isa => 'Str',
     writer => '_set_password',
+    default => '',
 );
 
 has db_name => (
     is => 'ro',
     isa => 'Str',
     writer => '_set_db_name',
+    default => '',
 );
 
 has options => (

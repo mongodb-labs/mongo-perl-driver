@@ -59,6 +59,12 @@ has min_wire_version => (
     required => 1,
 );
 
+has credential => (
+    is       => 'ro',
+    isa      => 'MongoDB::_Credential',
+    required => 1,
+);
+
 has type => (
     is      => 'ro',
     isa     => 'ClusterType',
@@ -407,7 +413,11 @@ sub _has_no_primaries {
 sub _initialize_link {
     my ( $self, $address ) = @_;
 
-    my $link = try { MongoDB::_Link->new( $address, $self->link_options )->connect };
+    my $link = try {
+        my $inner = MongoDB::_Link->new( $address, $self->link_options )->connect;
+        $self->credential->authenticate( $inner );
+        return $inner;
+    };
 
     if ( $link ) {
         $self->links->{$address} = $link;

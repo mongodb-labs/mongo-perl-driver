@@ -45,7 +45,7 @@ diag "MONGOD: $ENV{MONGOD}";
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
 
-my $conn = build_client( dt_type => undef );
+my $conn = build_client( dt_type => undef, server_selection_timeout_ms => 30000 );
 my $admin  = $conn->get_database("admin");
 my $testdb = get_test_db($conn);
 my $coll   = $testdb->get_collection("test_collection");

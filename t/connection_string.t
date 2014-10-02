@@ -49,6 +49,16 @@ subtest "localhost with username/password" => sub {
     is($uri->password, 'foobar');
 };
 
+subtest "localhost with username only" => sub {
+
+    my $uri = MongoDB::_URI->new( uri => 'mongodb://fred@localhost');
+    my @hostpairs = ('localhost:27017');
+
+    is_deeply($uri->hostpairs, \@hostpairs);
+    is($uri->username, 'fred');
+    is($uri->password, '');
+};
+
 subtest "localhost with username/password and db" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://fred:foobar@localhost/baz');
