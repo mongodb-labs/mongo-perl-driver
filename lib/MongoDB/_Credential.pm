@@ -236,19 +236,24 @@ sub _authenticate_GSSAPI {
         );
     };
 
-    # start conversation
-    my $step = $client->client_start;
-    $self->_assert_gssapi( $client,
-        "Could not start GSSAPI. Did you run kinit?  Error was: " );
-    my ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $step, 'GSSAPI' );
+    try {
+        # start conversation
+        my $step = $client->client_start;
+        $self->_assert_gssapi( $client,
+            "Could not start GSSAPI. Did you run kinit?  Error was: " );
+        my ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $step, 'GSSAPI' );
 
-    # iterate, but with maximum number of exchanges to prevent endless loop
-    for my $i ( 1 .. 10 ) {
-        last if $done;
-        $step = $client->client_step($sasl_resp);
-        $self->_assert_gssapi( $client, "GSSAPI step error: " );
-        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $step, $conv_id );
+        # iterate, but with maximum number of exchanges to prevent endless loop
+        for my $i ( 1 .. 10 ) {
+            last if $done;
+            $step = $client->client_step($sasl_resp);
+            $self->_assert_gssapi( $client, "GSSAPI step error: " );
+            ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $step, $conv_id );
+        }
     }
+    catch {
+        MongoDB::Error->throw("GSSAPI error: $_");
+    };
 
     return 1;
 }
