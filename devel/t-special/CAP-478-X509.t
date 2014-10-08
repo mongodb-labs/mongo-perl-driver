@@ -145,63 +145,49 @@ subtest "missing username" => sub {
 # graceful failure raising the servers error message or another helpful
 # message.
 
-subtest "invalid X509" => sub {
+subtest "invalid X509 name" => sub {
 
-    my $mc = new_ok(
-        "MongoDB::MongoClient",
-        [
-            host                        => $ENV{MONGOD},
-            server_selection_timeout_ms => 1000,
-            ssl                         => {
-                SSL_ca_file       => $ENV{GOOD_CA_PATH},
-                SSL_cert_file     => $ENV{GOOD_CERT_PATH},
-                SSL_verifycn_name => 'TEST-SERVER',
-            },
-            auth_mechanism => 'MONGODB-X509',
-            username       => $BAD_USERNAME,
-        ],
-    );
-
-    my $coll = $mc->get_database("x509")->get_collection("foo");
-    my $doc;
-
-    # XXX this needs to change when server selection provides a proper
-    # error on authentication failures
     like(
-        exception { $coll->insert( { x => 1 } ) },
-        qr/No writable server/,
-        "insert failed with right message"
+        exception {
+            my $mc = MongoDB::MongoClient->new(
+                host                        => $ENV{MONGOD},
+                server_selection_timeout_ms => 1000,
+                ssl                         => {
+                    SSL_ca_file       => $ENV{GOOD_CA_PATH},
+                    SSL_cert_file     => $ENV{GOOD_CERT_PATH},
+                    SSL_verifycn_name => 'TEST-SERVER',
+                },
+                auth_mechanism => 'MONGODB-X509',
+                username       => $BAD_USERNAME,
+            );
+        },
+        qr/Authentication.*failed/,
+        "auth fails with useful error"
     );
 };
 
 # Test with invalid certificate and valid username - expected failure as above.
 
-subtest "invalid X509" => sub {
+subtest "invalid X509 cert" => sub {
 
-    my $mc = new_ok(
-        "MongoDB::MongoClient",
-        [
-            host                        => $ENV{MONGOD},
-            server_selection_timeout_ms => 1000,
-            ssl                         => {
-                SSL_ca_file       => $ENV{BAD_CA_PATH},
-                SSL_cert_file     => $ENV{GOOD_CERT_PATH},
-                SSL_verifycn_name => 'TEST-SERVER',
-            },
-            auth_mechanism => 'MONGODB-X509',
-            username       => $ENV{MONGOUSER},
-        ],
-    );
-
-    my $coll = $mc->get_database("x509")->get_collection("foo");
-    my $doc;
-
-    # XXX this needs to change when server selection provides a proper
-    # error on authentication failures
     like(
-        exception { $coll->insert( { x => 1 } ) },
-        qr/No writable server/,
-        "insert failed with right message"
+        exception {
+            my $mc = MongoDB::MongoClient->new(
+                host                        => $ENV{MONGOD},
+                server_selection_timeout_ms => 1000,
+                ssl                         => {
+                    SSL_ca_file       => $ENV{BAD_CA_PATH},
+                    SSL_cert_file     => $ENV{GOOD_CERT_PATH},
+                    SSL_verifycn_name => 'TEST-SERVER',
+                },
+                auth_mechanism => 'MONGODB-X509',
+                username       => $ENV{MONGOUSER},
+            );
+            my $coll = $mc->get_database("x509")->get_collection("foo");
+            $coll->insert( { x => 1 } );
+        },
+        qr/SSL connection failed/,
+        "auth fails with useful error"
     );
 };
 
@@ -213,30 +199,24 @@ subtest "X509 without SSL server" => sub {
       MongoDBTest::Orchestrator->new( config_file => "devel/clusters/mongod-2.6.yml" );
     $orc->start;
 
-    my $mc = new_ok(
-        "MongoDB::MongoClient",
-        [
-            host                        => $orc->as_uri,
-            server_selection_timeout_ms => 1000,
-            ssl                         => {
-                SSL_ca_file       => $ENV{GOOD_CA_PATH},
-                SSL_cert_file     => $ENV{GOOD_CERT_PATH},
-                SSL_verifycn_name => 'TEST-SERVER',
-            },
-            auth_mechanism => 'MONGODB-X509',
-            username       => $ENV{MONGOUSER},
-        ],
-    );
-
-    my $coll = $mc->get_database("x509")->get_collection("foo");
-    my $doc;
-
-    # XXX this needs to change when server selection provides a proper
-    # error on authentication failures
     like(
-        exception { $coll->insert( { x => 1 } ) },
-        qr/No writable server/,
-        "insert failed with right message"
+        exception {
+            my $mc = MongoDB::MongoClient->new(
+                host                        => $orc->as_uri,
+                server_selection_timeout_ms => 1000,
+                ssl                         => {
+                    SSL_ca_file       => $ENV{GOOD_CA_PATH},
+                    SSL_cert_file     => $ENV{GOOD_CERT_PATH},
+                    SSL_verifycn_name => 'TEST-SERVER',
+                },
+                auth_mechanism => 'MONGODB-X509',
+                username       => $ENV{MONGOUSER},
+            );
+            my $coll = $mc->get_database("x509")->get_collection("foo");
+            $coll->insert( { x => 1 } );
+        },
+        qr/SSL connection failed/,
+        "auth fails with useful error"
     );
 };
 

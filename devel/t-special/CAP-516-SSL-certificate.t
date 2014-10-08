@@ -36,7 +36,7 @@ use IO::Socket::SSL; # initialize early to allow for debugging mode
 # sslCAFile = /vagrant/certs/ca.pem
 # sslCRLFile = /vagrant/certs/crl-client.pem
 
-$ENV{MONGOD}         ||= 'mongodb://localhost:27017';
+$ENV{MONGOD}         ||= 'mongodb://192.168.19.110/';
 $ENV{GOOD_CERT_PATH} ||= '../QA/vagrant/ssl/certs/client.pem';
 $ENV{BAD_CERT_PATH}  ||= '../QA/vagrant/ssl/certs/client2.pem';
 $ENV{GOOD_CA_PATH}   ||= '../QA/vagrant/ssl/certs/ca.pem';
