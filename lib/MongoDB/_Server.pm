@@ -44,6 +44,14 @@ has last_update_time => (
     required => 1,
 );
 
+# error: information about the last error related to this server. Default null.
+
+has error => (
+    is      => 'ro',
+    isa     => 'Str',
+    default => '',
+);
+
 # roundTripTime: the duration of the ismaster call. Default null.
 
 has rtt_ms => (
@@ -214,6 +222,18 @@ sub matches_tagset {
 
     return;
 }
+
+sub status_string {
+    my ($self) = @_;
+    if ( $self->error ) {
+        return
+          sprintf( "%s (type: %s, error: %s)", map { $self->$_ } qw/address type error/ );
+    }
+    else {
+        return sprintf( "%s (type: %s)", map { $self->$_ } qw/address type/ );
+    }
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
