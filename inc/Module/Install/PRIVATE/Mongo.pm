@@ -5,8 +5,8 @@ package Module::Install::PRIVATE::Mongo;
 
 use Module::Install::Base;
 use Config;
-use Config::AutoConf;
-use Path::Tiny;
+use Config::AutoConf 0.22;
+use Path::Tiny 0.052;
 use File::Spec::Functions qw/catdir/;
 use Cwd; 
 
