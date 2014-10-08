@@ -85,7 +85,9 @@ sub _build__digested_password {
 
 sub _build_source {
     my ($self) = @_;
-    return $self->mechanism eq any(qw/MONGODB-CR SCRAM-SHA-1/) ? 'admin' : '$external';
+    return $self->mechanism eq any(qw/DEFAULT MONGODB-CR SCRAM-SHA-1/)
+      ? 'admin'
+      : '$external';
 }
 
 #<<< No perltidy
@@ -113,6 +115,12 @@ my %CONSTRAINTS = (
         mechanism_properties => sub { !keys %$_ },
     },
     'SCRAM-SHA-1' => {
+        username             => sub { length },
+        password             => sub { length },
+        source               => sub { length },
+        mechanism_properties => sub { !keys %$_ },
+    },
+    'DEFAULT' => {
         username             => sub { length },
         password             => sub { length },
         source               => sub { length },
@@ -146,7 +154,11 @@ sub BUILD {
 sub authenticate {
     my ( $self, $link ) = @_;
 
-    my $method = '_authenticate_' . $self->mechanism;
+    my $mech = $self->mechanism;
+    if ( $mech eq 'DEFAULT' ) {
+        $mech = $link->accepts_wire_version(3) ? 'SCRAM-SHA-1' : 'MONGODB-CR';
+    }
+    my $method = "_authenticate_$mech";
     $method =~ s/-/_/g;
 
     return $self->$method($link);
@@ -182,7 +194,7 @@ sub _authenticate_MONGODB_X509 {
     my $command = Tie::IxHash->new(
         authenticate => 1,
         user         => $self->username,
-        mechanism    => $self->mechanism
+        mechanism    => "MONGODB-X509",
     );
     $self->_send_command( $link, $self->source, $command );
 
@@ -194,7 +206,7 @@ sub _authenticate_PLAIN {
 
     my $auth_bytes =
       encode( "UTF-8", "\x00" . $self->username . "\x00" . $self->password );
-    $self->_sasl_start( $link, $auth_bytes );
+    $self->_sasl_start( $link, $auth_bytes, "PLAIN" );
 
     return 1;
 }
@@ -228,7 +240,7 @@ sub _authenticate_GSSAPI {
     my $step = $client->client_start;
     $self->_assert_gssapi( $client,
         "Could not start GSSAPI. Did you run kinit?  Error was: " );
-    my ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $step );
+    my ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $step, 'GSSAPI' );
 
     # iterate, but with maximum number of exchanges to prevent endless loop
     for my $i ( 1 .. 10 ) {
@@ -273,12 +285,12 @@ sub _assert_gssapi {
 }
 
 sub _sasl_start {
-    my ( $self, $link, $payload ) = @_;
+    my ( $self, $link, $payload, $mechanism ) = @_;
 
     my $command = Tie::IxHash->new(
-        saslStart => 1,
-        mechanism => $self->mechanism,
-        payload   => $payload ? encode_base64( $payload, "" ) : "",
+        saslStart     => 1,
+        mechanism     => $mechanism,
+        payload       => $payload ? encode_base64( $payload, "" ) : "",
         autoAuthorize => 1,
     );
 
