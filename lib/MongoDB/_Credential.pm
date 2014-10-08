@@ -71,16 +71,16 @@ has mechanism_properties => (
 );
 
 has _digested_password => (
-    is => 'ro',
-    isa => 'Str',
-    lazy => 1,
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
     builder => '_build__digested_password',
 );
 
 sub _build__digested_password {
     my ($self) = @_;
     return $self->password if $self->pw_is_digest;
-    return md5_hex( Encode("UTF-8", $self->username . ":mongo:" . $self->password ) );
+    return md5_hex( encode( "UTF-8", $self->username . ":mongo:" . $self->password ) );
 }
 
 sub _build_source {
@@ -162,7 +162,8 @@ sub _authenticate_MONGODB_CR {
     my ( $self, $link ) = @_;
 
     my $nonce = $self->_send_admin_command( $link, { getnonce => 1 } )->result->{nonce};
-    my $key = md5_hex( Encode("UTF-8", $nonce . $self->username . $self->digested_password ) );
+    my $key =
+      md5_hex( encode( "UTF-8", $nonce . $self->username . $self->_digested_password ) );
 
     my $command = Tie::IxHash->new(
         authenticate => 1,
