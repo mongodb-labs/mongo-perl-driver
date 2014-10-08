@@ -104,6 +104,7 @@ sub server_type {
     else {
         $server_type = 'Unknown';
     }
+    return $server_type;
 }
 
 sub clear_testdbs { @testdbs = () }
