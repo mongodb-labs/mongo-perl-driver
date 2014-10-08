@@ -24,6 +24,7 @@ our $VERSION = 'v0.704.4.1';
 use Moose;
 use MongoDB::_Types;
 
+use Authen::SCRAM::Client '0.003';
 use Digest::MD5 qw/md5_hex/;
 use Encode qw/encode/;
 use MIME::Base64 qw/encode_base64 decode_base64/;
@@ -76,6 +77,22 @@ has _digested_password => (
     lazy    => 1,
     builder => '_build__digested_password',
 );
+
+has _scram_client => (
+    is      => 'ro',
+    isa     => 'Authen::SCRAM::Client',
+    lazy    => 1,
+    builder => '_build__scram_client',
+);
+
+sub _build__scram_client {
+    my ($self) = @_;
+    return Authen::SCRAM::Client->new(
+        username      => $self->username,
+        password      => $self->_digested_password,
+        skip_saslprep => 1,
+    );
+}
 
 sub _build__digested_password {
     my ($self) = @_;
@@ -259,8 +276,25 @@ sub _authenticate_GSSAPI {
 }
 
 sub _authenticate_SCRAM_SHA_1 {
-    my ($self) = @_;
-    die "unimplemented";
+    my ( $self, $link ) = @_;
+
+    my $client = $self->_scram_client;
+
+    my ( $msg, $sasl_resp, $conv_id, $done );
+    try {
+        $msg = $client->first_msg;
+        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $msg, 'SCRAM-SHA-1' );
+        $msg = $client->final_msg($sasl_resp);
+        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $msg, $conv_id );
+        $client->validate($sasl_resp);
+        # might require an empty payload to complete SASL conversation
+        $self->_sasl_continue( $link, "", $conv_id ) if !$done;
+    }
+    catch {
+        MongoDB::Error->throw("SCRAM-SHA-1 error: $_");
+    };
+
+    return 1;
 }
 
 #--------------------------------------------------------------------------#
