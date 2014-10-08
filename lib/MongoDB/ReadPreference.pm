@@ -68,4 +68,17 @@ sub for_mongos {
     };
 }
 
+sub as_string {
+    my ($self) = @_;
+    my $string = $self->mode;
+    unless ( $self->has_empty_tagsets ) {
+        my @ts;
+        for my $set ( @{ $self->tagsets } ) {
+            push @ts, keys(%$set) ? join( ",", map { "$_\:$set->{$_}" } sort keys %$set ) : "";
+        }
+        $string .= " (" . join( ",", map { "{$_}" } @ts ) . ")";
+    }
+    return $string;
+}
+
 1;
