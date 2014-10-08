@@ -124,7 +124,7 @@ for my $s (qw/hosts passives arbiters/) {
         isa     => 'HostAddressList',
         lazy    => 1,
         builder => "_build_$s",
-        coerce => 1,
+        coerce  => 1,
     );
 
     no strict 'refs';
