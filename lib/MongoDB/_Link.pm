@@ -125,6 +125,13 @@ sub set_metadata {
     return;
 }
 
+sub accepts_wire_version {
+    my ($self, $version) = @_;
+    my $min = $self->{min_wire_version} || 0;
+    my $max = $self->{max_wire_version} || 0;
+    return $version >= $min && $version <= $max;
+}
+
 sub start_ssl {
     my ( $self, $host ) = @_;
 
