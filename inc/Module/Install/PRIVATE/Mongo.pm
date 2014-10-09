@@ -51,9 +51,9 @@ sub mongo {
 
     if ( $conf->{BSON_HAVE_CLOCK_GETTIME} ) {
         my $libs = $self->makemaker_args->{LIBS};
-        $libs = [] unless defined $libs;
+        $libs = [""] unless defined $libs;
         for my $part ( @$libs) {
-          $part .= " -lrt";
+          $part .= (length($part)  ? " " : "") . "-lrt";
         }
         $self->makemaker_args->{LIBS} = $libs;;
     }
