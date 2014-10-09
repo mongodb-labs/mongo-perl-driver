@@ -27,7 +27,9 @@ use MongoDB::Cursor;
 use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use MongoDB::Error;
+use Authen::SCRAM::Client 0.003;
 use Digest::MD5;
+use MIME::Base64 qw/encode_base64 decode_base64/;
 use Tie::IxHash;
 use Time::HiRes qw/usleep/;
 use Carp 'carp', 'croak';
@@ -862,12 +864,30 @@ sub rs_refresh {
 
 sub authenticate {
     my ($self, $dbname, $username, $password, $is_digest) = @_;
-    my $hash = $password;
-    
-    # create a hash if the password isn't yet encrypted
+    my $hash;
+
     if (!$is_digest) {
-        $hash = Digest::MD5::md5_hex("${username}:mongo:${password}");
+        $hash = Digest::MD5::md5_hex(encode("UTF-8", "${username}:mongo:${password}"));
     }
+    else {
+        $hash = $password;
+    }
+
+    # find out if we support SCRAM-SHA-1
+    my $result = eval {
+        $self->get_database( $self->db_name )->_try_run_command( { "ismaster" => 1 } );
+    };
+
+    if ( $result && exists($result->{maxWireVersion}) && $result->{maxWireVersion} >= 3 ) {
+        return $self->_authenticate_scram_sha_1( $dbname, $username, $hash );
+    }
+    else {
+        return $self->_authenticate_mongodb_cr( $dbname, $username, $hash );
+    }
+}
+
+sub _authenticate_mongodb_cr {
+    my ($self, $dbname, $username, $hash) = @_;
 
     # get the nonce
     my $db = $self->get_database($dbname);
@@ -886,10 +906,37 @@ sub authenticate {
              nonce => $nonce,
              key => $digest);
     $result = $db->run_command($login);
-    
+
     return $result;
 }
 
+sub _authenticate_scram_sha_1 {
+    my ($self, $dbname, $username, $hash) = @_;
+
+    my $client = Authen::SCRAM::Client->new(
+        username      => $username,
+        password      => $hash,
+        skip_saslprep => 1,
+    );
+
+    my ( $msg, $res, $sasl_resp, $conv_id, $done );
+    try {
+        $msg = encode_base64($client->first_msg, "");
+        $res = $self->_sasl_start( $msg, 'SCRAM-SHA-1', $dbname );
+        ( $sasl_resp, $conv_id, $done ) = @{$res}{qw/payload conversationId done/};
+        $msg = encode_base64($client->final_msg(decode_base64($sasl_resp)), "");
+        $res = $self->_sasl_continue( $msg, $conv_id, $dbname );
+        ( $sasl_resp, $conv_id, $done ) = @{$res}{qw/payload conversationId done/};
+        $client->validate(decode_base64($sasl_resp));
+        # might require an empty payload to complete SASL conversation
+        $res = $self->_sasl_continue( "", $conv_id, $dbname ) if !$done;
+    }
+    catch {
+        croak "Authentication failed: SCRAM-SHA-1 error: $_";
+    };
+
+    return $res;
+}
 
 sub fsync {
     my ($self, $args) = @_;
@@ -916,25 +963,26 @@ sub _w_want_safe {
     return 1;
 }
 
-sub _sasl_check { 
+sub _sasl_check {
     my ( $self, $res ) = @_;
 
     die "Invalid SASL response document from server:"
-        unless reftype $res eq reftype { };
+        unless ref $res eq 'HASH';
 
     if ( $res->{ok} != 1 ) { 
-        die "SASL authentication error: $res->{errmsg}";
+        croak "SASL authentication error: $res->{errmsg}";
     }
 
     return $res->{conversationId};
 }
 
-sub _sasl_start { 
-    my ( $self, $payload, $mechanism ) = @_;
+sub _sasl_start {
+    my ( $self, $payload, $mechanism, $database ) = @_;
+    $database ||= '$external';
 
     # warn "SASL start, payload = [$payload], mechanism = [$mechanism]\n";
 
-    my $res = $self->get_database( '$external' )->run_command( [ 
+    my $res = $self->get_database( $database )->run_command( [
         saslStart     => 1,
         mechanism     => $mechanism,
         payload       => $payload,
@@ -945,12 +993,13 @@ sub _sasl_start {
 }
 
 
-sub _sasl_continue { 
-    my ( $self, $payload, $conv_id ) = @_;
+sub _sasl_continue {
+    my ( $self, $payload, $conv_id, $database ) = @_;
+    $database ||= '$external';
 
     # warn "SASL continue, payload = [$payload], conv ID = [$conv_id]";
 
-    my $res = $self->get_database( '$external' )->run_command( [ 
+    my $res = $self->get_database( $database )->run_command( [
         saslContinue     => 1,
         conversationId   => $conv_id,
         payload          => $payload
