@@ -29,8 +29,8 @@ Linux, Fedora, etc.) should issue the following command:
 
 Configuration requires the following Perl modules:
 
-* Config::AutoConf
-* Path::Tiny
+* Config::AutoConf (0.22 or later)
+* Path::Tiny (0.052 or later)
 
 If you are using a modern CPAN client (anything since Perl v5.12), these will
 be installed automatically as needed.  If you have an older CPAN client or are
@@ -120,21 +120,44 @@ If your libssl or libgsasl libraries are in a non-standard location, you
 will need to pass custom arguments to the `Makefile.PL` using the `LIBS`
 parameter.
 
-Due to a quirk in ExtUtils::MakeMaker, this will override any
-libraries set by Makefile.PL and you will need to specify them all on the
-command line.  You should first run `Makefile.PL` without any arguments and
-look in the generated `Makefile` for the `LIBS` parameter in the commented
-section at the top.
+Due to a quirk in ExtUtils::MakeMaker, this will override any libraries set
+by Makefile.PL and you will need to specify them all on the command line.
+The list will differ by platform so you need to figure out what would have
+been in `LIBS` and then add your custom information to it..
 
-Then, add your library path and library flags to that and pass it on the
-command line.  Be sure your include path is available to your compiler.
+You should first run `Makefile.PL` with your desired flags and look in the
+generated `Makefile` for the `LIBS` parameter in the commented section at
+the top.
 
-For example, assuming libgsasl is installed in /opt/local:
+For example (on a Linux machine):
+
+    $ perl Makefile.PL --ssl --sasl
+    $ grep "LIBS =>" Makefile
+    #     LIBS => [q[-lssl -lcrypto -lgsasl -lrt]]
+
+Or, on Mac OSX:
+
+    $ perl Makefile.PL --ssl --sasl
+    $ grep "LIBS =>" Makefile
+    #     LIBS => [q[-lssl -lcrypto -lgsasl]]
+
+Then, prepend your library path to the `q[]` quoted part of the Makefile
+line and pass it as the `LIBS` argument on the command line.  Be sure your
+include path is available to your compiler, possibly with the
+`C_INCLUDE_PATH` environment variable.
+
+For example, assuming we use the Linux example above with libssl-dev
+installed normally in `/usr/local` but libgsasl installed in `/opt/local`,
+we need to configure the include and lib paths so that libgsasl can be
+found.
+
+The `LIBS` line in the Makefile had `q[-lssl -lcrypto -lgsasl -lrt]` so
+we prepend `-L/opt/local/lib` and use that for the `LIBS` parameter on
+the command line:
 
     $ export C_INCLUDE_PATH=/opt/local/include
-    $ perl Makefile.PL --sasl LIBS="-L/opt/local/lib -lgsasl -lrt"
-
-The specific list of libraries may be different by platform.
+    $ perl Makefile.PL --ssl --sasl \
+        LIBS="-L/opt/local/lib -lssl -lcrypto -lgsasl -lrt"
 
 Note: even though you specify the libraries and paths with `LIBS` you will
 still need to pass "--ssl" or "--sasl" (or set the corresponding
