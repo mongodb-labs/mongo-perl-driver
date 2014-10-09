@@ -26,7 +26,7 @@ use MongoDB;
 use Test::More;
 use version;
 
-our @EXPORT_OK = ( 'build_client', 'get_test_db', 'server_version', 'server_type' );
+our @EXPORT_OK = ( 'build_client', 'get_test_db', 'server_version', 'server_type', 'clear_testdbs' );
 my @testdbs;
 
 # abstract building a connection
@@ -95,7 +95,10 @@ sub server_type {
     else {
         $server_type = 'Unknown';
     }
+    return $server_type;
 }
+
+sub clear_testdbs { @testdbs = () }
 
 # cleanup test dbs
 END {
