@@ -32,7 +32,7 @@ use MongoDB;
 # Or, vagrant can set up host names in /etc/hosts and copy
 # /etc/krb5.config from one of the vagrant boxes.
 #
-# Be sure to run kinit for the username below
+# Be sure to run kinit for the gssapitest username
 
 subtest "no auth" => sub {
     my $mc = MongoDB::MongoClient->new(
@@ -50,20 +50,17 @@ subtest "no auth" => sub {
 };
 
 subtest "auth fails" => sub {
-    my $mc = MongoDB::MongoClient->new(
-        host                        => 'mongodb://rhel64.mongotest.com/',
-        username                    => 'bogus@MONGOTEST.COM',
-        auth_mechanism              => 'GSSAPI',
-        server_selection_timeout_ms => 1000,
-    );
-
-    my $coll = $mc->get_database("test")->get_collection("foo");
-
-    # XXX eventually, this should fail fast with a better message
     like(
-        exception { ok( $coll->insert( { name => 'johndoe' } ), "insert" ) },
-        qr/No writable server/,
-        "insert failed because no server authenticated",
+        exception {
+            my $mc = MongoDB::MongoClient->new(
+                host                        => 'mongodb://rhel64.mongotest.com/',
+                username                    => 'bogus@MONGOTEST.COM',
+                auth_mechanism              => 'GSSAPI',
+                server_selection_timeout_ms => 1000,
+            );
+        },
+        qr/Authentication.*failed/,
+        "authentication fails",
     );
 
 };
@@ -94,19 +91,16 @@ subtest "auth OK via connect string" => sub {
 };
 
 subtest "auth fails via connect string to wrong realm" => sub {
-    my $mc = MongoDB::MongoClient->new(
-        host =>
-          'mongodb://gssapitest%40MONGOTEST.COM@rhel64.mongotest.com/?authMechanism=GSSAPI&authMechanism.SERVICE_NAME=mongo',
-        server_selection_timeout_ms => 1000,
-    );
-
-    my $coll = $mc->get_database("test")->get_collection("foo");
-
-    # XXX eventually, this should fail fast with a better message
     like(
-        exception { ok( $coll->insert( { name => 'johndoe' } ), "insert" ) },
-        qr/No writable server/,
-        "insert failed because no server authenticated",
+        exception {
+            my $mc = MongoDB::MongoClient->new(
+                host =>
+                'mongodb://gssapitest%40MONGOTEST.COM@rhel64.mongotest.com/?authMechanism=GSSAPI&authMechanism.SERVICE_NAME=mongo',
+                server_selection_timeout_ms => 1000,
+            );
+        },
+        qr/Authentication.*failed/,
+        "authentication fails",
     );
 
 };

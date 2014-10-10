@@ -284,10 +284,7 @@ sub _build_auth_mechanism {
         return $mech;
     }
     elsif ( $self->username ) {
-        # XXX assuming mechanism isn't set explicitly or via URI, then
-        # having a username means CR; this will change with SCRAM-SHA-1
-        # for server version 2.8
-        return 'MONGODB-CR';
+        return 'DEFAULT';
     }
     else {
         return 'NONE';
@@ -834,7 +831,7 @@ sub authenticate {
     my ( $self, $db_name, $username, $password, $is_digest ) = @_;
 
     # set client properties
-    $self->_set_auth_mechanism('MONGODB-CR');
+    $self->_set_auth_mechanism('DEFAULT');
     $self->_set_auth_mechanism_properties( {} );
     $self->db_name($db_name);
     $self->username($username);

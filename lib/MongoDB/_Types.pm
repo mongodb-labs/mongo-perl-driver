@@ -38,12 +38,13 @@ sub connection_uri_re {
 
 my $uri_re = MongoDB::_Types::connection_uri_re();
 
-enum 'AuthMechanism', [qw/NONE MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1/];
+enum 'AuthMechanism',
+  [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1/];
 
 enum 'ClusterType',
   [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Unknown/];
 
-enum 'ConnectType', [ qw/replicaSet direct none/ ];
+enum 'ConnectType', [qw/replicaSet direct none/];
 
 enum 'ServerType',
   [
@@ -74,7 +75,6 @@ subtype NonEmptyStr => as 'Str' => where { defined $_ && length $_ };
 # Error string has to be a true value
 subtype ErrorStr => as 'Str' => where { $_ };
 
-
 # XXX loose address validation for now.  Host part should really be hostname or
 # IPv4/IPv6 literals
 subtype
@@ -92,7 +92,7 @@ subtype
 coerce ArrayOfHashRef => from 'HashRef'           => via { [$_] };
 coerce DBRefColl      => from 'MongoDBCollection' => via { $_->name };
 coerce DBRefDB        => from 'MongoDBDatabase'   => via { $_->name };
-coerce HostAddress    => from 'Str'               => via { /:/ ? lc $_ : lc "$_:27017" };
+coerce HostAddress => from 'Str' => via { /:/ ? lc $_ : lc "$_:27017" };
 coerce ReadPrefMode => from 'Str' =>
   via { $_ = lc $_; s/_?preferred/Preferred/; $_ };
 coerce booleanpm => from 'Any' => via { boolean($_) };

@@ -33,16 +33,15 @@ use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
 
 use constant {
-    HAS_THREADS            => $Config{usethreads},
-    P_INT32                => $] lt '5.010' ? 'l' : 'l<',
-    MAX_BSON_OBJECT_SIZE   => 4_194_304,
-    MAX_WRITE_BATCH_SIZE   => 1000,
+    HAS_THREADS          => $Config{usethreads},
+    P_INT32              => $] lt '5.010' ? 'l' : 'l<',
+    MAX_BSON_OBJECT_SIZE => 4_194_304,
+    MAX_WRITE_BATCH_SIZE => 1000,
 };
-
 
 # fake thread-id for non-threaded perls
 use if HAS_THREADS, 'threads';
-*_get_tid = HAS_THREADS() ? sub { threads->tid } : sub () {0};
+*_get_tid = HAS_THREADS() ? sub { threads->tid } : sub () { 0 };
 
 my $SOCKET_CLASS =
   eval { require IO::Socket::IP; IO::Socket::IP->VERSION(0.25) }
@@ -50,18 +49,20 @@ my $SOCKET_CLASS =
   : 'IO::Socket::INET';
 
 sub new {
-    @_ == 2 || @_ == 3 || Carp::confess( q/Usage: MongoDB::_Link->new(address, [arg hashref])/ . "\n" );
+    @_ == 2
+      || @_ == 3
+      || Carp::confess( q/Usage: MongoDB::_Link->new(address, [arg hashref])/ . "\n" );
     my ( $class, $address, $args ) = @_;
     my ( $host, $port ) = split /:/, $address;
     Carp::confess("new requires 'host:port' address argument")
-        unless defined($host) && length($host) && defined($port) && length($port);
+      unless defined($host) && length($host) && defined($port) && length($port);
     my $self = bless {
-        host               => $host,
-        port               => $port,
-        address            => "$host:$port",
-        timeout            => 60,
-        with_ssl           => 0,
-        SSL_options        => {},
+        host        => $host,
+        port        => $port,
+        address     => "$host:$port",
+        timeout     => 60,
+        with_ssl    => 0,
+        SSL_options => {},
         ( $args ? (%$args) : () ),
     }, $class;
     return $self;
@@ -69,14 +70,14 @@ sub new {
 
 sub connect {
     @_ == 1 || Carp::confess( q/Usage: $handle->connect()/ . "\n" );
-    my ( $self ) = @_;
+    my ($self) = @_;
 
-    if ($self->{with_ssl}) {
+    if ( $self->{with_ssl} ) {
         $self->_assert_ssl;
         # XXX possibly make SOCKET_CLASS an instance variable and set it here to IO::Socket::SSL
     }
 
-    my ($host, $port) = @{$self}{qw/host port/};
+    my ( $host, $port ) = @{$self}{qw/host port/};
 
     $self->{fh} = $SOCKET_CLASS->new(
         PeerHost => $host,
@@ -99,11 +100,11 @@ sub connect {
 }
 
 my @accessors = qw(
-    address server min_wire_version max_wire_version
-    max_message_size_bytes max_write_batch_size max_bson_object_size
+  address server min_wire_version max_wire_version
+  max_message_size_bytes max_write_batch_size max_bson_object_size
 );
 
-for my $attr ( @accessors ) {
+for my $attr (@accessors) {
     no strict 'refs';
     *{$attr} = eval "sub { \$_[0]->{$attr} }";
 }
@@ -123,6 +124,13 @@ sub set_metadata {
       $server->is_master->{maxMessageSizeBytes} || 2 * $self->{max_bson_object_size};
 
     return;
+}
+
+sub accepts_wire_version {
+    my ( $self, $version ) = @_;
+    my $min = $self->{min_wire_version} || 0;
+    my $max = $self->{max_wire_version} || 0;
+    return $version >= $min && $version <= $max;
 }
 
 sub start_ssl {
@@ -160,8 +168,8 @@ sub connection_valid {
 
     if (  !$self->{fh}->connected
         || $self->{pid} != $$
-        || $self->{tid} != _get_tid()
-    ) {
+        || $self->{tid} != _get_tid() )
+    {
         $self->{fh}->close;
         delete $self->{fh};
         return;
@@ -179,8 +187,8 @@ sub remote_connected {
 
 sub assert_valid_connection {
     my ($self) = @_;
-    Carp::confess("connection lost to " . $self->address )
-        unless $self->connection_valid;
+    Carp::confess( "connection lost to " . $self->address )
+      unless $self->connection_valid;
     return 1;
 }
 
@@ -198,15 +206,19 @@ sub write {
     my $len = length $buf;
     my $off = 0;
 
-    if ( exists $self->{max_message_size_bytes} && $len > $self->{max_message_size_bytes} ) {
-        Carp::confess(qq/Message of size $len exceeds maximum of / . $self->{max_message_size_bytes});
+    if ( exists $self->{max_message_size_bytes}
+        && $len > $self->{max_message_size_bytes} )
+    {
+        Carp::confess(
+            qq/Message of size $len exceeds maximum of / . $self->{max_message_size_bytes} );
     }
 
     local $SIG{PIPE} = 'IGNORE';
 
     while () {
         $self->can_write
-          or Carp::confess(qq/Timed out while waiting for socket to become ready for writing\n/);
+          or Carp::confess(
+            qq/Timed out while waiting for socket to become ready for writing\n/);
         my $r = syswrite( $self->{fh}, $buf, $len, $off );
         if ( defined $r ) {
             $len -= $r;
@@ -254,7 +266,8 @@ sub _read_bytes {
 
     while ( $len > 0 ) {
         $self->can_read
-          or Carp::confess( q/Timed out while waiting for socket to become ready for reading/ . "\n" );
+          or Carp::confess(
+            q/Timed out while waiting for socket to become ready for reading/ . "\n" );
         my $r = sysread( $self->{fh}, $$bufref, $len, length $$bufref );
         if ( defined $r ) {
             last unless $r;
@@ -318,7 +331,9 @@ sub can_read {
 }
 
 sub can_write {
-    @_ == 1 || @_ == 2 || Carp::confess( q/Usage: $handle->can_write([timeout])/ . "\n" );
+    @_ == 1
+      || @_ == 2
+      || Carp::confess( q/Usage: $handle->can_write([timeout])/ . "\n" );
     my $self = shift;
     return $self->_do_timeout( 'write', @_ );
 }
@@ -354,7 +369,8 @@ sub _find_CA_file {
         return $ca_bundle if -e $ca_bundle;
     }
 
-    Carp::confess qq/Couldn't find a CA bundle with which to verify the SSL certificate.\n/
+    Carp::confess
+      qq/Couldn't find a CA bundle with which to verify the SSL certificate.\n/
       . qq/Try installing Mozilla::CA from CPAN\n/;
 }
 

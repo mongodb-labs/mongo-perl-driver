@@ -218,8 +218,10 @@ sub get_readable_link {
         return $link;
     }
     else {
+        my $rp = $read_pref->as_string;
         MongoDB::ConnectionError->throw(
-            "No readable server matching read preference available");
+            "No readable server available for matching read preference $rp. MongoDB server status:\n"
+              . $self->_status_string );
     }
 }
 
@@ -246,7 +248,8 @@ sub get_writable_link {
         return $link;
     }
     else {
-        MongoDB::ConnectionError->throw("No writable server available");
+        MongoDB::ConnectionError->throw(
+            "No writable server available.  MongoDB server status:\n" . $self->_status_string );
     }
 }
 
@@ -284,11 +287,14 @@ sub scan_all_servers {
 #--------------------------------------------------------------------------#
 
 sub _add_address_as_unknown {
-    my ( $self, $address, $last_update ) = @_;
+    my ( $self, $address, $last_update, $error ) = @_;
+    $error = $error ? "$error" : "";
+    $error =~ s/ at \S+ line \d+.*//ms;
 
     $self->servers->{$address} = MongoDB::_Server->new(
         address          => $address,
         last_update_time => $last_update || EPOCH,
+        error            => $error,
     );
 
     return;
@@ -329,14 +335,11 @@ sub _check_wire_versions {
 
 sub _dump {
     my ($self) = @_;
-    printf( "Cluster type: %s\n", $self->type );
-    printf( "Replica set: %s\n",  $self->replica_set_name );
-    printf( "%s (%s)\n",          $_->address, $_->type ) for $self->all_servers;
-    return;
+    print $self->_status_string . "\n";
 }
 
 sub _find_any_link {
-    my ( $self ) = @_;
+    my ($self) = @_;
     return $self->_get_link_in_latency_window(
         [ grep { $_->is_available } $self->all_servers ] );
 }
@@ -401,7 +404,7 @@ sub _get_link_in_latency_window {
 sub _get_server_link {
     my ( $self, $server ) = @_;
     my $address = $server->address;
-    my $link = $self->links->{$address};
+    my $link    = $self->links->{$address};
     return $link && $link->remote_connected ? $link : $self->_initialize_link($address);
 }
 
@@ -414,25 +417,39 @@ sub _initialize_link {
     my ( $self, $address ) = @_;
 
     my $link = try {
-        my $inner = MongoDB::_Link->new( $address, $self->link_options )->connect;
-        $self->credential->authenticate( $inner );
-        return $inner;
+        MongoDB::_Link->new( $address, $self->link_options )->connect;
+    }
+    catch {
+        # if connection failed, update cluster with Unknown description
+        $self->_reset_address_to_unknown( $address, $_ );
+        return;
     };
 
-    if ( $link ) {
-        $self->links->{$address} = $link;
-        $self->_update_cluster_from_link( $address, $link );
-        return $self->links->{$address}; # might be undef if the update killed it
+    return unless $link;
+
+    # connection succeeded, so register link and get a server description
+    $self->links->{$address} = $link;
+    $self->_update_cluster_from_link( $address, $link );
+
+    # after update, server might or might not exist in the topology;
+    # if not, return nothing
+    return unless my $server = $self->servers->{$address};
+
+    # we have a link and the server is a valid member, so
+    # try to authenticate; if authentication fails, all
+    # servers are considered invalid and we throw an error
+    if ( $server->type eq any(qw/Standalone Mongos RSPrimary RSSecondary/) ) {
+        try {
+            $self->credential->authenticate($link);
+        }
+        catch {
+            my $err = $_;
+            $self->_reset_address_to_unknown( $_->address, $err ) for $self->all_servers;
+            MongoDB::Error->throw("Authentication to $address failed: $err");
+        };
     }
 
-    # connection failed, so update cluster with Unknown description
-    my $new_server = MongoDB::_Server->new(
-        address          => $address,
-        last_update_time => [ gettimeofday() ],
-        is_master        => {},
-    );
-    $self->_update_cluster_from_server_desc( $address, $new_server );
-    return;
+    return $link;
 }
 
 sub _primaries {
@@ -451,12 +468,12 @@ sub _remove_server {
     return;
 }
 
-sub _reset_server_to_unknown {
-    my ( $self, $server ) = @_;
+sub _reset_address_to_unknown {
+    my ( $self, $address, $error, $update_time ) = @_;
+    $update_time ||= [gettimeofday];
 
-    my ( $address, $update ) = @{$server}{qw/address last_update_time/};
-    $self->_remove_server($server);
-    $self->_add_address_as_unknown( $address, $update );
+    $self->_remove_address($address);
+    $self->_add_address_as_unknown( $address, $update_time, $error );
 
     return;
 }
@@ -473,6 +490,21 @@ sub _secondaries {
         my $ts = $read_pref->tagset;
         return grep { $_->matches_tagset($ts) } @secondaries;
     }
+}
+
+sub _status_string {
+    my ($self) = @_;
+    my $status = '';
+    if ( $self->type =~ /^Replica/ ) {
+        $status .= sprintf( "Topology type: %s; Set name: %s, Member status:\n",
+            $self->type, $self->replica_set_name );
+    }
+    else {
+        $status .= sprintf( "Topology type: %s; Member status:\n", $self->type );
+    }
+
+    $status .= join( "\n", map { "  $_" } map { $_->status_string } $self->all_servers );
+    return $status;
 }
 
 # this implements the server selection timeout around whatever actual method
@@ -501,15 +533,24 @@ sub _update_cluster_from_link {
     my ( $self, $address, $link ) = @_;
 
     my $start_time = [ gettimeofday() ];
-    my $is_master  = eval { $self->_send_admin_command( $link, [ ismaster => 1 ] )->result };
-    my $end_time   = [ gettimeofday() ];
-    my $rtt_ms     = int( 1000 * tv_interval( $start_time, $end_time ) );
+    my $is_master  = try {
+        $self->_send_admin_command( $link, [ ismaster => 1 ] )->result;
+    }
+    catch {
+        $self->_reset_address_to_unknown( $link->address, $_, [ gettimeofday() ] );
+        return;
+    };
 
-    # if no $is_master, then we're updating with an Unknown
+    return unless $is_master;
+
+    my $end_time = [ gettimeofday() ];
+    my $rtt_ms = int( 1000 * tv_interval( $start_time, $end_time ) );
+
     my $new_server = MongoDB::_Server->new(
         address          => $address,
         last_update_time => $end_time,
-        ( $is_master ? ( rtt_ms => $rtt_ms, is_master => $is_master ) : () ),
+        rtt_ms           => $rtt_ms,
+        is_master        => $is_master,
     );
 
     $self->_update_cluster_from_server_desc( $address, $new_server );
@@ -518,7 +559,7 @@ sub _update_cluster_from_link {
 }
 
 sub _update_cluster_from_server_desc {
-    my ($self, $address, $new_server) = @_;
+    my ( $self, $address, $new_server ) = @_;
 
     # ignore spurious result not in the set; this isn't strictly necessary
     # for single-threaded operation, but spec tests expect it and if we
@@ -609,8 +650,13 @@ sub _update_rs_with_primary_from_primary {
 
     # possibly invalidate an old primary (even if more than one!)
     for my $old_primary ( $self->_primaries ) {
-        $self->_reset_server_to_unknown($old_primary)
-          unless $old_primary->address eq $new_server->address;
+        if ( $old_primary->address ne $new_server->address ) {
+            $self->_reset_address_to_unknown(
+                $old_primary->address,
+                "no longer primary; update needed",
+                $old_primary->last_update_time
+            );
+        }
     }
 
     # unknown set members need to be added to the cluster

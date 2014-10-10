@@ -52,6 +52,22 @@ subtest "no authentication" => sub {
     );
 };
 
+subtest "bad authentication" => sub {
+    like(
+        exception {
+            my $conn   = MongoDB::MongoClient->new(
+                host => $ENV{MONGOD},
+                username => "baduser",
+                password => "passWORD",
+                dt_type => undef,
+                server_selection_timeout_ms => 1000,
+            );
+        },
+        qr/Authentication.*failed/,
+        "auth fails with useful error"
+    );
+};
+
 subtest "with authentication" => sub {
     my $conn   = MongoDB::MongoClient->new(
         host => $ENV{MONGOD},

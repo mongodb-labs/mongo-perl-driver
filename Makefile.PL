@@ -11,6 +11,7 @@ author 'David.Golden <david.golden@mongodb.com>';
 license 'Apache';
 all_from 'lib/MongoDB.pm';
 
+requires 'Authen::SCRAM::Client' => '0.003';
 requires 'Carp';
 requires 'Class::MOP::Class';
 requires 'DateTime' => '0.78';

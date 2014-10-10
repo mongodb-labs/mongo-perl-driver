@@ -29,6 +29,28 @@ like(
     "tags not allowed with primary"
 );
 
+subtest "stringification" => sub {
+    my $rp;
+
+    my @cases = (
+        [ {} => 'primary' ],
+        [ { mode => 'secondary_preferred' }, 'secondaryPreferred' ],
+        [
+            {
+                mode    => 'secondary_preferred',
+                tagsets => [ { dc => 'ny', rack => 1 }, { dc => 'ny' }, {} ]
+            },
+            'secondaryPreferred ({dc:ny,rack:1},{dc:ny},{})'
+        ],
+    );
+
+    for my $case (@cases) {
+        my $rp = $class->new( $case->[0] );
+        is( $rp->as_string, $case->[1], $case->[1] );
+    }
+
+};
+
 done_testing;
 
 # vim: ts=4 sts=4 sw=4 et:
