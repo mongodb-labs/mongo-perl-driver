@@ -160,19 +160,26 @@ sub _send_update {
     return $self->_write_legacy_op( "update", $link, $ns, $op_bson, $write_concern, $op_doc );
 }
 
-# returns a hashref with fields: response_flags, cursor_id, starting_from, number_returned, docs, address
+# returns a QueryResult
 sub _send_query {
-    my ( $self, $link, $ns, $query, $fields, $skip, $size, $flags, $client ) = @_;
+    my ( $self, $link, $ns, $query, $fields, $skip, $limit, $size, $flags, $client ) = @_;
 
     $query = MongoDB::BSON::encode_bson( $query, 0 );
     $fields = MongoDB::BSON::encode_bson( $fields, 0 ) if $fields;
 
     my ( $op_bson, $request_id ) =
-      MongoDB::_Protocol::write_query( $ns, $query, $fields, $skip, $size, $flags );
+      MongoDB::_Protocol::write_query( $ns, $query, $fields, $skip, $limit || $size, $flags );
 
     my $result = $self->_write_and_receive( $link, $op_bson, $request_id, $client, 0 );
-    $result->{address} = $link->address;
-    return $result;
+
+    return MongoDB::QueryResult->new(
+        _client    => $self,
+        address    => $link->address,
+        ns         => $ns,
+        limit      => $limit,
+        batch_size => $limit || $size,
+        result     => $result,
+    );
 }
 
 sub _write_legacy_op {

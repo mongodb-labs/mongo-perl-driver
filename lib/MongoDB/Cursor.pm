@@ -17,7 +17,7 @@
 package MongoDB::Cursor;
 
 
-# ABSTRACT: A cursor/iterator for Mongo query results
+# ABSTRACT: A lazy cursor for Mongo query results
 
 use version;
 our $VERSION = 'v0.704.4.1';
@@ -26,6 +26,7 @@ use Moose;
 use MongoDB;
 use MongoDB::BSON;
 use MongoDB::Error;
+use MongoDB::QueryResult;
 use MongoDB::_Protocol;
 use MongoDB::_Types;
 use boolean;
@@ -101,74 +102,9 @@ after the database is queried.
 
 =cut
 
-with 'MongoDB::Role::_HasReadPreference';
+with 'MongoDB::Role::_HasReadPreference', 'MongoDB::Role::_Cursor';
 
-has started_iterating => (
-    is => 'rw',
-    isa => 'Bool',
-    required => 1,
-    default => 0,
-);
-
-has _docs => (
-    is      => 'ro',
-    isa     => 'ArrayRef',
-    traits  => ['Array'],
-    default => sub { [] },
-    handles => {
-        _drained   => 'is_empty',
-        _doc_count => 'count',
-        _add_docs  => 'push',
-        _next_doc  => 'shift',
-        _clear_docs => 'clear',
-    },
-);
-
-has _cursor_start => (
-    is => 'rw',
-    isa => 'Num',
-    default => 0,
-);
-
-has _cursor_id => (
-    is => 'rw',
-    isa => 'Str',
-    default => CURSOR_ZERO,
-);
-
-has _cursor_flags => (
-    is => 'rw',
-    isa => 'HashRef',
-    default => sub { {} },
-);
-
-has _cursor_num => (
-    is => 'rw',
-    isa => 'Num',
-    traits => ['Counter'],
-    default => 0,
-    handles => {
-        _inc_cursor_num => 'inc',
-        _clear_cursor_num => 'reset',
-    },
-);
-
-has _cursor_at => (
-    is => 'rw',
-    isa => 'Num',
-    traits => ['Counter'],
-    default => 0,
-    handles => {
-        _inc_cursor_at => 'inc',
-        _clear_cursor_at => 'reset',
-    },
-);
-
-has _cursor_from => (
-    is     => 'ro',
-    isa    => 'HostAddress',
-    writer => '_set_cursor_from',
-);
+# general attributes
 
 has _client => (
     is => 'rw',
@@ -181,6 +117,8 @@ has _ns => (
     isa => 'Str',
     required => 1,
 );
+
+# attributes for sending a query
 
 has _query => (
     is => 'rw',
@@ -222,6 +160,40 @@ has _query_options => (
     default => sub { { slave_ok => !! $MongoDB::Cursor::slave_okay } },
 );
 
+# lazy result attribute
+has result => (
+    is        => 'ro',
+    isa       => 'MongoDB::QueryResult',
+    lazy      => 1,
+    builder   => '_build_result',
+    predicate => 'started_iterating',
+    clearer   => '_clear_result',
+);
+
+# this does the query if it hasn't been done yet
+sub _build_result {
+    my ($self) = @_;
+    return $self->_client->send_query(
+        $self->_ns,
+        $self->_query,
+        $self->_fields,
+        $self->_skip,
+        $self->_limit,
+        $self->_batch_size,
+        $self->_query_options,
+        ( $self->_has_read_preference ? $self->_read_preference : () )
+    );
+}
+
+#--------------------------------------------------------------------------#
+# methods that modify the query
+#--------------------------------------------------------------------------#
+
+=head1 QUERY MODIFIERS
+
+These methods modify the query to be run.  An exception will be thrown if
+they are called after results are iterated.
+
 =head2 immortal
 
     $cursor->immortal(1);
@@ -251,61 +223,6 @@ sub immortal {
 
     $self->_query_options->{immortal} = !!$bool;
     return $self;
-}
-
-# special flag for parallel scan cursors, since they
-# start out empty
-
-has _is_parallel => (
-    is      => 'ro',
-    isa     => 'Bool',
-    default => 0,
-);
-
-=head1 METHODS
-
-=cut
-
-# this does the query if it hasn't been done yet
-sub _do_query {
-    my ($self) = @_;
-
-    if ($self->started_iterating) {
-        return;
-    }
-    else {
-        $self->started_iterating(1);
-    }
-
-    my $result = $self->_client->send_query(
-        $self->_ns,
-        $self->_query,
-        $self->_fields,
-        $self->_skip,
-        $self->_limit || $self->_batch_size,
-        $self->_query_options,
-        ( $self->_has_read_preference ? $self->_read_preference : () )
-    );
-
-    $self->_cursor_flags( $result->{flags} );
-    $self->_cursor_id( $result->{cursor_id} );
-    $self->_cursor_start( $result->{starting_from} );
-    $self->_inc_cursor_num( $result->{number_returned} );
-    $self->_add_docs( @{ $result->{docs} } );
-    $self->_set_cursor_from( $result->{address} );
-    return scalar @{ $result->{docs} };
-
-}
-
-sub info {
-    my ($self) = @_;
-    return {
-        flag => $self->_cursor_flags,
-        cursor_id => $self->_cursor_id,
-        start => $self->_cursor_start,
-        at => $self->_cursor_at,
-        num => $self->_cursor_num,
-    }
 }
 
 =head2 fields (\%f)
@@ -498,235 +415,6 @@ sub hint {
     return $self;
 }
 
-=head2 explain
-
-    my $explanation = $cursor->explain;
-
-This will tell you the type of cursor used, the number of records the DB had to
-examine as part of this query, the number of records returned by the query, and
-the time in milliseconds the query took to execute.  Requires L<boolean> package.
-
-C<explain> resets the cursor, so calling C<next> or C<has_next> after an explain
-will requery the database.
-
-See also core documentation on explain:
-L<http://dochub.mongodb.org/core/explain>.
-
-=cut
-
-sub explain {
-    my ($self) = @_;
-    confess "cannot explain a parallel scan"
-        if $self->_is_parallel;
-    my $temp = $self->_limit;
-    if ($self->_limit > 0) {
-        $self->_limit($self->_limit * -1);
-    }
-
-    my $old_query = $self->_query;
-    my $new_query = $old_query->clone;
-    $new_query->set_modifier('$explain', boolean::true);
-
-    $self->_set_query( $new_query  );
-
-    my $retval = $self->reset->next;
-
-    $self->_set_query( $old_query );
-    $self->reset->limit($temp);
-
-    return $retval;
-}
-
-=head2 count($all?)
-
-    my $num = $cursor->count;
-    my $num = $cursor->skip(20)->count(1);
-
-Returns the number of document this query will return.  Optionally takes a
-boolean parameter, indicating that the cursor's limit and skip fields should be
-used in calculating the count.
-
-=cut
-
-sub count {
-    my ($self, $all) = @_;
-    # XXX deprecate this unintuitive API?
-
-    confess "cannot count a parallel scan"
-        if $self->_is_parallel;
-
-    my ($db, $coll) = $self->_ns =~ m/^([^\.]+)\.(.*)/;
-    my $cmd = new Tie::IxHash(count => $coll);
-
-    $cmd->Push(query => $self->_query->query_doc);
-
-    if ($all) {
-        $cmd->Push(limit => $self->_limit) if $self->_limit;
-        $cmd->Push(skip => $self->_skip) if $self->_skip;
-    }
-
-    if (my $hint = $self->_query->get_modifier('$hint')) {
-        $cmd->Push(hint => $hint);
-    }
-
-    my $result = try {
-        $self->_client->get_database($db)->_try_run_command($cmd);
-    }
-    catch {
-        # if there was an error, check if it was the "ns missing" one that means the
-        # collection hasn't been created or a real error.
-        die $_ unless /^ns missing/;
-    };
-
-    return $result ? $result->{n} : 0;
-}
-
-
-# shortcut to make some XS code saner
-sub _dt_type { 
-    my $self = shift;
-    return $self->_client->dt_type;
-}
-
-sub _inflate_dbrefs {
-    my $self = shift;
-    return $self->_client->inflate_dbrefs;
-}
-
-sub _inflate_regexps { 
-    my $self = shift;
-    return $self->_client->inflate_regexps;
-}
-
-sub has_next {
-    my ($self) = @_;
-    $self->_do_query unless $self->started_iterating;
-    if ( (my $limit = $self->_limit) > 0 ) {
-          if ($self->_cursor_at + 1 > $limit) {
-            $self->_kill_cursor;
-            return 0;
-        }
-    }
-    return 1 if ! $self->_drained;
-    return $self->_get_more;
-}
-
-sub next {
-    my ($self) = @_;
-    return unless $self->has_next;
-    $self->_inc_cursor_at();
-    return $self->_next_doc;
-}
-
-sub _get_more {
-    my ($self) = @_;
-    return 0 if $self->_cursor_id eq CURSOR_ZERO;
-
-    my $limit = $self->_limit;
-    my $want = $limit > 0 ? ( $limit - $self->_cursor_at  ) : $self->_batch_size;
-
-    my $result = $self->_client->send_get_more(
-        $self->_cursor_from, $self->_ns, $self->_cursor_id, $want,
-    );
-
-    $self->_cursor_flags( $result->{flags} );
-    $self->_cursor_id( $result->{cursor_id} );
-    $self->_inc_cursor_num( $result->{number_returned} );
-    $self->_add_docs( @{ $result->{docs} } );
-    return scalar @{ $result->{docs} };
-}
-
-sub _unpack_docs {
-    my ($self, $data) = @_;
-}
-
-=head2 reset
-
-Resets the cursor.  After being reset, pre-query methods can be
-called on the cursor (sort, limit, etc.) and subsequent calls to
-next, has_next, or all will re-query the database.
-
-=cut
-
-sub reset {
-    my ($self) = @_;
-    confess "cannot reset a parallel scan"
-        if $self->_is_parallel;
-    $self->started_iterating(0);
-    $self->_clear_docs;
-    $self->_kill_cursor;
-    return $self;
-}
-
-=head2 has_next
-
-    while ($cursor->has_next) {
-        ...
-    }
-
-Checks if there is another result to fetch.
-
-
-=head2 next
-
-    while (my $object = $cursor->next) {
-        ...
-    }
-
-Returns the next object in the cursor. Will automatically fetch more data from
-the server if necessary. Returns undef if no more data is available.
-
-=head2 info
-
-Returns a hash of information about this cursor.  Currently the fields are:
-
-=over 4
-
-=item C<cursor_id>
-
-The server-side id for this cursor.  A C<cursor_id> of 0 means that there are no
-more batches to be fetched.
-
-=item C<num>
-
-The number of results returned so far.
-
-=item C<at>
-
-The index of the result the cursor is currently at.
-
-=item C<flag>
-
-If the database could not find the cursor or another error occurred, C<flag> may
-be set (depending on the error).
-See L<http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol#MongoWireProtocol-OPREPLY>
-for a full list of flag values.
-
-=item C<start>
-
-The index of the result that the current batch of results starts at.
-
-=back
-
-=head2 all
-
-    my @objects = $cursor->all;
-
-Returns a list of all objects in the result.
-
-=cut
-
-sub all {
-    my ($self) = @_;
-    my @ret;
-
-    while (my $entry = $self->next) {
-        push @ret, $entry;
-    }
-
-    return @ret;
-}
-
 =head2 partial
 
     $cursor->partial(1);
@@ -783,48 +471,193 @@ sub slave_okay {
     return $self;
 }
 
-sub _kill_cursor {
+=head1 QUERY INTROSPECTION AND RESET
+
+These methods run introspection methods on the query conditions and modifiers
+stored within the cursor object.
+
+=head2 explain
+
+    my $explanation = $cursor->explain;
+
+This will tell you the type of cursor used, the number of records the DB had to
+examine as part of this query, the number of records returned by the query, and
+the time in milliseconds the query took to execute.  Requires L<boolean> package.
+
+C<explain> resets the cursor, so calling C<next> or C<has_next> after an explain
+will requery the database.
+
+See also core documentation on explain:
+L<http://dochub.mongodb.org/core/explain>.
+
+=cut
+
+sub explain {
     my ($self) = @_;
-    return if $self->_cursor_id eq CURSOR_ZERO;
-    $self->_client->send_kill_cursors( $self->_cursor_from, $self->_cursor_id );
-    $self->_cursor_id(CURSOR_ZERO);
+    my $temp = $self->_limit;
+    if ($self->_limit > 0) {
+        $self->_limit($self->_limit * -1);
+    }
+
+    my $old_query = $self->_query;
+    my $new_query = $old_query->clone;
+    $new_query->set_modifier('$explain', boolean::true);
+
+    $self->_set_query( $new_query  );
+
+    my $retval = $self->reset->next;
+
+    $self->_set_query( $old_query );
+    $self->reset->limit($temp);
+
+    return $retval;
 }
 
-sub DESTROY {
-    my ($self) = @_;
-    $self->_kill_cursor;
+=head2 count($all?)
+
+    my $num = $cursor->count;
+    my $num = $cursor->skip(20)->count(1);
+
+Returns the number of document this query will return.  Optionally takes a
+boolean parameter, indicating that the cursor's limit and skip fields should be
+used in calculating the count.
+
+=cut
+
+sub count {
+    my ($self, $all) = @_;
+    # XXX deprecate this unintuitive API?
+
+    my ($db, $coll) = $self->_ns =~ m/^([^\.]+)\.(.*)/;
+    my $cmd = new Tie::IxHash(count => $coll);
+
+    $cmd->Push(query => $self->_query->query_doc);
+
+    if ($all) {
+        $cmd->Push(limit => $self->_limit) if $self->_limit;
+        $cmd->Push(skip => $self->_skip) if $self->_skip;
+    }
+
+    if (my $hint = $self->_query->get_modifier('$hint')) {
+        $cmd->Push(hint => $hint);
+    }
+
+    my $result = try {
+        $self->_client->get_database($db)->_try_run_command($cmd);
+    }
+    catch {
+        # if there was an error, check if it was the "ns missing" one that means the
+        # collection hasn't been created or a real error.
+        die $_ unless /^ns missing/;
+    };
+
+    return $result ? $result->{n} : 0;
 }
 
+
+=head1 QUERY ITERATION
+
+These methods allow you to iterate over results.
+
+=head2 result
+
+    my $result = $cursor->result;
+
+This method will return a L<MongoDB::QueryResult> object with the result of the
+query.  The query will be executed on demand.
+
+Iterating with a MongoDB::QueryResult object directly instead of a
+MongoDB::Cursor will be slightly faster, since the MongoDB::Cursor methods
+below just internally call the corresponding method on the result object.
+
+=cut
+
 #--------------------------------------------------------------------------#
-# utility functions
+# methods delgated to result object
 #--------------------------------------------------------------------------#
 
-# If we get a cursor_id from a command, BSON decoding will give us either
-# a perl scalar or a Math::BigInt object (if we don't have 32 bit support).
-# For OP_GET_MORE, we treat it as an opaque string, so we need to convert back
-# to a packed, little-endian quad
-sub _pack_cursor_id {
-    my $cursor_id = shift;
-    if ( ref($cursor_id) eq "Math::BigInt" ) {
-        my $as_hex = $cursor_id->as_hex;                  # big-endian hex
-        substr($as_hex,0,2,'');                           # remove "0x"
-        my $len = length( $as_hex );
-        substr($as_hex,0,0,"0" x (16-$len)) if $len < 16; # pad to quad length
-        $cursor_id = pack("H*", $as_hex);                 # packed big-endian
-        $cursor_id = reverse( $cursor_id );               # reverse to little-endian
+=head2 has_next
+
+    while ($cursor->has_next) {
+        ...
+    }
+
+Checks if there is another result to fetch.  Will automatically fetch more
+data from the server if necessary.
+
+=cut
+
+sub has_next { $_[0]->result->has_next }
+
+=head2 next
+
+    while (my $object = $cursor->next) {
+        ...
+    }
+
+Returns the next object in the cursor. Will automatically fetch more data from
+the server if necessary. Returns undef if no more data is available.
+
+=cut
+
+sub next { $_[0]->result->next }
+
+=head2 all
+
+    my @objects = $cursor->all;
+
+Returns a list of all objects in the result.
+
+=cut
+
+sub all { $_[0]->result->all }
+
+=head2 reset
+
+Resets the cursor.  After being reset, pre-query methods can be
+called on the cursor (sort, limit, etc.) and subsequent calls to
+next, has_next, or all will re-query the database.
+
+=cut
+
+sub reset {
+    my ($self) = @_;
+    $self->_clear_result;
+    return $self;
+}
+
+=head2 info
+
+Returns a hash of information about this cursor.  This is intended for
+debugging purposes and users should not rely on the contents of this method for
+production use.  Currently the fields are:
+
+=for :list
+* C<cursor_id>  -- the server-side id for this cursor as.  This is an opaque string.
+  A C<cursor_id> of "\0\0\0\0\0\0\0\0" means there are no more results on the server.
+* C<num> -- the number of results received from the server so far
+* C<at> -- the (zero-based) index of the document that will be returned next from L</next>
+* C<flag> -- if the database could not find the cursor or another error occurred, C<flag> may
+  contain a hash reference of flags set in the response (depending on the error).  See
+  L<http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol#MongoWireProtocol-OPREPLY>
+  for a full list of flag values.
+* C<start> -- the index of the result that the current batch of results starts at.
+
+If the cursor has not yet executed, only the C<num> field will be returned with
+a value of 0.
+
+=cut
+
+sub info {
+    my $self = shift;
+    if ( $self->started_iterating ) {
+        return $self->result->info;
     }
     else {
-        # pack doesn't have endianness modifiers before perl 5.10.
-        # We die during configuration on big-endian platforms on 5.8
-        $cursor_id = pack( $] lt '5.010' ? "q" : "q<", $cursor_id);
+        return { num => 0 };
     }
-    return $cursor_id;
 }
 
-__PACKAGE__->meta->make_immutable (inline_destructor => 0);
+__PACKAGE__->meta->make_immutable;
 
 1;
-
-=head1 AUTHOR
-
-  Kristina Chodorow <kristina@mongodb.org>

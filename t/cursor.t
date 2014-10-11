@@ -315,10 +315,11 @@ $testdb->drop;
     my $count = $coll->count;
 
     my $info = $cursor->info;
-    is($info->{'num'}, 0);
+    is_deeply( $info, {num => 0}, "before execution, info only has num field");
 
-    $cursor->has_next;
+    ok( $cursor->has_next, "cursor executed and has results" );
     $info = $cursor->info;
+    is($info->{'num'}, 1);
     is($info->{'at'}, 0);
     is($info->{'num'}, $count);
     is($info->{'start'}, 0);

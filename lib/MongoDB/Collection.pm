@@ -319,18 +319,16 @@ sub aggregate {
             die "no cursor returned from aggregation";
         }
 
-        my $cursor = MongoDB::Cursor->new(
-            started_iterating      => 1,              # we have the first batch
-            _client                => $self->_client,
-            _ns                    => $response->{cursor}{ns},
-            _docs                  => $response->{cursor}{firstBatch},
-            _batch_size            => scalar @{ $response->{cursor}{firstBatch} },  # for has_next
-            _query                 => {}, # fake
-            _cursor_id             => MongoDB::Cursor::_pack_cursor_id($response->{cursor}{id}),
-            _cursor_from           => $result->address,
+        my $qr = MongoDB::QueryResult->new(
+            _client    => $self->_client,
+            address    => $result->address,
+            ns         => $response->{cursor}{ns},
+            cursor_id  => MongoDB::QueryResult::_pack_cursor_id( $response->{cursor}{id} ),
+            batch_size => scalar @{ $response->{cursor}{firstBatch} },
+            _docs      => $response->{cursor}{firstBatch},
         );
 
-        return $cursor;
+        return $qr;
     }
 
     # return the whole response document if they want an explain
@@ -363,18 +361,13 @@ sub parallel_scan {
 
     my @cursors;
     for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
-        # fake up a post-query cursor
-        my $cursor = MongoDB::Cursor->new(
-            started_iterating      => 1,              # we have the first batch
-            _client                => $self->_client,
-            _ns                    => $c->{ns},
-            _query                 => Tie::IxHash->new(@command), # XXX why are we faking this?
-            _is_parallel           => 1,
-            _cursor_id             => MongoDB::Cursor::_pack_cursor_id($c->{id}),
-            _cursor_from           => $result->address,
+        my $qr = MongoDB::QueryResult->new(
+            _client               => $self->_client,
+            address               => $result->address,
+            ns                    => $c->{ns},
+            cursor_id             => MongoDB::QueryResult::_pack_cursor_id($c->{id}),
         );
-
-        push @cursors, $cursor;
+        push @cursors, $qr;
     }
 
     return @cursors;
@@ -806,7 +799,7 @@ the C<aggregate> method returns a reference to that array.
 
 =item * MongoDB 2.6+ supports returning cursors from aggregation queries, allowing you to bypass
 the 16MB size limit of documents. If you specifiy a C<cursor> option, the C<aggregate> method
-will return a L<MongoDB::Cursor> object which can be iterated in the normal fashion.
+will return a L<MongoDB::QueryResult> object which can be iterated in the normal fashion.
 
     my $cursor = $collection->aggregate( [ ... ], { cursor => 1 } );
 
@@ -837,10 +830,10 @@ for more information on how to construct aggregation queries.
 
 =method parallel_scan($max_cursors)
 
-    my @cursors = $collection->parallel_scan(10);
+    my @query_results = $collection->parallel_scan(10);
 
 Scan the collection in parallel. The argument is the maximum number of
-L<MongoDB::Cursor> objects to return and must be a positive integer between 1
+L<MongoDB::QueryResult> objects to return and must be a positive integer between 1
 and 10,000.
 
 As long as the collection is not modified during scanning, each document will

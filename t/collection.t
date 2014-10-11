@@ -822,7 +822,7 @@ subtest "aggregation cursors" => sub {
 
     $cursor = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } } ], { cursor => 1 } );
 
-    isa_ok $cursor, 'MongoDB::Cursor';
+    isa_ok $cursor, 'MongoDB::QueryResult';
     is $cursor->started_iterating, 1;
     is( ref( $cursor->_docs ), ref [ ] );
     is $cursor->_doc_count, 20, "document count cached in cursor";
@@ -837,7 +837,7 @@ subtest "aggregation cursors" => sub {
     # make sure we can transition to a "real" cursor
     $cursor = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } } ], { cursor => { batchSize => 10 } } );
 
-    isa_ok $cursor, 'MongoDB::Cursor';
+    isa_ok $cursor, 'MongoDB::QueryResult';
     is $cursor->started_iterating, 1;
     is( ref( $cursor->_docs), ref [ ] );
     is $cursor->_doc_count, 10, "doc count correct";
@@ -927,7 +927,7 @@ subtest "parallel scan" => sub {
 
     for my $method ( qw/reset count explain/ ) {
         eval { $cursors[0]->$method };
-        like( $@, qr/cannot $method a parallel scan/, "$method on parallel scan cursor throws error" );
+        like( $@, qr/Can't locate object method/, "$method on parallel scan cursor throws error" );
     }
 
     _check_parallel_results( $num_docs, @cursors );
