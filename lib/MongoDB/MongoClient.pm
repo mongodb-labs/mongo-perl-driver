@@ -503,14 +503,37 @@ sub send_update {
 # XXX eventually, passing $self to _send_query should go away and we should
 # pass in a BSON codec object
 sub send_query {
-    my ($self, $ns, $query, $fields, $skip, $batch_size, $flags, $read_preference) = @_;
+    my ($self, $ns, $query, $fields, $skip, $limit, $batch_size, $flags, $read_preference) = @_;
 
     $read_preference ||= $self->_read_preference || MongoDB::ReadPreference->new;
     my $link = $self->_cluster->get_readable_link( $read_preference );
 
     $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
 
-    return $self->_send_query( $link, $ns, $query->spec, $fields, $skip, $batch_size, $flags, $self );
+    return $self->_send_query( $link, $ns, $query->spec, $fields, $skip, $limit, $batch_size, $flags, $self );
+}
+
+# variants is a hash of wire protocol version to coderef
+sub send_versioned_read {
+    my ( $self, $variants, $read_preference ) = @_;
+
+    $read_preference ||= MongoDB::ReadPreference->new;
+    my $link = $self->_cluster->get_readable_link($read_preference);
+
+    # try highest protocol versions first
+    for my $version ( sort { $b <=> $a } keys %$variants ) {
+        if ( $link->accepts_wire_version($version) ) {
+            return $variants->{$version}->($self, $link);
+        }
+    }
+
+    MongoDB::Error->throw(
+        sprintf(
+            "Wire protocol error: server %s selected but doesn't accept protocol(s) %",
+            join( ", ", keys %$variants ),
+            $link->address
+        )
+    );
 }
 
 sub _apply_read_prefs {

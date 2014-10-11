@@ -47,18 +47,21 @@ my $server_version = server_version($conn);
 # collection_names
 {
     is(scalar $testdb->collection_names, 0, 'no collections');
+
     my $coll = $testdb->get_collection('test');
-    is($coll->count, 0, 'collection is empty');
 
-    is($coll->find_one, undef, 'nothing for find_one');
+    my $cmd = [ create => "test_capped", capped => 1, size => 10000 ];
+    $testdb->run_command($cmd);
+    my $cap = $testdb->get_collection("test_capped");
 
-    my $id = $coll->insert({ just => 'another', perl => 'hacker' });
+    $coll->ensure_index([ name => 1]);
+    $cap->ensure_index([ name => 1]);
 
-    is(scalar $testdb->collection_names, 2, 'test and system.indexes');
-    ok((grep { $_ eq 'test' } $testdb->collection_names), 'collection_names');
-    is($coll->count, 1, 'count');
-    is($coll->find_one->{perl}, 'hacker', 'find_one');
-    is($coll->find_one->{_id}->value, $id->value, 'insert id');
+    ok($coll->insert({name => 'Alice'}), "create test collection");
+    ok($cap->insert({name => 'Bob'}), "create capped collection");
+
+    my @names = $testdb->collection_names;
+    is_deeply( [sort @names], [ qw/system.indexes test test_capped/ ], "expected collection names" );
 }
 
 # non-existent command
