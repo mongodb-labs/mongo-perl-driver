@@ -28,6 +28,7 @@ use MongoDB::GridFS;
 use Carp 'carp';
 use boolean;
 use Moose;
+use Try::Tiny;
 use namespace::clean -except => 'meta';
 
 has _client => ( 
@@ -45,6 +46,16 @@ has name => (
 
 sub collection_names {
     my ($self) = @_;
+
+    # try command style for 2.8+
+    my ($ok, @names) = try {
+        my $res = $self->_try_run_command([listCollections => 1]);
+        my @list = map { $_->{name} } @{$res->{collections}};
+        return 1, @list;
+    };
+    return @names if $ok;
+
+    # fallback to earlier style
     my $it = $self->get_collection('system.namespaces')->query({});
     return grep { 
         not ( index( $_, '$' ) >= 0 && index( $_, '.oplog.$' ) < 0 ) 
