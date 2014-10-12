@@ -253,7 +253,7 @@ has _min_wire_version => (
 has _max_wire_version => (
     is      => 'ro',
     isa     => 'Int',
-    default => 2
+    default => 3
 );
 
 has _uri => (

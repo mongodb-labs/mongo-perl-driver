@@ -182,7 +182,7 @@ subtest "options" => sub {
 
 {
     is $conn->_min_wire_version, 0, 'default min wire version';
-    is $conn->_max_wire_version, 2, 'default max wire version';
+    is $conn->_max_wire_version, 3, 'default max wire version';
 
     like(
         exception { MongoDBTest::build_client( _min_wire_version => 99, _max_wire_version => 100)->send_admin_command([is_master => 1]) },
