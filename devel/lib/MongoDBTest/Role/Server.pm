@@ -282,7 +282,6 @@ sub start {
 
 sub stop {
     my ($self) = @_;
-    $DB::single = 1;
     $self->clear_guard if $self->has_guard;
     $self->clear_port;
     $self->clear_client;
