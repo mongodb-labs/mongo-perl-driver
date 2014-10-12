@@ -286,15 +286,13 @@ has inflate_regexps => (
 has min_wire_version => ( 
     is        => 'ro',
     isa       => 'Int',
-    required  => 1,
     default   => 0
 );
 
 has max_wire_version => (
     is        => 'ro',
     isa       => 'Int',
-    required  => 1,
-    default   => 2
+    default   => 3
 );
 
 has _use_write_cmd => ( 
