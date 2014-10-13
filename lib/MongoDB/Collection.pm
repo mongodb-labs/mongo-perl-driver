@@ -25,6 +25,7 @@ our $VERSION = 'v0.705.0.1';
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
+use Safe::Isa;
 use Scalar::Util qw/blessed/;
 use Try::Tiny;
 use Moose;
@@ -627,6 +628,32 @@ sub drop_index {
 
 sub get_indexes {
     my ($self) = @_;
+
+    # try command style for 2.8+
+    my ($ok, @indexes) = try {
+        my $res = $self->_database->_try_run_command([listIndexes => $self->name]);
+        return 1, @{$res->{indexes}};
+    }
+    catch {
+        if ( $_->$_isa('MongoDB::DatabaseError') ) {
+            my $cmd_result = $_->result->result;
+            my $code = $cmd_result->{code};
+            if ( $code == 26 ) {
+                return 1, (); # empty
+            }
+            elsif ($code == 59) {
+                return 0;
+            }
+            elsif ( $cmd_result->{errmsg} =~ m{^no such cmd} ) {
+                return 0;
+            }
+        }
+        die $_;
+    };
+
+    return @indexes if $ok;
+
+    # fallback to earlier style
     return $self->_database->get_collection('system.indexes')->query({
         ns => $self->full_name,
     })->all;
