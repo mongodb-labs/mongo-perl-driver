@@ -36,6 +36,7 @@ BEGIN {
     $ERROR_CODES = {
         BAD_VALUE                 => 2,
         UNKNOWN_ERROR             => 8,
+        NAMESPACE_NOT_FOUND       => 26,
         WRITE_CONCERN_ERROR       => 64,
         NOT_MASTER                => 10107,
         NOT_MASTER_NO_SLAVE_OK    => 13435,

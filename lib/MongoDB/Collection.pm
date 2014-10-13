@@ -546,10 +546,35 @@ sub drop_index {
 
 
 sub get_indexes {
-    my ($self) = @_;
-    return $self->_database->get_collection('system.indexes')->query({
-        ns => $self->full_name,
-    })->all;
+    my ($self)    = @_;
+    my $name      = $self->name;
+    my $full_name = $self->full_name;
+    my $db_name   = $self->_database->name;
+    my $variants  = {
+        0 => sub {
+            my ( $client, $link ) = @_;
+            my $ns = "$db_name.system.indexes";
+            my $query = MongoDB::_Query->new( spec => { ns => $full_name } );
+            my $result =
+              $client->_send_query( $link, $ns, $query->spec, undef, 0, 0, 0, undef, $client );
+            return $result->all;
+        },
+        3 => sub {
+            my ( $client, $link ) = @_;
+            my $cmd = Tie::IxHash->new( listIndexes => $name );
+            my $result = try {
+                $client->_send_command( $link, $db_name, $cmd )
+            }
+            catch {
+                if ( $_->$_isa("MongoDB::DatabaseError") ) {
+                    return undef if $_->code == NAMESPACE_NOT_FOUND();
+                }
+                die $_;
+            };
+            return $result ? @{ $result->result->{indexes} } : ();
+        },
+    };
+    return $self->_client->send_versioned_read($variants);
 }
 
 sub drop {
