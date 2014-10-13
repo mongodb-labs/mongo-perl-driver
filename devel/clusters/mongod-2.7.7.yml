@@ -1,0 +1,6 @@
+---
+type: single
+default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6
+default_version: 2.7.7
+mongod:
+    - name: host1

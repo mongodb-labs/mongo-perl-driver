@@ -332,6 +332,11 @@ sub add_user {
     return;
 }
 
+sub grep_log {
+    my ($self, $re) = @_;
+    return grep { /$re/ } $self->logfile->lines;
+}
+
 sub DEMOLISH {
     my ($self) = @_;
     $self->stop;
