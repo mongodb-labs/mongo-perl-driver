@@ -38,11 +38,9 @@ my @modes = map { MongoDB::MongoClient->$_ }
 
 subtest "read preference connection string" => sub {
 
-    $ENV{MONGOD} ||= "mongodb://localhost/";
-    $ENV{MONGOD} =~ s{/?$}{/};
     my $conn2 = build_client(
         host =>
-          "$ENV{MONGOD}?readPreference=primaryPreferred&readPreferenceTags=dc:ny,rack:1&readPreferenceTags=dc:ny&readPreferenceTags=",
+          "mongodb://localhost/?readPreference=primaryPreferred&readPreferenceTags=dc:ny,rack:1&readPreferenceTags=dc:ny&readPreferenceTags=",
         auto_connect => 0
     );
     my $rp = $conn2->_read_preference;

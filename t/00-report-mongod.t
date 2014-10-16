@@ -32,6 +32,14 @@ diag "\$ENV{MONGOD}=".$ENV{MONGOD} if $ENV{MONGOD};
 
 diag "MongoDB version $server_version ($server_type)";
 
+if ( -d ".git" or -d "../.git" ) {
+    my $desc = qx/git describe --dirty/;
+    unless ($?) {
+        chomp $desc;
+        diag "git describe: $desc";
+    }
+}
+
 pass("checked MongoDB test environment");
 
 done_testing;
