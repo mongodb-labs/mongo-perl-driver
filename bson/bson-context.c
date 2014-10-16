@@ -26,11 +26,6 @@
 #include <sys/syscall.h>
 #endif
 
-#if defined(__MINGW32__)
-#define INIT_ONCE_STATIC_INIT RTL_RUN_ONCE_INIT
-typedef RTL_RUN_ONCE INIT_ONCE;
-#endif
-
 #include "bson-atomic.h"
 #include "bson-clock.h"
 #include "bson-context.h"
