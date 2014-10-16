@@ -18,3 +18,8 @@ MongoDB-*
 META.yml
 pod/*
 config.log
+dll.base
+dll.exp
+MYMETA.json
+MYMETA.yml
+output.txt
