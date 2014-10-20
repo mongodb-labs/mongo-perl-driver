@@ -20,6 +20,7 @@ use warnings;
 use Test::More 0.96;
 use Test::Fatal;
 use Test::Warn;
+use Test::Deep qw/!blessed/;
 
 use utf8;
 use Data::Types qw(:float);
@@ -27,6 +28,7 @@ use Tie::IxHash;
 use Encode qw(encode decode);
 use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::Error;
+use MongoDB::Code;
 
 use MongoDB;
 
@@ -1030,5 +1032,33 @@ subtest "count w/ hint" => sub {
 
     is( $coll->count( {}, { hint => 'x_1' } ), 2, 'hint on empty sparse index');
 };
+
+my $js_str = 'function() { return this.a > this.b }';
+my $js_obj = MongoDB::Code->new( code => $js_str );
+
+for my $criteria ( $js_str, $js_obj ) {
+    my $type = ref($criteria) || 'string';
+    subtest "query with \$where as $type" => sub {
+        $coll->drop;
+        $coll->insert( { a => 1, b => 1, n => 1 } );
+        $coll->insert( { a => 2, b => 1, n => 2 } );
+        $coll->insert( { a => 3, b => 1, n => 3 } );
+        $coll->insert( { a => 0, b => 1, n => 4 } );
+        $coll->insert( { a => 1, b => 2, n => 5 } );
+        $coll->insert( { a => 2, b => 3, n => 6 } );
+
+        my @docs = $coll->find( { '$where' => $criteria } )->sort( { n => 1 } )->all;
+        is( scalar @docs, 2, "correct count a > b" )
+          or diag explain @docs;
+        cmp_deeply(
+            \@docs,
+            [
+                { _id => ignore(), a => 2, b => 1, n => 2 },
+                { _id => ignore(), a => 3, b => 1, n => 3 }
+            ],
+            "javascript query correct"
+        );
+    };
+}
 
 done_testing;
