@@ -18,6 +18,7 @@
 use strict;
 use warnings;
 use Test::More 0.96;
+use Test::Fatal;
 
 use Data::Dumper;
 
@@ -40,12 +41,11 @@ subtest "normal fsync" => sub {
 
 # Test async fsync.
 subtest "async fsync" => sub {
-    $ret = $conn->fsync({async => 1});
+    my $err = exception { $ret = $conn->fsync({async => 1}) };
     plan skip_all => 'async not supported'
-       if $ret =~ /exception:/ && $ret =~ /not supported/;
-
-    ok( ref $ret eq 'HASH', "fsync command ran without error" )
-        or diag $ret;
+       if $err =~ /exception:.*not supported/;
+    is( $err, undef, "fsync command ran without error" )
+        or diag $err;
 
     if ( ref $ret eq 'HASH' ) {
         is($ret->{ok},              1, "fsync + async returned 'ok' => 1");
