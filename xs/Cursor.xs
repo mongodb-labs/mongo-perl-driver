@@ -222,9 +222,10 @@ _init (self, ...)
         SV *self
     PREINIT:
         mongo_cursor *cursor;
+        SV *sv;
     CODE:
         Newxz(cursor, 1, mongo_cursor);
-        SV *sv = ST(1);
+        sv = ST(1);
 
         /* initialize a cursor ID manually if we are getting constructed
            from an aggregation result */
