@@ -28,13 +28,15 @@ static int mongo_link_timeout(int socket, time_t timeout);
 
 static void set_timeout(int socket, time_t timeout) {
 #ifdef WIN32
+  const char *tv_ptr;
   DWORD tv = (DWORD)timeout;
-  const char *tv_ptr = (const char*)&tv;
+  tv_ptr = (const char*)&tv;
 #else
+  const void *tv_ptr;
   struct timeval tv;
   tv.tv_sec = timeout / 1000;
   tv.tv_usec = (timeout % 1000) * 1000;
-  const void *tv_ptr = (void*)&tv;
+  tv_ptr = (void*)&tv;
 #endif
   setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, tv_ptr, sizeof(tv));
   setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, tv_ptr, sizeof(tv));
@@ -135,6 +137,8 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
 #endif  /* MONGO_SASL */
 
 void perl_mongo_connect(SV *client, mongo_link* link) {
+  SV* sasl_flag;
+
 #ifdef MONGO_SSL
   if(link->ssl){
     ssl_connect(link);
@@ -148,7 +152,7 @@ void perl_mongo_connect(SV *client, mongo_link* link) {
   link->sender = non_ssl_send;
   link->receiver = non_ssl_recv;
 
-  SV* sasl_flag = perl_mongo_call_method( client, "sasl", 0, 0 );
+  sasl_flag = perl_mongo_call_method( client, "sasl", 0, 0 );
 
   if ( link->master->connected && SvIV(sasl_flag) == 1 ) {
 #ifdef MONGO_SASL
