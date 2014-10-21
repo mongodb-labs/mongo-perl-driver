@@ -7,6 +7,7 @@
 *.obj
 vc90.pdb
 MongoDB.def
+MongoDB_def.old
 Makefile*
 !Makefile.PL
 blib
