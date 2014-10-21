@@ -1096,7 +1096,7 @@ const char * clean_key(const char * str, int is_insert) {
   }
 
   if (special_char && SvPOK(special_char) && SvPV_nolen(special_char)[0] == str[0]) {
-    char * out = strdup(str);
+    char * out = savepv(str);
 
     *out = '$';
 
@@ -1117,7 +1117,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
     }
     else {
       bson_append_null(bson, key, -1);
-      if (in_key != key) free((char *)key);
+      if (in_key != key) Safefree((char *)key);
       return;
     }
   }
@@ -1477,32 +1477,34 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
     }
   }
 
-  if (in_key != key) free((char *)key);
+  if (in_key != key) Safefree((char *)key);
 }
 
 static void serialize_regex_obj(bson_t *bson, const char *key, 
                                 const char *pattern, const char *flags ) { 
   size_t pattern_length = strlen( pattern );
   size_t flags_length   = strlen( flags );
+  char *buf;
 
-  char *buf = malloc( pattern_length + 1 ); 
-  memcpy( buf, pattern, pattern_length );
+  Newx(buf, pattern_length + 1, char );
+  Copy(pattern, buf, pattern_length, char );
   buf[ pattern_length ] = '\0';
   bson_append_regex(bson, key, -1, buf, flags);
-  free(buf);
+  Safefree(buf);
 }
 
 static void serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
   char flags[]     = {0,0,0,0,0};
   serialize_regex_flags(flags, sv);
+  char * buf;
 
-  char * buf = malloc(RX_PRELEN(re) + 1);
-  memcpy(buf, RX_PRECOMP(re), RX_PRELEN(re));
+  Newx(buf, (RX_PRELEN(re) + 1), char );
+  Copy(RX_PRECOMP(re), buf, RX_PRELEN(re), char );
   buf[RX_PRELEN(re)] = '\0';
 
   bson_append_regex(bson, key, -1, buf, flags);
 
-  free(buf);
+  Safefree(buf);
 }
 
 static void serialize_regex_flags(char * flags, SV *sv) {
