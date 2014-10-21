@@ -35,7 +35,6 @@ static SV *bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, in
 static perl_mutex inc_mutex;
 #endif
 
-static int perl_mongo_inc = 0;
 int perl_mongo_machine_id;
 
 static SV *utf8_flag_on;
@@ -181,6 +180,10 @@ perl_mongo_call_function (const char *func, int num, ...) {
 }
 
 static void perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
+  int ret_count;
+  SV *flags_sv;
+  SV *pat_sv;
+  char *flags;
   dSP;
   ENTER;
   SAVETMPS;
@@ -188,7 +191,7 @@ static void perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
   XPUSHs (re);
   PUTBACK;
 
-  int ret_count = call_pv( "re::regexp_pattern", G_ARRAY );
+  ret_count = call_pv( "re::regexp_pattern", G_ARRAY );
   SPAGAIN;
 
   if ( ret_count != 2 ) { 
@@ -196,10 +199,10 @@ static void perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
   }
 
   // regexp_pattern returns two items (in list context), the pattern and a list of flags
-  SV *flags_sv = POPs;
-  SV *pat_sv   = POPs;
+  flags_sv = POPs;
+  pat_sv   = POPs;
 
-  char *flags = SvPVutf8_nolen(flags_sv);
+  flags = SvPVutf8_nolen(flags_sv);
 
   strncpy( flags_ptr, flags, 7 );
 }
@@ -493,9 +496,11 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
       // raw epoch
       value = newSViv(ms_i);
     } else if ( strcmp( dt_type, "DateTime::Tiny" ) == 0 ) {
+      time_t epoch;
+      struct tm *dt;
       datetime = sv_2mortal(newSVpv("DateTime::Tiny", 0));
-      time_t epoch = bson_iter_time_t(iter);
-      struct tm *dt = gmtime( &epoch );
+      epoch = bson_iter_time_t(iter);
+      dt = gmtime( &epoch );
 
       value = 
         perl_mongo_call_function("DateTime::Tiny::new", 13, datetime,
@@ -618,10 +623,11 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
   case BSON_TYPE_CODE: {
     const char * code;
     uint32_t len;
-    
+    SV *code_sv;
+
     code = bson_iter_code(iter, &len);
 
-    SV * code_sv = sv_2mortal(newSVpvn(code, len));
+    code_sv = sv_2mortal(newSVpvn(code, len));
 
     value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, NULL);
 
@@ -631,19 +637,19 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
     const char * code;
     const uint8_t * scope;
     uint32_t code_len, scope_len;
-
-    code = bson_iter_codewscope(iter, &code_len, &scope_len, &scope);
-
-    SV * code_sv = sv_2mortal(newSVpvn(code, code_len));
-
+    SV * code_sv;
+    SV * scope_sv;
     bson_t bson;
     bson_iter_t child;
+
+    code = bson_iter_codewscope(iter, &code_len, &scope_len, &scope);
+    code_sv = sv_2mortal(newSVpvn(code, code_len));
 
     if ( ! ( bson_init_static(&bson, scope, scope_len) && bson_iter_init(&child, &bson) ) ) {
         croak("error iterating BSON type %d\n", bson_iter_type(iter));
     }
 
-    SV * scope_sv = bson_to_sv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    scope_sv = bson_to_sv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
     value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
 
     break;
@@ -718,10 +724,10 @@ perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, int
 SV *
 perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client )
 {
+  bson_iter_t iter;
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
 
-  bson_iter_t iter;
   if ( ! bson_iter_init(&iter, bson) ) {
       croak( "error creating BSON iterator" );
   }
@@ -1482,7 +1488,6 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
 static void serialize_regex_obj(bson_t *bson, const char *key, 
                                 const char *pattern, const char *flags ) { 
   size_t pattern_length = strlen( pattern );
-  size_t flags_length   = strlen( flags );
   char *buf;
 
   Newx(buf, pattern_length + 1, char );
@@ -1494,8 +1499,8 @@ static void serialize_regex_obj(bson_t *bson, const char *key,
 
 static void serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
   char flags[]     = {0,0,0,0,0};
-  serialize_regex_flags(flags, sv);
   char * buf;
+  serialize_regex_flags(flags, sv);
 
   Newx(buf, (RX_PRELEN(re) + 1), char );
   Copy(RX_PRECOMP(re), buf, RX_PRELEN(re), char );
