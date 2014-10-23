@@ -43,7 +43,7 @@ subtest "normal fsync" => sub {
 subtest "async fsync" => sub {
     my $err = exception { $ret = $conn->fsync({async => 1}) };
     plan skip_all => 'async not supported'
-       if $err =~ /exception:.*not supported/;
+       if $err && $err =~ /exception:.*not supported/;
     is( $err, undef, "fsync command ran without error" )
         or diag $err;
 
