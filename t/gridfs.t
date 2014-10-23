@@ -20,7 +20,6 @@ use warnings;
 use Test::More;
 use IO::File;
 use File::Temp;
-use File::Slurp qw(read_file write_file);
 use MongoDB::Timestamp; # needed if db is being run as master
 
 use MongoDB;
@@ -204,7 +203,7 @@ $grid->drop;
         my $txt = "HELLO" x 1_000_000; # 5MB
         
         my $fh = File::Temp->new;
-        write_file( $fh->filename, $txt ) || die $!;
+        $fh->printflush( $txt ) or die $!;
         $fh->seek(0, 0);
 
         $grid->insert( $fh, { filename => $fh->filename } );

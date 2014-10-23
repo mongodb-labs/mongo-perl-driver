@@ -54,7 +54,6 @@ test_requires 'DateTime::Tiny';
 test_requires 'Devel::Peek';
 test_requires 'File::Copy';
 test_requires 'File::Path';
-test_requires 'File::Slurp';
 test_requires 'File::Spec';
 test_requires 'File::Temp' => '0.17';
 test_requires 'FileHandle';
