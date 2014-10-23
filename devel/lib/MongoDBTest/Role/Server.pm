@@ -255,7 +255,7 @@ sub start {
     delay {
         return if $_[0] > 1;
     }
-    catch { chomp; die "$_. Giving up!\n" };
+    catch { chomp; s/at \S+ line \d+//; die "Caught error:$_. Giving up!\n" };
 
     retry {
         $self->_logger->debug("Pinging " . $self->name . " with ismaster");
