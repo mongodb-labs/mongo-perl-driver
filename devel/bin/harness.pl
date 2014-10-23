@@ -62,7 +62,7 @@ catch {
     say "Problem starting cluster from $config_file.";
     if ( $opts{verbose} ) {
         for my $server ( $orc->cluster->all_servers ) {
-            next unless -f $server->logfile;
+            next unless -e -s $server->logfile;
             say "---------------------------------";
             say "Log tail for " . $server->name . ":";
             my @lines = $server->logfile->lines;
