@@ -23,6 +23,7 @@ use MongoDBTest::Orchestrator;
 
 use Getopt::Long;
 use Log::Any::Adapter 'Null';
+use Try::Tiny;
 
 my %opts;
 GetOptions(
@@ -54,7 +55,23 @@ say "Creating a cluster from $config_file";
 
 my $orc = MongoDBTest::Orchestrator->new( config_file => $config_file );
 
-$orc->start;
+try {
+    $orc->start;
+}
+catch {
+    say "Problem starting cluster from $config_file.";
+    if ( $opts{verbose} ) {
+        for my $server ( $orc->cluster->all_servers ) {
+            next unless -f $server->logfile;
+            say "---------------------------------";
+            say "Log tail for " . $server->name . ":";
+            my @lines = $server->logfile->lines;
+            @lines = splice(@lines,-20) if @lines > 20;
+            say @lines;
+        }
+    }
+    die $_;
+};
 
 $ENV{MONGOD} = $orc->as_uri;
 say "MONGOD=".$ENV{MONGOD};
