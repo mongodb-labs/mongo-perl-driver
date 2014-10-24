@@ -515,7 +515,7 @@ sub ensure_index {
     return $res if $res->{ok};    
 
     # if not ok, no code or code 59 or code 13390 mean "command not available",
-    # per DRIVERS-103 and DRIVERS-132
+    # per DRIVERS-103 and DRIVERS-132; 13390 is old mongos per DRIVERS-149
     if ( ( not $res->{ok} )  && 
          ( not exists $res->{code} or $res->{code} == 59 or $res->{code} == 13390) ) { 
         $obj->Unshift( ns => $tmp_ns );     # restore ns to spec
@@ -641,10 +641,10 @@ sub get_indexes {
             if ( $code == 26 ) {
                 return 1, (); # empty
             }
-            elsif ($code == 59) {
+            elsif ($code == 59 || $code == 13390 ) {
                 return 0;
             }
-            elsif ( $cmd_result->{errmsg} =~ m{^no such cmd} ) {
+            elsif ( ($cmd_result->{errmsg} || '') =~ m{^no such cmd} ) {
                 return 0;
             }
         }
