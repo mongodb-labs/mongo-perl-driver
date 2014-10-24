@@ -338,6 +338,11 @@ sub BUILD {
         push @pairs, $self->host.":".$self->port;
     }
 
+    # Warn if SSL desired and not supported
+    if ( $self->ssl && ! $self->_compile_flags->{'--ssl'} ) {
+        carp "MongoDB::MongoClient not compiled with SSL; trying to connect without it.\n";
+    }
+
     # We cache our updated constructor arguments because we need them again for
     # creating new, per-host objects
     $self->_opts( $opts );
