@@ -1287,8 +1287,9 @@ in the C<passives> field, and arbiters are in the C<arbiters> field.
 
 This tells the driver that you are connecting to an SSL mongodb instance.
 
-This option will be ignored if the driver was not compiled with the SSL flag. You must
-also be using a database server that supports SSL.
+If the driver was not compiled with SSL support, a warning will be issued and
+the driver will attempt to connect without it. You must also be using a
+database server that supports SSL.
 
 The driver must be built as follows for SSL support:
 
