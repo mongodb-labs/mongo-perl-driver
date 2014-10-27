@@ -325,13 +325,18 @@ See L<MongoDB::Connection/w> for more information.
 
 =head2 run_command ($command)
 
-    my $result = $database->run_command({ some_command => 1 });
+    my $result = $database->run_command([ some_command => 1 ]);
 
-Runs a database command. Returns a string with the error message if the
-command fails. Returns the result of the command (a hash reference) on success.
-For a list of possible database commands, run:
+Runs a database command.  The input should be an array reference of key-value
+pairs or a L<Tie::IxHash> object with the command name as the first key.  The
+use of a hash reference will only reliably work for commands without additional
+parameters.
 
-    my $commands = $db->run_command({listCommands => 1});
+It returns a string with the error message if the command fails.  It returns
+the result of the command (a hash reference) on success.  For a list of
+possible database commands, run:
+
+    my $commands = $db->run_command([listCommands => 1]);
 
 There are a few examples of database commands in the
 L<MongoDB::Examples/"DATABASE COMMANDS"> section.
