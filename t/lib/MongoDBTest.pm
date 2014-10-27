@@ -26,7 +26,10 @@ use MongoDB;
 use Test::More;
 use version;
 
-our @EXPORT_OK = ( 'build_client', 'get_test_db', 'server_version', 'server_type', 'clear_testdbs' );
+our @EXPORT_OK = qw(
+  build_client get_test_db server_version server_type clear_testdbs storage_engine
+);
+
 my @testdbs;
 
 # abstract building a connection
@@ -96,6 +99,12 @@ sub server_type {
         $server_type = 'Unknown';
     }
     return $server_type;
+}
+
+sub storage_engine {
+    my $conn = shift;
+    my $status = $conn->get_database('admin')->_try_run_command({serverStatus => 1});
+    return $status->{storageEngine} || 'mmapv1';
 }
 
 sub clear_testdbs { @testdbs = () }

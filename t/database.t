@@ -26,7 +26,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db server_version/;
+use MongoDBTest qw/build_client get_test_db server_version storage_engine/;
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
@@ -54,7 +54,9 @@ my $server_version = server_version($conn);
 
     my $id = $coll->insert({ just => 'another', perl => 'hacker' });
 
-    is(scalar $testdb->collection_names, 2, 'test and system.indexes');
+    # heap1 only has 1; other engines are TBD but not likely for test
+    my $expected = storage_engine($conn) eq 'mmapv1' ? 2 : 1;
+    is(scalar $testdb->collection_names, $expected, 'test and system.indexes');
     ok((grep { $_ eq 'test' } $testdb->collection_names), 'collection_names');
     is($coll->count, 1, 'count');
     is($coll->find_one->{perl}, 'hacker', 'find_one');
