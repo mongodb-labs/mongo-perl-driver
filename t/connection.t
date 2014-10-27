@@ -137,6 +137,7 @@ subtest "options" => sub {
 
         my $ssl = "true";
         my $timeout = 40000;
+        local $SIG{__WARN__} = sub {};
         my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl=$ssl&connectTimeoutMS=$timeout", auto_connect => 0});
 
         is( $client->ssl, 1, "connect with ssl set" );
