@@ -23,7 +23,7 @@ use MongoDB::OID;
 use MongoDB::Code;
 use MongoDB::Timestamp;
 use DateTime;
-use JSON;
+use JSON::MaybeXS;
 
 use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db/;
@@ -305,7 +305,7 @@ SKIP: {
         $coll->insert({"x" => $coll});
     };
 
-    ok($@ =~ m/type \(MongoDB::Collection\) unhandled/, "can't insert a non-recognized obj: $@");
+    ok($@ =~ m/type \(MongoDB::Collection\) unhandled/, "can't insert a non-recognized obj");
 }
 
 
