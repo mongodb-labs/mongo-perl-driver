@@ -104,7 +104,7 @@ sub server_type {
 sub storage_engine {
     my $conn = shift;
     my $status = $conn->get_database('admin')->_try_run_command({serverStatus => 1});
-    return $status->{storageEngine} || 'mmapv1';
+    return $status->{storageEngine}{name} || 'mmapv1';
 }
 
 sub clear_testdbs { @testdbs = () }
