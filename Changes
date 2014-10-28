@@ -48,7 +48,7 @@ v0.706.0.0 2014-10-28 11:30:42-04:00 America/New_York
 
   - PERL-433 uses the listCollections command if available (MongoDB 2.7.8+)
 
-  - PERL-434 uses the listCollections command if available (MongoDB 2.7.8+)
+  - PERL-434 uses the listIndexes command if available (MongoDB 2.7.8+)
 
   - PERL-436 bumped supported maxWireProtocolVersion to 3 (MongoDB 2.7.8+)
 
