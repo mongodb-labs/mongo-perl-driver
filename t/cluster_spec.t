@@ -16,29 +16,27 @@
 
 use strict;
 use warnings;
-use Test::More 0.88;
-use File::Find;
+use Test::More 0.96;
+use JSON::MaybeXS;
 use Path::Tiny;
-use YAML::XS;
+use Try::Tiny;
 
 use MongoDB;
 use MongoDB::_Credential;
 
-File::Find::find({wanted => \&wanted, no_chdir => 1}, 't/data/cm-tests');
+my $iterator = path('t/data/SDAM')->iterator({recurse => 1});
 
-sub wanted {
+while ( my $path = $iterator->() ) {
+    next unless -f $path && $path =~ /\.json$/;
+    my $plan = eval { decode_json( $path->slurp_utf8 ) };
+    if ( $@ ) {
+        die "Error decoding $path: $@";
+    }
 
-    if (-f && /^.*\.ya?ml\z/) {
-
-        my $name = path($_)->relative('t/data/cm-tests');
-        my $plan = eval { YAML::XS::LoadFile($_) };
-        die "$_: $@" if $@;
-
-        run_test($name, $plan);
-    };
+    run_test($path->relative('t/data/SDAM'), $plan);
 }
 
-sub create_mock_cluster {
+sub create_mock_topology {
 
     my $uri = MongoDB::_URI->new( uri => $_[0] );
     my $type = 'Unknown';
@@ -66,7 +64,7 @@ sub run_test {
 
     subtest "$name" => sub {
 
-        my $cluster = create_mock_cluster( $plan->{'uri'} );
+        my $topology = create_mock_topology( $plan->{'uri'} );
 
         for my $phase (@{$plan->{'phases'}}) {
 
@@ -80,11 +78,11 @@ sub run_test {
                     last_update_time => [ Time::HiRes::gettimeofday() ],
                 );
 
-                $cluster->_update_cluster_from_server_desc( @$response[0], $desc);
+                $topology->_update_cluster_from_server_desc( @$response[0], $desc);
             }
 
             # Process outcome
-            check_outcome($cluster, $phase->{'outcome'});
+            check_outcome($topology, $phase->{'outcome'});
         }
     };
 
@@ -92,10 +90,10 @@ sub run_test {
 
 sub check_outcome {
 
-    my ($cluster, $outcome) = @_;
+    my ($topology, $outcome) = @_;
 
     my %expected_servers = %{$outcome->{'servers'}};
-    my %actual_servers = %{$cluster->servers};
+    my %actual_servers = %{$topology->servers};
 
     is( scalar keys %actual_servers, scalar keys %expected_servers, 'correct amount of servers');
 
@@ -112,8 +110,8 @@ sub check_outcome {
     }
 
     my $expected_set_name = defined $outcome->{'setName'} ? $outcome->{'setName'} : "";
-    is($cluster->replica_set_name, $expected_set_name, 'correct setName for cluster');
-    is($cluster->type, $outcome->{'clusterType'}, 'correct cluster type');
+    is($topology->replica_set_name, $expected_set_name, 'correct setName for topology');
+    is($topology->type, $outcome->{'topologyType'}, 'correct topology type');
 }
 
 done_testing;

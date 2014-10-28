@@ -42,12 +42,12 @@ test_requires 'File::Spec';
 test_requires 'File::Temp' => '0.17';
 test_requires 'FileHandle';
 test_requires 'JSON' => '2';
+test_requires 'JSON::MaybeXS';
 test_requires 'Test::Deep' => 0.111;
 test_requires 'Test::Fatal';
 test_requires 'Test::More' => 0.96;
 test_requires 'Test::Warn';
 test_requires 'bigint';
-test_requires 'YAML::XS';
 
 mongo;
 
