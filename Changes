@@ -2,10 +2,55 @@
 
 {{ $NEXT }}
 
+v0.706.0.0 2014-10-28 11:30:42-04:00 America/New_York
+
   [*** Deprecations ***]
 
   - PERL-425 the 'drop_dups' indexing option is deprecated because it is
     ignored as of server version 2.7.5
+
+  [Additions]
+
+  - PERL-408 added support for SCRAM-SHA-1 (for MongoDB 2.7.8+)
+
+  [Bug fixes]
+
+  - PERL-409 fixed compilation on MSWin32 using the MinGW compiler
+
+  - Fixed compilation errors on MSWin32 using the MSVC compiler
+
+  - Fixed construction of Makefile LIBS argument for some platforms
+
+  - Fixed parallel scan and explain tests for changes in the MongoDB 2.7.x
+    development series
+
+  [Diagnostics]
+
+  - Passing the "ssl" parameter to MongoDB::MongoClient will now warn if SSL
+    support is not available.
+
+  [Documentation]
+
+  - Revised "run_command" documentation to explain that array references or
+    Tie::IxHash should be used.
+
+  [Prerequisites]
+
+  - Added dependency on Authen::SCRAM::Client 0.003
+
+  - Removed (test) dependency on File::Slurp
+
+  - Minimum required versions of configuration dependencies Path::Tiny and
+    Config::AutoConf are now enforced in the code, not just specified in
+    META.json
+
+  [~ Internal changes ~]
+
+  - PERL-433 uses the listCollections command if available (MongoDB 2.7.8+)
+
+  - PERL-434 uses the listCollections command if available (MongoDB 2.7.8+)
+
+  - PERL-436 bumped supported maxWireProtocolVersion to 3 (MongoDB 2.7.8+)
 
 v0.705.0.0 2014-09-09 10:04:59-04:00 America/New_York
 
