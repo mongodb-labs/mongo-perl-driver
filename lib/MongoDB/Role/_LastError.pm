@@ -19,7 +19,7 @@ package MongoDB::Role::_LastError;
 # MongoDB interface for providing the last database error
 
 use version;
-our $VERSION = 'v0.705.0.1';
+our $VERSION = 'v0.706.0.1';
 
 use Moose::Role;
 use namespace::clean -except => 'meta';

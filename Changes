@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.706.0.0 2014-10-28 11:30:42-04:00 America/New_York
+
   [*** Deprecations ***]
 
   - PERL-425 the 'drop_dups' indexing option is deprecated because it is
