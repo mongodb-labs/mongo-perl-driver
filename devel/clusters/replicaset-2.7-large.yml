@@ -1,0 +1,144 @@
+---
+type: replica
+setName: foo
+default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --quiet
+default_version: 2.7.8
+mongod:
+    - name: host1
+    - name: host2
+    - name: host3
+    - name: host4
+    - name: host5
+    - name: host6
+    - name: host7
+    - name: host8
+      rs_config:
+          votes: 0
+    - name: host9
+      rs_config:
+          votes: 0
+    - name: host10
+      rs_config:
+          votes: 0
+    - name: host11
+      rs_config:
+          votes: 0
+    - name: host12
+      rs_config:
+          votes: 0
+    - name: host13
+      rs_config:
+          votes: 0
+    - name: host14
+      rs_config:
+          votes: 0
+    - name: host15
+      rs_config:
+          votes: 0
+    - name: host16
+      rs_config:
+          votes: 0
+    - name: host17
+      rs_config:
+          votes: 0
+    - name: host18
+      rs_config:
+          votes: 0
+    - name: host19
+      rs_config:
+          votes: 0
+    - name: host20
+      rs_config:
+          votes: 0
+    - name: host21
+      rs_config:
+          votes: 0
+    - name: host22
+      rs_config:
+          votes: 0
+    - name: host23
+      rs_config:
+          votes: 0
+    - name: host24
+      rs_config:
+          votes: 0
+    - name: host25
+      rs_config:
+          votes: 0
+    - name: host26
+      rs_config:
+          votes: 0
+    - name: host27
+      rs_config:
+          votes: 0
+    - name: host28
+      rs_config:
+          votes: 0
+    - name: host29
+      rs_config:
+          votes: 0
+    - name: host30
+      rs_config:
+          votes: 0
+    - name: host31
+      rs_config:
+          votes: 0
+    - name: host32
+      rs_config:
+          votes: 0
+    - name: host33
+      rs_config:
+          votes: 0
+    - name: host34
+      rs_config:
+          votes: 0
+    - name: host35
+      rs_config:
+          votes: 0
+    - name: host36
+      rs_config:
+          votes: 0
+    - name: host37
+      rs_config:
+          votes: 0
+    - name: host38
+      rs_config:
+          votes: 0
+    - name: host39
+      rs_config:
+          votes: 0
+    - name: host40
+      rs_config:
+          votes: 0
+    - name: host41
+      rs_config:
+          votes: 0
+    - name: host42
+      rs_config:
+          votes: 0
+    - name: host43
+      rs_config:
+          votes: 0
+    - name: host44
+      rs_config:
+          votes: 0
+    - name: host45
+      rs_config:
+          votes: 0
+    - name: host46
+      rs_config:
+          votes: 0
+    - name: host47
+      rs_config:
+          votes: 0
+    - name: host48
+      rs_config:
+          votes: 0
+    - name: host49
+      rs_config:
+          votes: 0
+    - name: host50
+      rs_config:
+          votes: 0
+
+# vim: ts=4 sts=4 sw=4 et:
