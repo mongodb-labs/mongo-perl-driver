@@ -26,7 +26,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db server_version storage_engine/;
+use MongoDBTest qw/build_client get_test_db server_version/;
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
@@ -60,10 +60,10 @@ my $server_version = server_version($conn);
     ok($coll->insert({name => 'Alice'}), "create test collection");
     ok($cap->insert({name => 'Bob'}), "create capped collection");
 
-    my @names = $testdb->collection_names;
-    my @expected = qw/test test_capped/;
-    push @expected, 'system.indexes' if storage_engine($conn) eq 'mmapv1';
-    is_deeply( [sort @names], [ sort @expected ], "expected collection names" );
+    my %names = map {; $_ => 1 } $testdb->collection_names;
+    for my $k ( qw/test test_capped/ ) {
+        ok( exists $names{$k}, "collection_names included $k" );
+    }
 }
 
 # non-existent command

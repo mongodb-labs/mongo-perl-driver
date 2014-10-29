@@ -554,29 +554,30 @@ SKIP: {
     }
 }
 
-
-# safe remove/update
+# safe update
 {
     $coll->drop;
+    $coll->ensure_index({name => 1}, {unique => 1});
+    $coll->insert( {name => 'Alice'} );
+    $coll->insert( {name => 'Bob'} );
 
-    $ok = $coll->remove( {safe => 0} );
-    ok($ok, 'unsafe remove');
-    is($ok->last_errmsg, '', "no error message");
+    my $err = exception { $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, { safe => 0 } ) };
+    is($err, undef, "bad update with safe => 0: no error");
 
-    my $syscoll = $testdb->get_collection('system.indexes');
-    eval {
-        $ok = $syscoll->remove({}, {safe => 1});
-    };
+    for my $h ( undef, { safe => 1 } ) {
+        $err = exception { $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, $h ) };
+        my $case = $h ? "explicit" : "default";
+        ok( $err, "bad update with $case safe gives error" );
+        SKIP: {
+            skip "the version of the db you're running doesn't give error codes, you may wish to consider upgrading", 1
+                if $err->code == UNKNOWN_ERROR();
 
-    like($@->result->last_errmsg, qr/cannot delete from system namespace|not authorized/, 'remove from system.indexes should fail');
-
-    $coll->insert({x=>1});
-    $ok = $coll->update({}, {'$inc' => {x => 1}});
-    isa_ok( $ok, "MongoDB::WriteResult" );
-    is( exception { $ok->assert }, undef, "update succeeded" );
-
-    $ok = $coll->update({}, {'$inc' => {x => 2}}, {safe => 1});
-    is( exception { $ok->assert }, undef, "update succeeded" );
+            is($err->code, 11000, "error code correct");
+        }
+        ok( my $ok = $coll->update( { name => 'Alice' }, { '$set' => { age => 23 } }, $h ), "did legal update" );
+        isa_ok( $ok, "MongoDB::WriteResult" );
+        is( exception { $ok->assert }, undef, "legal update with $case safe had no error" );
+    }
 }
 
 # save
@@ -594,13 +595,6 @@ SKIP: {
 
     my $z = $coll->find_one;
     is($z->{"hello"}, 3);
-
-    my $syscoll = $testdb->get_collection('system.indexes');
-    eval {
-        $ok = $syscoll->save({_id => 'foo'}, {safe => 1});
-    };
-
-    like($@->result->last_errmsg, qr/cannot update system collection|not authorized/, 'save to system.indexes should fail');
 }
 
 # find
