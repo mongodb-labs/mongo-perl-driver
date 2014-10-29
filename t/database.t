@@ -26,7 +26,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db server_version storage_engine/;
+use MongoDBTest qw/build_client get_test_db server_version/;
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
@@ -47,20 +47,23 @@ my $server_version = server_version($conn);
 # collection_names
 {
     is(scalar $testdb->collection_names, 0, 'no collections');
+
     my $coll = $testdb->get_collection('test');
-    is($coll->count, 0, 'collection is empty');
 
-    is($coll->find_one, undef, 'nothing for find_one');
+    my $cmd = [ create => "test_capped", capped => 1, size => 10000 ];
+    $testdb->run_command($cmd);
+    my $cap = $testdb->get_collection("test_capped");
 
-    my $id = $coll->insert({ just => 'another', perl => 'hacker' });
+    $coll->ensure_index([ name => 1]);
+    $cap->ensure_index([ name => 1]);
 
-    # heap1 only has 1; other engines are TBD but not likely for test
-    my $expected = storage_engine($conn) eq 'mmapv1' ? 2 : 1;
-    is(scalar $testdb->collection_names, $expected, 'test and system.indexes');
-    ok((grep { $_ eq 'test' } $testdb->collection_names), 'collection_names');
-    is($coll->count, 1, 'count');
-    is($coll->find_one->{perl}, 'hacker', 'find_one');
-    is($coll->find_one->{_id}->value, $id->value, 'insert id');
+    ok($coll->insert({name => 'Alice'}), "create test collection");
+    ok($cap->insert({name => 'Bob'}), "create capped collection");
+
+    my %names = map {; $_ => 1 } $testdb->collection_names;
+    for my $k ( qw/test test_capped/ ) {
+        ok( exists $names{$k}, "collection_names included $k" );
+    }
 }
 
 # non-existent command

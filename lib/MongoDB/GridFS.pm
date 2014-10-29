@@ -121,15 +121,8 @@ sub _build_chunks {
 # If they are not found, they will be created.
 sub BUILD {
     my ($self) = @_;
-   
-    # check for the required indexes in the system.indexes collection
-    my $count = $self->_database->get_collection('system.indexes')->count({key=>{filename => 1}});
-    $count   += $self->_database->get_collection('system.indexes')->count({key=>{files_id => 1, n => 1}});
-    
-    # if we don't have the required indexes, create them now.
-    if ($count < 2){
-       $self->_ensure_indexes();
-    }
+    $self->_ensure_indexes();
+    return;
 }
 
 

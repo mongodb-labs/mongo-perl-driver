@@ -530,27 +530,19 @@ SKIP: {
     }
 }
 
-# safe remove/update
+# safe update
 {
     $coll->drop;
+    $coll->ensure_index({name => 1}, {unique => 1});
+    $coll->insert( {name => 'Alice'} );
+    $coll->insert( {name => 'Bob'} );
 
-    $ok = $coll->remove;
-    is($ok, 1, 'unsafe remove');
-    is($testdb->last_error->{n}, 0);
-
-    my $syscoll = $testdb->get_collection('system.indexes');
-    eval {
-        $ok = $syscoll->remove({}, {safe => 1});
-    };
-
-    like($@, qr/cannot delete from system namespace|not authorized/, 'remove from system.indexes should fail');
-
-    $coll->insert({x=>1});
-    $ok = $coll->update({}, {'$inc' => {x => 1}});
-    is($ok->{ok}, 1);
-
-    $ok = $coll->update({}, {'$inc' => {x => 2}}, {safe => 1});
-    is($ok->{ok}, 1);
+    for my $h ( undef, { safe => 1 } ) {
+        my $err = exception { $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, $h ) };
+        my $case = $h ? "explicit" : "default";
+        ok( $err, "bad update with $case safe gives error");
+        ok( $coll->update( { name => 'Alice' }, { '$set' => { age => 23 } }, $h ), "did legal update" );
+    }
 }
 
 # save
@@ -568,13 +560,6 @@ SKIP: {
 
     my $z = $coll->find_one;
     is($z->{"hello"}, 3);
-
-    my $syscoll = $testdb->get_collection('system.indexes');
-    eval {
-        $ok = $syscoll->save({_id => 'foo'}, {safe => 1});
-    };
-
-    like($@, qr/cannot update system collection|not authorized/, 'save to system.indexes should fail');
 }
 
 # find

@@ -48,9 +48,10 @@ sub _test_collection_names {
     ok( $coll->insert( { name => 'Alice' } ), "create test collection" );
     ok( $cap->insert( { name => 'Bob' } ), "create capped collection" );
 
-    my @expected = qw/system.indexes test test_capped/;
-    my @names    = $testdb->collection_names;
-    is_deeply( [ sort @names ], [ sort @expected ], "expected collection names" );
+    my %names    = map {; $_ => 1 } $testdb->collection_names;
+    for my $k ( qw/test test_capped/ ) {
+       ok( exists $names{$k}, "saw $k in collection_names" );
+    }
 }
 
 subtest "wire protocol 3" => sub {
