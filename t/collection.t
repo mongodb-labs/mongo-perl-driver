@@ -543,15 +543,7 @@ SKIP: {
     my $err = exception { $coll->insert({_id => 1}, {safe => 1}) };
     ok( $err, "got error" );
     isa_ok( $err, 'MongoDB::DatabaseError', "duplicate insert error" );
-    like( $err->result->last_errmsg, qr/duplicate key/, 'error was duplicate key exception')
-        or diag explain $err;
-
-  SKIP: {
-      skip "the version of the db you're running doesn't give error codes, you may wish to consider upgrading", 1
-        if $err->code == UNKNOWN_ERROR();
-
-      is($err->code, 11000, "error code correct");
-    }
+    like( $err->message, qr/duplicate key/, 'error was duplicate key exception')
 }
 
 # safe update
@@ -568,12 +560,7 @@ SKIP: {
         $err = exception { $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, $h ) };
         my $case = $h ? "explicit" : "default";
         ok( $err, "bad update with $case safe gives error" );
-        SKIP: {
-            skip "the version of the db you're running doesn't give error codes, you may wish to consider upgrading", 1
-                if $err->code == UNKNOWN_ERROR();
-
-            is($err->code, 11000, "error code correct");
-        }
+        like( $err->message, qr/duplicate key/, 'error was duplicate key exception');
         ok( my $ok = $coll->update( { name => 'Alice' }, { '$set' => { age => 23 } }, $h ), "did legal update" );
         isa_ok( $ok, "MongoDB::WriteResult" );
         is( exception { $ok->assert }, undef, "legal update with $case safe had no error" );
