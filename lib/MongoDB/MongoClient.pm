@@ -540,7 +540,7 @@ sub _apply_read_prefs {
     my ( $self, $link, $query, $flags, $read_preference ) = @_;
 
     if ( $link->server->type eq 'Mongos' ) {
-        if ( $read_preference->has_empty_tagsets ) {
+        if ( $read_preference->has_empty_tag_sets ) {
             if ( $read_preference->mode eq 'primary' ) {
                 $flags->{slave_ok} = 0;
             }
@@ -1494,12 +1494,12 @@ Unlocks a database server to allow writes and reverses the operation of a $conn-
 
 Sets the read preference for this connection. The first argument is the read
 preference mode and should be one of four constants: PRIMARY, SECONDARY,
-PRIMARY_PREFERRED, or SECONDARY_PREFERRED (NEAREST is not yet supported).
-In order to use read preference, L<MongoDB::MongoClient/find_master> must be set.
-The second argument (optional) is an array reference containing tagsets. The tagsets can
-be used to match the tags for replica set secondaries. See also
-L<MongoDB::Cursor/read_preference>. For core documentation on read preference
-see L<http://docs.mongodb.org/manual/core/read-preference/>.
+PRIMARY_PREFERRED, or SECONDARY_PREFERRED (NEAREST is not yet supported).  In
+order to use read preference, L<MongoDB::MongoClient/find_master> must be set.
+The second argument (optional) is an array reference containing one or more tag
+sets. The tag set list can be used to match the tag sets of replica set secondaries.
+See also L<MongoDB::Cursor/read_preference>. For core documentation on read
+preference see L<http://docs.mongodb.org/manual/core/read-preference/>.
 
 =method repin
 

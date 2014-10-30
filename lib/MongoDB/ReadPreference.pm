@@ -37,7 +37,7 @@ has mode => (
     coerce  => 1,
 );
 
-has tagsets => (
+has tag_sets => (
     is      => 'ro',
     isa     => 'ArrayOfHashRef',
     default => sub { [ {} ] },
@@ -47,33 +47,33 @@ has tagsets => (
 sub BUILD {
     my ($self) = @_;
 
-    if ( $self->mode eq 'primary' && !$self->has_empty_tagsets ) {
-        confess "Tag sets are not allowed with read preference mode 'primary'";
+    if ( $self->mode eq 'primary' && !$self->has_empty_tag_sets ) {
+        confess "A tag set list is not allowed with read preference mode 'primary'";
     }
 
     return;
 }
 
-sub has_empty_tagsets {
+sub has_empty_tag_sets {
     my ($self) = @_;
-    my $tagsets = $self->tagsets;
-    return @$tagsets == 0 || ( @$tagsets == 1 && !keys %{ $tagsets->[0] } );
+    my $tag_sets = $self->tag_sets;
+    return @$tag_sets == 0 || ( @$tag_sets == 1 && !keys %{ $tag_sets->[0] } );
 }
 
 sub for_mongos {
     my ($self) = @_;
     return {
         mode => $self->mode,
-        tags => $self->tagsets,
+        tags => $self->tag_sets,
     };
 }
 
 sub as_string {
     my ($self) = @_;
     my $string = $self->mode;
-    unless ( $self->has_empty_tagsets ) {
+    unless ( $self->has_empty_tag_sets ) {
         my @ts;
-        for my $set ( @{ $self->tagsets } ) {
+        for my $set ( @{ $self->tag_sets } ) {
             push @ts, keys(%$set) ? join( ",", map { "$_\:$set->{$_}" } sort keys %$set ) : "";
         }
         $string .= " (" . join( ",", map { "{$_}" } @ts ) . ")";

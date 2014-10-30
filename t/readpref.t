@@ -46,7 +46,7 @@ subtest "read preference connection string" => sub {
     my $rp = $conn2->_read_preference;
     is( $rp->mode, 'primaryPreferred', "mode from" );
     is_deeply(
-        $rp->tagsets,
+        $rp->tag_sets,
         [ { dc => 'ny', rack => 1 }, { dc => 'ny'}, {} ],
         "tag set list"
     );
@@ -87,8 +87,8 @@ subtest "argument variants" => sub {
 subtest "error cases" => sub {
     like( exception  {
         $conn->read_preference(MongoDB::MongoClient->PRIMARY, [{use => 'production'}]);
-    }, qr/Tag sets are not allowed with read preference mode 'primary'/,
-    'PRIMARY cannot be combined with tags');
+    }, qr/A tag set list is not allowed with read preference mode 'primary'/,
+    'PRIMARY cannot be combined with a tag set list');
 
     like( exception  {
         $conn->read_preference(-1)

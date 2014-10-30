@@ -114,7 +114,7 @@ coerce ReadPreference => from 'HashRef' => via { MongoDB::ReadPreference->new($_
 coerce ReadPreference => from 'Str' =>
   via { MongoDB::ReadPreference->new( mode => $_ ) };
 coerce ReadPreference => from 'ArrayRef' =>
-  via { MongoDB::ReadPreference->new( mode => $_->[0], tagsets => $_->[1] ) };
+  via { MongoDB::ReadPreference->new( mode => $_->[0], tag_sets => $_->[1] ) };
 
 coerce ErrorStr => from 'Str' => via { $_ || "unspecified error" };
 

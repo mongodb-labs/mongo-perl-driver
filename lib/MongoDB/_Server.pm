@@ -160,7 +160,7 @@ sub _build_primary {
     return $self->is_master->{primary} || '';
 }
 
-# tags: map from string to string. Default empty.
+# tags: (a tag set) map from string to string. Default empty.
 
 has tags => (
     is      => 'ro',
@@ -205,15 +205,15 @@ sub updated_since {
     return tv_interval( $tv, $self->last_update_time ) > 0;
 }
 
-sub matches_tagset {
-    my ( $self, $tagset ) = @_;
+sub matches_tag_sets {
+    my ( $self, $tag_sets ) = @_;
 
     my $tg = $self->tags;
-    for my $ts ( @{$tagset} ) {
+    for my $ts ( @{$tag_sets} ) {
         no warnings 'uninitialized'; # let undef equal empty string without complaint
 
-        # any tagset key we don't have or that we don't match will give a defined answer
-        # below, meaning we fail that tagset; if we didn't get any bad keys, then we
+        # any tag set key we don't have or that we don't match will give a defined answer
+        # below, meaning we fail that tag set; if we didn't get any bad keys, then we
         # have a match and can stop
         if ( !defined first { !exists( $tg->{$_} ) || $tg->{$_} ne $ts->{$_} } keys %$ts ) {
             return 1;

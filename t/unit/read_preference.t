@@ -24,9 +24,9 @@ for my $mode (@modes) {
 }
 
 like(
-    exception { $class->new( mode => 'primary', tagsets => [ { dc => 'us' } ] ) },
+    exception { $class->new( mode => 'primary', tag_sets => [ { dc => 'us' } ] ) },
     qr/not allowed/,
-    "tags not allowed with primary"
+    "tag set list not allowed with primary"
 );
 
 subtest "stringification" => sub {
@@ -38,7 +38,7 @@ subtest "stringification" => sub {
         [
             {
                 mode    => 'secondary_preferred',
-                tagsets => [ { dc => 'ny', rack => 1 }, { dc => 'ny' }, {} ]
+                tag_sets => [ { dc => 'ny', rack => 1 }, { dc => 'ny' }, {} ]
             },
             'secondaryPreferred ({dc:ny,rack:1},{dc:ny},{})'
         ],

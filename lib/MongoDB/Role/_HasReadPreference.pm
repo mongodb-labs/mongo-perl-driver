@@ -44,11 +44,11 @@ sub read_preference {
         $self->_set_read_preference( $_[0] );
     }
     else {
-        my $mode    = shift || 'primary';
-        my $tagsets = shift;
-        my $rp      = MongoDB::ReadPreference->new(
+        my $mode     = shift || 'primary';
+        my $tag_sets = shift;
+        my $rp       = MongoDB::ReadPreference->new(
             mode => $mode,
-            ( $tagsets ? ( tagsets => $tagsets ) : () )
+            ( $tag_sets ? ( tag_sets => $tag_sets ) : () )
         );
         $self->_set_read_preference($rp);
     }

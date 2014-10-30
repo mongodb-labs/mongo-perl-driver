@@ -73,7 +73,7 @@ sub _unescape_all {
     return $str;
 }
 
-sub _parse_tagset {
+sub _parse_tag_set {
     my ($string) = @_;
     my $set = {};
     for my $tag ( split /,/, $string ) {
@@ -118,7 +118,7 @@ sub BUILD {
                 my ($k, $v) = map { _unescape_all($_) } @kv;
                 if ( $k eq 'readPreferenceTags' ) {
                     $parsed{$k} ||= [];
-                    push @{$parsed{$k}}, _parse_tagset($v);
+                    push @{$parsed{$k}}, _parse_tag_set($v);
                 }
                 else {
                     $parsed{$k} = $v;

@@ -434,13 +434,13 @@ sub partial {
     return $self;
 }
 
-=head2 read_preference ($mode, $tagsets)
+=head2 read_preference ($mode, $tag_sets)
 
     my $cursor = $coll->find()->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED, [{foo => 'bar'}]);
 
 Sets read preference for the cursor's connection. The $mode argument
 should be a constant in MongoClient (PRIMARY, PRIMARY_PREFERRED, SECONDARY,
-SECONDARY_PREFERRED, NEAREST). The $tagsets specify selection criteria for secondaries
+SECONDARY_PREFERRED, NEAREST). The $tag_sets specify selection criteria for secondaries
 in a replica set and should be an ArrayRef whose array elements are HashRefs.
 This is a convenience method which is identical in function to
 L<MongoDB::MongoClient/read_preference>.

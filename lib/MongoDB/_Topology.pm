@@ -338,6 +338,16 @@ sub _dump {
     print $self->_status_string . "\n";
 }
 
+sub _eligible {
+    my ( $self, $read_pref, @candidates ) = @_;
+
+    return @candidates
+      if $read_pref->has_empty_tag_sets;
+
+    my $ts = $read_pref->tag_sets;
+    return grep { $_->matches_tag_sets($ts) } @candidates;
+}
+
 sub _find_any_link {
     my ($self) = @_;
     return $self->_get_link_in_latency_window(
@@ -346,8 +356,9 @@ sub _find_any_link {
 
 sub _find_nearest_link {
     my ( $self, $read_pref ) = @_;
-    my @candidates = ( $self->_primaries, $self->_secondaries($read_pref) );
-    return $self->_get_link_in_latency_window( \@candidates );
+    my @suitable =
+      $self->_eligible( $read_pref, $self->_primaries, $self->_secondaries );
+    return $self->_get_link_in_latency_window( \@suitable );
 }
 
 sub _find_primary_link {
@@ -365,9 +376,8 @@ sub _find_primarypreferred_link {
 
 sub _find_secondary_link {
     my ( $self, $read_pref ) = @_;
-
-    my @candidates = $self->_secondaries($read_pref);
-    return $self->_get_link_in_latency_window( \@candidates );
+    my @suitable = $self->_eligible( $read_pref, $self->_secondaries );
+    return $self->_get_link_in_latency_window( \@suitable );
 }
 
 sub _find_secondarypreferred_link {
@@ -380,7 +390,7 @@ sub _get_link_in_latency_window {
 
     # order servers by RTT EWMA
     my $rtt_hash = $self->rtt_ewma_ms;
-    my @candidates =
+    my @sorted =
       sort { $a->{rtt} <=> $b->{rtt} }
       map { { server => $_, address => $_->address, rtt => $rtt_hash->{ $_->address } } }
       @$servers;
@@ -389,7 +399,7 @@ sub _get_link_in_latency_window {
 
     # take first valid link and any links from servers with RTT EWMA within
     # the latency window from the first server
-    for my $c (@candidates) {
+    for my $c (@sorted) {
         last if @links && $c->{rtt} < $max_rtt;
         if ( $c->{link} = $self->_get_server_link( $c->{server} ) ) {
             $max_rtt = $c->{rtt} + $self->latency_threshold_ms if !@links;
@@ -479,17 +489,7 @@ sub _reset_address_to_unknown {
 }
 
 sub _secondaries {
-    my ( $self, $read_pref ) = @_;
-
-    my @secondaries = grep { $_->type eq 'RSSecondary' } $_[0]->all_servers;
-
-    if ( $read_pref->has_empty_tagsets ) {
-        return @secondaries;
-    }
-    else {
-        my $ts = $read_pref->tagset;
-        return grep { $_->matches_tagset($ts) } @secondaries;
-    }
+    return grep { $_->type eq 'RSSecondary' } $_[0]->all_servers;
 }
 
 sub _status_string {
