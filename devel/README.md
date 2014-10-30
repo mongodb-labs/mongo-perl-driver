@@ -4,12 +4,12 @@ DEVELOPER TOOLS README
 Introduction
 ------------
 
-This directory contains files primarily for test requiring cluster
+This directory contains files primarily for test requiring deployment
 orchestration:
 
-* bringing clusters up with various configurations
+* bringing deployments up with various configurations
 
-* reconfiguring clusters during testing to test failover
+* reconfiguring deployments during testing to test failover
   and other dynamic behaviors
 
 Contents
@@ -18,26 +18,26 @@ Contents
 Subdirectories include:
 
 * bin — harnesses and other helper programs
-* clusters — general-purpose cluster definition files in YAML format
+* config — general-purpose deployment definition files in YAML format
 * lib - Perl modules for orchestration
-* t-dynamic — Perl test files that spin up own cluster for testing
+* t-dynamic — Perl test files that spin up own deployment for testing
 * t-special — Perl test files that should only be run manually
 * stale -- legacy test files not yet adapted for new orchestration
 
-The `t-dynamic` directory may also contain cluster definition YAML files
+The `t-dynamic` directory may also contain deployment definition YAML files
 if these are so specialized that the regular test suite would fail.
 
 The `t-special` directory has files with special prerequisites that must
 be satisfied before tests will pass (e.g. compiling with SASL support).
 
-The files in `clusters` should be limited to those for which the
+The files in `config` should be limited to those for which the
 test suite can succeed.
 
 Configuration
 -------------
 
 The orchestration tool will search MONGOPATH and PATH (in that order) for
-mongod or mongos of specific versions to fulfill a cluster definition
+mongod or mongos of specific versions to fulfill a deployment definition
 file specification.
 
 For example, if there is a `~/mongodb` directory containing various mongodb
@@ -56,9 +56,9 @@ Running a t-dynamic test:
 
 Running all regular test files under a specific configuration:
 
-    ./devel/bin/harness.pl devel/clusters/sharded-2.6.yml -- \
+    ./devel/bin/harness.pl devel/config/sharded-2.6.yml -- \
         make test 
 
-Running a test file under *every* configuration in `devel/clusters`:
+Running a test file under *every* configuration in `devel/config`:
 
     ./devel/bin/test-all.pl make test TEST_FILES=t/bulk.t

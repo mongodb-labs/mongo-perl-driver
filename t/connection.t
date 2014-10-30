@@ -34,7 +34,7 @@ my $testdb = get_test_db($conn);
 is(
     exception { MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL}); },
     undef,
-    'no exception on connection failure during cluster scan'
+    'no exception on connection failure during topology scan'
 );
 
 SKIP: {

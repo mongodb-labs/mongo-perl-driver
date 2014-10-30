@@ -39,11 +39,11 @@ my %config_map = (
     'sharded-2.6' => 'db1',
 );
 
-for my $cluster ( sort keys %config_map ) {
-    subtest "$cluster log check"=> sub {
+for my $deployment ( sort keys %config_map ) {
+    subtest "$deployment log check"=> sub {
         my $orc =
-          MongoDBTest::Orchestrator->new( config_file => "devel/clusters/$cluster.yml" );
-        diag "starting cluster";
+          MongoDBTest::Orchestrator->new( config_file => "devel/config/$deployment.yml" );
+        diag "starting deployment";
         $orc->start;
         $ENV{MONGOD} = $orc->as_uri;
         diag "MONGOD: $ENV{MONGOD}";
@@ -54,7 +54,7 @@ for my $cluster ( sort keys %config_map ) {
 
         $coll->insert( { count => $_ } ) for 1 .. 10;
 
-        my $logfile =  $orc->get_server( $config_map{$cluster} )->logfile;
+        my $logfile =  $orc->get_server( $config_map{$deployment} )->logfile;
 
         my $res = $coll->ensure_index( [ count => 1 ] );
 
@@ -69,7 +69,7 @@ subtest "2.6 mongos with mixed-version mongod" => sub {
     my $orc =
         MongoDBTest::Orchestrator->new( config_file => "devel/t-dynamic/sharded-2.6-mixed.yml" );
     $orc->start;
-    diag "starting cluster";
+    diag "starting deployment";
     $ENV{MONGOD} = $orc->as_uri;
     diag "MONGOD: $ENV{MONGOD}";
 
@@ -83,7 +83,7 @@ subtest "2.6 mongos with mixed-version mongod" => sub {
     $admin->_try_run_command([shardCollection => $coll->full_name, key => { number => 1 }]);
     $admin->_try_run_command([split => $coll->full_name, middle => { number => 500 }]);
 
-    # wrap in eval since moving cluster to current shard is an error
+    # wrap in eval since moving chunk to current shard is an error
     eval { $admin->_try_run_command([moveChunk => $coll->full_name, find => { number => 1}, to => 'sh1']) };
     eval { $admin->_try_run_command([moveChunk => $coll->full_name, find => { number => 1000}, to => 'sh2']) };
 

@@ -196,7 +196,7 @@ subtest "invalid X509 cert" => sub {
 
 subtest "X509 without SSL server" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/clusters/mongod-2.6.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
     $orc->start;
 
     like(

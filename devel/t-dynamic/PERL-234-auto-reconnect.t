@@ -24,13 +24,13 @@ use lib "devel/lib";
 use MongoDBTest::Orchestrator;
 # use Log::Any::Adapter qw/Stderr/;
 
-my $orc = MongoDBTest::Orchestrator->new( config_file => "devel/clusters/mongod-2.6.yml" );
+my $orc = MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
-my $server = $orc->cluster->get_server("host1");
+my $server = $orc->deployment->get_server("host1");
 my $orig_port = $server->port;
 
 ok ($server->is_alive, "Server is alive");

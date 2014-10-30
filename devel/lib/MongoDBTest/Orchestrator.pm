@@ -21,7 +21,7 @@ package MongoDBTest::Orchestrator;
 
 use lib 'devel/lib';
 
-use MongoDBTest::Cluster;
+use MongoDBTest::Deployment;
 use MongoDBTest::ShardedCluster;
 
 use Carp;
@@ -56,25 +56,25 @@ sub _build_config {
     return $config;
 }
 
-has cluster_type => (
+has deployment_type => (
     is => 'lazy',
     isa => Enum[qw/single replica sharded/],
 );
 
-sub _build_cluster_type {
+sub _build_deployment_type {
     my ($self) = @_;
     return $self->config->{type};
 }
 
-has cluster => (
+has deployment => (
     is => 'lazy',
-    isa => ConsumerOf['MongoDBTest::Role::Cluster'],
+    isa => ConsumerOf['MongoDBTest::Role::Deployment'],
     handles => [ qw/start stop as_uri get_server/ ],
 );
 
-sub _build_cluster {
+sub _build_deployment {
     my ($self) = @_;
-    my $class = "MongoDBTest::" . ($self->cluster_type eq 'sharded' ? "ShardedCluster" : "Cluster");
+    my $class = "MongoDBTest::" . ($self->deployment_type eq 'sharded' ? "ShardedCluster" : "Deployment");
     return $class->new(
         config => $self->config,
     );

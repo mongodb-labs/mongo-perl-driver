@@ -693,7 +693,7 @@ subtest 'text indices' => sub {
     # 2.6 changed the response format for text search results, and deprecated
     # the 'text' command. On 2.4, mongos doesn't report the default language
     # and provides stats per shard instead of in total.
-    if ( ! ( $server_version >= v2.6.0 || $conn->cluster_type eq 'Sharded') ) {
+    if ( ! ( $server_version >= v2.6.0 || $conn->topology_type eq 'Sharded') ) {
         is($search->{'language'}, 'spanish', 'text search uses preferred language');
         is($search->{'stats'}->{'nfound'}, 10, 'correct number of results found');
     }

@@ -19,7 +19,7 @@ use warnings;
 package MongoDBTest::ShardedCluster;
 
 use MongoDB;
-use MongoDBTest::Cluster;
+use MongoDBTest::Deployment;
 use MongoDBTest::ServerSet;
 
 use Moo;
@@ -64,7 +64,7 @@ sub _build_routers {
 
 has shard_sets => (
     is => 'lazy',
-    isa => HashRef[ConsumerOf['MongoDBTest::Role::Cluster']],
+    isa => HashRef[ConsumerOf['MongoDBTest::Role::Deployment']],
 );
 
 sub _build_shard_sets {
@@ -78,7 +78,7 @@ sub _build_shard_sets {
         $shard->{default_args} = $self->default_args . ($shard->{default_args} // "");
         $shard->{default_version} //= $self->default_version,
 
-        $set->{$name} = MongoDBTest::Cluster->new( config => $shard );
+        $set->{$name} = MongoDBTest::Deployment->new( config => $shard );
     }
 
     return $set;
@@ -149,6 +149,6 @@ sub get_server {
     return;
 }
 
-with 'MooseX::Role::Logger', 'MongoDBTest::Role::Cluster';
+with 'MooseX::Role::Logger', 'MongoDBTest::Role::Deployment';
 
 1;

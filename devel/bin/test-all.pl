@@ -11,7 +11,7 @@ die "Usage: $0 <program> [args...]\n"
 die "$ARGV[0] not found or not executable\n"
   unless IPC::Cmd::can_run( $ARGV[0] );
 
-for my $file (<devel/clusters/*.yml>) {
+for my $file (<devel/config/*.yml>) {
     say "---- TESTING WITH $file ----";
     system( "devel/bin/harness.pl", $file, @ARGV );
 }

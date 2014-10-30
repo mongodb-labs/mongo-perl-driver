@@ -35,7 +35,7 @@ note("CAP-408 aggregation explain");
 
 my $orc =
     MongoDBTest::Orchestrator->new( config_file => "devel/t-dynamic/sharded-2.4-mixed.yml" );
-diag "starting cluster";
+diag "starting deployment";
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 diag "MONGOD: $ENV{MONGOD}";
@@ -53,7 +53,7 @@ $coll->insert( { number => int(rand(2**31)) } ) for 1 .. 10;
 like(
     exception { $coll->aggregate( [ { '$project' => { _id => 1, count => 1 } } ], {explain => 1} ) },
     qr/pipeline/,
-    "caught exception running explain on mixed cluster"
+    "caught exception running explain on mixed sharded cluster"
 );
 
 clear_testdbs;

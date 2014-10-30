@@ -42,7 +42,7 @@ unless ( $config_file && @command ) {
 }
 
 if ( ! -f $config_file ) {
-    my $new_config = "devel/clusters/$config_file";
+    my $new_config = "devel/config/$config_file";
     if ( -f $new_config ) {
         $config_file = $new_config;
     }
@@ -51,7 +51,7 @@ if ( ! -f $config_file ) {
     }
 }
 
-say "Creating a cluster from $config_file";
+say "Creating a deployment from $config_file";
 
 my $orc = MongoDBTest::Orchestrator->new( config_file => $config_file );
 
@@ -59,9 +59,9 @@ try {
     $orc->start;
 }
 catch {
-    say "Problem starting cluster from $config_file.";
+    say "Problem starting deployment from $config_file.";
     if ( $opts{verbose} ) {
-        for my $server ( $orc->cluster->all_servers ) {
+        for my $server ( $orc->deployment->all_servers ) {
             next unless -e -s $server->logfile;
             say "---------------------------------";
             say "Log tail for " . $server->name . ":";
@@ -89,17 +89,17 @@ __END__
 
 =head1 NAME
 
-harness.pl - run a command under a given cluster definition
+harness.pl - run a command under a given deployment definition
 
 =head1 USAGE
 
     harness.pl <config-file> <command> [args...]
 
-This command will instantiate a cluster from a YAML config file
+This command will instantiate a deployment from a YAML config file
 and run the command with arguments.
 
 The C<MONGOD> environment variable will be set to a MongoDB connection
-URI appropriate to the cluster.
+URI appropriate to the deployment.
 
 =cut
 

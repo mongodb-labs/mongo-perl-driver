@@ -62,9 +62,9 @@ sub get_test_db {
 BEGIN {
     eval {
         my $conn = build_client( server_selection_timeout_ms => 1000 );
-        $conn->_cluster->scan_all_servers;
-        $conn->_cluster->_dump;
-        eval { $conn->_cluster->get_writable_link }
+        $conn->_topology->scan_all_servers;
+        $conn->_topology->_dump;
+        eval { $conn->_topology->get_writable_link }
             or die "couldn't connect";
         $conn->get_database("admin")->_try_run_command({ serverStatus => 1 })
             or die "Database has auth enabled\n";

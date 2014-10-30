@@ -47,7 +47,7 @@ sub create_mock_topology {
             $type = 'Single';
         }
     }
-    return MongoDB::_Cluster->new(
+    return MongoDB::_Topology->new(
         uri => $uri,
         type => $type,
         max_wire_version => 2,
@@ -78,7 +78,7 @@ sub run_test {
                     last_update_time => [ Time::HiRes::gettimeofday() ],
                 );
 
-                $topology->_update_cluster_from_server_desc( @$response[0], $desc);
+                $topology->_update_topology_from_server_desc( @$response[0], $desc);
             }
 
             # Process outcome

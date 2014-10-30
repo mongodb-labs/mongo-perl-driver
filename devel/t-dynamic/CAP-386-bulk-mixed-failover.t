@@ -36,7 +36,7 @@ use MongoDBTest::Orchestrator;
 
 my $orc =
   MongoDBTest::Orchestrator->new(
-    config_file => "devel/clusters/replicaset-mixed.yml" );
+    config_file => "devel/config/replicaset-mixed.yml" );
 diag "starting replicaset";
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
@@ -53,12 +53,12 @@ my $coll   = $testdb->get_collection("test_collection");
 note("QA-447 FAILOVER WITH MIXED VERSION");
 subtest "mixed version stepdown" => sub {
     diag "waiting for all hosts to be ready";
-    $orc->cluster->server_set->wait_for_all_hosts;
+    $orc->deployment->server_set->wait_for_all_hosts;
 
     is( exception { $coll->drop }, undef, "drop collection" );
 
     # stopdown primary
-    $orc->cluster->server_set->stepdown_primary(5);
+    $orc->deployment->server_set->stepdown_primary(5);
     note "stepped down primary";
 
     my $bulk = $coll->initialize_ordered_bulk_op;
@@ -72,7 +72,7 @@ subtest "mixed version stepdown" => sub {
     sleep 6;
 
     # stepdown primary again to switch back
-    $orc->cluster->server_set->stepdown_primary(5);
+    $orc->deployment->server_set->stepdown_primary(5);
     note "stepped down primary again";
 
     $bulk = $coll->initialize_ordered_bulk_op;

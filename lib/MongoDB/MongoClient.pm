@@ -29,7 +29,7 @@ use MongoDB::BSON::Regexp;
 use MongoDB::Error;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
-use MongoDB::_Cluster;
+use MongoDB::_Topology;
 use MongoDB::_Credential;
 use MongoDB::_URI;
 use Digest::MD5;
@@ -228,12 +228,12 @@ has find_master => (
 # private attributes
 #--------------------------------------------------------------------------#
 
-has _cluster => (
+has _topology => (
     is         => 'ro',
-    isa        => 'MongoDB::_Cluster',
+    isa        => 'MongoDB::_Topology',
     lazy_build => 1,
-    handles    => { cluster_type => 'type' },
-    clearer    => '_clear__cluster',
+    handles    => { topology_type => 'type' },
+    clearer    => '_clear__topology',
 );
 
 has _credential => (
@@ -299,7 +299,7 @@ sub _build_auth_mechanism_properties {
     };
 }
 
-sub _build__cluster {
+sub _build__topology {
     my ($self) = @_;
 
     my $type =
@@ -307,7 +307,7 @@ sub _build__cluster {
       : $self->connect_type eq 'direct'     ? 'Single'
       :                                       'Unknown';
 
-    MongoDB::_Cluster->new(
+    MongoDB::_Topology->new(
         uri                         => $self->_uri,
         type                        => $type,
         server_selection_timeout_ms => $self->server_selection_timeout_ms,
@@ -421,13 +421,13 @@ sub _use_write_cmd {
 
 sub connect {
     my ($self) = @_;
-    $self->_cluster->scan_all_servers;
+    $self->_topology->scan_all_servers;
     return 1;
 }
 
 sub disconnect {
     my ($self) = @_;
-    $self->_cluster->close_all_links;
+    $self->_topology->close_all_links;
     return 1;
 }
 
@@ -435,7 +435,7 @@ sub send_admin_command {
     my ($self, $command, $flags, $read_preference) = @_;
 
     $read_preference ||= MongoDB::ReadPreference->new;
-    my $link = $self->_cluster->get_readable_link( $read_preference );
+    my $link = $self->_topology->get_readable_link( $read_preference );
     my $query = MongoDB::_Query->new( spec => $command );
     $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
 
@@ -446,7 +446,7 @@ sub send_command {
     my ($self, $db, $command, $flags, $read_preference) = @_;
 
     $read_preference ||= MongoDB::ReadPreference->new;
-    my $link = $self->_cluster->get_readable_link( $read_preference );
+    my $link = $self->_topology->get_readable_link( $read_preference );
     my $query = MongoDB::_Query->new( spec => $command );
     $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
 
@@ -458,7 +458,7 @@ sub send_delete {
     # $op_doc is { q: $query, limit: $limit }
 
     $write_concern ||= $self->_write_concern;
-    my $link = $self->_cluster->get_writable_link;
+    my $link = $self->_topology->get_writable_link;
 
     return $self->_send_delete( $link, $ns, $op_doc, $write_concern );
 }
@@ -466,7 +466,7 @@ sub send_delete {
 sub send_get_more {
     my ( $self, $address, $ns, $cursor_id, $size ) = @_;
 
-    my $link = $self->_cluster->get_specific_link( $address );
+    my $link = $self->_topology->get_specific_link( $address );
 
     return $self->_send_get_more( $link, $ns, $cursor_id, $size, $self );
 }
@@ -477,7 +477,7 @@ sub send_insert {
     $docs = [ $docs ] unless ref $docs eq 'ARRAY'; # XXX from BulkWrite
 
     $write_concern ||= $self->_write_concern;
-    my $link = $self->_cluster->get_writable_link;
+    my $link = $self->_topology->get_writable_link;
 
     return $self->_send_insert( $link, $ns, $docs, $flags, $check_keys, $write_concern );
 }
@@ -485,7 +485,7 @@ sub send_insert {
 sub send_kill_cursors {
     my ( $self, $address, @cursors ) = @_;
 
-    my $link = $self->_cluster->get_specific_link( $address );
+    my $link = $self->_topology->get_specific_link( $address );
 
     return $self->_send_kill_cursors( $link, @cursors );
 }
@@ -495,7 +495,7 @@ sub send_update {
     # $op_doc is { q: $query, u: $update, multi: $multi, upsert: $upsert }
 
     $write_concern ||= $self->_write_concern;
-    my $link = $self->_cluster->get_writable_link;
+    my $link = $self->_topology->get_writable_link;
 
     return $self->_send_update( $link, $ns, $op_doc, $write_concern );
 }
@@ -506,7 +506,7 @@ sub send_query {
     my ($self, $ns, $query, $fields, $skip, $limit, $batch_size, $flags, $read_preference) = @_;
 
     $read_preference ||= $self->_read_preference || MongoDB::ReadPreference->new;
-    my $link = $self->_cluster->get_readable_link( $read_preference );
+    my $link = $self->_topology->get_readable_link( $read_preference );
 
     $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
 
@@ -518,7 +518,7 @@ sub send_versioned_read {
     my ( $self, $variants, $read_preference ) = @_;
 
     $read_preference ||= MongoDB::ReadPreference->new;
-    my $link = $self->_cluster->get_readable_link($read_preference);
+    my $link = $self->_topology->get_readable_link($read_preference);
 
     # try highest protocol versions first
     for my $version ( sort { $b <=> $a } keys %$variants ) {
@@ -575,13 +575,13 @@ sub send_bulk_queue {
     my $ordered = $args{ordered};
     my $write_concern = $args{write_concern} || $self->_write_concern;
 
-    my $link = $self->_cluster->get_writable_link;
+    my $link = $self->_topology->get_writable_link;
 
     my $use_write_cmd = _use_write_cmd($link);
 
     # If using legacy write ops, then there will never be a valid nModified
     # result so we set that to undef in the constructor; otherwise, we set it
-    # to 0 so that results accumulate normally. If a mongos on a mixed cluster
+    # to 0 so that results accumulate normally. If a mongos on a mixed topology
     # later fails to set it, results merging will handle it that case.
     my $result = MongoDB::WriteResult->new( nModified => $use_write_cmd ? 0 : undef, );
 
@@ -870,9 +870,9 @@ sub authenticate {
     );
     $self->_set__credential($cred);
 
-    # ensure that we've authenticated by clearing the cluster and trying a
+    # ensure that we've authenticated by clearing the topology and trying a
     # command that opens a socket
-    $self->_clear__cluster;
+    $self->_clear__topology;
     $self->send_admin_command( { ismaster => 1 } );
 
     return 1;

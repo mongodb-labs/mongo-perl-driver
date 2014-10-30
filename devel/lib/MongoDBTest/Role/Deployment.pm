@@ -16,7 +16,7 @@ use 5.010;
 use strict;
 use warnings;
 
-package MongoDBTest::Role::Cluster;
+package MongoDBTest::Role::Deployment;
 
 use Moo::Role;
 use Types::Standard -types;

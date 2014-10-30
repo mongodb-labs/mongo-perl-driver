@@ -68,8 +68,8 @@ has is_master => (
     default => sub { {} },
 );
 
-# type: a ServerType enum value. Default Unknown.  Definitions from the Cluster
-# Monitoring Spec:
+# type: a ServerType enum value. Default Unknown.  Definitions from the Server
+# Discovery and Monitoring Spec:
 # - Unknown	Initial, or after a network error or failed ismaster call, or "ok: 1"
 #   not in ismaster response.
 # - Standalone	No "msg: isdbgrid", no setName, and no "isreplicaset: true".
@@ -193,8 +193,8 @@ has is_writable => (
     builder => "_build_is_writable",
 );
 
-# any of these can take writes. Clusters will screen inappropriate
-# ones out. E.g. "Standalone" won't be found in a replica set cluster.
+# any of these can take writes. Topologies will screen inappropriate
+# ones out. E.g. "Standalone" won't be found in a replica set topology.
 sub _build_is_writable {
     my ($self) = @_;
     return $self->type eq any(qw/Standalone RSPrimary Mongos/);

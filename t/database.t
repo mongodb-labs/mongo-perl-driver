@@ -90,7 +90,7 @@ subtest 'getlasterror' => sub {
     is($result->{err}, undef, 'last_error: err');
 
     # mongos never returns 'n'
-    is($result->{n}, $conn->cluster_type eq 'Sharded' ? undef : 0, 'last_error: n');
+    is($result->{n}, $conn->topology_type eq 'Sharded' ? undef : 0, 'last_error: n');
 };
 
 # reseterror 

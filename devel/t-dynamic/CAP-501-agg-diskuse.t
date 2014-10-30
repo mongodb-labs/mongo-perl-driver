@@ -41,11 +41,11 @@ my %config_map = (
     'sharded-2.6' => 'db1',
 );
 
-for my $cluster ( sort keys %config_map ) {
-    subtest $cluster => sub {
+for my $deployment ( sort keys %config_map ) {
+    subtest $deployment => sub {
         my $orc =
-          MongoDBTest::Orchestrator->new( config_file => "devel/clusters/$cluster.yml" );
-        diag "starting cluster";
+          MongoDBTest::Orchestrator->new( config_file => "devel/config/$deployment.yml" );
+        diag "starting deployment";
         $orc->start;
         $ENV{MONGOD} = $orc->as_uri;
         diag "MONGOD: $ENV{MONGOD}";
@@ -56,7 +56,7 @@ for my $cluster ( sort keys %config_map ) {
 
         $coll->insert( { count => $_ } ) for 1 .. 10;
 
-        my $logfile =  $orc->get_server( $config_map{$cluster} )->logfile;
+        my $logfile =  $orc->get_server( $config_map{$deployment} )->logfile;
 
         my $res = $coll->aggregate( [ { '$project' => { _id => 1, count => 1 } } ] );
 

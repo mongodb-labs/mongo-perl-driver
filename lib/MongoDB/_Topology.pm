@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::_Cluster;
+package MongoDB::_Topology;
 
 use version;
 our $VERSION = 'v0.704.4.1';
@@ -67,7 +67,7 @@ has credential => (
 
 has type => (
     is      => 'ro',
-    isa     => 'ClusterType',
+    isa     => 'TopologyType',
     writer  => '_set_type',
     default => 'Unknown'
 );
@@ -165,7 +165,7 @@ sub BUILD {
         }
         else {
             confess
-              "Internal error: cluster with set name '$set_name' may not be initialized as type '$type'";
+              "Internal error: deployment with set name '$set_name' may not be initialized as type '$type'";
         }
     }
 
@@ -173,7 +173,7 @@ sub BUILD {
 
     if ( $type eq 'Single' && @addresses > 1 ) {
         confess
-          "Internal error: cluster type 'Single' cannot be used with multiple addresses: @addresses";
+          "Internal error: topology type 'Single' cannot be used with multiple addresses: @addresses";
     }
 
     $self->_add_address_as_unknown($_) for @addresses;
@@ -191,10 +191,10 @@ sub check_address {
     my ( $self, $address ) = @_;
 
     if ( my $link = $self->links->{$address} ) {
-        $self->_update_cluster_from_link( $address, $link );
+        $self->_update_topology_from_link( $address, $link );
     }
     else {
-        # initialize_link will call update_cluster_from_link
+        # initialize_link will call update_topology_from_link
         $self->_initialize_link($address);
     }
 
@@ -420,7 +420,7 @@ sub _initialize_link {
         MongoDB::_Link->new( $address, $self->link_options )->connect;
     }
     catch {
-        # if connection failed, update cluster with Unknown description
+        # if connection failed, update topology with Unknown description
         $self->_reset_address_to_unknown( $address, $_ );
         return;
     };
@@ -429,7 +429,7 @@ sub _initialize_link {
 
     # connection succeeded, so register link and get a server description
     $self->links->{$address} = $link;
-    $self->_update_cluster_from_link( $address, $link );
+    $self->_update_topology_from_link( $address, $link );
 
     # after update, server might or might not exist in the topology;
     # if not, return nothing
@@ -529,7 +529,7 @@ sub _selection_timeout {
     return;             # caller has to throw appropriate timeout error
 }
 
-sub _update_cluster_from_link {
+sub _update_topology_from_link {
     my ( $self, $address, $link ) = @_;
 
     my $start_time = [ gettimeofday() ];
@@ -553,12 +553,12 @@ sub _update_cluster_from_link {
         is_master        => $is_master,
     );
 
-    $self->_update_cluster_from_server_desc( $address, $new_server );
+    $self->_update_topology_from_server_desc( $address, $new_server );
 
     return;
 }
 
-sub _update_cluster_from_server_desc {
+sub _update_topology_from_server_desc {
     my ( $self, $address, $new_server ) = @_;
 
     # ignore spurious result not in the set; this isn't strictly necessary
@@ -601,7 +601,7 @@ sub _update_ewma {
 sub _update_link_metadata {
     my ( $self, $address, $server ) = @_;
 
-    # if the link didn't get dropped from the cluster during the update, we
+    # if the link didn't get dropped from the topology during the update, we
     # attach the server so the link knows where it came from
     if ( $self->links->{$address} ) {
         $self->links->{$address}->set_metadata($server);
@@ -659,14 +659,14 @@ sub _update_rs_with_primary_from_primary {
         }
     }
 
-    # unknown set members need to be added to the cluster
+    # unknown set members need to be added to the topology
     my %set_members =
       map { $_ => undef } map { @{ $new_server->$_ } } qw/hosts passives arbiters/;
 
     $self->_add_address_as_unknown($_)
       for grep { !exists $self->servers->{$_} } keys %set_members;
 
-    # cluster servers no longer in the set need to be removed
+    # topology servers no longer in the set need to be removed
     $self->_remove_address($_)
       for grep { !exists $set_members{$_} } keys %{ $self->servers };
 
@@ -684,7 +684,7 @@ sub _update_rs_without_primary {
         return;
     }
 
-    # unknown set members need to be added to the cluster
+    # unknown set members need to be added to the topology
     my %set_members =
       map { $_ => undef } map { @{ $new_server->$_ } } qw/hosts passives arbiters/;
 
@@ -704,7 +704,7 @@ sub _update_rs_without_primary {
 }
 
 #--------------------------------------------------------------------------#
-# update methods by cluster types: behavior in each depends on new server
+# update methods by topology types: behavior in each depends on new server
 # type received
 #--------------------------------------------------------------------------#
 
@@ -716,7 +716,7 @@ sub _update_ReplicaSetNoPrimary {
     if ( $server_type eq 'RSPrimary' ) {
         $self->_set_type('ReplicaSetWithPrimary');
         $self->_update_rs_with_primary_from_primary($new_server);
-        # cluster changes might have removed all primaries
+        # topology changes might have removed all primaries
         $self->_set_type('ReplicaSetNoPrimary')
           if $self->_has_no_primaries;
     }
@@ -752,7 +752,7 @@ sub _update_ReplicaSetWithPrimary {
         # RSGhost is no-op
     }
 
-    # cluster changes might have removed all primaries
+    # topology changes might have removed all primaries
     $self->_set_type('ReplicaSetNoPrimary')
       if $self->_has_no_primaries;
 
@@ -774,7 +774,7 @@ sub _update_Sharded {
 
 sub _update_Single {
     my ( $self, $address, $new_server ) = @_;
-    return; # ClusterType Single never changes type or membership
+    return; # TopologyType Single never changes type or membership
 }
 
 sub _update_Unknown {
@@ -799,7 +799,7 @@ sub _update_Unknown {
     elsif ( $server_type eq 'RSPrimary' ) {
         $self->_set_type('ReplicaSetWithPrimary');
         $self->_update_rs_with_primary_from_primary($new_server);
-        # cluster changes might have removed all primaries
+        # topology changes might have removed all primaries
         $self->_set_type('ReplicaSetNoPrimary')
           if $self->_has_no_primaries;
     }

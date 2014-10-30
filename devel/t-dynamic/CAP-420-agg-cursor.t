@@ -33,13 +33,13 @@ use lib "devel/lib";
 use MongoDBTest::Orchestrator;
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
-note("CAP-420 Mixed mode cluster testing");
+note("CAP-420 Mixed mode sharded cluster testing");
 
 subtest "2.6 Mongos + 2.4, 2.6 shards" => sub {
     my $orc =
     MongoDBTest::Orchestrator->new(
         config_file => "devel/t-dynamic/sharded-2.6-mixed.yml" );
-    diag "starting cluster";
+    diag "starting deployment";
     $orc->start;
     $ENV{MONGOD} = $orc->as_uri;
     diag "MONGOD: $ENV{MONGOD}";
@@ -102,7 +102,7 @@ subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
     my $orc =
     MongoDBTest::Orchestrator->new(
         config_file => "devel/t-dynamic/sharded-2.4-mixed.yml" );
-    diag "starting cluster";
+    diag "starting deployment";
     $orc->start;
     $ENV{MONGOD} = $orc->as_uri;
     diag "MONGOD: $ENV{MONGOD}";

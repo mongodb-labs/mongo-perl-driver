@@ -41,7 +41,7 @@ my $uri_re = MongoDB::_Types::connection_uri_re();
 enum 'AuthMechanism',
   [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1/];
 
-enum 'ClusterType',
+enum 'TopologyType',
   [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Unknown/];
 
 enum 'ConnectType', [qw/replicaSet direct none/];

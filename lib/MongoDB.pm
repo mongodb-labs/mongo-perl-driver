@@ -86,12 +86,12 @@ This is the official Perl driver for MongoDB.  MongoDB is an open-source
 document database that provides high performance, high availability, and easy
 scalability.
 
-A MongoDB server (or cluster) hosts a number of databases. A database holds a
-set of collections. A collection holds a set of documents. A document is a set
-of key-value pairs. Documents have dynamic schema. Dynamic schema means that
-documents in the same collection do not need to have the same set of fields or
-structure, and common fields in a collection's documents may hold different
-types of data.
+A MongoDB server (or multi-server deployment) hosts a number of databases. A
+database holds a set of collections. A collection holds a set of documents. A
+document is a set of key-value pairs. Documents have dynamic schema. Dynamic
+schema means that documents in the same collection do not need to have the same
+set of fields or structure, and common fields in a collection's documents may
+hold different types of data.
 
 Here are some resources for learning more about MongoDB:
 
@@ -115,7 +115,7 @@ The MongoDB driver is organized into a set of classes representing different
 levels of abstraction and functionality.
 
 As a user, you first create and configure a L<MongoDB::MongoClient> object to
-connect to a MongoDB server (or cluster).  From that client object, you can get
+connect to a MongoDB deployment.  From that client object, you can get
 a L<MongoDB::Database> object for interacting with a specific database.
 
 From a database object you can get a L<MongoDB::Collection> object for CRUD

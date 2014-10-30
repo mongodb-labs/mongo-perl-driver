@@ -36,7 +36,7 @@ use MongoDBTest::Orchestrator;
 
 my $orc =
   MongoDBTest::Orchestrator->new(
-    config_file => "devel/clusters/mongod-2.6-auth.yml" );
+    config_file => "devel/config/mongod-2.6-auth.yml" );
 diag "starting server with auth enabled";
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;

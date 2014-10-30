@@ -16,7 +16,7 @@ use 5.010;
 use strict;
 use warnings;
 
-package MongoDBTest::Cluster;
+package MongoDBTest::Deployment;
 
 use MongoDBTest::ServerSet;
 use MongoDBTest::ReplicaSet;
@@ -47,6 +47,6 @@ sub _build_server_set {
     );
 }
 
-with 'MongoDBTest::Role::Cluster';
+with 'MongoDBTest::Role::Deployment';
 
 1;
