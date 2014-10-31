@@ -205,19 +205,17 @@ sub updated_since {
     return tv_interval( $tv, $self->last_update_time ) > 0;
 }
 
-sub matches_tag_sets {
-    my ( $self, $tag_sets ) = @_;
+# check if server matches a single tag set (NOT a tag set list)
+sub matches_tag_set {
+    my ( $self, $ts ) = @_;
+    no warnings 'uninitialized'; # let undef equal empty string without complaint
 
     my $tg = $self->tags;
-    for my $ts ( @{$tag_sets} ) {
-        no warnings 'uninitialized'; # let undef equal empty string without complaint
 
-        # any tag set key we don't have or that we don't match will give a defined answer
-        # below, meaning we fail that tag set; if we didn't get any bad keys, then we
-        # have a match and can stop
-        if ( !defined first { !exists( $tg->{$_} ) || $tg->{$_} ne $ts->{$_} } keys %$ts ) {
-            return 1;
-        }
+    # check if ts is a subset of tg: if any tags in ts that aren't in tg or where
+    # the tag values aren't equal mean ts is NOT a subset
+    if ( !defined first { !exists( $tg->{$_} ) || $tg->{$_} ne $ts->{$_} } keys %$ts ) {
+        return 1;
     }
 
     return;

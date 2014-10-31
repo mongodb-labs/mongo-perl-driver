@@ -344,8 +344,14 @@ sub _eligible {
     return @candidates
       if $read_pref->has_empty_tag_sets;
 
-    my $ts = $read_pref->tag_sets;
-    return grep { $_->matches_tag_sets($ts) } @candidates;
+    # given a tag set list, if a tag set matches at least one
+    # candidate, then all candidates matching that tag set are eligible
+    for my $ts ( @{$read_pref->tag_sets} ) {
+        my @eligible = grep { $_->matches_tag_set($ts) } @candidates;
+        return @eligible if @eligible;
+    }
+
+    return;
 }
 
 sub _find_any_link {
