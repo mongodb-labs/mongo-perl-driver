@@ -35,6 +35,7 @@ with 'MongoDB::Role::_Client';
 
 use constant {
     EPOCH => [ 0, 0 ], # tv struct for the epoch
+    MIN_HEARTBEAT_FREQUENCY_MS => 10_000, # 10ms, not configurable
 };
 
 #--------------------------------------------------------------------------#
@@ -83,6 +84,13 @@ has heartbeat_frequency_ms => (
     is      => 'ro',
     isa     => 'Num',
     default => 60_000,
+);
+
+has last_scan_time => (
+    is       => 'ro',
+    isa      => 'ArrayRef', # [ Time::HighRes::gettimeofday() ]
+    default  => sub { EPOCH },
+    writer   => '_set_last_scan_time',
 );
 
 has latency_threshold_ms => (
@@ -253,6 +261,12 @@ sub get_writable_link {
     }
 }
 
+sub mark_stale {
+    my ($self) = @_;
+    $self->_set_last_scan_time(EPOCH);
+    return;
+}
+
 sub scan_all_servers {
     my ($self) = @_;
 
@@ -279,6 +293,7 @@ sub scan_all_servers {
         }
     }
 
+    $self->_set_last_scan_time([ gettimeofday() ]);
     return;
 }
 
@@ -518,6 +533,10 @@ sub _status_string {
 sub _selection_timeout {
     my ( $self, $method, @args ) = @_;
 
+    if ( 1000 * tv_interval($self->last_scan_time) > $self->heartbeat_frequency_ms ) {
+        $self->scan_all_servers;
+    }
+
     my $start_time = [ gettimeofday() ];
 
     while (1) {
@@ -528,7 +547,7 @@ sub _selection_timeout {
         last if 1000 * tv_interval($start_time) > $self->server_selection_timeout_ms;
     }
     continue {
-        usleep(15_000); # 15ms delay before rescanning
+        usleep(MIN_HEARTBEAT_FREQUENCY_MS); # 15ms delay before rescanning
         $self->scan_all_servers;
     }
 
