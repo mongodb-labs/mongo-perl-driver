@@ -266,6 +266,13 @@ package main;
     is($warned, 1, "warn on floating timezone");
 }
 
+# epoch should be legal
+{
+    my $date = DateTime->from_epoch( epoch => 0 );
+    is( exception { $c->insert( { "date" => $date } ) },
+        undef, "inserting DateTime at epoch succeeds" );
+}
+
 # half-conversion to int type
 {
     $c->drop;
