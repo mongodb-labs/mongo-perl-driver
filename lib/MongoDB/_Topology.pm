@@ -172,16 +172,17 @@ sub BUILD {
             $self->_set_type('ReplicaSetNoPrimary');
         }
         else {
-            confess
-              "Internal error: deployment with set name '$set_name' may not be initialized as type '$type'";
+            MongoDB::InternalError->throw(
+                "deployment with set name '$set_name' may not be initialized as type '$type'");
         }
     }
 
     my @addresses = @{ $self->uri->hostpairs };
 
     if ( $type eq 'Single' && @addresses > 1 ) {
-        confess
-          "Internal error: topology type 'Single' cannot be used with multiple addresses: @addresses";
+        MongoDB::InternalError->throw(
+          "topology type 'Single' cannot be used with multiple addresses: @addresses"
+        );
     }
 
     $self->_add_address_as_unknown($_) for @addresses;
