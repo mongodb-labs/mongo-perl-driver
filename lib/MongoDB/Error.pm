@@ -51,9 +51,13 @@ use constant $ERROR_CODES;
 # probably sufficiently helpful to justify it
 our @EXPORT = keys %$ERROR_CODES;
 
-use overload
-  q{""}    => sub { shift->message },
-  fallback => 1;
+use overload (
+    q{""} => sub {
+        my $self = shift;
+        return sprintf( "%s: %s", ref($self), $self->message );
+    },
+    fallback => 1
+);
 
 has message => (
     is      => 'ro',

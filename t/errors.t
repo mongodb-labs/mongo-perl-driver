@@ -29,7 +29,7 @@ isa_ok( $error, 'MongoDB::DatabaseError', "MongoDB::WriteError" );
 isa_ok( $error, 'MongoDB::Error',         "MongoDB::WriteError" );
 is( $error->message, "whoops", "object message captured" );
 is_deeply( $error->result, $result, "object details captured" );
-is( "$error", "whoops", "object stringifies to error message" );
+is( "$error", "MongoDB::WriteError: whoops", "object stringifies to class plus error message" );
 
 done_testing;
 
