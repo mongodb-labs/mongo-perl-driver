@@ -68,10 +68,24 @@ sub last_errmsg {
 sub assert {
     my ($self) = @_;
     if ( ! $self->result->{ok} ) {
-        MongoDB::DatabaseError->throw(
+        my $err = $self->last_errmsg;
+        my $code = $self->result->{code};
+        my $error_class;
+
+        # XXX should we be detecting write/writeConcern/etc errors here?
+        if ( ($code && grep { $code == $_ } NOT_MASTER(),
+            NOT_MASTER_NO_SLAVE_OK(), NOT_MASTER_OR_SECONDARY()) || $err =~ /not master/ )
+        {
+            $error_class = "MongoDB::NotMasterError";
+        }
+        else {
+            $error_class = "MongoDB::DatabaseError";
+        }
+
+        $error_class->throw(
             message => $self->last_errmsg,
             result  => $self,
-            ( exists( $self->result->{code} ) ? ( code => $self->result->{code} ) : () ),
+            ( defined($code) ? ( code => $code ) : () ),
         );
     }
     return 1;

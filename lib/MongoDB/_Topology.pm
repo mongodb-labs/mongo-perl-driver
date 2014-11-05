@@ -227,7 +227,7 @@ sub get_readable_link {
     }
     else {
         my $rp = $read_pref->as_string;
-        MongoDB::ConnectionError->throw(
+        MongoDB::SelectionError->throw(
             "No readable server available for matching read preference $rp. MongoDB server status:\n"
               . $self->_status_string );
     }
@@ -242,7 +242,7 @@ sub get_specific_link {
         return $link;
     }
     else {
-        MongoDB::ConnectionError->throw("Server $address is no longer available");
+        MongoDB::SelectionError->throw("Server $address is no longer available");
     }
 }
 
@@ -256,7 +256,7 @@ sub get_writable_link {
         return $link;
     }
     else {
-        MongoDB::ConnectionError->throw(
+        MongoDB::SelectionError->throw(
             "No writable server available.  MongoDB server status:\n" . $self->_status_string );
     }
 }

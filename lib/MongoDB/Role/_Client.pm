@@ -216,8 +216,7 @@ sub _write_and_receive {
     my $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id );
 
     if ( $result->{flags}{cursor_not_found} ) {
-        # XXX should this be a CursorError?
-        MongoDB::ProtocolError->throw("cursor not found");
+        MongoDB::CursorNotFoundError->throw("cursor not found");
     }
 
     my $doc_bson = $result->{docs};
@@ -247,11 +246,6 @@ sub _write_and_receive {
         my $doc  = $result->{docs}[0];
         my $err  = $doc->{'$err'} || 'unspecified error';
         my $code = $doc->{code};
-        if ( ($code && grep { $code == $_ } NOT_MASTER(),
-            NOT_MASTER_NO_SLAVE_OK(), NOT_MASTER_OR_SECONDARY()) || $err =~ /not master/ )
-        {
-            $link->close;
-        }
         MongoDB::DatabaseError->throw(
             message => "query error: $err",
             result => MongoDB::CommandResult->new( result => $doc, address => $link->{address} ),

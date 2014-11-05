@@ -31,6 +31,7 @@ use Config;
 use Errno qw[EINTR EPIPE];
 use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
+use MongoDB::Error;
 
 use constant {
     HAS_THREADS          => $Config{usethreads},
@@ -51,10 +52,10 @@ my $SOCKET_CLASS =
 sub new {
     @_ == 2
       || @_ == 3
-      || Carp::confess( q/Usage: MongoDB::_Link->new(address, [arg hashref])/ . "\n" );
+      || MongoDB::Error->throw( q/Usage: MongoDB::_Link->new(address, [arg hashref])/ . "\n" );
     my ( $class, $address, $args ) = @_;
     my ( $host, $port ) = split /:/, $address;
-    Carp::confess("new requires 'host:port' address argument")
+    MongoDB::Error->throw("new requires 'host:port' address argument")
       unless defined($host) && length($host) && defined($port) && length($port);
     my $self = bless {
         host        => $host,
@@ -69,7 +70,7 @@ sub new {
 }
 
 sub connect {
-    @_ == 1 || Carp::confess( q/Usage: $handle->connect()/ . "\n" );
+    @_ == 1 || MongoDB::Error->throw( q/Usage: $handle->connect()/ . "\n" );
     my ($self) = @_;
 
     if ( $self->{with_ssl} ) {
@@ -86,10 +87,10 @@ sub connect {
         Proto   => 'tcp',
         Type    => SOCK_STREAM,
         Timeout => $self->{timeout},
-    ) or Carp::confess(qq/Could not connect to '$host:$port': $@\n/);
+    ) or MongoDB::NetworkError->throw(qq/Could not connect to '$host:$port': $@\n/);
 
     binmode( $self->{fh} )
-      or Carp::confess(qq/Could not binmode() socket: '$!'\n/);
+      or MongoDB::InternalError->throw(qq/Could not binmode() socket: '$!'\n/);
 
     $self->start_ssl($host) if $self->{with_ssl};
 
@@ -148,16 +149,16 @@ sub start_ssl {
 
     unless ( ref( $self->{fh} ) eq 'IO::Socket::SSL' ) {
         my $ssl_err = IO::Socket::SSL->errstr;
-        Carp::confess(qq/SSL connection failed for $host: $ssl_err\n/);
+        MongoDB::HandshakeError->throw(qq/SSL connection failed for $host: $ssl_err\n/);
     }
 }
 
 sub close {
-    @_ == 1 || Carp::confess( q/Usage: $handle->close()/ . "\n" );
+    @_ == 1 || MongoDB::Error->throw( q/Usage: $handle->close()/ . "\n" );
     my ($self) = @_;
     if ( $self->connected ) {
         CORE::close( $self->{fh} )
-          or Carp::confess(qq/Could not close socket: '$!'\n/);
+          or MongoDB::NetworkError->throw(qq/Error closing socket: '$!'\n/);
         delete $self->{fh};
     }
 }
@@ -187,20 +188,20 @@ sub remote_connected {
 
 sub assert_valid_connection {
     my ($self) = @_;
-    Carp::confess( "connection lost to " . $self->address )
+    MongoDB::NetworkError->throw( "connection lost to " . $self->address )
       unless $self->connection_valid;
     return 1;
 }
 
 sub write {
-    @_ == 2 || Carp::confess( q/Usage: $handle->write(buf)/ . "\n" );
+    @_ == 2 || MongoDB::Error->throw( q/Usage: $handle->write(buf)/ . "\n" );
     my ( $self, $buf ) = @_;
 
     $self->assert_valid_connection;
 
     if ( $] ge '5.008' ) {
         utf8::downgrade( $buf, 1 )
-          or Carp::confess(qq/Wide character in write()\n/);
+          or MongoDB::InternalError->throw(qq/Wide character in write()\n/);
     }
 
     my $len = length $buf;
@@ -209,7 +210,7 @@ sub write {
     if ( exists $self->{max_message_size_bytes}
         && $len > $self->{max_message_size_bytes} )
     {
-        Carp::confess(
+        MongoDB::InternalError->throw(
             qq/Message of size $len exceeds maximum of / . $self->{max_message_size_bytes} );
     }
 
@@ -217,7 +218,7 @@ sub write {
 
     while () {
         $self->can_write
-          or Carp::confess(
+          or MongoDB::NetworkTimeout->throw(
             qq/Timed out while waiting for socket to become ready for writing\n/);
         my $r = syswrite( $self->{fh}, $buf, $len, $off );
         if ( defined $r ) {
@@ -226,15 +227,15 @@ sub write {
             last unless $len > 0;
         }
         elsif ( $! == EPIPE ) {
-            Carp::confess(qq/Socket closed by remote server: $!\n/);
+            MongoDB::NetworkError->throw(qq/Socket closed by remote server: $!\n/);
         }
         elsif ( $! != EINTR ) {
             if ( $self->{fh}->can('errstr') ) {
                 my $err = $self->{fh}->errstr();
-                Carp::confess(qq/Could not write to SSL socket: '$err'\n /);
+                MongoDB::NetworkError->throw(qq/Could not write to SSL socket: '$err'\n /);
             }
             else {
-                Carp::confess(qq/Could not write to socket: '$!'\n/);
+                MongoDB::NetworkError->throw(qq/Could not write to socket: '$!'\n/);
             }
 
         }
@@ -243,7 +244,7 @@ sub write {
 }
 
 sub read {
-    @_ == 1 || Carp::confess( q/Usage: $handle->read()/ . "\n" );
+    @_ == 1 || MongoDB::Error->throw( q/Usage: $handle->read()/ . "\n" );
     my ($self) = @_;
     my $msg = '';
 
@@ -261,12 +262,12 @@ sub read {
 }
 
 sub _read_bytes {
-    @_ == 3 || Carp::confess( q/Usage: $handle->read(len, bufref)/ . "\n" );
+    @_ == 3 || MongoDB::Error->throw( q/Usage: $handle->read(len, bufref)/ . "\n" );
     my ( $self, $len, $bufref ) = @_;
 
     while ( $len > 0 ) {
         $self->can_read
-          or Carp::confess(
+          or MongoDB::NetworkTimeout->throw(
             q/Timed out while waiting for socket to become ready for reading/ . "\n" );
         my $r = sysread( $self->{fh}, $$bufref, $len, length $$bufref );
         if ( defined $r ) {
@@ -276,15 +277,15 @@ sub _read_bytes {
         elsif ( $! != EINTR ) {
             if ( $self->{fh}->can('errstr') ) {
                 my $err = $self->{fh}->errstr();
-                Carp::confess(qq/Could not read from SSL socket: '$err'\n /);
+                MongoDB::NetworkError->throw(qq/Could not read from SSL socket: '$err'\n /);
             }
             else {
-                Carp::confess(qq/Could not read from socket: '$!'\n/);
+                MongoDB::NetworkError->throw(qq/Could not read from socket: '$!'\n/);
             }
         }
     }
     if ($len) {
-        Carp::confess(qq/Unexpected end of stream\n/);
+        MongoDB::NetworkError->throw(qq/Unexpected end of stream\n/);
     }
     return;
 }
@@ -296,7 +297,7 @@ sub _do_timeout {
 
     my $fd = fileno $self->{fh};
     defined $fd && $fd >= 0
-      or Carp::confess(qq/select(2): 'Bad file descriptor'\n/);
+      or MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
 
     my $initial = time;
     my $pending = $timeout;
@@ -311,7 +312,7 @@ sub _do_timeout {
           : select( undef,  $fdset, undef, $pending );
         if ( $nfound == -1 ) {
             $! == EINTR
-              or Carp::confess(qq/select(2): '$!'\n/);
+              or MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
             redo if !defined($timeout) || ( $pending = $timeout - ( time - $initial ) ) > 0;
             $nfound = 0;
         }
@@ -322,7 +323,7 @@ sub _do_timeout {
 }
 
 sub can_read {
-    @_ == 1 || @_ == 2 || Carp::confess( q/Usage: $handle->can_read([timeout])/ . "\n" );
+    @_ == 1 || @_ == 2 || MongoDB::Error->throw( q/Usage: $handle->can_read([timeout])/ . "\n" );
     my $self = shift;
     if ( ref( $self->{fh} ) eq 'IO::Socket::SSL' ) {
         return 1 if $self->{fh}->pending;
@@ -333,17 +334,17 @@ sub can_read {
 sub can_write {
     @_ == 1
       || @_ == 2
-      || Carp::confess( q/Usage: $handle->can_write([timeout])/ . "\n" );
+      || MongoDB::Error->throw( q/Usage: $handle->can_write([timeout])/ . "\n" );
     my $self = shift;
     return $self->_do_timeout( 'write', @_ );
 }
 
 sub _assert_ssl {
     # Need IO::Socket::SSL 1.42 for SSL_create_ctx_callback
-    Carp::confess(qq/IO::Socket::SSL 1.42 must be installed for SSL support\n/)
+    MongoDB::Error->throw(qq/IO::Socket::SSL 1.42 must be installed for SSL support\n/)
       unless eval { require IO::Socket::SSL; IO::Socket::SSL->VERSION(1.42) };
     # Need Net::SSLeay 1.49 for MODE_AUTO_RETRY
-    Carp::confess(qq/Net::SSLeay 1.49 must be installed for SSL support\n/)
+    MongoDB::Error->throw(qq/Net::SSLeay 1.49 must be installed for SSL support\n/)
       unless eval { require Net::SSLeay; Net::SSLeay->VERSION(1.49) };
 }
 
@@ -369,9 +370,9 @@ sub _find_CA_file {
         return $ca_bundle if -e $ca_bundle;
     }
 
-    Carp::confess
+    MongoDB::Error->throw(
       qq/Couldn't find a CA bundle with which to verify the SSL certificate.\n/
-      . qq/Try installing Mozilla::CA from CPAN\n/;
+      . qq/Try installing Mozilla::CA from CPAN\n/);
 }
 
 sub _ssl_args {

@@ -23,8 +23,6 @@ package MongoDB::_Protocol;
 use version;
 our $VERSION = 'v0.704.4.1';
 
-use Carp ();
-
 use constant {
     OP_REPLY        => 1,    # Reply to a client request. responseTo is set
     OP_MSG          => 1000, # generic msg command followed by a string
@@ -281,7 +279,7 @@ sub parse_reply {
     my ( $msg, $request_id ) = @_;
 
     if ( length($msg) < MIN_REPLY_LENGTH ) {
-        Carp::confess("response was truncated");
+        MongoDB::ProtocolError->throw("response was truncated");
     }
 
     my ( $len, $msg_id, $response_to, $opcode, $bitflags, $cursor_id, $starting_from,
@@ -289,15 +287,15 @@ sub parse_reply {
       = unpack( P_REPLY_HEADER, substr( $msg, 0, MIN_REPLY_LENGTH, '' ) );
 
     if ( length($msg) + MIN_REPLY_LENGTH < $len ) {
-        Carp::confess("response was truncated");
+        MongoDB::ProtocolError->throw("response was truncated");
     }
 
     if ( $opcode != OP_REPLY ) {
-        Carp::confess("response was not OP_REPLY");
+        MongoDB::ProtocolError->throw("response was not OP_REPLY");
     }
 
     if ( $response_to != $request_id ) {
-        Carp::confess("response ID ($response_to) did not match request ID ($request_id)");
+        MongoDB::ProtocolError->throw("response ID ($response_to) did not match request ID ($request_id)");
     }
 
     my $flags = {
