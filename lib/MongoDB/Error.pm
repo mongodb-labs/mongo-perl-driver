@@ -120,11 +120,30 @@ has document => (
 # to metadata inspectors, but is shorter than Moose/namespace::clean/extends
 #--------------------------------------------------------------------------#
 
+# Connection errors
 package MongoDB::ConnectionError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
-package MongoDB::ProtocolError;
-Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+package MongoDB::SelectionError;
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::ConnectionError'] );
+
+package MongoDB::HandshakeError;
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::ConnectionError'] );
+
+package MongoDB::NetworkError;
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::ConnectionError'] );
+
+package MongoDB::NetworkTimeout;
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::ConnectionError'] );
+
+# Database errors
+package MongoDB::NotMasterError;
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::DatabaseError'] );
 
 package MongoDB::WriteError;
 Moose::Meta::Class->create( __PACKAGE__,
@@ -134,8 +153,23 @@ package MongoDB::WriteConcernError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::DatabaseError'] );
 
+package MongoDB::ExecutionTimeout;
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::DatabaseError'] );
+
+
+# Other errors
+package MongoDB::CursorNotFoundError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+package MongoDB::ProtocolError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+package MongoDB::InternalError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
 #--------------------------------------------------------------------------#
-# Internal error classes
+# Private error classes
 #--------------------------------------------------------------------------#
 
 package MongoDB::_CommandSizeError;
@@ -170,6 +204,37 @@ This class defines a heirarchy of exception objects.
 
 =head1 EXCEPTION HIERARCHY
 
+    MongoDB::Error
+        |
+        |->MongoDB::ConnectionError
+        |   |
+        |   |->MongoDB::SelectionError
+        |   |
+        |   |->MongoDB::HandshakeError
+        |   |
+        |   |->MongoDB::NetworkError
+        |   |
+        |   |->MongoDB::NetworkTimeout
+        |
+        |->MongoDB::DatabaseError
+        |   |
+        |   |->MongoDB::ExecutionTimeout
+        |   |
+        |   |->MongoDB::NotMasterError
+        |   |
+        |   |->MongoDB::WriteError
+        |   |
+        |   |->MongoDB::WriteConcernError
+        |
+        |->MongoDB::CursorNotFoundError
+        |
+        |->MongoDB::DocumentSizeError
+        |
+        |->MongoDB::ProtocolError
+        |
+        |->MongoDB::InternalError
+
+
 All classes inherit from C<MongoDB::Error>.
 
 All error classes have the attribute:
@@ -181,19 +246,48 @@ All error classes have the attribute:
 
 Errors related to network connections.
 
-=head2 MongoDB::ProtocolError
+=head3 MongoDB::SelectionError
 
-Errors related to the MongoDB wire protocol.
+When server selection fails for a given operation, this is thrown. For example,
+attempting a write when no primary is available or reading with a specific mode
+and tag set and no servers match.
+
+=head3 MongoDB::HandshakeError
+
+This error is thrown when a connection has been made, but SSL or authentication
+handshakes fail.
+
+=head3 MongoDB::NetworkError
+
+This error is thrown when a socket error occurs, when the wrong number of bytes
+are read, or other wire-related errors occur.
+
+=head3 MongoDB::NetworkTimeout
+
+This error is thrown when a network operation exceeds a timeout, typically
+C<connect_timeout_ms> or C<socket_timeout_ms>.
 
 =head2 MongoDB::DatabaseError
 
-Errors related to database operations.
+Errors related to database operations.  Specifically, when an error of this type
+occurs, the driver has received an error condition from the server.
 
 Attributes include:
 
 =for :list
 * result — response from a database command; this must impliement the
   C<last_errmsg> method
+
+=head3 MongoDB::ExecutionTimeout
+
+This error is thrown when a query or command fails because C<max_time_ms> has
+been reached.  The C<result> attribute is a L<MongoDB::CommandResult> object.
+
+=head3 MongoDB::NotMasterError
+
+This error indicates that a write or other state-modifying operation was
+attempted on a server that was not a primary.  The C<result> attribute is
+a L<MongoDB::CommandResult> object.
 
 =head3 MongoDB::WriteError
 
@@ -205,6 +299,10 @@ a L<MongoDB::WriteResult> object.
 Errors indicating failure of a write concern.  The C<result> attribute is a
 L<MongoDB::WriteResult> object.
 
+=head2 MongoDB::CursorNotFoundError
+
+This error indicates that a cursor timed out on a server.
+
 =head2 MongoDB::DocumentSizeError
 
 Errors from documents exceeding the maximum allowable size.
@@ -213,6 +311,16 @@ Attributes include:
 
 =for :list
 * document — the document that caused the error
+
+=head2 MongoDB::InternalError
+
+Errors that indicate problems in the driver itself, typically when something
+unexpected is detected.  These should be reported as potential bugs.
+
+=head2 MongoDB::ProtocolError
+
+Errors related to the MongoDB wire protocol, typically problems parsing a
+database response packet.
 
 =cut
 
