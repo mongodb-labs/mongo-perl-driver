@@ -261,6 +261,12 @@ subtest "warn on floating timezone" => sub {
     is($warned, 1, "warn on floating timezone");
 };
 
+subtest "epoch time" => sub {
+    my $date = DateTime->from_epoch( epoch => 0 );
+    is( exception { $c->insert( { "date" => $date } ) },
+        undef, "inserting DateTime at epoch succeeds" );
+};
+
 subtest "half-conversion to int type" => sub {
     $c->drop;
 
