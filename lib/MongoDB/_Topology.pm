@@ -182,7 +182,7 @@ sub BUILD {
 
     if ( $type eq 'Single' && @addresses > 1 ) {
         MongoDB::InternalError->throw(
-            "topology type 'Single' cannot be used with multiple addresses: @addresses" );
+            "topology type 'Single' cannot be used with multiple addresses: @addresses");
     }
 
     $self->_add_address_as_unknown($_) for @addresses;
@@ -253,7 +253,7 @@ sub get_writable_link {
     my $method =
       $self->type eq any(qw/Single Sharded/) ? '_find_any_link' : "_find_primary_link";
 
-    if ( my $link = $self->_selection_timeout($method) ) {
+    if ( my $link = $self->_selection_timeout($method, undef) ) {
         return $link;
     }
     else {
@@ -377,40 +377,46 @@ sub _eligible {
 }
 
 sub _find_any_link {
-    my ($self) = @_;
+    my ( $self, undef, @candidates ) = @_;
+    push @candidates, $self->all_servers unless @candidates;
     return $self->_get_link_in_latency_window(
-        [ grep { $_->is_available } $self->all_servers ] );
+        [ grep { $_->is_available } @candidates ] );
 }
 
+
 sub _find_nearest_link {
-    my ( $self, $read_pref ) = @_;
-    my @suitable =
-      $self->_eligible( $read_pref, $self->_primaries, $self->_secondaries );
+    my ( $self, $read_pref, @candidates ) = @_;
+    push @candidates, ( $self->_primaries, $self->_secondaries ) unless @candidates;
+    my @suitable = $self->_eligible( $read_pref, @candidates );
     return $self->_get_link_in_latency_window( \@suitable );
 }
 
 sub _find_primary_link {
-    my $self = shift;
-    if ( my $primary = first { $_->is_writable } $self->all_servers ) {
+    my ( $self, undef, @candidates ) = @_;
+    push @candidates, $self->all_servers unless @candidates;
+    if ( my $primary = first { $_->is_writable } @candidates ) {
         return $self->_get_server_link($primary);
     }
     return undef;
 }
 
 sub _find_primarypreferred_link {
-    my ( $self, $read_pref ) = @_;
-    return $self->_find_primary_link || $self->_find_secondary_link($read_pref);
+    my ( $self, $read_pref, @candidates ) = @_;
+    return $self->_find_primary_link(@candidates)
+      || $self->_find_secondary_link( $read_pref, @candidates );
 }
 
 sub _find_secondary_link {
-    my ( $self, $read_pref ) = @_;
-    my @suitable = $self->_eligible( $read_pref, $self->_secondaries );
+    my ( $self, $read_pref, @candidates ) = @_;
+    push @candidates, $self->_secondaries unless @candidates;
+    my @suitable = $self->_eligible( $read_pref, @candidates );
     return $self->_get_link_in_latency_window( \@suitable );
 }
 
 sub _find_secondarypreferred_link {
-    my ( $self, $read_pref ) = @_;
-    return $self->_find_secondary_link($read_pref) || $self->_find_primary_link;
+    my ( $self, $read_pref, @candidates ) = @_;
+    return $self->_find_secondary_link( $read_pref, @candidates )
+      || $self->_find_primary_link(@candidates);
 }
 
 sub _get_link_in_latency_window {
@@ -549,7 +555,18 @@ sub _selection_timeout {
     while (1) {
         $self->_check_wire_versions;
         if ( my $link = $self->$method(@args) ) {
-            return $link;
+            if ( $link->idle_time_ms > $self->socket_check_interval_ms ) {
+                # recheck this server is still good and get updated description
+                $self->_update_topology_from_link($link);
+                my $server = $self->servers->{addresses};
+                # reselect, but with only this server as candidate
+                if ( $server and my $fresh_link = $self->$method(@args,$server) ) {
+                    return $fresh_link;
+                }
+            }
+            else {
+                return $link;
+            }
         }
         last if 1000 * tv_interval($start_time) > $self->server_selection_timeout_ms;
     }

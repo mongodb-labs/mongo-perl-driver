@@ -31,6 +31,7 @@ use Config;
 use Errno qw[EINTR EPIPE];
 use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
+use Time::HiRes qw/gettimeofday tv_interval/;
 use MongoDB::Error;
 
 use constant {
@@ -94,8 +95,9 @@ sub connect {
 
     $self->start_ssl($host) if $self->{with_ssl};
 
-    $self->{pid} = $$;
-    $self->{tid} = _get_tid();
+    $self->{pid}       = $$;
+    $self->{tid}       = _get_tid();
+    $self->{last_used} = [gettimeofday];
 
     return $self;
 }
@@ -179,6 +181,11 @@ sub connection_valid {
     return 1;
 }
 
+sub idle_time_ms {
+    my ($self) = @_;
+    return 1000 * tv_interval( $self->{last_used} );
+}
+
 sub remote_connected {
     my ($self) = @_;
     return unless $self->connection_valid;
@@ -240,6 +247,9 @@ sub write {
 
         }
     }
+
+    $self->{last_used} = [gettimeofday];
+
     return $off;
 }
 
@@ -257,6 +267,8 @@ sub read {
 
     # read rest of the message
     $self->_read_bytes( $len - 4, \$msg );
+
+    $self->{last_used} = [gettimeofday];
 
     return $msg;
 }
