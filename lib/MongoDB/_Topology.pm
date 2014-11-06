@@ -88,10 +88,10 @@ has heartbeat_frequency_ms => (
 );
 
 has last_scan_time => (
-    is       => 'ro',
-    isa      => 'ArrayRef', # [ Time::HighRes::gettimeofday() ]
-    default  => sub { EPOCH },
-    writer   => '_set_last_scan_time',
+    is      => 'ro',
+    isa     => 'ArrayRef',              # [ Time::HighRes::gettimeofday() ]
+    default => sub { EPOCH },
+    writer  => '_set_last_scan_time',
 );
 
 has latency_threshold_ms => (
@@ -182,8 +182,7 @@ sub BUILD {
 
     if ( $type eq 'Single' && @addresses > 1 ) {
         MongoDB::InternalError->throw(
-          "topology type 'Single' cannot be used with multiple addresses: @addresses"
-        );
+            "topology type 'Single' cannot be used with multiple addresses: @addresses" );
     }
 
     $self->_add_address_as_unknown($_) for @addresses;
@@ -264,7 +263,7 @@ sub get_writable_link {
 }
 
 sub mark_server_unknown {
-    my ($self, $server, $error) = @_;
+    my ( $self, $server, $error ) = @_;
     $self->_reset_address_to_unknown( $server->address, $error );
     return;
 }
@@ -301,7 +300,7 @@ sub scan_all_servers {
         }
     }
 
-    $self->_set_last_scan_time([ gettimeofday() ]);
+    $self->_set_last_scan_time( [ gettimeofday() ] );
     return;
 }
 
@@ -369,7 +368,7 @@ sub _eligible {
 
     # given a tag set list, if a tag set matches at least one
     # candidate, then all candidates matching that tag set are eligible
-    for my $ts ( @{$read_pref->tag_sets} ) {
+    for my $ts ( @{ $read_pref->tag_sets } ) {
         my @eligible = grep { $_->matches_tag_set($ts) } @candidates;
         return @eligible if @eligible;
     }
@@ -541,7 +540,7 @@ sub _status_string {
 sub _selection_timeout {
     my ( $self, $method, @args ) = @_;
 
-    if ( 1000 * tv_interval($self->last_scan_time) > $self->heartbeat_frequency_ms ) {
+    if ( 1000 * tv_interval( $self->last_scan_time ) > $self->heartbeat_frequency_ms ) {
         $self->scan_all_servers;
     }
 
