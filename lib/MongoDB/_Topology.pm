@@ -25,6 +25,7 @@ use MongoDB::_Link;
 use MongoDB::_Types;
 use MongoDB::_Server;
 use List::Util qw/first/;
+use Safe::Isa;
 use Syntax::Keyword::Junction qw/any none/;
 use Time::HiRes qw/gettimeofday tv_interval usleep/;
 use Try::Tiny;
@@ -200,7 +201,7 @@ sub check_address {
     my ( $self, $address ) = @_;
 
     if ( my $link = $self->links->{$address} ) {
-        $self->_update_topology_from_link( $address, $link );
+        $self->_update_topology_from_link($link);
     }
     else {
         # initialize_link will call update_topology_from_link
@@ -467,7 +468,7 @@ sub _initialize_link {
 
     # connection succeeded, so register link and get a server description
     $self->links->{$address} = $link;
-    $self->_update_topology_from_link( $address, $link );
+    $self->_update_topology_from_link($link);
 
     # after update, server might or might not exist in the topology;
     # if not, return nothing
@@ -558,18 +559,27 @@ sub _selection_timeout {
         $self->scan_all_servers;
     }
 
-    return;             # caller has to throw appropriate timeout error
+    return; # caller has to throw appropriate timeout error
 }
 
 sub _update_topology_from_link {
-    my ( $self, $address, $link ) = @_;
+    my ( $self, $link ) = @_;
 
     my $start_time = [ gettimeofday() ];
     my $is_master  = try {
         $self->_send_admin_command( $link, [ ismaster => 1 ] )->result;
     }
     catch {
-        $self->_reset_address_to_unknown( $link->address, $_, [ gettimeofday() ] );
+        $self->_reset_address_to_unknown( $link->address, $_ );
+        # retry a network error if server was previously known to us
+        if (    $_->$_isa("MongoDB::NetworkError")
+            and $link->server
+            and $link->server->type eq none(qw/Unknown PossiblePrimary/) )
+        {
+            # the earlier reset to unknown avoids us reaching this branch again
+            # and recursing forever
+            $self->check_address( $link->address );
+        }
         return;
     };
 
@@ -579,13 +589,13 @@ sub _update_topology_from_link {
     my $rtt_ms = int( 1000 * tv_interval( $start_time, $end_time ) );
 
     my $new_server = MongoDB::_Server->new(
-        address          => $address,
+        address          => $link->address,
         last_update_time => $end_time,
         rtt_ms           => $rtt_ms,
         is_master        => $is_master,
     );
 
-    $self->_update_topology_from_server_desc( $address, $new_server );
+    $self->_update_topology_from_server_desc( $link->address, $new_server );
 
     return;
 }
