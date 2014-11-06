@@ -250,6 +250,21 @@ sub start {
         # XXX eventually refactor out so this can be done in parallel
         wait_port($self->port, $self->timeout)
             or die sprintf("Timed out waiting for %s on port %d after %d seconds\n", $self->name, $self->port, $self->timeout);
+
+        # wait for the server to respond to ismaster
+        retry {
+            $self->_logger->debug("Pinging " . $self->name . " with ismaster");
+            MongoDB::MongoClient->new(host => $self->as_direct_uri)->get_database("admin")->_try_run_command([ismaster => 1]);
+        }
+        delay_exp { 13, 1e5 }
+        on_retry {
+            warn $_;
+        }
+        catch {
+            chomp;
+            die "Host seems up, but ismaster is failing: $_"
+        };
+
     }
     on_retry {
         warn $_;
@@ -257,19 +272,9 @@ sub start {
         $self->_logger->debug("Retrying server start for " . $self->name);
     }
     delay {
-        return if $_[0] > 1;
+        return if $_[0] > 2;
     }
     catch { chomp; s/at \S+ line \d+//; die "Caught error:$_. Giving up!\n" };
-
-    retry {
-        $self->_logger->debug("Pinging " . $self->name . " with ismaster");
-        MongoDB::MongoClient->new(host => $self->as_direct_uri)->get_database("admin")->_try_run_command([ismaster => 1]);
-    }
-    delay_exp { 13, 1e5 }
-    on_retry {
-        warn $_;
-    }
-    catch { chomp; die "Host is up, but ismaster is failing: $_. Giving up!" };
 
     if ( $self->auth_config && ! $self->did_auth_setup ) {
         my ($user, $password) = @{ $self->auth_config }{qw/user password/};
