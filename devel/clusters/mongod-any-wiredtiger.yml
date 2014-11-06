@@ -1,0 +1,5 @@
+---
+type: single
+default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --storageEngine=wiredtiger
+mongod:
+    - name: host1
