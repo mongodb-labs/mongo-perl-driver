@@ -1022,21 +1022,6 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     };
 }
 
-note("NO JOURNAL");
-for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
-    subtest "$method: no journal" => sub {
-        plan skip_all => 'needs a standalone server without journaling'
-          unless $is_standalone && !exists $server_status->{dur};
-
-        $coll->drop;
-        my $bulk = $coll->$method;
-        $bulk->insert( {} );
-        my $err = exception { $bulk->execute( { j => 1 } ) };
-        isa_ok( $err, 'MongoDB::DatabaseError', "executing j:1 on nojournal throws error" );
-        like( $err->message, qr/journal/, "error message mentions journal" );
-    };
-}
-
 note("QA-477 W>1 AGAINST STANDALONE");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "$method: w > 1 against standalone (explicit)" => sub {
