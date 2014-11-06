@@ -18,6 +18,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Fatal;
 use Tie::IxHash;
 use version;
 
@@ -224,11 +225,8 @@ $testdb->drop;
 
     $coll->insert({'num' => 1, 'foo' => 1});
 
-    eval {
-        $coll->query->hint({'num' => 1})->explain;
-    };
-
-    like($@, qr/query error/, "check query error on hint");
+    like( exception { $coll->query->hint( { 'num' => 1 } )->explain },
+        qr/MongoDB::DatabaseError/, "check error on hint with explain" );
 }
 
 # slave_okay

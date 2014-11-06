@@ -243,14 +243,11 @@ sub _write_and_receive {
     $result->{docs} = \@documents;
 
     if ( $result->{flags}{query_failure} && !$is_cmd ) {
-        my $doc  = $result->{docs}[0];
-        my $err  = $doc->{'$err'} || 'unspecified error';
-        my $code = $doc->{code};
-        MongoDB::DatabaseError->throw(
-            message => "query error: $err",
-            result => MongoDB::CommandResult->new( result => $doc, address => $link->{address} ),
-            ( $code ? ( code => $code ) : () ),
-        );
+        # pretend the query was a command and assert it here
+        MongoDB::CommandResult->new(
+            result  => $result->{docs}[0],
+            address => $link->{address}
+        )->assert;
     }
 
     return $result;
@@ -271,7 +268,11 @@ sub _writeresult_from_gle {
       :                                                                     undef;
 
     if ($got_error) {
-        MongoDB::DatabaseError->throw(
+        my $error_class =
+          ( $got_error =~ /^not master/ )
+          ? "MongoDB::NotMasterError"
+          : "MongoDB::DatabaseError";
+        $error_class->throw(
             message => $got_error,
             result  => MongoDB::CommandResult->new(
                 result  => $gle,

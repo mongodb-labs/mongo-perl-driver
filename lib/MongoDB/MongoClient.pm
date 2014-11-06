@@ -439,7 +439,7 @@ sub send_admin_command {
     my $query = MongoDB::_Query->new( spec => $command );
     $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
 
-    return $self->_send_admin_command( $link, $query->spec, $flags );
+    return $self->_try_operation('_send_admin_command', $link, $query->spec, $flags );
 }
 
 sub send_command {
@@ -450,7 +450,7 @@ sub send_command {
     my $query = MongoDB::_Query->new( spec => $command );
     $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
 
-    return $self->_send_command( $link, $db, $query->spec, $flags );
+    return $self->_try_operation('_send_command', $link, $db, $query->spec, $flags );
 }
 
 sub send_delete {
@@ -460,7 +460,7 @@ sub send_delete {
     $write_concern ||= $self->_write_concern;
     my $link = $self->_topology->get_writable_link;
 
-    return $self->_send_delete( $link, $ns, $op_doc, $write_concern );
+    return $self->_try_operation('_send_delete', $link, $ns, $op_doc, $write_concern );
 }
 
 sub send_get_more {
@@ -468,7 +468,7 @@ sub send_get_more {
 
     my $link = $self->_topology->get_specific_link( $address );
 
-    return $self->_send_get_more( $link, $ns, $cursor_id, $size, $self );
+    return $self->_try_operation('_send_get_more', $link, $ns, $cursor_id, $size, $self );
 }
 
 sub send_insert {
@@ -479,7 +479,7 @@ sub send_insert {
     $write_concern ||= $self->_write_concern;
     my $link = $self->_topology->get_writable_link;
 
-    return $self->_send_insert( $link, $ns, $docs, $flags, $check_keys, $write_concern );
+    return $self->_try_operation('_send_insert', $link, $ns, $docs, $flags, $check_keys, $write_concern );
 }
 
 sub send_kill_cursors {
@@ -487,7 +487,7 @@ sub send_kill_cursors {
 
     my $link = $self->_topology->get_specific_link( $address );
 
-    return $self->_send_kill_cursors( $link, @cursors );
+    return $self->_try_operation('_send_kill_cursors', $link, @cursors );
 }
 
 sub send_update {
@@ -497,7 +497,7 @@ sub send_update {
     $write_concern ||= $self->_write_concern;
     my $link = $self->_topology->get_writable_link;
 
-    return $self->_send_update( $link, $ns, $op_doc, $write_concern );
+    return $self->_try_operation('_send_update', $link, $ns, $op_doc, $write_concern );
 }
 
 # XXX eventually, passing $self to _send_query should go away and we should
@@ -510,7 +510,7 @@ sub send_query {
 
     $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
 
-    return $self->_send_query( $link, $ns, $query->spec, $fields, $skip, $limit, $batch_size, $flags, $self );
+    return $self->_try_operation('_send_query', $link, $ns, $query->spec, $fields, $skip, $limit, $batch_size, $flags, $self );
 }
 
 # variants is a hash of wire protocol version to coderef
@@ -558,6 +558,27 @@ sub _apply_read_prefs {
     else {
         $flags->{slave_ok} = 1 if $read_preference->mode ne 'primary';
     }
+}
+
+sub _try_operation {
+    my ($self, $method, $link, @args) = @_;
+
+    my $result = try {
+        $self->$method($link, @args);
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::ConnectionError") ) {
+            $self->_topology->mark_server_unknown( $link->server, $_ );
+        }
+        elsif ( $_->$_isa("MongoDB::NotMasterError") ) {
+            $self->_topology->mark_server_unknown( $link->server, $_ );
+            $self->_topology->mark_stale;
+        }
+        # regardless of cleanup, rethrow the error
+        die $_;
+    };
+
+    return $result;
 }
 
 #--------------------------------------------------------------------------#

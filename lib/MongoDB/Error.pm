@@ -128,10 +128,6 @@ has document => (
 package MongoDB::ConnectionError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
-package MongoDB::SelectionError;
-Moose::Meta::Class->create( __PACKAGE__,
-    superclasses => ['MongoDB::ConnectionError'] );
-
 package MongoDB::HandshakeError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::ConnectionError'] );
@@ -140,9 +136,17 @@ package MongoDB::NetworkError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::ConnectionError'] );
 
+# Timeout errors
+package MongoDB::TimeoutError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+package MongoDB::ExecutionTimeout;
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::TimeoutError'] );
+
 package MongoDB::NetworkTimeout;
 Moose::Meta::Class->create( __PACKAGE__,
-    superclasses => ['MongoDB::ConnectionError'] );
+    superclasses => ['MongoDB::TimeoutError'] );
 
 # Database errors
 package MongoDB::NotMasterError;
@@ -157,16 +161,15 @@ package MongoDB::WriteConcernError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::DatabaseError'] );
 
-package MongoDB::ExecutionTimeout;
-Moose::Meta::Class->create( __PACKAGE__,
-    superclasses => ['MongoDB::DatabaseError'] );
-
 
 # Other errors
 package MongoDB::CursorNotFoundError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
 package MongoDB::ProtocolError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+package MongoDB::SelectionError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
 package MongoDB::InternalError;
@@ -212,17 +215,11 @@ This class defines a heirarchy of exception objects.
         |
         |->MongoDB::ConnectionError
         |   |
-        |   |->MongoDB::SelectionError
-        |   |
         |   |->MongoDB::HandshakeError
         |   |
         |   |->MongoDB::NetworkError
-        |   |
-        |   |->MongoDB::NetworkTimeout
         |
         |->MongoDB::DatabaseError
-        |   |
-        |   |->MongoDB::ExecutionTimeout
         |   |
         |   |->MongoDB::NotMasterError
         |   |
@@ -230,11 +227,19 @@ This class defines a heirarchy of exception objects.
         |   |
         |   |->MongoDB::WriteConcernError
         |
+        |->MongoDB::TimeoutError
+        |   |
+        |   |->MongoDB::ExecutionTimeout
+        |   |
+        |   |->MongoDB::NetworkTimeout
+        |
         |->MongoDB::CursorNotFoundError
         |
         |->MongoDB::DocumentSizeError
         |
         |->MongoDB::ProtocolError
+        |
+        |->MongoDB::SelectionError
         |
         |->MongoDB::InternalError
 
@@ -250,12 +255,6 @@ All error classes have the attribute:
 
 Errors related to network connections.
 
-=head3 MongoDB::SelectionError
-
-When server selection fails for a given operation, this is thrown. For example,
-attempting a write when no primary is available or reading with a specific mode
-and tag set and no servers match.
-
 =head3 MongoDB::HandshakeError
 
 This error is thrown when a connection has been made, but SSL or authentication
@@ -265,11 +264,6 @@ handshakes fail.
 
 This error is thrown when a socket error occurs, when the wrong number of bytes
 are read, or other wire-related errors occur.
-
-=head3 MongoDB::NetworkTimeout
-
-This error is thrown when a network operation exceeds a timeout, typically
-C<connect_timeout_ms> or C<socket_timeout_ms>.
 
 =head2 MongoDB::DatabaseError
 
@@ -281,11 +275,6 @@ Attributes include:
 =for :list
 * result — response from a database command; this must impliement the
   C<last_errmsg> method
-
-=head3 MongoDB::ExecutionTimeout
-
-This error is thrown when a query or command fails because C<max_time_ms> has
-been reached.  The C<result> attribute is a L<MongoDB::CommandResult> object.
 
 =head3 MongoDB::NotMasterError
 
@@ -302,6 +291,20 @@ a L<MongoDB::WriteResult> object.
 
 Errors indicating failure of a write concern.  The C<result> attribute is a
 L<MongoDB::WriteResult> object.
+
+=head2 MongoDB::TimeoutError
+
+These errors indicate a user-specified timeout has been exceeded.
+
+=head3 MongoDB::ExecutionTimeout
+
+This error is thrown when a query or command fails because C<max_time_ms> has
+been reached.  The C<result> attribute is a L<MongoDB::CommandResult> object.
+
+=head3 MongoDB::NetworkTimeout
+
+This error is thrown when a network operation exceeds a timeout, typically
+C<connect_timeout_ms> or C<socket_timeout_ms>.
 
 =head2 MongoDB::CursorNotFoundError
 
@@ -325,6 +328,12 @@ unexpected is detected.  These should be reported as potential bugs.
 
 Errors related to the MongoDB wire protocol, typically problems parsing a
 database response packet.
+
+=head2 MongoDB::SelectionError
+
+When server selection fails for a given operation, this is thrown. For example,
+attempting a write when no primary is available or reading with a specific mode
+and tag set and no servers match.
 
 =cut
 

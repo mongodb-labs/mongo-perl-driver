@@ -54,14 +54,14 @@ sub collection_names {
             my $ns = "$db_name.system.namespaces";
             my $query = MongoDB::_Query->new( spec => {} );
             my $result =
-              $client->_send_query( $link, $ns, $query->spec, undef, 0, 0, 0, undef, $client );
+              $client->_try_operation('_send_query', $link, $ns, $query->spec, undef, 0, 0, 0, undef, $client );
             return grep { not( index( $_, '$' ) >= 0 && index( $_, '.oplog.$' ) < 0 ) }
               map { substr $_->{name}, length($db_name) + 1 } $result->all;
         },
         3 => sub {
             my ( $client, $link ) = @_;
             my $cmd = Tie::IxHash->new( listCollections => 1 );
-            my $result = $client->_send_command( $link, $db_name, $cmd );
+            my $result = $client->_try_operation('_send_command', $link, $db_name, $cmd );
             return map { $_->{name} } @{ $result->result->{collections} };
         },
     };

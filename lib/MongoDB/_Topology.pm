@@ -262,6 +262,12 @@ sub get_writable_link {
     }
 }
 
+sub mark_server_unknown {
+    my ($self, $server, $error) = @_;
+    $self->_reset_address_to_unknown( $server->address, $error );
+    return;
+}
+
 sub mark_stale {
     my ($self) = @_;
     $self->_set_last_scan_time(EPOCH);

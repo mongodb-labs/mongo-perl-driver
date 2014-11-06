@@ -556,14 +556,14 @@ sub get_indexes {
             my $ns = "$db_name.system.indexes";
             my $query = MongoDB::_Query->new( spec => { ns => $full_name } );
             my $result =
-              $client->_send_query( $link, $ns, $query->spec, undef, 0, 0, 0, undef, $client );
+              $client->_try_operation('_send_query', $link, $ns, $query->spec, undef, 0, 0, 0, undef, $client );
             return $result->all;
         },
         3 => sub {
             my ( $client, $link ) = @_;
             my $cmd = Tie::IxHash->new( listIndexes => $name );
             my $result = try {
-                $client->_send_command( $link, $db_name, $cmd )
+                $client->_try_operation('_send_command', $link, $db_name, $cmd )
             }
             catch {
                 if ( $_->$_isa("MongoDB::DatabaseError") ) {

@@ -73,9 +73,7 @@ sub assert {
         my $error_class;
 
         # XXX should we be detecting write/writeConcern/etc errors here?
-        if ( ($code && grep { $code == $_ } NOT_MASTER(),
-            NOT_MASTER_NO_SLAVE_OK(), NOT_MASTER_OR_SECONDARY()) || $err =~ /not master/ )
-        {
+        if ( $err =~ /^(?:not master|node is recovering)/ ) {
             $error_class = "MongoDB::NotMasterError";
         }
         else {
@@ -83,9 +81,9 @@ sub assert {
         }
 
         $error_class->throw(
-            message => $self->last_errmsg,
-            result  => $self,
-            ( defined($code) ? ( code => $code ) : () ),
+            result => $self,
+            ( length($err)   ? ( message => $err )  : () ),
+            ( defined($code) ? ( code    => $code ) : () ),
         );
     }
     return 1;
