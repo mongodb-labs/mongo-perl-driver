@@ -70,6 +70,90 @@ sub force_int {
 
 __END__
 
+=begin :prelude
+
+This is the Alpha 1 release for v1.0.0.0.
+
+=head1 ALPHA RELEASE NOTICE AND ROADMAP
+
+The v0.999.998.x releases are B<alpha> releases towards v1.0.0.0.  While they
+are believed be as reliable as the stable release series, the implementation
+and API are still subject to change.  While preserving back-compatibility is
+important and will be delivered to a great extent, it will not be guaranteed.
+
+Using the v0.999.998.x series means that you understand that your code may break
+due to changes in the driver between now and the v1.0.0.0 stable release.
+
+This alpha 1 release includes these features or changes:
+
+=over
+
+=item *
+
+All networking code is implemented in pure-Perl.  SSL support is provided by
+L<IO::Socket::SSL> (if installed).  Likewise, SASL authentication support is
+provided by L<Authen::SASL> backends (if installed).  This should improve
+portability and ease installation.
+
+=item *
+
+Server monitoring and failover are significantly improved.
+
+=item *
+
+Expanded use of exceptions for error handling.
+
+=back
+
+=head2 Roadmap
+
+Subsequent alphas will be released approximately monthly.  The v1.0.0.0 release
+is expected in the middle of 2015.
+
+Some expected (but not guaranteed) changes in future releases include:
+
+=over
+
+=item *
+
+The driver will become pure-Perl capable, using the Moo framework instead of Moose.
+
+=item *
+
+BSON encoding will be extracted to a separate module, with both pure-Perl and C variants available.
+
+=item *
+
+Transformation of Perl data structures to/from BSON will become more customizable.
+
+=item *
+
+An exception-based error system will be used exclusively throughout the driver.
+
+=item *
+
+Some existing options and methods will be deprecated to improve consistency and clarity of what remains.
+
+=item *
+
+Some configuration options and method return values will be implemented with objects for validation and interface consistency.
+
+=item *
+
+Various internal changes to support new protocol capabilities of MongoDB 2.6 and later.
+
+=item *
+
+The driver will have a smaller total dependency tree.
+
+=item *
+
+Documentation will be significantly revised.
+
+=back
+
+=end :prelude
+
 =head1 SYNOPSIS
 
     use MongoDB;
@@ -125,18 +209,6 @@ classes may return other objects for specific features or functions.
 
 See the documentation of those classes for more details or the
 L<MongoDB Perl Driver Tutorial|MongoDB::Tutorial> for an example.
-
-=head1 FUNCTIONS (DEPRECATED)
-
-The following low-level functions are deprecated and will be removed in a
-future release.
-
-=for :list
-* write_insert
-* write_query
-* write_update
-* write_remove
-* read_documents
 
 =head1 SEMANTIC VERSIONING SCHEME
 
