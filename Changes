@@ -2,6 +2,15 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - Supports MongoDB 2.8; in addition to prior feature support, this release
+    fixes tests that were broken against non-default storage engines
+
+  [Bug fixes]
+
+  - PERL-454 suppress warnings storing datetimes at the epoch
+
 v0.706.0.0 2014-10-28 11:30:42-04:00 America/New_York
 
   [*** Deprecations ***]
