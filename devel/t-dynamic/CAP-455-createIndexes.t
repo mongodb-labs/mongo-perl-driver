@@ -42,7 +42,7 @@ my %config_map = (
 for my $cluster ( sort keys %config_map ) {
     subtest "$cluster log check"=> sub {
         my $orc =
-          MongoDBTest::Orchestrator->new( config_file => "devel/clusters/$cluster.yml" );
+          MongoDBTest::Orchestrator->new( config_file => "devel/config/$cluster.yml" );
         diag "starting cluster";
         $orc->start;
         $ENV{MONGOD} = $orc->as_uri;

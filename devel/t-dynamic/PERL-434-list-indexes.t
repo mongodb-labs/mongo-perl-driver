@@ -52,7 +52,7 @@ sub _test_index_names {
 
 subtest "wire protocol 3" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/clusters/mongod-2.7.7.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.7.7.yml" );
     diag "starting cluster";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
@@ -65,7 +65,7 @@ subtest "wire protocol 3" => sub {
 
 subtest "wire protocol 0" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/clusters/mongod-2.6.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
     diag "starting cluster";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;

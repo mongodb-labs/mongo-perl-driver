@@ -24,7 +24,7 @@ use lib "devel/lib";
 use MongoDBTest::Orchestrator;
 # use Log::Any::Adapter qw/Stderr/;
 
-my $orc = MongoDBTest::Orchestrator->new( config_file => "devel/clusters/mongod-2.6.yml" );
+my $orc = MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 

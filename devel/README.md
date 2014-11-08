@@ -7,9 +7,9 @@ Introduction
 This directory contains files primarily for test requiring cluster
 orchestration:
 
-* bringing clusters up with various configurations
+* bringing deployments up with various configurations
 
-* reconfiguring clusters during testing to test failover
+* reconfiguring deployments during testing to test failover
   and other dynamic behaviors
 
 Contents
@@ -18,7 +18,7 @@ Contents
 Subdirectories include:
 
 * bin — harnesses and other helper programs
-* clusters — general-purpose cluster definition files in YAML format
+* config — general-purpose cluster definition files in YAML format
 * lib - Perl modules for orchestration
 * t-dynamic — Perl test files that spin up own cluster for testing
 * t-special — Perl test files that should only be run manually
@@ -30,7 +30,7 @@ if these are so specialized that the regular test suite would fail.
 The `t-special` directory has files with special prerequisites that must
 be satisfied before tests will pass (e.g. compiling with SASL support).
 
-The files in `clusters` should be limited to those for which the
+The files in `config` should be limited to those for which the
 test suite can succeed.
 
 Configuration
@@ -56,9 +56,9 @@ Running a t-dynamic test:
 
 Running all regular test files under a specific configuration:
 
-    ./devel/bin/harness.pl devel/clusters/sharded-2.6.yml -- \
+    ./devel/bin/harness.pl devel/config/sharded-2.6.yml -- \
         make test 
 
-Running a test file under *every* configuration in `devel/clusters`:
+Running a test file under *every* configuration in `devel/config`:
 
     ./devel/bin/test-all.pl make test TEST_FILES=t/bulk.t

@@ -42,7 +42,7 @@ unless ( $config_file && @command ) {
 }
 
 if ( ! -f $config_file ) {
-    my $new_config = "devel/clusters/$config_file";
+    my $new_config = "devel/config/$config_file";
     if ( -f $new_config ) {
         $config_file = $new_config;
     }
