@@ -1,0 +1,146 @@
+#
+#  Copyright 1014 MongoDB, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+
+# PODNAME: MongoDB::Upgrading
+# ABSTRACT: Deprecations and behavior changes from the v0 API
+
+=pod
+
+=head1 WORK IN PROGRESS
+
+This document is a work in progress during the v1 development cycle.
+It offers a best-efforts snapshot of changes at a point in time.
+
+=head1 DESCRIPTION
+
+While the v1 API preserves backwards compatibility in most of the API,
+there are still some areas where the old API has been deprecated or changed
+in a backward breaking way.
+
+This document is intended to help developers update their code to take into
+account API changes from the v0 API to the v1 API.
+
+=head1 RATIONALE
+
+While backwards-compatibility is important, changes to the driver were
+sometimes deemed necessary to achieve certain goals:
+
+=for :list
+* consistency – many parts of the v0 API were inconsistent, behaving
+  differently from method to method; the v1 API minimizes developer
+  surprises by improving consistency in return types and exception types.
+* simplification – many configuration settings, like write concern, were
+  split across multiple attributes, making them hard to manage collectively
+  or consistently as semantics changed across server versions.
+* encapsulation – too many low-level, internal operations were exposed as
+  part of the API, which complicates maintenance work; the v1 API aims to
+  minimize the "public surface" available to developers.
+* abstraction – many methods returned raw server documents for end-user
+  code to inspect, which is brittle in the face of changes by the server
+  over time; the v1 API uses objects to abstract the details behind
+  standard method calls.
+* compatibility – some new features or changes in the MongoDB server, like
+  the client authentication model, no longer fit the old driver design.
+* portability – the v0 driver had a large dependency tree and required a
+  compiler and various libraries; the v1 driver shrinks the dependency tree
+  substantially and uses widely-used CPAN modules in place of custom C code
+  when possible.
+
+=head1 INSTALLATION AND DEPENDENCY CHANGES
+
+=head2 SSL and SASL
+
+The v0 driver required a compiler and OpenSSL and libgsasl for SSL and SASL
+support, respectively.  The v1 driver instead relies on CPAN modules
+C<IO::Socket::SSL> and C<Authen::SASL> for SSL and SASL support,
+respectively.
+
+=head1 BEHAVIOR CHANGES
+
+=head2 Exceptions are the preferred error handling approach
+
+In the v0 API, errors could be indicated in various ways:
+
+=for :list
+* boolean return value
+* string return value is an error; hash ref is success
+* document that might contain an 'err', 'errmsg' or '$err' field
+* thrown string exception
+
+Regardless of the documented error handling, every method that involved a
+network operation would throw an exception on various network errors.
+
+In the v1 API, exceptions objects are the standard way of indicating
+errors.  The exception hierarchy is described in L<MongoDB::Error>.
+
+=head2 Cursors and query responses
+
+In v0, L<MongoDB::Cursor> objects were used for ordinary queries as well as
+the query-like commands aggregation and parallel scan.  However, only
+cursor iteration commands worked for aggregation and parallel scan
+"cursors"; the rest of the L<MongoDB::Cursor> API didn't apply and was
+fatal.
+
+In v1, all result iteration is done via the new L<MongoDB::QueryResult>
+class.  L<MongoDB::Cursor> is now just a thin wrapper that holds query
+parameters, instantiates a L<MongoDB::QueryResult> on demand, and passes
+iteration methods through to the query result object.
+
+Aggregation "cursors" and parallel scan "cursors" are now L<QueryResult>
+objects, with the same iteration methods as in v0.
+
+This significantly simplifes the code base and should have little end-user
+visibility unless users are specifically checking the return type of
+queries and query-like methods.
+
+=head2 Read preference objects and the C<read_preference> method
+
+A new L<MongoDB::ReadPreference> class is used to encapsulate read
+preference attributes.  In the v1 API, it is set as an attribute on
+L<MongoDB::MongoClient>:
+
+    MongoDB::MongoClient->new( ..., read_preference => { ... } );
+
+If provided as a hash_reference, it will be coerced to a
+MongoDB::ReadPreference object (and validated).
+
+The old C<read_preference> method API for L<MongoDB::MongoClient> is
+B<deprecated> and the behavior has changed.  Instead of re-pinning the
+client to a new server when called, calling with arguments will change the
+default read preference on the MongoClient; calling it without arguments
+will just return the current read preference object.
+
+As C<read_preference> is now the name of an attribute, the return value
+is the value of the attribute.
+
+In a future release, this method will become a read-only accessor and
+calling it with arguments will be a fatal exception.
+
+For L<MongoDB::Cursor>, the C<read_preference> method sets a hidden read
+preference attribute that is used for the query in place of the
+L<MongoDB::MongoClient> default C<read_preference> attribute.  This means
+that calling C<read_preference> on a cursor object no longer changes the
+read preference globally on the client – the read preference changes is
+scoped to the cursor object only.
+
+=head1 DEPRECATIONS
+
+=head2 Configuration options
+
+=head2 Methods
+
+=cut
+
