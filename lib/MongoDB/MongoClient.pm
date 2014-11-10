@@ -62,6 +62,38 @@ with 'MongoDB::Role::_Client';
 
 # connection attributes
 
+=attr host
+
+Server or servers to connect to. Defaults to C<mongodb://localhost:27017>.
+
+To connect to more than one database server, use the format:
+
+    mongodb://host1[:port1][,host2[:port2],...[,hostN[:portN]]]
+
+An arbitrary number of hosts can be specified.
+
+The connect method will return success if it can connect to at least one of the
+hosts listed.  If it cannot connect to any hosts, it will die.
+
+If a port is not specified for a given host, it will default to 27017. For
+example, to connecting to C<localhost:27017> and C<localhost:27018>:
+
+    my $client = MongoDB::MongoClient->new("host" => "mongodb://localhost,localhost:27018");
+
+This will succeed if either C<localhost:27017> or C<localhost:27018> are available.
+
+The connect method will also try to determine who is the primary if more than one
+server is given.  It will try the hosts in order from left to right.  As soon as
+one of the hosts reports that it is the primary, the connect will return success.  If
+no hosts report themselves as a primary, the connect will die.
+
+If username and password are given, success is conditional on being able to log
+into the database as well as connect.  By default, the driver will attempt to
+authenticate with the admin database.  If a different database is specified
+using the C<db_name> property, it will be used instead.
+
+=cut
+
 has host => (
     is      => 'ro',
     isa     => 'Str',
@@ -81,17 +113,89 @@ has connect_type => (
     lazy    => 1
 );
 
+=attr timeout
+
+Connection timeout in milliseconds. Defaults to C<20000>.
+
+=cut
+
 has timeout => (
     is      => 'rw',
     isa     => 'Int',
     default => 20000,
 );
 
+
+=attr query_timeout
+
+    # set query timeout to 1 second
+    my $client = MongoDB::MongoClient->new(query_timeout => 1000);
+
+    # set query timeout to 6 seconds
+    $client->query_timeout(6000);
+
+This will cause all queries (including C<find_one>s and C<run_command>s) to die
+after this period if the database has not responded.
+
+This value is in milliseconds and defaults to the value of
+L<MongoDB::Cursor/timeout>.
+
+    $MongoDB::Cursor::timeout = 5000;
+    # query timeout for $conn will be 5 seconds
+    my $client = MongoDB::MongoClient->new;
+
+A value of -1 will cause the driver to wait forever for responses and 0 will
+cause it to die immediately.
+
+This value overrides L<MongoDB::Cursor/timeout>.
+
+    $MongoDB::Cursor::timeout = 1000;
+    my $client = MongoDB::MongoClient->new(query_timeout => 10);
+    # timeout for $conn is 10 milliseconds
+
+=cut
+
 has query_timeout => (
     is      => 'rw',
     isa     => 'Int',
     default => sub { return $MongoDB::Cursor::timeout; },
 );
+
+=attr ssl
+
+    ssl => 1
+    ssl => \%ssl_options
+
+This tells the driver that you are connecting to an SSL mongodb instance.
+
+You must have L<IO::Socket::SSL> 1.42+ and L<Net::SSLeay> 1.49+ installed for
+SSL support.
+
+The C<ssl> attribute takes either a boolean value or a hash reference of
+options to pass to IO::Socket::SSL.  For example, to set a CA file to validate
+the server certificate and set a client certificate for the server to validate,
+you could set the attribute like this:
+
+    ssl => {
+        SSL_ca_file   => "/path/to/ca.pem",
+        SSL_cert_file => "/path/to/client.pem",
+    }
+
+If C<SSL_ca_file> is not provided, server certificates are verified against a
+default list of CAs, either L<Mozilla::CA> or an operating-system-specific
+default CA file.  To disable verification, you can use
+C<< SSL_verify_mode => 0x00 >>.
+
+B<You are strongly encouraged to use your own CA file for increased security>.
+
+Server hostnames are also validated against the CN name in the server
+certificate using C<< SSL_verifycn_scheme => 'default' >>.  You can use the
+scheme 'none' to disable this check.
+
+B<Disabling certificate or hostname verification is a security risk and is not
+recommended>.
+
+=cut
 
 has ssl => (
     is      => 'rw',
@@ -101,6 +205,40 @@ has ssl => (
 
 # write concern attributes
 
+=attr w
+
+The client I<write concern>.
+
+=over 4
+
+=item * C<-1> Errors ignored. Do not use this.
+
+=item * C<0> Unacknowledged. MongoClient will B<NOT> wait for an acknowledgment that
+the server has received and processed the request. Older documentation may refer
+to this as "fire-and-forget" mode. You must call C<getLastError> manually to check
+if a request succeeds. This option is not recommended.
+
+=item * C<1> Acknowledged. This is the default. MongoClient will wait until the
+primary MongoDB acknowledges the write.
+
+=item * C<2> Replica acknowledged. MongoClient will wait until at least two
+replicas (primary and one secondary) acknowledge the write. You can set a higher
+number for more replicas.
+
+=item * C<all> All replicas acknowledged.
+
+=item * C<majority> A majority of replicas acknowledged.
+
+=back
+
+In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can specify a
+new "getLastErrorMode" where you can create new
+rules on how your data is replicated. To used you getLastErrorMode, you pass in the
+name of the mode to the C<w> parameter. For more information see:
+http://www.mongodb.org/display/DOCS/Data+Center+Awareness
+
+=cut
+
 has w => (
     is      => 'rw',
     isa     => 'Int|Str',
@@ -108,12 +246,32 @@ has w => (
     trigger => \&_update_write_concern,
 );
 
+=attr wtimeout
+
+The number of milliseconds an operation should wait for C<w> slaves to replicate
+it.
+
+Defaults to 1000 (1 second).
+
+See C<w> above for more information.
+
+=cut
+
 has wtimeout => (
     is      => 'rw',
     isa     => 'Int',
     default => 1000,
     trigger => \&_update_write_concern,
 );
+
+=attr j
+
+If true, the client will block until write operations have been committed to the
+server's journal. Prior to MongoDB 2.6, this option was ignored if the server was
+running without journaling. Starting with MongoDB 2.6, write operations will fail
+if this option is used when the server is running without journaling.
+
+=cut
 
 has j => (
     is      => 'rw',
@@ -169,6 +327,13 @@ sub read_preference {
 
 # authentication attributes
 
+=attr username
+
+Username for this client connection.  Optional.  If this and the password field are
+set, the client will attempt to authenticate on connection/reconnection.
+
+=cut
+
 has username => (
     is      => 'rw',
     isa     => 'Str',
@@ -176,12 +341,28 @@ has username => (
     builder => '_build_username',
 );
 
+=attr password
+
+Password for this connection.  Optional.  If this and the username field are
+set, the client will attempt to authenticate on connection/reconnection.
+
+=cut
+
 has password => (
     is      => 'rw',
     isa     => 'Str',
     lazy    => 1,
     builder => '_build_password',
 );
+
+=attr db_name
+
+Database to authenticate on for this connection.  Optional.  If this, the
+username, and the password fields are set, the client will attempt to
+authenticate against this database on connection/reconnection.  Defaults to
+"admin".
+
+=cut
 
 has db_name => (
     is      => 'rw',
@@ -207,6 +388,31 @@ has auth_mechanism_properties => (
 );
 
 # XXX deprecate this
+=attr sasl
+
+This attribute is experimental.
+
+If set to C<1>, the driver will attempt to negotiate SASL authentication upon
+connection. See L</sasl_mechanism> for a list of the currently supported mechanisms. The
+driver must be built as follows for SASL support:
+
+    perl Makefile.PL --sasl
+    make
+    make install
+
+Alternatively, you can set the C<PERL_MONGODB_WITH_SASL> environment variable before
+installing:
+
+    PERL_MONGODB_WITH_SASL=1 cpan MongoDB
+
+The C<libgsasl> library is required for SASL support. RedHat/CentOS users can find it
+in the EPEL repositories.
+
+Future versions of this driver may switch to L<Cyrus SASL|http://www.cyrusimap.org/docs/cyrus-sasl/2.1.25/>
+in order to be consistent with the MongoDB server, which now uses Cyrus.
+
+=cut
+
 has sasl => (
     is      => 'ro',
     isa     => 'Bool',
@@ -214,6 +420,28 @@ has sasl => (
 );
 
 # XXX deprecate this
+=attr sasl_mechanism
+
+This attribute is experimental.
+
+This specifies the SASL mechanism to use for authentication with a MongoDB server. (See L</sasl>.)
+The default is GSSAPI. The supported SASL mechanisms are:
+
+=over 4
+
+=item * C<GSSAPI>. This is the default. GSSAPI will attempt to authenticate against Kerberos
+for MongoDB Enterprise 2.4+. You must run your program from within a C<kinit> session and set
+the C<username> attribute to the Kerberos principal name, e.g. C<user@EXAMPLE.COM>.
+
+=item * C<PLAIN>. The SASL PLAIN mechanism will attempt to authenticate against LDAP for
+MongoDB Enterprise 2.6+. Because the password is not encrypted, you should only use this
+mechanism over a secure connection. You must set the C<username> and C<password> attributes
+to your LDAP credentials.
+
+=back
+
+=cut
+
 has sasl_mechanism => (
     is      => 'ro',
     isa     => 'AuthMechanism',
@@ -222,16 +450,39 @@ has sasl_mechanism => (
 
 # BSON conversion attributes
 
+=attr dt_type
+
+Sets the type of object which is returned for DateTime fields. The default is L<DateTime>. Other
+acceptable values are L<DateTime::Tiny> and C<undef>. The latter will give you the raw epoch value
+rather than an object.
+
+=cut
+
 has dt_type => (
     is      => 'rw',
     default => 'DateTime'
 );
+
+
+=attr inflate_dbrefs
+
+Controls whether L<DBRef|http://docs.mongodb.org/manual/applications/database-references/#dbref>s
+are automatically inflated into L<MongoDB::DBRef> objects. Defaults to true.
+Set this to C<0> if you don't want to auto-inflate them.
+
+=cut
 
 has inflate_dbrefs => (
     is      => 'rw',
     isa     => 'Bool',
     default => 1
 );
+
+=attr inflate_regexps
+
+Controls whether regular expressions stored in MongoDB are inflated into L<MongoDB::BSON::Regexp> objects instead of native Perl Regexps. The default is false. This can be dangerous, since the JavaScript regexps used internally by MongoDB are of a different dialect than Perl's. The default for this attribute may become true in future versions of the driver.
+
+=cut
 
 has inflate_regexps => (
     is      => 'rw',
@@ -243,17 +494,64 @@ has inflate_regexps => (
 # deprecated public attributes
 #--------------------------------------------------------------------------#
 
+=attr auto_connect
+
+Boolean indication whether or not to connect automatically on object
+construction. Defaults to C<1>.
+
+=cut
+
 has auto_connect => (
     is      => 'ro',
     isa     => 'Bool',
     default => 1,
 );
 
+=attr auto_reconnect
+
+Boolean indicating whether or not to reconnect if the connection is
+interrupted. Defaults to C<1>.
+
+=cut
+
 has auto_reconnect => (
     is      => 'ro',
     isa     => 'Bool',
     default => 1,
 );
+
+
+=attr find_master
+
+If this is true, the driver will attempt to find a primary given the list of
+hosts.  The primary-finding algorithm looks like:
+
+    for host in hosts
+
+        if host is the primary
+             return host
+
+        else if host is a replica set member
+            primary := replica set's primary
+            return primary
+
+If no primary is found, the connection will fail.
+
+If this is not set (or set to the default, 0), the driver will simply use the
+first host in the host list for all connections.  This can be useful for
+directly connecting to secondaries for reads.
+
+If you are connecting to a secondary, you should read
+L<MongoDB::Cursor/slave_okay>.
+
+You can use the C<ismaster> command to find the members of a replica set:
+
+    my $result = $db->run_command({ismaster => 1});
+
+The primary and secondary hosts are listed in the C<hosts> field, the slaves are
+in the C<passives> field, and arbiters are in the C<arbiters> field.
+
+=cut
 
 has find_master => (
     is      => 'ro',
@@ -455,6 +753,15 @@ sub _use_write_cmd {
 #--------------------------------------------------------------------------#
 # public methods - network communication and wire protocol
 #--------------------------------------------------------------------------#
+
+=method connect
+
+    $client->connect;
+
+Connects to the MongoDB server. Called automatically on object construction if
+L</auto_connect> is true.
+
+=cut
 
 sub connect {
     my ($self) = @_;
@@ -954,6 +1261,14 @@ sub _update_write_concern {
 # database helper methods
 #--------------------------------------------------------------------------#
 
+=method database_names
+
+    my @dbs = $client->database_names;
+
+Lists all databases on the MongoDB server.
+
+=cut
+
 sub database_names {
     my ($self) = @_;
 
@@ -976,6 +1291,14 @@ sub database_names {
     return @databases;
 }
 
+=method get_database($name)
+
+    my $database = $client->get_database('foo');
+
+Returns a L<MongoDB::Database> instance for the database with the given C<$name>.
+
+=cut
+
 sub get_database {
     my ($self, $database_name) = @_;
     return MongoDB::Database->new(
@@ -983,6 +1306,22 @@ sub get_database {
         name        => $database_name,
     );
 }
+
+=method fsync(\%args)
+
+    $client->fsync();
+
+A function that will forces the server to flush all pending writes to the storage layer.
+
+The fsync operation is synchronous by default, to run fsync asynchronously, use the following form:
+
+    $client->fsync({async => 1});
+
+The primary use of fsync is to lock the database during backup operations. This will flush all data to the data storage layer and block all write operations until you unlock the database. Note: you can still read while the database is locked.
+
+    $conn->fsync({lock => 1});
+
+=cut
 
 sub fsync {
     my ($self, $args) = @_;
@@ -993,12 +1332,35 @@ sub fsync {
     return $self->get_database('admin')->run_command([fsync => 1, %$args]);
 }
 
+=method fsync_unlock
+
+    $conn->fsync_unlock();
+
+Unlocks a database server to allow writes and reverses the operation of a $conn->fsync({lock => 1}); operation.
+
+=cut
+
 sub fsync_unlock {
     my ($self) = @_;
 
     # Have to fetch from a special collection to unlock.
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
+
+=method read_preference (DEPRECATED)
+
+    $conn->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED, [{'disk' => 'ssd'}, {'rack' => 'k'}]);
+
+Sets the read preference for this connection. The first argument is the read
+preference mode and should be one of four constants: PRIMARY, SECONDARY,
+PRIMARY_PREFERRED, or SECONDARY_PREFERRED (NEAREST is not yet supported).  In
+order to use read preference, L<MongoDB::MongoClient/find_master> must be set.
+The second argument (optional) is an array reference containing one or more tag
+sets. The tag set list can be used to match the tag sets of replica set secondaries.
+See also L<MongoDB::Cursor/read_preference>. For core documentation on read
+preference see L<http://docs.mongodb.org/manual/core/read-preference/>.
+
+=cut
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
@@ -1048,6 +1410,25 @@ There is no way to explicitly disconnect from the database.  However, the
 connection will automatically be closed and cleaned up when no references to
 the C<MongoDB::MongoClient> object exist, which occurs when C<$client> goes out of
 scope (or earlier if you undefine it with C<undef>).
+
+=head1 CONNECTION STRING URI
+
+Core documentation on connections: L<http://docs.mongodb.org/manual/reference/connection-string/>.
+
+The currently supported connection string options are:
+
+=for :list
+*authMechanism
+*authMechanism.SERVICE_NAME
+*connect
+*connectTimeoutMS
+*journal
+*readPreference
+*readPreferenceTags
+*ssl
+*w
+*wtimeoutMS
+
 
 =head1 AUTHENTICATION
 
@@ -1207,375 +1588,5 @@ C<auth_mechanism_properties> attribute or in the connection string.
 Existing connections are closed when a thread is created.  If C<auto_reconnect>
 is true, then connections will be re-established as needed.
 
-=head1 CONNECTION STRING URI
-
-Core documentation on connections: L<http://docs.mongodb.org/manual/reference/connection-string/>.
-
-The currently supported connection string options are:
-
-=for :list
-*authMechanism
-*authMechanism.SERVICE_NAME
-*connect
-*connectTimeoutMS
-*journal
-*readPreference
-*readPreferenceTags
-*ssl
-*w
-*wtimeoutMS
-
-
-=attr host
-
-Server or servers to connect to. Defaults to C<mongodb://localhost:27017>.
-
-To connect to more than one database server, use the format:
-
-    mongodb://host1[:port1][,host2[:port2],...[,hostN[:portN]]]
-
-An arbitrary number of hosts can be specified.
-
-The connect method will return success if it can connect to at least one of the
-hosts listed.  If it cannot connect to any hosts, it will die.
-
-If a port is not specified for a given host, it will default to 27017. For
-example, to connecting to C<localhost:27017> and C<localhost:27018>:
-
-    my $client = MongoDB::MongoClient->new("host" => "mongodb://localhost,localhost:27018");
-
-This will succeed if either C<localhost:27017> or C<localhost:27018> are available.
-
-The connect method will also try to determine who is the primary if more than one
-server is given.  It will try the hosts in order from left to right.  As soon as
-one of the hosts reports that it is the primary, the connect will return success.  If
-no hosts report themselves as a primary, the connect will die.
-
-If username and password are given, success is conditional on being able to log
-into the database as well as connect.  By default, the driver will attempt to
-authenticate with the admin database.  If a different database is specified
-using the C<db_name> property, it will be used instead.
-
-=attr w
-
-The client I<write concern>.
-
-=over 4
-
-=item * C<-1> Errors ignored. Do not use this.
-
-=item * C<0> Unacknowledged. MongoClient will B<NOT> wait for an acknowledgment that
-the server has received and processed the request. Older documentation may refer
-to this as "fire-and-forget" mode. You must call C<getLastError> manually to check
-if a request succeeds. This option is not recommended.
-
-=item * C<1> Acknowledged. This is the default. MongoClient will wait until the
-primary MongoDB acknowledges the write.
-
-=item * C<2> Replica acknowledged. MongoClient will wait until at least two
-replicas (primary and one secondary) acknowledge the write. You can set a higher
-number for more replicas.
-
-=item * C<all> All replicas acknowledged.
-
-=item * C<majority> A majority of replicas acknowledged.
-
-=back
-
-In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can specify a
-new "getLastErrorMode" where you can create new
-rules on how your data is replicated. To used you getLastErrorMode, you pass in the
-name of the mode to the C<w> parameter. For more information see:
-http://www.mongodb.org/display/DOCS/Data+Center+Awareness
-
-=attr wtimeout
-
-The number of milliseconds an operation should wait for C<w> slaves to replicate
-it.
-
-Defaults to 1000 (1 second).
-
-See C<w> above for more information.
-
-=attr j
-
-If true, the client will block until write operations have been committed to the
-server's journal. Prior to MongoDB 2.6, this option was ignored if the server was
-running without journaling. Starting with MongoDB 2.6, write operations will fail
-if this option is used when the server is running without journaling.
-
-=attr auto_reconnect
-
-Boolean indicating whether or not to reconnect if the connection is
-interrupted. Defaults to C<1>.
-
-=attr auto_connect
-
-Boolean indication whether or not to connect automatically on object
-construction. Defaults to C<1>.
-
-=attr timeout
-
-Connection timeout in milliseconds. Defaults to C<20000>.
-
-=attr username
-
-Username for this client connection.  Optional.  If this and the password field are
-set, the client will attempt to authenticate on connection/reconnection.
-
-=attr password
-
-Password for this connection.  Optional.  If this and the username field are
-set, the client will attempt to authenticate on connection/reconnection.
-
-=attr db_name
-
-Database to authenticate on for this connection.  Optional.  If this, the
-username, and the password fields are set, the client will attempt to
-authenticate against this database on connection/reconnection.  Defaults to
-"admin".
-
-=attr query_timeout
-
-    # set query timeout to 1 second
-    my $client = MongoDB::MongoClient->new(query_timeout => 1000);
-
-    # set query timeout to 6 seconds
-    $client->query_timeout(6000);
-
-This will cause all queries (including C<find_one>s and C<run_command>s) to die
-after this period if the database has not responded.
-
-This value is in milliseconds and defaults to the value of
-L<MongoDB::Cursor/timeout>.
-
-    $MongoDB::Cursor::timeout = 5000;
-    # query timeout for $conn will be 5 seconds
-    my $client = MongoDB::MongoClient->new;
-
-A value of -1 will cause the driver to wait forever for responses and 0 will
-cause it to die immediately.
-
-This value overrides L<MongoDB::Cursor/timeout>.
-
-    $MongoDB::Cursor::timeout = 1000;
-    my $client = MongoDB::MongoClient->new(query_timeout => 10);
-    # timeout for $conn is 10 milliseconds
-
-=attr max_bson_size
-
-This is the largest document, in bytes, storable by MongoDB. The driver queries
-MongoDB on connection to determine this value.  It defaults to 4MB.
-
-=attr find_master
-
-If this is true, the driver will attempt to find a primary given the list of
-hosts.  The primary-finding algorithm looks like:
-
-    for host in hosts
-
-        if host is the primary
-             return host
-
-        else if host is a replica set member
-            primary := replica set's primary
-            return primary
-
-If no primary is found, the connection will fail.
-
-If this is not set (or set to the default, 0), the driver will simply use the
-first host in the host list for all connections.  This can be useful for
-directly connecting to secondaries for reads.
-
-If you are connecting to a secondary, you should read
-L<MongoDB::Cursor/slave_okay>.
-
-You can use the C<ismaster> command to find the members of a replica set:
-
-    my $result = $db->run_command({ismaster => 1});
-
-The primary and secondary hosts are listed in the C<hosts> field, the slaves are
-in the C<passives> field, and arbiters are in the C<arbiters> field.
-
-=attr ssl
-
-    ssl => 1
-    ssl => \%ssl_options
-
-This tells the driver that you are connecting to an SSL mongodb instance.
-
-You must have L<IO::Socket::SSL> 1.42+ and L<Net::SSLeay> 1.49+ installed for
-SSL support.
-
-The C<ssl> attribute takes either a boolean value or a hash reference of
-options to pass to IO::Socket::SSL.  For example, to set a CA file to validate
-the server certificate and set a client certificate for the server to validate,
-you could set the attribute like this:
-
-    ssl => {
-        SSL_ca_file   => "/path/to/ca.pem",
-        SSL_cert_file => "/path/to/client.pem",
-    }
-
-If C<SSL_ca_file> is not provided, server certificates are verified against a
-default list of CAs, either L<Mozilla::CA> or an operating-system-specific
-default CA file.  To disable verification, you can use
-C<< SSL_verify_mode => 0x00 >>.
-
-B<You are strongly encouraged to use your own CA file for increased security>.
-
-Server hostnames are also validated against the CN name in the server
-certificate using C<< SSL_verifycn_scheme => 'default' >>.  You can use the
-scheme 'none' to disable this check.
-
-B<Disabling certificate or hostname verification is a security risk and is not
-recommended>.
-
-=attr sasl
-
-This attribute is experimental.
-
-If set to C<1>, the driver will attempt to negotiate SASL authentication upon
-connection. See L</sasl_mechanism> for a list of the currently supported mechanisms. The
-driver must be built as follows for SASL support:
-
-    perl Makefile.PL --sasl
-    make
-    make install
-
-Alternatively, you can set the C<PERL_MONGODB_WITH_SASL> environment variable before
-installing:
-
-    PERL_MONGODB_WITH_SASL=1 cpan MongoDB
-
-The C<libgsasl> library is required for SASL support. RedHat/CentOS users can find it
-in the EPEL repositories.
-
-Future versions of this driver may switch to L<Cyrus SASL|http://www.cyrusimap.org/docs/cyrus-sasl/2.1.25/>
-in order to be consistent with the MongoDB server, which now uses Cyrus.
-
-=attr sasl_mechanism
-
-This attribute is experimental.
-
-This specifies the SASL mechanism to use for authentication with a MongoDB server. (See L</sasl>.)
-The default is GSSAPI. The supported SASL mechanisms are:
-
-=over 4
-
-=item * C<GSSAPI>. This is the default. GSSAPI will attempt to authenticate against Kerberos
-for MongoDB Enterprise 2.4+. You must run your program from within a C<kinit> session and set
-the C<username> attribute to the Kerberos principal name, e.g. C<user@EXAMPLE.COM>.
-
-=item * C<PLAIN>. The SASL PLAIN mechanism will attempt to authenticate against LDAP for
-MongoDB Enterprise 2.6+. Because the password is not encrypted, you should only use this
-mechanism over a secure connection. You must set the C<username> and C<password> attributes
-to your LDAP credentials.
-
-=back
-
-=attr dt_type
-
-Sets the type of object which is returned for DateTime fields. The default is L<DateTime>. Other
-acceptable values are L<DateTime::Tiny> and C<undef>. The latter will give you the raw epoch value
-rather than an object.
-
-=attr inflate_dbrefs
-
-Controls whether L<DBRef|http://docs.mongodb.org/manual/applications/database-references/#dbref>s
-are automatically inflated into L<MongoDB::DBRef> objects. Defaults to true.
-Set this to C<0> if you don't want to auto-inflate them.
-
-=attr inflate_regexps
-
-Controls whether regular expressions stored in MongoDB are inflated into L<MongoDB::BSON::Regexp> objects instead of native Perl Regexps. The default is false. This can be dangerous, since the JavaScript regexps used internally by MongoDB are of a different dialect than Perl's. The default for this attribute may become true in future versions of the driver.
-
-=method connect
-
-    $client->connect;
-
-Connects to the MongoDB server. Called automatically on object construction if
-L</auto_connect> is true.
-
-=method database_names
-
-    my @dbs = $client->database_names;
-
-Lists all databases on the MongoDB server.
-
-=method get_database($name)
-
-    my $database = $client->get_database('foo');
-
-Returns a L<MongoDB::Database> instance for the database with the given C<$name>.
-
-
-=method send($str)
-
-    my ($insert, $ids) = MongoDB::write_insert('foo.bar', $bson_document );
-    $client->send($insert);
-
-Low-level function to send a string directly to the database.  Use
-L<MongoDB::write_insert>, L<MongoDB::write_update>, L<MongoDB::write_remove>, or
-L<MongoDB::write_query> to create a valid string.
-
-=method recv($cursor)
-
-    my $ok = $client->recv($cursor);
-
-Low-level function to receive a response from the database into a cursor.
-Dies on error.  Returns true if any results were received and false otherwise.
-
-=method fsync(\%args)
-
-    $client->fsync();
-
-A function that will forces the server to flush all pending writes to the storage layer.
-
-The fsync operation is synchronous by default, to run fsync asynchronously, use the following form:
-
-    $client->fsync({async => 1});
-
-The primary use of fsync is to lock the database during backup operations. This will flush all data to the data storage layer and block all write operations until you unlock the database. Note: you can still read while the database is locked.
-
-    $conn->fsync({lock => 1});
-
-=method fsync_unlock
-
-    $conn->fsync_unlock();
-
-Unlocks a database server to allow writes and reverses the operation of a $conn->fsync({lock => 1}); operation.
-
-=method read_preference
-
-    $conn->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED, [{'disk' => 'ssd'}, {'rack' => 'k'}]);
-
-Sets the read preference for this connection. The first argument is the read
-preference mode and should be one of four constants: PRIMARY, SECONDARY,
-PRIMARY_PREFERRED, or SECONDARY_PREFERRED (NEAREST is not yet supported).  In
-order to use read preference, L<MongoDB::MongoClient/find_master> must be set.
-The second argument (optional) is an array reference containing one or more tag
-sets. The tag set list can be used to match the tag sets of replica set secondaries.
-See also L<MongoDB::Cursor/read_preference>. For core documentation on read
-preference see L<http://docs.mongodb.org/manual/core/read-preference/>.
-
-=method repin
-
-    $conn->repin()
-
-Chooses a replica set member to which this connection should route read operations,
-according to the read preference that has been set via L<MongoDB::MongoClient/read_preference>
-or L<MongoDB::Cursor/read_preference>. This method is called automatically
-when the read preference or replica set state changes, and generally does not
-need to be called by application code.
-
-=method rs_refresh
-
-    $conn->rs_refresh()
-
-If it has been at least 5 seconds since last checking replica set state,
-then ping all replica set members. Calls L<MongoDB::MongoClient/repin> if
-a previously reachable node is now unreachable, or a previously unreachable
-node is now reachable. This method is called automatically before communicating
-with the server, and therefore should not generally be called by client code.
+=cut
 
