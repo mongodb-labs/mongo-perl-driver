@@ -371,6 +371,26 @@ has db_name => (
     builder => '_build_db_name',
 );
 
+=attr auth_mechanism
+
+This attribute determines how the client authenticates with the server.
+Valid values are:
+
+=for :list
+* NONE
+* DEFAULT
+* MONGODB-CR
+* MONGODB-X509
+* GSSAPI
+* PLAIN
+* SCRAM-SHA-1
+
+If not specified, then if no username is provided, it defaults to NONE.
+If a username is provided, it is set to DEFAULT, which chooses SCRAM-SHA-1 if
+available or MONGODB-CR otherwise.
+
+=cut
+
 has auth_mechanism => (
     is      => 'ro',
     isa     => 'AuthMechanism',
@@ -379,73 +399,19 @@ has auth_mechanism => (
     writer  => '_set_auth_mechanism',
 );
 
+=attr auth_mechanism_properties
+
+This is an optional hash reference of authentication mechanism specific properties.
+See L</AUTHENTICATION> for details.
+
+=cut
+
 has auth_mechanism_properties => (
     is      => 'ro',
     isa     => 'HashRef',
     lazy    => 1,
     builder => '_build_auth_mechanism_properties',
     writer  => '_set_auth_mechanism_properties',
-);
-
-# XXX deprecate this
-=attr sasl
-
-This attribute is experimental.
-
-If set to C<1>, the driver will attempt to negotiate SASL authentication upon
-connection. See L</sasl_mechanism> for a list of the currently supported mechanisms. The
-driver must be built as follows for SASL support:
-
-    perl Makefile.PL --sasl
-    make
-    make install
-
-Alternatively, you can set the C<PERL_MONGODB_WITH_SASL> environment variable before
-installing:
-
-    PERL_MONGODB_WITH_SASL=1 cpan MongoDB
-
-The C<libgsasl> library is required for SASL support. RedHat/CentOS users can find it
-in the EPEL repositories.
-
-Future versions of this driver may switch to L<Cyrus SASL|http://www.cyrusimap.org/docs/cyrus-sasl/2.1.25/>
-in order to be consistent with the MongoDB server, which now uses Cyrus.
-
-=cut
-
-has sasl => (
-    is      => 'ro',
-    isa     => 'Bool',
-    default => 0
-);
-
-# XXX deprecate this
-=attr sasl_mechanism
-
-This attribute is experimental.
-
-This specifies the SASL mechanism to use for authentication with a MongoDB server. (See L</sasl>.)
-The default is GSSAPI. The supported SASL mechanisms are:
-
-=over 4
-
-=item * C<GSSAPI>. This is the default. GSSAPI will attempt to authenticate against Kerberos
-for MongoDB Enterprise 2.4+. You must run your program from within a C<kinit> session and set
-the C<username> attribute to the Kerberos principal name, e.g. C<user@EXAMPLE.COM>.
-
-=item * C<PLAIN>. The SASL PLAIN mechanism will attempt to authenticate against LDAP for
-MongoDB Enterprise 2.6+. Because the password is not encrypted, you should only use this
-mechanism over a secure connection. You must set the C<username> and C<password> attributes
-to your LDAP credentials.
-
-=back
-
-=cut
-
-has sasl_mechanism => (
-    is      => 'ro',
-    isa     => 'AuthMechanism',
-    default => 'GSSAPI',
 );
 
 # BSON conversion attributes
@@ -490,10 +456,7 @@ has inflate_regexps => (
     default => 0,
 );
 
-#--------------------------------------------------------------------------#
-# deprecated public attributes
-#--------------------------------------------------------------------------#
-
+# when adding MongoDB::Client, change this default to 0 in that class
 =attr auto_connect
 
 Boolean indication whether or not to connect automatically on object
@@ -507,10 +470,14 @@ has auto_connect => (
     default => 1,
 );
 
-=attr auto_reconnect
+#--------------------------------------------------------------------------#
+# deprecated public attributes
+#--------------------------------------------------------------------------#
 
-Boolean indicating whether or not to reconnect if the connection is
-interrupted. Defaults to C<1>.
+=attr auto_reconnect (DEPRECATED)
+
+This attribute no longer has any effect.  Connections always reconnect on
+demand.
 
 =cut
 
@@ -521,35 +488,10 @@ has auto_reconnect => (
 );
 
 
-=attr find_master
+=attr find_master (DEPRECATED)
 
-If this is true, the driver will attempt to find a primary given the list of
-hosts.  The primary-finding algorithm looks like:
-
-    for host in hosts
-
-        if host is the primary
-             return host
-
-        else if host is a replica set member
-            primary := replica set's primary
-            return primary
-
-If no primary is found, the connection will fail.
-
-If this is not set (or set to the default, 0), the driver will simply use the
-first host in the host list for all connections.  This can be useful for
-directly connecting to secondaries for reads.
-
-If you are connecting to a secondary, you should read
-L<MongoDB::Cursor/slave_okay>.
-
-You can use the C<ismaster> command to find the members of a replica set:
-
-    my $result = $db->run_command({ismaster => 1});
-
-The primary and secondary hosts are listed in the C<hosts> field, the slaves are
-in the C<passives> field, and arbiters are in the C<arbiters> field.
+This attribute no longer has any effect.  The driver will always attempt
+to find an appropriate server for every operation.
 
 =cut
 
@@ -557,6 +499,32 @@ has find_master => (
     is      => 'ro',
     isa     => 'Bool',
     default => 0,
+);
+
+=attr sasl (DEPRECATED)
+
+If true, the driver will set the authentication mechanism based on the
+C<sasl_mechanism> property.
+
+=cut
+
+has sasl => (
+    is      => 'ro',
+    isa     => 'Bool',
+    default => 0
+);
+
+=attr sasl_mechanism (DEPRECATED)
+
+This specifies the SASL mechanism to use for authentication with a MongoDB server.
+It has the same valid values as L</auth_mechanism>.  The default is GSSAPI.
+
+=cut
+
+has sasl_mechanism => (
+    is      => 'ro',
+    isa     => 'AuthMechanism',
+    default => 'GSSAPI',
 );
 
 #--------------------------------------------------------------------------#
