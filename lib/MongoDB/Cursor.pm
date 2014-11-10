@@ -102,7 +102,7 @@ after the database is queried.
 
 =cut
 
-with 'MongoDB::Role::_HasReadPreference', 'MongoDB::Role::_Cursor';
+with 'MongoDB::Role::_Cursor';
 
 # general attributes
 
@@ -160,6 +160,19 @@ has _query_options => (
     default => sub { { slave_ok => !! $MongoDB::Cursor::slave_okay } },
 );
 
+has _read_preference => (
+    is      => 'ro',
+    isa     => 'ReadPreference',
+    lazy    => 1,
+    builder => '_build__read_preference',
+    writer  => '_set_read_preference',
+);
+
+sub _build__read_preference {
+    my ($self) = @_;
+    return $self->_client->read_preference;
+}
+
 # lazy result attribute
 has result => (
     is        => 'ro',
@@ -181,7 +194,7 @@ sub _build_result {
         $self->_limit,
         $self->_batch_size,
         $self->_query_options,
-        ( $self->_has_read_preference ? $self->_read_preference : () )
+        $self->_read_preference,
     );
 }
 
@@ -434,22 +447,48 @@ sub partial {
     return $self;
 }
 
-=head2 read_preference ($mode, $tag_sets)
+=head2 read_preference
 
+    my $cursor = $coll->find()->read_preference($read_preference_object);
     my $cursor = $coll->find()->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED, [{foo => 'bar'}]);
 
-Sets read preference for the cursor's connection. The $mode argument
-should be a constant in MongoClient (PRIMARY, PRIMARY_PREFERRED, SECONDARY,
-SECONDARY_PREFERRED, NEAREST). The $tag_sets specify selection criteria for secondaries
-in a replica set and should be an ArrayRef whose array elements are HashRefs.
-This is a convenience method which is identical in function to
-L<MongoDB::MongoClient/read_preference>.
-In order to use read preference, L<MongoDB::MongoClient/find_master> must be set.
-For core documentation on read preference see L<http://docs.mongodb.org/manual/core/read-preference/>.
+Sets read preference for the cursor's connection.
+
+If given a single argument that is a L<MongoDB::ReadPreference> object, the
+read preference is set to that object.  Otherwise, it takes positional
+arguments: the read preference mode and a tag set list.
+
+The mode argument should be a constant in MongoClient (PRIMARY,
+PRIMARY_PREFERRED, SECONDARY, SECONDARY_PREFERRED, NEAREST). The tag set list
+specifies selection criteria for secondaries in a replica set and should be an
+array reference whose array elements are hash references.
+
+For core documentation on read preference see
+L<http://docs.mongodb.org/manual/core/read-preference/>.
 
 Returns $self so that this method can be chained.
 
 =cut
+
+sub read_preference {
+    my $self = shift;
+
+    my $type = ref $_[0];
+    if ( $type eq 'MongoDB::ReadPreference' ) {
+        $self->_set_read_preference( $_[0] );
+    }
+    else {
+        my $mode     = shift || 'primary';
+        my $tag_sets = shift;
+        my $rp       = MongoDB::ReadPreference->new(
+            mode => $mode,
+            ( $tag_sets ? ( tag_sets => $tag_sets ) : () )
+        );
+        $self->_set_read_preference($rp);
+    }
+
+    return $self;
+}
 
 =head2 slave_okay
 

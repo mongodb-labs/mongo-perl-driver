@@ -52,7 +52,7 @@ use constant {
     NEAREST             => 'nearest',
 };
 
-with 'MongoDB::Role::_Client', 'MongoDB::Role::_HasReadPreference';
+with 'MongoDB::Role::_Client';
 
 #--------------------------------------------------------------------------#
 # public attributes
@@ -129,6 +129,43 @@ has server_selection_timeout_ms => (
     isa     => 'Num',
     default => 30_000,
 );
+
+has read_preference => (
+    is        => 'bare', # public reader implemented manually for back-compatibility
+    isa       => 'ReadPreference',
+    reader    => '_get_read_preference',
+    writer    => '_set_read_preference',
+    coerce    => 1,
+    lazy      => 1,
+    builder => '_build__read_preference',
+);
+
+sub _build__read_preference {
+    my ($self) = @_;
+    return MongoDB::ReadPreference->new;
+}
+
+sub read_preference {
+    my $self = shift;
+
+    if ( @_ ) {
+        my $type = ref $_[0];
+        if ( $type eq 'MongoDB::ReadPreference' ) {
+            $self->_set_read_preference( $_[0] );
+        }
+        else {
+            my $mode     = shift || 'primary';
+            my $tag_sets = shift;
+            my $rp       = MongoDB::ReadPreference->new(
+                mode => $mode,
+                ( $tag_sets ? ( tag_sets => $tag_sets ) : () )
+            );
+            $self->_set_read_preference($rp);
+        }
+    }
+
+    return $self->_get_read_preference;
+}
 
 # authentication attributes
 

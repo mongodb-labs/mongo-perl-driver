@@ -43,7 +43,7 @@ subtest "read preference connection string" => sub {
           "mongodb://localhost/?readPreference=primaryPreferred&readPreferenceTags=dc:ny,rack:1&readPreferenceTags=dc:ny&readPreferenceTags=",
         auto_connect => 0
     );
-    my $rp = $conn2->_read_preference;
+    my $rp = $conn2->read_preference;
     is( $rp->mode, 'primaryPreferred', "mode from" );
     is_deeply(
         $rp->tag_sets,
@@ -76,11 +76,8 @@ subtest "read preference on cursor" => sub {
 };
 
 subtest "argument variants" => sub {
-    $conn->read_preference();
-    is( $conn->_read_preference->mode, 'primary', "read pref mode defaults to primary" );
-
     $conn->read_preference( MongoDB::ReadPreference->new( mode => 'secondary_preferred' ) );
-    is( $conn->_read_preference->mode, 'secondaryPreferred', "read pref from object" );
+    is( $conn->read_preference->mode, 'secondaryPreferred', "read pref from object" );
 };
 
 
