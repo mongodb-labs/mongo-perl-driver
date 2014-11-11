@@ -1,5 +1,0 @@
----
-type: single
-default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --storageEngine=heap1
-mongod:
-    - name: host1
