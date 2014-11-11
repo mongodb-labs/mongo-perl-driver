@@ -41,7 +41,6 @@ subtest "read preference connection string" => sub {
     my $conn2 = build_client(
         host =>
           "mongodb://localhost/?readPreference=primaryPreferred&readPreferenceTags=dc:ny,rack:1&readPreferenceTags=dc:ny&readPreferenceTags=",
-        auto_connect => 0
     );
     my $rp = $conn2->read_preference;
     is( $rp->mode, 'primaryPreferred', "mode from" );

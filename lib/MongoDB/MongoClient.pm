@@ -16,7 +16,7 @@
 
 package MongoDB::MongoClient;
 
-# ABSTRACT: A connection to a MongoDB server
+# ABSTRACT: A connection to a MongoDB server or multi-server deployment
 
 use version;
 our $VERSION = 'v0.704.4.1';
@@ -526,11 +526,14 @@ has inflate_regexps => (
     default => 0,
 );
 
-# when adding MongoDB::Client, change this default to 0 in that class
-=attr auto_connect
+#--------------------------------------------------------------------------#
+# deprecated public attributes
+#--------------------------------------------------------------------------#
 
-Boolean indication whether or not to connect automatically on object
-construction. Defaults to C<1>.
+=attr auto_connect (DEPRECATED)
+
+This attribute no longer has any effect.  Connections always connect on
+demand.
 
 =cut
 
@@ -539,10 +542,6 @@ has auto_connect => (
     isa     => 'Bool',
     default => 1,
 );
-
-#--------------------------------------------------------------------------#
-# deprecated public attributes
-#--------------------------------------------------------------------------#
 
 =attr auto_reconnect (DEPRECATED)
 
@@ -767,10 +766,7 @@ sub BUILD {
     $self->read_preference( $options->{readPreference}, $options->{readPreferenceTags} )
         if exists $options->{readPreference} || exists $options->{readPreferenceTags};
 
-    # XXX this should be deprecated or removed
-    if ($self->auto_connect) {
-        $self->connect;
-    }
+    return;
 }
 
 #--------------------------------------------------------------------------#
@@ -800,7 +796,8 @@ sub _use_write_cmd {
 
 Calling this method is unnecessary, as connections are established
 automatically as needed.  It is kept for backwards compatibility.  Calling it
-will check all servers in the deployment which ensures a connection.
+will check all servers in the deployment which ensures a connection to any
+that are available.
 
 =cut
 
@@ -1445,7 +1442,7 @@ __END__
 
 =head1 DESCRIPTION
 
-The C<MongoDB::MongoClient> class creates a client connection to one or
+The C<MongoDB::MongoClient> class represents a client connection to one or
 more MongoDB servers.
 
 By default, it connects to a single server running on the local machine
@@ -1467,7 +1464,8 @@ in this mode, so no username or password is required to make a fully functional
 connection.  To configure the client for authentication, see the
 L</AUTHENTICATION> section.
 
-When the client object goes out of scope, all connections will be closed.
+The actual socket connections are lazy and created on demand.  When the client
+object goes out of scope, all socket will be closed.
 
 =head1 DEPLOYMENT TOPOLOGY
 
@@ -1583,14 +1581,14 @@ exception is thrown.
 
 =head1 SERVER MONITORING
 
-When the client first connects, all servers from the L</host> attribute
-are scanned to determine which servers to monitor.  If the deployment is
-a replica set, additional hosts may be discovered in this process.  Invalid
-hosts are dropped.
+When the client first needs to find a server for a database operation, all
+servers from the L</host> attribute are scanned to determine which servers to
+monitor.  If the deployment is a replica set, additional hosts may be
+discovered in this process.  Invalid hosts are dropped.
 
 After the initial scan, whenever the servers have not been checked in
 L</heartbeat_frequency_ms> milliseconds, the scan will be repeated.  This
-amortizes monitoring time over a number of operations.
+amortizes monitoring time over many of operations.
 
 Additionally, if a socket has been idle for a while, it will be checked
 before being used for an operation.
@@ -1761,7 +1759,7 @@ C<auth_mechanism_properties> attribute or in the connection string.
 =head1 THREAD-SAFETY AND FORK-SAFETY
 
 Existing connections to servers are closed after forking or spawning a thread.  They
-will reopened on demand.
+will reconnect on demand.
 
 =cut
 

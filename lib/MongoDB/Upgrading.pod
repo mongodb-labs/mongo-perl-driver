@@ -183,10 +183,10 @@ removed.
 
 =head2 Configuration options
 
-=head3 auto_reconnect, find_master
+=head3 auto_connect, auto_reconnect, find_master
 
 These attributes no longer have any effect.  The driver always attempts to
-reconnect on demand and to find an appropriate server.  See
+connect or reconnect on demand and to find an appropriate server.  See
 L<MongoDB::MongoClient/SERVER SELECTION> for details on how reconnections
 are handled.
 
