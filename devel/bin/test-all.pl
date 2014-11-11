@@ -11,7 +11,19 @@ die "Usage: $0 <program> [args...]\n"
 die "$ARGV[0] not found or not executable\n"
   unless IPC::Cmd::can_run( $ARGV[0] );
 
-for my $file (<devel/config/*.yml>) {
-    say "---- TESTING WITH $file ----";
-    system( "devel/bin/harness.pl", $file, @ARGV );
+my @versions = qw(2.0 2.2 2.4 2.6 any);
+
+my @types = qw(mongod master replicaset sharded);
+
+for my $t ( @types ) {
+    for my $v ( @versions ) {
+        my $file = "devel/config/${t}-${v}.yml";
+        say "---- TESTING WITH $file ----";
+        if ( -f $file ) {
+            system( "devel/bin/harness.pl", $file, @ARGV );
+        }
+        else {
+            say "FILE: $file not found";
+        }
+    }
 }

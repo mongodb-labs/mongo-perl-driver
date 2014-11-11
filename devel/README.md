@@ -59,6 +59,6 @@ Running all regular test files under a specific configuration:
     ./devel/bin/harness.pl devel/config/sharded-2.6.yml -- \
         make test 
 
-Running a test file under *every* configuration in `devel/config`:
+Running a test file for major versions and topology types:
 
     ./devel/bin/test-all.pl make test TEST_FILES=t/bulk.t
