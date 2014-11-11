@@ -1446,7 +1446,10 @@ connection.  To configure the client for authentication, see the
 L</AUTHENTICATION> section.
 
 The actual socket connections are lazy and created on demand.  When the client
-object goes out of scope, all socket will be closed.
+object goes out of scope, all socket will be closed.  Note that
+L<MongoDB::Database>, L<MongoDB::Collection> and related classes could hold a
+reference to the client as well.  Only when all references are out of scope
+will the sockets be closed.
 
 =head1 DEPLOYMENT TOPOLOGY
 
