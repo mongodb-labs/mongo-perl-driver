@@ -64,13 +64,11 @@ with 'MongoDB::Role::_Client';
 
 =attr host
 
-The C<host> attribute specifies either a single server (as C<hostname> or
-C<hostname:port>) to connect to, or else a connection string URI with a seed
-list of one or more servers plus connection options.
+The C<host> attribute specifies either a single server to connect to (as
+C<hostname> or C<hostname:port>), or else a L<connection string URI|/CONNECTION
+STRING URI> with a seed list of one or more servers plus connection options.
 
 Defaults to the connection string URI C<mongodb://localhost:27017>.
-
-See L</CONNECTION STRING URI> for more details.
 
 =cut
 
@@ -82,7 +80,7 @@ has host => (
 
 =attr port
 
-If a server port is not specified as part of the C<host> attribute, this
+If a network port is not specified as part of the C<host> attribute, this
 attribute provides the port to use.  It defaults to 27107.
 
 =cut
@@ -95,7 +93,7 @@ has port => (
 
 =attr connect_type
 
-Specifies the expected topology type of servers in the seedlist.  The default
+Specifies the expected topology type of servers in the seed list.  The default
 is 'none'.
 
 Valid values include:
@@ -1415,14 +1413,21 @@ __END__
 
 =head1 SYNOPSIS
 
-    use strict;
-    use warnings;
-    use MongoDB;
+    use MongoDB; # also loads MongoDB::MongoClient
 
-    # connects to localhost:27017
+    # connect to localhost:27017
     my $client = MongoDB::MongoClient->new;
 
+    # connect to specific host and port
+    my $client = MongoDB::MongoClient->new(
+        host => "mongodb://mongo.example.com:27017"
+    );
+
     my $db = $client->get_database("test");
+    my $coll = $db->get_collection("people");
+
+    $coll->insert({ name => "John Doe", age => 42 });
+    my @people = $coll->find()->all();
 
 =head1 DESCRIPTION
 
@@ -1439,19 +1444,41 @@ It can connect to a database server running anywhere, though:
 
     my $client = MongoDB::MongoClient->new(host => 'example.com:12345');
 
-See the L</"host"> section for more options for connecting to MongoDB.
+See the L</"host"> attribute for more options for connecting to MongoDB.
 
-MongoDB can be started in I<authentication mode>, which requires clients to log in
-before manipulating data.  By default, MongoDB does not start in this mode, so no
-username or password is required to make a fully functional connection.  If you
-would like to learn more about authentication, see the L</AUTHENTICATE> section.
+MongoDB can be started in L<authentication
+mode|http://docs.mongodb.org/manual/core/authentication/>, which requires
+clients to log in before manipulating data.  By default, MongoDB does not start
+in this mode, so no username or password is required to make a fully functional
+connection.  To configure the client for authentication, see the
+L</AUTHENTICATION> section.
 
-Connecting is relatively expensive, so try not to open superfluous connections.
+When the client object goes out of scope, all connections will be closed.
 
-There is no way to explicitly disconnect from the database.  However, the
-connection will automatically be closed and cleaned up when no references to
-the C<MongoDB::MongoClient> object exist, which occurs when C<$client> goes out of
-scope (or earlier if you undefine it with C<undef>).
+=head1 DEPLOYMENT TOPOLOGY
+
+MongoDB can operate as a single server or as a distributed system.  One or more
+servers that collectively provide access to a single logical set of MongoDB
+databases are referred to as a "deployment".
+
+There are three types of deployments:
+
+=for :list
+* Single server – a stand-alone mongod database
+* Replica set – a set of mongod databases with data replication and fail-over
+  capability
+* Sharded cluster – a distributed deployment that spreads data across one or
+  more shards, each of which can be a replica set.  Clients communicate with
+  a mongos process that routes operations to the correct share.
+
+The state of a deployment, including its type, which servers are members, the
+server types of members and the round-trip network latency to members is
+referred to as the "topology" of the deployment.
+
+To the greatest extent possible, the MongoDB driver abstracts away the details
+of communicating with different deployment types.  It determines the deployment
+topology through a combination of the connection string, configuration options
+and direct discovery communicating with servers in the deployment.
 
 =head1 CONNECTION STRING URI
 
@@ -1463,10 +1490,21 @@ as a comma separated list:
 
     mongodb://host1[:port1][,host2[:port2],...[,hostN[:portN]]]
 
-An arbitrary number of hosts can be specified.  If a port is not specified for
-a given host, it will default to 27017.
+This list is referred to as the "seed list".  An arbitrary number of hosts can
+be specified.  If a port is not specified for a given host, it will default to
+27017.
 
-A username and password may be given as well:
+If multiple hosts are given in the seed list or discovered by talking to
+servers in the seed list, they must all be replica set members or must all be
+mongos servers for a sharded cluster.
+
+If a single, non-replica-set server is found, or if the L</connect_type> (or
+C<connect> URI option) is 'direct', the deployment is treated as a single
+server deployment.  For a replica set member, forcing the connection type to be
+'direct' routes all operations to it alone; this is useful for carrying out
+administrative activities on that server.
+
+The connection string may also have a username and password:
 
     mongodb://username:password@host1:port1,host2:port2
 
@@ -1502,21 +1540,20 @@ L<http://docs.mongodb.org/manual/reference/connection-string/>.
 
 =head1 SERVER SELECTION
 
+For a single server deployment or a direct connection to a mongod or mongos, all
+reads and writes and sent to that server.  Any read-preference is ignored.
+
 When connected to a deployment with multiple servers, such as a replica set or
 sharded cluster, the driver chooses a server for operations based on the type of
 operation (read or write), the types of servers available and a read preference.
 
-For a single server deployment or a direct connection to a mongod or mongos, all
-reads and writes and sent to that server.  Any read-preference is ignored.
-
 For a replica set deployment, writes are sent to the primary (if available) and
-reads are sent to a server based on the L</read_preference> attribute.  See
-L<MongoDB::ReadPreference> for more.
+reads are sent to a server based on the L</read_preference> attribute, which default
+to sending reads to the primary.  See L<MongoDB::ReadPreference> for more.
 
-If a server is not immediately available, the driver will block for up to
-L</server_selection_timeout_ms> milliseconds waiting for a suitable server to
-become available.  If no server is available at the end of that time, an
-exception is thrown.
+For a sharded cluster reads and writes are distributed across mongos servers in
+the seed list.  Any read preference is passed through to the mongos and used
+by it when executing reads against shards.
 
 If multiple servers can service an operation (e.g. multiple mongos servers,
 or multiple replica set members), one is chosen at random from within the
@@ -1524,6 +1561,11 @@ or multiple replica set members), one is chosen at random from within the
 is always in the window.  Any servers with an average round-trip time less than
 or equal to the shortest RTT plus the L</local_threshold_ms> are also in the
 latency window.
+
+If a server is not immediately available, the driver will block for up to
+L</server_selection_timeout_ms> milliseconds waiting for a suitable server to
+become available.  If no server is available at the end of that time, an
+exception is thrown.
 
 =head1 SERVER MONITORING
 
