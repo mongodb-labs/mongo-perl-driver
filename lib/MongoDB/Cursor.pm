@@ -450,21 +450,15 @@ sub partial {
 =head2 read_preference
 
     my $cursor = $coll->find()->read_preference($read_preference_object);
-    my $cursor = $coll->find()->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED, [{foo => 'bar'}]);
+    my $cursor = $coll->find()->read_preference('secondary', [{foo => 'bar'}]);
 
 Sets read preference for the cursor's connection.
 
 If given a single argument that is a L<MongoDB::ReadPreference> object, the
 read preference is set to that object.  Otherwise, it takes positional
-arguments: the read preference mode and a tag set list.
-
-The mode argument should be a constant in MongoClient (PRIMARY,
-PRIMARY_PREFERRED, SECONDARY, SECONDARY_PREFERRED, NEAREST). The tag set list
-specifies selection criteria for secondaries in a replica set and should be an
-array reference whose array elements are hash references.
-
-For core documentation on read preference see
-L<http://docs.mongodb.org/manual/core/read-preference/>.
+arguments: the read preference mode and a tag set list, which must be a valid
+mode and tag set list as described in the L<MongoDB::ReadPreference>
+documentation.
 
 Returns $self so that this method can be chained.
 

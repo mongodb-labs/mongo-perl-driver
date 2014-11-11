@@ -64,33 +64,13 @@ with 'MongoDB::Role::_Client';
 
 =attr host
 
-Server or servers to connect to. Defaults to C<mongodb://localhost:27017>.
+The C<host> attribute specifies either a single server (as C<hostname> or
+C<hostname:port>) to connect to, or else a connection string URI with a seed
+list of one or more servers plus connection options.
 
-To connect to more than one database server, use the format:
+Defaults to the connection string URI C<mongodb://localhost:27017>.
 
-    mongodb://host1[:port1][,host2[:port2],...[,hostN[:portN]]]
-
-An arbitrary number of hosts can be specified.
-
-The connect method will return success if it can connect to at least one of the
-hosts listed.  If it cannot connect to any hosts, it will die.
-
-If a port is not specified for a given host, it will default to 27017. For
-example, to connecting to C<localhost:27017> and C<localhost:27018>:
-
-    my $client = MongoDB::MongoClient->new("host" => "mongodb://localhost,localhost:27018");
-
-This will succeed if either C<localhost:27017> or C<localhost:27018> are available.
-
-The connect method will also try to determine who is the primary if more than one
-server is given.  It will try the hosts in order from left to right.  As soon as
-one of the hosts reports that it is the primary, the connect will return success.  If
-no hosts report themselves as a primary, the connect will die.
-
-If username and password are given, success is conditional on being able to log
-into the database as well as connect.  By default, the driver will attempt to
-authenticate with the admin database.  If a different database is specified
-using the C<db_name> property, it will be used instead.
+See L</CONNECTION STRING URI> for more details.
 
 =cut
 
@@ -100,11 +80,35 @@ has host => (
     default => 'mongodb://localhost:27017', # XXX eventually, make this localhost
 );
 
+=attr port
+
+If a server port is not specified as part of the C<host> attribute, this
+attribute provides the port to use.  It defaults to 27107.
+
+=cut
+
 has port => (
     is      => 'ro',
     isa     => 'Int',
     default => 27017,
 );
+
+=attr connect_type
+
+Specifies the expected topology type of servers in the seedlist.  The default
+is 'none'.
+
+Valid values include:
+
+=for :list
+* replicaSet – the topology is a replica set (ignore non replica set members
+  during discovery)
+* direct – the topology is a single server (connect as if the server is a
+  standlone, even if it looks like a replica set member)
+* none – discover the deployment topology by checking servers in the seed list
+  and connect accordingly
+
+=cut
 
 has connect_type => (
     is      => 'ro',
@@ -282,11 +286,39 @@ has j => (
 
 # server selection attributes
 
+=attr server_selection_timeout_ms
+
+This attribute specifies the amount of time in milliseconds to wait for a
+suitable server to be available for a read or write operation.  If no
+server is available within this time period, an exception will be thrown.
+
+The default is 30,000 ms.
+
+See L</SERVER SELECTION> for more details.
+
+=cut
+
 has server_selection_timeout_ms => (
     is      => 'ro',
     isa     => 'Num',
     default => 30_000,
 );
+
+=attr read_preference
+
+A L<MongoDB::ReadPreference> object, or a hash reference of attributes to
+construct such an object.  The default is mode 'primary'.
+
+For core documentation on read preference see
+L<http://docs.mongodb.org/manual/core/read-preference/>.
+
+B<The use of C<read_preference> as a mutator is deprecated.> If given a single
+argument that is a L<MongoDB::ReadPreference> object, the read preference is
+set to that object.  Otherwise, it takes positional arguments: the read
+preference mode and a tag set list, which must be a valid mode and tag set list
+as described in the L<MongoDB::ReadPreference> documentation.
+
+=cut
 
 has read_preference => (
     is        => 'bare', # public reader implemented manually for back-compatibility
@@ -329,8 +361,10 @@ sub read_preference {
 
 =attr username
 
-Username for this client connection.  Optional.  If this and the password field are
-set, the client will attempt to authenticate on connection/reconnection.
+Optional username for this client connection.  If this field is set, the client
+will attempt to authenticate when connecting to servers.  Depending on the
+L</auth_mechanism>, the L</password> field or other attributes will need to be
+set for authentication to succeed.
 
 =cut
 
@@ -343,8 +377,8 @@ has username => (
 
 =attr password
 
-Password for this connection.  Optional.  If this and the username field are
-set, the client will attempt to authenticate on connection/reconnection.
+If an L</auth_mechanism> requires a password, this attribute will be
+used.  Otherwise, it will be ignored.
 
 =cut
 
@@ -357,9 +391,8 @@ has password => (
 
 =attr db_name
 
-Database to authenticate on for this connection.  Optional.  If this, the
-username, and the password fields are set, the client will attempt to
-authenticate against this database on connection/reconnection.  Defaults to
+Optional.  If an L</auth_mechanism> requires a database for authentication,
+this attribute will be used.  Otherwise, it will be ignored. Defaults to
 "admin".
 
 =cut
@@ -418,9 +451,9 @@ has auth_mechanism_properties => (
 
 =attr dt_type
 
-Sets the type of object which is returned for DateTime fields. The default is L<DateTime>. Other
-acceptable values are L<DateTime::Tiny> and C<undef>. The latter will give you the raw epoch value
-rather than an object.
+Sets the type of object which is returned for DateTime fields. The default is
+L<DateTime>. Other acceptable values are L<DateTime::Tiny> and C<undef>. The
+latter will give you the raw epoch value rather than an object.
 
 =cut
 
@@ -1381,7 +1414,32 @@ scope (or earlier if you undefine it with C<undef>).
 
 =head1 CONNECTION STRING URI
 
-Core documentation on connections: L<http://docs.mongodb.org/manual/reference/connection-string/>.
+MongoDB uses a pseudo-URI connection string to specify one or more servers to
+connect to, along with configuration options.
+
+To connect to more than one database server, provide host or host:port pairs
+as a comma separated list:
+
+    mongodb://host1[:port1][,host2[:port2],...[,hostN[:portN]]]
+
+An arbitrary number of hosts can be specified.  If a port is not specified for
+a given host, it will default to 27017.
+
+A username and password may be given as well:
+
+    mongodb://username:password@host1:port1,host2:port2
+
+The username and password must be URL-escaped.
+
+A optional database name for authentication may be given:
+
+    mongodb://username:password@host1:port1,host2:port2/my_database
+
+Finally, connection string options may be given as URI attribute pairs in a query
+string:
+
+    mongodb://host1:port1,host2:port2/?ssl=1&wtimeoutMS=1000
+    mongodb://username:password@host1:port1,host2:port2/my_database?ssl=1&wtimeoutMS=1000
 
 The currently supported connection string options are:
 
@@ -1397,6 +1455,57 @@ The currently supported connection string options are:
 *w
 *wtimeoutMS
 
+See the official MongoDB documentation on connection strings for more on the URI
+format and connection string options:
+L<http://docs.mongodb.org/manual/reference/connection-string/>.
+
+=head1 SERVER SELECTION
+
+When connected to a deployment with multiple servers, such as a replica set or
+sharded cluster, the driver chooses a server for operations based on the type of
+operation (read or write), the types of servers available and a read preference.
+
+For a single server deployment or a direct connection to a mongod or mongos, all
+reads and writes and sent to that server.  Any read-preference is ignored.
+
+For a replica set deployment, writes are sent to the primary (if available) and
+reads are sent to a server based on the L</read_preference> attribute.  See
+L<MongoDB::ReadPreference> for more.
+
+If a server is not immediately available, the driver will block for up to
+L</server_selection_timeout_ms> milliseconds waiting for a suitable server to
+become available.  If no server is available at the end of that time, an
+exception is thrown.
+
+If multiple servers can service an operation (e.g. multiple mongos servers,
+or multiple replica set members), one is chosen at random from within the
+"latency window".  The server with the shortest average round-trip time (RTT)
+is always in the window.  Any servers with an average round-trip time less than
+or equal to the shortest RTT plus the L</local_threshold_ms> are also in the
+latency window.
+
+=head1 SERVER MONITORING
+
+When the client first connects, all servers from the L</host> attribute
+are scanned to determine which servers to monitor.  If the deployment is
+a replica set, additional hosts may be discovered in this process.  Invalid
+hosts are dropped.
+
+After the initial scan, whenever the servers have not been checked in
+L</heartbeat_frequency_ms> milliseconds, the scan will be repeated.  This
+amortizes monitoring time over a number of operations.
+
+Additionally, if a socket has been idle for a while, it will be checked
+before being used for an operation.
+
+If an server operation fails because of a "not master" or "node is recovering"
+error, the server is flagged as unavailable.  Assuming the error is caught and
+handled, the next operation will rescan all servers immediately to find a new
+primary.
+
+Whenever a server is found to be unavailable, the driver records this fact, but
+can continue to function as long as other servers are suitable per L</SERVER
+SELECTION>.
 
 =head1 AUTHENTICATION
 
@@ -1551,10 +1660,11 @@ C<auth_mechanism_properties> attribute or in the connection string.
 
     mongodb://.../?authMechanism=GSSAPI&authMechanism.SERVICE_NAME=other_service
 
-=head1 MULTITHREADING
 
-Existing connections are closed when a thread is created.  If C<auto_reconnect>
-is true, then connections will be re-established as needed.
+=head1 THREAD-SAFETY AND FORK-SAFETY
+
+Existing connections to servers are closed after forking or spawning a thread.  They
+will reopened on demand.
 
 =cut
 

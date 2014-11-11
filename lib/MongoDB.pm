@@ -84,7 +84,7 @@ important and will be delivered to a great extent, it will not be guaranteed.
 Using the v0.999.998.x series means that you understand that your code may break
 due to changes in the driver between now and the v1.0.0.0 stable release.
 
-This alpha 1 release includes these features or changes:
+This alpha 1 release includes these major changes:
 
 =over
 
@@ -104,6 +104,9 @@ Server monitoring and failover are significantly improved.
 Expanded use of exceptions for error handling.
 
 =back
+
+More details on changes and how to upgrade applications may be found in
+L<MongoDB::Upgrading>.
 
 =head2 Roadmap
 

@@ -19,7 +19,7 @@
 
 =pod
 
-=head1 WORK IN PROGRESS
+=head1 WORK-IN-PROGRESS
 
 This document is a work in progress during the v1 development cycle.
 It offers a best-efforts snapshot of changes at a point in time.
@@ -68,7 +68,27 @@ support, respectively.  The v1 driver instead relies on CPAN modules
 C<IO::Socket::SSL> and C<Authen::SASL> for SSL and SASL support,
 respectively.
 
+SSL configuration is now possible via the L<MongoDB::MongoClient/ssl>
+attribute.
+
+Authentication configuration is described in
+L<MongoDB::MongoClient/AUTHENTICATION>.
+
 =head1 BEHAVIOR CHANGES
+
+=head2 MongoClient configuration immutability
+
+Attributes are changing to be immutable to prevent global behavior changes.
+(E.g. changing an attribute value in some part of the code changes it for
+all parts of the code.)
+
+As of Alpha 1, the following attributes are now immutable:
+
+=for :list
+* ssl
+
+Other attributes will be made immutable in subsequent alpha releases
+as internal options handling is revised.
 
 =head2 Exceptions are the preferred error handling approach
 
@@ -136,11 +156,39 @@ that calling C<read_preference> on a cursor object no longer changes the
 read preference globally on the client – the read preference changes is
 scoped to the cursor object only.
 
+=head2 Authentication
+
+Authentication now happens automatically on connection during the
+"handshake" with any given server based on
+L<MongoDB::MongoClient/auth_mechanism>.
+
+The C<MongoDB::MongoClient::authenticate> method is deprecated and the
+behavior has changed slightly.  When called, all connections are closed,
+and the authentication configuration is reset as if the arguments had been
+used in the constructor initially, and at least one connection is reopened
+to ensure authentication succeeds (or else an exception is thrown).
+
+In a future release, this method will be removed entirely and
+authentication options will only be allowed as constructor arguments.
+
 =head1 DEPRECATIONS
 
 =head2 Configuration options
 
-=head2 Methods
+=head3 auto_reconnect, find_master
+
+These attributes no longer have any effect.  The driver always attempts to
+reconnect on demand and to find an appropriate server.  See
+L<MongoDB::MongoClient/SERVER SELECTION> for details on how reconnections
+are handled.
+
+=head3 sasl, sasl_mechanism
+
+There are a richer set of authentication options than these legacy options
+allowed.  They are controlled through the
+L<MongoDB::MongoClient/auth_mechanism> and
+L<MongoDB::MongoClient/auth_mechanism_properties> attributes.  These are
+kept for backwards compatibility only.
 
 =cut
 
