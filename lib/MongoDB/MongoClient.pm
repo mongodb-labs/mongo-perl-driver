@@ -202,9 +202,10 @@ recommended>.
 =cut
 
 has ssl => (
-    is      => 'rw',
+    is      => 'ro',
     isa     => 'Bool|HashRef',
     default => 0,
+    writer  => '_set_ssl',
 );
 
 # write concern attributes
@@ -717,7 +718,7 @@ sub BUILD {
     my $options = $uri->options;
 
     # Add options from URI
-    $self->ssl(_str_to_bool($options->{ssl}))       if exists $options->{ssl};
+    $self->_set_ssl(_str_to_bool($options->{ssl}))  if exists $options->{ssl};
     $self->timeout($options->{connectTimeoutMS})    if exists $options->{connectTimeoutMS};
     $self->w($options->{w})                         if exists $options->{w};
     $self->wtimeout($options->{wtimeoutMS})         if exists $options->{wtimeoutMS};
