@@ -791,15 +791,16 @@ sub _use_write_cmd {
 }
 
 #--------------------------------------------------------------------------#
-# public methods - network communication and wire protocol
+# public methods - network communication
 #--------------------------------------------------------------------------#
 
 =method connect
 
     $client->connect;
 
-Connects to the MongoDB server. Called automatically on object construction if
-L</auto_connect> is true.
+Calling this method is unnecessary, as connections are established
+automatically as needed.  It is kept for backwards compatibility.  Calling it
+will check all servers in the deployment which ensures a connection.
 
 =cut
 
@@ -809,11 +810,24 @@ sub connect {
     return 1;
 }
 
+=method disconnect
+
+    $client->disconnect;
+
+Drops all connections to servers.
+
+=cut
+
 sub disconnect {
     my ($self) = @_;
     $self->_topology->close_all_links;
     return 1;
 }
+
+#--------------------------------------------------------------------------#
+# semi-private methods; these are public but undocumented and their
+# semantics might change in future releases
+#--------------------------------------------------------------------------#
 
 sub send_admin_command {
     my ($self, $command, $flags, $read_preference) = @_;
