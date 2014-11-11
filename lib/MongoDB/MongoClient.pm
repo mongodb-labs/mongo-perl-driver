@@ -1240,61 +1240,6 @@ sub _check_no_dollar_keys {
 
 
 #--------------------------------------------------------------------------#
-# authentication methods
-#--------------------------------------------------------------------------#
-
-=method authenticate (DEPRECATED)
-
-    $client->authenticate($dbname, $username, $password, $is_digest);
-
-B<This legacy method is deprecated but kept for backwards compatibility.>
-
-Instead, authentication credentials should be provided as constructor arguments
-or as part of the connection URI.
-
-When C<authenticate> is called, it disconnects the client (if any connections
-had been made), sets client attributes as if the username and password had been
-used initially in the client constructor, and reconnects to the configured
-servers.  The authentication mechanism will be MONGO-CR for servers before
-version 2.8 and SCRAM-SHA-1 for 2.8 or later.
-
-Passwords are expected to be cleartext and will be automatically hashed before
-sending over the wire, unless C<$is_digest> is true, which will assume you
-already did the proper hashing yourself.
-
-See also the L</AUTHENTICATION> section.
-
-=cut
-
-sub authenticate {
-    my ( $self, $db_name, $username, $password, $is_digest ) = @_;
-
-    # set client properties
-    $self->_set_auth_mechanism('DEFAULT');
-    $self->_set_auth_mechanism_properties( {} );
-    $self->db_name($db_name);
-    $self->username($username);
-    $self->password($password);
-
-    my $cred = MongoDB::_Credential->new(
-        mechanism            => $self->auth_mechanism,
-        mechanism_properties => $self->auth_mechanism_properties,
-        username             => $self->username,
-        password             => $self->password,
-        source               => $self->db_name,
-        pw_is_digest         => $is_digest,
-    );
-    $self->_set__credential($cred);
-
-    # ensure that we've authenticated by clearing the topology and trying a
-    # command that opens a socket
-    $self->_clear__topology;
-    $self->send_admin_command( { ismaster => 1 } );
-
-    return 1;
-}
-
-#--------------------------------------------------------------------------#
 # write concern methods
 #--------------------------------------------------------------------------#
 
@@ -1398,20 +1343,56 @@ sub fsync_unlock {
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
 
-=method read_preference (DEPRECATED)
+=method authenticate (DEPRECATED)
 
-    $conn->read_preference(MongoDB::MongoClient->PRIMARY_PREFERRED, [{'disk' => 'ssd'}, {'rack' => 'k'}]);
+    $client->authenticate($dbname, $username, $password, $is_digest);
 
-Sets the read preference for this connection. The first argument is the read
-preference mode and should be one of four constants: PRIMARY, SECONDARY,
-PRIMARY_PREFERRED, or SECONDARY_PREFERRED (NEAREST is not yet supported).  In
-order to use read preference, L<MongoDB::MongoClient/find_master> must be set.
-The second argument (optional) is an array reference containing one or more tag
-sets. The tag set list can be used to match the tag sets of replica set secondaries.
-See also L<MongoDB::Cursor/read_preference>. For core documentation on read
-preference see L<http://docs.mongodb.org/manual/core/read-preference/>.
+B<This legacy method is deprecated but kept for backwards compatibility.>
+
+Instead, authentication credentials should be provided as constructor arguments
+or as part of the connection URI.
+
+When C<authenticate> is called, it disconnects the client (if any connections
+had been made), sets client attributes as if the username and password had been
+used initially in the client constructor, and reconnects to the configured
+servers.  The authentication mechanism will be MONGO-CR for servers before
+version 2.8 and SCRAM-SHA-1 for 2.8 or later.
+
+Passwords are expected to be cleartext and will be automatically hashed before
+sending over the wire, unless C<$is_digest> is true, which will assume you
+already did the proper hashing yourself.
+
+See also the L</AUTHENTICATION> section.
 
 =cut
+
+sub authenticate {
+    my ( $self, $db_name, $username, $password, $is_digest ) = @_;
+
+    # set client properties
+    $self->_set_auth_mechanism('DEFAULT');
+    $self->_set_auth_mechanism_properties( {} );
+    $self->db_name($db_name);
+    $self->username($username);
+    $self->password($password);
+
+    my $cred = MongoDB::_Credential->new(
+        mechanism            => $self->auth_mechanism,
+        mechanism_properties => $self->auth_mechanism_properties,
+        username             => $self->username,
+        password             => $self->password,
+        source               => $self->db_name,
+        pw_is_digest         => $is_digest,
+    );
+    $self->_set__credential($cred);
+
+    # ensure that we've authenticated by clearing the topology and trying a
+    # command that opens a socket
+    $self->_clear__topology;
+    $self->send_admin_command( { ismaster => 1 } );
+
+    return 1;
+}
 
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 

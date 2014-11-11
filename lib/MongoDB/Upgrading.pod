@@ -193,6 +193,8 @@ removed.
 
 =head1 DEPRECATIONS
 
+Deprecated features may be removed in a future release.
+
 =head2 Configuration options
 
 =head3 auto_connect, auto_reconnect, find_master
@@ -207,6 +209,18 @@ allowed.  They are controlled through the
 L<auth_mechanism|MongoDB::MongoClient/auth_mechanism> and
 L<auth_mechanism_properties|MongoDB::MongoClient/auth_mechanism_properties>
 attributes.  These are kept for backwards compatibility only.
+
+=head2 Methods
+
+=head3 authenticate
+
+Authentication parameters should now be given as client attributes.
+See L<MongoDB::MongoClient/AUTHENTICATED> for more.
+
+=head3 read_preference
+
+Read preferences should now be given as a client attribute.  The use
+of the C<read_preference> method as a mutator is deprecated.
 
 =cut
 
