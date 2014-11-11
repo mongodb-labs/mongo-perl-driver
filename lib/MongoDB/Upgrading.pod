@@ -89,6 +89,18 @@ As of Alpha 1, the following attributes are now immutable:
 Other attributes will be made immutable in subsequent alpha releases
 as internal options handling is revised.
 
+=head2 Lazy connections and reconnections on demand
+
+The improved approach to server monitoring and selection allows all
+connections to be lazy.  When the client is constructed, no connections are
+made until the first network operation is needed.  At that time, the client
+will scan all servers in the seed list and begin regular monitoring.
+Connections that drop will be re-established when needed.
+
+See L<SERVER SELECTION|MongoDB::MongoClient/SERVER SELECTION> and L<SERVER
+MONITORING|MongoDB::MongoClient/SERVER MONITORING> in
+L<MongoDB::MongoClient> for details.
+
 =head2 Exceptions are the preferred error handling approach
 
 In the v0 driver, errors could be indicated in various ways:
@@ -186,9 +198,7 @@ removed.
 =head3 auto_connect, auto_reconnect, find_master
 
 These attributes no longer have any effect.  The driver always attempts to
-connect or reconnect on demand and to find an appropriate server.  See
-L<MongoDB::MongoClient/SERVER SELECTION> for details on how reconnections
-are handled.
+connect or reconnect on demand and to find an appropriate server.
 
 =head3 sasl, sasl_mechanism
 
