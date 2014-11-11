@@ -305,6 +305,29 @@ has server_selection_timeout_ms => (
     default => 30_000,
 );
 
+=attr local_threshold_ms
+
+The width of the 'latency window': when choosing between multiple suitable
+servers for an operation, the acceptable delta in milliseconds between shortest
+and longest average round-trip times.  Servers within the latency window are
+selected randomly.
+
+Set this to "0" to always select the server with the shortest average round
+trip time.  Set this to a very high value to always randomly choose any known
+server.
+
+Defaults to 15 ms.
+
+See L</SERVER SELECTION> for more details.
+
+=cut
+
+has local_threshold_ms => (
+    is      => 'ro',
+    isa     => 'Num',
+    default => 15,
+);
+
 =attr read_preference
 
 A L<MongoDB::ReadPreference> object, or a hash reference of attributes to
@@ -357,6 +380,21 @@ sub read_preference {
 
     return $self->_get_read_preference;
 }
+
+# server monitoring
+
+=attr heartbeat_frequency_ms
+
+The time in milliseconds between scans of all servers to check if they
+are up and update their latency.  Defaults to 60,000 ms.
+
+=cut
+
+has heartbeat_frequency_ms => (
+    is      => 'ro',
+    isa     => 'Num',
+    default => 60_000,
+);
 
 # authentication attributes
 
@@ -648,6 +686,8 @@ sub _build__topology {
         uri                         => $self->_uri,
         type                        => $type,
         server_selection_timeout_ms => $self->server_selection_timeout_ms,
+        latency_threshold_ms        => $self->local_threshold_ms,
+        heartbeat_frequency_ms      => $self->heartbeat_frequency_ms,
         max_wire_version            => $self->_max_wire_version,
         min_wire_version            => $self->_min_wire_version,
         credential                  => $self->_credential,
