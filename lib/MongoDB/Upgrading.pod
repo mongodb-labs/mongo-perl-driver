@@ -15,7 +15,7 @@
 #
 
 # PODNAME: MongoDB::Upgrading
-# ABSTRACT: Deprecations and behavior changes from the v0 API
+# ABSTRACT: Deprecations and behavior changes from the v0 driver
 
 =pod
 
@@ -26,12 +26,12 @@ It offers a best-efforts snapshot of changes at a point in time.
 
 =head1 DESCRIPTION
 
-While the v1 API preserves backwards compatibility in most of the API,
+While the v1 driver preserves backwards compatibility in most of the API,
 there are still some areas where the old API has been deprecated or changed
 in a backward breaking way.
 
 This document is intended to help developers update their code to take into
-account API changes from the v0 API to the v1 API.
+account API changes from the v0 driver to the v1 driver.
 
 =head1 RATIONALE
 
@@ -68,11 +68,10 @@ support, respectively.  The v1 driver instead relies on CPAN modules
 C<IO::Socket::SSL> and C<Authen::SASL> for SSL and SASL support,
 respectively.
 
-SSL configuration is now possible via the L<MongoDB::MongoClient/ssl>
-attribute.
+SSL configuration is now possible via the L<ssl
+attribute|MongoDB::MongoClient/ssl>.
 
-Authentication configuration is described in
-L<MongoDB::MongoClient/AUTHENTICATION>.
+Authentication configuration is described in L<MongoDB::MongoClient/AUTHENTICATION>.
 
 =head1 BEHAVIOR CHANGES
 
@@ -92,7 +91,7 @@ as internal options handling is revised.
 
 =head2 Exceptions are the preferred error handling approach
 
-In the v0 API, errors could be indicated in various ways:
+In the v0 driver, errors could be indicated in various ways:
 
 =for :list
 * boolean return value
@@ -103,7 +102,7 @@ In the v0 API, errors could be indicated in various ways:
 Regardless of the documented error handling, every method that involved a
 network operation would throw an exception on various network errors.
 
-In the v1 API, exceptions objects are the standard way of indicating
+In the v1 driver, exceptions objects are the standard way of indicating
 errors.  The exception hierarchy is described in L<MongoDB::Error>.
 
 =head2 Cursors and query responses
@@ -129,12 +128,12 @@ queries and query-like methods.
 =head2 Read preference objects and the C<read_preference> method
 
 A new L<MongoDB::ReadPreference> class is used to encapsulate read
-preference attributes.  In the v1 API, it is set as an attribute on
+preference attributes.  In the v1 driver, it is set as an attribute on
 L<MongoDB::MongoClient>:
 
     MongoDB::MongoClient->new( ..., read_preference => { ... } );
 
-If provided as a hash_reference, it will be coerced to a
+If provided as a hash reference, it will be coerced to a
 MongoDB::ReadPreference object (and validated).
 
 The old C<read_preference> method API for L<MongoDB::MongoClient> is
@@ -159,10 +158,10 @@ scoped to the cursor object only.
 =head2 Authentication
 
 Authentication now happens automatically on connection during the
-"handshake" with any given server based on
-L<MongoDB::MongoClient/auth_mechanism>.
+"handshake" with any given server based on the L<auth_mechanism
+attribute|MongoDB::MongoClient/auth_mechanism>.
 
-The C<MongoDB::MongoClient::authenticate> method is deprecated and the
+The C<authenticate> method in L<MongoDB::MongoClient> is deprecated and the
 behavior has changed slightly.  When called, all connections are closed,
 and the authentication configuration is reset as if the arguments had been
 used in the constructor initially, and at least one connection is reopened
@@ -170,6 +169,15 @@ to ensure authentication succeeds (or else an exception is thrown).
 
 In a future release, this method will be removed entirely and
 authentication options will only be allowed as constructor arguments.
+
+=head2 Low-level functions removed
+
+Low-level driver functions have been removed from the public API.
+
+=head2 MongoDB::Collection removed
+
+The C<MongoDB::Collection> module was deprecated in v0.502.0 and has been
+removed.
 
 =head1 DEPRECATIONS
 
@@ -186,9 +194,9 @@ are handled.
 
 There are a richer set of authentication options than these legacy options
 allowed.  They are controlled through the
-L<MongoDB::MongoClient/auth_mechanism> and
-L<MongoDB::MongoClient/auth_mechanism_properties> attributes.  These are
-kept for backwards compatibility only.
+L<auth_mechanism|MongoDB::MongoClient/auth_mechanism> and
+L<auth_mechanism_properties|MongoDB::MongoClient/auth_mechanism_properties>
+attributes.  These are kept for backwards compatibility only.
 
 =cut
 
