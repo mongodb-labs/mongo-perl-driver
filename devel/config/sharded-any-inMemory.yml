@@ -1,6 +1,6 @@
 ---
 type: sharded
-default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --quiet --storageEngine=heap1
+default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --quiet --storageEngine=inMemoryExperiment
 mongoc:
     - name: config1
 mongos:
