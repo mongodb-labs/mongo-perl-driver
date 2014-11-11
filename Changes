@@ -2,6 +2,102 @@
 
 {{ $NEXT }}
 
+  [!!! Incompatible Changes !!!]
+
+  - PERL-330 implement pure-Perl networking; SSL and SASL now implemented via
+    optional CPAN modules IO::Socket::SSL and Authen::SASL
+
+  - MongoDB::Error exception objects now used consistently throughout
+    networking code
+
+  - removed long-deprecated MongoDB::Connection class
+
+  - split Cursor class into new QueryResult class
+
+  - ssl option is now read-only
+
+  - low-level client functions removed
+
+  [*** Deprecations ***]
+
+  - auto_connect, auto_reconnect, find_master, sasl, sasl_mechanism config
+    options
+
+  - authenticate method in MongoDB::MongoClient
+
+  - read_preference as a mutator for MongoDB::MongoClient
+
+  [Additions]
+
+  - PERL-131 support connect option in URI
+
+  - PERL-233 Implement SSL certificate support via IO::Socket::SSL options
+
+  - PERL-375 Support adding cursor options to find_one
+
+  - PERL-378 implement deployment and server model and monitoring
+
+  - PERL-379 Implement server-selection and new read preferences
+
+  - PERL-406 Allow count methods to work with query hints
+
+  - PERL-408 Implement SCRAM-SHA-1 and revise handshake
+
+  - PERL-422 add read prefs support for the connection string
+
+  [Bug Fixes]
+
+  - PERL-146 normalize server addresses to lower case
+
+  - PERL-409 add missing declarations for MinGW on Windows
+
+  - PERL-429 fix tag_sets logic
+
+  - PERL-410 die on BSON encoding/decoding if invalid UTF-8 is detected
+
+  - PERL-435 switch to http-style certificate name validation
+
+  - PERL-454 don't warn creating BSON datetime at epoch
+
+  - fixed MSVC compilation: fix unused vars and statements before declarations;
+    removed unused, but problematic bcon.c and bcon.h; use Perl memory alloc
+    functions instead of malloc
+
+  - removed storage engine dependent code and tests
+
+  - fixed t/cursor.t for new explain format
+
+  - fixed parallel scan test for server version 2.7.x changes
+
+  [Documentation]
+
+  - PERL-425 documented deprecation of drop_dups for index creation
+
+  - added MongoDB::Upgrading document with changes from v0.x
+
+  - added contributors section to MongoDB main documentation based on git
+    commit logs
+
+  [Prerequisites]
+
+  - enforced minimum versions for configuration requirements
+
+  - removed JSON module in favor of JSON::MaybeXS
+
+  - removed use of File::Slurp
+
+  [~ Internal changes ~]
+
+  - PERL-133 test that client can connect to RS without primary
+
+  - PERL-433 use listCollections command on 2.8 servers
+
+  - PERL-434 use listIndexes command on 2.8 servers
+
+  - PERL-436 bump maxWireProtocolVersion for 2.8 support
+
+  - re-enabled threads tests
+
 v0.706.0.0 2014-10-28 11:30:42-04:00 America/New_York
 
   [*** Deprecations ***]
