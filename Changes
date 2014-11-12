@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.707.0.0 2014-11-12 15:04:46-05:00 America/New_York
+
   [Additions]
 
   - Supports MongoDB 2.8; in addition to prior feature support, this release
