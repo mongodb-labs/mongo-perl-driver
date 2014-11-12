@@ -20,6 +20,7 @@ use warnings;
 use Test::More;
 use Test::Fatal;
 use Test::Warn;
+use Tie::IxHash;
 
 use MongoDB::Timestamp; # needed if db is being run as master
 
@@ -44,6 +45,29 @@ my $server_version = server_version($conn);
     $testdb->drop;
 }
 
+subtest 'run_command' => sub {
+
+    is( ref $testdb->run_command( [ ismaster => 1 ] ),
+        'HASH', "run_command(ARRAYREF) gives HASH" );
+    is( ref $testdb->run_command( { ismaster => 1 } ),
+        'HASH', "run_command(HASHREF) gives HASH" );
+    is( ref $testdb->run_command( Tie::IxHash->new( ismaster => 1 ) ),
+        'HASH', "run_command(IxHash) gives HASH" );
+
+    if ( $conn->_topology->type eq 'ReplicaSetWithPrimary' ) {
+        my $primary = $testdb->run_command( [ ismaster => 1 ] );
+        my $secondary = $testdb->run_command( [ ismaster => 1 ], { mode => 'secondary' } );
+        isnt( $primary->{me}, $secondary->{me}, "run_command respects explicit read preference" )
+            or do { diag explain $primary; diag explain $secondary };
+    }
+
+    like(
+        exception { $testdb->run_command( { foo => 'bar' } ) },
+        qr/no such cmd|unrecognized command/,
+        "error from non-existent command"
+    );
+};
+
 # collection_names
 {
     is(scalar $testdb->collection_names, 0, 'no collections');
@@ -64,15 +88,6 @@ my $server_version = server_version($conn);
     for my $k ( qw/test test_capped/ ) {
         ok( exists $names{$k}, "collection_names included $k" );
     }
-}
-
-# non-existent command
-{
-    like (
-        exception { $testdb->run_command({ foo => 'bar' }) },
-        qr/no such cmd|unrecognized command/,
-        "error from non-existent command"
-    );
 }
 
 # getlasterror

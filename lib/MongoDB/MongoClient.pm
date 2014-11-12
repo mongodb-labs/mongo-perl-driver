@@ -828,22 +828,24 @@ sub disconnect {
 #--------------------------------------------------------------------------#
 
 sub send_admin_command {
-    my ($self, $command, $flags, $read_preference) = @_;
+    my ($self, $command, $read_preference) = @_;
 
     $read_preference ||= MongoDB::ReadPreference->new;
     my $link = $self->_topology->get_readable_link( $read_preference );
     my $query = MongoDB::_Query->new( spec => $command );
+    my $flags = {};
     $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
 
     return $self->_try_operation('_send_admin_command', $link, $query->spec, $flags );
 }
 
 sub send_command {
-    my ($self, $db, $command, $flags, $read_preference) = @_;
+    my ($self, $db, $command, $read_preference) = @_;
 
     $read_preference ||= MongoDB::ReadPreference->new;
     my $link = $self->_topology->get_readable_link( $read_preference );
     my $query = MongoDB::_Query->new( spec => $command );
+    my $flags = {};
     $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
 
     return $self->_try_operation('_send_command', $link, $db, $query->spec, $flags );

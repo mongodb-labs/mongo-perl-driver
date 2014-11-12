@@ -110,10 +110,13 @@ sub last_error {
 
 
 sub run_command {
-    my ($self, $command) = @_;
+    my ($self, $command, $read_pref) = @_;
 
-    my $obj = $self->_client->send_command( $self->name, $command );
+    if ( $read_pref && ref($read_pref) eq 'HASH' ) {
+        $read_pref = MongoDB::ReadPreference->new($read_pref);
+    }
 
+    my $obj = $self->_client->send_command( $self->name, $command, $read_pref );
 
     return $obj->result;
 }
@@ -316,21 +319,37 @@ occurred).
 
 See L<MongoDB::MongoClient/w> for more information.
 
-=head2 run_command ($command)
+=head2 run_command
 
-    my $result = $database->run_command({ some_command => 1 });
+    my $result = $database->run_command([ some_command => 1 ]);
 
-Runs a database command. Returns a string with the error message if the
-command fails. Returns the result of the command (a hash reference) on success.
+    my $result = $database->run_command(
+        [ some_command => 1 ],
+        { mode => 'secondaryPreferred' }
+    );
+
+This method runs a database command.  The first argument must be a document
+with the command and its arguments.  It should be given as an array reference
+of key-value pairs or a L<Tie::IxHash> object with the command name as the
+first key.  The use of a hash reference will only reliably work for commands
+without additional parameters.
+
+By default, commands are run with a read preference of 'primary'.  An optional
+second argument may specify an alternative read preference.  If given, it must
+be a L<MongoDB::ReadPreference> object or a hash reference that can be used to
+construct one.
+
+It returns the result of the command (a hash reference) on success or throws a
+L<MongoDB::DatabaseError|MongoDB::Error/MongoDB::DatabaseError> exception if
+the command fails.
+
 For a list of possible database commands, run:
 
-    my $commands = $db->run_command({listCommands => 1});
+    my $commands = $db->run_command([listCommands => 1]);
 
 There are a few examples of database commands in the
-L<MongoDB::Examples/"DATABASE COMMANDS"> section.
-
-See also core documentation on database commands:
-L<http://dochub.mongodb.org/core/commands>.
+L<MongoDB::Examples/"DATABASE COMMANDS"> section.  See also core documentation
+on database commands: L<http://dochub.mongodb.org/core/commands>.
 
 =head2 eval ($code, $args?, $nolock?)
 
