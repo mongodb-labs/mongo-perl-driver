@@ -16,8 +16,6 @@
 
 package MongoDB::_Credential;
 
-# ABSTRACT: Encapsulate authentication credentials
-
 use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
 
