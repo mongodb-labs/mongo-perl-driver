@@ -683,7 +683,7 @@ sub _build__topology {
         uri                         => $self->_uri,
         type                        => $type,
         server_selection_timeout_ms => $self->server_selection_timeout_ms,
-        latency_threshold_ms        => $self->local_threshold_ms,
+        local_threshold_ms          => $self->local_threshold_ms,
         heartbeat_frequency_ms      => $self->heartbeat_frequency_ms,
         max_wire_version            => $self->_max_wire_version,
         min_wire_version            => $self->_min_wire_version,

@@ -94,7 +94,7 @@ has last_scan_time => (
     writer  => '_set_last_scan_time',
 );
 
-has latency_threshold_ms => (
+has local_threshold_ms => (
     is      => 'ro',
     isa     => 'Num',
     default => 15,
@@ -430,7 +430,7 @@ sub _get_server_in_latency_window {
     my @in_window = shift @sorted;
 
     # add any other servers in window and return a random one
-    my $max_rtt = $in_window[0]->{rtt} + $self->latency_threshold_ms;
+    my $max_rtt = $in_window[0]->{rtt} + $self->local_threshold_ms;
     push @in_window, grep { $_->{rtt} <= $max_rtt } @sorted;
     return $in_window[ int( rand(@in_window) ) ]->{server};
 }
