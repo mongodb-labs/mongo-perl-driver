@@ -17,7 +17,7 @@
 package MongoDB::_Topology;
 
 use version;
-our $VERSION = 'v0.704.4.1';
+our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use Moose;
 use MongoDB::Error;

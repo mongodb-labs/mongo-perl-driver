@@ -19,7 +19,7 @@ package MongoDB::Role::_Cursor;
 # Role providing a cursor interface
 
 use version;
-our $VERSION = 'v0.704.4.1';
+our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use MongoDB::_Types;
 use Moose::Role;

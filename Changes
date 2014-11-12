@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.999.998.1 2014-11-12 15:10:40-05:00 America/New_York (TRIAL RELEASE)
+
   [!!! Incompatible Changes !!!]
 
   - PERL-330 implement pure-Perl networking; SSL and SASL now implemented via
