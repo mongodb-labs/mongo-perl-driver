@@ -221,25 +221,25 @@ sub get_readable_link {
 
     my $mode = $read_pref ? lc $read_pref->mode : 'primary';
     my $method =
-      $self->type eq any(qw/Single Sharded/) ? '_find_any_link' : "_find_${mode}_link";
+      $self->type eq any(qw/Single Sharded/)
+      ? '_find_any_server'
+      : "_find_${mode}_server";
 
-    if ( my $link = $self->_selection_timeout( $method, $read_pref ) ) {
-        return $link;
+    while ( my $server = $self->_selection_timeout( $method, $read_pref ) ) {
+        my $link = $self->_get_server_link( $server, $method, $read_pref );
+        return $link if $link;
     }
-    else {
-        my $rp = $read_pref->as_string;
-        MongoDB::SelectionError->throw(
-            "No readable server available for matching read preference $rp. MongoDB server status:\n"
-              . $self->_status_string );
-    }
+
+    my $rp = $read_pref->as_string;
+    MongoDB::SelectionError->throw(
+        "No readable server available for matching read preference $rp. MongoDB server status:\n"
+          . $self->_status_string );
 }
 
 sub get_specific_link {
     my ( $self, $address ) = @_;
     my $server = $self->servers->{$address};
-    if ( $server
-        && ( my $link = $self->_selection_timeout( '_get_server_link', $server ) ) )
-    {
+    if ( $server && ( my $link = $self->_get_server_link($server) ) ) {
         return $link;
     }
     else {
@@ -251,15 +251,15 @@ sub get_writable_link {
     my ($self) = @_;
 
     my $method =
-      $self->type eq any(qw/Single Sharded/) ? '_find_any_link' : "_find_primary_link";
+      $self->type eq any(qw/Single Sharded/) ? '_find_any_server' : "_find_primary_server";
 
-    if ( my $link = $self->_selection_timeout($method, undef) ) {
-        return $link;
+    while ( my $server = $self->_selection_timeout($method) ) {
+        my $link = $self->_get_server_link( $server, $method );
+        return $link if $link;
     }
-    else {
-        MongoDB::SelectionError->throw(
-            "No writable server available.  MongoDB server status:\n" . $self->_status_string );
-    }
+
+    MongoDB::SelectionError->throw(
+        "No writable server available.  MongoDB server status:\n" . $self->_status_string );
 }
 
 sub mark_server_unknown {
@@ -376,80 +376,90 @@ sub _eligible {
     return;
 }
 
-sub _find_any_link {
+sub _find_any_server {
     my ( $self, undef, @candidates ) = @_;
     push @candidates, $self->all_servers unless @candidates;
-    return $self->_get_link_in_latency_window(
+    return $self->_get_server_in_latency_window(
         [ grep { $_->is_available } @candidates ] );
 }
 
 
-sub _find_nearest_link {
+sub _find_nearest_server {
     my ( $self, $read_pref, @candidates ) = @_;
     push @candidates, ( $self->_primaries, $self->_secondaries ) unless @candidates;
     my @suitable = $self->_eligible( $read_pref, @candidates );
-    return $self->_get_link_in_latency_window( \@suitable );
+    return $self->_get_server_in_latency_window( \@suitable );
 }
 
-sub _find_primary_link {
+sub _find_primary_server {
     my ( $self, undef, @candidates ) = @_;
     push @candidates, $self->all_servers unless @candidates;
-    if ( my $primary = first { $_->is_writable } @candidates ) {
-        return $self->_get_server_link($primary);
-    }
-    return undef;
+    return first { $_->is_writable } @candidates;
 }
 
-sub _find_primarypreferred_link {
+sub _find_primarypreferred_server {
     my ( $self, $read_pref, @candidates ) = @_;
-    return $self->_find_primary_link(@candidates)
-      || $self->_find_secondary_link( $read_pref, @candidates );
+    return $self->_find_primary_server(@candidates)
+      || $self->_find_secondary_server( $read_pref, @candidates );
 }
 
-sub _find_secondary_link {
+sub _find_secondary_server {
     my ( $self, $read_pref, @candidates ) = @_;
     push @candidates, $self->_secondaries unless @candidates;
     my @suitable = $self->_eligible( $read_pref, @candidates );
-    return $self->_get_link_in_latency_window( \@suitable );
+    return $self->_get_server_in_latency_window( \@suitable );
 }
 
-sub _find_secondarypreferred_link {
+sub _find_secondarypreferred_server {
     my ( $self, $read_pref, @candidates ) = @_;
-    return $self->_find_secondary_link( $read_pref, @candidates )
-      || $self->_find_primary_link(@candidates);
+    return $self->_find_secondary_server( $read_pref, @candidates )
+      || $self->_find_primary_server(@candidates);
 }
 
-sub _get_link_in_latency_window {
+sub _get_server_in_latency_window {
     my ( $self, $servers ) = @_;
+    return unless @$servers;
 
     # order servers by RTT EWMA
     my $rtt_hash = $self->rtt_ewma_ms;
     my @sorted =
       sort { $a->{rtt} <=> $b->{rtt} }
-      map { { server => $_, address => $_->address, rtt => $rtt_hash->{ $_->address } } }
-      @$servers;
+      map { { server => $_, rtt => $rtt_hash->{ $_->address } } } @$servers;
 
-    my ( @links, $max_rtt );
+    # lowest RTT is always in the windows
+    my @in_window = shift @sorted;
 
-    # take first valid link and any links from servers with RTT EWMA within
-    # the latency window from the first server
-    for my $c (@sorted) {
-        last if @links && $c->{rtt} < $max_rtt;
-        if ( $c->{link} = $self->_get_server_link( $c->{server} ) ) {
-            $max_rtt = $c->{rtt} + $self->latency_threshold_ms if !@links;
-            push @links, $c;
-        }
-    }
-
-    # return a randomly chosen link if there any to choose
-    return @links ? $links[ int( rand(@links) ) ]->{link} : undef;
+    # add any other servers in window and return a random one
+    my $max_rtt = $in_window[0]->{rtt} + $self->latency_threshold_ms;
+    push @in_window, grep { $_->{rtt} <= $max_rtt } @sorted;
+    return $in_window[ int( rand(@in_window) ) ]->{server};
 }
 
 sub _get_server_link {
-    my ( $self, $server ) = @_;
+    my ( $self, $server, $method, $read_pref ) = @_;
     my $address = $server->address;
     my $link    = $self->links->{$address};
-    return $link && $link->remote_connected ? $link : $self->_initialize_link($address);
+
+    # if no link or disconnected, make a new connection or give up
+    $link = $self->_initialize_link($address) unless $link && $link->remote_connected;
+    return unless $link;
+
+    # for idle links, refresh the server and verify validity
+    if ( $link->idle_time_ms > $self->socket_check_interval_ms ) {
+        $self->_update_topology_from_link($link);
+
+        # topology might have dropped the server
+        $server = $self->servers->{addresses}
+          or return;
+
+        my $fresh_link = $self->links->{$address};
+        return $fresh_link if !$method;
+
+        # verify selection criteria
+        return $self->method( $read_pref, $server ) ? $fresh_link : undef;
+    }
+
+    return $link;
 }
 
 sub _has_no_primaries {
@@ -544,7 +554,7 @@ sub _status_string {
 # this implements the server selection timeout around whatever actual method
 # is used for returning a link
 sub _selection_timeout {
-    my ( $self, $method, @args ) = @_;
+    my ( $self, $method, $read_pref ) = @_;
 
     if ( 1000 * tv_interval( $self->last_scan_time ) > $self->heartbeat_frequency_ms ) {
         $self->scan_all_servers;
@@ -554,19 +564,8 @@ sub _selection_timeout {
 
     while (1) {
         $self->_check_wire_versions;
-        if ( my $link = $self->$method(@args) ) {
-            if ( $link->idle_time_ms > $self->socket_check_interval_ms ) {
-                # recheck this server is still good and get updated description
-                $self->_update_topology_from_link($link);
-                my $server = $self->servers->{addresses};
-                # reselect, but with only this server as candidate
-                if ( $server and my $fresh_link = $self->$method(@args,$server) ) {
-                    return $fresh_link;
-                }
-            }
-            else {
-                return $link;
-            }
+        if ( my $server = $self->$method($read_pref) ) {
+            return $server;
         }
         last if 1000 * tv_interval($start_time) > $self->server_selection_timeout_ms;
     }
