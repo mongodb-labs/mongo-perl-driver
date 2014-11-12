@@ -59,8 +59,8 @@ subtest "2.6 Mongos + 2.4, 2.6 shards" => sub {
     # put DB on shard1, which is the 2.4 one, which should fail with cursor
     eval {
         my $admin = $conn->get_database("admin");
-        $admin->_try_run_command([movePrimary => $testdb->name, to => 'sh1']);
-        $admin->_try_run_command([flushRouterConfig => 1]);
+        $admin->run_command([movePrimary => $testdb->name, to => 'sh1']);
+        $admin->run_command([flushRouterConfig => 1]);
     };
 
     my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
@@ -79,8 +79,8 @@ subtest "2.6 Mongos + 2.4, 2.6 shards" => sub {
     # put DB on shard2, which is the 2.6 one, which should succeed
     eval {
         my $admin = $conn->get_database("admin");
-        $admin->_try_run_command([movePrimary => $testdb->name, to => 'sh2']);
-        $admin->_try_run_command([flushRouterConfig => 1]);
+        $admin->run_command([movePrimary => $testdb->name, to => 'sh2']);
+        $admin->run_command([flushRouterConfig => 1]);
     };
 
     $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
@@ -123,8 +123,8 @@ subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
     # put DB on shard1, which is the 2.4 one, which should fail with cursor
     eval {
         my $admin = $conn->get_database("admin");
-        $admin->_try_run_command([movePrimary => $testdb->name, to => 'sh1']);
-        $admin->_try_run_command([flushRouterConfig => 1]);
+        $admin->run_command([movePrimary => $testdb->name, to => 'sh1']);
+        $admin->run_command([flushRouterConfig => 1]);
     };
 
     my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
@@ -143,8 +143,8 @@ subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
     # put DB on shard2, which is the 2.6 one, which should still fail 
     eval {
         my $admin = $conn->get_database("admin");
-        $admin->_try_run_command([movePrimary => $testdb->name, to => 'sh2']);
-        $admin->_try_run_command([flushRouterConfig => 1]);
+        $admin->run_command([movePrimary => $testdb->name, to => 'sh2']);
+        $admin->run_command([flushRouterConfig => 1]);
     };
 
     $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },

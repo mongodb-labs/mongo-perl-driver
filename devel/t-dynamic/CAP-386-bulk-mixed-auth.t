@@ -54,7 +54,7 @@ note("QA-447 MIXED OPERATIONS, AUTH");
 is( exception { $coll->drop }, undef, "drop collection" );
 
 # create limited role and user
-$testdb->_try_run_command(
+$testdb->run_command(
     [
         createRole => 'CRU',
         privileges => [
@@ -67,7 +67,7 @@ $testdb->_try_run_command(
     ]
 );
 
-$testdb->_try_run_command(
+$testdb->run_command(
     [ createUser => "limited", pwd => "limited", roles => [ "CRU" ] ] );
 
 local $ENV{MONGOD} = $ENV{MONGOD};

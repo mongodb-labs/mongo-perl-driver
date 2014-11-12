@@ -82,7 +82,7 @@ sub rs_initiate {
 
     # not $self->client because this needs to be a direct connection
     my $client = MongoDB::MongoClient->new( host => $first->as_direct_uri, dt_type => undef );
-    $client->get_database("admin")->_try_run_command({replSetInitiate => $rs_config});
+    $client->get_database("admin")->run_command({replSetInitiate => $rs_config});
 
     $self->_logger->debug("waiting for primary");
 
@@ -97,7 +97,7 @@ sub wait_for_all_hosts {
     retry {
         my $client = MongoDB::MongoClient->new( host => $first->as_direct_uri, dt_type => undef );
         my $admin = $client->get_database("admin");
-        if ( my $status = eval { $admin->_try_run_command({replSetGetStatus => 1}) } ) {
+        if ( my $status = eval { $admin->run_command({replSetGetStatus => 1}) } ) {
             my @member_states = map { $_->{state} } @{ $status->{members} };
             $self->_logger->debug("host states: @member_states");
             die "Hosts not all PRIMARY or SECONDARY or ARBITER\n"
@@ -120,7 +120,7 @@ sub stepdown_primary {
     my ($self, $timeout_secs) = @_;
     # eval because command causes primary to close connection, causing network error
     eval {
-        $self->client->get_database("admin")->_try_run_command( { replSetStepDown => 5 } );
+        $self->client->get_database("admin")->run_command( { replSetStepDown => 5 } );
     };
     return;
 }

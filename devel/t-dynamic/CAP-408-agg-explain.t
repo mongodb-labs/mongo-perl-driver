@@ -45,8 +45,8 @@ my $admin  = $conn->get_database("admin");
 my $testdb = get_test_db($conn);
 my $coll   = $testdb->get_collection("test_collection");
 
-$admin->_try_run_command([enableSharding => $testdb->name]);
-$admin->_try_run_command([shardCollection => $coll->full_name, key => { number => 1 }]);
+$admin->run_command([enableSharding => $testdb->name]);
+$admin->run_command([shardCollection => $coll->full_name, key => { number => 1 }]);
 
 $coll->insert( { number => int(rand(2**31)) } ) for 1 .. 10;
 

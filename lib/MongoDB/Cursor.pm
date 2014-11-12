@@ -576,7 +576,7 @@ sub count {
     }
 
     my $result = try {
-        $self->_client->get_database($db)->_try_run_command($cmd);
+        $self->_client->get_database($db)->run_command($cmd);
     }
     catch {
         # if there was an error, check if it was the "ns missing" one that means the

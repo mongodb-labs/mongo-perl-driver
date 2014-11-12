@@ -33,7 +33,7 @@ plan skip_all => "maxTimeMS not available before 2.6"
 
 my $param = eval {
     $conn->get_database('admin')
-      ->_try_run_command( [ getParameter => 1, enableTestCommands => 1 ] );
+      ->run_command( [ getParameter => 1, enableTestCommands => 1 ] );
 };
 
 my $coll;
@@ -70,7 +70,7 @@ subtest "expected behaviors" => sub {
 
     is(
         exception {
-            my $doc = $testdb->_try_run_command( [ count => $coll->name, maxTimeMS => 5000 ] );
+            my $doc = $testdb->run_command( [ count => $coll->name, maxTimeMS => 5000 ] );
         },
         undef,
         "count command with maxTimeMS works"
@@ -102,7 +102,7 @@ subtest "force maxTimeMS failures" => sub {
 
     is(
         exception {
-            $admin->_try_run_command(
+            $admin->run_command(
                 [ configureFailPoint => 'maxTimeAlwaysTimeOut', mode => 'alwaysOn' ] );
         },
         undef,
@@ -124,7 +124,7 @@ subtest "force maxTimeMS failures" => sub {
 
     like(
         exception {
-            my $doc = $testdb->_try_run_command( [ count => $coll->name, maxTimeMS => 10 ] );
+            my $doc = $testdb->run_command( [ count => $coll->name, maxTimeMS => 10 ] );
         },
         qr/exceeded time limit/,
         "count command with maxTimeMS times out getting results"
@@ -143,7 +143,7 @@ subtest "force maxTimeMS failures" => sub {
 
     is(
         exception {
-            $admin->_try_run_command(
+            $admin->run_command(
                 [ configureFailPoint => 'maxTimeAlwaysTimeOut', mode => 'off' ] );
         },
         undef,

@@ -79,13 +79,13 @@ subtest "2.6 mongos with mixed-version mongod" => sub {
     my $coll   = $testdb->get_collection("test_collection");
 
     # shard and pre-split
-    $admin->_try_run_command([enableSharding => $testdb->name]);
-    $admin->_try_run_command([shardCollection => $coll->full_name, key => { number => 1 }]);
-    $admin->_try_run_command([split => $coll->full_name, middle => { number => 500 }]);
+    $admin->run_command([enableSharding => $testdb->name]);
+    $admin->run_command([shardCollection => $coll->full_name, key => { number => 1 }]);
+    $admin->run_command([split => $coll->full_name, middle => { number => 500 }]);
 
     # wrap in eval since moving chunk to current shard is an error
-    eval { $admin->_try_run_command([moveChunk => $coll->full_name, find => { number => 1}, to => 'sh1']) };
-    eval { $admin->_try_run_command([moveChunk => $coll->full_name, find => { number => 1000}, to => 'sh2']) };
+    eval { $admin->run_command([moveChunk => $coll->full_name, find => { number => 1}, to => 'sh1']) };
+    eval { $admin->run_command([moveChunk => $coll->full_name, find => { number => 1000}, to => 'sh2']) };
 
     my $bulk=$coll->ordered_bulk;
     $bulk->insert( { number => $_, rand => int(rand(2**16)) } ) for 1 .. 1000;

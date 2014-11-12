@@ -281,7 +281,7 @@ sub find_and_modify {
 
     my $result;
     try {
-        $result = $db->_try_run_command( [ findAndModify => $self->name, %$opts ] )
+        $result = $db->run_command( [ findAndModify => $self->name, %$opts ] )
     }
     catch {
         die $_ unless $_ eq 'No matching object found';
@@ -382,7 +382,7 @@ sub rename {
 
     my ($db, @collection_bits) = split(/\./, $fullname);
     my $collection = join('.', @collection_bits);
-    my $obj = $database->_try_run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
+    my $obj = $database->run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
 
     return $conn->get_database( $db )->get_collection( $collectionname );
 }

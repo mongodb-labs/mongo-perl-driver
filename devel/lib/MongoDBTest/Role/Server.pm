@@ -254,7 +254,7 @@ sub start {
         # wait for the server to respond to ismaster
         retry {
             $self->_logger->debug("Pinging " . $self->name . " with ismaster");
-            MongoDB::MongoClient->new(host => $self->as_direct_uri)->get_database("admin")->_try_run_command([ismaster => 1]);
+            MongoDB::MongoClient->new(host => $self->as_direct_uri)->get_database("admin")->run_command([ismaster => 1]);
         }
         delay_exp { 13, 1e5 }
         on_retry {
@@ -281,7 +281,7 @@ sub start {
         $self->add_user($user, $password, [ 'root' ]);
         $self->_set_did_auth_setup(1);
         # must be localhost for shutdown command
-        eval { MongoDB::MongoClient->new(host => "mongodb://localhost:" . $self->port, connect_type => 'direct')->get_database("admin")->_try_run_command([shutdown => 1]) };
+        eval { MongoDB::MongoClient->new(host => "mongodb://localhost:" . $self->port, connect_type => 'direct')->get_database("admin")->run_command([shutdown => 1]) };
         $self->_logger->debug("Restarting original server with --auth");
         $self->stop;
         $self->start;
@@ -342,7 +342,7 @@ sub add_user {
     );
     if ( $self->server_version >= v2.6.0 ) {
         $doc->Unshift(createUser => $user);
-        $self->client->get_database("admin")->_try_run_command( $doc );
+        $self->client->get_database("admin")->run_command( $doc );
     }
     else {
         $doc->Unshift(user => $user);

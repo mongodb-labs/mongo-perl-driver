@@ -55,7 +55,7 @@ is( $admin->get_collection('system.users')->find({})->count, 1, "1 (root) user i
 
 for ( 1 .. 3 ) {
     is(
-        exception { $testdb->_try_run_command( [ createUser => "limited$_", pwd => "limited", roles => [ "readWrite" ] ] ) },
+        exception { $testdb->run_command( [ createUser => "limited$_", pwd => "limited", roles => [ "readWrite" ] ] ) },
         undef,
         "createUser $_",
     );
@@ -65,7 +65,7 @@ is( $admin->get_collection('system.users')->find({})->count, 4, "4 users in syst
 
 my $info;
 is(
-    exception { $info = $testdb->_try_run_command( [ usersInfo => "limited1", showCredentials  => boolean::true ] ) },
+    exception { $info = $testdb->run_command( [ usersInfo => "limited1", showCredentials  => boolean::true ] ) },
     undef,
     "usersInfo",
 );
@@ -73,14 +73,14 @@ is(
 my $old_pwd_hash = $info->{users}[0]{credentials}{'MONGODB-CR'};
 
 is(
-    exception { $testdb->_try_run_command( [ updateUser => "limited1", pwd => "limited0", roles => [ "readWrite" ] ] ) },
+    exception { $testdb->run_command( [ updateUser => "limited1", pwd => "limited0", roles => [ "readWrite" ] ] ) },
     undef,
     "updateUser",
 );
 
 $info = undef;
 is(
-    exception { $info = $testdb->_try_run_command( [ usersInfo => "limited1", showCredentials  => boolean::true ] ) },
+    exception { $info = $testdb->run_command( [ usersInfo => "limited1", showCredentials  => boolean::true ] ) },
     undef,
     "usersInfo",
 );
@@ -88,7 +88,7 @@ is(
 isnt( $info->{users}[0]{credentials}{'MONGODB-CR'}, $old_pwd_hash, "password was changed");
 
 is(
-    exception { $testdb->_try_run_command( [ dropUser => "limited1" ] ) },
+    exception { $testdb->run_command( [ dropUser => "limited1" ] ) },
     undef,
     "dropUser",
 );
@@ -96,7 +96,7 @@ is(
 is( $admin->get_collection('system.users')->find({})->count, 3, "3 users in system.users");
 
 is(
-    exception { $testdb->_try_run_command( [ dropAllUsersFromDatabase => "limited0" ] ) },
+    exception { $testdb->run_command( [ dropAllUsersFromDatabase => "limited0" ] ) },
     undef,
     "dropAllUsersFromDatabase",
 );

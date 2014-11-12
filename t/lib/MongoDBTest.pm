@@ -66,7 +66,7 @@ BEGIN {
         $conn->_topology->_dump;
         eval { $conn->_topology->get_writable_link }
             or die "couldn't connect";
-        $conn->get_database("admin")->_try_run_command({ serverStatus => 1 })
+        $conn->get_database("admin")->run_command({ serverStatus => 1 })
             or die "Database has auth enabled\n";
     };
 
@@ -94,7 +94,7 @@ sub server_type {
     my $server_type;
 
     # check database type
-    my $ismaster = $conn->get_database('admin')->_try_run_command({ismaster => 1});
+    my $ismaster = $conn->get_database('admin')->run_command({ismaster => 1});
     if (exists $ismaster->{msg} && $ismaster->{msg} eq 'isdbgrid') {
         $server_type = 'Mongos';
     }

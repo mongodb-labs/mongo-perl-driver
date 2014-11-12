@@ -661,7 +661,7 @@ subtest 'text indices' => sub {
     plan skip_all => "text indices won't work with db version $server_version"
         unless $server_version >= v2.4.0;
 
-    my $res = $conn->get_database('admin')->_try_run_command(['getParameter' => 1, 'textSearchEnabled' => 1]);
+    my $res = $conn->get_database('admin')->run_command(['getParameter' => 1, 'textSearchEnabled' => 1]);
     plan skip_all => "text search not enabled"
         if !$res->{'textSearchEnabled'};
 

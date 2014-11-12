@@ -114,15 +114,6 @@ sub run_command {
 
     my $obj = $self->_client->send_command( $self->name, $command );
 
-    return $obj->result;
-}
-
-# same as run_command but throws an exception on error; private
-# for now until exception handling is overhauled
-sub _try_run_command {
-    my ($self, $command) = @_;
-
-    my $obj = $self->_client->send_command( $self->name, $command );
 
     return $obj->result;
 }
