@@ -38,6 +38,7 @@ use Time::HiRes qw/usleep/;
 use Carp 'carp', 'croak';
 use Safe::Isa;
 use Scalar::Util 'reftype';
+use Syntax::Keyword::Junction 'any';
 use boolean;
 use Encode;
 use Try::Tiny;
@@ -932,27 +933,55 @@ sub send_versioned_read {
 }
 
 sub _apply_read_prefs {
-    my ( $self, $link, $query, $flags, $read_preference ) = @_;
+    my ( $self, $link, $query, $flags, $read_pref ) = @_;
 
-    if ( $link->server->type eq 'Mongos' ) {
-        if ( $read_preference->has_empty_tag_sets ) {
-            if ( $read_preference->mode eq 'primary' ) {
-                $flags->{slave_ok} = 0;
-            }
-            elsif ( $read_preference->mode eq 'secondaryPreferred' ) {
-                $flags->{slave_ok} = 1;
-            }
-            else {
-                $query->set_modifier( '$readPreference' => $read_preference->for_mongos );
-            }
+    my $topology = $self->_topology->type;
+
+    if ( $topology eq 'Single' ) {
+        if ( $link->server->type eq 'Mongos' ) {
+            $self->_apply_mongos_read_prefs( $query, $flags, $read_pref );
         }
         else {
-            $query->set_modifier( '$readPreference' => $read_preference->for_mongos );
+            $flags->{slave_ok} = 1;
         }
     }
-    else {
-        $flags->{slave_ok} = 1 if $read_preference->mode ne 'primary';
+    elsif ( $topology eq any(qw/ReplicaSetNoPrimary ReplicaSetWithPrimary/) ) {
+        if ( $read_pref->mode eq 'primary' ) {
+            $flags->{slave_ok} = 0;
+        }
+        else {
+            $flags->{slave_ok} = 1;
+        }
     }
+    elsif ( $topology eq 'Sharded' ) {
+        $self->_apply_mongos_read_prefs( $query, $flags, $read_pref );
+    }
+    else {
+        MongoDB::InternalError->throw("can't query topology type '$topology'");
+    }
+
+    return;
+}
+
+sub _apply_mongos_read_prefs {
+    my ( $self, $query, $flags, $read_pref ) = @_;
+    my $mode = $read_pref->mode;
+    if ( $mode eq 'primary' ) {
+        $flags->{slave_ok} = 0;
+    }
+    elsif ( $mode eq any(qw/secondary primaryPreferred nearest/) ) {
+        $flags->{slave_ok} = 1;
+        $query->set_modifier( '$readPreference' => $read_pref->for_mongos );
+    }
+    elsif ( $mode eq 'secondaryPreferred' ) {
+        $flags->{slave_ok} = 1;
+        $query->set_modifier( '$readPreference' => $read_pref->for_mongos )
+          unless $read_pref->has_empty_tag_sets;
+    }
+    else {
+        MongoDB::InternalError->throw("invalid read preference mode '$mode'");
+    }
+    return;
 }
 
 sub _try_operation {
