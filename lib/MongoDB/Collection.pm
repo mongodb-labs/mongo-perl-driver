@@ -472,8 +472,8 @@ sub ensure_index {
         if (   $_->$_isa("MongoDB::DatabaseError")
             && $_->code == any( UNKNOWN_ERROR, COMMAND_NOT_FOUND, UNRECOGNIZED_COMMAND ) )
         {
-            $obj->Unshift( ns => $tmp_ns ); # restore ns to spec my $indexes =
-            $self->_database->get_collection("system.indexes");
+            $obj->Unshift( ns => $tmp_ns ); # restore ns to spec
+            my $indexes = $self->_database->get_collection("system.indexes");
             return $indexes->_legacy_index_insert( $obj, $options );
         }
         else {
