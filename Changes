@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Bug Fixes]
+
+  - Fix t/database.t for change in server error message
+
 v0.999.998.1 2014-11-12 15:10:40-05:00 America/New_York (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]

@@ -466,14 +466,14 @@ sub ensure_index {
         $self->_database->run_command( [ createIndexes => $self->name, indexes => [$obj] ] );
     }
     catch {
-        # code 59 or code 13390 mean "command not available"; no code winds up as "unknown error"
-        # In these cases, fallback to the legacy insert
+        # some error codes indicate clearly that a command is not available,
+        # no code winds up as "unknown error"; in these cases, fallback to the
+        # legacy insert
         if (   $_->$_isa("MongoDB::DatabaseError")
-            && $_->code == any( UNKNOWN_ERROR(), 59, 13390 ) )
+            && $_->code == any( UNKNOWN_ERROR, COMMAND_NOT_FOUND, UNRECOGNIZED_COMMAND ) )
         {
-            # fall back to legacy index creation
-            $obj->Unshift( ns => $tmp_ns ); # restore ns to spec
-            my $indexes = $self->_database->get_collection("system.indexes");
+            $obj->Unshift( ns => $tmp_ns ); # restore ns to spec my $indexes =
+            $self->_database->get_collection("system.indexes");
             return $indexes->_legacy_index_insert( $obj, $options );
         }
         else {

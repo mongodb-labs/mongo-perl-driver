@@ -25,6 +25,7 @@ use Tie::IxHash;
 use MongoDB::Timestamp; # needed if db is being run as master
 
 use MongoDB;
+use MongoDB::Error;
 
 use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db server_version/;
@@ -61,11 +62,18 @@ subtest 'run_command' => sub {
             or do { diag explain $primary; diag explain $secondary };
     }
 
-    like(
-        exception { $testdb->run_command( { foo => 'bar' } ) },
-        qr/no such cmd|unrecognized command/,
-        "error from non-existent command"
-    );
+    my $err = exception { $testdb->run_command( { foo => 'bar' } ) };
+
+    if ( $err->code == COMMAND_NOT_FOUND ) {
+        pass("error from non-existent command");
+    }
+    else {
+        like(
+            $err->message,
+            qr/no such cmd|unrecognized command/,
+            "error from non-existent command"
+        );
+    }
 };
 
 # collection_names

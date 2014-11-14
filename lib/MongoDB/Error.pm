@@ -37,8 +37,10 @@ BEGIN {
         BAD_VALUE                 => 2,
         UNKNOWN_ERROR             => 8,
         NAMESPACE_NOT_FOUND       => 26,
+        COMMAND_NOT_FOUND         => 59,
         WRITE_CONCERN_ERROR       => 64,
         NOT_MASTER                => 10107,
+        UNRECOGNIZED_COMMAND      => 13390, # mongos error before 2.4
         NOT_MASTER_NO_SLAVE_OK    => 13435,
         NOT_MASTER_OR_SECONDARY   => 13436,
         CANT_OPEN_DB_IN_READ_LOCK => 15927,
