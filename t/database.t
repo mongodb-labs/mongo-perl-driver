@@ -69,7 +69,8 @@ my $server_version = server_version($conn);
 # non-existent command
 {
     my $result = $testdb->run_command({ foo => 'bar' });
-    like ($result, qr/no such cmd|unrecognized command/, "error from non-existent command");
+    # server keeps changing what it sends
+    like ($result, qr/no such command|no such cmd|unrecognized command/, "error from non-existent command");
 }
 
 # getlasterror
