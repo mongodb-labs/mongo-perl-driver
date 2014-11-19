@@ -35,20 +35,21 @@ use constant {
     NO_REPLICATION_RE => qr/^no replication has been enabled/,
 };
 
-# returns a single document
+# returns MongoDB::CommandResult
 sub _send_admin_command {
-    my ( $self, $link, $command, $flags ) = @_;
-    return $self->_send_command( $link, 'admin', $command, $flags );
+    my ( $self, $link, $args ) = @_;
+    $args->{db} = 'admin';
+    return $self->_send_command( $link, $args );
 }
 
-# returns a single document
+# returns MongoDB::CommandResult
 sub _send_command {
-    my ( $self, $link, $db, $command, $flags ) = @_;
+    my ( $self, $link, $args ) = @_;
 
-    $command = MongoDB::BSON::encode_bson( $command, 0 );
+    my $command = MongoDB::BSON::encode_bson( $args->{command}->spec, 0 );
 
     my ( $op_bson, $request_id ) =
-      MongoDB::_Protocol::write_query( $db . '.$cmd', $command, undef, 0, -1, $flags );
+      MongoDB::_Protocol::write_query( $args->{db} . '.$cmd', $command, undef, 0, -1, $args->{flags} );
 
     if ( length($op_bson) > MAX_BSON_WIRE_SIZE ) {
         # XXX should this become public?
@@ -58,7 +59,7 @@ sub _send_command {
         );
     }
 
-    my $result = $self->_write_and_receive( $link, $op_bson, $request_id, undef, 1 );
+    my $result = $self->_query_and_receive( $link, $op_bson, $request_id, undef, 1 );
 
     $result = MongoDB::CommandResult->new(
         result => $result->{docs}[0],
@@ -70,10 +71,11 @@ sub _send_command {
     return $result;
 }
 
-# returns nothing if not using gle, otherwise returns gle document
+# Returns MongoDB::WriteResult
 sub _send_delete {
-    my ( $self, $link, $ns, $op_doc, $write_concern ) = @_;
+    my ( $self, $link, $args ) = @_;
     # $op_doc is { q: $query, limit: $limit }
+    my $op_doc = $args->{op_doc};
 
     # XXX eventually, based on link metadata about server wire protocol version
     # this is where we should choose a write command or a legacy op; the legacy
@@ -84,39 +86,59 @@ sub _send_delete {
     };
 
     my $query_bson  = MongoDB::BSON::encode_bson( $op_doc->{q},  0 );
-    my $op_bson = MongoDB::_Protocol::write_delete( $ns, $query_bson, $flags );
+    my $op_bson = MongoDB::_Protocol::write_delete( $args->{ns}, $query_bson, $flags );
 
-    return $self->_write_legacy_op( "delete", $link, $ns, $op_bson, $write_concern );
+    return $self->_write_legacy_op( "delete", $link, $op_bson, $op_doc, $args );
 }
 
 # returns a hashref with fields: response_flags, cursor_id, starting_from, number_returned, docs, address
 sub _send_get_more {
-    my ( $self, $link, $ns, $cursor_id, $size, $client ) = @_;
+    my ( $self, $link, $args ) = @_;
 
     my ( $op_bson, $request_id ) =
-      MongoDB::_Protocol::write_get_more( $ns, $cursor_id, $size );
+      MongoDB::_Protocol::write_get_more( @{$args}{qw/ns cursor_id batch_size/} );
 
-    my $result = $self->_write_and_receive( $link, $op_bson, $request_id, $client, 0 );
+    my $result = $self->_query_and_receive( $link, $op_bson, $request_id, $args->{client}, 0 );
     $result->{address} = $link->address;
     return $result;
 }
 
-# returns nothing if not using gle, otherwise returns gle document
+# Returns MongoDB::WriteResult
 sub _send_insert {
-    my ( $self, $link, $ns, $docs, $flags, $check_keys, $write_concern ) = @_;
-    # docs is arrayref of docs to insert
+    my ( $self, $link, $args ) = @_;
+    # $op_doc is document to insert
+    my $op_doc = $args->{op_doc};
 
     # XXX eventually, based on link metadata about server wire protocol version
     # this is where we should choose a write command or a legacy op; the legacy
     # op code follows
 
+    my $check_keys = $args->{check_keys};
     my $max_size = $link->max_bson_object_size;
-    my $docs_bson = join( "",
-        map { MongoDB::BSON::encode_bson( $_, $check_keys, $max_size ) } @$docs
-    );
-    my $op_bson = MongoDB::_Protocol::write_insert( $ns, $docs_bson, $flags );
+    my $doc_bson = MongoDB::BSON::encode_bson( $op_doc, $check_keys, $max_size );
+    my $op_bson = MongoDB::_Protocol::write_insert( $args->{ns}, $doc_bson, $args->{flags} );
 
-    return $self->_write_legacy_op( "insert", $link, $ns, $op_bson, $write_concern, $docs );
+    return $self->_write_legacy_op( "insert", $link, $op_bson, $op_doc, $args );
+}
+
+# Returns MongoDB::WriteResult
+sub _send_insert_batch {
+    my ( $self, $link, $args ) = @_;
+    # $op_doc is array ref of documents to insert
+    my $op_doc = $args->{op_doc};
+
+    # XXX eventually, based on link metadata about server wire protocol version
+    # this is where we should choose a write command or a legacy op; the legacy
+    # op code follows
+
+    my $check_keys = $args->{check_keys};
+    my $max_size   = $link->max_bson_object_size;
+    my $docs_bson  = join( "",
+        map { MongoDB::BSON::encode_bson( $_, $check_keys, $max_size ) } @$op_doc );
+    my $op_bson =
+      MongoDB::_Protocol::write_insert( $args->{ns}, $docs_bson, $args->{flags} );
+
+    return $self->_write_legacy_op( "insert", $link, $op_bson, undef, $args );
 }
 
 # returns nothing
@@ -128,10 +150,12 @@ sub _send_kill_cursors {
     return;
 }
 
-# returns nothing if not using gle, otherwise returns gle document
+# Returns MongoDB::WriteResult
 sub _send_update {
-    my ( $self, $link, $ns, $op_doc, $write_concern ) = @_;
+    my ( $self, $link, $args ) = @_;
+
     # $op_doc is { q: $query, u: $update, multi: $multi, upsert: $upsert }
+    my $op_doc = $args->{op_doc};
 
     # XXX eventually, based on link metadata about server wire protocol version
     # this is where we should choose a write command or a legacy op; the legacy
@@ -155,9 +179,9 @@ sub _send_update {
 
     my $query_bson  = MongoDB::BSON::encode_bson( $op_doc->{q},  0 );
     my $update_bson = MongoDB::BSON::encode_bson( $update, $is_replace, $max_size );
-    my $op_bson = MongoDB::_Protocol::write_update( $ns, $query_bson, $update_bson, $flags );
+    my $op_bson = MongoDB::_Protocol::write_update( $args->{ns}, $query_bson, $update_bson, $flags );
 
-    return $self->_write_legacy_op( "update", $link, $ns, $op_bson, $write_concern, $op_doc );
+    return $self->_write_legacy_op( "update", $link, $op_bson, $op_doc, $args );
 }
 
 # returns a QueryResult
@@ -170,7 +194,7 @@ sub _send_query {
     my ( $op_bson, $request_id ) =
       MongoDB::_Protocol::write_query( $ns, $query, $fields, $skip, $limit || $size, $flags );
 
-    my $result = $self->_write_and_receive( $link, $op_bson, $request_id, $client, 0 );
+    my $result = $self->_query_and_receive( $link, $op_bson, $request_id, $client, 0 );
 
     return MongoDB::QueryResult->new(
         _client    => $self,
@@ -183,7 +207,9 @@ sub _send_query {
 }
 
 sub _write_legacy_op {
-    my ( $self, $type, $link, $ns, $op_bson, $write_concern, $op_doc ) = @_;
+    my ( $self, $type, $link, $op_bson, $op_doc, $args ) = @_;
+
+    my $write_concern = $args->{write_concern};
 
     if ( ! $write_concern || ! $write_concern->is_safe ) {
         $link->write($op_bson);
@@ -195,21 +221,21 @@ sub _write_legacy_op {
         );
     }
 
-    my ($db_name) = $ns =~ /^([^.]+)/;
+    my ($db_name) = $args->{ns} =~ /^([^.]+)/;
     my @write_concern = %{ $write_concern->as_struct };
     my $gle = MongoDB::BSON::encode_bson( [ getlasterror => 1, @write_concern ], 0 );
     my ( $gle_bson, $request_id ) =
       MongoDB::_Protocol::write_query( "$db_name\.\$cmd", $gle, undef, 0, -1 );
 
     my $gle_result =
-      $self->_write_and_receive( $link, $op_bson . $gle_bson, $request_id, undef, 1 );
+      $self->_query_and_receive( $link, $op_bson . $gle_bson, $request_id, undef, 1 );
 
     return $self->_writeresult_from_gle( $link, $type, $gle_result->{docs}[0], $op_doc );
 }
 
 
 # XXX expands docs field; uses client for DBRef expansion, which should be abstracted somehow later
-sub _write_and_receive {
+sub _query_and_receive {
     my ( $self, $link, $op_bson, $request_id, $client, $is_cmd ) = @_;
 
     $link->write($op_bson);

@@ -581,10 +581,15 @@ sub _update_topology_from_link {
     my ( $self, $link ) = @_;
 
     my $start_time = [ gettimeofday() ];
-    my $is_master  = try {
-        $self->_send_admin_command( $link, [ ismaster => 1 ] )->result;
+    my $is_master = try {
+        my $op = {
+            command => MongoDB::_Query->new( spec => [ ismaster => 1 ] ),
+            flags   => {},
+        };
+        $self->_send_admin_command( $link, $op )->result;
     }
     catch {
+        warn $_;
         $self->_reset_address_to_unknown( $link->address, $_ );
         # retry a network error if server was previously known to us
         if (    $_->$_isa("MongoDB::NetworkError")

@@ -61,7 +61,9 @@ sub collection_names {
         3 => sub {
             my ( $client, $link ) = @_;
             my $cmd = Tie::IxHash->new( listCollections => 1 );
-            my $result = $client->_try_operation('_send_command', $link, $db_name, $cmd );
+            my $result = $client->_try_operation(
+                '_send_command', $link, { db => $db_name, command => MongoDB::_Query->new(spec => $cmd)}
+            );
             return map { $_->{name} } @{ $result->result->{collections} };
         },
     };

@@ -198,32 +198,32 @@ subtest "no . in key names" => sub {
     eval {
         $c->insert({"x.y" => "foo"});
     };
-    like($@, qr/documents for storage cannot contain/);
+    like($@, qr/documents for storage cannot contain/, "insert");
 
     eval {
         $c->insert({"x.y" => "foo", "bar" => "baz"});
     };
-    like($@, qr/documents for storage cannot contain/);
+    like($@, qr/documents for storage cannot contain/, "insert");
 
     eval {
         $c->insert({"bar" => "baz", "x.y" => "foo"});
     };
-    like($@, qr/documents for storage cannot contain/);
+    like($@, qr/documents for storage cannot contain/, "insert");
 
     eval {
         $c->insert({"bar" => {"x.y" => "foo"}});
     };
-    like($@, qr/documents for storage cannot contain/);
+    like($@, qr/documents for storage cannot contain/, "insert");
 
     eval {
         $c->batch_insert([{"x" => "foo"}, {"x.y" => "foo"}, {"y" => "foo"}]);
     };
-    like($@, qr/documents for storage cannot contain/);
+    like($@, qr/documents for storage cannot contain/, "batch insert");
 
     eval {
         $c->batch_insert([{"x" => "foo"}, {"foo" => ["x", {"x.y" => "foo"}]}, {"y" => "foo"}]);
     };
-    like($@, qr/documents for storage cannot contain/);
+    like($@, qr/documents for storage cannot contain/, "batch insert" );
 };
 
 subtest "empty key name" => sub {

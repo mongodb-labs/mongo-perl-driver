@@ -164,18 +164,19 @@ sub find_one {
 sub insert {
     my $self = shift;
     my ( $object, $options ) = @_;
-    $self->legacy_insert( @_ );
-}
 
-sub legacy_insert {
-    my ($self, $object, $options) = @_;
+    my $ids = [];
+    unless ($options->{'no_ids'}) {
+        $ids = $self->_add_oids([$object]);
+    }
 
-    # XXX if legacy insert doesn't croak on error for unsafe inserts, then we
-    # must trap the batch_insert and return whatever is appropriate (probably
-    # return undef as that's not a valid OID)
-    my ($id) = $self->batch_insert( [ $object ], $options);
+    # XXX ought to handle continue_on_error somehow here
+    my $wc = $self->_dynamic_write_concern( $options );
+    my $result = $self->_client->send_insert($self->full_name, $object, $wc, undef, 1);
 
-    return $id;
+    $result->assert;
+
+    return $ids->[0];
 }
 
 sub _add_oids {
@@ -233,7 +234,7 @@ sub batch_insert {
 
     # XXX ought to handle continue_on_error somehow here
     my $wc = $self->_dynamic_write_concern( $options );
-    my $result = $self->_client->send_insert($self->full_name, $docs, $wc, undef, 1);
+    my $result = $self->_client->send_insert_batch($self->full_name, $docs, $wc, undef, 1);
 
     $result->assert;
 
@@ -563,7 +564,9 @@ sub get_indexes {
             my ( $client, $link ) = @_;
             my $cmd = Tie::IxHash->new( listIndexes => $name );
             my $result = try {
-                $client->_try_operation('_send_command', $link, $db_name, $cmd )
+                $client->_try_operation(
+                    '_send_command', $link, { db => $db_name, command => MongoDB::_Query->new( spec => $cmd) }
+                )
             }
             catch {
                 if ( $_->$_isa("MongoDB::DatabaseError") ) {

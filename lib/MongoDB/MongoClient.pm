@@ -828,56 +828,93 @@ sub disconnect {
 #--------------------------------------------------------------------------#
 
 sub send_admin_command {
-    my ($self, $command, $read_preference) = @_;
+    my ( $self, $command, $read_preference ) = @_;
 
     $read_preference ||= MongoDB::ReadPreference->new;
-    my $link = $self->_topology->get_readable_link( $read_preference );
-    my $query = MongoDB::_Query->new( spec => $command );
-    my $flags = {};
-    $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
+    my $link = $self->_topology->get_readable_link($read_preference);
+    my $op   = {
+        command => MongoDB::_Query->new( spec => $command ),
+        flags   => {},
+    };
+    $self->_apply_read_prefs( $link, $op->{command}, $op->{flags}, $read_preference );
 
-    return $self->_try_operation('_send_admin_command', $link, $query->spec, $flags );
+    return $self->_try_operation( '_send_admin_command', $link, $op );
 }
 
 sub send_command {
-    my ($self, $db, $command, $read_preference) = @_;
+    my ( $self, $db, $command, $read_preference ) = @_;
 
     $read_preference ||= MongoDB::ReadPreference->new;
-    my $link = $self->_topology->get_readable_link( $read_preference );
-    my $query = MongoDB::_Query->new( spec => $command );
-    my $flags = {};
-    $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
+    my $link = $self->_topology->get_readable_link($read_preference);
+    my $op   = {
+        db      => $db,
+        command => MongoDB::_Query->new( spec => $command ),
+        flags   => {},
+    };
+    $self->_apply_read_prefs( $link, $op->{command}, $op->{flags}, $read_preference );
 
-    return $self->_try_operation('_send_command', $link, $db, $query->spec, $flags );
+    return $self->_try_operation( '_send_command', $link, $op );
 }
 
 sub send_delete {
     my ( $self, $ns, $op_doc, $write_concern ) = @_;
     # $op_doc is { q: $query, limit: $limit }
 
-    $write_concern ||= $self->_write_concern;
+    my $op = {
+        ns            => $ns,
+        op_doc        => $op_doc,
+        write_concern => $write_concern || $self->_write_concern
+    };
     my $link = $self->_topology->get_writable_link;
 
-    return $self->_try_operation('_send_delete', $link, $ns, $op_doc, $write_concern );
+    return $self->_try_operation( '_send_delete', $link, $op );
 }
 
 sub send_get_more {
     my ( $self, $address, $ns, $cursor_id, $size ) = @_;
 
-    my $link = $self->_topology->get_specific_link( $address );
+    my $op = {
+        ns         => $ns,
+        cursor_id  => $cursor_id,
+        batch_size => $size,
+        client     => $self,
+    };
 
-    return $self->_try_operation('_send_get_more', $link, $ns, $cursor_id, $size, $self );
+    my $link = $self->_topology->get_specific_link($address);
+
+    return $self->_try_operation( '_send_get_more', $link, $op );
 }
 
 sub send_insert {
-    my ( $self, $ns, $docs, $write_concern, $flags, $check_keys ) = @_;
+    my ( $self, $ns, $doc, $write_concern, $flags, $check_keys ) = @_;
 
-    $docs = [ $docs ] unless ref $docs eq 'ARRAY'; # XXX from BulkWrite
+    my $op = {
+        ns            => $ns,
+        op_doc        => $doc,
+        write_concern => $write_concern || $self->_write_concern,
+        check_keys    => $check_keys,
+        flags         => $flags || {},
+    };
 
     $write_concern ||= $self->_write_concern;
     my $link = $self->_topology->get_writable_link;
 
-    return $self->_try_operation('_send_insert', $link, $ns, $docs, $flags, $check_keys, $write_concern );
+    return $self->_try_operation( '_send_insert', $link, $op );
+}
+
+sub send_insert_batch {
+    my ( $self, $ns, $docs, $write_concern, $flags, $check_keys ) = @_;
+
+    my $op = {
+        ns            => $ns,
+        op_doc        => $docs,
+        write_concern => $write_concern || $self->_write_concern,
+        check_keys    => $check_keys,
+        flags         => $flags || {},
+    };
+    my $link = $self->_topology->get_writable_link;
+
+    return $self->_try_operation( '_send_insert_batch', $link, $op );
 }
 
 sub send_kill_cursors {
@@ -892,10 +929,14 @@ sub send_update {
     my ( $self, $ns, $op_doc, $write_concern ) = @_;
     # $op_doc is { q: $query, u: $update, multi: $multi, upsert: $upsert }
 
-    $write_concern ||= $self->_write_concern;
+    my $op = {
+        ns => $ns,
+        op_doc => $op_doc,
+        write_concern => $write_concern || $self->_write_concern
+    };
     my $link = $self->_topology->get_writable_link;
 
-    return $self->_try_operation('_send_update', $link, $ns, $op_doc, $write_concern );
+    return $self->_try_operation('_send_update', $link, $op);
 }
 
 # XXX eventually, passing $self to _send_query should go away and we should
