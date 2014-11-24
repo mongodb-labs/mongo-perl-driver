@@ -38,12 +38,29 @@ has _client => (
     required => 1,
 );
 
+=attr name
+
+The name of the database.
+
+=cut
+
 has name => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
 );
 
+#--------------------------------------------------------------------------#
+# methods
+#--------------------------------------------------------------------------#
+
+=method collection_names
+
+    my @collections = $database->collection_names;
+
+Returns the list of collections in this database.
+
+=cut
 
 sub collection_names {
     my ($self)   = @_;
@@ -70,6 +87,15 @@ sub collection_names {
     return $self->_client->send_versioned_read($variants);
 }
 
+=method get_collection ($name)
+
+    my $collection = $database->get_collection('foo');
+
+Returns a L<MongoDB::Collection> for the collection called C<$name> within this
+database.
+
+=cut
+
 sub get_collection {
     my ($self, $collection_name) = @_;
     return MongoDB::Collection->new(
@@ -78,6 +104,17 @@ sub get_collection {
     );
 }
 
+=method get_gridfs ($prefix?)
+
+    my $grid = $database->get_gridfs;
+
+Returns a L<MongoDB::GridFS> for storing and retrieving files from the database.
+Default prefix is "fs", making C<$grid-E<gt>files> "fs.files" and C<$grid-E<gt>chunks>
+"fs.chunks".
+
+See L<MongoDB::GridFS> for more information.
+
+=cut
 
 sub get_gridfs {
     my ($self, $prefix) = @_;
@@ -89,123 +126,20 @@ sub get_gridfs {
     );
 }
 
+=method drop
+
+    $database->drop;
+
+Deletes the database.
+
+=cut
 
 sub drop {
     my ($self) = @_;
     return $self->run_command({ 'dropDatabase' => 1 });
 }
 
-
-sub last_error {
-    my ($self, $options) = @_;
-
-    my $cmd = Tie::IxHash->new("getlasterror" => 1);
-    if ($options) {
-        $cmd->Push("w", $options->{w})                  if $options->{w};
-        $cmd->Push("wtimeout", $options->{wtimeout})    if $options->{wtimeout};
-        $cmd->Push("fsync", $options->{fsync})          if $options->{fsync};
-        $cmd->Push("j", 1)                              if $options->{j};
-    }
-                                                        
-    return $self->run_command($cmd);
-}
-
-
-sub run_command {
-    my ($self, $command, $read_pref) = @_;
-
-    if ( $read_pref && ref($read_pref) eq 'HASH' ) {
-        $read_pref = MongoDB::ReadPreference->new($read_pref);
-    }
-
-    my $obj = $self->_client->send_command( $self->name, $command, $read_pref );
-
-    return $obj->result;
-}
-
-sub eval {
-    my ($self, $code, $args, $nolock) = @_;
-
-    $nolock = boolean::false unless defined $nolock;
-
-    my $cmd = tie(my %hash, 'Tie::IxHash');
-    %hash = ('$eval' => $code,
-             'args' => $args,
-             'nolock' => $nolock);
-
-    my $result = $self->run_command($cmd);
-    if (ref $result eq 'HASH' && exists $result->{'retval'}) {
-        return $result->{'retval'};
-    }
-    else {
-        return $result;
-    }
-}
-
-__PACKAGE__->meta->make_immutable;
-
-1;
-
-__END__
-
-
-=head1 NAME
-
-MongoDB::Database - A Mongo database
-
-=head1 SYNOPSIS
-
-The MongoDB::Database class accesses to a database.
-
-    # accesses the foo database
-    my $db = $connection->foo;
-
-You can also access databases with the L<MongoDB::MongoClient/"get_database($name)">
-method.
-
-=head1 SEE ALSO
-
-Core documentation on databases: L<http://dochub.mongodb.org/core/databases>.
-
-=head1 ATTRIBUTES
-
-=head2 name
-
-The name of the database.
-
-=head1 METHODS
-
-=head2 collection_names
-
-    my @collections = $database->collection_names;
-
-Returns the list of collections in this database.
-
-=head2 get_collection ($name)
-
-    my $collection = $database->get_collection('foo');
-
-Returns a L<MongoDB::Collection> for the collection called C<$name> within this
-database.
-
-=head2 get_gridfs ($prefix?)
-
-    my $grid = $database->get_gridfs;
-
-Returns a L<MongoDB::GridFS> for storing and retrieving files from the database.
-Default prefix is "fs", making C<$grid-E<gt>files> "fs.files" and C<$grid-E<gt>chunks>
-"fs.chunks".
-
-See L<MongoDB::GridFS> for more information.
-
-=head2 drop
-
-    $database->drop;
-
-Deletes the database.
-
-
-=head2 last_error($options?)
+=method last_error($options?)
 
     my $err = $db->last_error({w => 2});
 
@@ -321,7 +255,23 @@ occurred).
 
 See L<MongoDB::MongoClient/w> for more information.
 
-=head2 run_command
+=cut
+
+sub last_error {
+    my ($self, $options) = @_;
+
+    my $cmd = Tie::IxHash->new("getlasterror" => 1);
+    if ($options) {
+        $cmd->Push("w", $options->{w})                  if $options->{w};
+        $cmd->Push("wtimeout", $options->{wtimeout})    if $options->{wtimeout};
+        $cmd->Push("fsync", $options->{fsync})          if $options->{fsync};
+        $cmd->Push("j", 1)                              if $options->{j};
+    }
+                                                        
+    return $self->run_command($cmd);
+}
+
+=method run_command
 
     my $result = $database->run_command([ some_command => 1 ]);
 
@@ -353,7 +303,21 @@ There are a few examples of database commands in the
 L<MongoDB::Examples/"DATABASE COMMANDS"> section.  See also core documentation
 on database commands: L<http://dochub.mongodb.org/core/commands>.
 
-=head2 eval ($code, $args?, $nolock?)
+=cut
+
+sub run_command {
+    my ($self, $command, $read_pref) = @_;
+
+    if ( $read_pref && ref($read_pref) eq 'HASH' ) {
+        $read_pref = MongoDB::ReadPreference->new($read_pref);
+    }
+
+    my $obj = $self->_client->send_command( $self->name, $command, $read_pref );
+
+    return $obj->result;
+}
+
+=method eval ($code, $args?, $nolock?)
 
     my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
 
@@ -370,5 +334,51 @@ passed to the function.  C<$nolock> is a L<boolean> value.  For more examples of
 using eval see
 L<http://www.mongodb.org/display/DOCS/Server-side+Code+Execution#Server-sideCodeExecution-Using{{db.eval%28%29}}>.
 
+=cut
 
+sub eval {
+    my ($self, $code, $args, $nolock) = @_;
 
+    $nolock = boolean::false unless defined $nolock;
+
+    my $cmd = tie(my %hash, 'Tie::IxHash');
+    %hash = ('$eval' => $code,
+             'args' => $args,
+             'nolock' => $nolock);
+
+    my $result = $self->run_command($cmd);
+    if (ref $result eq 'HASH' && exists $result->{'retval'}) {
+        return $result->{'retval'};
+    }
+    else {
+        return $result;
+    }
+}
+
+__PACKAGE__->meta->make_immutable;
+
+1;
+
+__END__
+
+=head1 SYNOPSIS
+
+    # get a Database object via MongoDB::MongoClient
+    my $db   = $client->get_database("foo");
+
+    # get a Collection via the Database object
+    my $coll = $db->get_collection("people");
+
+    # run a command on a database
+    my $res = $db->run_command([ismaster => 1]);
+
+=head1 DESCRIPTION
+
+This class models a MongoDB database.  Use it to construct
+L<MongoDB::Collection> objects. It also provides the L</run_command> method and
+some convenience methods that use it.
+
+Generally, you never construct one of these directly with C<new>.  Instead, you
+call C<get_database> on a L<MongoDB::MongoClient> object.
+
+=cut
