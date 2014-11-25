@@ -39,7 +39,7 @@ my $conn = build_client();
 my $testdb = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type = server_type($conn);
-my $coll;
+my $coll = $testdb->get_collection('test_collection');
 my $id;
 my $obj;
 my $ok;
@@ -48,16 +48,23 @@ my $tied;
 
 
 # get_collection
-{
-    $testdb->drop;
+subtest get_collection => sub {
+    my ( $db, $c );
 
-    $coll = $testdb->get_collection('test_collection');
-    isa_ok($coll, 'MongoDB::Collection');
+    ok( $c = $testdb->get_collection('foo'), "get_collection(NAME)" );
+    isa_ok( $c, 'MongoDB::Collection' );
+    is( $c->name, 'foo', 'get name' );
 
-    is($coll->name, 'test_collection', 'get name');
+    my $wc = MongoDB::WriteConcern->new( w => 2 );
 
-    $testdb->drop;
-}
+    ok( $c = $testdb->get_collection( 'foo', { write_concern => $wc } ),
+        "get_collection(NAME, OPTION)" );
+    is( $c->write_concern->w, 2, "coll-level write concern as expected" );
+
+    ok( $c = $testdb->get_collection( 'foo', { write_concern => { w => 3 } } ),
+        "get_collection(NAME, OPTION)" );
+    is( $c->write_concern->w, 3, "coll-level write concern coerces" );
+};
 
 # very small insert
 {
@@ -75,6 +82,16 @@ my $tied;
 
     $coll->remove;
 }
+
+subtest write_concern => sub {
+    my $c;
+
+    ok( $c = $testdb->get_collection( 'foo', { write_concern => { w => 999 } } ),
+        "get collection with w=999" );
+    my $err = exception { $c->insert( { _id => 1 } ) };
+    is( ref($err), 'MongoDB::DatabaseError',
+        "collection-level write concern applies to insert" );
+};
 
 # insert
 {

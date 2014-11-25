@@ -50,6 +50,20 @@ has name => (
     required => 1,
 );
 
+=attr write_concern
+
+A L<MongoDB::WriteConcern> object.  It may be initialized with a hash
+reference that will be coerced into a new MongoDB::WriteConcern object.
+
+=cut
+
+has write_concern => (
+    is       => 'ro',
+    isa      => 'WriteConcern',
+    required => 1,
+    coerce   => 1,
+);
+
 #--------------------------------------------------------------------------#
 # methods
 #--------------------------------------------------------------------------#
@@ -87,18 +101,25 @@ sub collection_names {
     return $self->_client->send_versioned_read($variants);
 }
 
-=method get_collection ($name)
+=method get_collection
 
     my $collection = $database->get_collection('foo');
+    my $collection = $database->get_collection('foo', $options);
 
 Returns a L<MongoDB::Collection> for the collection called C<$name> within this
 database.
 
+It takes an optional hash reference of options that are passed to the
+L<MongoDB::Collection> constructor.
+
 =cut
 
 sub get_collection {
-    my ($self, $collection_name) = @_;
+    my ($self, $collection_name, $options) = @_;
     return MongoDB::Collection->new(
+        write_concern => $self->write_concern,
+        ( $options ? %$options : () ),
+        # not allowed to be overridden by options
         _database => $self,
         name      => $collection_name,
     );

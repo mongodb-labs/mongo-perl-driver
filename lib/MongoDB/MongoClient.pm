@@ -1359,19 +1359,27 @@ sub database_names {
     return @databases;
 }
 
-=method get_database($name)
+=method get_database
 
     my $database = $client->get_database('foo');
+    my $database = $client->get_database('foo', $options);
 
-Returns a L<MongoDB::Database> instance for the database with the given C<$name>.
+Returns a L<MongoDB::Database> instance for the database with the given
+C<$name>.
+
+It takes an optional hash reference of options that are passed to the
+L<MongoDB::Database> constructor.
 
 =cut
 
 sub get_database {
-    my ($self, $database_name) = @_;
+    my ( $self, $database_name, $options ) = @_;
     return MongoDB::Database->new(
-        _client     => $self,
-        name        => $database_name,
+        write_concern => $self->_write_concern,
+        ( $options ? %$options : () ),
+        # not allowed to be overridden by options
+        _client       => $self,
+        name          => $database_name,
     );
 }
 

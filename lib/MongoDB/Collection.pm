@@ -73,6 +73,20 @@ has full_name => (
     builder => '_build_full_name',
 );
 
+=attr write_concern
+
+A L<MongoDB::WriteConcern> object.  It may be initialized with a hash
+reference that will be coerced into a new MongoDB::WriteConcern object.
+
+=cut
+
+has write_concern => (
+    is       => 'ro',
+    isa      => 'WriteConcern',
+    required => 1,
+    coerce   => 1,
+);
+
 sub _build__client {
     my ($self) = @_;
     return $self->_database->_client;
@@ -1027,7 +1041,7 @@ sub initialize_unordered_bulk_op {
 sub _dynamic_write_concern {
     my ( $self, $opts ) = @_;
     if ( !exists( $opts->{safe} ) || $opts->{safe} ) {
-        return $self->_client->_write_concern;
+        return $self->write_concern;
     }
     else {
         return MongoDB::WriteConcern->new( w => 0 );

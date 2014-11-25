@@ -26,25 +26,32 @@ use MongoDB::Timestamp; # needed if db is being run as master
 
 use MongoDB;
 use MongoDB::Error;
+use MongoDB::WriteConcern;
 
 use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db server_version/;
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
+my $db_name = $testdb->name;
 my $server_version = server_version($conn);
 
-# get_database
-{
-    isa_ok($conn, 'MongoDB::MongoClient');
+subtest 'get_database' => sub {
+    isa_ok( $conn, 'MongoDB::MongoClient' );
 
-    my $db = $conn->get_database($testdb->name);
-    $db->drop;
+    my $db;
+    ok( $db = $conn->get_database($db_name), "get_database(NAME)" );
+    isa_ok( $db, 'MongoDB::Database' );
 
-    isa_ok($db, 'MongoDB::Database');
+    my $wc = MongoDB::WriteConcern->new( w => 2 );
+    ok( $db = $conn->get_database( $db_name, { write_concern => $wc } ),
+        "get_database(NAME, OPTIONS)" );
+    is( $db->write_concern->w, 2, "DB-level write concern as expected" );
 
-    $testdb->drop;
-}
+    ok( $db = $conn->get_database( $db_name, { write_concern => { w => 3 } } ),
+        "get_database(NAME, OPTIONS)" );
+    is( $db->write_concern->w, 3, "DB-level write concern coerces" );
+};
 
 subtest 'run_command' => sub {
 

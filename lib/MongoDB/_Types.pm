@@ -60,6 +60,7 @@ class_type 'MongoDBDatabase'   => { class => 'MongoDB::Database' };
 class_type 'booleanpm'         => { class => 'boolean' };
 class_type 'MongoDBQuery'      => { class => 'MongoDB::_Query' };
 class_type 'ReadPreference'    => { class => 'MongoDB::ReadPreference' };
+class_type 'WriteConcern'      => { class => 'MongoDB::WriteConcern' };
 
 subtype ArrayOfHashRef => as 'ArrayRef[HashRef]';
 
@@ -115,6 +116,8 @@ coerce ReadPreference => from 'Str' =>
   via { MongoDB::ReadPreference->new( mode => $_ ) };
 coerce ReadPreference => from 'ArrayRef' =>
   via { MongoDB::ReadPreference->new( mode => $_->[0], tag_sets => $_->[1] ) };
+
+coerce WriteConcern => from 'HashRef' => via { MongoDB::WriteConcern->new($_) };
 
 coerce ErrorStr => from 'Str' => via { $_ || "unspecified error" };
 
