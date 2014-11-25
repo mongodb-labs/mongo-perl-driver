@@ -158,10 +158,8 @@ subtest "bad UTF8" => sub {
 };
 
 subtest "undefined" => sub {
-    my $err = $testdb->last_error();
-    ok(!$err->{err}, "undef");
-    $err->{err} = "foo";
-    is($err->{err}, "foo", "assign to undef");
+    my $err = $testdb->run_command([getLastError => 1]);
+    ok(!defined $err->{err}, "undef");
 };
 
 subtest "circular references" => sub {

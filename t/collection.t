@@ -164,7 +164,7 @@ my $tied;
         ok($res);
     }
 
-    my $err = $testdb->last_error;
+    my $err = $testdb->run_command([getLastError => 1]);
     is($err->{ok}, 1);
     is($err->{err}, undef);
 

@@ -223,136 +223,26 @@ sub eval {
     }
 }
 
-=method last_error($options?)
+=method last_error (DEPRECATED)
 
     my $err = $db->last_error({w => 2});
 
-Finds out if the last database operation completed successfully.  If the last
-operation did not complete successfully, returns a hash reference of information
-about the error that occurred.
+Because write operations now return result information, this function is
+deprecated.
 
-The optional C<$options> parameter is a hash reference that can contain any of
-the following:
+Finds out if the last database operation completed successfully. If a hash
+reference of options is provided, they are included with the database command.
+Throws an exception if C<getLastError> itself fails.
 
-=over 4
-
-=item w
-
-Guarantees that the previous operation will be replicated to C<w> servers before
-this command will return success. See C<MongoDB::MongoClient> for more
-information.
-
-=item wtimeout
-
-Milliseconds to wait for C<w> copies of the data to be made.  This parameter
-should generally be specified, as the database will otherwise wait forever if
-C<w> copies cannot be made.
-
-=item fsync
-
-If true, behaves identically to C<j> if journaling has been turned on for C<mongod>. 
-
-If C<mongod> is not running with journaling, then this option requests that writes be 
-immediately C<sync>ed to disk if true.
-
-This option can not be used simultaneously with the C<j> flag.
-
-=item j
-
-If true, the client will block until write operations have been committed to the
-server's journal. Prior to MongoDB 2.6, this option was ignored if the server was 
-running without journaling. Starting with MongoDB 2.6, write operations will fail 
-if this option is used when the server is running without journaling.
-
-=back
-
-C<last_error> returns a hash with fields that vary, depending on what the
-previous operation was and if it succeeded or failed.  If the last operation
-(before the C<last_error> call) failed, either:
-
-=over 4
-
-=item C<err> will be set or
-
-=item C<errmsg> will be set and C<ok> will be 0.
-
-=back
-
-If C<err> is C<null> and C<ok> is 1, the previous operation succeeded.
-
-The fields in the hash returned can include (but are not limited to):
-
-=over 4
-
-=item C<ok>
-
-This should almost be 1 (unless C<last_error> itself failed).
-
-=item C<err>
-
-If this field is non-null, an error occurred on the previous operation. If this
-field is set, it will be a string describing the error that occurred.
-
-=item C<code>
-
-If a database error occurred, the relevant error code will be passed back to the
-client.
-
-=item C<errmsg>
-
-This field is set if something goes wrong with a database command.  It is
-coupled with C<ok> being 0.  For example, if C<w> is set and times out,
-C<errmsg> will be set to "timed out waiting for slaves" and C<ok> will be 0. If
-this field is set, it will be a string describing the error that occurred.
-
-=item C<n>
-
-If the last operation was an update, upsert, or a remove, the number of
-objects affected will be returned.
-
-=item C<wtimeout>
-
-If the previous option timed out waiting for replication.
-
-=item C<waited>
-
-How long the operation waited before timing out.
-
-=item C<wtime>
-
-If C<w> was set and the operation succeeded, how long it took to replicate to
-C<w> servers.
-
-=item C<upserted>
-
-If an upsert occurred, this field will contain the new record's C<_id> field. For
-upserts, either this field or C<updatedExisting> will be present (unless an
-error occurred).
-
-=item C<updatedExisting>
-
-If an upsert updated an existing element, this field will be C<true>.  For
-upserts, either this field or C<upserted> will be present (unless an error
-occurred).
-
-=back
-
-See L<MongoDB::MongoClient/w> for more information.
+See the
+L<getLastError|http://docs.mongodb.org/manual/reference/command/getLastError/>
+documentation for more on valid options and results.
 
 =cut
 
 sub last_error {
-    my ($self, $options) = @_;
-
-    my $cmd = Tie::IxHash->new("getlasterror" => 1);
-    if ($options) {
-        $cmd->Push("w", $options->{w})                  if $options->{w};
-        $cmd->Push("wtimeout", $options->{wtimeout})    if $options->{wtimeout};
-        $cmd->Push("fsync", $options->{fsync})          if $options->{fsync};
-        $cmd->Push("j", 1)                              if $options->{j};
-    }
-                                                        
-    return $self->run_command($cmd);
+    my ( $self, $opt ) = @_;
+    return $self->run_command( [ getlasterror => 1, ( $opt ? %$opt : () ) ] );
 }
 
 __PACKAGE__->meta->make_immutable;
