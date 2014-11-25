@@ -388,7 +388,7 @@ sub _legacy_index_insert {
     my ($self, $doc, $options) = @_;
 
     my $wc = $self->_dynamic_write_concern( $options );
-    my $result = $self->_client->send_insert($self->full_name, [$doc], $wc, undef, 0);
+    my $result = $self->_client->send_insert($self->full_name, $doc, $wc, undef, 0);
 
     $result->assert;
 
