@@ -497,7 +497,8 @@ subtest "multiple update" => sub {
     is($obj->{'y'}, 4, 'y == 4');
 
     # check with upsert if there are no matches
-    $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multiple' => 1});
+    # also check that 'multi' is allowed
+    $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multi' => 1});
     ok($coll->find_one({"z" => 4}));
 
     is($coll->count(), 5);
