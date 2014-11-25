@@ -139,6 +139,90 @@ sub drop {
     return $self->run_command({ 'dropDatabase' => 1 });
 }
 
+=method run_command
+
+    my $result = $database->run_command([ some_command => 1 ]);
+
+    my $result = $database->run_command(
+        [ some_command => 1 ],
+        { mode => 'secondaryPreferred' }
+    );
+
+This method runs a database command.  The first argument must be a document
+with the command and its arguments.  It should be given as an array reference
+of key-value pairs or a L<Tie::IxHash> object with the command name as the
+first key.  The use of a hash reference will only reliably work for commands
+without additional parameters.
+
+By default, commands are run with a read preference of 'primary'.  An optional
+second argument may specify an alternative read preference.  If given, it must
+be a L<MongoDB::ReadPreference> object or a hash reference that can be used to
+construct one.
+
+It returns the result of the command (a hash reference) on success or throws a
+L<MongoDB::DatabaseError|MongoDB::Error/MongoDB::DatabaseError> exception if
+the command fails.
+
+For a list of possible database commands, run:
+
+    my $commands = $db->run_command([listCommands => 1]);
+
+There are a few examples of database commands in the
+L<MongoDB::Examples/"DATABASE COMMANDS"> section.  See also core documentation
+on database commands: L<http://dochub.mongodb.org/core/commands>.
+
+=cut
+
+sub run_command {
+    my ($self, $command, $read_pref) = @_;
+
+    if ( $read_pref && ref($read_pref) eq 'HASH' ) {
+        $read_pref = MongoDB::ReadPreference->new($read_pref);
+    }
+
+    my $obj = $self->_client->send_command( $self->name, $command, $read_pref );
+
+    return $obj->result;
+}
+
+=method eval ($code, $args?, $nolock?)
+
+    my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
+
+Evaluate a JavaScript expression on the Mongo server. The C<$code> argument can
+be a string or an instance of L<MongoDB::Code>.  The C<$args> are an optional
+array of arguments to be passed to the C<$code> function.  C<$nolock> (default
+C<false>) prevents the eval command from taking the global write lock before
+evaluating the JavaScript.
+
+C<eval> is useful if you need to touch a lot of data lightly; in such a scenario
+the network transfer of the data could be a bottleneck. The C<$code> argument
+must be a JavaScript function. C<$args> is an array of parameters that will be
+passed to the function.  C<$nolock> is a L<boolean> value.  For more examples of
+using eval see
+L<http://www.mongodb.org/display/DOCS/Server-side+Code+Execution#Server-sideCodeExecution-Using{{db.eval%28%29}}>.
+
+=cut
+
+sub eval {
+    my ($self, $code, $args, $nolock) = @_;
+
+    $nolock = boolean::false unless defined $nolock;
+
+    my $cmd = tie(my %hash, 'Tie::IxHash');
+    %hash = ('$eval' => $code,
+             'args' => $args,
+             'nolock' => $nolock);
+
+    my $result = $self->run_command($cmd);
+    if (ref $result eq 'HASH' && exists $result->{'retval'}) {
+        return $result->{'retval'};
+    }
+    else {
+        return $result;
+    }
+}
+
 =method last_error($options?)
 
     my $err = $db->last_error({w => 2});
@@ -269,90 +353,6 @@ sub last_error {
     }
                                                         
     return $self->run_command($cmd);
-}
-
-=method run_command
-
-    my $result = $database->run_command([ some_command => 1 ]);
-
-    my $result = $database->run_command(
-        [ some_command => 1 ],
-        { mode => 'secondaryPreferred' }
-    );
-
-This method runs a database command.  The first argument must be a document
-with the command and its arguments.  It should be given as an array reference
-of key-value pairs or a L<Tie::IxHash> object with the command name as the
-first key.  The use of a hash reference will only reliably work for commands
-without additional parameters.
-
-By default, commands are run with a read preference of 'primary'.  An optional
-second argument may specify an alternative read preference.  If given, it must
-be a L<MongoDB::ReadPreference> object or a hash reference that can be used to
-construct one.
-
-It returns the result of the command (a hash reference) on success or throws a
-L<MongoDB::DatabaseError|MongoDB::Error/MongoDB::DatabaseError> exception if
-the command fails.
-
-For a list of possible database commands, run:
-
-    my $commands = $db->run_command([listCommands => 1]);
-
-There are a few examples of database commands in the
-L<MongoDB::Examples/"DATABASE COMMANDS"> section.  See also core documentation
-on database commands: L<http://dochub.mongodb.org/core/commands>.
-
-=cut
-
-sub run_command {
-    my ($self, $command, $read_pref) = @_;
-
-    if ( $read_pref && ref($read_pref) eq 'HASH' ) {
-        $read_pref = MongoDB::ReadPreference->new($read_pref);
-    }
-
-    my $obj = $self->_client->send_command( $self->name, $command, $read_pref );
-
-    return $obj->result;
-}
-
-=method eval ($code, $args?, $nolock?)
-
-    my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
-
-Evaluate a JavaScript expression on the Mongo server. The C<$code> argument can
-be a string or an instance of L<MongoDB::Code>.  The C<$args> are an optional
-array of arguments to be passed to the C<$code> function.  C<$nolock> (default
-C<false>) prevents the eval command from taking the global write lock before
-evaluating the JavaScript.
-
-C<eval> is useful if you need to touch a lot of data lightly; in such a scenario
-the network transfer of the data could be a bottleneck. The C<$code> argument
-must be a JavaScript function. C<$args> is an array of parameters that will be
-passed to the function.  C<$nolock> is a L<boolean> value.  For more examples of
-using eval see
-L<http://www.mongodb.org/display/DOCS/Server-side+Code+Execution#Server-sideCodeExecution-Using{{db.eval%28%29}}>.
-
-=cut
-
-sub eval {
-    my ($self, $code, $args, $nolock) = @_;
-
-    $nolock = boolean::false unless defined $nolock;
-
-    my $cmd = tie(my %hash, 'Tie::IxHash');
-    %hash = ('$eval' => $code,
-             'args' => $args,
-             'nolock' => $nolock);
-
-    my $result = $self->run_command($cmd);
-    if (ref $result eq 'HASH' && exists $result->{'retval'}) {
-        return $result->{'retval'};
-    }
-    else {
-        return $result;
-    }
 }
 
 __PACKAGE__->meta->make_immutable;
