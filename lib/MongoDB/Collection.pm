@@ -47,11 +47,24 @@ has _client => (
     builder => '_build__client',
 );
 
+=attr name
+
+The name of the collection.
+
+=cut
+
 has name => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
 );
+
+=attr full_name
+
+The full_name of the collection, including the namespace of the database it's
+in.
+
+=cut
 
 has full_name => (
     is      => 'ro',
@@ -72,6 +85,28 @@ sub _build_full_name {
     return "${db_name}.${name}";
 }
 
+
+=method get_collection ($name)
+
+    my $collection = $database->get_collection('foo');
+
+Returns a L<MongoDB::Collection> for the collection called C<$name> within this
+collection.
+
+=cut
+
+=method get_collection
+
+Collection names can be chained together to access subcollections.  For
+instance, the collection C<foo.bar> can be accessed with either:
+
+    my $collection = $db->get_collection( 'foo' )->get_collection( 'bar' );
+
+or
+
+    my $collection = $db->get_collection( 'foo.bar' );
+
+=cut
 
 sub get_collection {
     my $self = shift @_;
@@ -106,6 +141,24 @@ sub to_index_string {
     return join("_", @name);
 }
 
+=method find($query)
+
+    my $cursor = $collection->find({ i => { '$gt' => 42 } });
+
+Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
+C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
+even number of elements).
+
+The set of fields returned can be limited through the use of the
+C<MongoDB::Cursor::fields> method on the resulting L<MongoDB::Cursor> object.
+Other commonly used cursor methods are C<MongoDB::Cursor::limit>,
+C<MongoDB::Cursor::skip>, and C<MongoDB::Cursor::sort>.
+
+See also core documentation on querying:
+L<http://docs.mongodb.org/manual/core/read/>.
+
+=cut
+
 sub find {
     my ($self, $query, $attrs) = @_;
     # old school options - these should be set with MongoDB::Cursor methods
@@ -135,12 +188,55 @@ sub find {
     return $cursor;
 }
 
+=method query($query, $attrs?)
+
+Identical to C<MongoDB::Collection::find>, described above.
+
+    my $cursor = $collection->query->limit(10)->skip(10);
+
+    my $cursor = $collection->query({ location => "Vancouver" })->sort({ age => 1 });
+
+
+Valid query attributes are:
+
+=over 4
+
+=item limit
+
+Limit the number of results.
+
+=item skip
+
+Skip a number of results.
+
+=item sort_by
+
+Order results.
+
+=back
+
+=cut
+
 sub query {
     my ($self, $query, $attrs) = @_;
 
     return $self->find($query, $attrs);
 }
 
+
+=method find_one($query, $fields?, $options?)
+
+    my $object = $collection->find_one({ name => 'Resi' });
+    my $object = $collection->find_one({ name => 'Resi' }, { name => 1, age => 1});
+    my $object = $collection->find_one({ name => 'Resi' }, {}, {max_time_ms => 100});
+
+Executes the given C<$query> and returns the first object matching it.
+C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
+even number of elements).  If C<$fields> is specified, the resulting document
+will only include the fields given (and the C<_id> field) which can cut down on
+wire traffic. If C<$options> is specified, the cursor will be set with the contained options.
+
+=cut
 
 sub find_one {
     my ($self, $query, $fields, $options) = @_;
@@ -160,6 +256,25 @@ sub find_one {
 
     return $cursor->next;
 }
+
+=method insert ($object, $options?)
+
+    my $id1 = $coll->insert({ name => 'mongo', type => 'database' });
+    my $id2 = $coll->insert({ name => 'mongo', type => 'database' }, {safe => 1});
+
+Inserts the given C<$object> into the database and returns it's id
+value. C<$object> can be a hash reference, a reference to an array with an
+even number of elements, or a L<Tie::IxHash>.  The id is the C<_id> value
+specified in the data or a L<MongoDB::OID>.
+
+The optional C<$options> parameter can be used to specify if this is a safe
+insert.  A safe insert will check with the database if the insert succeeded and
+croak if it did not.  You can also check if the insert succeeded by doing an
+unsafe insert, then calling L<MongoDB::Database/"last_error($options?)">.
+
+See also core documentation on insert: L<http://docs.mongodb.org/manual/core/create/>.
+
+=cut
 
 sub insert {
     my $self = shift;
@@ -222,6 +337,20 @@ sub _add_oids {
     return \@ids;
 }
 
+=method batch_insert (\@array, $options)
+
+    my @ids = $collection->batch_insert([{name => "Joe"}, {name => "Fred"}, {name => "Sam"}]);
+
+Inserts each of the documents in the array into the database and returns an
+array of their _id fields.
+
+The optional C<$options> parameter can be used to specify if this is a safe
+insert.  A safe insert will check with the database if the insert succeeded and
+croak if it did not. You can also check if the inserts succeeded by doing an
+unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
+
+=cut
+
 sub batch_insert {
     my ($self, $docs, $options) = @_;
 
@@ -252,6 +381,40 @@ sub _legacy_index_insert {
     return 1;
 }
 
+=method update (\%criteria, \%object, \%options?)
+
+    $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
+
+Updates an existing C<$object> matching C<$criteria> in the database.
+
+Returns 1 unless the C<safe> option is set. If C<safe> is set, this will return
+a hash of information about the update, including number of documents updated
+(C<n>).  If C<safe> is set and the update fails, C<update> will croak. You can
+also check if the update succeeded by doing an unsafe update, then calling
+L<MongoDB::Database/"last_error($options?)">.
+
+C<update> can take a hash reference of options.  The options currently supported
+are:
+
+=over
+
+=item C<upsert>
+If no object matching C<$criteria> is found, C<$object> will be inserted.
+
+=item C<multiple>
+All of the documents that match C<$criteria> will be updated, not just
+the first document found. (Only available with database version 1.1.3 and
+newer.)
+
+=item C<safe>
+If the update fails and safe is set, the update will croak.
+
+=back
+
+See also core documentation on update: L<http://docs.mongodb.org/manual/core/update/>.
+
+=cut
+
 sub update {
     my ( $self, $query, $object, $opts ) = @_;
 
@@ -274,6 +437,18 @@ sub update {
     return $result;
 }
 
+=method find_and_modify
+
+    my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
+
+Perform an atomic update. C<find_and_modify> guarantees that nothing else will come along
+and change the queried documents before the update is performed.
+
+Returns the old version of the document, unless C<new => 1> is specified. If no documents
+match the query, it returns nothing.
+
+=cut
+
 sub find_and_modify {
     my ( $self, $opts ) = @_;
 
@@ -292,6 +467,53 @@ sub find_and_modify {
     return;
 }
 
+
+=method aggregate
+
+    my $result = $collection->aggregate( [ ... ] );
+
+Run a query using the MongoDB 2.2+ aggregation framework. The first argument is an array-ref of
+aggregation pipeline operators.
+
+The type of return value from C<aggregate> depends on how you use it.
+
+=over 4
+
+=item * By default, the aggregation framework returns a document with an embedded array of results, and
+the C<aggregate> method returns a reference to that array.
+
+=item * MongoDB 2.6+ supports returning cursors from aggregation queries, allowing you to bypass
+the 16MB size limit of documents. If you specifiy a C<cursor> option, the C<aggregate> method
+will return a L<MongoDB::QueryResult> object which can be iterated in the normal fashion.
+
+    my $cursor = $collection->aggregate( [ ... ], { cursor => 1 } );
+
+Specifying a C<cursor> option will cause an error on versions of MongoDB below 2.6.
+
+The C<cursor> option may also have some useful options of its own. Currently, the only one
+is C<batchSize>, which allows you to control how frequently the cursor must go back to the
+database for more documents.
+
+    my $cursor = $collection->aggregate( [ ... ], { cursor => { batchSize => 10 } } );
+
+=item * MongoDB 2.6+ supports an C<explain> option to aggregation queries to retrieve data
+about how the server will process a query pipeline.
+
+    my $result = $collection->aggregate( [ ... ], { explain => 1 } );
+
+In this case, C<aggregate> will return a document (not an array) containing the explanation
+structure.
+
+=item * Finally, MongoDB 2.6+ will return an empty results array if the C<$out> pipeline operator is used to
+write aggregation results directly to a collection. Create a new C<Collection> object to
+query the result collection.
+
+=back
+
+See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
+for more information on how to construct aggregation queries.
+
+=cut
 
 sub aggregate {
     my ( $self, $pipeline, $opts ) = @_;
@@ -342,6 +564,23 @@ sub aggregate {
     return $response->{result};
 }
 
+=method parallel_scan($max_cursors)
+
+    my @query_results = $collection->parallel_scan(10);
+
+Scan the collection in parallel. The argument is the maximum number of
+L<MongoDB::QueryResult> objects to return and must be a positive integer between 1
+and 10,000.
+
+As long as the collection is not modified during scanning, each document will
+appear only once in one of the cursors' result sets.
+
+Only iteration methods may be called on parallel scan cursors.
+
+If an error occurs, an exception will be thrown.
+
+=cut
+
 sub parallel_scan {
     my ( $self, $num_cursors, $opts ) = @_;
     unless (defined $num_cursors && $num_cursors == int($num_cursors)
@@ -374,6 +613,17 @@ sub parallel_scan {
     return @cursors;
 }
 
+=method rename ("newcollectionname")
+
+    my $newcollection = $collection->rename("mynewcollection");
+
+Renames the collection.  It expects that the new name is currently not in use.
+
+Returns the new collection.  If a collection already exists with that new collection name this will
+die.
+
+=cut
+
 sub rename {
     my ($self, $collectionname) = @_;
 
@@ -387,6 +637,38 @@ sub rename {
 
     return $conn->get_database( $db )->get_collection( $collectionname );
 }
+
+=method remove ($query?, $options?)
+
+    $collection->remove({ answer => { '$ne' => 42 } });
+
+Removes all objects matching the given C<$query> from the database. If no
+parameters are given, removes all objects from the collection (but does not
+delete indexes, as C<MongoDB::Collection::drop> does).
+
+Returns 1 unless the C<safe> option is set.  If C<safe> is set and the remove
+succeeds, C<remove> will return a hash of information about the remove,
+including how many documents were removed (C<n>).  If the remove fails and
+C<safe> is set, C<remove> will croak.  You can also check if the remove
+succeeded by doing an unsafe remove, then calling
+L<MongoDB::Database/"last_error($options?)">.
+
+C<remove> can take a hash reference of options.  The options currently supported
+are
+
+=over
+
+=item C<just_one>
+Only one matching document to be removed.
+
+=item C<safe>
+If the update fails and safe is set, this function will croak.
+
+=back
+
+See also core documentation on remove: L<http://docs.mongodb.org/manual/core/delete/>.
+
+=cut
 
 
 sub remove {
@@ -409,6 +691,26 @@ sub remove {
     return $result;
 }
 
+
+=method ensure_index ($keys, $options?)
+
+    use boolean;
+    $collection->ensure_index({"foo" => 1, "bar" => -1}, { unique => true });
+
+Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be an
+array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is preferred
+for multi-key indexes, so that the keys are in the correct order.  1 creates an
+ascending index, -1 creates a descending index.
+
+If the C<safe> option is not set, C<ensure_index> will not return anything
+unless there is a socket error (in which case it will croak).  If the C<safe>
+option is set and the index creation fails, it will also croak. You can also
+check if the indexing succeeded by doing an unsafe index creation, then calling
+L<MongoDB::Database/"last_error($options?)">.
+
+See the L<MongoDB::Indexing> pod for more information on indexing.
+
+=cut
 
 sub ensure_index {
     my ($self, $keys, $options, $garbage) = @_;
@@ -485,6 +787,27 @@ sub ensure_index {
     return $res;
 }
 
+=method save($doc, $options)
+
+    $collection->save({"author" => "joe"});
+    my $post = $collection->find_one;
+
+    $post->{author} = {"name" => "joe", "id" => 123, "phone" => "555-5555"};
+
+    $collection->save( $post );
+    $collection->save( $post, { safe => 1 } )
+
+Inserts a document into the database if it does not have an _id field, upserts
+it if it does have an _id field.
+
+The return types for this function are a bit of a mess, as it will return the
+_id if a new document was inserted, 1 if an upsert occurred, and croak if the
+safe option was set and an error occurred.  You can also check if the save
+succeeded by doing an unsafe save, then calling
+L<MongoDB::Database/"last_error($options?)">.
+
+=cut
+
 sub save {
     my ($self, $doc, $options) = @_;
 
@@ -505,6 +828,15 @@ sub save {
 }
 
 
+=method count($query?)
+
+    my $n_objects = $collection->count({ name => 'Bob' });
+
+Counts the number of objects in this collection that match the given C<$query>.
+If no query is given, the total number of objects in the collection is returned.
+
+=cut
+
 sub count {
     my ($self, $query, $options) = @_;
     $query ||= {};
@@ -524,6 +856,24 @@ sub count {
 }
 
 
+=method validate
+
+    $collection->validate;
+
+Asks the server to validate this collection.
+Returns a hash of the form:
+
+    {
+        'ok' => '1',
+        'ns' => 'foo.bar',
+        'result' => info
+    }
+
+where C<info> is a string of information
+about the collection.
+
+=cut
+
 sub validate {
     my ($self, $scan_data) = @_;
     $scan_data = 0 unless defined $scan_data;
@@ -531,11 +881,27 @@ sub validate {
 }
 
 
+=method drop_indexes
+
+    $collection->drop_indexes;
+
+Removes all indexes from this collection.
+
+=cut
+
 sub drop_indexes {
     my ($self) = @_;
     return $self->drop_index('*');
 }
 
+=method drop_index ($index_name)
+
+    $collection->drop_index('foo_1');
+
+Removes an index called C<$index_name> from this collection.
+Use C<MongoDB::Collection::get_indexes> to find the index name.
+
+=cut
 
 sub drop_index {
     my ($self, $index_name) = @_;
@@ -545,6 +911,29 @@ sub drop_index {
     ]);
 }
 
+=method get_indexes
+
+    my @indexes = $collection->get_indexes;
+
+Returns a list of all indexes of this collection.
+Each index contains C<ns>, C<name>, and C<key>
+fields of the form:
+
+    {
+        'ns' => 'db_name.collection_name',
+        'name' => 'index_name',
+        'key' => {
+            'key1' => dir1,
+            'key2' => dir2,
+            ...
+            'keyN' => dirN
+        }
+    }
+
+where C<dirX> is 1 or -1, depending on if the
+index is ascending or descending on that key.
+
+=cut
 
 sub get_indexes {
     my ($self)    = @_;
@@ -580,6 +969,14 @@ sub get_indexes {
     return $self->_client->send_versioned_read($variants);
 }
 
+=method drop
+
+    $collection->drop;
+
+Deletes a collection as well as all of its indexes.
+
+=cut
+
 sub drop {
     my ($self) = @_;
     try {
@@ -591,14 +988,40 @@ sub drop {
     return;
 }
 
-sub initialize_unordered_bulk_op {
-    my ($self) = @_;
-    return MongoDB::BulkWrite->new( collection => $self, ordered => 0 );
-}
+=method initialize_ordered_bulk_op, ordered_bulk
+
+    my $bulk = $collection->initialize_ordered_bulk_op;
+    $bulk->insert( $doc1 );
+    $bulk->insert( $doc2 );
+    ...
+    my $result = $bulk->execute;
+
+Returns a L<MongoDB::BulkWrite> object to group write operations into fewer network
+round-trips.  This method creates an B<ordered> operation, where operations halt after
+the first error. See L<MongoDB::BulkWrite> for more details.
+
+The method C<ordered_bulk> may be used as an alias for C<initialize_ordered_bulk_op>.
+
+=cut
 
 sub initialize_ordered_bulk_op {
     my ($self) = @_;
     return MongoDB::BulkWrite->new( collection => $self, ordered => 1 );
+}
+
+=method initialize_unordered_bulk_op, unordered_bulk
+
+This method works just like L</initialize_ordered_bulk_op> except that the order that
+operations are sent to the database is not guaranteed and errors do not halt processing.
+See L<MongoDB::BulkWrite> for more details.
+
+The method C<unordered_bulk> may be used as an alias for C<initialize_unordered_bulk_op>.
+
+=cut
+
+sub initialize_unordered_bulk_op {
+    my ($self) = @_;
+    return MongoDB::BulkWrite->new( collection => $self, ordered => 0 );
 }
 
 sub _dynamic_write_concern {
@@ -622,396 +1045,31 @@ __PACKAGE__->meta->make_immutable;
 
 1;
 
-
-
-
 __END__
 
 =pod
 
 =head1 SYNOPSIS
 
-An instance of a MongoDB collection.
+    # get a Collection via the Database object
+    my $coll = $db->get_collection("people");
 
-    # gets the foo collection
-    my $collection = $db->get_collection( 'foo' );
+    # insert a document
+    $coll->insert( { name => "John Doe", age => 42 } );
 
-Collection names can be chained together to access subcollections.  For
-instance, the collection C<foo.bar> can be accessed with either:
+    # find a single document
+    my $doc = $coll->find_one( { name => "John Doe" } )
 
-    my $collection = $db->get_collection( 'foo' )->get_collection( 'bar' );
+    # Get a MongoDB::Cursor for a query
+    my $cursor = $coll->find( { age => 42 } );
 
-or
+=head1 DESCRIPTION
 
-    my $collection = $db->get_collection( 'foo.bar' );
+This class models a MongoDB collection and provides an API for interacting
+with it.
 
-=attr name
-
-The name of the collection.
-
-=attr full_name
-
-The full_name of the collection, including the namespace of the database it's
-in.
-
-
-=method get_collection ($name)
-
-    my $collection = $database->get_collection('foo');
-
-Returns a L<MongoDB::Collection> for the collection called C<$name> within this
-collection.
-
-=method find($query)
-
-    my $cursor = $collection->find({ i => { '$gt' => 42 } });
-
-Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
-C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).
-
-The set of fields returned can be limited through the use of the
-C<MongoDB::Cursor::fields> method on the resulting L<MongoDB::Cursor> object.
-Other commonly used cursor methods are C<MongoDB::Cursor::limit>,
-C<MongoDB::Cursor::skip>, and C<MongoDB::Cursor::sort>.
-
-See also core documentation on querying:
-L<http://docs.mongodb.org/manual/core/read/>.
-
-=method query($query, $attrs?)
-
-Identical to C<MongoDB::Collection::find>, described above.
-
-    my $cursor = $collection->query->limit(10)->skip(10);
-
-    my $cursor = $collection->query({ location => "Vancouver" })->sort({ age => 1 });
-
-
-Valid query attributes are:
-
-=over 4
-
-=item limit
-
-Limit the number of results.
-
-=item skip
-
-Skip a number of results.
-
-=item sort_by
-
-Order results.
-
-=back
-
-=method find_one($query, $fields?, $options?)
-
-    my $object = $collection->find_one({ name => 'Resi' });
-    my $object = $collection->find_one({ name => 'Resi' }, { name => 1, age => 1});
-    my $object = $collection->find_one({ name => 'Resi' }, {}, {max_time_ms => 100});
-
-Executes the given C<$query> and returns the first object matching it.
-C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).  If C<$fields> is specified, the resulting document
-will only include the fields given (and the C<_id> field) which can cut down on
-wire traffic. If C<$options> is specified, the cursor will be set with the contained options.
-
-=method insert ($object, $options?)
-
-    my $id1 = $coll->insert({ name => 'mongo', type => 'database' });
-    my $id2 = $coll->insert({ name => 'mongo', type => 'database' }, {safe => 1});
-
-Inserts the given C<$object> into the database and returns it's id
-value. C<$object> can be a hash reference, a reference to an array with an
-even number of elements, or a L<Tie::IxHash>.  The id is the C<_id> value
-specified in the data or a L<MongoDB::OID>.
-
-The optional C<$options> parameter can be used to specify if this is a safe
-insert.  A safe insert will check with the database if the insert succeeded and
-croak if it did not.  You can also check if the insert succeeded by doing an
-unsafe insert, then calling L<MongoDB::Database/"last_error($options?)">.
-
-See also core documentation on insert: L<http://docs.mongodb.org/manual/core/create/>.
-
-=method batch_insert (\@array, $options)
-
-    my @ids = $collection->batch_insert([{name => "Joe"}, {name => "Fred"}, {name => "Sam"}]);
-
-Inserts each of the documents in the array into the database and returns an
-array of their _id fields.
-
-The optional C<$options> parameter can be used to specify if this is a safe
-insert.  A safe insert will check with the database if the insert succeeded and
-croak if it did not. You can also check if the inserts succeeded by doing an
-unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
-
-
-=method update (\%criteria, \%object, \%options?)
-
-    $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
-
-Updates an existing C<$object> matching C<$criteria> in the database.
-
-Returns 1 unless the C<safe> option is set. If C<safe> is set, this will return
-a hash of information about the update, including number of documents updated
-(C<n>).  If C<safe> is set and the update fails, C<update> will croak. You can
-also check if the update succeeded by doing an unsafe update, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
-C<update> can take a hash reference of options.  The options currently supported
-are:
-
-=over
-
-=item C<upsert>
-If no object matching C<$criteria> is found, C<$object> will be inserted.
-
-=item C<multiple>
-All of the documents that match C<$criteria> will be updated, not just
-the first document found. (Only available with database version 1.1.3 and
-newer.)
-
-=item C<safe>
-If the update fails and safe is set, the update will croak.
-
-=back
-
-See also core documentation on update: L<http://docs.mongodb.org/manual/core/update/>.
-
-=method initialize_ordered_bulk_op
-
-    my $bulk = $collection->initialize_ordered_bulk_op;
-    $bulk->insert( $doc1 );
-    $bulk->insert( $doc2 );
-    ...
-    my $result = $bulk->execute;
-
-Returns a L<MongoDB::BulkWrite> object to group write operations into fewer network
-round-trips.  This method creates an B<ordered> operation, where operations halt after
-the first error. See L<MongoDB::BulkWrite> for more details.
-
-The method C<ordered_bulk> may be used as an alias for C<initialize_ordered_bulk_op>.
-
-=method initialize_unordered_bulk_op
-
-This method works just like L</initialize_ordered_bulk_op> except that the order that
-operations are sent to the database is not guaranteed and errors do not halt processing.
-See L<MongoDB::BulkWrite> for more details.
-
-The method C<unordered_bulk> may be used as an alias for C<initialize_unordered_bulk_op>.
-
-=method find_and_modify
-
-    my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
-
-Perform an atomic update. C<find_and_modify> guarantees that nothing else will come along
-and change the queried documents before the update is performed.
-
-Returns the old version of the document, unless C<new => 1> is specified. If no documents
-match the query, it returns nothing.
-
-=method aggregate
-
-    my $result = $collection->aggregate( [ ... ] );
-
-Run a query using the MongoDB 2.2+ aggregation framework. The first argument is an array-ref of
-aggregation pipeline operators.
-
-The type of return value from C<aggregate> depends on how you use it.
-
-=over 4
-
-=item * By default, the aggregation framework returns a document with an embedded array of results, and
-the C<aggregate> method returns a reference to that array.
-
-=item * MongoDB 2.6+ supports returning cursors from aggregation queries, allowing you to bypass
-the 16MB size limit of documents. If you specifiy a C<cursor> option, the C<aggregate> method
-will return a L<MongoDB::QueryResult> object which can be iterated in the normal fashion.
-
-    my $cursor = $collection->aggregate( [ ... ], { cursor => 1 } );
-
-Specifying a C<cursor> option will cause an error on versions of MongoDB below 2.6.
-
-The C<cursor> option may also have some useful options of its own. Currently, the only one
-is C<batchSize>, which allows you to control how frequently the cursor must go back to the
-database for more documents.
-
-    my $cursor = $collection->aggregate( [ ... ], { cursor => { batchSize => 10 } } );
-
-=item * MongoDB 2.6+ supports an C<explain> option to aggregation queries to retrieve data
-about how the server will process a query pipeline.
-
-    my $result = $collection->aggregate( [ ... ], { explain => 1 } );
-
-In this case, C<aggregate> will return a document (not an array) containing the explanation
-structure.
-
-=item * Finally, MongoDB 2.6+ will return an empty results array if the C<$out> pipeline operator is used to
-write aggregation results directly to a collection. Create a new C<Collection> object to
-query the result collection.
-
-=back
-
-See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
-for more information on how to construct aggregation queries.
-
-=method parallel_scan($max_cursors)
-
-    my @query_results = $collection->parallel_scan(10);
-
-Scan the collection in parallel. The argument is the maximum number of
-L<MongoDB::QueryResult> objects to return and must be a positive integer between 1
-and 10,000.
-
-As long as the collection is not modified during scanning, each document will
-appear only once in one of the cursors' result sets.
-
-Only iteration methods may be called on parallel scan cursors.
-
-If an error occurs, an exception will be thrown.
-
-=method rename ("newcollectionname")
-
-    my $newcollection = $collection->rename("mynewcollection");
-
-Renames the collection.  It expects that the new name is currently not in use.
-
-Returns the new collection.  If a collection already exists with that new collection name this will
-die.
-
-=method save($doc, $options)
-
-    $collection->save({"author" => "joe"});
-    my $post = $collection->find_one;
-
-    $post->{author} = {"name" => "joe", "id" => 123, "phone" => "555-5555"};
-
-    $collection->save( $post );
-    $collection->save( $post, { safe => 1 } )
-
-Inserts a document into the database if it does not have an _id field, upserts
-it if it does have an _id field.
-
-The return types for this function are a bit of a mess, as it will return the
-_id if a new document was inserted, 1 if an upsert occurred, and croak if the
-safe option was set and an error occurred.  You can also check if the save
-succeeded by doing an unsafe save, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
-
-=method remove ($query?, $options?)
-
-    $collection->remove({ answer => { '$ne' => 42 } });
-
-Removes all objects matching the given C<$query> from the database. If no
-parameters are given, removes all objects from the collection (but does not
-delete indexes, as C<MongoDB::Collection::drop> does).
-
-Returns 1 unless the C<safe> option is set.  If C<safe> is set and the remove
-succeeds, C<remove> will return a hash of information about the remove,
-including how many documents were removed (C<n>).  If the remove fails and
-C<safe> is set, C<remove> will croak.  You can also check if the remove
-succeeded by doing an unsafe remove, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
-C<remove> can take a hash reference of options.  The options currently supported
-are
-
-=over
-
-=item C<just_one>
-Only one matching document to be removed.
-
-=item C<safe>
-If the update fails and safe is set, this function will croak.
-
-=back
-
-See also core documentation on remove: L<http://docs.mongodb.org/manual/core/delete/>.
-
-=method ensure_index ($keys, $options?)
-
-    use boolean;
-    $collection->ensure_index({"foo" => 1, "bar" => -1}, { unique => true });
-
-Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be an
-array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is preferred
-for multi-key indexes, so that the keys are in the correct order.  1 creates an
-ascending index, -1 creates a descending index.
-
-If the C<safe> option is not set, C<ensure_index> will not return anything
-unless there is a socket error (in which case it will croak).  If the C<safe>
-option is set and the index creation fails, it will also croak. You can also
-check if the indexing succeeded by doing an unsafe index creation, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
-See the L<MongoDB::Indexing> pod for more information on indexing.
-
-=method count($query?)
-
-    my $n_objects = $collection->count({ name => 'Bob' });
-
-Counts the number of objects in this collection that match the given C<$query>.
-If no query is given, the total number of objects in the collection is returned.
-
-=method validate
-
-    $collection->validate;
-
-Asks the server to validate this collection.
-Returns a hash of the form:
-
-    {
-        'ok' => '1',
-        'ns' => 'foo.bar',
-        'result' => info
-    }
-
-where C<info> is a string of information
-about the collection.
-
-=method drop_indexes
-
-    $collection->drop_indexes;
-
-Removes all indexes from this collection.
-
-=method drop_index ($index_name)
-
-    $collection->drop_index('foo_1');
-
-Removes an index called C<$index_name> from this collection.
-Use C<MongoDB::Collection::get_indexes> to find the index name.
-
-=method get_indexes
-
-    my @indexes = $collection->get_indexes;
-
-Returns a list of all indexes of this collection.
-Each index contains C<ns>, C<name>, and C<key>
-fields of the form:
-
-    {
-        'ns' => 'db_name.collection_name',
-        'name' => 'index_name',
-        'key' => {
-            'key1' => dir1,
-            'key2' => dir2,
-            ...
-            'keyN' => dirN
-        }
-    }
-
-where C<dirX> is 1 or -1, depending on if the
-index is ascending or descending on that key.
-
-=method drop
-
-    $collection->drop;
-
-Deletes a collection as well as all of its indexes.
-
+Generally, you never construct one of these directly with C<new>.  Instead, you
+call C<get_collection> on a L<MongoDB::Database> object.
 
 =cut
 
