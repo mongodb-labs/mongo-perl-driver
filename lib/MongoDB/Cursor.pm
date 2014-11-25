@@ -118,6 +118,13 @@ has _ns => (
     required => 1,
 );
 
+has _read_preference => (
+    is       => 'ro',
+    isa      => 'ReadPreference',
+    writer   => '_set_read_preference',
+    required => 1,
+);
+
 # attributes for sending a query
 
 has _query => (
@@ -159,19 +166,6 @@ has _query_options => (
     isa => 'HashRef',
     default => sub { { slave_ok => !! $MongoDB::Cursor::slave_okay } },
 );
-
-has _read_preference => (
-    is      => 'ro',
-    isa     => 'ReadPreference',
-    lazy    => 1,
-    builder => '_build__read_preference',
-    writer  => '_set_read_preference',
-);
-
-sub _build__read_preference {
-    my ($self) = @_;
-    return $self->_client->read_preference;
-}
 
 # lazy result attribute
 has result => (
@@ -576,7 +570,7 @@ sub count {
     }
 
     my $result = try {
-        $self->_client->get_database($db)->run_command($cmd);
+        $self->_client->get_database($db)->run_command($cmd, $self->_read_preference);
     }
     catch {
         # if there was an error, check if it was the "ns missing" one that means the

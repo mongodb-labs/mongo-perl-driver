@@ -57,12 +57,23 @@ subtest get_collection => sub {
     my $wc = MongoDB::WriteConcern->new( w => 2 );
 
     ok( $c = $testdb->get_collection( 'foo', { write_concern => $wc } ),
-        "get_collection(NAME, OPTION)" );
+        "get_collection(NAME, OPTION) (wc)" );
     is( $c->write_concern->w, 2, "coll-level write concern as expected" );
 
     ok( $c = $testdb->get_collection( 'foo', { write_concern => { w => 3 } } ),
-        "get_collection(NAME, OPTION)" );
+        "get_collection(NAME, OPTION) (wc)" );
     is( $c->write_concern->w, 3, "coll-level write concern coerces" );
+
+    my $rp = MongoDB::ReadPreference->new( mode => 'secondary' );
+
+    ok( $c = $testdb->get_collection( 'foo', { read_preference => $rp } ),
+        "get_collection(NAME, OPTION) (rp)" );
+    is( $c->read_preference->mode, 'secondary', "coll-level read pref as expected" );
+
+    ok( $c = $testdb->get_collection( 'foo', { read_preference => { mode => 'nearest' } } ),
+        "get_collection(NAME, OPTION) (rp)" );
+    is( $c->read_preference->mode, 'nearest', "coll-level read pref coerces" );
+
 };
 
 # very small insert

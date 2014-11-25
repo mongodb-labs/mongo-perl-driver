@@ -1375,6 +1375,7 @@ L<MongoDB::Database> constructor.
 sub get_database {
     my ( $self, $database_name, $options ) = @_;
     return MongoDB::Database->new(
+        read_preference => $self->_get_read_preference,
         write_concern => $self->_write_concern,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options

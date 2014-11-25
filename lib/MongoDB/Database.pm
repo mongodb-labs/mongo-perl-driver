@@ -50,6 +50,21 @@ has name => (
     required => 1,
 );
 
+=attr read_preference
+
+A L<MongoDB::ReadPreference> object.  It may be initialized with a string
+corresponding to one of the valid read preference modes or a hash reference
+that will be coerced into a new MongoDB::ReadPreference object.
+
+=cut
+
+has read_preference => (
+    is       => 'ro',
+    isa      => 'ReadPreference',
+    required => 1,
+    coerce   => 1,
+);
+
 =attr write_concern
 
 A L<MongoDB::WriteConcern> object.  It may be initialized with a hash
@@ -115,9 +130,10 @@ L<MongoDB::Collection> constructor.
 =cut
 
 sub get_collection {
-    my ($self, $collection_name, $options) = @_;
+    my ( $self, $collection_name, $options ) = @_;
     return MongoDB::Collection->new(
-        write_concern => $self->write_concern,
+        read_preference => $self->read_preference,
+        write_concern   => $self->write_concern,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options
         _database => $self,

@@ -73,6 +73,21 @@ has full_name => (
     builder => '_build_full_name',
 );
 
+=attr read_preference
+
+A L<MongoDB::ReadPreference> object.  It may be initialized with a string
+corresponding to one of the valid read preference modes or a hash reference
+that will be coerced into a new MongoDB::ReadPreference object.
+
+=cut
+
+has read_preference => (
+    is       => 'ro',
+    isa      => 'ReadPreference',
+    required => 1,
+    coerce   => 1,
+);
+
 =attr write_concern
 
 A L<MongoDB::WriteConcern> object.  It may be initialized with a hash
@@ -192,11 +207,12 @@ sub find {
     my $ns = $self->full_name;
 
     my $cursor = MongoDB::Cursor->new(
-        _client    => $self->_client,
-        _ns        => $ns,
-        _query     => $query,
-        _limit     => $limit,
-        _skip      => $skip,
+        _client          => $self->_client,
+        _read_preference => $self->read_preference,
+        _ns              => $ns,
+        _query           => $query,
+        _limit           => $limit,
+        _skip            => $skip,
     );
 
     return $cursor;
@@ -545,7 +561,9 @@ sub aggregate {
     }
 
     my @command = ( aggregate => $self->name, pipeline => $pipeline, %$opts );
-    my $result = $self->_client->send_command( $db->name, \@command );
+    my ($last_op) = keys %{$pipeline->[-1]};
+    my $read_pref = $last_op eq '$out' ? undef : $self->read_preference;
+    my $result = $self->_client->send_command( $db->name, \@command, $read_pref );
     my $response = $result->result;
 
     # if we got a cursor option then we need to construct a wonky cursor
@@ -607,7 +625,7 @@ sub parallel_scan {
     my $db   = $self->_database;
 
     my @command = ( parallelCollectionScan => $self->name, numCursors => $num_cursors );
-    my $result = $self->_client->send_command( $db->name, \@command );
+    my $result = $self->_client->send_command( $db->name, \@command, $self->read_preference );
     my $response = $result->result;
 
     Carp::croak("No cursors returned")
