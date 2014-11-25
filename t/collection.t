@@ -89,7 +89,7 @@ subtest write_concern => sub {
     ok( $c = $testdb->get_collection( 'foo', { write_concern => { w => 999 } } ),
         "get collection with w=999" );
     my $err = exception { $c->insert( { _id => 1 } ) };
-    is( ref($err), 'MongoDB::DatabaseError',
+    ok( $err->isa('MongoDB::DatabaseError'),
         "collection-level write concern applies to insert" );
 };
 
