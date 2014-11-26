@@ -26,6 +26,7 @@ use Data::Types qw(:float);
 use Tie::IxHash;
 use Encode qw(encode decode);
 use MongoDB::Timestamp; # needed if db is being run as master
+use JSON::MaybeXS;
 
 use MongoDB;
 
@@ -124,140 +125,6 @@ my $tied;
 
     $coll->remove($obj);
     is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
-}
-
-# basic indexes
-{
-    my $res;
-
-    $coll->drop;
-    for (my $i=0; $i<10; $i++) {
-        $coll->insert({'x' => $i, 'z' => 3, 'w' => 4});
-        $coll->insert({'x' => $i, 'y' => 2, 'z' => 3, 'w' => 4});
-    }
-
-    $coll->drop;
-    ok(!$coll->get_indexes, 'no indexes yet');
-
-    my $indexes = Tie::IxHash->new(foo => 1, bar => 1, baz => 1);
-    $res = $coll->ensure_index($indexes);
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    } else { 
-        ok(!defined $res);
-    }
-
-    my $err = $testdb->last_error;
-    is($err->{ok}, 1);
-    is($err->{err}, undef);
-
-    $indexes = Tie::IxHash->new(foo => 1, bar => 1);
-    $res = $coll->ensure_index($indexes);
-
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    } else { 
-        ok(!defined $res);
-    }
-
-    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
-    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
-    is($coll->count, 2);
-
-    $res = $coll->ensure_index({boo => 1}, {unique => 1});
-
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    } else { 
-        ok(!defined $res);
-    }
-
-    eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
-
-    is($coll->count, 2, 'unique index');
-
-    my @indexes = $coll->get_indexes;
-    is(scalar @indexes, 4, 'three custom indexes and the default _id_ index');
-    my ($foobarbaz) = grep { $_->{name} eq 'foo_1_bar_1_baz_1' } @indexes;
-    is_deeply(
-        [sort keys %{ $foobarbaz->{key} }],
-        [sort qw/foo bar baz/],
-    );
-    my ($foobar) = grep { $_->{name} eq 'foo_1_bar_1' } @indexes;
-    is_deeply(
-        [sort keys %{ $foobar->{key} }],
-        [sort qw/foo bar/],
-    );
-
-    $coll->drop_index('foo_1_bar_1_baz_1');
-    @indexes = $coll->get_indexes;
-    is(scalar @indexes, 3);
-    ok( (! scalar grep { $_->{name} eq 'foo_1_bar_1_baz_1' } @indexes), "right index deleted" );
-
-    $coll->drop;
-    ok(!$coll->get_indexes, 'no indexes after dropping');
-
-    # make sure this still works
-    $coll->ensure_index({"foo" => 1});
-    @indexes = $coll->get_indexes;
-    is(scalar @indexes, 2, '1 custom index and the default _id_ index');
-    $coll->drop;
-}
-
-# test ensure index with drop_dups
-{
-
-    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
-    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
-    is($coll->count, 2);
-
-    eval { $coll->ensure_index({foo => 1}, {unique => 1}) };
-    like( $@, qr/E11000/, "got expected error creating unique index with dups" );
-
-    # prior to 2.7.5, drop_dups was respected
-    if ( $server_version < v2.7.5 ) {
-        my $res = $coll->ensure_index({foo => 1}, {unique => 1, drop_dups => 1});
-
-        if ( $server_version >= v2.6.0 ) {
-            ok $res->{ok};
-        } else {
-            ok(!defined $res);
-        }
-    }
-
-    $coll->drop;
-}
-
-
-# test new form of ensure index
-{
-    my $res;
-    $res = $coll->ensure_index({foo => 1, bar => -1, baz => 1});
-
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    } else { 
-        ok(!defined $res);
-    }
-
-    $res = $coll->ensure_index([foo => 1, bar => 1]);
-
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    } else { 
-        ok(!defined $res);
-    }
-
-    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 1});
-    $coll->insert({foo => 1, bar => 1, baz => 1, boo => 2});
-    is($coll->count, 2);
-
-    # unique index
-    $coll->ensure_index({boo => 1}, {unique => 1});
-    eval { $coll->insert({foo => 3, bar => 3, baz => 3, boo => 2}) };
-    is($coll->count, 2, 'unique index');
-
-    $coll->drop;
 }
 
 # doubles

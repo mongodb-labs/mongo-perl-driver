@@ -456,7 +456,6 @@ sub legacy_remove {
     return 1;
 }
 
-
 sub ensure_index {
     my ($self, $keys, $options, $garbage) = @_;
     my $ns = $self->full_name;
@@ -475,53 +474,57 @@ sub ensure_index {
     }
 
     $keys = Tie::IxHash->new(@$keys) if ref $keys eq 'ARRAY';
-    my $obj = Tie::IxHash->new("ns" => $ns, "key" => $keys);
+    my $obj = Tie::IxHash->new("key" => $keys);
 
     if (exists $options->{name}) {
-        $obj->Push("name" => $options->{name});
+        $obj->Push("name" => delete $options->{name});
     }
     else {
         $obj->Push("name" => MongoDB::Collection::to_index_string($keys));
     }
 
-    foreach ("unique", "background", "sparse") {
-        if (exists $options->{$_}) {
-            $obj->Push("$_" => ($options->{$_} ? boolean::true : boolean::false));
-        }
-    }
-    if (exists $options->{drop_dups}) {
-        $obj->Push("dropDups" => ($options->{drop_dups} ? boolean::true : boolean::false));
-    }
-    $options->{'no_ids'} = 1;
+    # extract legacy insertion options
+    my $insert_opts = { no_ids => 1 };
+    $insert_opts->{safe} = delete $options->{safe} if exists $options->{safe};
 
-    foreach ("weights", "default_language", "language_override") {
-        if (exists $options->{$_}) {
-            $obj->Push("$_" => $options->{$_});
-        }
+    # convert historical snake-case options to required camelCase
+    if (exists $options->{drop_dups}) {
+        $options->{dropDups} = delete $options->{drop_dups};
     }
 
     if (exists $options->{expire_after_seconds}) {
-        $obj->Push("expireAfterSeconds" => int($options->{expire_after_seconds}));
+        $options->{expireAfterSeconds} = int(delete $options->{expire_after_seconds});
+    }
+
+    # some options *must* be sent as booleans
+    for my $k ( qw/unique background sparse dropDups/ ) {
+        next unless exists $options->{$k};
+        $options->{$k} = boolean($options->{$k});
+    }
+
+    # pass through all options after conversion
+    while ( my ($k,$v) = each %$options ) {
+        $obj->Push($k, $v);
     }
 
     my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
 
     # try the new createIndexes command (mongodb 2.6), falling back to the old insert
     # method if createIndexes is not available.
-    my $tmp_ns = $obj->DELETE( 'ns' );     # ci command takes ns outside of index spec
 
     my $res = $self->_database->get_collection( '$cmd' )->find_one( Tie::IxHash->new( createIndexes => $self->name, indexes => [ $obj ] ) );
 
-    return $res if $res->{ok};    
+    return $res if $res->{ok};
 
     # if not ok, no code or code 59 or code 13390 mean "command not available",
     # per DRIVERS-103 and DRIVERS-132; 13390 is old mongos per DRIVERS-149
-    if ( ( not $res->{ok} )  && 
+    if ( ( not $res->{ok} )  &&
          ( not exists $res->{code} or $res->{code} == 59 or $res->{code} == 13390) ) { 
-        $obj->Unshift( ns => $tmp_ns );     # restore ns to spec
+        # add ns to object to insert
+        $obj->Unshift( ns => $ns );
         my $indexes = $self->_database->get_collection("system.indexes");
-        return $indexes->insert($obj, $options);
-    } else { 
+        return $indexes->insert($obj, $insert_opts);
+    } else {
         die "error creating index: " . $res->{errmsg};
     }
 } 
@@ -1008,6 +1011,8 @@ unless there is a socket error (in which case it will croak).  If the C<safe>
 option is set and the index creation fails, it will also croak. You can also
 check if the indexing succeeded by doing an unsafe index creation, then calling
 L<MongoDB::Database/"last_error($options?)">.
+
+Boolean options should be passed as objects of type L<booelan>.
 
 See the L<MongoDB::Indexing> pod for more information on indexing.
 
