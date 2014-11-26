@@ -116,40 +116,6 @@ subtest 'commands' => sub {
         "generic helper ran with primary read pref"
     );
 
-
-    # see if it propagates to the secondary
-    my $ok = 0;
-    for ( 1 .. 10 ) {
-        last if $ok = grep { /foofoo/ } $testdb->collection_names;
-        sleep $_;
-    }
-
-    ok( $ok, "query also saw changes" );
-
-##    $cmd_conn = MongoDB::Collection::_select_cursor_client($conn, 'admin.$cmd',
-##        Tie::IxHash->new(collStats => 'test_database.test_collection', scale => 1024));
-##    is($cmd_conn, $conn->_readpref_pinned, 'collStats runs on secondary');
-##
-##    # a command that ignores readpref
-##    my $cursor = $cmd->find({resetError => 1});
-##    is($cursor->_master, $conn, 'cursor->_master is ok');
-##    is($cursor->_client, $conn->_master, 'direct command to _master');
-##    ok(!$cursor->slave_okay, 'slave_okay false');
-##    ok(!$cursor->_query->FETCH('$readPreference'), 'no $readPreference field');
-##    my $cmd_result;
-##    is( exception { $cmd_result = $admin->run_command({resetError => 1}); }, undef, 'command lives' );
-##    ok($cmd_result->{'ok'}, 'command ok');
-##
-##    # a command that obeys read pref
-##    $cmd = $conn->get_database('test_database')->get_collection('$cmd');
-##    $cursor = $cmd->find({dbStats => 1, scale => 1024});
-##    is($cursor->_master, $conn, 'cursor->_master is ok');
-##    is($cursor->_client, $conn->_readpref_pinned, 'query runs on pinned node');
-##    ok($cursor->slave_okay, 'slave_okay true');
-##    ok(!$cursor->_query->FETCH('$readPreference'), 'no $readPreference field');
-##    is( exception { $cmd_result = $admin->run_command([dbStats => 1, scale => 1024]); }, undef, 'command lives');
-##    ok($cmd_result->{'ok'}, 'command ok');
-
 };
 
 done_testing;
