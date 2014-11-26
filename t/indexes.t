@@ -55,7 +55,7 @@ subtest 'basic indexes' => sub {
         ok $res->{ok};
     }
     else {
-        ok( !defined $res );
+        ok( $res );
     }
 
     my $err = $testdb->last_error;
@@ -69,7 +69,7 @@ subtest 'basic indexes' => sub {
         ok $res->{ok};
     }
     else {
-        ok( !defined $res );
+        ok( $res );
     }
 
     $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 1 } );
@@ -82,7 +82,7 @@ subtest 'basic indexes' => sub {
         ok $res->{ok};
     }
     else {
-        ok( !defined $res );
+        ok( $res );
     }
 
     eval { $coll->insert( { foo => 3, bar => 3, baz => 3, boo => 2 } ) };
@@ -130,7 +130,7 @@ subtest 'drop dups' => sub {
             ok $res->{ok};
         }
         else {
-            ok( !defined $res );
+            ok( $res );
         }
     }
 
@@ -147,7 +147,7 @@ subtest 'new form of ensure index' => sub {
         ok $res->{ok};
     }
     else {
-        ok( !defined $res );
+        ok( $res );
     }
 
     $res = $coll->ensure_index( [ foo => 1, bar => 1 ] );
@@ -156,7 +156,7 @@ subtest 'new form of ensure index' => sub {
         ok $res->{ok};
     }
     else {
-        ok( !defined $res );
+        ok( $res );
     }
 
     $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 1 } );
