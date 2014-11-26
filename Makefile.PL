@@ -49,7 +49,6 @@ requires 'version';
 
 test_requires 'Data::Dump';
 test_requires 'Data::Dumper';
-test_requires 'Data::Types';
 test_requires 'DateTime::Tiny';
 test_requires 'Devel::Peek';
 test_requires 'File::Copy';

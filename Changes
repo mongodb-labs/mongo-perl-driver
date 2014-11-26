@@ -6,6 +6,11 @@
 
   - Fix t/database.t for change in error message for missing commands
 
+  [Prerequisites]
+
+  - Removed Data::Types as a test dependency as it was barely used
+    and not necessary
+
 v0.707.0.0 2014-11-12 15:04:46-05:00 America/New_York
 
   [Additions]

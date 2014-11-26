@@ -24,7 +24,6 @@ use MongoDB;
 use MongoDB::OID;
 use boolean;
 use DateTime;
-use Data::Types qw(:float);
 use Encode;
 use Tie::IxHash;
 use Test::Fatal;
@@ -254,7 +253,7 @@ package main;
     $c->save($p);
 
     my $person = $c->find_one;
-    ok(is_float($person->{'age'}));
+    is($person->{'age'}, 22, "roundtrip number");
 }
 
 # warn on floating timezone
