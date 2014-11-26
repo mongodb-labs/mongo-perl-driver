@@ -52,25 +52,24 @@ subtest "read preference connection string" => sub {
 
 };
 
-subtest "insert and query" => sub {
-    for my $m ( @modes ) {
-        is(
-            exception { $conn->read_preference($m) },
-            undef,
-            "read_preference '$m' set",
-        );
+subtest "read preference propagation" => sub {
+    for my $m (@modes) {
+        my $conn2 = build_client( read_preference => { mode => $m } );
+        my $db2   = $conn2->get_database( $testdb->name );
+        my $coll2 = $db2->get_collection("test_coll");
+        my $cur   = $coll2->find( {} );
 
-        $coll->drop;
-        $coll->insert({'a' => $_}) for 1..20;
-        is($coll->count(), 20, "$m: count");
+        for my $thing ( $conn2, $db2, $coll2 ) {
+            is( $thing->read_preference->mode, $m, "$m set on " . ref($thing) );
+        }
+        is( $cur->_read_preference->mode, $m, "$m set on " . ref($cur) );
     }
 };
 
 subtest "read preference on cursor" => sub {
     for my $m ( @modes ) {
-        $coll->drop;
-        $coll->insert({'a' => $_}) for 1..20;
-        is($coll->find->read_preference($m)->count(), 20, "$m: count");
+        my $cur = $coll->find()->read_preference($m);
+        is( $cur->_read_preference->mode, $m, "$m set on " . ref($cur) );
     }
 };
 
