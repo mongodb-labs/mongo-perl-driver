@@ -335,18 +335,16 @@ construct such an object.  The default is mode 'primary'.
 For core documentation on read preference see
 L<http://docs.mongodb.org/manual/core/read-preference/>.
 
-B<The use of C<read_preference> as a mutator is deprecated.> If given a single
-argument that is a L<MongoDB::ReadPreference> object, the read preference is
-set to that object.  Otherwise, it takes positional arguments: the read
-preference mode and a tag set list, which must be a valid mode and tag set list
-as described in the L<MongoDB::ReadPreference> documentation.
+B<The use of C<read_preference> as a mutator has been removed.>  Read
+preference is read-only.  If you need a different read preference for
+a database or collection, you can specify that in C<get_database> or
+C<get_collection>.
 
 =cut
 
 has read_preference => (
-    is        => 'bare', # public reader implemented manually for back-compatibility
+    is        => 'ro',
     isa       => 'ReadPreference',
-    reader    => '_get_read_preference',
     writer    => '_set_read_preference',
     coerce    => 1,
     lazy      => 1,
@@ -356,28 +354,6 @@ has read_preference => (
 sub _build__read_preference {
     my ($self) = @_;
     return MongoDB::ReadPreference->new;
-}
-
-sub read_preference {
-    my $self = shift;
-
-    if ( @_ ) {
-        my $type = ref $_[0];
-        if ( $type eq 'MongoDB::ReadPreference' ) {
-            $self->_set_read_preference( $_[0] );
-        }
-        else {
-            my $mode     = shift || 'primary';
-            my $tag_sets = shift;
-            my $rp       = MongoDB::ReadPreference->new(
-                mode => $mode,
-                ( $tag_sets ? ( tag_sets => $tag_sets ) : () )
-            );
-            $self->_set_read_preference($rp);
-        }
-    }
-
-    return $self->_get_read_preference;
 }
 
 # server monitoring
@@ -764,8 +740,14 @@ sub BUILD {
 
     $self->_update_write_concern;
 
-    $self->read_preference( $options->{readPreference}, $options->{readPreferenceTags} )
-        if exists $options->{readPreference} || exists $options->{readPreferenceTags};
+    if ( exists $options->{readPreference} ) {
+        my $ts = $options->{readPreferenceTags};
+        my $rp = MongoDB::ReadPreference->new(
+            mode => $options->{readPreference},
+            ( $ts ? ( tag_sets => $ts ) : () ),
+        );
+        $self->_set_read_preference($rp);
+    }
 
     return;
 }
@@ -1375,7 +1357,7 @@ L<MongoDB::Database> constructor.
 sub get_database {
     my ( $self, $database_name, $options ) = @_;
     return MongoDB::Database->new(
-        read_preference => $self->_get_read_preference,
+        read_preference => $self->read_preference,
         write_concern => $self->_write_concern,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options

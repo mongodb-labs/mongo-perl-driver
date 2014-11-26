@@ -81,10 +81,12 @@ Attributes are changing to be immutable to prevent global behavior changes.
 (E.g. changing an attribute value in some part of the code changes it for
 all parts of the code.)
 
-As of Alpha 1, the following attributes are now immutable:
+As of Alpha 2, the following attributes are now immutable:
 
 =for :list
-* ssl
+* C<ssl>
+* C<read_preference> – but read preference can be set at the database and
+  collection level for localized needs.  See subsequent section for more.
 
 Other attributes will be made immutable in subsequent alpha releases
 as internal options handling is revised.
@@ -140,31 +142,36 @@ queries and query-like methods.
 =head2 Read preference objects and the C<read_preference> method
 
 A new L<MongoDB::ReadPreference> class is used to encapsulate read
-preference attributes.  In the v1 driver, it is set as an attribute on
-L<MongoDB::MongoClient>:
+preference attributes.  In the v1 driver, it is set as an immutable
+attribute on L<MongoDB::MongoClient>:
 
     MongoDB::MongoClient->new( ..., read_preference => { ... } );
 
 If provided as a hash reference, it will be coerced to a
-MongoDB::ReadPreference object (and validated).
+MongoDB::ReadPreference object (and validated).  You can also provide
+it as a string that will be coerced to a read preference mode.
 
-The old C<read_preference> method API for L<MongoDB::MongoClient> is
-B<deprecated> and the behavior has changed.  Instead of re-pinning the
-client to a new server when called, calling with arguments will change the
-default read preference on the MongoClient; calling it without arguments
-will just return the current read preference object.
+    MongoDB::MongoClient->new( ..., read_preference => 'primaryPreferred' );
+
+The old C<read_preference> method to change the read preference has been
+removed and trying to set a read preference after the client has been
+created is a fatal error.
 
 As C<read_preference> is now the name of an attribute, the return value
 is the value of the attribute.
 
-In a future release, this method will become a read-only accessor and
-calling it with arguments will be a fatal exception.
+For localized changed, the C<get_database> and C<get_collection> methods
+both take optional parameters that allow setting a read preference.
+
+    my $coll = $db->get_collection(
+        "foo", { read_preference => 'secondary' }
+    );
 
 For L<MongoDB::Cursor>, the C<read_preference> method sets a hidden read
 preference attribute that is used for the query in place of the
 L<MongoDB::MongoClient> default C<read_preference> attribute.  This means
 that calling C<read_preference> on a cursor object no longer changes the
-read preference globally on the client – the read preference changes is
+read preference globally on the client – the read preference change is
 scoped to the cursor object only.
 
 =head2 Authentication

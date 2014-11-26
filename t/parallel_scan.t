@@ -87,8 +87,9 @@ subtest "parallel scan" => sub {
         plan skip_all => 'needs a replicaset'
           unless $server_type eq 'RSPrimary';
 
-        my $conn2 = MongoDBTest::build_client();
-        $conn2->read_preference( MongoDB::MongoClient->SECONDARY_PREFERRED );
+        my $conn2 = MongoDBTest::build_client(
+            read_preference => 'secondaryPreferred'
+        );
 
         my @cursors = $coll->parallel_scan($max);
         _check_parallel_results( $num_docs, @cursors );

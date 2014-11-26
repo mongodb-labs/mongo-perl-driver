@@ -73,40 +73,39 @@ subtest "read preference on cursor" => sub {
     }
 };
 
-subtest "argument variants" => sub {
-    $conn->read_preference( MongoDB::ReadPreference->new( mode => 'secondary_preferred' ) );
-    is( $conn->read_preference->mode, 'secondaryPreferred', "read pref from object" );
-};
-
-
 subtest "error cases" => sub {
-    like( exception  {
-        $conn->read_preference(MongoDB::MongoClient->PRIMARY, [{use => 'production'}]);
-    }, qr/A tag set list is not allowed with read preference mode 'primary'/,
-    'PRIMARY cannot be combined with a tag set list');
+    like(
+        exception { $conn->read_preference( MongoDB::ReadPreference->new ) },
+        qr/read-only/,
+        "read_preference on client is read-only"
+    );
 
-    like( exception  {
-        $conn->read_preference(-1)
-    }, qr/does not pass the type constraint/,
-    'bad readpref mode 1');
-
-    like( exception  {
-        $conn->read_preference(5);
-    }, qr/does not pass the type constraint/,
-    'bad readpref mode 2');
+    like(
+        exception {
+            build_client(
+                read_preference => {
+                    mode     => 'primary',
+                    tag_sets => [ { use => 'production' } ],
+                }
+              )
+        },
+        qr/A tag set list is not allowed with read preference mode 'primary'/,
+        'primary cannot be combined with a tag set list'
+    );
 };
 
 subtest 'commands' => sub {
-    is(
-        exception { $conn->read_preference(MongoDB::MongoClient->SECONDARY) },
-        undef,
-        "read pref set to secondary without error"
-    );
 
-    my $admin = $conn->get_database('admin');
-    my $temp_coll = $testdb->get_collection("foo");
-    $temp_coll->insert({});
+    ok( my $conn2 = build_client( read_preference => 'secondary' ),
+        "read pref set to secondary without error" );
+
+    my $admin = $conn2->get_database('admin');
+
     my $testdb_name = $testdb->name;
+    my $db = $conn2->get_database( $testdb_name );
+
+    my $temp_coll = $db->get_collection("foo");
+    $temp_coll->insert({});
 
     is(
         exception {

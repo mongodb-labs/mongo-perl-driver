@@ -61,8 +61,7 @@ subtest "connect to RS without primary" => sub {
     $orc->deployment->server_set->stepdown_primary(5);
     note "stepped down primary";
 
-    my $conn2 = build_client( dt_type => undef );
-    $conn2->read_preference('primary_preferred');
+    my $conn2 = build_client( dt_type => undef, read_preference => 'primary_preferred' );
     my $coll2 = $conn2->get_database($testdb->name)->get_collection("test_collection");
     my $count = $coll2->count;
 
