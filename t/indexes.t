@@ -22,7 +22,6 @@ use Test::Fatal;
 use Test::Warn;
 
 use utf8;
-use JSON::MaybeXS;
 
 use MongoDB;
 
