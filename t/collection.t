@@ -23,7 +23,6 @@ use Test::Warn;
 use Test::Deep qw/!blessed/;
 
 use utf8;
-use Data::Types qw(:float);
 use Tie::IxHash;
 use Encode qw(encode decode);
 use MongoDB::Timestamp; # needed if db is being run as master
@@ -174,7 +173,7 @@ subtest write_concern => sub {
     $object->{'price'} = 123.19;
     $coll->insert($object);
     my $auto = $coll->find_one;
-    ok(is_float($auto->{'price'}));
+    like($auto->{'price'}, qr/^123\.\d+/, "round trip float looks like float");
     ok(abs($auto->{'price'} - $object->{'price'}) < .000000001);
 }
 
