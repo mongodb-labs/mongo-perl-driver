@@ -637,7 +637,7 @@ sub get_indexes {
     catch {
         if ( $_->$_isa('MongoDB::DatabaseError') ) {
             my $cmd_result = $_->result->result;
-            my $code = $cmd_result->{code};
+            my $code = $cmd_result->{code} || 0;
             if ( $code == 26 ) {
                 return 1, (); # empty
             }
