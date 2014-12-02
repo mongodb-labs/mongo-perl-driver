@@ -18,12 +18,11 @@ my @types = qw(mongod master replicaset sharded);
 for my $t ( @types ) {
     for my $v ( @versions ) {
         my $file = "devel/config/${t}-${v}.yml";
+        next unless -f $file;
         say "---- TESTING WITH $file ----";
         if ( -f $file ) {
             system( "devel/bin/harness.pl", $file, @ARGV );
-        }
-        else {
-            say "FILE: $file not found";
+            say "---- RESULT WITH $file: " . ($? ? "FAIL" : "PASS") . " ----";
         }
     }
 }
