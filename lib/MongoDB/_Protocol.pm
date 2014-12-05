@@ -97,7 +97,7 @@ sub write_update {
     if ($flags) {
         $bitflags =
           ( $flags->{upsert} ? 1 << U_UPSERT : 0 )
-          | ( $flags->{multiple} ? 1 << U_MULTI_UPDATE : 0 );
+          | ( $flags->{multi} ? 1 << U_MULTI_UPDATE : 0 );
     }
 
     my $msg =
@@ -162,10 +162,11 @@ sub write_query {
     my $bitflags = 0;
     if ($flags) {
         $bitflags =
-          ( $flags->{tailable} ? 1 << Q_TAILABLE : 0 )
-          | ( $flags->{slave_ok} ? 1 << Q_SLAVE_OK          : 0 )
-          | ( $flags->{immortal} ? 1 << Q_NO_CURSOR_TIMEOUT : 0 )
-          | ( $flags->{partial}  ? 1 << Q_PARTIAL           : 0 );
+            ( $flags->{tailable}   ? 1 << Q_TAILABLE          : 0 )
+          | ( $flags->{slave_ok}   ? 1 << Q_SLAVE_OK          : 0 )
+          | ( $flags->{await_data} ? 1 << Q_AWAIT_DATA        : 0 )
+          | ( $flags->{immortal}   ? 1 << Q_NO_CURSOR_TIMEOUT : 0 )
+          | ( $flags->{partial}    ? 1 << Q_PARTIAL           : 0 );
     }
 
     my $request_id = int( rand( MAX_REQUEST_ID ) );

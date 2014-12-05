@@ -46,7 +46,7 @@ sub _send_admin_command {
 sub _send_command {
     my ( $self, $link, $args ) = @_;
 
-    my $command = MongoDB::BSON::encode_bson( $args->{command}->spec, 0 );
+    my $command = MongoDB::BSON::encode_bson( $args->{command}->filter, 0 );
 
     my ( $op_bson, $request_id ) =
       MongoDB::_Protocol::write_query( $args->{db} . '.$cmd', $command, undef, 0, -1, $args->{flags} );
@@ -163,7 +163,7 @@ sub _send_update {
 
     my $flags = {
         upsert => $op_doc->{upsert},
-        multiple => $op_doc->{multi},
+        multi  => $op_doc->{multi},
     };
 
     my $update = $op_doc->{u};

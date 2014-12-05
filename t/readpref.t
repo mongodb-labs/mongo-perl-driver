@@ -62,14 +62,14 @@ subtest "read preference propagation" => sub {
         for my $thing ( $conn2, $db2, $coll2 ) {
             is( $thing->read_preference->mode, $m, "$m set on " . ref($thing) );
         }
-        is( $cur->_read_preference->mode, $m, "$m set on " . ref($cur) );
+        is( $cur->query->read_preference->mode, $m, "$m set on " . ref($cur) );
     }
 };
 
 subtest "read preference on cursor" => sub {
     for my $m ( @modes ) {
         my $cur = $coll->find()->read_preference($m);
-        is( $cur->_read_preference->mode, $m, "$m set on " . ref($cur) );
+        is( $cur->query->read_preference->mode, $m, "$m set on " . ref($cur) );
     }
 };
 

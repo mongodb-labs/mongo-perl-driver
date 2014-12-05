@@ -27,6 +27,7 @@ use MongoDB::Cursor;
 use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use MongoDB::Error;
+use MongoDB::Op::_Command;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
 use MongoDB::_Topology;
@@ -812,30 +813,13 @@ sub disconnect {
 sub send_admin_command {
     my ( $self, $command, $read_preference ) = @_;
 
-    $read_preference ||= MongoDB::ReadPreference->new;
-    my $link = $self->_topology->get_readable_link($read_preference);
-    my $op   = {
-        command => MongoDB::_Query->new( spec => $command ),
-        flags   => {},
-    };
-    $self->_apply_read_prefs( $link, $op->{command}, $op->{flags}, $read_preference );
+    my $op   = MongoDB::Op::_Command->new(
+        db_name => 'admin',
+        query => $command,
+        ( $read_preference ? (read_preference => $read_preference) : ()),
+    );
 
-    return $self->_try_operation( '_send_admin_command', $link, $op );
-}
-
-sub send_command {
-    my ( $self, $db, $command, $read_preference ) = @_;
-
-    $read_preference ||= MongoDB::ReadPreference->new;
-    my $link = $self->_topology->get_readable_link($read_preference);
-    my $op   = {
-        db      => $db,
-        command => MongoDB::_Query->new( spec => $command ),
-        flags   => {},
-    };
-    $self->_apply_read_prefs( $link, $op->{command}, $op->{flags}, $read_preference );
-
-    return $self->_try_operation( '_send_command', $link, $op );
+    return $self->send_read_op( $op );
 }
 
 sub send_delete {
@@ -850,21 +834,6 @@ sub send_delete {
     my $link = $self->_topology->get_writable_link;
 
     return $self->_try_operation( '_send_delete', $link, $op );
-}
-
-sub send_get_more {
-    my ( $self, $address, $ns, $cursor_id, $size ) = @_;
-
-    my $op = {
-        ns         => $ns,
-        cursor_id  => $cursor_id,
-        batch_size => $size,
-        client     => $self,
-    };
-
-    my $link = $self->_topology->get_specific_link($address);
-
-    return $self->_try_operation( '_send_get_more', $link, $op );
 }
 
 sub send_insert {
@@ -899,14 +868,6 @@ sub send_insert_batch {
     return $self->_try_operation( '_send_insert_batch', $link, $op );
 }
 
-sub send_kill_cursors {
-    my ( $self, $address, @cursors ) = @_;
-
-    my $link = $self->_topology->get_specific_link( $address );
-
-    return $self->_try_operation('_send_kill_cursors', $link, @cursors );
-}
-
 sub send_update {
     my ( $self, $ns, $op_doc, $write_concern ) = @_;
     # $op_doc is { q: $query, u: $update, multi: $multi, upsert: $upsert }
@@ -921,92 +882,23 @@ sub send_update {
     return $self->_try_operation('_send_update', $link, $op);
 }
 
-# XXX eventually, passing $self to _send_query should go away and we should
-# pass in a BSON codec object
-sub send_query {
-    my ($self, $ns, $query, $fields, $skip, $limit, $batch_size, $flags, $read_preference) = @_;
-
-    $read_preference ||= $self->_read_preference || MongoDB::ReadPreference->new;
-    my $link = $self->_topology->get_readable_link( $read_preference );
-
-    $self->_apply_read_prefs( $link, $query, $flags, $read_preference );
-
-    return $self->_try_operation('_send_query', $link, $ns, $query->spec, $fields, $skip, $limit, $batch_size, $flags, $self );
+sub send_direct_op {
+    my ( $self, $op, $address ) = @_;
+    my $link = $self->_topology->get_specific_link($address);
+    return $self->_try_op( $op, $link );
 }
 
-# variants is a hash of wire protocol version to coderef
-sub send_versioned_read {
-    my ( $self, $variants, $read_preference ) = @_;
-
-    $read_preference ||= MongoDB::ReadPreference->new;
-    my $link = $self->_topology->get_readable_link($read_preference);
-
-    # try highest protocol versions first
-    for my $version ( sort { $b <=> $a } keys %$variants ) {
-        if ( $link->accepts_wire_version($version) ) {
-            return $variants->{$version}->($self, $link);
-        }
-    }
-
-    MongoDB::Error->throw(
-        sprintf(
-            "Wire protocol error: server %s selected but doesn't accept protocol(s) %",
-            join( ", ", keys %$variants ),
-            $link->address
-        )
-    );
+sub send_write_op {
+    my ( $self, $op ) = @_;
+    my $link = $self->_topology->get_writable_link;
+    return $self->_try_op( $op, $link );
 }
 
-sub _apply_read_prefs {
-    my ( $self, $link, $query, $flags, $read_pref ) = @_;
-
-    my $topology = $self->_topology->type;
-
-    if ( $topology eq 'Single' ) {
-        if ( $link->server->type eq 'Mongos' ) {
-            $self->_apply_mongos_read_prefs( $query, $flags, $read_pref );
-        }
-        else {
-            $flags->{slave_ok} = 1;
-        }
-    }
-    elsif ( $topology eq any(qw/ReplicaSetNoPrimary ReplicaSetWithPrimary/) ) {
-        if ( $read_pref->mode eq 'primary' ) {
-            $flags->{slave_ok} = 0;
-        }
-        else {
-            $flags->{slave_ok} = 1;
-        }
-    }
-    elsif ( $topology eq 'Sharded' ) {
-        $self->_apply_mongos_read_prefs( $query, $flags, $read_pref );
-    }
-    else {
-        MongoDB::InternalError->throw("can't query topology type '$topology'");
-    }
-
-    return;
-}
-
-sub _apply_mongos_read_prefs {
-    my ( $self, $query, $flags, $read_pref ) = @_;
-    my $mode = $read_pref->mode;
-    if ( $mode eq 'primary' ) {
-        $flags->{slave_ok} = 0;
-    }
-    elsif ( $mode eq any(qw/secondary primaryPreferred nearest/) ) {
-        $flags->{slave_ok} = 1;
-        $query->set_modifier( '$readPreference' => $read_pref->for_mongos );
-    }
-    elsif ( $mode eq 'secondaryPreferred' ) {
-        $flags->{slave_ok} = 1;
-        $query->set_modifier( '$readPreference' => $read_pref->for_mongos )
-          unless $read_pref->has_empty_tag_sets;
-    }
-    else {
-        MongoDB::InternalError->throw("invalid read preference mode '$mode'");
-    }
-    return;
+sub send_read_op {
+    my ( $self, $op ) = @_;
+    my $link = $self->_topology->get_readable_link($op->read_preference);
+    my $type = $self->_topology->type;
+    return $self->_try_op( $op, $link, $type );
 }
 
 sub _try_operation {
@@ -1014,6 +906,28 @@ sub _try_operation {
 
     my $result = try {
         $self->$method($link, @args);
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::ConnectionError") ) {
+            $self->_topology->mark_server_unknown( $link->server, $_ );
+        }
+        elsif ( $_->$_isa("MongoDB::NotMasterError") ) {
+            $self->_topology->mark_server_unknown( $link->server, $_ );
+            $self->_topology->mark_stale;
+        }
+        # regardless of cleanup, rethrow the error
+        die $_;
+    };
+
+    return $result;
+}
+
+sub _try_op {
+    # $type might be undef; not needed for writes
+    my ($self, $op, $link, $type) = @_;
+
+    my $result = try {
+        $op->execute( $link, $type );
     }
     catch {
         if ( $_->$_isa("MongoDB::ConnectionError") ) {
@@ -1103,8 +1017,13 @@ sub _execute_write_command_batch {
             ( $write_concern ? ( writeConcern => $write_concern->as_struct ) : () )
         ];
 
+        my $op = MongoDB::Op::_Command->new(
+            db_name => $db_name,
+            query => $cmd_doc
+        );
+
         my $cmd_result = try {
-            $self->send_command($db_name, $cmd_doc);
+            $self->send_write_op( $op );
         }
         catch {
             if ( $_->$_isa("MongoDB::_CommandSizeError") ) {

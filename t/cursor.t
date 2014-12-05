@@ -261,14 +261,9 @@ $testdb->drop;
     $cursor = $coll->find();
 
     $cursor = $cursor->tailable(1);
-    is($cursor->_query_options->{tailable}, 1);
+    is($cursor->query->cursorType, 'tailable', "set tailable");
     $cursor = $cursor->tailable(0);
-    is($cursor->_query_options->{tailable}, !1);
-
-    $cursor = $coll->find()->tailable(1);
-    is($cursor->_query_options->{tailable}, 1);
-    $cursor = $coll->find()->tailable(0);
-    is($cursor->_query_options->{tailable}, !1);
+    is($cursor->query->cursorType, 'non_tailable', "clear tailable");
 
     #test is actual cursor
     $coll->drop;
@@ -280,14 +275,14 @@ $testdb->drop;
     $cursor = $coll->find();
 
     $cursor->immortal(1);
-    is($cursor->_query_options->{immortal}, 1);
+    ok($cursor->query->noCursorTimeout, "set immortal");
     $cursor->immortal(0);
-    is($cursor->_query_options->{immortal}, !1);
+    ok(! $cursor->query->noCursorTimeout, "clear immortal");
 
     $cursor->slave_okay(1);
-    is($cursor->_query_options->{slave_ok}, 1);
+    is($cursor->query->read_preference->mode, 'secondaryPreferred', "set slave_ok");
     $cursor->slave_okay(0);
-    is($cursor->_query_options->{slave_ok}, !1);
+    is($cursor->query->read_preference->mode, 'primary', "clear slave_ok");
 }
 
 # explain
@@ -302,9 +297,9 @@ $testdb->drop;
 
     my $exp = $cursor->explain;
 
-    # cursor should be reset
+    # cursor should not be reset
     $doc = $cursor->next;
-    is($doc->{'x'}, 1) or diag explain $doc;
+    is($doc, undef) or diag explain $doc;
 }
 
 # info

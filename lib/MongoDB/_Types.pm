@@ -47,6 +47,8 @@ enum 'TopologyType',
 
 enum 'ConnectType', [qw/replicaSet direct none/];
 
+enum 'CursorType', [qw/non_tailable tailable tailable_await/];
+
 enum 'ServerType',
   [
     qw/Standalone Mongos PossiblePrimary RSPrimary RSSecondary RSArbiter RSOther RSGhost Unknown/
@@ -104,11 +106,6 @@ coerce booleanpm => from 'Any' => via { boolean($_) };
 coerce IxHash => from 'HashRef'  => via { Tie::IxHash->new(%$_) };
 coerce IxHash => from 'ArrayRef' => via { Tie::IxHash->new(@$_) };
 coerce IxHash => from 'Undef'    => via { Tie::IxHash->new() };
-
-coerce MongoDBQuery => from 'HashRef'  => via { MongoDB::_Query->new( spec => $_ ) };
-coerce MongoDBQuery => from 'ArrayRef' => via { MongoDB::_Query->new( spec => $_ ) };
-coerce MongoDBQuery => from 'IxHash'   => via { MongoDB::_Query->new( spec => $_ ) };
-coerce MongoDBQuery => from 'Undef'    => via { MongoDB::_Query->new( spec => [] ) };
 coerce IxHash => from 'HashLike' => via { Tie::IxHash->new(%$_) };
 
 coerce HostAddressList => from 'ArrayRef' => via {
@@ -129,7 +126,6 @@ no Moose::Util::TypeConstraints;
 
 # Classes for coercions
 require Tie::IxHash;
-require MongoDB::_Query;
 require MongoDB::ReadPreference;
 require MongoDB::WriteConcern;
 

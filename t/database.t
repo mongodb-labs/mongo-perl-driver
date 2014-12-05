@@ -131,12 +131,9 @@ subtest 'getlasterror' => sub {
 
 # forceerror
 {
-    exception{ $testdb->run_command({forceerror => 1}) };
+    my $err = exception{ $testdb->run_command({forceerror => 1}) };
 
-    my $result = $testdb->last_error;
-    is($result->{ok}, 1, 'last_error1');
-    is($result->{n}, 0, 'last_error2');
-    is($result->{err}, 'forced error', 'last_error3');
+    isa_ok( $err, "MongoDB::DatabaseError" );
 }
 
 # eval

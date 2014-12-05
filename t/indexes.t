@@ -38,7 +38,6 @@ my $coll           = $testdb->get_collection("foo");
 # basic indexes
 subtest 'basic indexes' => sub {
     $coll->drop;
-    my $res;
 
     $coll->drop;
     for ( my $i = 0; $i < 10; $i++ ) {
@@ -50,40 +49,20 @@ subtest 'basic indexes' => sub {
     ok( !$coll->get_indexes, 'no indexes yet' );
 
     my $indexes = Tie::IxHash->new( foo => 1, bar => 1, baz => 1 );
-    $res = $coll->ensure_index($indexes);
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    }
-    else {
-        ok( $res );
-    }
+    ok( $coll->ensure_index($indexes) );
 
     my $err = $testdb->last_error;
     is( $err->{ok},  1 );
     is( $err->{err}, undef );
 
     $indexes = Tie::IxHash->new( foo => 1, bar => 1 );
-    $res = $coll->ensure_index($indexes);
-
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    }
-    else {
-        ok( $res );
-    }
+    ok( $coll->ensure_index($indexes) );
 
     $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 1 } );
     $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 2 } );
     is( $coll->count, 2 );
 
-    $res = $coll->ensure_index( { boo => 1 }, { unique => 1 } );
-
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    }
-    else {
-        ok( $res );
-    }
+    ok( $coll->ensure_index( { boo => 1 }, { unique => 1 } ) );
 
     eval { $coll->insert( { foo => 3, bar => 3, baz => 3, boo => 2 } ) };
 
@@ -124,14 +103,7 @@ subtest 'drop dups' => sub {
 
     # prior to 2.7.5, drop_dups was respected
     if ( $server_version < v2.7.5 ) {
-        my $res = $coll->ensure_index( { foo => 1 }, { unique => 1, drop_dups => 1 } );
-
-        if ( $server_version >= v2.6.0 ) {
-            ok $res->{ok};
-        }
-        else {
-            ok( $res );
-        }
+        ok( $coll->ensure_index( { foo => 1 }, { unique => 1, drop_dups => 1 } ) );
     }
 
 };
@@ -140,24 +112,8 @@ subtest 'drop dups' => sub {
 subtest 'new form of ensure index' => sub {
     $coll->drop;
 
-    my $res;
-    $res = $coll->ensure_index( { foo => 1, bar => -1, baz => 1 } );
-
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    }
-    else {
-        ok( $res );
-    }
-
-    $res = $coll->ensure_index( [ foo => 1, bar => 1 ] );
-
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    }
-    else {
-        ok( $res );
-    }
+    ok( $coll->ensure_index( { foo => 1, bar => -1, baz => 1 } ) );
+    ok( $coll->ensure_index( [ foo => 1, bar => 1 ] ) );
 
     $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 1 } );
     $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 2 } );
@@ -182,8 +138,7 @@ subtest '2d index with options' => sub {
 };
 
 subtest 'ensure index arbitrary options' => sub {
-    my $res;
-    $res = $coll->ensure_index( { wibble => 1 }, { notReallyAnOption => { foo => 1 } } );
+    $coll->ensure_index( { wibble => 1 }, { notReallyAnOption => { foo => 1 } } );
     my ($index) = grep { $_->{name} eq 'wibble_1' } $coll->get_indexes;
     ok( $index, "created index" );
     cmp_deeply(

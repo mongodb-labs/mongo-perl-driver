@@ -104,67 +104,11 @@ after the database is queried.
 
 with 'MongoDB::Role::_Cursor';
 
-# general attributes
-
-has _client => (
-    is => 'rw',
-    isa => 'MongoDB::MongoClient',
-    required => 1,
-);
-
-has _ns => (
-    is => 'ro',
-    isa => 'Str',
-    required => 1,
-);
-
-has _read_preference => (
-    is       => 'ro',
-    isa      => 'ReadPreference',
-    writer   => '_set_read_preference',
-    required => 1,
-);
-
 # attributes for sending a query
-
-has _query => (
-    is => 'rw',
-    isa => 'MongoDBQuery',
-    required => 1,
-    coerce => 1,
-    writer => '_set_query',
-);
-
-has _fields => (
-    is => 'rw',
-    required => 0,
-);
-
-has _limit => (
-    is => 'rw',
-    isa => 'Int',
-    required => 0,
-    default => 0,
-);
-
-has _batch_size => (
-    is => 'rw',
-    isa => 'Int',
-    required => 0,
-    default => 0,
-);
-
-has _skip => (
-    is => 'rw',
-    isa => 'Int',
-    required => 0,
-    default => 0,
-);
-
-has _query_options => (
+has query => (
     is => 'ro',
-    isa => 'HashRef',
-    default => sub { { slave_ok => !! $MongoDB::Cursor::slave_okay } },
+    isa => 'MongoDB::_Query',
+    required => 1,
 );
 
 # lazy result attribute
@@ -180,16 +124,7 @@ has result => (
 # this does the query if it hasn't been done yet
 sub _build_result {
     my ($self) = @_;
-    return $self->_client->send_query(
-        $self->_ns,
-        $self->_query,
-        $self->_fields,
-        $self->_skip,
-        $self->_limit,
-        $self->_batch_size,
-        $self->_query_options,
-        $self->_read_preference,
-    );
+    $self->query->execute;
 }
 
 #--------------------------------------------------------------------------#
@@ -221,6 +156,8 @@ your connection.
 
 See L<MongoDB::MongoClient/query_timeout>.
 
+Returns this cursor for chaining operations.
+
 =cut
 
 sub immortal {
@@ -228,20 +165,27 @@ sub immortal {
     confess "cannot set immortal after querying"
         if $self->started_iterating;
 
-    $self->_query_options->{immortal} = !!$bool;
+    $self->query->noCursorTimeout(!!$bool);
     return $self;
 }
 
-=head2 fields (\%f)
+=head2 fields
 
     $coll->insert({name => "Fred", age => 20});
-    my $cursor = $coll->query->fields({ name => 1 });
+    my $cursor = $coll->find->fields({ name => 1 });
     my $obj = $cursor->next;
     $obj->{name}; "Fred"
     $obj->{age}; # undef
 
-Selects which fields are returned.
-The default is all fields.  _id is always returned.
+Selects which fields are returned.  The default is all fields.  _id is always
+returned.  Argument is either a hash reference, a L<Tie::IxHash> or an
+array reference of key/value pairs.
+
+See L<Limit fields to
+return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
+in the MongoDB documentation for details.
+
+Returns this cursor for chaining operations.
 
 =cut
 
@@ -252,63 +196,65 @@ sub fields {
     confess 'not a hash reference'
 	    unless ref $f eq 'HASH' || ref $f eq 'Tie::IxHash';
 
-    $self->_fields($f);
+    $self->query->projection($f);
     return $self;
 }
 
 =head2 sort ($order)
 
     # sort by name, descending
-    my $sort = {"name" => -1};
-    $cursor = $coll->query->sort($sort);
+    $cursor->sort([name => -1]);
 
-Adds a sort to the query.  Argument is either
-a hash reference or a Tie::IxHash.
+Adds a sort to the query.  Argument is either a hash reference or a
+L<Tie::IxHash> or an array reference of key/value pairs.  Because hash
+references are not ordered, do not use them for more than one key.
+
 Returns this cursor for chaining operations.
 
 =cut
 
 sub sort {
-    my ($self, $order) = @_;
+    my ( $self, $order ) = @_;
     confess "cannot set sort after querying"
-	if $self->started_iterating;
-    confess 'not a hash reference'
-	    unless ref $order eq 'HASH' || ref $order eq 'Tie::IxHash';
+      if $self->started_iterating;
 
-    $self->_query->set_modifier('$orderby', $order);
+    $self->query->sort($order);
     return $self;
 }
 
 
-=head2 limit ($num)
+=head2 limit
 
-    $per_page = 20;
-    $cursor = $coll->query->limit($per_page);
+    $cursor->limit(20);
 
-Returns a maximum of N results.
+Sets cursor to return a maximum of N results.
+
 Returns this cursor for chaining operations.
 
 =cut
 
+# XXX have to figure out if negative numbers are OK here
 sub limit {
     my ($self, $num) = @_;
     confess "cannot set limit after querying"
 	if $self->started_iterating;
-    $self->_limit($num);
+    $self->query->limit($num);
     return $self;
 }
 
 
-=head2 max_time_ms( $millis )
+=head2 max_time_ms
 
-    $cursor = $coll->query->max_time_ms( 500 );
+    $cursor->max_time_ms( 500 );
 
-Causes the server to abort the operation if the specified time in 
-milliseconds is exceeded. 
+Causes the server to abort the operation if the specified time in milliseconds
+is exceeded.
+
+Returns this cursor for chaining operations.
 
 =cut
 
-sub max_time_ms { 
+sub max_time_ms {
     my ( $self, $num ) = @_;
     $num = 0 unless defined $num;
     confess "max_time_ms must be non-negative"
@@ -316,14 +262,14 @@ sub max_time_ms {
     confess "can not set max_time_ms after querying"
       if $self->started_iterating;
 
-    $self->_query->set_modifier( '$maxTimeMS', $num );
+    $self->query->maxTimeMS( $num );
     return $self;
 
 }
 
-=head2 tailable ($bool)
+=head2 tailable
 
-    $cursor->query->tailable(1);
+    $cursor->tailable(1);
 
 If a cursor should be tailable.  Tailable cursors can only be used on capped
 collections and are similar to the C<tail -f> command: they never die and keep
@@ -342,36 +288,35 @@ sub tailable {
     confess "cannot set tailable after querying"
         if $self->started_iterating;
 
-    $self->_query_options->{tailable} = !!$bool;
+    # XXX this API is a problem for adding support for tailable_away
+    $self->query->cursorType($bool ? 'tailable' : 'non_tailable');
     return $self;
 }
 
+=head2 skip
 
+    $cursor->skip( 50 );
 
-=head2 skip ($num)
+Skips the first N results.
 
-    $page_num = 7;
-    $per_page = 100;
-    $cursor = $coll->query->limit($per_page)->skip($page_num * $per_page);
-
-Skips the first N results. Returns this cursor for chaining operations.
-
-See also core documentation on limit: L<http://dochub.mongodb.org/core/limit>.
+Returns this cursor for chaining operations.
 
 =cut
 
 sub skip {
-    my ($self, $num) = @_;
+    my ( $self, $num ) = @_;
+    confess "skip must be non-negative"
+      if $num < 0;
     confess "cannot set skip after querying"
-	if $self->started_iterating;
+      if $self->started_iterating;
 
-    $self->_skip($num);
+    $self->query->skip($num);
     return $self;
 }
 
 =head2 snapshot
 
-    my $cursor = $coll->query->snapshot;
+    $cursor->snapshot;
 
 Uses snapshot mode for the query.  Snapshot mode assures no
 duplicates are returned, or objects missed, which were present
@@ -382,43 +327,47 @@ query responses (less than 1MB) are always effectively
 snapshotted.  Currently, snapshot mode may not be used with
 sorting or explicit hints.
 
+Returns this cursor for chaining operations.
+
 =cut
 
+# XXX this doesn't allow turning it off!  That's inconsistent
+# with the rest of the cursor API
 sub snapshot {
     my ($self) = @_;
     confess "cannot set snapshot after querying"
-	if $self->started_iterating;
+      if $self->started_iterating;
 
-    $self->_query->set_modifier('$snapshot', 1);
+    $self->query->modifiers->{'$snapshot'} = 1;
     return $self;
 }
 
 =head2 hint
 
-    my $cursor = $coll->query->hint({'x' => 1});
-    my $cursor = $coll->query->hint(['x', 1]);
-    my $cursor = $coll->query->hint('x_1');
+    $cursor->hint({'x' => 1});
+    $cursor->hint(['x', 1]);
+    $cursor->hint('x_1');
 
 Force Mongo to use a specific index for a query.
+
+Returns this cursor for chaining operations.
 
 =cut
 
 sub hint {
-    my ($self, $index) = @_;
+    my ( $self, $index ) = @_;
     confess "cannot set hint after querying"
-        if $self->started_iterating;
+      if $self->started_iterating;
 
     # $index must either be a string or a reference to an array, hash, or IxHash
-    if (ref $index eq 'ARRAY') {
-
+    if ( ref $index eq 'ARRAY' ) {
         $index = Tie::IxHash->new(@$index);
-
-    } elsif (ref $index && !(ref $index eq 'HASH' || ref $index eq 'Tie::IxHash')) {
-
+    }
+    elsif ( ref $index && !( ref $index eq 'HASH' || ref $index eq 'Tie::IxHash' ) ) {
         confess 'not a hash reference';
     }
 
-    $self->_query->set_modifier('$hint', $index);
+    $self->query->modifiers->{'$hint'} = $index;
     return $self;
 }
 
@@ -431,11 +380,16 @@ shard.  If this is set, mongos will just skip that shard, instead.
 
 Boolean value, defaults to 0.
 
+Returns this cursor for chaining operations.
+
 =cut
 
 sub partial {
     my ($self, $value) = @_;
-    $self->_query_options->{partial} = !! $value;
+    confess "cannot set partial after querying"
+      if $self->started_iterating;
+
+    $self->query->allowPartialResults( !! $value );
 
     # XXX returning self is an API change but more consistent with other cursor methods
     return $self;
@@ -443,8 +397,8 @@ sub partial {
 
 =head2 read_preference
 
-    my $cursor = $coll->find()->read_preference($read_preference_object);
-    my $cursor = $coll->find()->read_preference('secondary', [{foo => 'bar'}]);
+    $cursor->read_preference($read_preference_object);
+    $cursor->read_preference('secondary', [{foo => 'bar'}]);
 
 Sets read preference for the cursor's connection.
 
@@ -454,16 +408,18 @@ arguments: the read preference mode and a tag set list, which must be a valid
 mode and tag set list as described in the L<MongoDB::ReadPreference>
 documentation.
 
-Returns $self so that this method can be chained.
+Returns this cursor for chaining operations.
 
 =cut
 
 sub read_preference {
     my $self = shift;
+    confess "cannot set read preference after querying"
+      if $self->started_iterating;
 
     my $type = ref $_[0];
     if ( $type eq 'MongoDB::ReadPreference' ) {
-        $self->_set_read_preference( $_[0] );
+        $self->query->read_preference( $_[0] );
     }
     else {
         my $mode     = shift || 'primary';
@@ -472,13 +428,13 @@ sub read_preference {
             mode => $mode,
             ( $tag_sets ? ( tag_sets => $tag_sets ) : () )
         );
-        $self->_set_read_preference($rp);
+        $self->query->read_preference($rp);
     }
 
     return $self;
 }
 
-=head2 slave_okay
+=head2 slave_okay (DEPRECATED)
 
     $cursor->slave_okay(1);
 
@@ -486,13 +442,25 @@ If a query can be done on a slave database server.
 
 Boolean value, defaults to 0.
 
-Returns the cursor object
+Returns this cursor for chaining operations.
 
 =cut
 
 sub slave_okay {
     my ($self, $value) = @_;
-    $self->_query_options->{slave_ok} = !! $value;
+    confess "cannot set slave_ok after querying"
+      if $self->started_iterating;
+
+    if ( $value ) {
+        # if not 'primary', then slave_ok is already true, so leave alone
+        if ( $self->query->read_preference->mode eq 'primary' ) {
+            # secondaryPreferred is how mongos interpretes slave_ok
+            $self->query->read_preference('secondaryPreferred');
+        }
+    }
+    else {
+        $self->query->read_preference('primary');
+    }
 
     # XXX returning self is an API change but more consistent with other cursor methods
     return $self;
@@ -509,10 +477,7 @@ stored within the cursor object.
 
 This will tell you the type of cursor used, the number of records the DB had to
 examine as part of this query, the number of records returned by the query, and
-the time in milliseconds the query took to execute.  Requires L<boolean> package.
-
-C<explain> resets the cursor, so calling C<next> or C<has_next> after an explain
-will requery the database.
+the time in milliseconds the query took to execute.
 
 See also core documentation on explain:
 L<http://dochub.mongodb.org/core/explain>.
@@ -521,23 +486,14 @@ L<http://dochub.mongodb.org/core/explain>.
 
 sub explain {
     my ($self) = @_;
-    my $temp = $self->_limit;
-    if ($self->_limit > 0) {
-        $self->_limit($self->_limit * -1);
-    }
 
-    my $old_query = $self->_query;
-    my $new_query = $old_query->clone;
-    $new_query->set_modifier('$explain', boolean::true);
+    my $new_query = $self->query->clone;
+    $new_query->modifiers->{'$explain'} = true;
 
-    $self->_set_query( $new_query  );
+    # XXX other drivers say to always use hard limit, but why?
+    $new_query->limit( -1 * abs( $new_query->limit ) );
 
-    my $retval = $self->reset->next;
-
-    $self->_set_query( $old_query );
-    $self->reset->limit($temp);
-
-    return $retval;
+    return $new_query->execute->next;
 }
 
 =head2 count($all?)
@@ -552,25 +508,25 @@ used in calculating the count.
 =cut
 
 sub count {
-    my ($self, $all) = @_;
+    my ($self, $limit_skip) = @_;
     # XXX deprecate this unintuitive API?
 
-    my ($db, $coll) = $self->_ns =~ m/^([^\.]+)\.(.*)/;
-    my $cmd = new Tie::IxHash(count => $coll);
+    my $cmd = new Tie::IxHash(count => $self->query->coll_name);
 
-    $cmd->Push(query => $self->_query->query_doc);
+    $cmd->Push(query => $self->query->filter);
 
-    if ($all) {
-        $cmd->Push(limit => $self->_limit) if $self->_limit;
-        $cmd->Push(skip => $self->_skip) if $self->_skip;
+    if ($limit_skip) {
+        $cmd->Push(limit => $self->query->limit) if $self->query->limit;
+        $cmd->Push(skip => $self->query->skip) if $self->query->skip;
     }
 
-    if (my $hint = $self->_query->get_modifier('$hint')) {
+    if (my $hint = $self->query->modifiers->{'$hint'}) {
         $cmd->Push(hint => $hint);
     }
 
     my $result = try {
-        $self->_client->get_database($db)->run_command($cmd, $self->_read_preference);
+        my $db = $self->query->client->get_database( $self->query->db_name );
+        $db->run_command( $cmd, $self->query->read_preference );
     }
     catch {
         # if there was an error, check if it was the "ns missing" one that means the

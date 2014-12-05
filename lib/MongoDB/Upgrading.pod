@@ -139,6 +139,11 @@ This significantly simplifes the code base and should have little end-user
 visibility unless users are specifically checking the return type of
 queries and query-like methods.
 
+The C<explain> cursor method no longer resets the cursor.
+
+The C<slave_ok> cursor method now set the C<read_preference>
+to 'secondaryPreferred' or clear it to 'primary'.
+
 =head2 Read preference objects and the C<read_preference> method
 
 A new L<MongoDB::ReadPreference> class is used to encapsulate read
