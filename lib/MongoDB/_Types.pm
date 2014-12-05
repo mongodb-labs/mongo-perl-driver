@@ -131,5 +131,6 @@ no Moose::Util::TypeConstraints;
 require Tie::IxHash;
 require MongoDB::_Query;
 require MongoDB::ReadPreference;
+require MongoDB::WriteConcern;
 
 1;
