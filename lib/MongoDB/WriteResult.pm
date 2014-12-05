@@ -210,6 +210,26 @@ sub count_writeConcernErrors {
     return scalar @{ $self->writeConcernErrors };
 }
 
+=method last_code
+
+Returns the last C<code> field from either the list of C<writeErrors> or
+C<writeConcernErrors> or 0 if there are no errors.
+
+=cut
+
+sub last_code {
+    my ($self) = @_;
+    if ( $self->count_writeErrors ) {
+        return $self->writeErrors->[-1]{code};
+    }
+    elsif ( $self->count_writeConcernErrors ) {
+        return $self->writeConcernErrors->[-1]{code};
+    }
+    else {
+        return 0;
+    }
+}
+
 =method last_errmsg
 
 Returns the last C<errmsg> field from either the list of C<writeErrors> or
@@ -228,6 +248,19 @@ sub last_errmsg {
     else {
         return "";
     }
+}
+
+=method last_wtimeout
+
+True if a write concern timed out or false otherwise.
+
+=cut
+
+sub last_wtimeout {
+    my ($self) = @_;
+    # if we have actual write errors, we don't want to report a
+    # write concern error
+    return !!( $self->count_write_concern_errors && !$self->count_write_errors );
 }
 
 sub _merge_result {

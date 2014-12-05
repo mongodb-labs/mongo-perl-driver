@@ -51,6 +51,17 @@ has address => (
     required => 1,
 );
 
+=method last_code
+
+Error code (if any) or 0 if there was no error.
+
+=cut
+
+sub last_code {
+    my ($self) = @_;
+    return $self->result->{code} || 0;
+}
+
 =method last_errmsg
 
 Error string (if any) or the empty string if there was no error.
@@ -65,27 +76,23 @@ sub last_errmsg {
     return "";
 }
 
-sub assert {
+=method last_wtimeout
+
+True if a write concern timed out or false otherwise.
+
+=cut
+
+sub last_wtimeout {
     my ($self) = @_;
-    if ( ! $self->result->{ok} ) {
-        my $err = $self->last_errmsg;
-        my $code = $self->result->{code};
-        my $error_class;
+    return !!$self->result->{wtimeout};
+}
 
-        # XXX should we be detecting write/writeConcern/etc errors here?
-        if ( $err =~ /^(?:not master|node is recovering)/ ) {
-            $error_class = "MongoDB::NotMasterError";
-        }
-        else {
-            $error_class = "MongoDB::DatabaseError";
-        }
+sub assert {
+    my ($self, $default_class) = @_;
 
-        $error_class->throw(
-            result => $self,
-            ( length($err)   ? ( message => $err )  : () ),
-            ( defined($code) ? ( code    => $code ) : () ),
-        );
-    }
+    $self->_throw_database_error
+        if ! $self->result->{ok};
+
     return 1;
 }
 
