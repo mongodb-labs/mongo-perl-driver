@@ -1109,7 +1109,7 @@ sub _execute_write_command_batch {
         catch {
             if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
                 if ( @$chunk == 1 ) {
-                    MongoDB::DocumentSizeError->throw(
+                    MongoDB::DocumentError->throw(
                         message  => "document too large",
                         document => $chunk->[0],
                     );
