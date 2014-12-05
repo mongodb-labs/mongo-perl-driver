@@ -21,6 +21,7 @@ package MongoDB::_Types;
 use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
 
+use Scalar::Util qw/reftype/;
 use boolean;
 use Moose::Util::TypeConstraints;
 
@@ -71,6 +72,8 @@ subtype
   where { $_ =~ /^$uri_re$/ },
   message { "Could not parse URI '$_'" };
 
+subtype HashLike => as 'Ref', where { reftype($_) eq 'HASH' };
+
 subtype NonEmptyStr => as 'Str' => where { defined $_ && length $_ };
 
 # Error string has to be a true value
@@ -106,6 +109,7 @@ coerce MongoDBQuery => from 'HashRef'  => via { MongoDB::_Query->new( spec => $_
 coerce MongoDBQuery => from 'ArrayRef' => via { MongoDB::_Query->new( spec => $_ ) };
 coerce MongoDBQuery => from 'IxHash'   => via { MongoDB::_Query->new( spec => $_ ) };
 coerce MongoDBQuery => from 'Undef'    => via { MongoDB::_Query->new( spec => [] ) };
+coerce IxHash => from 'HashLike' => via { Tie::IxHash->new(%$_) };
 
 coerce HostAddressList => from 'ArrayRef' => via {
     [ map { /:/ ? lc $_ : lc "$_:27017" } @$_ ]
