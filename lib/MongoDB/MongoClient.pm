@@ -967,7 +967,7 @@ sub send_bulk_queue {
     # result so we set that to undef in the constructor; otherwise, we set it
     # to 0 so that results accumulate normally. If a mongos on a mixed topology
     # later fails to set it, results merging will handle it that case.
-    my $result = MongoDB::WriteResult->new( nModified => $use_write_cmd ? 0 : undef, );
+    my $result = MongoDB::BulkWriteResult->new( nModified => $use_write_cmd ? 0 : undef, );
 
     for my $batch ( $ordered ? $self->_batch_ordered($link, $queue) : $self->_batch_unordered($link, $queue) ) {
         if ($use_write_cmd) {
@@ -1045,7 +1045,7 @@ sub _execute_write_command_batch {
 
         redo unless $cmd_result; # restart after a chunk split
 
-        my $r = MongoDB::WriteResult->_parse(
+        my $r = MongoDB::BulkWriteResult->_parse(
             op       => $type,
             op_count => scalar @$chunk,
             result   => $cmd_result,
@@ -1201,7 +1201,7 @@ sub _check_no_dollar_keys {
             code   => UNKNOWN_ERROR
         };
 
-        return MongoDB::WriteResult->new(
+        return MongoDB::BulkWriteResult->new(
             op_count    => 1,
             nModified   => undef,
             writeErrors => [$errdoc]

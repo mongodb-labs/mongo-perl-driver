@@ -114,10 +114,14 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on insert" ) or diag explain $err;
         is( $coll->count, 1, "one doc in collection" );
+
+        # test empty superclass
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nInserted   => 1,
                 nModified   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -138,10 +142,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on insert" ) or diag explain $err;
         is( $coll->count, 1, "one doc in collection" );
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nInserted   => 1,
                 nModified   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -219,10 +223,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on update" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nMatched    => 2,
                 nModified   => ( $server_does_bulk ? 2 : undef ),
                 op_count    => 1,
@@ -247,10 +251,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on update" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nMatched    => 2,
                 nModified   => ( $server_does_bulk ? 2 : undef ),
                 op_count    => 2,
@@ -273,10 +277,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on update" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nMatched    => 1,
                 nModified   => ( $server_does_bulk ? 1 : undef ),
                 op_count    => 1,
@@ -338,10 +342,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on update" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nMatched    => 1,
                 nModified   => ( $server_does_bulk ? 1 : undef ),
                 op_count    => 1,
@@ -387,10 +391,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on upsert-update" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nUpserted => 1,
                 nModified => ( $server_does_bulk ? 0 : undef ),
                 upserted  => [ { index => 1, _id => ignore() } ],
@@ -413,7 +417,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         is( $err, undef, "no error on second upsert-update" ) or diag explain $err;
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nMatched    => 1,
                 nModified   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 2,
@@ -434,10 +438,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on upsert-update" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nMatched    => 2,
                 nModified   => ( $server_does_bulk ? 2 : undef ),
                 op_count    => 1,
@@ -468,10 +472,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on upsert-update" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nUpserted   => 1,
                 nModified   => ( $server_does_bulk ? 0 : undef ),
                 upserted    => [ { index => 0, _id => ignore() } ],
@@ -496,10 +500,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on upsert-update_one" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nUpserted => 1,
                 nModified => ( $server_does_bulk ? 0 : undef ),
                 upserted  => [ { index => 1, _id => ignore() } ],
@@ -528,10 +532,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on upsert-update_one" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nMatched    => 1,
                 nModified   => ( $server_does_bulk ? 1 : undef ),
                 op_count    => 1,
@@ -562,10 +566,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on upsert-replace_one" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nUpserted => 1,
                 nModified => ( $server_does_bulk ? 0 : undef ),
                 upserted  => [ { index => 1, _id => ignore() } ],
@@ -594,10 +598,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on upsert-replace_one" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nMatched    => 1,
                 nModified   => ( $server_does_bulk ? 1 : undef ),
                 op_count    => 1,
@@ -640,10 +644,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on remove" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nRemoved    => 2,
                 nModified   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -665,10 +669,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on remove" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nRemoved    => 1,
                 nModified   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -707,10 +711,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on remove_one" ) or diag explain $err;
-        isa_ok( $result, 'MongoDB::WriteResult', "result object" );
+        isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nRemoved    => 1,
                 nModified   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -739,7 +743,7 @@ subtest "mixed operations, unordered" => sub {
     is( $err, undef, "no error on mixed operations" ) or diag explain $err;
     cmp_deeply(
         $result,
-        MongoDB::WriteResult->new(
+        MongoDB::BulkWriteResult->new(
             nInserted   => 1,
             nMatched    => 1,
             nModified   => ( $server_does_bulk ? 1 : undef ),
@@ -772,7 +776,7 @@ subtest "mixed operations, ordered" => sub {
     is( $err, undef, "no error on mixed operations" ) or diag explain $err;
     cmp_deeply(
         $result,
-        MongoDB::WriteResult->new(
+        MongoDB::BulkWriteResult->new(
             nInserted   => 2,
             nUpserted   => 1,
             nMatched    => 1,
@@ -1267,7 +1271,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         cmp_deeply(
             $result,
-            MongoDB::WriteResult->new(
+            MongoDB::BulkWriteResult->new(
                 nUpserted => 3,
                 nModified => ( $server_does_bulk ? 0 : undef ),
                 upserted =>

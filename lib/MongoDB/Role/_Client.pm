@@ -71,7 +71,7 @@ sub _send_command {
     return $result;
 }
 
-# Returns MongoDB::WriteResult
+# Returns MongoDB::BulkWriteResult
 sub _send_delete {
     my ( $self, $link, $args ) = @_;
     # $op_doc is { q: $query, limit: $limit }
@@ -103,7 +103,7 @@ sub _send_get_more {
     return $result;
 }
 
-# Returns MongoDB::WriteResult
+# Returns MongoDB::BulkWriteResult
 sub _send_insert {
     my ( $self, $link, $args ) = @_;
     # $op_doc is document to insert
@@ -121,7 +121,7 @@ sub _send_insert {
     return $self->_write_legacy_op( "insert", $link, $op_bson, $op_doc, $args );
 }
 
-# Returns MongoDB::WriteResult
+# Returns MongoDB::BulkWriteResult
 sub _send_insert_batch {
     my ( $self, $link, $args ) = @_;
     # $op_doc is array ref of documents to insert
@@ -150,7 +150,7 @@ sub _send_kill_cursors {
     return;
 }
 
-# Returns MongoDB::WriteResult
+# Returns MongoDB::BulkWriteResult
 sub _send_update {
     my ( $self, $link, $args ) = @_;
 
@@ -214,7 +214,7 @@ sub _write_legacy_op {
     if ( ! $write_concern || ! $write_concern->is_safe ) {
         $link->write($op_bson);
         # fake a w=0 write result
-        return  MongoDB::WriteResult->_parse(
+        return  MongoDB::BulkWriteResult->_parse(
             op       => $type,
             op_count => 1,
             result   => { n => 0 },
@@ -373,7 +373,7 @@ sub _writeresult_from_gle {
 
     }
 
-    my $result = MongoDB::WriteResult->_parse(
+    my $result = MongoDB::BulkWriteResult->_parse(
         op       => $type,
         op_count => 1,
         result   => {

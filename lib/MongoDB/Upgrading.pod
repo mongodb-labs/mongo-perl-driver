@@ -194,6 +194,13 @@ to ensure authentication succeeds (or else an exception is thrown).
 In a future release, this method will be removed entirely and
 authentication options will only be allowed as constructor arguments.
 
+=head2 Bulk write results
+
+The bulk write results class has been renamed to
+L<MongoDB::BulkWriteResult>.  It keeps C<MongoDB::WriteResult> as an empty
+superclass for some backwards compatibility so that C<<
+$result->isa("MongoDB::WriteResult") >> will continue to work as expected.
+
 =head2 Low-level functions removed
 
 Low-level driver functions have been removed from the public API.

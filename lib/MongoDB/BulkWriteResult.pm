@@ -14,12 +14,15 @@
 #  limitations under the License.
 #
 
-package MongoDB::WriteResult;
+package MongoDB::BulkWriteResult;
 
 # ABSTRACT: MongoDB write result document
 
 use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
+
+# empty superclass for backcompatibility
+our @ISA = qw/MongoDB::WriteResult/;
 
 use Moose;
 use MongoDB::Error;

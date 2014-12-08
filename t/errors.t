@@ -4,7 +4,7 @@ use Test::More 0.88;
 use Test::Fatal;
 
 use MongoDB::Error;
-use MongoDB::WriteResult;
+use MongoDB::BulkWriteResult;
 
 # check if FIRST->throw give object that isa SECOND
 my @isa_checks = qw(
@@ -17,7 +17,7 @@ while (@isa_checks) {
     isa_ok( exception { $error->throw }, $isa );
 }
 
-my $result = MongoDB::WriteResult->new( nModified => 0 );
+my $result = MongoDB::BulkWriteResult->new( nModified => 0 );
 my $error = exception {
     MongoDB::WriteError->throw(
         message => "whoops",

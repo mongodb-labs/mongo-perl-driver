@@ -23,7 +23,7 @@ our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use MongoDB::Error;
 use MongoDB::OID;
-use MongoDB::WriteResult;
+use MongoDB::BulkWriteResult;
 use MongoDB::BulkWriteView;
 use Syntax::Keyword::Junction qw/any/;
 
@@ -198,7 +198,7 @@ When grouping operations of a type, operations will be sent to the server in
 batches not exceeding 16MiB or 1000 items (for a version 2.6 or later server)
 or individually (for legacy servers without write command support).
 
-This method returns a L<MongoDB::WriteResult> object if the bulk operation
+This method returns a L<MongoDB::BulkWriteResult> object if the bulk operation
 executes successfully.
 
 Typical errors might include:

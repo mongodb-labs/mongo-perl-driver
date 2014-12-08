@@ -302,12 +302,12 @@ a L<MongoDB::CommandResult> object.
 =head3 MongoDB::WriteError
 
 Errors indicating failure of a write command.  The C<result> attribute is
-a L<MongoDB::WriteResult> object.
+a result object.
 
 =head3 MongoDB::WriteConcernError
 
 Errors indicating failure of a write concern.  The C<result> attribute is a
-L<MongoDB::WriteResult> object.
+result object.
 
 =head2 MongoDB::TimeoutError
 
