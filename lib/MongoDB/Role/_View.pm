@@ -29,7 +29,8 @@ use namespace::clean -except => 'meta';
 
 has query => (
     is       => 'ro',
-    isa      => 'HashRef|IxHash',
+    isa      => 'IxHash',
+    coerce   => 1,
     required => 1
 );
 

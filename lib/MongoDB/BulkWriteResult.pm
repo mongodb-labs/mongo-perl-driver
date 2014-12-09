@@ -85,6 +85,7 @@ my %op_map = (
 
 my @op_map_keys = sort keys %op_map;
 
+# XXX rename to _parse_cmd_result
 sub _parse {
     my $class = shift;
     my $args = ref $_[0] eq 'HASH' ? shift : {@_};
@@ -140,6 +141,48 @@ sub _parse {
     return $class->new($attrs);
 }
 
+# these are for single results only
+sub _parse_write_op {
+    my $class = shift;
+    my $op    = shift;
+
+    my $attrs = {
+        batch_count        => 1,
+        op_count           => 1,
+        writeErrors        => $op->write_errors,
+        writeConcernErrors => $op->write_concern_errors,
+    };
+
+    my $has_write_error = @{ $attrs->{writeErrors} };
+
+    # parse by type
+    my $type = ref($op);
+    if ( $type eq 'MongoDB::InsertOneResult' ) {
+        $attrs->{nInserted} = $has_write_error ? 0 : 1;
+    }
+    elsif ( $type eq 'MongoDB::DeleteResult' ) {
+        $attrs->{nRemoved} = $op->deleted_count;
+    }
+    elsif ( $type eq 'MongoDB::UpdateResult' ) {
+        if ( defined $op->upserted_id ) {
+            my $upsert = { index => 0, _id => $op->upserted_id  };
+            $attrs->{upserted}  = [ $upsert ];
+            $attrs->{nUpserted} = 1;
+            $attrs->{nMatched}  = 0;                   # because upsert happened
+            $attrs->{nModified} = 0;                   # because upsert happened
+        }
+        else {
+            $attrs->{nMatched}  = $op->matched_count;
+            $attrs->{nModified} = $op->modified_count;
+        }
+    }
+    else {
+        MongoDB::InternalError->throw("can't parse unknown result class $op");
+    }
+
+    return $class->new($attrs);
+}
+
 =method assert
 
 Throws an error if write errors or write concern errors occurred.
@@ -166,7 +209,7 @@ sub assert_no_write_error {
         MongoDB::WriteError->throw(
             message => $self->last_errmsg,
             result  => $self,
-            code => $self->writeErrors->[0]{code} || UNKNOWN_ERROR,
+            code    => $self->writeErrors->[0]{code} || UNKNOWN_ERROR,
         );
     }
     return 1;

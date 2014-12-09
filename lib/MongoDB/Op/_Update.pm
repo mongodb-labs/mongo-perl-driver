@@ -84,19 +84,20 @@ sub execute {
     my $is_replace = substr( $first_key, 0, 1 ) ne '$';
     my $max_size   = $is_replace ? $link->max_bson_object_size : undef;
     my $bson_doc = MongoDB::BSON::encode_bson( $update_op->{u}, $is_replace, $max_size );
+    my $orig_op = { %$update_op };
     $update_op->{u} = bless \$bson_doc, "MongoDB::BSON::Raw";
 
     my $res =
         $link->accepts_wire_version(2)
-      ? $self->_command_update( $link, $update_op )
-      : $self->_legacy_op_update( $link, $update_op );
+      ? $self->_command_update( $link, $update_op, $orig_op )
+      : $self->_legacy_op_update( $link, $update_op, $orig_op );
 
     $res->assert;
     return $res;
 }
 
 sub _command_update {
-    my ( $self, $link, $op_doc ) = @_;
+    my ( $self, $link, $op_doc, $orig_doc ) = @_;
 
     my $cmd = Tie::IxHash->new(
         update       => $self->coll_name,
@@ -104,11 +105,11 @@ sub _command_update {
         writeConcern => $self->write_concern->as_struct,
     );
 
-    return $self->_send_write_command( $link, $cmd, "MongoDB::UpdateResult" );
+    return $self->_send_write_command( $link, $cmd, $orig_doc, "MongoDB::UpdateResult" );
 }
 
 sub _legacy_op_update {
-    my ( $self, $link, $op_doc ) = @_;
+    my ( $self, $link, $op_doc, $orig_doc ) = @_;
 
     my $flags = {};
     @{$flags}{qw/upsert multi/} = @{$op_doc}{qw/upsert multi/};
@@ -119,11 +120,12 @@ sub _legacy_op_update {
     my $op_bson =
       MongoDB::_Protocol::write_update( $ns, $query_bson, $update_bson, $flags );
 
-    return $self->_send_legacy_op_with_gle( $link, $op_bson, "MongoDB::UpdateResult" );
+    return $self->_send_legacy_op_with_gle( $link, $op_bson, $orig_doc, "MongoDB::UpdateResult" );
 }
 
 sub _parse_cmd {
     my ( $self, $res ) = @_;
+
     return (
         matched_count  => $res->{n},
         modified_count => $res->{nModified},
@@ -132,11 +134,29 @@ sub _parse_cmd {
 }
 
 sub _parse_gle {
-    my ( $self, $res ) = @_;
+    my ( $self, $res, $orig_doc ) = @_;
+
+    # For 2.4 and earlier, 'upserted' has _id only if the _id is an OID.
+    # Otherwise, we have to pick it out of the update document or query
+    # document when we see updateExisting is false but the number of docs
+    # affected is 1
+
+    my $upserted = $res->{upserted};
+    if (! defined( $upserted )
+        && exists( $res->{updatedExisting} )
+        && !$res->{updatedExisting}
+        && $res->{n} == 1 )
+    {
+        $upserted =
+            $orig_doc->{u}->EXISTS("_id")
+          ? $orig_doc->{u}->FETCH("_id")
+          : $orig_doc->{q}->FETCH("_id");
+    }
+
     return (
         matched_count  => $res->{n},
         modified_count => undef,
-        upserted_id    => $res->{upserted},
+        upserted_id    => $upserted,
     );
 }
 

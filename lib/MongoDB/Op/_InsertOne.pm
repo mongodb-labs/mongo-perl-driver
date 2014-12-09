@@ -82,7 +82,7 @@ sub _command_insert {
         writeConcern => $self->write_concern->as_struct,
     );
 
-    return $self->_send_write_command( $link, $cmd, "MongoDB::InsertOneResult" );
+    return $self->_send_write_command( $link, $cmd, $self->document, "MongoDB::InsertOneResult" );
 }
 
 sub _legacy_op_insert {
@@ -91,7 +91,7 @@ sub _legacy_op_insert {
     my $ns = $self->db_name . "." . $self->coll_name;
     my $op_bson = MongoDB::_Protocol::write_insert( $ns, $$insert_doc );
 
-    return $self->_send_legacy_op_with_gle( $link, $op_bson,
+    return $self->_send_legacy_op_with_gle( $link, $op_bson, $self->document,
         "MongoDB::InsertOneResult" );
 }
 

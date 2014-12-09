@@ -870,6 +870,7 @@ subtest "ordered batch with errors" => sub {
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     isa_ok( $err, 'MongoDB::WriteError', 'caught error' );
+
     my $details = $err->result;
     is( $details->nUpserted, 0, "nUpserted" );
     is( $details->nMatched,  0, "nMatched" );
@@ -887,16 +888,17 @@ subtest "ordered batch with errors" => sub {
     is( $details->writeErrors->[0]{index}, 1,     "error index" );
     ok( length $details->writeErrors->[0]{errmsg}, "error string" );
 
+
     cmp_deeply(
         $details->writeErrors->[0]{op},
         {
-            q => { b      => 2 },
-            u => { '$set' => { a => 1 } },
-            multi  => 0,
-            upsert => 1,
+            q => Tie::IxHash->new( b      => 2 ),
+            u => Tie::IxHash->new( '$set' => { a => 1 } ),
+            multi  => false,
+            upsert => true,
         },
         "error op"
-    );
+    ) or diag explain $details->writeErrors->[0]{op};
 
     is( $coll->count, 1, "subsequent inserts did not run" );
 };
@@ -1051,14 +1053,13 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
           unless $is_standalone;
 
         $coll->drop;
-        $conn->w(2);
-        my $bulk = $coll->$method;
+        my $coll2 = $coll->clone( write_concern => { w => 2 } );
+        my $bulk = $coll2->$method;
         $bulk->insert( {} );
         my $err = exception { $bulk->execute() };
         isa_ok( $err, 'MongoDB::DatabaseError',
             "executing write concern w > 1 throws error" );
         like( $err->message, qr/replica/, "error message mentions replication" );
-        $conn->w(1);
     };
 }
 

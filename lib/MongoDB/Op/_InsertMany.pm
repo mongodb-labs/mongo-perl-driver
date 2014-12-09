@@ -131,7 +131,7 @@ sub _command_insert {
         writeConcern => $self->write_concern->as_struct,
     );
 
-    return $self->_send_write_command( $link, $cmd, "MongoDB::InsertManyResult" );
+    return $self->_send_write_command( $link, $cmd, undef, "MongoDB::InsertManyResult" );
 }
 
 sub _legacy_op_insert {
@@ -143,7 +143,7 @@ sub _legacy_op_insert {
     my $op_bson =
       MongoDB::_Protocol::write_insert( $ns, join( "", map { $$_ } @$insert_docs ) );
 
-    return $self->_send_legacy_op_with_gle( $link, $op_bson,
+    return $self->_send_legacy_op_with_gle( $link, $op_bson, undef,
         "MongoDB::InsertManyResult" );
 }
 

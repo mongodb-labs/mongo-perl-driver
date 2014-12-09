@@ -70,27 +70,30 @@ sub execute {
 }
 
 sub _command_delete {
-    my ( $self, $link, $op_doc ) = @_;
+    my ( $self, $link, ) = @_;
+
+    my $op_doc = { q => $self->filter, limit => $self->just_one ? 1 : 0 };
 
     my $cmd = Tie::IxHash->new(
         delete       => $self->coll_name,
-        deletes      => [ { q => $self->filter, limit => $self->just_one ? 1 : 0 } ],
+        deletes      => [ $op_doc ],
         writeConcern => $self->write_concern->as_struct,
     );
 
-    return $self->_send_write_command( $link, $cmd, "MongoDB::DeleteResult" );
+    return $self->_send_write_command( $link, $cmd, $op_doc, "MongoDB::DeleteResult" );
 }
 
 sub _legacy_op_delete {
-    my ( $self, $link, $op_doc ) = @_;
+    my ( $self, $link ) = @_;
 
     my $flags = { just_one => $self->just_one ? 1 : 0 };
 
     my $ns         = $self->db_name . "." . $self->coll_name;
     my $query_bson = MongoDB::BSON::encode_bson( $self->filter, 0 );
     my $op_bson    = MongoDB::_Protocol::write_delete( $ns, $query_bson, $flags );
+    my $op_doc     = { q => $self->filter, limit => $flags->{just_one} };
 
-    return $self->_send_legacy_op_with_gle( $link, $op_bson, "MongoDB::DeleteResult" );
+    return $self->_send_legacy_op_with_gle( $link, $op_bson, $op_doc, "MongoDB::DeleteResult" );
 }
 
 sub _parse_cmd {

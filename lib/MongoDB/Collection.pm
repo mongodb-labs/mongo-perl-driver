@@ -121,6 +121,25 @@ sub _build_full_name {
 }
 
 
+=method clone
+
+    $coll2 = $coll1->clone( write_concern => { w => 2 } );
+
+Constructs a copy of the original collection, but allows changing
+attributes in the copy.
+
+=cut
+
+sub clone {
+    my ($self, @args) = @_;
+    my $class = ref($self);
+    if ( @args == 1 && ref( $args[0] ) eq 'HASH' ) {
+        return class->new( %$self, %{$args[0]} );
+    }
+
+    return $class->new( %$self, @args );
+}
+
 =method get_collection ($name)
 
     my $collection = $database->get_collection('foo');

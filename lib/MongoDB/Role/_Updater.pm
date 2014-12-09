@@ -68,10 +68,13 @@ sub _update {
     if ( ref $doc eq 'ARRAY' ) {
         confess "array reference to $method must have key/value pairs"
           if @$doc % 2;
-        $doc = {@$doc};
+        $doc = Tie::IxHash->new( @$doc );
+    }
+    elsif ( ref $doc eq 'HASH' ) {
+        $doc = Tie::IxHash->new( %$doc );
     }
 
-    my @keys = ref $doc eq 'Tie::IxHash' ? $doc->Keys : keys %$doc;
+    my @keys = $doc->Keys;
     if ( $method eq 'replace_one' ) {
         if ( my @bad = grep { substr( $_, 0, 1 ) eq '$' } @keys ) {
             confess "$method document can't have '\$' prefixed field names: @bad";
@@ -86,8 +89,8 @@ sub _update {
     my $update = {
         q      => $self->query,
         u      => $doc,
-        multi  => $method eq 'update' ? boolean::true : boolean::false,
-        upsert => $self->_upsert,
+        multi  => $method eq 'update' ? true : false,
+        upsert => boolean($self->_upsert),
     };
 
     $self->_enqueue_write( [ update => $update ] );

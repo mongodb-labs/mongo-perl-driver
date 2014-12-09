@@ -23,6 +23,7 @@ our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use MongoDB::Error;
 use MongoDB::OID;
+use MongoDB::Op::_BulkWrite;
 use MongoDB::BulkWriteResult;
 use MongoDB::BulkWriteView;
 use Syntax::Keyword::Junction qw/any/;
@@ -229,16 +230,18 @@ sub execute {
         MongoDB::Error->throw("no bulk ops to execute");
     }
 
-    if ( ref $write_concern eq 'HASH' ) {
-        $write_concern = MongoDB::WriteConcern->new( $write_concern );
-    }
+    $write_concern ||= $self->collection->write_concern;
 
-    return $self->_client->send_bulk_queue(
-        ns            => $self->collection->full_name,
+    my $op = MongoDB::Op::_BulkWrite->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->collection->name,
+        client        => $self->_client,
         queue         => $self->_queue,
         ordered       => $self->ordered,
         write_concern => $write_concern,
     );
+
+    return $self->_client->send_write_op( $op );
 }
 
 
