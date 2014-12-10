@@ -4,7 +4,11 @@
 
   [Bug fixes]
 
-  - Fix t/database.t for change in error message for missing commands
+  - PERL-465 allowed arbitrary options on index creation
+
+  - Fixed t/database.t for change in error message for missing commands
+
+  - Fixed undef warning from get_indexes on older MongoDB versions
 
   [Prerequisites]
 
@@ -15,7 +19,7 @@ v0.707.0.0 2014-11-12 15:04:46-05:00 America/New_York
 
   [Additions]
 
-  - Supports MongoDB 2.8; in addition to prior feature support, this release
+  - Supports MongoDB 2.8-RC0; in addition to prior feature support, this release
     fixes tests that were broken against non-default storage engines
 
   [Bug fixes]
