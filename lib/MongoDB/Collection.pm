@@ -20,7 +20,7 @@ package MongoDB::Collection;
 # ABSTRACT: A MongoDB Collection
 
 use version;
-our $VERSION = 'v0.707.0.1';
+our $VERSION = 'v0.707.1.1';
 
 use Tie::IxHash;
 use Carp 'carp';

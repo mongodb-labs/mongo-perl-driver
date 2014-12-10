@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.707.1.0 2014-12-10 12:50:45-05:00 America/New_York
+
   [Bug fixes]
 
   - PERL-465 allowed arbitrary options on index creation
