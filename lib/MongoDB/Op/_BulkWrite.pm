@@ -272,15 +272,17 @@ sub _execute_legacy_batch {
         $wc = MongoDB::WriteConcern->new($wcs);
     }
 
-    # XXX successive inserts ought to get batched up, up to the max size for batch,
-    # but we have no feedback on max size to know how many to put together. I wonder
-    # if send_insert should return a list of write results, or if it should just
-    # strip out however many docs it can from an arrayref and leave the rest, and
-    # then this code can iterate.
+    # XXX successive inserts ought to get batched up, up to the max size for
+    # batch, but we have no feedback on max size to know how many to put
+    # together. I wonder if send_insert should return a list of write results,
+    # or if it should just strip out however many docs it can from an arrayref
+    # and leave the rest, and then this code can iterate.
 
     for my $doc (@$docs) {
 
-        # legacy server doesn't check keys on insert; we fake an error if it happens
+        # legacy server doesn't check keys on insert; we fake an error if it
+        # happens
+
         if ( $type eq 'insert' && ( my $r = $self->_check_no_dollar_keys($doc) ) ) {
             if ($w_0) {
                 last if $ordered;
@@ -364,9 +366,9 @@ sub _check_no_dollar_keys {
         };
 
         return MongoDB::BulkWriteResult->new(
-            op_count    => 1,
-            modified_count   => undef,
-            write_errors => [$errdoc]
+            op_count       => 1,
+            modified_count => undef,
+            write_errors   => [$errdoc]
         );
     }
 

@@ -16,7 +16,7 @@
 
 package MongoDB::BulkWriteResult;
 
-# ABSTRACT: MongoDB write result document
+# ABSTRACT: MongoDB bulk write result document
 
 use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
@@ -50,8 +50,8 @@ for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
 
 # This should always be initialized either as a number or as undef so that
 # merges accumulate correctly.  It should be undef if talking to a server < 2.6
-# or if talking to a mongos and not getting the field back from an update.
-# The default is undef, which will be sticky and ensure this field stays undef.
+# or if talking to a mongos and not getting the field back from an update.  The
+# default is undef, which will be sticky and ensure this field stays undef.
 
 has modified_count => (
     is      => 'ro',
@@ -156,11 +156,12 @@ sub _parse_cmd_result {
         $attrs->{$key} = $builder->($result);
     }
 
-    # for an update/upsert we want the exact response whether numeric or undef so that
-    # new undef responses become sticky; for all other updates, we consider it 0
-    # and let it get sorted out in the merging
-    $attrs->{modified_count} =
-      ( $op eq 'update' || $op eq 'upsert' ) ? $result->{nModified} : 0;
+    # for an update/upsert we want the exact response whether numeric or undef
+    # so that new undef responses become sticky; for all other updates, we
+    # consider it 0 and let it get sorted out in the merging
+
+    $attrs->{modified_count} = ( $op eq 'update' || $op eq 'upsert' ) ?
+    $result->{nModified} : 0;
 
     return $class->new($attrs);
 }
@@ -216,10 +217,11 @@ sub _merge_result {
         $self->$setter( $self->$attr + $result->$attr );
     }
 
-    # If modified_count is defined in both results we're merging, then we're talking
-    # to a 2.6+ mongod or we're talking to a 2.6+ mongos and have only seen
-    # responses with modified_count.  In any other case, we set modified_count to undef,
-    # which then becomes "sticky"
+    # If modified_count is defined in both results we're merging, then we're
+    # talking to a 2.6+ mongod or we're talking to a 2.6+ mongos and have only
+    # seen responses with modified_count.  In any other case, we set
+    # modified_count to undef, which then becomes "sticky"
+
     if ( defined $self->modified_count && defined $result->modified_count ) {
         $self->_set_modified_count( $self->modified_count + $result->modified_count );
     }
@@ -327,8 +329,8 @@ The number of operations sent to the database.
 
 =attr batch_count
 
-The number of database commands issued to the server.  This will be less than the
-C<op_count> if multiple operations were grouped together.
+The number of database commands issued to the server.  This will be less
+than the C<op_count> if multiple operations were grouped together.
 
 =method assert
 
@@ -341,8 +343,8 @@ returns 1.
 
 =method assert_no_write_concern_error
 
-Throws a MongoDB::WriteConcernError if C<count_write_concern_errors> is non-zero; otherwise
-returns 1.
+Throws a MongoDB::WriteConcernError if C<count_write_concern_errors> is
+non-zero; otherwise returns 1.
 
 =method count_write_errors
 
