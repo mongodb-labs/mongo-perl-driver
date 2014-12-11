@@ -33,8 +33,6 @@ use Try::Tiny;
 
 use namespace::clean -except => 'meta';
 
-with 'MongoDB::Role::_Client';
-
 use constant {
     EPOCH => [ 0, 0 ], # tv struct for the epoch
     MIN_HEARTBEAT_FREQUENCY_MS => 10_000, # 10ms, not configurable
