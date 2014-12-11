@@ -87,10 +87,16 @@ sub last_wtimeout {
     return !!$self->result->{wtimeout};
 }
 
+=method assert
+
+Throws an exception if the command failed.
+
+=cut
+
 sub assert {
     my ($self, $default_class) = @_;
 
-    $self->_throw_database_error
+    $self->_throw_database_error( $default_class )
         if ! $self->result->{ok};
 
     return 1;
