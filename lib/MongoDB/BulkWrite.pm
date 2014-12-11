@@ -99,8 +99,6 @@ sub _build__client {
     return $self->_database->_client;
 }
 
-with 'MongoDB::Role::_WriteQueue';
-
 =method find
 
     $view = $bulk->find( $query_document );
@@ -133,8 +131,8 @@ sub find {
     }
 
     return MongoDB::BulkWriteView->new(
-        query       => $doc,
-        write_queue => $self,
+        _query => $doc,
+        _bulk  => $self,
     );
 }
 
