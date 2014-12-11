@@ -84,12 +84,12 @@ sub execute {
 
     my $use_write_cmd = $link->accepts_wire_version(2);
 
-    # If using legacy write ops, then there will never be a valid nModified
+    # If using legacy write ops, then there will never be a valid modified_count
     # result so we set that to undef in the constructor; otherwise, we set it
     # to 0 so that results accumulate normally. If a mongos on a mixed topology
     # later fails to set it, results merging will handle it that case.
     my $result =
-      MongoDB::BulkWriteResult->new( nModified => $use_write_cmd ? 0 : undef );
+      MongoDB::BulkWriteResult->new( modified_count => $use_write_cmd ? 0 : undef );
 
     my @batches =
         $self->ordered
@@ -180,8 +180,8 @@ sub _execute_write_command_batch {
         );
 
         # append corresponding ops to errors
-        if ( $r->count_writeErrors ) {
-            for my $error ( @{ $r->writeErrors } ) {
+        if ( $r->count_write_errors ) {
+            for my $error ( @{ $r->write_errors } ) {
                 $error->{op} = $chunk->[ $error->{index} ];
             }
         }
@@ -341,7 +341,7 @@ sub _execute_legacy_batch {
         # Even for {w:0}, if the batch is ordered we have to break on the first
         # error, but we don't throw the error to the user.
         if ($w_0) {
-            last if $ordered && ( !$gle_result || $gle_result->count_writeErrors );
+            last if $ordered && ( !$gle_result || $gle_result->count_write_errors );
         }
         else {
             $result->_merge_result($gle_result);
@@ -365,8 +365,8 @@ sub _check_no_dollar_keys {
 
         return MongoDB::BulkWriteResult->new(
             op_count    => 1,
-            nModified   => undef,
-            writeErrors => [$errdoc]
+            modified_count   => undef,
+            write_errors => [$errdoc]
         );
     }
 

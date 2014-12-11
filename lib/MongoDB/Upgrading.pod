@@ -201,6 +201,9 @@ L<MongoDB::BulkWriteResult>.  It keeps C<MongoDB::WriteResult> as an empty
 superclass for some backwards compatibility so that C<<
 $result->isa("MongoDB::WriteResult") >> will continue to work as expected.
 
+The attributes have been renamed to be consistent with the new CRUD API.
+The legacy names are deprecated, but are available as aliases.
+
 =head2 Low-level functions removed
 
 Low-level driver functions have been removed from the public API.

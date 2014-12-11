@@ -83,14 +83,14 @@ Throws an error if write errors or write concern errors occurred.
 
 =method assert_no_write_error
 
-Throws a MongoDB::WriteError if C<count_writeErrors> is non-zero; otherwise
+Throws a MongoDB::WriteError if C<count_write_errors> is non-zero; otherwise
 returns 1.
 
 =cut
 
 =method assert_no_write_concern_error
 
-Throws a MongoDB::WriteConcernError if C<count_writeConcernErrors> is non-zero; otherwise
+Throws a MongoDB::WriteConcernError if C<count_write_concern_errors> is non-zero; otherwise
 returns 1.
 
 =cut

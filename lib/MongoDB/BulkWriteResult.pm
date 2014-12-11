@@ -30,16 +30,16 @@ use MongoDB::_Types;
 use Syntax::Keyword::Junction qw/any/;
 use namespace::clean -except => 'meta';
 
-with 'MongoDB::Role::_LastError';
+with 'MongoDB::Role::_WriteResult';
 
-has [qw/writeErrors writeConcernErrors upserted/] => (
+has upserted_ids => (
     is      => 'ro',
     isa     => 'ArrayOfHashRef',
     coerce  => 1,
     default => sub { [] },
 );
 
-for my $attr (qw/nInserted nUpserted nMatched nRemoved/) {
+for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
     has $attr => (
         is      => 'ro',
         isa     => 'Num',
@@ -53,10 +53,10 @@ for my $attr (qw/nInserted nUpserted nMatched nRemoved/) {
 # or if talking to a mongos and not getting the field back from an update.
 # The default is undef, which will be sticky and ensure this field stays undef.
 
-has nModified => (
+has modified_count => (
     is      => 'ro',
     isa     => 'Maybe[Num]',
-    writer  => '_set_nModified',
+    writer  => '_set_modified_count',
     default => undef,
 );
 
@@ -74,13 +74,39 @@ has batch_count => (
     default => 0,
 );
 
+#--------------------------------------------------------------------------#
+# emulate old API
+#--------------------------------------------------------------------------#
+
+my %OLD_API_ALIASING = (
+    nInserted                => 'inserted_count',
+    nUpserted                => 'upserted_count',
+    nMatched                 => 'matched_count',
+    nModified                => 'modified_count',
+    nRemoved                 => 'deleted_count',
+    writeErrors              => 'write_errors',
+    writeConcernErrors       => 'write_concern_errors',
+    upserted                 => 'upserted_ids',
+    count_writeErrors        => 'count_write_errors',
+    count_writeConcernErrors => 'count_write_concern_errors',
+);
+
+while ( my ( $old, $new ) = each %OLD_API_ALIASING ) {
+    no strict 'refs';
+    *{$old} = \&{$new};
+}
+
+#--------------------------------------------------------------------------#
+# private functions
+#--------------------------------------------------------------------------#
+
 # defines how an logical operation type gets mapped to a result
 # field from the actual command result
 my %op_map = (
-    insert => [ nInserted => sub { $_[0]->{n} } ],
-    delete => [ nRemoved  => sub { $_[0]->{n} } ],
-    update => [ nMatched  => sub { $_[0]->{n} } ],
-    upsert => [ nMatched  => sub { $_[0]->{n} - @{ $_[0]->{upserted} || [] } } ],
+    insert => [ inserted_count => sub { $_[0]->{n} } ],
+    delete => [ deleted_count  => sub { $_[0]->{n} } ],
+    update => [ matched_count  => sub { $_[0]->{n} } ],
+    upsert => [ matched_count  => sub { $_[0]->{n} - @{ $_[0]->{upserted} || [] } } ],
 );
 
 my @op_map_keys = sort keys %op_map;
@@ -110,20 +136,19 @@ sub _parse {
         $op_count ? ( op_count => $op_count ) : ()
     };
 
-    $attrs->{writeErrors} = $result->{writeErrors} if $result->{writeErrors};
+    $attrs->{write_errors} = $result->{writeErrors} if $result->{writeErrors};
 
-    # rename writeConcernError -> writeConcernErrors; coercion will make it
-    # into an array later $attrs->{writeConcernErrors} =
-    # $result->{writeConcernError}
+    # rename writeConcernError -> write_concern_errors; coercion will make it
+    # into an array later
 
-    $attrs->{writeConcernErrors} = $result->{writeConcernError}
+    $attrs->{write_concern_errors} = $result->{writeConcernError}
       if $result->{writeConcernError};
 
     # if we have upserts, change type to calculate differently
     if ( $result->{upserted} ) {
-        $op                 = 'upsert';
-        $attrs->{upserted}  = $result->{upserted};
-        $attrs->{nUpserted} = @{ $result->{upserted} };
+        $op                      = 'upsert';
+        $attrs->{upserted_ids}   = $result->{upserted};
+        $attrs->{upserted_count} = @{ $result->{upserted} };
     }
 
     # change 'n' into an op-specific count
@@ -135,7 +160,7 @@ sub _parse {
     # for an update/upsert we want the exact response whether numeric or undef so that
     # new undef responses become sticky; for all other updates, we consider it 0
     # and let it get sorted out in the merging
-    $attrs->{nModified} =
+    $attrs->{modified_count} =
       ( $op eq 'update' || $op eq 'upsert' ) ? $result->{nModified} : 0;
 
     return $class->new($attrs);
@@ -147,33 +172,33 @@ sub _parse_write_op {
     my $op    = shift;
 
     my $attrs = {
-        batch_count        => 1,
-        op_count           => 1,
-        writeErrors        => $op->write_errors,
-        writeConcernErrors => $op->write_concern_errors,
+        batch_count          => 1,
+        op_count             => 1,
+        write_errors         => $op->write_errors,
+        write_concern_errors => $op->write_concern_errors,
     };
 
-    my $has_write_error = @{ $attrs->{writeErrors} };
+    my $has_write_error = @{ $attrs->{write_errors} };
 
     # parse by type
     my $type = ref($op);
     if ( $type eq 'MongoDB::InsertOneResult' ) {
-        $attrs->{nInserted} = $has_write_error ? 0 : 1;
+        $attrs->{inserted_count} = $has_write_error ? 0 : 1;
     }
     elsif ( $type eq 'MongoDB::DeleteResult' ) {
-        $attrs->{nRemoved} = $op->deleted_count;
+        $attrs->{deleted_count} = $op->deleted_count;
     }
     elsif ( $type eq 'MongoDB::UpdateResult' ) {
         if ( defined $op->upserted_id ) {
-            my $upsert = { index => 0, _id => $op->upserted_id  };
-            $attrs->{upserted}  = [ $upsert ];
-            $attrs->{nUpserted} = 1;
-            $attrs->{nMatched}  = 0;                   # because upsert happened
-            $attrs->{nModified} = 0;                   # because upsert happened
+            my $upsert = { index => 0, _id => $op->upserted_id };
+            $attrs->{upserted_ids}   = [$upsert];
+            $attrs->{upserted_count} = 1;
+            $attrs->{matched_count}  = 0;        # because upsert happened
+            $attrs->{modified_count} = 0;        # because upsert happened
         }
         else {
-            $attrs->{nMatched}  = $op->matched_count;
-            $attrs->{nModified} = $op->modified_count;
+            $attrs->{matched_count}  = $op->matched_count;
+            $attrs->{modified_count} = $op->modified_count;
         }
     }
     else {
@@ -183,155 +208,29 @@ sub _parse_write_op {
     return $class->new($attrs);
 }
 
-=method assert
-
-Throws an error if write errors or write concern errors occurred.
-
-=cut
-
-sub assert {
-    my ($self) = @_;
-    $self->assert_no_write_error;
-    $self->assert_no_write_concern_error;
-    return 1;
-}
-
-=method assert_no_write_error
-
-Throws a MongoDB::WriteError if C<count_writeErrors> is non-zero; otherwise
-returns 1.
-
-=cut
-
-sub assert_no_write_error {
-    my ($self) = @_;
-    if ( $self->count_writeErrors ) {
-        MongoDB::WriteError->throw(
-            message => $self->last_errmsg,
-            result  => $self,
-            code    => $self->writeErrors->[0]{code} || UNKNOWN_ERROR,
-        );
-    }
-    return 1;
-}
-
-=method assert_no_write_concern_error
-
-Throws a MongoDB::WriteConcernError if C<count_writeConcernErrors> is non-zero; otherwise
-returns 1.
-
-=cut
-
-sub assert_no_write_concern_error {
-    my ($self) = @_;
-    if ( $self->count_writeConcernErrors ) {
-        MongoDB::WriteConcernError->throw(
-            message => $self->last_errmsg,
-            result  => $self,
-            code    => WRITE_CONCERN_ERROR,
-        );
-    }
-    return 1;
-}
-
-=method count_writeErrors
-
-Returns the number of write errors
-
-=cut
-
-sub count_writeErrors {
-    my ($self) = @_;
-    return scalar @{ $self->writeErrors };
-}
-
-=method count_writeConcernErrors
-
-Returns the number of write errors
-
-=cut
-
-sub count_writeConcernErrors {
-    my ($self) = @_;
-    return scalar @{ $self->writeConcernErrors };
-}
-
-=method last_code
-
-Returns the last C<code> field from either the list of C<writeErrors> or
-C<writeConcernErrors> or 0 if there are no errors.
-
-=cut
-
-sub last_code {
-    my ($self) = @_;
-    if ( $self->count_writeErrors ) {
-        return $self->writeErrors->[-1]{code};
-    }
-    elsif ( $self->count_writeConcernErrors ) {
-        return $self->writeConcernErrors->[-1]{code};
-    }
-    else {
-        return 0;
-    }
-}
-
-=method last_errmsg
-
-Returns the last C<errmsg> field from either the list of C<writeErrors> or
-C<writeConcernErrors> or the empty string if there are no errors.
-
-=cut
-
-sub last_errmsg {
-    my ($self) = @_;
-    if ( $self->count_writeErrors ) {
-        return $self->writeErrors->[-1]{errmsg};
-    }
-    elsif ( $self->count_writeConcernErrors ) {
-        return $self->writeConcernErrors->[-1]{errmsg};
-    }
-    else {
-        return "";
-    }
-}
-
-=method last_wtimeout
-
-True if a write concern timed out or false otherwise.
-
-=cut
-
-sub last_wtimeout {
-    my ($self) = @_;
-    # if we have actual write errors, we don't want to report a
-    # write concern error
-    return !!( $self->count_write_concern_errors && !$self->count_write_errors );
-}
-
 sub _merge_result {
     my ( $self, $result ) = @_;
 
     # Add simple counters
-    for my $attr (qw/nInserted nUpserted nMatched nRemoved/) {
+    for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
         my $setter = "_set_$attr";
         $self->$setter( $self->$attr + $result->$attr );
     }
 
-    # If nModified is defined in both results we're merging, then we're talking
+    # If modified_count is defined in both results we're merging, then we're talking
     # to a 2.6+ mongod or we're talking to a 2.6+ mongos and have only seen
-    # responses with nModified.  In any other case, we set nModified to undef,
+    # responses with modified_count.  In any other case, we set modified_count to undef,
     # which then becomes "sticky"
-    if ( defined $self->nModified && defined $result->nModified ) {
-        $self->_set_nModified( $self->nModified + $result->nModified );
+    if ( defined $self->modified_count && defined $result->modified_count ) {
+        $self->_set_modified_count( $self->modified_count + $result->modified_count );
     }
     else {
-        $self->_set_nModified(undef);
+        $self->_set_modified_count(undef);
     }
 
     # Append error and upsert docs, but modify index based on op count
     my $op_count = $self->op_count;
-    for my $attr (qw/writeErrors upserted/) {
+    for my $attr (qw/write_errors upserted_ids/) {
         for my $doc ( @{ $result->$attr } ) {
             $doc->{index} += $op_count;
         }
@@ -339,7 +238,7 @@ sub _merge_result {
     }
 
     # Append write concern errors without modification (they have no index)
-    push @{ $self->writeConcernErrors }, @{ $result->writeConcernErrors };
+    push @{ $self->write_concern_errors }, @{ $result->write_concern_errors };
 
     $self->_set_op_count( $op_count + $result->op_count );
     $self->_set_batch_count( $self->batch_count + $result->batch_count );
@@ -368,26 +267,26 @@ returned directly from C<execute> or it may be in the C<result> attribute of a
 C<MongoDB::DatabaseError> subclass like C<MongoDB::WriteError> or
 C<MongoDB::WriteConcernError>.
 
-=attr nInserted
+=attr inserted_count
 
 Number of documents inserted
 
-=attr nUpserted
+=attr upserted_count
 
 Number of documents upserted
 
-=attr nMatched
+=attr matched_count
 
 Number of documents matched for an update or replace operation.
 
-=attr nRemoved
+=attr deleted_count
 
 Number of documents removed
 
-=attr nModified
+=attr modified_count
 
 Number of documents actually modified by an update operation. This
-is not necessarily the same as L</nMatched> if the document was
+is not necessarily the same as L</matched_count> if the document was
 not actually modified as a result of the update.
 
 This field is not available from legacy servers before version 2.6.
@@ -403,7 +302,7 @@ Each document will have the following fields:
 * index — 0-based index indicating which operation failed
 * _id — the object ID of the upserted document
 
-=attr writeErrors
+=attr write_errors
 
 An array reference containing write errors (if any).  Each error document
 will have the following fields:
@@ -414,7 +313,7 @@ will have the following fields:
 * errmsg — textual error string
 * op — a representation of the actual operation sent to the server
 
-=attr writeConcernErrors
+=attr write_concern_errors
 
 An array reference containing write concern errors (if any).  Each error
 document will have the following fields:
@@ -431,5 +330,41 @@ The number of operations sent to the database.
 
 The number of database commands issued to the server.  This will be less than the
 C<op_count> if multiple operations were grouped together.
+
+=method assert
+
+Throws an error if write errors or write concern errors occurred.
+
+=method assert_no_write_error
+
+Throws a MongoDB::WriteError if C<count_write_errors> is non-zero; otherwise
+returns 1.
+
+=method assert_no_write_concern_error
+
+Throws a MongoDB::WriteConcernError if C<count_write_concern_errors> is non-zero; otherwise
+returns 1.
+
+=method count_write_errors
+
+Returns the number of write errors
+
+=method count_write_concern_errors
+
+Returns the number of write errors
+
+=method last_code
+
+Returns the last C<code> field from either the list of C<write_errors> or
+C<write_concern_errors> or 0 if there are no errors.
+
+=method last_errmsg
+
+Returns the last C<errmsg> field from either the list of C<write_errors> or
+C<write_concern_errors> or the empty string if there are no errors.
+
+=method last_wtimeout
+
+True if a write concern timed out or false otherwise.
 
 =cut

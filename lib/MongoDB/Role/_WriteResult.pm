@@ -50,6 +50,7 @@ sub assert {
 
 sub assert_no_write_error {
     my ($self) = @_;
+
     $self->_throw_database_error("MongoDB::WriteError")
       if $self->count_write_errors;
     return 1;
