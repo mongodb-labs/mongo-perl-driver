@@ -173,7 +173,7 @@ sub _execute_write_command_batch {
 
         redo unless $cmd_result; # restart after a chunk split
 
-        my $r = MongoDB::BulkWriteResult->_parse(
+        my $r = MongoDB::BulkWriteResult->_parse_cmd_result(
             op       => $type,
             op_count => scalar @$chunk,
             result   => $cmd_result,

@@ -111,8 +111,7 @@ my %op_map = (
 
 my @op_map_keys = sort keys %op_map;
 
-# XXX rename to _parse_cmd_result
-sub _parse {
+sub _parse_cmd_result {
     my $class = shift;
     my $args = ref $_[0] eq 'HASH' ? shift : {@_};
 

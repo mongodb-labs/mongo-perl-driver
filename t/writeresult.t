@@ -24,7 +24,7 @@ use Test::Fatal;
 use MongoDB::BulkWriteResult;
 
 subtest "insert" => sub {
-    my $r = MongoDB::BulkWriteResult->_parse(
+    my $r = MongoDB::BulkWriteResult->_parse_cmd_result(
         op => 'insert',
         result => { ok => 1, n => 1 }
     );
