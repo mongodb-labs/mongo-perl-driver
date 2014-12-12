@@ -74,6 +74,7 @@ subtest "MONGODB-CR disabled" => sub {
 
             my $testdb = get_test_db($conn);
             my $coll   = $testdb->get_collection("test_collection");
+            $coll->count();
         },
 
         qr/challenge-response.*disabled/i,
