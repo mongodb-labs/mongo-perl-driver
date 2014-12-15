@@ -279,6 +279,10 @@ They are often used for getting log messages.
 
 Boolean value, defaults to 0.
 
+If you want the tailable cursor to block for a few seconds, use
+L</tailable_await> instead.  B<Note> calling this with a false value
+disables tailing, even if C<tailable_await> was previously called.
+
 Returns this cursor for chaining operations.
 
 =cut
@@ -288,8 +292,31 @@ sub tailable {
     confess "cannot set tailable after querying"
         if $self->started_iterating;
 
-    # XXX this API is a problem for adding support for tailable_away
     $self->query->cursorType($bool ? 'tailable' : 'non_tailable');
+    return $self;
+}
+
+=head2 tailable_await
+
+    $cursor->tailable_await(1);
+
+Sets a cursor to be tailable and block for a few seconds if no data
+is immediately available.
+
+Boolean value, defaults to 0.
+
+If you want the tailable cursor without blocking, use L</tailable> instead.
+B<Note> calling this with a false value disables tailing, even if C<tailable>
+was previously called.
+
+=cut
+
+sub tailable_await {
+    my ( $self, $bool ) = @_;
+    confess "cannot set tailable_await after querying"
+        if $self->started_iterating;
+
+    $self->query->cursorType($bool ? 'tailable_await' : 'non_tailable');
     return $self;
 }
 

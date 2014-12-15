@@ -265,6 +265,21 @@ $testdb->drop;
     $cursor = $cursor->tailable(0);
     is($cursor->query->cursorType, 'non_tailable', "clear tailable");
 
+    $cursor = $cursor->tailable_await(1);
+    is($cursor->query->cursorType, 'tailable_await', "set tailable_await");
+    $cursor = $cursor->tailable_await(0);
+    is($cursor->query->cursorType, 'non_tailable', "clear tailable_await");
+
+    $cursor = $cursor->tailable(1);
+    is($cursor->query->cursorType, 'tailable', "set tailable");
+    $cursor = $cursor->tailable_await(0);
+    is($cursor->query->cursorType, 'non_tailable', "clear tailable_await");
+
+    $cursor = $cursor->tailable_await(1);
+    is($cursor->query->cursorType, 'tailable_await', "set tailable_await");
+    $cursor = $cursor->tailable(0);
+    is($cursor->query->cursorType, 'non_tailable', "clear tailable");
+
     #test is actual cursor
     $coll->drop;
     $coll->insert({"x" => 1});
@@ -336,7 +351,7 @@ $testdb->drop;
 }
 
 # delayed tailable cursor
-{
+subtest "delayed tailable cursor" => sub {
     $coll = $testdb->get_collection( 'test_collection' );
     $coll->drop;
 
@@ -362,7 +377,33 @@ $testdb->drop;
     my $count =()= $cursor->all;
 
     is($count, 10);
-}
+};
+
+# tailable_await
+subtest "await data" => sub {
+    $coll = $testdb->get_collection('test_collection');
+    $coll->drop;
+
+    my $cmd = [ create => "test_collection", capped => 1, size => 10000 ];
+    $testdb->run_command($cmd);
+
+    $coll->insert( { x => $_ } ) for 0 .. 9;
+
+    # Get last doc
+    my $cursor = $coll->find()->sort( { x => -1 } )->limit(1);
+    my $last_doc = $cursor->next();
+
+    my $start = time;
+    $cursor = $coll->find( { _id => { '$gt' => $last_doc->{_id} } } )->tailable_await(1);
+
+    # We won't get anything yet
+    $cursor->next();
+    my $end = time;
+
+    # did it actually block for a bit?
+    ok( $end >= $start + 1, "cursor blocked to await data" )
+      or diag "START: $start; END: $end";
+};
 
 subtest "count w/ hint" => sub {
 
