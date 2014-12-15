@@ -345,14 +345,12 @@ sub skip {
 
     $cursor->snapshot;
 
-Uses snapshot mode for the query.  Snapshot mode assures no
-duplicates are returned, or objects missed, which were present
-at both the start and end of the query's execution (if an object
-is new during the query, or deleted during the query, it may or
-may not be returned, even with snapshot mode).  Note that short
-query responses (less than 1MB) are always effectively
-snapshotted.  Currently, snapshot mode may not be used with
-sorting or explicit hints.
+Uses snapshot mode for the query.  Snapshot mode assures no duplicates are
+returned due an intervening write relocating a document.  Note that if an
+object is inserted, updated or deleted during the query, it may or may not
+be returned when snapshot mode is enabled. Short query responses (less than
+1MB) are always effectively snapshotted.  Currently, snapshot mode may not
+be used with sorting or explicit hints.
 
 Returns this cursor for chaining operations.
 
@@ -671,3 +669,5 @@ sub info {
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+# vim: ts=4 sts=4 sw=4 et tw=75:
