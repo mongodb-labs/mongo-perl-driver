@@ -192,4 +192,11 @@ subtest "options" => sub {
 
 }
 
+# host/port
+
+{
+    my $client = build_client( host => "localhost:27017" );
+    is( $client->_uri->uri, "mongodb://localhost:27017", "localhost:27017 handled correctly" );
+}
+
 done_testing;
