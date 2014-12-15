@@ -23,6 +23,7 @@ use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use MongoDB::Error;
+use MongoDB::WriteConcern;
 use MongoDB::_Query;
 use MongoDB::Op::_CreateIndexes;
 use MongoDB::Op::_Delete;
@@ -781,11 +782,17 @@ sub ensure_index {
     $keys = Tie::IxHash->new(@$keys) if ref $keys eq 'ARRAY';
     $opts = $self->_clean_index_options( $opts, $keys );
 
+    # always use safe write concern for index creation
+    my $wc =
+        $self->write_concern->is_safe
+      ? $self->write_concern
+      : MongoDB::WriteConcern->new;
+
     my $op = MongoDB::Op::_CreateIndexes->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
         indexes       => [ { key => $keys, %$opts } ],
-        write_concern => $self->write_concern,
+        write_concern => $wc,
     );
 
     $self->_client->send_write_op($op);
