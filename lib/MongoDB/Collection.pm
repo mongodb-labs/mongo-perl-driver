@@ -633,9 +633,28 @@ sub get_indexes {
     my ($self) = @_;
 
     # try command style for 2.8+
-    my ($ok, @indexes) = try {
-        my $res = $self->_database->_try_run_command([listIndexes => $self->name]);
-        return 1, @{$res->{indexes}};
+    my ( $ok, @indexes ) = try {
+        my $command = Tie::IxHash->new( listIndexes => $self->name, cursor => {} );
+        my $res     = $self->_database->_try_run_command($command);
+        my @list;
+        # XXX RC0 - RC2 give collections result; RC3+ give cursor result
+        if ( $res->{indexes} ) {
+            @list = @{$res->{indexes}};
+        }
+        else {
+            my $cursor  = MongoDB::Cursor->new(
+                started_iterating => 1,                 # we have the first batch
+                _client           => $self->_database->_client,
+                _master           => $self->_database->_client,    # fake this because we're already iterating
+                _ns               => $res->{cursor}{ns},
+                _agg_first_batch => $res->{cursor}{firstBatch},
+                _agg_batch_size  => scalar @{ $res->{cursor}{firstBatch} }, # for has_next
+                _query           => $command,
+            );
+            $cursor->_init( $res->{cursor}{id} );
+            @list = $cursor->all;
+        }
+        return 1, @list;
     }
     catch {
         if ( $_->$_isa('MongoDB::DatabaseError') ) {
