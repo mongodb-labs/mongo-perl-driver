@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-476 fixed getting lists of collections and indices for changes in
+    MongoDB 2.8-rc3 and later.
+
 v0.707.1.0 2014-12-10 12:50:45-05:00 America/New_York
 
   [Bug fixes]
