@@ -960,7 +960,7 @@ sub get_indexes {
 
     my $res = $self->_client->send_read_op($op);
 
-    return @$res;
+    return $res->all;
 }
 
 =method drop

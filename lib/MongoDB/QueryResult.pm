@@ -22,6 +22,7 @@ use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use Moose;
+use MongoDB::Error;
 use MongoDB::Op::_GetMore;
 use MongoDB::Op::_KillCursors;
 use MongoDB::_Types;
@@ -124,20 +125,32 @@ has _docs => (
     },
 );
 
-# allows ->new( _client => $client, ns => $ns,
+# allows ->new( _client => $client, ns => $ns, reply => { } )
+# or     ->new( _client => $client, result => $command_result )
 sub BUILDARGS {
     my $self = shift;
     my $args = $self->SUPER::BUILDARGS(@_);
 
-    if ( my $result = delete $args->{result} ) {
+    if ( my $reply = delete $args->{reply} ) {
         # extract attributes from results hash
         return {
             %$args,
-            cursor_id    => $result->{cursor_id},
-            cursor_flags => $result->{flags},
-            cursor_start => $result->{starting_from},
-            cursor_num   => $result->{number_returned},
-            _docs        => $result->{docs},
+            cursor_id    => $reply->{cursor_id},
+            cursor_flags => $reply->{flags},
+            cursor_start => $reply->{starting_from},
+            cursor_num   => $reply->{number_returned},
+            _docs        => $reply->{docs},
+        };
+    }
+    elsif ( my $cursor = delete $args->{cursor} ) {
+        my $first_batch_size = scalar @{ $cursor->{firstBatch} };
+        return {
+            %$args,
+            ns         => $cursor->{ns},
+            batch_size => $first_batch_size,
+            cursor_id  => _pack_cursor_id( $cursor->{id} ),
+            cursor_num => $first_batch_size,
+            _docs      => $cursor->{firstBatch},
         };
     }
     else {
@@ -167,8 +180,7 @@ sub has_next {
         $self->_kill_cursor;
         return 0;
     }
-    return 1 if !$self->_drained;
-    return $self->_get_more;
+    return !$self->_drained || $self->_get_more;
 }
 
 sub next {
@@ -217,9 +229,7 @@ sub all {
 sub _kill_cursor {
     my ($self) = @_;
     return if $self->cursor_id eq CURSOR_ZERO;
-    my $op = MongoDB::Op::_KillCursors->new(
-        cursor_ids => [ $self->cursor_id ],
-    );
+    my $op = MongoDB::Op::_KillCursors->new( cursor_ids => [ $self->cursor_id ], );
     $self->_client->send_direct_op( $op, $self->address );
     $self->_set_cursor_id(CURSOR_ZERO);
 }

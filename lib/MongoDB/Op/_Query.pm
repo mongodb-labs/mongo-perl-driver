@@ -80,6 +80,12 @@ has query_flags => (
     default => sub { {} },
 );
 
+has post_filter => (
+    is        => 'ro',
+    isa       => 'Maybe[CodeRef]',
+    predicate => 'has_post_filter',
+);
+
 with 'MongoDB::Role::_ReadOp';
 with 'MongoDB::Role::_ReadPrefModifier';
 
@@ -102,13 +108,17 @@ sub execute {
     my $result =
       $self->_query_and_receive( $link, $op_bson, $request_id, $self->bson_codec );
 
-    return MongoDB::QueryResult->new(
-        _client    => $self->client,
-        address    => $link->address,
-        ns         => $ns,
-        limit      => $self->limit,
-        batch_size => $batch_size,
-        result     => $result,
+    my $class =
+      $self->has_post_filter ? "MongoDB::QueryResult::Filtered" : "MongoDB::QueryResult";
+
+    return $class->new(
+        _client     => $self->client,
+        address     => $link->address,
+        ns          => $ns,
+        limit       => $self->limit,
+        batch_size  => $batch_size,
+        reply       => $result,
+        post_filter => $self->post_filter,
     );
 }
 

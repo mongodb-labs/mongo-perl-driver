@@ -56,7 +56,11 @@ has bson_codec => (
     required => 1,
 );
 
-with 'MongoDB::Role::_ReadOp';
+with qw(
+  MongoDB::Role::_ReadOp
+  MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_EmptyQueryResult
+);
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
@@ -74,12 +78,12 @@ sub _command_list_indexes {
 
     my $op = MongoDB::Op::_Command->new(
         db_name         => $self->db_name,
-        query           => Tie::IxHash->new( listIndexes => $self->coll_name ),
+        query           => Tie::IxHash->new( listIndexes => $self->coll_name, cursor => {} ),
         read_preference => $self->read_preference,
     );
 
     my $res = try {
-        $op->execute( $link, $topology )->result;
+        $op->execute( $link, $topology );
     }
     catch {
         if ( $_->$_isa("MongoDB::DatabaseError") ) {
@@ -88,7 +92,7 @@ sub _command_list_indexes {
         die $_;
     };
 
-    return $res ? $res->{indexes} : [];
+    return $res ? $self->_build_query_result($res) : $self->_empty_query_result($link);
 }
 
 sub _legacy_list_indexes {
@@ -104,9 +108,7 @@ sub _legacy_list_indexes {
         read_preference => $self->read_preference,
     );
 
-    my $res = $op->execute( $link, $topology );
-
-    return [ $res->all ];
+    return $op->execute( $link, $topology );
 }
 
 1;

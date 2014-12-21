@@ -26,6 +26,7 @@ use Moose;
 
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
+use MongoDB::QueryResult::Filtered;
 use MongoDB::_Types;
 use Tie::IxHash;
 use namespace::clean -except => 'meta';
@@ -48,7 +49,10 @@ has bson_codec => (
     required => 1,
 );
 
-with 'MongoDB::Role::_ReadOp';
+with qw(
+  MongoDB::Role::_ReadOp
+  MongoDB::Role::_CommandCursorOp
+);
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
@@ -66,13 +70,13 @@ sub _command_list_colls {
 
     my $op = MongoDB::Op::_Command->new(
         db_name         => $self->db_name,
-        query           => Tie::IxHash->new( listCollections => 1 ),
+        query           => Tie::IxHash->new( listCollections => 1, cursor => {} ),
         read_preference => $self->read_preference,
     );
 
-    my $res = $op->execute( $link, $topology )->result;
+    my $res = $op->execute( $link, $topology );
 
-    return [ map { $_->{name} } @{ $res->{collections} } ];
+    return $self->_build_query_result( $res );
 }
 
 sub _legacy_list_colls {
@@ -86,16 +90,20 @@ sub _legacy_list_colls {
         bson_codec      => $self->bson_codec,
         query           => Tie::IxHash->new(),
         read_preference => $self->read_preference,
+        post_filter     => \&__filter_legacy_names,
     );
 
-    my $res = $op->execute( $link, $topology );
+    return $op->execute( $link, $topology );
+}
 
-    # exclude names with '$' except oplog.$
-    # XXX why do we include oplog.$?
-    return [
-        grep { not( index( $_, '$' ) >= 0 && index( $_, '.oplog.$' ) < 0 ) }
-        map { substr $_->{name}, length($db_name) + 1 } $res->all
-    ];
+# exclude names with '$' except oplog.$
+# XXX why do we include oplog.$?
+sub __filter_legacy_names {
+    my $doc  = shift;
+    # remove leading database name for compatibility with listCollections
+    $doc->{name} =~ s/^[^.]+\.//;
+    my $name = $doc->{name};
+    return !( index( $name, '$' ) >= 0 && index( $name, '.oplog.$' ) < 0 );
 }
 
 1;

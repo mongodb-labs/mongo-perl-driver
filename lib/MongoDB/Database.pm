@@ -103,7 +103,7 @@ sub collection_names {
 
     my $res = $self->_client->send_read_op($op);
 
-    return @$res;
+    return map { $_->{name} } $res->all;
 }
 
 =method get_collection
