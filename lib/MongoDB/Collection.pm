@@ -593,12 +593,9 @@ sub aggregate {
         }
 
         my $qr = MongoDB::QueryResult->new(
-            _client    => $self->_client,
-            address    => $result->address,
-            ns         => $response->{cursor}{ns},
-            cursor_id  => MongoDB::QueryResult::_pack_cursor_id( $response->{cursor}{id} ),
-            batch_size => scalar @{ $response->{cursor}{firstBatch} },
-            _docs      => $response->{cursor}{firstBatch},
+            _client => $self->_client,
+            address => $result->address,
+            cursor  => $response->{cursor},
         );
 
         return $qr;
@@ -659,10 +656,9 @@ sub parallel_scan {
     my @cursors;
     for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
         my $qr = MongoDB::QueryResult->new(
-            _client               => $self->_client,
-            address               => $result->address,
-            ns                    => $c->{ns},
-            cursor_id             => MongoDB::QueryResult::_pack_cursor_id($c->{id}),
+            _client => $self->_client,
+            address => $result->address,
+            cursor  => $c,
         );
         push @cursors, $qr;
     }
