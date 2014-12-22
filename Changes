@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.707.2.0 2014-12-22 05:35:31-05:00 America/New_York
+
   [Bug fixes]
 
   - PERL-476 fixed getting lists of collections and indices for changes in
