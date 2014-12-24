@@ -96,8 +96,8 @@ subtest "force maxTimeMS failures" => sub {
     plan skip_all => "fail points not supported via mongos"
       if $server_type eq 'Mongos';
 
-    my $cursor = $coll->find( {} )->max_time_ms(5000);
-    $cursor->_batch_size(5); # force multiple batches to get all docs
+    # low batchSize to force multiple batches to get all docs
+    my $cursor = $coll->find( {}, { batchSize => 5, maxTimeMS => 5000} )->result;
     $cursor->next;           # before turning on fail point
 
     is(

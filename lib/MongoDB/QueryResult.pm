@@ -22,6 +22,8 @@ use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use Moose;
+use MongoDB::Op::_GetMore;
+use MongoDB::Op::_KillCursors;
 use MongoDB::_Types;
 use namespace::clean -except => 'meta';
 
@@ -183,9 +185,15 @@ sub _get_more {
     my $limit = $self->limit;
     my $want = $limit > 0 ? ( $limit - $self->cursor_at ) : $self->batch_size;
 
-    my $result =
-      $self->_client->send_get_more( $self->address, $self->ns, $self->cursor_id,
-        $want, );
+    my $op = MongoDB::Op::_GetMore->new(
+        ns         => $self->ns,
+        client     => $self->_client,
+        bson_codec => $self->_client,  # XXX for now
+        cursor_id  => $self->cursor_id,
+        batch_size => $want,
+    );
+
+    my $result = $self->_client->send_direct_op( $op, $self->address );
 
     $self->_set_cursor_id( $result->{cursor_id} );
     $self->_set_cursor_flags( $result->{flags} );
@@ -209,7 +217,10 @@ sub all {
 sub _kill_cursor {
     my ($self) = @_;
     return if $self->cursor_id eq CURSOR_ZERO;
-    $self->_client->send_kill_cursors( $self->address, $self->cursor_id );
+    my $op = MongoDB::Op::_KillCursors->new(
+        cursor_ids => [ $self->cursor_id ],
+    );
+    $self->_client->send_direct_op( $op, $self->address );
     $self->_set_cursor_id(CURSOR_ZERO);
 }
 

@@ -139,6 +139,11 @@ This significantly simplifes the code base and should have little end-user
 visibility unless users are specifically checking the return type of
 queries and query-like methods.
 
+The C<explain> cursor method no longer resets the cursor.
+
+The C<slave_ok> cursor method now set the C<read_preference>
+to 'secondaryPreferred' or clear it to 'primary'.
+
 =head2 Read preference objects and the C<read_preference> method
 
 A new L<MongoDB::ReadPreference> class is used to encapsulate read
@@ -188,6 +193,16 @@ to ensure authentication succeeds (or else an exception is thrown).
 
 In a future release, this method will be removed entirely and
 authentication options will only be allowed as constructor arguments.
+
+=head2 Bulk write results
+
+The bulk write results class has been renamed to
+L<MongoDB::BulkWriteResult>.  It keeps C<MongoDB::WriteResult> as an empty
+superclass for some backwards compatibility so that C<<
+$result->isa("MongoDB::WriteResult") >> will continue to work as expected.
+
+The attributes have been renamed to be consistent with the new CRUD API.
+The legacy names are deprecated, but are available as aliases.
 
 =head2 Low-level functions removed
 

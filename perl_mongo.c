@@ -1307,6 +1307,25 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
       else if (sv_isa(sv, "MongoDB::MaxKey")) {
         bson_append_maxkey(bson, key, -1);
       }
+      else if (sv_isa(sv, "MongoDB::BSON::Raw")) {
+        SV *str_sv;
+        char *str;
+        STRLEN str_len;
+        bson_t *child;
+
+        str_sv = SvRV(sv);
+
+        // check type ok
+        if (!SvPOK(str_sv)) {
+          croak("MongoDB::BSON::Raw must be a blessed string reference");
+        }
+
+        str = SvPV(str_sv, str_len);
+
+        child = bson_new_from_data((uint8_t*) str, str_len);
+        bson_append_document(bson, key, -1, child);
+        bson_destroy(child);
+      }
       else if (sv_isa(sv, "MongoDB::BSON::String")) {
         SV *str_sv;
         char *str;

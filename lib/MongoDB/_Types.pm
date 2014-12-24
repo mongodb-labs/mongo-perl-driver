@@ -21,6 +21,7 @@ package MongoDB::_Types;
 use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
 
+use Scalar::Util qw/reftype/;
 use boolean;
 use Moose::Util::TypeConstraints;
 
@@ -46,6 +47,8 @@ enum 'TopologyType',
 
 enum 'ConnectType', [qw/replicaSet direct none/];
 
+enum 'CursorType', [qw/non_tailable tailable tailable_await/];
+
 enum 'ServerType',
   [
     qw/Standalone Mongos PossiblePrimary RSPrimary RSSecondary RSArbiter RSOther RSGhost Unknown/
@@ -70,6 +73,8 @@ subtype
   ConnectionStr => as 'Str',
   where { $_ =~ /^$uri_re$/ },
   message { "Could not parse URI '$_'" };
+
+subtype HashLike => as 'Ref', where { reftype($_) eq 'HASH' };
 
 subtype NonEmptyStr => as 'Str' => where { defined $_ && length $_ };
 
@@ -101,11 +106,7 @@ coerce booleanpm => from 'Any' => via { boolean($_) };
 coerce IxHash => from 'HashRef'  => via { Tie::IxHash->new(%$_) };
 coerce IxHash => from 'ArrayRef' => via { Tie::IxHash->new(@$_) };
 coerce IxHash => from 'Undef'    => via { Tie::IxHash->new() };
-
-coerce MongoDBQuery => from 'HashRef'  => via { MongoDB::_Query->new( spec => $_ ) };
-coerce MongoDBQuery => from 'ArrayRef' => via { MongoDB::_Query->new( spec => $_ ) };
-coerce MongoDBQuery => from 'IxHash'   => via { MongoDB::_Query->new( spec => $_ ) };
-coerce MongoDBQuery => from 'Undef'    => via { MongoDB::_Query->new( spec => [] ) };
+coerce IxHash => from 'HashLike' => via { Tie::IxHash->new(%$_) };
 
 coerce HostAddressList => from 'ArrayRef' => via {
     [ map { /:/ ? lc $_ : lc "$_:27017" } @$_ ]
@@ -125,7 +126,7 @@ no Moose::Util::TypeConstraints;
 
 # Classes for coercions
 require Tie::IxHash;
-require MongoDB::_Query;
 require MongoDB::ReadPreference;
+require MongoDB::WriteConcern;
 
 1;

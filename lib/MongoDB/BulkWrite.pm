@@ -23,7 +23,8 @@ our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use MongoDB::Error;
 use MongoDB::OID;
-use MongoDB::WriteResult;
+use MongoDB::Op::_BulkWrite;
+use MongoDB::BulkWriteResult;
 use MongoDB::BulkWriteView;
 use Syntax::Keyword::Junction qw/any/;
 
@@ -98,8 +99,6 @@ sub _build__client {
     return $self->_database->_client;
 }
 
-with 'MongoDB::Role::_WriteQueue';
-
 =method find
 
     $view = $bulk->find( $query_document );
@@ -132,8 +131,8 @@ sub find {
     }
 
     return MongoDB::BulkWriteView->new(
-        query       => $doc,
-        write_queue => $self,
+        _query => $doc,
+        _bulk  => $self,
     );
 }
 
@@ -198,7 +197,7 @@ When grouping operations of a type, operations will be sent to the server in
 batches not exceeding 16MiB or 1000 items (for a version 2.6 or later server)
 or individually (for legacy servers without write command support).
 
-This method returns a L<MongoDB::WriteResult> object if the bulk operation
+This method returns a L<MongoDB::BulkWriteResult> object if the bulk operation
 executes successfully.
 
 Typical errors might include:
@@ -229,16 +228,18 @@ sub execute {
         MongoDB::Error->throw("no bulk ops to execute");
     }
 
-    if ( ref $write_concern eq 'HASH' ) {
-        $write_concern = MongoDB::WriteConcern->new( $write_concern );
-    }
+    $write_concern ||= $self->collection->write_concern;
 
-    return $self->_client->send_bulk_queue(
-        ns            => $self->collection->full_name,
+    my $op = MongoDB::Op::_BulkWrite->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->collection->name,
+        client        => $self->_client,
         queue         => $self->_queue,
         ordered       => $self->ordered,
         write_concern => $write_concern,
     );
+
+    return $self->_client->send_write_op( $op );
 }
 
 

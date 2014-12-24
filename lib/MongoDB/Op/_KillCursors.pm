@@ -14,16 +14,31 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_WriteQueue;
+package MongoDB::Op::_KillCursors;
 
-# MongoDB interface for queuing operations for execution
+# Encapsulate a cursor kill operation; returns true
 
 use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
 
-use Moose::Role;
+use Moose;
+
+use MongoDB::_Types;
+use MongoDB::_Protocol;
 use namespace::clean -except => 'meta';
 
-requires '_enqueue_write';
+has cursor_ids => (
+    is       => 'ro',
+    isa      => 'ArrayRef[Str]',
+    required => 1,
+);
+
+sub execute {
+    my ( $self, $link ) = @_;
+
+    $link->write( MongoDB::_Protocol::write_kill_cursors( @{ $self->cursor_ids } ) );
+
+    return 1;
+}
 
 1;

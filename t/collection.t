@@ -343,8 +343,8 @@ subtest write_concern => sub {
     ok($coll->find_one({"x" => "hi"}));
     ok($coll->find_one({"x" => 1}));
 
-    $coll->update({"x" => 2}, {'$set' => {'x' => 4}}, {'multiple' => 1});
-    is($coll->count({"x" => 4}), 2);
+    my $res = $coll->update({"x" => 2}, {'$set' => {'x' => 4}}, {'multiple' => 1});
+    is($coll->count({"x" => 4}), 2) or diag explain $res;
 
     $cursor = $coll->query({"x" => 4})->sort({"y" => 1});
 
@@ -448,12 +448,13 @@ SKIP: {
     is($err, undef, "bad update with safe => 0: no error");
 
     for my $h ( undef, { safe => 1 } ) {
-        $err = exception { $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, $h ) };
+        my $res;
+        $err = exception { $res = $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, $h ) };
         my $case = $h ? "explicit" : "default";
-        ok( $err, "bad update with $case safe gives error" );
+        ok( $err, "bad update with $case safe gives error" ) or diag explain $res;
         like( $err->message, qr/duplicate key/, 'error was duplicate key exception');
         ok( my $ok = $coll->update( { name => 'Alice' }, { '$set' => { age => 23 } }, $h ), "did legal update" );
-        isa_ok( $ok, "MongoDB::WriteResult" );
+        isa_ok( $ok, "MongoDB::UpdateResult" );
         is( exception { $ok->assert }, undef, "legal update with $case safe had no error" );
     }
 }
@@ -567,11 +568,7 @@ subtest 'text indices' => sub {
         weights => { w1 => 5, w2 => 10 }
     });
 
-    if ( $server_version >= v2.6.0 ) {
-        ok $res->{ok};
-    } else {
-        ok(!defined $res);
-    }
+    ok($res);
 
     my ($text_index) = grep { $_->{name} eq 'testTextIndex' } $coll->get_indexes;
     is($text_index->{'default_language'}, 'spanish', 'default_language option works');

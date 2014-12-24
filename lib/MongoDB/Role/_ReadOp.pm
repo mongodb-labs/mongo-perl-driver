@@ -14,23 +14,27 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_View;
+package MongoDB::Role::_ReadOp;
 
-# Role providing a query document
+# MongoDB role for read ops that provides read preference
 
 use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
 
-use MongoDB::_Types;
 use Moose::Role;
+
+use MongoDB::_Types;
 use namespace::clean -except => 'meta';
 
-# A hash reference containing a MongoDB query document
+my $PRIMARY = MongoDB::ReadPreference->new;
 
-has query => (
-    is       => 'ro',
-    isa      => 'HashRef|IxHash',
-    required => 1
+with 'MongoDB::Role::_DatabaseOp';
+
+has read_preference => (
+    is      => 'ro',
+    isa     => 'ReadPreference',
+    coerce  => 1,
+    default => sub { $PRIMARY },
 );
 
 1;

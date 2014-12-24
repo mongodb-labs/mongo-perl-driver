@@ -23,65 +23,194 @@ our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use Moose;
 use MongoDB::_Types;
+use MongoDB::Op::_Query;
+use Syntax::Keyword::Junction qw/any/;
 use Tie::IxHash;
 use namespace::clean -except => 'meta';
 
-# XXX should all special fields just be attributes (or part of a "modifiers"
-# attribute) and we assemble them on demand in an 'as_document' method?  That
-# would allow easy coercion of things like sort documents to an ordered hash.
-# It would also allow late validation e.g. "don't use snapshot with hint or
-# orderby". If so, any '$' modifiers already in the spec need to be extracted
-# during BUILD
+#--------------------------------------------------------------------------#
+# attributes for constructing/conducting the op
+#--------------------------------------------------------------------------#
 
-has spec => (
+has db_name => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+);
+
+has coll_name => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+);
+
+has client => (
+    is       => 'ro',
+    isa      => 'MongoDB::MongoClient',
+    required => 1,
+);
+
+has read_preference => (
+    is       => 'rw',            # mutable for Cursor
+    isa      => 'ReadPreference',
+    required => 1,
+    coerce   => 1,
+);
+
+#--------------------------------------------------------------------------#
+# attributes based on the CRUD API spec: filter
+#
+# some are mutable so that MongoDB::Cursor methods can manipulate them
+# until the query is executed
+#--------------------------------------------------------------------------#
+
+has filter => (
     is       => 'ro',
     isa      => 'IxHash',
     required => 1,
     coerce   => 1,
-    writer   => '_set_spec',
 );
 
-sub BUILD {
+has modifiers => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
+has allowPartialResults => (
+    is  => 'rw',
+    isa => 'Bool',
+);
+
+has batchSize => (
+    is      => 'rw',
+    isa     => 'Num',
+    default => 0,
+);
+
+has comment => (
+    is      => 'rw',
+    isa     => 'Str',
+    default => '',
+);
+
+has cursorType => (
+    is      => 'rw',
+    isa     => 'CursorType',
+    default => 'non_tailable',
+);
+
+has limit => (
+    is      => 'rw',
+    isa     => 'Num',
+    default => 0,
+);
+
+has maxTimeMS => (
+    is      => 'rw',
+    isa     => 'Num',
+    default => 0,
+);
+
+has noCursorTimeout => (
+    is  => 'rw',
+    isa => 'Bool',
+);
+
+has oplogReplay => (
+    is  => 'rw',
+    isa => 'Bool',
+);
+
+has projection => (
+    is      => 'rw',
+    isa     => 'IxHash',
+    coerce  => 1,
+    default => sub { Tie::IxHash->new },
+);
+
+has skip => (
+    is      => 'rw',
+    isa     => 'Num',
+    default => 0,
+);
+
+has sort => (
+    is      => 'rw',
+    isa     => 'IxHash',
+    coerce  => 1,
+    default => sub { Tie::IxHash->new },
+);
+
+sub as_query_op {
     my ($self) = @_;
 
-    # if the first key is 'query' we must nest under the '$query' operator
-    $self->_nest_query
-      if $self->spec->Keys && $self->spec->Keys(0) eq 'query';
-}
+    # construct query doc from filter, attributes and modifiers hash
+    my $query = Tie::IxHash->new( '$query' => $self->filter );
 
-sub get_modifier {
-    my ( $self, $key ) = @_;
-    return $self->spec->FETCH($key);
-}
-
-sub set_modifier {
-    my ( $self, $key, $value ) = @_;
-    $self->_nest_query;
-    $self->spec->STORE( $key, $value );
-}
-
-sub _nest_query {
-    my ($self) = @_;
-    # XXX this isn't quite right; we shouldn't nest query modifiers
-    if ( !$self->spec->EXISTS('$query') ) {
-        $self->_set_spec( Tie::IxHash->new( '$query' => $self->spec ) );
+    # modifiers go first
+    while ( my ( $k, $v ) = each %{ $self->modifiers } ) {
+        $query->STORE( $k, $v );
     }
-    return;
+
+    # if these exists, they overwrite any earlier modifers
+    for my $k (qw/maxTimeMS comment/) {
+        next unless my $v = $self->$k;
+        $query->STORE( "\$$k", $v );
+    }
+    $query->STORE( '$orderby', $self->sort ) if $self->sort->Keys;
+
+    # if no modifers were added and there is no 'query' key in '$query'
+    # we don't need the extra layer
+    if ( $query->Keys == 1 && !$query->FETCH('$query')->EXISTS('query') ) {
+        $query = $query->FETCH('$query');
+    }
+
+    # construct query flags from attributes
+    # XXX eventually flag names should get changed here and in _Protocol
+    # to better match documentation or the CRUD API names
+    my $query_flags = {
+        tailable   => ($self->cursorType =~ /^tailable/ ? 1 : 0),
+        await_data => $self->cursorType eq 'tailable_await',
+        immortal   => $self->noCursorTimeout,
+        partial    => $self->allowPartialResults,
+    };
+
+    # finally, generate the query op
+    return MongoDB::Op::_Query->new(
+        db_name     => $self->db_name,
+        coll_name   => $self->coll_name,
+        client      => $self->client,
+        bson_codec  => $self->client,    # XXX for now
+        query       => $query,
+        projection  => $self->projection,
+        batch_size  => $self->batchSize,
+        limit       => $self->limit,
+        skip        => $self->skip,
+        query_flags => $query_flags,
+    );
 }
 
-sub query_doc {
+sub execute {
     my ($self) = @_;
-    # XXX copying IxHash is terribly inefficient
-    my $ixhash =
-      $self->spec->EXISTS('$query') ? $self->spec->FETCH('$query') : $self->spec;
-    return Tie::IxHash->new( map { $_ => $ixhash->FETCH($_) } $ixhash->Keys );
+    return $self->client->send_read_op( $self->as_query_op );
 }
 
 sub clone {
     my ($self) = @_;
-    my $ixhash = $self->spec;
-    my $copy = Tie::IxHash->new( map { $_ => $ixhash->FETCH($_) } $ixhash->Keys );
-    return ref($self)->new( spec => $copy );
+
+    # shallow copy everything;
+    my %args = %$self;
+
+    # deep copy IxHashes and modifiers
+    for my $k (qw/filter projection sort/) {
+        my $orig = $args{$k};
+        my $copy = Tie::IxHash->new( map { $_ => $orig->FETCH($_) } $orig->Keys );
+        $args{$k} = $copy;
+    }
+    $args{modifiers} = { %{ $args{modifiers} } };
+
+    return ref($self)->new(%args);
 }
 
 1;

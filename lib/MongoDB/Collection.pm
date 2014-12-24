@@ -24,6 +24,12 @@ our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use MongoDB::Error;
 use MongoDB::_Query;
+use MongoDB::Op::_CreateIndexes;
+use MongoDB::Op::_Delete;
+use MongoDB::Op::_InsertOne;
+use MongoDB::Op::_InsertMany;
+use MongoDB::Op::_ListIndexes;
+use MongoDB::Op::_Update;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
@@ -115,6 +121,25 @@ sub _build_full_name {
 }
 
 
+=method clone
+
+    $coll2 = $coll1->clone( write_concern => { w => 2 } );
+
+Constructs a copy of the original collection, but allows changing
+attributes in the copy.
+
+=cut
+
+sub clone {
+    my ($self, @args) = @_;
+    my $class = ref($self);
+    if ( @args == 1 && ref( $args[0] ) eq 'HASH' ) {
+        return class->new( %$self, %{$args[0]} );
+    }
+
+    return $class->new( %$self, @args );
+}
+
 =method get_collection ($name)
 
     my $collection = $database->get_collection('foo');
@@ -144,7 +169,8 @@ sub get_collection {
     return $self->_database->get_collection($self->name.'.'.$coll);
 }
 
-sub to_index_string {
+# utility function to generate an index name by concatenating key/value pairs
+sub __to_index_string {
     my $keys = shift;
 
     my @name;
@@ -170,89 +196,72 @@ sub to_index_string {
     return join("_", @name);
 }
 
-=method find($query)
+=method find, query
 
-    my $cursor = $collection->find({ i => { '$gt' => 42 } });
+    my $cursor = $coll->find( $filter );
+    my $cursor = $coll->find( $filter, $options );
 
-Executes the given C<$query> and returns a C<MongoDB::Cursor> with the results.
-C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
+    my $cursor = $collection->find({ i => { '$gt' => 42 } }, {limit => 20});
+
+Executes a query with the given C<$filter> and returns a C<MongoDB::Cursor> with the results.
+C<$filter> can be a hash reference, L<Tie::IxHash>, or array reference (with an
 even number of elements).
 
-The set of fields returned can be limited through the use of the
-C<MongoDB::Cursor::fields> method on the resulting L<MongoDB::Cursor> object.
-Other commonly used cursor methods are C<MongoDB::Cursor::limit>,
-C<MongoDB::Cursor::skip>, and C<MongoDB::Cursor::sort>.
+The query can be customized using L<MongoDB::Cursor> methods, or with an optional
+hash reference of options.
+
+Valid options include:
+
+=for :list
+* allowPartialResults - get partial results from a mongos if some shards are
+  down (instead of throwing an error).
+* batchSize – the number of documents to return per batch.
+* comment – attaches a comment to the query. If C<$comment> also exists in the
+  modifiers document, the comment field overwrites C<$comment>.
+* cursorType – indicates the type of cursor to use. It must be one of three
+  enumerated values: C<non_tailable> (the default), C<tailable>, and
+  C<tailable_away>.
+* limit – the maximum number of documents to return.
+* maxTimeMS – the maximum amount of time to allow the query to run. If
+  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
+  overwrites C<$maxTimeMS>.
+* modifiers – a hash reference of meta-operators modifying the output or
+  behavior of a query.
+* noCursorTimeout – if true, prevents the server from timing out a cursor after
+  a period of inactivity
+* projection - a hash reference defining fields to return. See L<Limit fields
+  to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
+  in the MongoDB documentation for details.
+* skip – the number of documents to skip before returning.
+* sort – a L<Tie::IxHash> or array reference of key value pairs defining the
+  order in which to return matching documents. If C<$orderby> also exists
+   * in the modifiers document, the sort field overwrites C<$orderby>.
 
 See also core documentation on querying:
 L<http://docs.mongodb.org/manual/core/read/>.
 
+The C<query> method is a legacy alias for C<find>.
+
 =cut
 
 sub find {
-    my ($self, $query, $attrs) = @_;
-    # old school options - these should be set with MongoDB::Cursor methods
-    my ($limit, $skip, $sort_by) = @{ $attrs || {} }{qw/limit skip sort_by/};
+    my ( $self, $filter, $opts ) = @_;
 
-    # XXX validate $query or rely on failure to coerce 'spec' below
+    $opts ||= {};
+    $opts->{sort} = delete $opts->{sort_by} if $opts->{sort_by};
 
-    $query = MongoDB::_Query->new( spec => $query );
-    if ($sort_by) {
-        # XXX validate sort_by
-        $query->set_modifier( '$orderby' => $sort_by );
-    }
-
-    $limit   ||= 0;
-    $skip    ||= 0;
-
-    my $ns = $self->full_name;
-
-    my $cursor = MongoDB::Cursor->new(
-        _client          => $self->_client,
-        _read_preference => $self->read_preference,
-        _ns              => $ns,
-        _query           => $query,
-        _limit           => $limit,
-        _skip            => $skip,
+    my $query = MongoDB::_Query->new(
+        db_name         => $self->_database->name,
+        coll_name       => $self->name,
+        client          => $self->_client,
+        read_preference => $self->read_preference,
+        filter          => $filter,
+        %$opts,
     );
 
-    return $cursor;
+    return MongoDB::Cursor->new( query => $query );
 }
-
-=method query($query, $attrs?)
-
-Identical to C<MongoDB::Collection::find>, described above.
-
-    my $cursor = $collection->query->limit(10)->skip(10);
-
-    my $cursor = $collection->query({ location => "Vancouver" })->sort({ age => 1 });
-
-
-Valid query attributes are:
-
-=over 4
-
-=item limit
-
-Limit the number of results.
-
-=item skip
-
-Skip a number of results.
-
-=item sort_by
-
-Order results.
-
-=back
-
-=cut
-
-sub query {
-    my ($self, $query, $attrs) = @_;
-
-    return $self->find($query, $attrs);
-}
-
 
 =method find_one($query, $fields?, $options?)
 
@@ -307,21 +316,22 @@ See also core documentation on insert: L<http://docs.mongodb.org/manual/core/cre
 =cut
 
 sub insert {
-    my $self = shift;
-    my ( $object, $options ) = @_;
+    my ( $self, $document, $opts ) = @_;
 
-    my $ids = [];
-    unless ($options->{'no_ids'}) {
-        $ids = $self->_add_oids([$object]);
+    unless ( $opts->{'no_ids'} ) {
+        $self->_add_oids( [$document] );
     }
 
-    # XXX ought to handle continue_on_error somehow here
-    my $wc = $self->_dynamic_write_concern( $options );
-    my $result = $self->_client->send_insert($self->full_name, $object, $wc, undef, 1);
+    my $op = MongoDB::Op::_InsertOne->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        document      => $document,
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
 
-    $result->assert;
+    my $result = $self->_client->send_write_op($op);
 
-    return $ids->[0];
+    return $result->inserted_id;
 }
 
 sub _add_oids {
@@ -382,22 +392,24 @@ unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
 =cut
 
 sub batch_insert {
-    my ($self, $docs, $options) = @_;
+    my ( $self, $documents, $opts ) = @_;
 
-    confess 'not an array reference' unless ref $docs eq 'ARRAY';
+    confess 'not an array reference' unless ref $documents eq 'ARRAY';
 
-    my $ids = [];
-    unless ($options->{'no_ids'}) {
-        $ids = $self->_add_oids($docs);
+    unless ( $opts->{'no_ids'} ) {
+        $self->_add_oids($documents);
     }
 
-    # XXX ought to handle continue_on_error somehow here
-    my $wc = $self->_dynamic_write_concern( $options );
-    my $result = $self->_client->send_insert_batch($self->full_name, $docs, $wc, undef, 1);
+    my $op = MongoDB::Op::_InsertMany->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        documents     => $documents,
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
 
-    $result->assert;
+    my $result = $self->_client->send_write_op($op);
 
-    return @$ids;
+    return @{ $result->inserted_ids };
 }
 
 sub _legacy_index_insert {
@@ -448,23 +460,21 @@ See also core documentation on update: L<http://docs.mongodb.org/manual/core/upd
 sub update {
     my ( $self, $query, $object, $opts ) = @_;
 
-    if ( exists $opts->{multi} ) {
-        $opts->{multiple} = delete $opts->{multi}
+    if ( exists $opts->{multiple} ) {
+        $opts->{multi} = delete $opts->{multiple}
     }
 
-    my $op_doc = {
-        q      => $query,
-        u      => $object,
-        multi  => ( $opts->{multiple} ? 1 : 0 ),
-        upsert => ( $opts->{upsert} ? 1 : 0 ),
-    };
+    my $op = MongoDB::Op::_Update->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $query,
+        update        => $object,
+        multi         => $opts->{multi},
+        upsert        => $opts->{upsert},
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
 
-    my $wc = $self->_dynamic_write_concern( $opts );
-    my $result = $self->_client->send_update($self->full_name, $op_doc, $wc);
-
-    $result->assert;
-
-    return $result;
+    return $self->_client->send_write_op( $op );
 }
 
 =method find_and_modify
@@ -563,7 +573,14 @@ sub aggregate {
     my @command = ( aggregate => $self->name, pipeline => $pipeline, %$opts );
     my ($last_op) = keys %{$pipeline->[-1]};
     my $read_pref = $last_op eq '$out' ? undef : $self->read_preference;
-    my $result = $self->_client->send_command( $db->name, \@command, $read_pref );
+
+    my $op = MongoDB::Op::_Command->new(
+        db_name => $db->name,
+        query => \@command,
+        ( $read_pref ? ( read_preference => $read_pref ) : () )
+    );
+
+    my $result = $self->_client->send_read_op( $op );
     my $response = $result->result;
 
     # if we got a cursor option then we need to construct a wonky cursor
@@ -625,7 +642,14 @@ sub parallel_scan {
     my $db   = $self->_database;
 
     my @command = ( parallelCollectionScan => $self->name, numCursors => $num_cursors );
-    my $result = $self->_client->send_command( $db->name, \@command, $self->read_preference );
+
+    my $op = MongoDB::Op::_Command->new(
+        db_name         => $db->name,
+        query           => \@command,
+        read_preference => $self->read_preference,
+    );
+
+    my $result = $self->_client->send_read_op( $op );
     my $response = $result->result;
 
     Carp::croak("No cursors returned")
@@ -704,124 +728,69 @@ See also core documentation on remove: L<http://docs.mongodb.org/manual/core/del
 
 
 sub remove {
-    my ($self, $query, $options) = @_;
+    my ($self, $query, $opts) = @_;
     confess "optional argument to remove must be a hash reference"
-        if defined $options && ref $options ne 'HASH';
+        if defined $opts && ref $opts ne 'HASH';
 
-    $query ||= {};
+    my $op = MongoDB::Op::_Delete->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $query,
+        just_one      => !! $opts->{just_one},
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
 
-    my $op_doc = {
-        q      => $query,
-        limit   => $options->{just_one} ? 1 : 0,
-    };
-
-    my $wc = $self->_dynamic_write_concern( $options );
-    my $result = $self->_client->send_delete($self->full_name, $op_doc, $wc);
-
-    $result->assert;
-
-    return $result;
+    return $self->_client->send_write_op( $op );
 }
 
+=method ensure_index
 
-=method ensure_index ($keys, $options?)
+    $collection->ensure_index( $keys );
+    $collection->ensure_index( $keys, $options );
+    $collection->ensure_index(["foo" => 1, "bar" => -1], { unique => 1 });
 
-    use boolean;
-    $collection->ensure_index({"foo" => 1, "bar" => -1}, { unique => true });
+Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be
+an array reference, hash reference, or C<Tie::IxHash>.  Array references or
+C<Tie::IxHash> is preferred for multi-key indexes, so that the keys are in the
+correct order.  1 creates an ascending index, -1 creates a descending index.
 
-Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be an
-array reference, hash reference, or C<Tie::IxHash>.  C<Tie::IxHash> is preferred
-for multi-key indexes, so that the keys are in the correct order.  1 creates an
-ascending index, -1 creates a descending index.
+If an optional C<$options> argument is provided, those options are passed
+through to the database to modify index creation.  Typical options include:
 
-If the C<safe> option is not set, C<ensure_index> will not return anything
-unless there is a socket error (in which case it will croak).  If the C<safe>
-option is set and the index creation fails, it will also croak. You can also
-check if the indexing succeeded by doing an unsafe index creation, then calling
-L<MongoDB::Database/"last_error($options?)">.
+=for :list
+* background – build the index in the background
+* name – a name for the index; one will be generated if not provided
+* unique – if true, inserting duplicates will fail
 
-Boolean options should be passed as objects of type L<booelan>.
+See the MongoDB L<index documentation|http://docs.mongodb.org/manual/indexes/>
+for more information on indexing and index options.
 
-See the L<MongoDB::Indexing> pod for more information on indexing.
+Returns true on success and throws an exception on failure.
+
+Note: index creation can take longer than the network timeout, resulting
+in an exception.  If this is a concern, consider setting the C<background>
+option.
 
 =cut
 
 sub ensure_index {
-    my ($self, $keys, $options, $garbage) = @_;
-    my $ns = $self->full_name;
-
-    # we need to use the crappy old api if...
-    #  - $options isn't a hash, it's a string like "ascending"
-    #  - $keys is a one-element array: [foo]
-    #  - $keys is an array with more than one element and the second
-    #    element isn't a direction (or at least a good one)
-    #  - Tie::IxHash has values like "ascending"
-    if (($options && ref $options ne 'HASH') ||
-        (ref $keys eq 'ARRAY' &&
-         ($#$keys == 0 || $#$keys >= 1 && !($keys->[1] =~ /-?1/))) ||
-        (ref $keys eq 'Tie::IxHash' && (my $copy = $keys->[2][0]) =~ /(de|a)scending/)) {
-        Carp::croak("you're using the old ensure_index format, please upgrade");
-    }
+    my ( $self, $keys, $opts ) = @_;
+    MongoDB::Error->throw("ensure_index options must be a hash reference")
+      if $opts && !ref($opts) eq 'HASH';
 
     $keys = Tie::IxHash->new(@$keys) if ref $keys eq 'ARRAY';
-    my $obj = Tie::IxHash->new("key" => $keys);
+    $opts = $self->_clean_index_options( $opts, $keys );
 
-    if (exists $options->{name}) {
-        $obj->Push("name" => delete $options->{name});
-    }
-    else {
-        $obj->Push("name" => MongoDB::Collection::to_index_string($keys));
-    }
+    my $op = MongoDB::Op::_CreateIndexes->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        indexes       => [ { key => $keys, %$opts } ],
+        write_concern => $self->write_concern,
+    );
 
-    # extract legacy insertion options
-    my $insert_opts = { no_ids => 1 };
-    $insert_opts->{safe} = delete $options->{safe} if exists $options->{safe};
+    $self->_client->send_write_op($op);
 
-    # convert historical snake-case options to required camelCase
-    if (exists $options->{drop_dups}) {
-        $options->{dropDups} = delete $options->{drop_dups};
-    }
-
-    if (exists $options->{expire_after_seconds}) {
-        $options->{expireAfterSeconds} = int(delete $options->{expire_after_seconds});
-    }
-
-    # some options *must* be sent as booleans
-    for my $k ( qw/unique background sparse dropDups/ ) {
-        next unless exists $options->{$k};
-        $options->{$k} = boolean($options->{$k});
-    }
-
-    # pass through all options after conversion
-    while ( my ($k,$v) = each %$options ) {
-        $obj->Push($k, $v);
-    }
-
-    my ($db, $coll) = $ns =~ m/^([^\.]+)\.(.*)/;
-
-    # try the new createIndexes command (mongodb 2.6), falling back to the old insert
-    # method if createIndexes is not available.
-
-    my $res = try {
-        $self->_database->run_command( [ createIndexes => $self->name, indexes => [$obj] ] );
-    }
-    catch {
-        # some error codes indicate clearly that a command is not available,
-        # no code winds up as "unknown error"; in these cases, fallback to the
-        # legacy insert
-        if (   $_->$_isa("MongoDB::DatabaseError")
-            && $_->code == any( UNKNOWN_ERROR, COMMAND_NOT_FOUND, UNRECOGNIZED_COMMAND ) )
-        {
-            $obj->Unshift( ns => $ns ); # restore ns to spec
-            my $indexes = $self->_database->get_collection("system.indexes");
-            return $indexes->_legacy_index_insert( $obj, $options );
-        }
-        else {
-            die "error creating index: $_";
-        }
-    };
-
-    return $res;
+    return 1;
 }
 
 =method save($doc, $options)
@@ -973,37 +942,18 @@ index is ascending or descending on that key.
 =cut
 
 sub get_indexes {
-    my ($self)    = @_;
-    my $name      = $self->name;
-    my $full_name = $self->full_name;
-    my $db_name   = $self->_database->name;
-    my $variants  = {
-        0 => sub {
-            my ( $client, $link ) = @_;
-            my $ns = "$db_name.system.indexes";
-            my $query = MongoDB::_Query->new( spec => { ns => $full_name } );
-            my $result =
-              $client->_try_operation('_send_query', $link, $ns, $query->spec, undef, 0, 0, 0, undef, $client );
-            return $result->all;
-        },
-        3 => sub {
-            my ( $client, $link ) = @_;
-            my $cmd = Tie::IxHash->new( listIndexes => $name );
-            my $result = try {
-                $client->_try_operation(
-                    '_send_command', $link, { db => $db_name, command => MongoDB::_Query->new( spec => $cmd) }
-                )
-            }
-            catch {
-                if ( $_->$_isa("MongoDB::DatabaseError") ) {
-                    return undef if $_->code == NAMESPACE_NOT_FOUND();
-                }
-                die $_;
-            };
-            return $result ? @{ $result->result->{indexes} } : ();
-        },
-    };
-    return $self->_client->send_versioned_read($variants);
+    my ($self) = @_;
+
+    my $op = MongoDB::Op::_ListIndexes->new(
+        db_name    => $self->_database->name,
+        coll_name  => $self->name,
+        client     => $self->_client,
+        bson_codec => $self->_client,
+    );
+
+    my $res = $self->_client->send_read_op($op);
+
+    return @$res;
 }
 
 =method drop
@@ -1071,9 +1021,44 @@ sub _dynamic_write_concern {
     }
 }
 
-{
-    # shorter aliases for bulk op constructors
+# old API allowed some snake_case options; some options must
+# be turned into booleans
+sub _clean_index_options {
+    my ( $self, $orig, $keys ) = @_;
+
+    # copy the original so we don't modify it
+    my $opts = { $orig ? %$orig : () };
+
+    # add name if not provided
+    $opts->{name} = __to_index_string($keys)
+      unless defined $opts->{name};
+
+    # safe is no more
+    delete $opts->{safe} if exists $opts->{safe};
+
+    # convert snake case
+    if ( exists $opts->{drop_dups} ) {
+        $opts->{dropDups} = delete $opts->{drop_dups};
+    }
+
+    # convert snake case and turn into an integer
+    if ( exists $opts->{expire_after_seconds} ) {
+        $opts->{expireAfterSeconds} = int( delete $opts->{expire_after_seconds} );
+    }
+
+    # convert some things to booleans
+    for my $k (qw/unique background sparse dropDups/) {
+        next unless exists $opts->{$k};
+        $opts->{$k} = boolean( $opts->{$k} );
+    }
+
+    return $opts;
+}
+
+BEGIN {
+    # aliases
     no warnings 'once';
+    *query = \&find;
     *ordered_bulk = \&initialize_ordered_bulk_op;
     *unordered_bulk = \&initialize_unordered_bulk_op;
 }

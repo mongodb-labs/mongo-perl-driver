@@ -20,6 +20,7 @@ use version;
 our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use Moose;
+use MongoDB::Op::_Command;
 use MongoDB::_Types;
 
 use Authen::SCRAM::Client '0.003';
@@ -30,8 +31,6 @@ use Syntax::Keyword::Junction 'any';
 use Tie::IxHash;
 use Try::Tiny;
 use namespace::clean -except => 'meta';
-
-with 'MongoDB::Role::_Client';
 
 has mechanism => (
     is       => 'ro',
@@ -188,7 +187,7 @@ sub _authenticate_NONE () { 1 }
 sub _authenticate_MONGODB_CR {
     my ( $self, $link ) = @_;
 
-    my $nonce = $self->_send_admin_command( $link, { getnonce => 1 } )->result->{nonce};
+    my $nonce = $self->_send_command( $link, 'admin', { getnonce => 1 } )->result->{nonce};
     my $key =
       md5_hex( encode( "UTF-8", $nonce . $self->username . $self->_digested_password ) );
 
@@ -353,5 +352,17 @@ sub _sasl_send {
     my $sasl_resp = $result->{payload} ? decode_base64( $result->{payload} ) : "";
     return ( $sasl_resp, $result->{conversationId}, $result->{done} );
 }
+
+sub _send_command {
+    my ($self, $link, $db_name, $command) = @_;
+
+    my $op = MongoDB::Op::_Command->new(
+        db_name => $db_name,
+        query => $command,
+    );
+    my $res = $op->execute( $link );
+    return $res;
+}
+
 
 1;

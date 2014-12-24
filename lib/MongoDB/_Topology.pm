@@ -21,6 +21,7 @@ our $VERSION = 'v0.999.998.2'; # TRIAL
 
 use Moose;
 use MongoDB::Error;
+use MongoDB::Op::_Command;
 use MongoDB::_Link;
 use MongoDB::_Types;
 use MongoDB::_Server;
@@ -31,8 +32,6 @@ use Time::HiRes qw/gettimeofday tv_interval usleep/;
 use Try::Tiny;
 
 use namespace::clean -except => 'meta';
-
-with 'MongoDB::Role::_Client';
 
 use constant {
     EPOCH => [ 0, 0 ], # tv struct for the epoch
@@ -582,11 +581,11 @@ sub _update_topology_from_link {
 
     my $start_time = [ gettimeofday() ];
     my $is_master = try {
-        my $op = {
-            command => MongoDB::_Query->new( spec => [ ismaster => 1 ] ),
-            flags   => {},
-        };
-        $self->_send_admin_command( $link, $op )->result;
+        my $op = MongoDB::Op::_Command->new(
+            db_name => 'admin',
+            query   => [ ismaster => 1 ],
+        );
+        $op->execute( $link )->result;
     }
     catch {
         warn $_;

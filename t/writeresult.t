@@ -21,10 +21,10 @@ use Test::More 0.96;
 use Test::Deep '!blessed';
 use Test::Fatal;
 
-use MongoDB::WriteResult;
+use MongoDB::BulkWriteResult;
 
 subtest "insert" => sub {
-    my $r = MongoDB::WriteResult->_parse(
+    my $r = MongoDB::BulkWriteResult->_parse_cmd_result(
         op => 'insert',
         result => { ok => 1, n => 1 }
     );

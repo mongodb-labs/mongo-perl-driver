@@ -25,6 +25,7 @@ our $VERSION = 'v0.999.998.2'; # TRIAL
 use MongoDB::CommandResult;
 use MongoDB::Error;
 use MongoDB::GridFS;
+use MongoDB::Op::_ListCollections;
 use MongoDB::_Query;
 use Carp 'carp';
 use boolean;
@@ -92,28 +93,17 @@ Returns the list of collections in this database.
 =cut
 
 sub collection_names {
-    my ($self)   = @_;
-    my $db_name  = $self->name;
-    my $variants = {
-        0 => sub {
-            my ( $client, $link ) = @_;
-            my $ns = "$db_name.system.namespaces";
-            my $query = MongoDB::_Query->new( spec => {} );
-            my $result =
-              $client->_try_operation('_send_query', $link, $ns, $query->spec, undef, 0, 0, 0, undef, $client );
-            return grep { not( index( $_, '$' ) >= 0 && index( $_, '.oplog.$' ) < 0 ) }
-              map { substr $_->{name}, length($db_name) + 1 } $result->all;
-        },
-        3 => sub {
-            my ( $client, $link ) = @_;
-            my $cmd = Tie::IxHash->new( listCollections => 1 );
-            my $result = $client->_try_operation(
-                '_send_command', $link, { db => $db_name, command => MongoDB::_Query->new(spec => $cmd)}
-            );
-            return map { $_->{name} } @{ $result->result->{collections} };
-        },
-    };
-    return $self->_client->send_versioned_read($variants);
+    my ($self) = @_;
+
+    my $op = MongoDB::Op::_ListCollections->new(
+        db_name    => $self->name,
+        client     => $self->_client,
+        bson_codec => $self->_client,
+    );
+
+    my $res = $self->_client->send_read_op($op);
+
+    return @$res;
 }
 
 =method get_collection
@@ -211,13 +201,19 @@ on database commands: L<http://dochub.mongodb.org/core/commands>.
 =cut
 
 sub run_command {
-    my ($self, $command, $read_pref) = @_;
+    my ( $self, $command, $read_pref ) = @_;
 
     if ( $read_pref && ref($read_pref) eq 'HASH' ) {
         $read_pref = MongoDB::ReadPreference->new($read_pref);
     }
 
-    my $obj = $self->_client->send_command( $self->name, $command, $read_pref );
+    my $op = MongoDB::Op::_Command->new(
+        db_name         => $self->name,
+        query           => $command,
+        ( $read_pref ? ( read_preference => $read_pref ) : () ),
+    );
+
+    my $obj = $self->_client->send_read_op($op);
 
     return $obj->result;
 }

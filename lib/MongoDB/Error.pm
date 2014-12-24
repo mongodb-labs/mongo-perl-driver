@@ -37,9 +37,13 @@ BEGIN {
         BAD_VALUE                 => 2,
         UNKNOWN_ERROR             => 8,
         NAMESPACE_NOT_FOUND       => 26,
+        EXCEEDED_TIME_LIMIT       => 50,
         COMMAND_NOT_FOUND         => 59,
         WRITE_CONCERN_ERROR       => 64,
         NOT_MASTER                => 10107,
+        DUPLICATE_KEY             => 11000,
+        DUPLICATE_KEY_UPDATE      => 11000, # legacy before 2.6
+        DUPLICATE_KEY_CAPPED      => 12582, # legacy before 2.6
         UNRECOGNIZED_COMMAND      => 13390, # mongos error before 2.4
         NOT_MASTER_NO_SLAVE_OK    => 13435,
         NOT_MASTER_OR_SECONDARY   => 13436,
@@ -107,10 +111,12 @@ has result => (
 has code => (
     is      => 'ro',
     isa     => 'Num',
-    default => MongoDB::Error::UNKNOWN_ERROR(),
+    builder => '_build_code',
 );
 
-package MongoDB::DocumentSizeError;
+sub _build_code { return MongoDB::Error::UNKNOWN_ERROR() }
+
+package MongoDB::DocumentError;
 use Moose;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
@@ -151,9 +157,17 @@ Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::TimeoutError'] );
 
 # Database errors
+package MongoDB::DuplicateKeyError;
+Moose::Meta::Class->create( __PACKAGE__,
+    superclasses => ['MongoDB::DatabaseError'] );
+
+sub _build_code { return MongoDB::Error::DUPLICATE_KEY() }
+
 package MongoDB::NotMasterError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::DatabaseError'] );
+
+sub _build_code { return MongoDB::Error::NOT_MASTER() }
 
 package MongoDB::WriteError;
 Moose::Meta::Class->create( __PACKAGE__,
@@ -163,6 +177,7 @@ package MongoDB::WriteConcernError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::DatabaseError'] );
 
+sub _build_code { return MongoDB::Error::WRITE_CONCERN_ERROR() }
 
 # Other errors
 package MongoDB::CursorNotFoundError;
@@ -237,7 +252,7 @@ This class defines a heirarchy of exception objects.
         |
         |->MongoDB::CursorNotFoundError
         |
-        |->MongoDB::DocumentSizeError
+        |->MongoDB::DocumentError
         |
         |->MongoDB::ProtocolError
         |
@@ -287,12 +302,12 @@ a L<MongoDB::CommandResult> object.
 =head3 MongoDB::WriteError
 
 Errors indicating failure of a write command.  The C<result> attribute is
-a L<MongoDB::WriteResult> object.
+a result object.
 
 =head3 MongoDB::WriteConcernError
 
 Errors indicating failure of a write concern.  The C<result> attribute is a
-L<MongoDB::WriteResult> object.
+result object.
 
 =head2 MongoDB::TimeoutError
 
@@ -312,9 +327,10 @@ C<connect_timeout_ms> or C<socket_timeout_ms>.
 
 This error indicates that a cursor timed out on a server.
 
-=head2 MongoDB::DocumentSizeError
+=head2 MongoDB::DocumentError
 
-Errors from documents exceeding the maximum allowable size.
+This error indicates a problem with a document to be inserted or replaced into
+the database.
 
 Attributes include:
 
