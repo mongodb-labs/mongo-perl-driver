@@ -2,6 +2,12 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - Added the 'get_namespace' method to MongoDB::MongoClient
+
+  - Added 'db' and 'coll' as aliases for 'get_database' and 'get_collection'
+
   [Bug Fixes]
 
   - Fix t/database.t for change in server error message

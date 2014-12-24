@@ -904,16 +904,19 @@ sub database_names {
     return @databases;
 }
 
-=method get_database
+=method get_database, db
 
     my $database = $client->get_database('foo');
     my $database = $client->get_database('foo', $options);
+    my $database = $client->db('foo', $options);
 
 Returns a L<MongoDB::Database> instance for the database with the given
 C<$name>.
 
 It takes an optional hash reference of options that are passed to the
 L<MongoDB::Database> constructor.
+
+The C<db> method is an alias for C<get_database>.
 
 =cut
 
@@ -928,6 +931,41 @@ sub get_database {
         name          => $database_name,
     );
 }
+
+{ no warnings 'once'; *db = \&get_database }
+
+=method get_namespace, ns
+
+    my $collection = $client->get_namespace('test.foo');
+    my $collection = $client->get_namespace('test.foo', $options);
+    my $collection = $client->ns('test.foo', $options);
+
+Returns a L<MongoDB::Collection> instance for the given namespace.
+The namespace has both the database name and the collection name
+separated with a dot character.
+
+This is a quick way to get a collection object if you don't need
+the database object separately.
+
+It takes an optional hash reference of options that are passed to the
+L<MongoDB::Collection> constructor.  The intermediate L<MongoDB::Database>
+object will be created with default options.
+
+The C<ns> method is an alias for C<get_namespace>.
+
+=cut
+
+sub get_namespace {
+    my ( $self, $ns, $options ) = @_;
+    MongoDB::Error->throw("namespace requires a string argument")
+      unless defined($ns) && length($ns);
+    my ( $db, $coll ) = split /\./, $ns, 2;
+    MongoDB::Error->throw("$ns is not a valid namespace")
+      unless defined($db) && defined($coll);
+    return $self->db($db)->coll( $coll, $options );
+}
+
+{ no warnings 'once'; *ns = \&get_namespace }
 
 =method fsync(\%args)
 

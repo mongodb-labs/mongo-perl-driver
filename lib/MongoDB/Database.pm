@@ -106,16 +106,19 @@ sub collection_names {
     return map { $_->{name} } $res->all;
 }
 
-=method get_collection
+=method get_collection, coll
 
     my $collection = $database->get_collection('foo');
     my $collection = $database->get_collection('foo', $options);
+    my $collection = $database->coll('foo', $options);
 
-Returns a L<MongoDB::Collection> for the collection called C<$name> within this
+Returns a L<MongoDB::Collection> for the given collection name within this
 database.
 
 It takes an optional hash reference of options that are passed to the
 L<MongoDB::Collection> constructor.
+
+The C<coll> method is an alias for C<get_collection>.
 
 =cut
 
@@ -130,6 +133,8 @@ sub get_collection {
         name      => $collection_name,
     );
 }
+
+{ no warnings 'once'; *coll = \&get_collection }
 
 =method get_gridfs ($prefix?)
 

@@ -76,6 +76,25 @@ subtest get_collection => sub {
 
 };
 
+subtest get_namespace => sub {
+    my $dbname = $testdb->name;
+    my ( $db, $c );
+
+    ok( $c = $conn->get_namespace("$dbname.foo"), "get_namespace(NAME)" );
+    isa_ok( $c, 'MongoDB::Collection' );
+    is( $c->name, 'foo', 'get name' );
+
+    my $wc = MongoDB::WriteConcern->new( w => 2 );
+
+    ok( $c = $conn->get_namespace( "$dbname.foo", { write_concern => $wc } ),
+        "get_collection(NAME, OPTION) (wc)" );
+    is( $c->write_concern->w, 2, "coll-level write concern as expected" );
+
+    ok( $c = $conn->ns("$dbname.foo"), "ns(NAME)" );
+    isa_ok( $c, 'MongoDB::Collection' );
+    is( $c->name, 'foo', 'get name' );
+};
+
 # very small insert
 {
     $id = $coll->insert({_id => 1});
