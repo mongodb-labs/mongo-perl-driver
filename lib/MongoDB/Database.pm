@@ -91,6 +91,7 @@ sub get_collection {
     );
 }
 
+{ no warnings 'once'; *coll = \&get_collection }
 
 sub get_gridfs {
     my ($self, $prefix) = @_;
@@ -207,6 +208,8 @@ Returns the list of collections in this database.
 
 Returns a L<MongoDB::Collection> for the collection called C<$name> within this
 database.
+
+The C<coll> method is an alias for C<get_collection>.
 
 =head2 get_gridfs ($prefix?)
 

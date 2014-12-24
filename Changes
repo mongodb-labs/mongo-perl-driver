@@ -2,6 +2,13 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - Added 'get_namespace' method (and 'ns' alias) to MongoDB::MongoClient
+    for getting a collection directly without an intermediate database object.
+
+  - Added 'db' and 'coll' aliases for 'get_database' and 'get_collection'
+
 v0.707.2.0 2014-12-22 05:35:31-05:00 America/New_York
 
   [Bug fixes]

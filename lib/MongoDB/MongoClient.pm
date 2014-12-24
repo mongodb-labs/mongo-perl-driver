@@ -534,6 +534,21 @@ sub get_database {
     );
 }
 
+{ no warnings 'once'; *db = \&get_database }
+
+
+sub get_namespace {
+    my ($self, $ns) = @_;
+    confess "get_namespace requires a string argument"
+        unless defined($ns) && length($ns);
+    my ($db, $coll) = split /\./, $ns, 2;
+    confess "$ns is not a valid namespace"
+        unless defined($db) && defined($coll);
+    return $self->db($db)->coll($coll);
+}
+
+{ no warnings 'once'; *ns = \&get_namespace }
+
 sub _get_a_specific_connection {
     my ($self, $host) = @_;
 
@@ -1381,6 +1396,17 @@ Lists all databases on the MongoDB server.
     my $database = $client->get_database('foo');
 
 Returns a L<MongoDB::Database> instance for the database with the given C<$name>.
+
+The C<db> method is an alias for C<get_database>.
+
+=method get_namespace
+
+    my $collection = $client->get_namespace('test.foo');
+
+Returns a L<MongoDB::collection> instance.  The argument must include the
+database name and collection name separated by a dot character.
+
+The C<ns> method is an alias for C<get_namespace>.
 
 =method authenticate ($dbname, $username, $password, $is_digest?)
 

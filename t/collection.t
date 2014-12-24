@@ -55,6 +55,21 @@ my $tied;
     $testdb->drop;
 }
 
+# get_namespace
+{
+    $testdb->drop;
+    my $dbname = $testdb->name;
+
+    $coll = $conn->get_namespace("$dbname.test_collection");
+    isa_ok($coll, 'MongoDB::Collection');
+    is($coll->name, 'test_collection', 'get name');
+
+    $coll = $conn->ns("$dbname.test_collection");
+    isa_ok($coll, 'MongoDB::Collection');
+    is($coll->name, 'test_collection', 'get name');
+
+}
+
 # very small insert
 {
     $id = $coll->insert({_id => 1});
