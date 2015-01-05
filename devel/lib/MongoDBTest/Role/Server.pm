@@ -316,8 +316,10 @@ sub _command_args {
     }
     if ( $self->server_version >= v2.4.0 ) {
         push @args, qw/--setParameter enableTestCommands=1/;
+        if ( ($self->server_version < v2.5.0) ) {
+            push @args, qw/--setParameter textSearchEnabled=true/;
+        }
     }
-
     return @args;
 }
 

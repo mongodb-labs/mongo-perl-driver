@@ -25,7 +25,7 @@ use MongoDBTest::ServerSet;
 use Moo;
 use Try::Tiny::Retry qw/:all/;
 use Types::Standard -types;
-use Type::Utils -all;
+use Type::Utils qw/declare as/;
 use namespace::clean;
 
 
