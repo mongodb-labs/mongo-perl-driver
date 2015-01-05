@@ -595,14 +595,16 @@ subtest 'text indices' => sub {
     is($text_index->{'weights'}->{'w1'}, 5, 'weights option works 1');
     is($text_index->{'weights'}->{'w2'}, 10, 'weights option works 2');
 
-    my $search = $testdb->run_command(['text' => 'test_text', 'search' => 'world']);
-
-    # 2.6 changed the response format for text search results, and deprecated
-    # the 'text' command. On 2.4, mongos doesn't report the default language
-    # and provides stats per shard instead of in total.
-    if ( ! ( $server_version >= v2.6.0 || $conn->topology_type eq 'Sharded') ) {
-        is($search->{'language'}, 'spanish', 'text search uses preferred language');
-        is($search->{'stats'}->{'nfound'}, 10, 'correct number of results found');
+    # 2.6 deprecated 'text' command and added '$text' operator; also the
+    # result format changed.
+    if ( $server_version >= v2.6.0 ) {
+        my $n_found =()= $coll->find( { '$text' => { '$search' => 'world' } } )->all;
+        is( $n_found, 10, "correct number of results found" );
+    }
+    else {
+        my $results =
+          $testdb->run_command( [ 'text' => 'test_text', 'search' => 'world' ] )->{results};
+        is( scalar(@$results), 10, "correct number of results found" );
     }
 
     $coll->drop;
