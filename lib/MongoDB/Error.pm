@@ -238,6 +238,8 @@ This class defines a heirarchy of exception objects.
         |
         |->MongoDB::DatabaseError
         |   |
+        |   |->MongoDB::DuplicateKeyError
+        |   |
         |   |->MongoDB::NotMasterError
         |   |
         |   |->MongoDB::WriteError
@@ -292,6 +294,12 @@ Attributes include:
 =for :list
 * result — response from a database command; this must impliement the
   C<last_errmsg> method
+
+=head3 MongoDB::DuplicateKeyError
+
+This error indicates that a write attempted to create a document with a
+duplicate key in a collection with a unique index.  The C<result> attribute is
+a result object.
 
 =head3 MongoDB::NotMasterError
 
