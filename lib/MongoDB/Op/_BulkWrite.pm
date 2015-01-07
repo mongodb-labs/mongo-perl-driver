@@ -81,7 +81,7 @@ sub execute {
     # If using legacy write ops, then there will never be a valid modified_count
     # result so we set that to undef in the constructor; otherwise, we set it
     # to 0 so that results accumulate normally. If a mongos on a mixed topology
-    # later fails to set it, results merging will handle it that case.
+    # later fails to set it, results merging will handle it in that case.
     my $result =
       MongoDB::BulkWriteResult->new( modified_count => $use_write_cmd ? 0 : undef );
 
