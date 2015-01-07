@@ -234,11 +234,10 @@ Returns this cursor for chaining operations.
 
 =cut
 
-# XXX have to figure out if negative numbers are OK here
 sub limit {
-    my ($self, $num) = @_;
+    my ( $self, $num ) = @_;
     confess "cannot set limit after querying"
-	if $self->started_iterating;
+      if $self->started_iterating;
     $self->query->limit($num);
     return $self;
 }
@@ -516,7 +515,9 @@ sub explain {
     my $new_query = $self->query->clone;
     $new_query->modifiers->{'$explain'} = true;
 
-    # XXX other drivers say to always use hard limit, but why?
+    # per David Storch, drivers *must* send a negative limit to instruct
+    # the query planner analysis module to add a LIMIT stage.  For older
+    # explain implementations, it also ensures a cursor isn't left open.
     $new_query->limit( -1 * abs( $new_query->limit ) );
 
     return $new_query->execute->next;
