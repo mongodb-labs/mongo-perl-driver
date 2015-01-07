@@ -193,8 +193,10 @@ sub _parse_write_op {
             my $upsert = { index => 0, _id => $op->upserted_id };
             $attrs->{upserted_ids}   = [$upsert];
             $attrs->{upserted_count} = 1;
-            $attrs->{matched_count}  = 0;        # because upsert happened
-            $attrs->{modified_count} = 0;        # because upsert happened
+            # modified_count *must* always be defined for 2.6+ servers
+            # matched_count is here for clarity and consistency
+            $attrs->{matched_count}  = 0;
+            $attrs->{modified_count} = 0;
         }
         else {
             $attrs->{matched_count}  = $op->matched_count;
