@@ -221,7 +221,7 @@ Valid options include:
   modifiers document, the comment field overwrites C<$comment>.
 * cursorType – indicates the type of cursor to use. It must be one of three
   enumerated values: C<non_tailable> (the default), C<tailable>, and
-  C<tailable_away>.
+  C<tailable_await>.
 * limit – the maximum number of documents to return.
 * maxTimeMS – the maximum amount of time to allow the query to run. If
   C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
