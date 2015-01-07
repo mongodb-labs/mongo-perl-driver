@@ -177,9 +177,10 @@ sub immortal {
     $obj->{name}; "Fred"
     $obj->{age}; # undef
 
-Selects which fields are returned.  The default is all fields.  _id is always
-returned.  Argument is either a hash reference, a L<Tie::IxHash> or an
-array reference of key/value pairs.
+Selects which fields are returned.  The default is all fields.  When fields
+are specified, _id is returned by default, but this can be disabled by
+explicitly setting it to "0".  E.g.  C<< _id => 0 >>. Argument is either a
+hash reference, a L<Tie::IxHash> or an array reference of key/value pairs.
 
 See L<Limit fields to
 return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
