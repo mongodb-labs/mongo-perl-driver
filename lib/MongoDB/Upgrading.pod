@@ -141,8 +141,8 @@ queries and query-like methods.
 
 The C<explain> cursor method no longer resets the cursor.
 
-The C<slave_ok> cursor method now set the C<read_preference>
-to 'secondaryPreferred' or clear it to 'primary'.
+The C<slave_ok> cursor method now sets the C<read_preference>
+to 'secondaryPreferred' or clears it to 'primary'.
 
 =head2 Read preference objects and the C<read_preference> method
 
