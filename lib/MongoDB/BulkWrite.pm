@@ -233,7 +233,6 @@ sub execute {
     my $op = MongoDB::Op::_BulkWrite->new(
         db_name       => $self->_database->name,
         coll_name     => $self->collection->name,
-        client        => $self->_client,
         queue         => $self->_queue,
         ordered       => $self->ordered,
         write_concern => $write_concern,

@@ -51,12 +51,6 @@ has coll_name => (
     required => 1,
 );
 
-has client => (
-    is       => 'ro',
-    isa      => 'MongoDB::MongoClient',
-    required => 1,
-);
-
 has queue => (
     is       => 'ro',
     isa      => 'ArrayRef',
@@ -151,7 +145,7 @@ sub _execute_write_command_batch {
         );
 
         my $cmd_result = try {
-            $self->client->send_write_op($op);
+            $op->execute($link)
         }
         catch {
             if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
