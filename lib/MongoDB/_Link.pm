@@ -217,7 +217,7 @@ sub write {
     if ( exists $self->{max_message_size_bytes}
         && $len > $self->{max_message_size_bytes} )
     {
-        MongoDB::InternalError->throw(
+        MongoDB::ProtocolError->throw(
             qq/Message of size $len exceeds maximum of / . $self->{max_message_size_bytes} );
     }
 
