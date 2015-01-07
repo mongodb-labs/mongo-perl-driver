@@ -444,10 +444,11 @@ are:
 =item C<upsert>
 If no object matching C<$criteria> is found, C<$object> will be inserted.
 
-=item C<multiple>
+=item C<multiple|multi>
 All of the documents that match C<$criteria> will be updated, not just
 the first document found. (Only available with database version 1.1.3 and
-newer.)
+newer.)  An error will be throw if both C<multiple> and C<multi> exist
+and their boolean values differ.
 
 =item C<safe>
 If the update fails and safe is set, the update will croak.
@@ -462,7 +463,11 @@ sub update {
     my ( $self, $query, $object, $opts ) = @_;
 
     if ( exists $opts->{multiple} ) {
-        $opts->{multi} = delete $opts->{multiple}
+        if ( exists( $opts->{multi} ) && !!$opts->{multi} ne !!$opts->{multiple} ) {
+            MongoDB::Error->throw(
+                "can't use conflicting values of 'multiple' and 'multi' in 'update'");
+        }
+        $opts->{multi} = delete $opts->{multiple};
     }
 
     my $op = MongoDB::Op::_Update->new(

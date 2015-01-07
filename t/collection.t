@@ -393,6 +393,19 @@ subtest "multiple update" => sub {
     $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multi' => 1});
     ok($coll->find_one({"z" => 4}));
 
+    # check that 'multi' and 'multiple' conflicting is an error
+    like(
+        exception {
+            $coll->update(
+                { "x"     => 15 },
+                { '$set'  => { "z" => 4 } },
+                { 'multi' => 1, 'multiple' => undef }
+              )
+        },
+        qr/can't use conflicting values/,
+        "multi and multiple conflicting is an error"
+    );
+
     is($coll->count(), 5);
 };
 
