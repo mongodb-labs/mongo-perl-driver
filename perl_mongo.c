@@ -1375,7 +1375,8 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         croak ("type (%s) unhandled", HvNAME(SvSTASH(SvRV(sv))));
       }
     } else {
-      switch (SvTYPE (SvRV (sv))) {
+      SV *deref = SvRV(sv);
+      switch (SvTYPE (deref)) {
       case SVt_PVHV: {
         /* hash */
         bson_t child;
@@ -1393,14 +1394,16 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         bson_append_array_end(bson, &child);
         break;
       }
-      case SVt_PV:
-        /* binary */
-
-        serialize_binary(bson, key, BSON_SUBTYPE_BINARY, SvRV(sv));
-        break;
-      default:
-        sv_dump(SvRV(sv));
-        croak ("type (ref) unhandled");
+      default: {
+          if ( SvPOK(deref) ) {
+            /* binary */
+            serialize_binary(bson, key, BSON_SUBTYPE_BINARY, deref);
+          }
+          else {
+            sv_dump(deref);
+            croak ("type (ref) unhandled");
+          }
+        }
       }
     }
   } else {
