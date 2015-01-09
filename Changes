@@ -17,6 +17,12 @@
   - Removed Data::Types as a test dependency as it was barely used
     and not necessary
 
+  [Bug fixes]
+
+  - PERL-489 references to scalars with both number and string slots internally
+    would crash on BSON encoding, rather than encode the string part as a
+    binary.
+
 v0.999.998.1 2014-11-12 15:10:40-05:00 America/New_York (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]

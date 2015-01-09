@@ -404,4 +404,15 @@ subtest "Checking hash key unicode support" => sub {
     is ( $obj->{$testkey}, 1 );
 };
 
+subtest "PERL-489 ref to PVNV" => sub {
+    my $value = 42.2;
+    $value = "hello";
+    is(
+        exception { $c->insert( { value => \$value } ) },
+        undef,
+        "inserting ref to PVNV is not fatal",
+    );
+};
+
+
 done_testing;
