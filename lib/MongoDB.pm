@@ -51,6 +51,28 @@ if ( $] eq '5.010' ) {
     re->import('regexp_pattern');
 }
 
+=method connect
+
+    $client = MongoDB->connect(); # localhost, port 27107
+    $client = MongoDB->connect($host_uri);
+    $client = MongoDB->connect($host_uri, $options);
+
+This function returns a L<MongoDB::MongoClient> object.  The first parameter is
+used as the C<host> argument and must be a host name or L<connection string
+URI|MongoDB::MongoClient/CONNECTION STRING URI>.  The second argument is
+optional.  If provided, it must be a hash reference of constructor arguments
+for L<MongoDB::MongoClient::new|MongoDB::MongoClient/ATTRIBUTES>.
+
+=cut
+
+sub connect {
+    my ($class, $host, $options) = @_;
+    $host ||= "mongodb://localhost";
+    $options ||= {};
+    $options->{host} = $host;
+    return MongoDB::MongoClient->new( $options );
+}
+
 sub force_double {
     if ( ref $_[0] ) {
         Carp::croak("Can't force a reference into a double");
@@ -161,11 +183,16 @@ Documentation will be significantly revised.
 
     use MongoDB;
 
-    my $client     = MongoDB::MongoClient->new(host => 'localhost', port => 27017);
-    my $database   = $client->get_database( 'foo' );
-    my $collection = $database->get_collection( 'bar' );
+    # short-hand
+    my $client     = MongoDB->new('mongodb://localhost');
+    my $collection = $client->ns('foo.bar'); # database foo, collection bar
     my $id         = $collection->insert({ some => 'data' });
     my $data       = $collection->find_one({ _id => $id });
+
+    # long-hand
+    my $client     = MongoDB::MongoClient->new(host => 'mongodb://localhost');
+    my $database   = $client->get_database( 'foo' );
+    my $collection = $database->get_collection( 'bar' );
 
 =head1 DESCRIPTION
 
