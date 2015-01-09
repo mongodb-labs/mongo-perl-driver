@@ -254,7 +254,7 @@ send(self, str)
      CODE:
          RETVAL = mongo_link_say(self, &buf);
          if (RETVAL == -1) {
-           die("can't get db response, not connected");
+           die("can't get db response, not connected (during send)");
          }
      OUTPUT:
          RETVAL

@@ -15,6 +15,11 @@
     would crash on BSON encoding, rather than encode the string part as a
     binary.
 
+  [Diagnostics]
+
+  - Added parenthetical note to "can't get db response" errors to disambiguate
+    where they occur.
+
 v0.707.2.0 2014-12-22 05:35:31-05:00 America/New_York
 
   [Bug fixes]

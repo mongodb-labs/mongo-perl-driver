@@ -515,7 +515,7 @@ int mongo_link_hear(SV *cursor_sv) {
   if ((sock = perl_mongo_master(link_sv, 0)) == -1) {
     set_disconnected(link_sv);
     SvREFCNT_dec(link_sv);
-    croak("can't get db response, not connected");
+    croak("can't get db response, not connected (during receive)");
   }
 
   timeout = SvIV(timeout_sv);
@@ -543,7 +543,7 @@ int mongo_link_hear(SV *cursor_sv) {
 
   if (get_header(sock, cursor_sv, link_sv) == 0) {
     SvREFCNT_dec(link_sv);
-    croak("can't get db response, not connected");
+    croak("can't get db response, not connected (invalid response header)");
     return 0;
   }
 

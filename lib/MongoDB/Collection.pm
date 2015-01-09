@@ -291,8 +291,7 @@ sub legacy_update {
     }
 
     if ($conn->send($update) == -1) {
-        $conn->connect;
-        die("can't get db response, not connected");
+        die("can't get db response, not connected (sending update)");
     }
 
     return 1;
@@ -449,8 +448,7 @@ sub legacy_remove {
     }
 
     if ($conn->send($remove) == -1) {
-        $conn->connect;
-        die("can't get db response, not connected");
+        die("can't get db response, not connected (sending delete)");
     }
 
     return 1;

@@ -160,7 +160,7 @@ static int has_next(SV *self, mongo_cursor *cursor) {
   if(mongo_link_say(link, &buf) == -1) {
     SvREFCNT_dec(link);
     Safefree(buf.start);
-    die("can't get db response, not connected");
+    die("can't get db response, not connected (sending OP_GET_MORE)");
     return 0;
   }
 
