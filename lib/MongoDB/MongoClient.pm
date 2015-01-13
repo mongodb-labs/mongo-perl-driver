@@ -710,11 +710,35 @@ sub _build__uri {
     if ( $self->host =~ m{^mongodb://} ) {
         return MongoDB::_URI->new( uri => $self->host );
     }
+    elsif ( $self->host =~ m{^dnstxt://} ) {
+        return MongoDB::_URI->new( uri => $self->_get_dns_txt($self->host) );
+    }
     else {
         my $uri = $self->host =~ /:\d+$/
                 ? $self->host
                 : sprintf("%s:%s", map { $self->$_ } qw/host port/ );
         return MongoDB::_URI->new( uri => ("mongodb://$uri") );
+    }
+}
+
+sub _get_dns_txt {
+    my ($self, $host) = @_;
+    require Net::DNS;
+
+    $host =~ s{^dnstxt://}{};
+    $host =~ s{/$}{};
+    my $res   = Net::DNS::Resolver->new;
+    my $reply = $res->query($host, "TXT");
+
+    if ($reply) {
+        foreach my $rr ($reply->answer) {
+            next unless $rr->type eq "TXT";
+            my $uri = $rr->txtdata;
+            return $uri if $uri =~ m{^mongodb://};
+        }
+        MongoDB::Error->throw("no mongodb TXT record found for $host");
+    } else {
+        MongoDB::Error->throw("finding TXT record for $host by DNS failed: " . $res->errorstring . "\n");
     }
 }
 
