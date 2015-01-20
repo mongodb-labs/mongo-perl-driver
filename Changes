@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.708.0.0 2015-01-20 16:57:11-05:00 America/New_York
+
   [Additions]
 
   - Added 'get_namespace' method (and 'ns' alias) to MongoDB::MongoClient
