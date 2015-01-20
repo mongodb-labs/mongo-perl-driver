@@ -1,6 +1,6 @@
 ---
 type: sharded
-default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --quiet --storageEngine=wiredtiger
+default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --quiet --storageEngine=wiredTiger
 mongoc:
     - name: config1
 mongos:
