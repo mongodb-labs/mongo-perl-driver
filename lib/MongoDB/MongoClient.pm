@@ -1020,7 +1020,7 @@ When C<authenticate> is called, it disconnects the client (if any connections
 had been made), sets client attributes as if the username and password had been
 used initially in the client constructor, and reconnects to the configured
 servers.  The authentication mechanism will be MONGO-CR for servers before
-version 2.8 and SCRAM-SHA-1 for 2.8 or later.
+version 3.0 and SCRAM-SHA-1 for 3.0 or later.
 
 Passwords are expected to be cleartext and will be automatically hashed before
 sending over the wire, unless C<$is_digest> is true, which will assume you
@@ -1260,7 +1260,7 @@ attribute, which takes one of the following values:
 
 =for :list
 * MONGODB-CR -- legacy username-password challenge-response
-* SCRAM-SHA-1 -- secure username-password challenge-response (2.8+)
+* SCRAM-SHA-1 -- secure username-password challenge-response (3.0+)
 * MONGODB-X509 -- SSL client certificate authentication (2.6+)
 * PLAIN -- LDAP authentication via SASL PLAIN (Enterprise only)
 * GSSAPI -- Kerberos authentication (Enterprise only)
@@ -1277,7 +1277,7 @@ These mechnisms require a username and password, given either as
 constructor attributes or in the C<host> connection string.
 
 If a username is provided and an authentication mechanism is not specified,
-the client will use SCRAM-SHA-1 for version 2.8 or later servers and will
+the client will use SCRAM-SHA-1 for version 3.0 or later servers and will
 fall back to MONGODB-CR for older servers.
 
     my $mc = MongoDB::MongoClient->new(

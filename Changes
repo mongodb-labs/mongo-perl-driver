@@ -113,11 +113,11 @@ v0.999.998.1 2014-11-12 15:10:40-05:00 America/New_York (TRIAL RELEASE)
 
   - PERL-133 test that client can connect to RS without primary
 
-  - PERL-433 use listCollections command on 2.8 servers
+  - PERL-433 use listCollections command on 3.0 servers
 
-  - PERL-434 use listIndexes command on 2.8 servers
+  - PERL-434 use listIndexes command on 3.0 servers
 
-  - PERL-436 bump maxWireProtocolVersion for 2.8 support
+  - PERL-436 bump maxWireProtocolVersion for 3.0 support
 
   - re-enabled threads tests
 
@@ -147,7 +147,7 @@ v0.707.0.0 2014-11-12 15:04:46-05:00 America/New_York
 
   [Additions]
 
-  - Supports MongoDB 2.8; in addition to prior feature support, this release
+  - Supports MongoDB 3.0; in addition to prior feature support, this release
     fixes tests that were broken against non-default storage engines
 
   [Bug fixes]
