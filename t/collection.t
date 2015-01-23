@@ -390,7 +390,10 @@ subtest "multiple update" => sub {
 
     # check with upsert if there are no matches
     # also check that 'multi' is allowed
-    $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multi' => 1});
+    my $res = $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multi' => 1});
+    ok( $res->{ok}, "update succeeded" );
+    is( $res->{n}, 1, "update match count" );
+    isa_ok( $res->{upserted}, "MongoDB::OID" );
     ok($coll->find_one({"z" => 4}));
 
     # check that 'multi' and 'multiple' conflicting is an error
@@ -486,8 +489,9 @@ SKIP: {
         ok( $err, "bad update with $case safe gives error" ) or diag explain $res;
         like( $err->message, qr/duplicate key/, 'error was duplicate key exception');
         ok( my $ok = $coll->update( { name => 'Alice' }, { '$set' => { age => 23 } }, $h ), "did legal update" );
-        isa_ok( $ok, "MongoDB::UpdateResult" );
-        is( exception { $ok->assert }, undef, "legal update with $case safe had no error" );
+        isa_ok( $ok, "HASH" );
+        is( $ok->{n}, 1, "n set to 1" );
+        ok( $ok->{ok}, "legal update with $case safe had no error" );
     }
 }
 

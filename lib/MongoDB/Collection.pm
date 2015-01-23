@@ -480,7 +480,14 @@ sub update {
         write_concern => $self->_dynamic_write_concern($opts),
     );
 
-    return $self->_client->send_write_op( $op );
+    my $result = $self->_client->send_write_op( $op );
+
+    # emulate key fields of legacy GLE result
+    return {
+        ok => 1,
+        n => $result->matched_count,
+        ( $result->upserted_id ? ( upserted => $result->upserted_id ) : () ),
+    };
 }
 
 =method find_and_modify
@@ -742,7 +749,13 @@ sub remove {
         write_concern => $self->_dynamic_write_concern($opts),
     );
 
-    return $self->_client->send_write_op( $op );
+    my $result = $self->_client->send_write_op( $op );
+
+    # emulate key fields of legacy GLE result
+    return {
+        ok => 1,
+        n => $result->deleted_count,
+    };
 }
 
 =method ensure_index
