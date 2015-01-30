@@ -57,7 +57,7 @@ has error => (
 
 has rtt_ms => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => 'NonNegNum',
     default => 0,
 );
 

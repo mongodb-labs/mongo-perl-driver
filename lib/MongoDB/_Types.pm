@@ -78,6 +78,9 @@ subtype HashLike => as 'Ref', where { reftype($_) eq 'HASH' };
 
 subtype NonEmptyStr => as 'Str' => where { defined $_ && length $_ };
 
+subtype NonNegNum => as 'Num' => where { defined($_) && $_ >= 0 },
+    message { "value must be a non-negative number" };
+
 # Error string has to be a true value
 subtype ErrorStr => as 'Str' => where { $_ };
 
