@@ -33,6 +33,7 @@ use namespace::clean -except => 'meta';
 has address => (
     is       => 'ro',
     isa      => 'HostAddress',
+    coerce   => 1,
     required => 1,
 );
 
