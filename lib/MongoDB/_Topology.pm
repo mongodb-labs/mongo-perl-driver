@@ -35,7 +35,7 @@ use namespace::clean -except => 'meta';
 
 use constant {
     EPOCH => [ 0, 0 ], # tv struct for the epoch
-    MIN_HEARTBEAT_FREQUENCY_MS => 10_000, # 10ms, not configurable
+    MIN_HEARTBEAT_FREQUENCY_MS => 500_000, # 500ms, not configurable
 };
 
 #--------------------------------------------------------------------------#
@@ -569,7 +569,7 @@ sub _selection_timeout {
         last if 1000 * tv_interval($start_time) > $self->server_selection_timeout_ms;
     }
     continue {
-        usleep(MIN_HEARTBEAT_FREQUENCY_MS); # 15ms delay before rescanning
+        usleep(MIN_HEARTBEAT_FREQUENCY_MS); # delay before rescanning
         $self->scan_all_servers;
     }
 
