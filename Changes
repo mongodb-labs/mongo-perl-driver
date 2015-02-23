@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.999.998.2 2015-02-23 17:10:36-05:00 America/New_York (TRIAL RELEASE)
+
   [!!! Incompatible Changes !!!]
 
   - MongoClient read_preference attribute is now immutable
