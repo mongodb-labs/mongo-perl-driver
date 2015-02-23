@@ -2,26 +2,87 @@
 
 {{ $NEXT }}
 
+  [!!! Incompatible Changes !!!]
+
+  - Renamed latencyThresholdMS configuration option to localThresholdMS
+
+  - MongoClient read_preference attribute is now immutable
+
+  - Renamed WriteResult to BulkWriteResult
+
+  [*** Deprecations ***]
+
+  - Deprecated the 'last_error' Database method
+
   [Additions]
+
+  - PERL-93 implemented awaitData
+
+  - PERL-135 added ability to set write_concern at db and collection level
+
+  - PERL-259 implemented write commands for MongoDB 2.6+ (i.e. doing
+    writes via database commands versus via the wire protocol with OP_INSERT,
+    OP_UPDATE, etc.)
+
+  - PERL-465 added support for arbitrary options on index creation
+
+  - PERL-466 added read preference attribute to Database and Collection
+
+  - Added 'connect' function to MongoDB class for syntactic sugar
+    to create a client object
 
   - Added the 'get_namespace' method to MongoDB::MongoClient
 
   - Added 'db' and 'coll' as aliases for 'get_database' and 'get_collection'
 
+  - Added optional read preference argument to 'run_command'
+
   [Bug Fixes]
 
-  - Fix t/database.t for change in server error message
+  - PERL-401 fixed index creation to always have a non-zero write concern
+
+  - PERL-489 fixed BSON encoding bug; references to scalars with both number
+    and string slots internally would crash on BSON encoding, rather than
+    encode the string part as a binary.
+
+  - PERL-477 fixed list indexes/collections when responses are too big to fit
+    in a single database response
+
+  - Fixed t/database.t for change in server error message
+
+  - Fixed use of slave_ok and $readPreference for communicating read
+    preferences to a mongos
+
+  - Made conflicting multi/multiple update options fatal
+
+  [Changes]
+
+  - Renamed DocumentSizeError to a more general general DocumentError
+
+  - Changed minHeartbeatFrequencyMS (delay between server checks when
+    a suitable server is unavailable) to 500,000 MS
+
+  [Documentation]
+
+  - PERL-423 improved documentation of cursor snapshot mode
+
+  - Rearranged Collection and Database documentation
+
+  - Documented how to disable returning _id from queries
+
+  [Testing]
+
+  - PERL-371 Added tests for parsing localhost:port
+
+  - PERL-492 Implemented server selection tests
+
+  - Changed text index test to use $text operator, not text command
+    (which was removed in MongoDB 3.0)
 
   [Prerequisites]
 
   - Removed Data::Types as a test dependency as it was barely used
     and not necessary
-
-  [Bug fixes]
-
-  - PERL-489 references to scalars with both number and string slots internally
-    would crash on BSON encoding, rather than encode the string part as a
-    binary.
 
 v0.999.998.1 2014-11-12 15:10:40-05:00 America/New_York (TRIAL RELEASE)
 
@@ -582,7 +643,7 @@ v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
   - timegm() implementation for Windows (Stevie-O)
 
   - aggregate() helper method
- 
+
   - find_and_modify helper
 
   - Connection URI support enhancements (Tianon Gravi)

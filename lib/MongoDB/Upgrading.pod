@@ -86,7 +86,7 @@ As of Alpha 2, the following attributes are now immutable:
 =for :list
 * C<ssl>
 * C<read_preference> – but read preference can be set at the database and
-  collection level for localized needs.  See subsequent section for more.
+  collection level for localized needs.  See a subsequent section for more.
 
 Other attributes will be made immutable in subsequent alpha releases
 as internal options handling is revised.
@@ -165,7 +165,7 @@ created is a fatal error.
 As C<read_preference> is now the name of an attribute, the return value
 is the value of the attribute.
 
-For localized changed, the C<get_database> and C<get_collection> methods
+For localized changes, the C<get_database> and C<get_collection> methods
 both take optional parameters that allow setting a read preference.
 
     my $coll = $db->get_collection(
@@ -238,6 +238,11 @@ attributes.  These are kept for backwards compatibility only.
 
 Authentication parameters should now be given as client attributes.
 See L<MongoDB::MongoClient/AUTHENTICATED> for more.
+
+=head3 last_error
+
+Errors are now indicated via exceptions at the time database commands are
+executed.
 
 =head3 read_preference
 
