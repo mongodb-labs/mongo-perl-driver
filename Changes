@@ -4,8 +4,6 @@
 
   [!!! Incompatible Changes !!!]
 
-  - Renamed latencyThresholdMS configuration option to localThresholdMS
-
   - MongoClient read_preference attribute is now immutable
 
   - Renamed WriteResult to BulkWriteResult
@@ -81,8 +79,18 @@
 
   [Prerequisites]
 
-  - Removed Data::Types as a test dependency as it was barely used
-    and not necessary
+  - Added core modules IO::Socket and MIME::Base64 to the dependency
+    list for completeness
+
+  - Requires at least Path::Tiny 0.054 (rather than unspecified)
+
+  - Removed core modules File::Copy, File::Path and File::Spec from the
+    list of test dependencies
+
+  - Removed Class::MOP::Class as an explicit dependency (still used internally
+    by Moose)
+
+  - Removed Data::Types and Data::Dump as test dependencies
 
 v0.999.998.1 2014-11-12 15:10:40-05:00 America/New_York (TRIAL RELEASE)
 
