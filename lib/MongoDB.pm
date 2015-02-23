@@ -94,7 +94,7 @@ __END__
 
 =begin :prelude
 
-This is the Alpha 1 release for v1.0.0.0.
+This is the Alpha 2 release for v1.0.0.0.
 
 =head1 ALPHA RELEASE NOTICE AND ROADMAP
 
@@ -106,24 +106,20 @@ important and will be delivered to a great extent, it will not be guaranteed.
 Using the v0.999.998.x series means that you understand that your code may break
 due to changes in the driver between now and the v1.0.0.0 stable release.
 
-This alpha 1 release includes these major changes:
+This Alpha 2 release includes these major changes:
 
 =over
 
 =item *
 
-All networking code is implemented in pure-Perl.  SSL support is provided by
-L<IO::Socket::SSL> (if installed).  Likewise, SASL authentication support is
-provided by L<Authen::SASL> backends (if installed).  This should improve
-portability and ease installation.
+The internal architecture for database write operations has been completely
+re-written.  For MongoDB 2.6 or later, writes are implemented using
+database write commands.  For earlier versions of MongoDB, writes continue
+to use legacy wire-protocol operations.
 
 =item *
 
-Server monitoring and failover are significantly improved.
-
-=item *
-
-Expanded use of exceptions for error handling.
+Compatibility with MongoDB 3.0.
 
 =back
 
@@ -132,7 +128,7 @@ L<MongoDB::Upgrading>.
 
 =head2 Roadmap
 
-Subsequent alphas will be released approximately monthly.  The v1.0.0.0 release
+Subsequent alphas will be released periodically.  The v1.0.0.0 release
 is expected in the middle of 2015.
 
 Some expected (but not guaranteed) changes in future releases include:
@@ -141,15 +137,7 @@ Some expected (but not guaranteed) changes in future releases include:
 
 =item *
 
-The driver will become pure-Perl capable, using the Moo framework instead of Moose.
-
-=item *
-
-BSON encoding will be extracted to a separate module, with both pure-Perl and C variants available.
-
-=item *
-
-Transformation of Perl data structures to/from BSON will become more customizable.
+A revised CRUD API will be added, which will be consistent across all officially-maintained "next-generation" language drivers.  Many legacy CRUD method will be deprecated.
 
 =item *
 
@@ -165,15 +153,26 @@ Some configuration options and method return values will be implemented with obj
 
 =item *
 
-Various internal changes to support new protocol capabilities of MongoDB 2.6 and later.
-
-=item *
-
-The driver will have a smaller total dependency tree.
-
-=item *
-
 Documentation will be significantly revised.
+
+=back
+
+In order to avoid holding up v1.0.0.0, the following changes will be deferred
+until after the v1.0.0.0 release:
+
+=over
+
+=item *
+
+The driver will become pure-Perl capable, using the Moo framework instead of Moose.  This will significantly reduce the size of the total dependency tree.
+
+=item *
+
+BSON encoding will be extracted to a separate module, with both pure-Perl and C variants available.
+
+=item *
+
+Transformation of Perl data structures to/from BSON will become more customizable.
 
 =back
 
@@ -184,7 +183,7 @@ Documentation will be significantly revised.
     use MongoDB;
 
     # short-hand
-    my $client     = MongoDB->new('mongodb://localhost');
+    my $client     = MongoDB->connect('mongodb://localhost');
     my $collection = $client->ns('foo.bar'); # database foo, collection bar
     my $id         = $collection->insert({ some => 'data' });
     my $data       = $collection->find_one({ _id => $id });
