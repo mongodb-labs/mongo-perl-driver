@@ -349,17 +349,6 @@ sub batch_insert {
     return @{ $result->inserted_ids };
 }
 
-sub _legacy_index_insert {
-    my ($self, $doc, $options) = @_;
-
-    my $wc = $self->_dynamic_write_concern( $options );
-    my $result = $self->_client->send_insert($self->full_name, $doc, $wc, undef, 0);
-
-    $result->assert;
-
-    return 1;
-}
-
 =method update (\%criteria, \%object, \%options?)
 
     $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
@@ -1031,6 +1020,17 @@ sub _dynamic_write_concern {
     else {
         return MongoDB::WriteConcern->new( w => 0 );
     }
+}
+
+sub _legacy_index_insert {
+    my ($self, $doc, $options) = @_;
+
+    my $wc = $self->_dynamic_write_concern( $options );
+    my $result = $self->_client->send_insert($self->full_name, $doc, $wc, undef, 0);
+
+    $result->assert;
+
+    return 1;
 }
 
 # old API allowed some snake_case options; some options must
