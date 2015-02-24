@@ -30,11 +30,11 @@ use MongoDB::Error;
 use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db server_version server_type/;
 
-my $conn = build_client();
-my $testdb = get_test_db($conn);
+my $conn           = build_client();
+my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
-my $server_type = server_type($conn);
-my $coll = $testdb->get_collection('test_collection');
+my $server_type    = server_type($conn);
+my $coll           = $testdb->get_collection('test_collection');
 
 my $res;
 
@@ -44,7 +44,7 @@ subtest "insert_one" => sub {
     $coll->drop;
     $res = $coll->insert_one( { _id => "foo", value => "bar" } );
     cmp_deeply(
-        [$coll->find({})->all],
+        [ $coll->find( {} )->all ],
         bag( { _id => "foo", value => "bar" } ),
         "insert with _id: doc inserted"
     );
@@ -55,14 +55,32 @@ subtest "insert_one" => sub {
     # insert doc without _id
     $coll->drop;
     $res = $coll->insert_one( { value => "bar" } );
+    my @got = $coll->find( {} )->all;
     cmp_deeply(
-        [$coll->find({})->all],
+        \@got,
         bag( { _id => ignore(), value => "bar" } ),
-        "insert without _id: doc inserted"
+        "insert without _id: hash doc inserted"
     );
     ok( $res->acknowledged, "result acknowledged" );
-    my $doc = $coll->find_one({_id => $res->inserted_id});
-    is( $doc->{_id}, $res->inserted_id, "doc has expected inserted _id" );
+    is( $got[0]{_id}, $res->inserted_id, "doc has expected inserted _id" );
+
+    # insert arrayref
+    $coll->drop;
+    $res = $coll->insert_one( [ value => "bar" ] );
+    cmp_deeply(
+        [ $coll->find( {} )->all ],
+        bag( { _id => ignore(), value => "bar" } ),
+        "insert without _id: array doc inserted"
+    );
+
+    # insert Tie::Ixhash
+    $coll->drop;
+    $res = $coll->insert_one( Tie::IxHash->new( value => "bar" ) );
+    cmp_deeply(
+        [ $coll->find( {} )->all ],
+        bag( { _id => ignore(), value => "bar" } ),
+        "insert without _id: Tie::IxHash doc inserted"
+    );
 
 };
 
