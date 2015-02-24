@@ -359,6 +359,36 @@ sub insert_many {
     );
 }
 
+=method delete_one
+
+    $res = $coll->delete_one( $filter );
+
+Deletes a single document matching the filter from the collection
+and returns a L<MongoDB::DeleteResult> object.
+
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for deletion.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+=cut
+
+sub delete_one {
+    my ($self, $filter) = @_;
+
+    my $op = MongoDB::Op::_Delete->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $filter,
+        just_one      => 1,
+        write_concern => $self->write_concern,
+    );
+
+    return $self->_client->send_write_op( $op );
+
+}
+
+
 =method update (\%criteria, \%object, \%options?)
 
     $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
@@ -638,60 +668,6 @@ sub rename {
     return $conn->get_database( $db )->get_collection( $collectionname );
 }
 
-=method remove ($query?, $options?)
-
-    $collection->remove({ answer => { '$ne' => 42 } });
-
-Removes all objects matching the given C<$query> from the database. If no
-parameters are given, removes all objects from the collection (but does not
-delete indexes, as C<MongoDB::Collection::drop> does).
-
-Returns 1 unless the C<safe> option is set.  If C<safe> is set and the remove
-succeeds, C<remove> will return a hash of information about the remove,
-including how many documents were removed (C<n>).  If the remove fails and
-C<safe> is set, C<remove> will croak.  You can also check if the remove
-succeeded by doing an unsafe remove, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
-C<remove> can take a hash reference of options.  The options currently supported
-are
-
-=over
-
-=item C<just_one>
-Only one matching document to be removed.
-
-=item C<safe>
-If the update fails and safe is set, this function will croak.
-
-=back
-
-See also core documentation on remove: L<http://docs.mongodb.org/manual/core/delete/>.
-
-=cut
-
-
-sub remove {
-    my ($self, $query, $opts) = @_;
-    confess "optional argument to remove must be a hash reference"
-        if defined $opts && ref $opts ne 'HASH';
-
-    my $op = MongoDB::Op::_Delete->new(
-        db_name       => $self->_database->name,
-        coll_name     => $self->name,
-        filter        => $query,
-        just_one      => !! $opts->{just_one},
-        write_concern => $self->_dynamic_write_concern($opts),
-    );
-
-    my $result = $self->_client->send_write_op( $op );
-
-    # emulate key fields of legacy GLE result
-    return {
-        ok => 1,
-        n => $result->deleted_count,
-    };
-}
 
 =method ensure_index
 
@@ -1125,6 +1101,28 @@ sub batch_insert {
     }
 
     return @ids;
+}
+
+sub remove {
+    my ($self, $query, $opts) = @_;
+    confess "optional argument to remove must be a hash reference"
+        if defined $opts && ref $opts ne 'HASH';
+
+    my $op = MongoDB::Op::_Delete->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $query,
+        just_one      => !! $opts->{just_one},
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
+
+    my $result = $self->_client->send_write_op( $op );
+
+    # emulate key fields of legacy GLE result
+    return {
+        ok => 1,
+        n => $result->deleted_count,
+    };
 }
 
 __PACKAGE__->meta->make_immutable;
