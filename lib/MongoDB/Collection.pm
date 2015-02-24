@@ -288,42 +288,30 @@ sub find_one {
     return $cursor->next;
 }
 
-=method insert ($object, $options?)
+=method insert_one
 
-    my $id1 = $coll->insert({ name => 'mongo', type => 'database' });
-    my $id2 = $coll->insert({ name => 'mongo', type => 'database' }, {safe => 1});
+    $res = $coll->insert({ name => 'mongo', type => 'database' });
+    $res = $coll->insert({ _id => $custom_id, %data});
 
-Inserts the given C<$object> into the database and returns it's id
-value. C<$object> can be a hash reference, a reference to an array with an
-even number of elements, or a L<Tie::IxHash>.  The id is the C<_id> value
-specified in the data or a L<MongoDB::OID>.
-
-The optional C<$options> parameter can be used to specify if this is a safe
-insert.  A safe insert will check with the database if the insert succeeded and
-croak if it did not.  You can also check if the insert succeeded by doing an
-unsafe insert, then calling L<MongoDB::Database/"last_error($options?)">.
-
-See also core documentation on insert: L<http://docs.mongodb.org/manual/core/create/>.
+Inserts a single document into the database and returns a
+L<MongoDB::InsertResult> object.  If no C<_id> field is present, one will
+be added.
 
 =cut
 
-sub insert {
-    my ( $self, $document, $opts ) = @_;
+sub insert_one {
+    my ( $self, $document ) = @_;
 
-    unless ( $opts->{'no_ids'} ) {
-        $self->_add_oids( [$document] );
-    }
+    $self->_add_oids( [$document] );
 
     my $op = MongoDB::Op::_InsertOne->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
         document      => $document,
-        write_concern => $self->_dynamic_write_concern($opts),
+        write_concern => $self->write_concern,
     );
 
-    my $result = $self->_client->send_write_op($op);
-
-    return $result->inserted_id;
+    return $self->_client->send_write_op($op);
 }
 
 sub _add_oids {
@@ -1073,6 +1061,29 @@ BEGIN {
     *query = \&find;
     *ordered_bulk = \&initialize_ordered_bulk_op;
     *unordered_bulk = \&initialize_unordered_bulk_op;
+}
+
+#--------------------------------------------------------------------------#
+# Deprecated legacy methods
+#--------------------------------------------------------------------------#
+
+sub insert {
+    my ( $self, $document, $opts ) = @_;
+
+    unless ( $opts->{'no_ids'} ) {
+        $self->_add_oids( [$document] );
+    }
+
+    my $op = MongoDB::Op::_InsertOne->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        document      => $document,
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
+
+    my $result = $self->_client->send_write_op($op);
+
+    return $result->inserted_id;
 }
 
 __PACKAGE__->meta->make_immutable;
