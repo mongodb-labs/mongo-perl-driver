@@ -318,20 +318,39 @@ sub insert_one {
 =method insert_many
 
     $res = $coll->insert_many( [ @documents ] );
+    $res = $coll->insert_many( [ @documents ], { ordered => 0 } );
 
 Inserts each of the documents in an array reference into the database and
-returns a L<MongoDB::InsertManyResult>.
+returns a L<MongoDB::InsertManyResult>.  This is syntactic sugar for
+using a Bulk operation.
 
 The documents to be inserted may be hash references, array references or
 L<Tie::IxHash> objects.  If no C<_id> field is present in a document, one will
 be added to the original document.
 
+An optional hash reference of options may be provided.  The only valid value
+is C<ordered>. It defaults to true.  When true, the server will halt after
+the first error (if any).  When false, all documents will be processed and
+any errors will only be thrown after all insertions are attempted.
+
+On MongoDB servers before version 2.6, C<insert_many> bulk operations are
+emulated with individual inserts to capture error information.  On 2.6 or
+later, this method will be significantly faster than individual C<insert_one>
+calls.
+
 =cut
 
 sub insert_many {
-    my ($self, $documents) = @_;
+    my ($self, $documents, $opts) = @_;
+
+    confess 'not an array reference' unless ref $documents eq 'ARRAY';
+    confess 'not a hash reference' if defined($opts) && ref($opts) ne 'HASH';
+
+    # ordered defaults to true
+    my $ordered = exists($opts->{ordered}) ? $opts->{ordered} : 1;
+
     my $wc = $self->write_concern;
-    my $bulk = $self->ordered_bulk;
+    my $bulk = $ordered ? $self->ordered_bulk : $self->unordered_bulk;
     $bulk->insert($_) for @$documents;
     my $res = $bulk->execute( $wc );
     return MongoDB::InsertManyResult->new(

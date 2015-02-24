@@ -90,7 +90,7 @@ subtest "insert_many" => sub {
     $coll->drop;
     my $doc = { value => "baz" };
     $res =
-      $coll->insert_many( [ { _id => "foo", value => "bar" }, $doc, ] );
+      $coll->insert_many( [ [ _id => "foo", value => "bar" ], $doc, ] );
     my @got = $coll->find( {} )->all;
     cmp_deeply(
         \@got,
@@ -112,6 +112,28 @@ subtest "insert_many" => sub {
         },
         "inserted_ids contains correct keys/values"
     );
+
+    # ordered insert should halt on error
+    $coll->drop;
+    my $err = exception {
+        $coll->insert_many( [ { _id => 0 }, { _id => 1 }, { _id => 2 }, { _id => 1 }, ] )
+    };
+    ok( $err, "ordered insert got an error" );
+    isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
+      or diag explain $err;
+    $res = $err->result;
+    is( $res->inserted_count, 3, "only first three inserted" );
+
+    # unordered insert should halt on error
+    $coll->drop;
+    my $err = exception {
+        $coll->insert_many( [ { _id => 0 }, { _id => 1 }, { _id => 1 }, { _id => 2 }, ], { ordered => 0 } )
+    };
+    ok( $err, "unordered insert got an error" );
+    isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
+      or diag explain $err;
+    $res = $err->result;
+    is( $res->inserted_count, 3, "all valid docs inserted" );
 
 };
 
