@@ -314,49 +314,6 @@ sub insert_one {
     return $self->_client->send_write_op($op);
 }
 
-sub _add_oids {
-    my ($self, $docs) = @_;
-    my @ids;
-
-    for my $d ( @$docs ) {
-        my $type = reftype($d);
-        my $found_id;
-        if (ref($d) eq 'Tie::IxHash') {
-            $found_id = $d->FETCH('_id');
-            unless ( defined $found_id ) {
-                $d->Unshift( '_id', $found_id = MongoDB::OID->new );
-            }
-        }
-        elsif ($type eq 'ARRAY') {
-            # search for an _id or prepend one
-            for my $i ( 0 .. (@$d/2 - 1) ) {
-                if ( $d->[2*$i] eq '_id' ) {
-                    $found_id = $d->[2*$i+1];
-                    last;
-                }
-            }
-            unless (defined $found_id) {
-                unshift @$d, '_id', $found_id = MongoDB::OID->new;
-            }
-        }
-        elsif ($type eq 'HASH') {
-            # hash or IxHash
-            $found_id = $d->{_id};
-            unless ( defined $found_id ) {
-                $found_id = MongoDB::OID->new;
-                $d->{_id} = $found_id;
-            }
-        }
-        else {
-            $type = 'scalar' unless $type;
-            Carp::croak("unhandled type $type")
-        }
-        push @ids, $found_id;
-    }
-
-    return \@ids;
-}
-
 =method batch_insert (\@array, $options)
 
     my @ids = $collection->batch_insert([{name => "Joe"}, {name => "Fred"}, {name => "Sam"}]);
@@ -1011,6 +968,61 @@ sub initialize_unordered_bulk_op {
     return MongoDB::BulkWrite->new( collection => $self, ordered => 0 );
 }
 
+BEGIN {
+    # aliases
+    no warnings 'once';
+    *query = \&find;
+    *ordered_bulk = \&initialize_ordered_bulk_op;
+    *unordered_bulk = \&initialize_unordered_bulk_op;
+}
+
+#--------------------------------------------------------------------------#
+# private methods
+#--------------------------------------------------------------------------#
+
+sub _add_oids {
+    my ($self, $docs) = @_;
+    my @ids;
+
+    for my $d ( @$docs ) {
+        my $type = reftype($d);
+        my $found_id;
+        if (ref($d) eq 'Tie::IxHash') {
+            $found_id = $d->FETCH('_id');
+            unless ( defined $found_id ) {
+                $d->Unshift( '_id', $found_id = MongoDB::OID->new );
+            }
+        }
+        elsif ($type eq 'ARRAY') {
+            # search for an _id or prepend one
+            for my $i ( 0 .. (@$d/2 - 1) ) {
+                if ( $d->[2*$i] eq '_id' ) {
+                    $found_id = $d->[2*$i+1];
+                    last;
+                }
+            }
+            unless (defined $found_id) {
+                unshift @$d, '_id', $found_id = MongoDB::OID->new;
+            }
+        }
+        elsif ($type eq 'HASH') {
+            # hash or IxHash
+            $found_id = $d->{_id};
+            unless ( defined $found_id ) {
+                $found_id = MongoDB::OID->new;
+                $d->{_id} = $found_id;
+            }
+        }
+        else {
+            $type = 'scalar' unless $type;
+            Carp::croak("unhandled type $type")
+        }
+        push @ids, $found_id;
+    }
+
+    return \@ids;
+}
+
 sub _dynamic_write_concern {
     my ( $self, $opts ) = @_;
     if ( !exists( $opts->{safe} ) || $opts->{safe} ) {
@@ -1053,14 +1065,6 @@ sub _clean_index_options {
     }
 
     return $opts;
-}
-
-BEGIN {
-    # aliases
-    no warnings 'once';
-    *query = \&find;
-    *ordered_bulk = \&initialize_ordered_bulk_op;
-    *unordered_bulk = \&initialize_unordered_bulk_op;
 }
 
 #--------------------------------------------------------------------------#
