@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::Op::_InsertMany;
+package MongoDB::Op::_BatchInsert;
 
 # Encapsulate a multi-document insert operation; returns a
 # MongoDB::InsertManyResult

@@ -26,10 +26,10 @@ use MongoDB::Error;
 use MongoDB::InsertManyResult;
 use MongoDB::WriteConcern;
 use MongoDB::_Query;
+use MongoDB::Op::_BatchInsert;
 use MongoDB::Op::_CreateIndexes;
 use MongoDB::Op::_Delete;
 use MongoDB::Op::_InsertOne;
-use MongoDB::Op::_InsertMany;
 use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_Update;
 use MongoDB::_Types -types;
@@ -1090,7 +1090,7 @@ sub batch_insert {
         $self->_add_oids($documents);
     }
 
-    my $op = MongoDB::Op::_InsertMany->new(
+    my $op = MongoDB::Op::_BatchInsert->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
         documents     => $documents,
