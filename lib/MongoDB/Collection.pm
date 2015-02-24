@@ -294,7 +294,7 @@ sub find_one {
     $res = $coll->insert({ _id => $custom_id, %data});
 
 Inserts a single document into the database and returns a
-L<MongoDB::InsertResult> object.  If no C<_id> field is present, one will
+L<MongoDB::InsertOneResult> object.  If no C<_id> field is present, one will
 be added.
 
 =cut
