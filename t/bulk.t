@@ -119,13 +119,14 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
 
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
-        is_deeply(
+        cmp_deeply(
             $result,
             MongoDB::BulkWriteResult->new(
                 inserted_count   => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
                 batch_count => 1,
+                inserted => [ { index => 0, _id => 1 } ],
             ),
             "result object correct"
         ) or diag explain $result;
@@ -137,19 +138,19 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         is( $coll->count, 0, "no docs in collection" );
         my $doc = {};
         $bulk->insert( $doc );
-        is( $doc->{_id}, undef, "adding _id doesn't modify original" );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on insert" ) or diag explain $err;
         is( $coll->count, 1, "one doc in collection" );
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
-        is_deeply(
+        cmp_deeply(
             $result,
             MongoDB::BulkWriteResult->new(
                 inserted_count   => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
                 batch_count => 1,
+                inserted => [ { index => 0, _id => obj_isa("MongoDB::OID") } ],
             ),
             "result object correct"
         );
@@ -397,7 +398,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count => 1,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids  => [ { index => 1, _id => ignore() } ],
+                upserted       => [ { index => 1, _id => ignore() } ],
                 op_count  => 2,
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
@@ -407,7 +408,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         cmp_deeply(
             [ $coll->find( {} )->all ],
             [ { _id => ignore(), key => 2, x => 2 } ],
-            "upserted_ids document correct"
+            "upserted document correct"
         );
 
         $bulk = $coll->$method;
@@ -478,7 +479,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count   => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids    => [ { index => 0, _id => ignore() } ],
+                upserted        => [ { index => 0, _id => ignore() } ],
                 op_count    => 1,
                 batch_count => 1,
             ),
@@ -506,7 +507,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count => 1,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids  => [ { index => 1, _id => ignore() } ],
+                upserted      => [ { index => 1, _id => ignore() } ],
                 op_count  => 2,
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
@@ -516,7 +517,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         cmp_deeply(
             [ $coll->find( {} )->all ],
             [ { _id => ignore(), key => 2, x => 2 } ],
-            "upserted_ids document correct"
+            "upserted document correct"
         );
 
     };
@@ -572,7 +573,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count => 1,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids  => [ { index => 1, _id => ignore() } ],
+                upserted      => [ { index => 1, _id => ignore() } ],
                 op_count  => 2,
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
@@ -582,7 +583,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         cmp_deeply(
             [ $coll->find( {} )->all ],
             [ { _id => ignore(), x => 2 } ],
-            "upserted_ids document correct"
+            "upserted document correct"
         );
 
     };
@@ -753,7 +754,8 @@ subtest "mixed operations, unordered" => sub {
             batch_count => $server_does_bulk ? 3 : 4,
             # XXX QA Test says index should be 3, but with unordered, that's
             # not guaranteed, so we ignore the value
-            upserted_ids => [ { index => ignore(), _id => obj_isa("MongoDB::OID") } ],
+            upserted     => [ { index => ignore(), _id => obj_isa("MongoDB::OID") } ],
+            inserted     => [ { index => ignore(), _id => obj_isa("MongoDB::OID") } ],
         ),
         "result object correct"
     ) or diag explain $result;
@@ -784,7 +786,11 @@ subtest "mixed operations, ordered" => sub {
             deleted_count    => 1,
             op_count    => 5,
             batch_count => $server_does_bulk ? 4 : 5,
-            upserted_ids    => [ { index => 2, _id => obj_isa("MongoDB::OID") } ],
+            upserted        => [ { index => 2, _id => obj_isa("MongoDB::OID") } ],
+            inserted        => [
+                { index => 0, _id => obj_isa("MongoDB::OID") },
+                { index => 3, _id => obj_isa("MongoDB::OID") },
+            ],
         ),
         "result object correct"
     ) or diag explain $result;
@@ -827,7 +833,7 @@ subtest "unordered batch with errors" => sub {
         is( $details->modified_count, ( $server_does_bulk ? 0 : undef ), "modified_count" );
         is( $details->count_write_errors, 3, "writeError count" )
           or diag explain $details;
-        cmp_deeply( $details->upserted_ids, [ { index => 4, _id => obj_isa("MongoDB::OID") }, ],
+        cmp_deeply( $details->upserted, [ { index => 4, _id => obj_isa("MongoDB::OID") }, ],
             "upsert list" );
     }
     else {
@@ -840,7 +846,7 @@ subtest "unordered batch with errors" => sub {
         is( $details->count_write_errors, 2, "writeError count" )
           or diag explain $details;
         cmp_deeply(
-            $details->upserted_ids,
+            $details->upserted,
             [
                 { index => 0, _id => obj_isa("MongoDB::OID") },
                 { index => 1, _id => obj_isa("MongoDB::OID") },
@@ -922,6 +928,11 @@ subtest "ordered batch split on size" => sub {
     my $details = $err->result;
     my $errdoc  = $details->write_errors->[0];
     is( $details->inserted_count,         6,     "inserted_count" );
+    cmp_deeply(
+        $details->inserted_ids,
+        { map { $_ => $_ } 0 .. 5 },
+        "inserted_ids correct"
+    );
     is( $details->count_write_errors, 1,     "count_write_errors" );
     is( $errdoc->{code},             11000, "error code" ) or diag explain $errdoc;
     is( $errdoc->{index},            6,     "error index" );
@@ -971,6 +982,11 @@ subtest "ordered batch split on number of ops" => sub {
     my $details = $err->result;
     my $errdoc  = $details->write_errors->[0];
     is( $details->inserted_count,         2000,  "inserted_count" );
+    cmp_deeply(
+        $details->inserted_ids,
+        { map { $_ => $_ } 0 .. 1999 },
+        "inserted_ids correct"
+    );
     is( $details->count_write_errors, 1,     "count_write_errors" );
     is( $errdoc->{code},             11000, "error code" );
     is( $errdoc->{index},            2000,  "error index" );
@@ -1189,7 +1205,6 @@ subtest "insert (Tie::IxHash)" => sub {
     $bulk->insert( Tie::IxHash->new( _id => 1 ) );
     my $doc = Tie::IxHash->new();
     $bulk->insert( $doc  );
-    is( $doc->FETCH('_id'), undef, "inserting _id doesn't modify original" );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on insert" ) or diag explain $err;
@@ -1252,7 +1267,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     };
 }
 
-# DRIVERS-151 Handle edge case for pre-2.6 when upserted_ids _id not returned
+# DRIVERS-151 Handle edge case for pre-2.6 when upserted _id not returned
 note("UPSERT _ID NOT RETURNED");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "$method: upsert with non OID _ids" => sub {
@@ -1276,7 +1291,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count => 3,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids =>
+                upserted     =>
                   [ { index => 0, _id => 0 }, { index => 1, _id => 1 }, { index => 2, _id => 2 }, ],
                 op_count    => 3,
                 batch_count => $server_does_bulk ? 1 : 3,

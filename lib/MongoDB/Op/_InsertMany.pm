@@ -150,9 +150,12 @@ sub _legacy_op_insert {
 
 sub _parse_cmd {
     my ( $self, $res ) = @_;
-    return inserted_ids => $res->{ok}
-      ? [ map { $_->FETCH("_id") } @{ $self->documents } ]
-      : [];
+    return {} unless $res->{ok};
+    my $ids = {};
+    for my $i ( 0 .. $#{$self->documents} ) {
+        $ids->{$i} = $self->documents->[$i]->FETCH("_id");
+    }
+    return { inserted_ids => $ids };
 }
 
 BEGIN {

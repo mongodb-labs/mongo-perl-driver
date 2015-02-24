@@ -33,12 +33,36 @@ use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_WriteResult';
 
-has upserted_ids => (
+has [qw/upserted inserted/] => (
     is      => 'ro',
     isa     => ArrayOfHashRef,
     coerce  => 1,
     default => sub { [] },
 );
+
+has inserted_ids => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    lazy    => 1,
+    builder => '_build_inserted_ids',
+);
+
+sub _build_inserted_ids {
+    my ($self) = @_;
+    return { map { $_->{index}, $_->{_id} } @{ $self->inserted } };
+}
+
+has upserted_ids => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    lazy    => 1,
+    builder => '_build_upserted_ids',
+);
+
+sub _build_upserted_ids {
+    my ($self) = @_;
+    return { map { $_->{index}, $_->{_id} } @{ $self->upserted } };
+}
 
 for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
     has $attr => (
@@ -87,7 +111,6 @@ my %OLD_API_ALIASING = (
     nRemoved                 => 'deleted_count',
     writeErrors              => 'write_errors',
     writeConcernErrors       => 'write_concern_errors',
-    upserted                 => 'upserted_ids',
     count_writeErrors        => 'count_write_errors',
     count_writeConcernErrors => 'count_write_concern_errors',
 );
@@ -120,8 +143,8 @@ sub _parse_cmd_result {
         confess "parse requires 'op' and 'result' arguments";
     }
 
-    my ( $op, $op_count, $batch_count, $result ) =
-      @{$args}{qw/op op_count batch_count result/};
+    my ( $op, $op_count, $batch_count, $result, $cmd_doc ) =
+      @{$args}{qw/op op_count batch_count result cmd_doc/};
 
     $result = $result->result
       if eval { $result->isa("MongoDB::CommandResult") };
@@ -147,8 +170,20 @@ sub _parse_cmd_result {
     # if we have upserts, change type to calculate differently
     if ( $result->{upserted} ) {
         $op                      = 'upsert';
-        $attrs->{upserted_ids}   = $result->{upserted};
+        $attrs->{upserted}       = $result->{upserted};
         $attrs->{upserted_count} = @{ $result->{upserted} };
+    }
+
+    # recover _ids from documents
+    if ( exists($result->{n}) && $op eq 'insert' ) {
+        my @pairs;
+        my $docs = {@$cmd_doc}->{documents};
+        for my $i ( 0 .. $result->{n}-1 ) {
+            my $doc = $docs->[$i];
+            my $id = ref($doc) eq 'HASH' ? $doc->{_id} : $doc->FETCH('_id');
+            push @pairs, { index => $i, _id => $id };
+        }
+        $attrs->{inserted} = \@pairs;
     }
 
     # change 'n' into an op-specific count
@@ -185,6 +220,7 @@ sub _parse_write_op {
     my $type = ref($op);
     if ( $type eq 'MongoDB::InsertOneResult' ) {
         $attrs->{inserted_count} = $has_write_error ? 0 : 1;
+        $attrs->{inserted} = [ { index => 0, _id => $op->inserted_id } ];
     }
     elsif ( $type eq 'MongoDB::DeleteResult' ) {
         $attrs->{deleted_count} = $op->deleted_count;
@@ -192,7 +228,7 @@ sub _parse_write_op {
     elsif ( $type eq 'MongoDB::UpdateResult' ) {
         if ( defined $op->upserted_id ) {
             my $upsert = { index => 0, _id => $op->upserted_id };
-            $attrs->{upserted_ids}   = [$upsert];
+            $attrs->{upserted}       = [$upsert];
             $attrs->{upserted_count} = 1;
             # modified_count *must* always be defined for 2.6+ servers
             # matched_count is here for clarity and consistency
@@ -234,7 +270,7 @@ sub _merge_result {
 
     # Append error and upsert docs, but modify index based on op count
     my $op_count = $self->op_count;
-    for my $attr (qw/write_errors upserted_ids/) {
+    for my $attr (qw/write_errors upserted inserted/) {
         for my $doc ( @{ $result->$attr } ) {
             $doc->{index} += $op_count;
         }
@@ -299,12 +335,27 @@ for a legacy server) this attribute will be C<undef>.
 
 =attr upserted
 
-An array reference containing information about upserted documetns (if any).
+An array reference containing information about upserted documents (if any).
 Each document will have the following fields:
 
 =for :list
 * index — 0-based index indicating which operation failed
 * _id — the object ID of the upserted document
+
+=attr upserted_ids
+
+A hash reference built lazily from C<upserted> mapping indexes to object
+IDs.
+
+=attr inserted
+
+An array reference containing information about inserted documents (if any).
+Documents are just as in C<upserted>.
+
+=attr inserted_ids
+
+A hash reference built lazily from C<inserted> mapping indexes to object
+IDs.
 
 =attr write_errors
 

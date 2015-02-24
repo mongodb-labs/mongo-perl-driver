@@ -47,16 +47,38 @@ has inserted_count => (
     default => 0,
 );
 
+=attr inserted
+
+An array reference containing information about inserted documents (if any).
+Documents are just as in C<upserted>.
+
+=cut
+
+has inserted => (
+    is      => 'ro',
+    isa     => ArrayOfHashRef,
+    coerce  => 1,
+    default => sub { [] },
+);
+
 =attr inserted_ids
 
-Array reference of dentifiers of inserted documents.
+A hash reference built lazily from C<inserted> mapping indexes to object
+IDs.
 
 =cut
 
 has inserted_ids => (
-    is  => 'ro',
-    isa => ArrayRef,
+    is      => 'ro',
+    isa     => HashRef,
+    lazy    => 1,
+    builder => '_build_inserted_ids',
 );
+
+sub _build_inserted_ids {
+    my ($self) = @_;
+    return { map { $_->{index}, $_->{_id} } @{ $self->inserted } };
+}
 
 __PACKAGE__->meta->make_immutable;
 

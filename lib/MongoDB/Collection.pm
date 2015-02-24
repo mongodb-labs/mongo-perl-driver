@@ -23,6 +23,7 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use MongoDB::Error;
+use MongoDB::InsertManyResult;
 use MongoDB::WriteConcern;
 use MongoDB::_Query;
 use MongoDB::Op::_CreateIndexes;
@@ -290,12 +291,12 @@ sub find_one {
 
 =method insert_one
 
-    $res = $coll->insert({ name => 'mongo', type => 'database' });
-    $res = $coll->insert({ _id => $custom_id, %data});
+    $res = $coll->insert( $document );
 
 Inserts a single document into the database and returns a
-L<MongoDB::InsertOneResult> object.  If no C<_id> field is present, one will
-be added.
+L<MongoDB::InsertOneResult> object.  The document may be a hash reference, an
+array reference or a L<Tie::IxHash> object.  If no C<_id> field is present, one
+will be added to the original document.
 
 =cut
 
@@ -314,39 +315,29 @@ sub insert_one {
     return $self->_client->send_write_op($op);
 }
 
-=method batch_insert (\@array, $options)
+=method insert_many
 
-    my @ids = $collection->batch_insert([{name => "Joe"}, {name => "Fred"}, {name => "Sam"}]);
+    $res = $coll->insert_many( [ @documents ] );
 
-Inserts each of the documents in the array into the database and returns an
-array of their _id fields.
+Inserts each of the documents in an array reference into the database and
+returns a L<MongoDB::InsertManyResult>.
 
-The optional C<$options> parameter can be used to specify if this is a safe
-insert.  A safe insert will check with the database if the insert succeeded and
-croak if it did not. You can also check if the inserts succeeded by doing an
-unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
+The documents to be inserted may be hash references, array references or
+L<Tie::IxHash> objects.  If no C<_id> field is present in a document, one will
+be added to the original document.
 
 =cut
 
-sub batch_insert {
-    my ( $self, $documents, $opts ) = @_;
-
-    confess 'not an array reference' unless ref $documents eq 'ARRAY';
-
-    unless ( $opts->{'no_ids'} ) {
-        $self->_add_oids($documents);
-    }
-
-    my $op = MongoDB::Op::_InsertMany->new(
-        db_name       => $self->_database->name,
-        coll_name     => $self->name,
-        documents     => $documents,
-        write_concern => $self->_dynamic_write_concern($opts),
+sub insert_many {
+    my ($self, $documents) = @_;
+    my $wc = $self->write_concern;
+    my $bulk = $self->ordered_bulk;
+    $bulk->insert($_) for @$documents;
+    my $res = $bulk->execute( $wc );
+    return MongoDB::InsertManyResult->new(
+        acknowledged => $wc->is_safe,
+        inserted     => $res->inserted,
     );
-
-    my $result = $self->_client->send_write_op($op);
-
-    return @{ $result->inserted_ids };
 }
 
 =method update (\%criteria, \%object, \%options?)
@@ -1088,6 +1079,33 @@ sub insert {
     my $result = $self->_client->send_write_op($op);
 
     return $result->inserted_id;
+}
+
+sub batch_insert {
+    my ( $self, $documents, $opts ) = @_;
+
+    confess 'not an array reference' unless ref $documents eq 'ARRAY';
+
+    unless ( $opts->{'no_ids'} ) {
+        $self->_add_oids($documents);
+    }
+
+    my $op = MongoDB::Op::_InsertMany->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        documents     => $documents,
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
+
+    my $result = $self->_client->send_write_op($op);
+
+    my @ids;
+    my $inserted_ids = $result->inserted_ids;
+    for my $k ( sort { $a <=> $b } keys %$inserted_ids ) {
+        push @ids, $inserted_ids->{$k};
+    }
+
+    return @ids;
 }
 
 __PACKAGE__->meta->make_immutable;

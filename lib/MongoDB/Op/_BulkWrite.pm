@@ -172,6 +172,7 @@ sub _execute_write_command_batch {
             op       => $type,
             op_count => scalar @$chunk,
             result   => $cmd_result,
+            cmd_doc  => $cmd_doc,
         );
 
         # append corresponding ops to errors
