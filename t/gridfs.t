@@ -32,6 +32,8 @@ use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db/;
 
 my $testdb = get_test_db(build_client());
+my $txtfile = "t/data/gridfs/input.txt";
+my $pngfile = "t/data/gridfs/img.png";
 
 plan tests => 62;
 
@@ -56,7 +58,7 @@ $grid->drop;
 # test text insert
 {
     $dumb_str = "abc\n\nzyw\n";
-    my $text_doc = new IO::File("t/input.txt", "r") or die $!;
+    my $text_doc = new IO::File("$txtfile", "r") or die $!;
     my $ts = DateTime->now;
     my $id = $grid->put($text_doc); # safe mode so we can check MD5
     $text_doc->close;
@@ -78,7 +80,7 @@ $grid->drop;
 
 # test bin insert
 {
-    my $img = new IO::File("t/img.png", "r") or die $!;
+    my $img = new IO::File($pngfile, "r") or die $!;
     # Windows is dumb
     binmode($img);
     my $id = $grid->insert($img);
@@ -101,9 +103,9 @@ $grid->drop;
 
 # test inserting metadata
 {
-    my $text_doc = new IO::File("t/input.txt", "r") or die $!;
+    my $text_doc = new IO::File("$txtfile", "r") or die $!;
     $now = time;
-    my $id = $grid->insert($text_doc, {"filename" => "t/input.txt", "uploaded" => time, "_id" => 1});
+    my $id = $grid->insert($text_doc, {"filename" => "$txtfile", "uploaded" => time, "_id" => 1});
     $text_doc->close;
 
     is($id, 1);
@@ -114,7 +116,7 @@ $grid->drop;
     $file = $grid->files->find_one({"_id" => 1});
     ok($file, "found file");
     is($file->{"uploaded"}, $now, "compare ts");
-    is($file->{"filename"}, "t/input.txt", "compare filename");
+    is($file->{"filename"}, "$txtfile", "compare filename");
 }
 
 # $grid->find_one
@@ -122,7 +124,7 @@ $grid->drop;
     $file = $grid->find_one({"_id" => 1});
     isa_ok($file, 'MongoDB::GridFS::File');
     is($file->info->{"uploaded"}, $now, "compare ts");
-    is($file->info->{"filename"}, "t/input.txt", "compare filename");
+    is($file->info->{"filename"}, "$txtfile", "compare filename");
 }
 
 #write
@@ -184,7 +186,7 @@ $grid->drop;
 # remove just_one
 {
     $grid->drop;
-    my $img = new IO::File("t/img.png", "r") or die $!;
+    my $img = new IO::File($pngfile, "r") or die $!;
     $grid->insert($img, {"filename" => "garbage.png"});
     $grid->insert($img, {"filename" => "garbage.png"});
 
@@ -240,7 +242,7 @@ $grid->drop;
 # safe insert
 {
     $grid->drop;
-    my $img = new IO::File("t/img.png", "r") or die $!;
+    my $img = new IO::File($pngfile, "r") or die $!;
     $img->binmode;
     $grid->insert($img, {filename => 'img.png'}, {safe => boolean::true});
 
@@ -254,7 +256,7 @@ $grid->drop;
 {
     $grid->drop;
 
-    my $img = new IO::File("t/img.png", "r") or die $!;
+    my $img = new IO::File($pngfile, "r") or die $!;
     $img->binmode;
 
     my $id = $grid->put($img, {_id => 'img.png', filename => 'img.png'});
