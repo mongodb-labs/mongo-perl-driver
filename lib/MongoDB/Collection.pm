@@ -536,6 +536,66 @@ sub update_many {
     return $self->_client->send_write_op( $op );
 }
 
+=method find_one_and_delete
+
+    $doc = $coll->find_one_and_delete( $filter, $options );
+
+Removes a document from the database and returns it as it appeared when it
+was removed.
+
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for deletion.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+An hash reference of options may be provided. Valid keys include:
+
+=for :list
+* max_time_ms – causes the server to abort the operation if the specified time
+  in milliseconds is exceeded.
+* projection – limits fields to return from the document found. See the
+  L<project fields tutorial|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results>
+  for more information.
+* sort – determines which document is found first
+
+=cut
+
+my %FIND_MODIFY_MAP = (
+    max_time_ms => 'maxTimeMS',
+    projection  => 'fields',
+    sort        => 'sort',
+);
+
+sub find_one_and_delete {
+    my ( $self, $filter, $options ) = @_;
+    $filter ||= {};
+
+    my %args;
+    for my $k (qw/max_time_ms projection sort/) {
+        $args{ $FIND_MODIFY_MAP{$k} } = $options->{$k} if exists $options->{$k};
+    }
+
+    # coerce to IxHash
+    $args{sort} = __ixhash($args{sort}) if exists $args{sort};
+
+    my @command = (
+        findAndModify => $self->name,
+        query         => $filter,
+        remove        => true,
+        %args
+    );
+
+    my $result;
+    try {
+        $result = $self->_database->run_command( \@command );
+    }
+    catch {
+        die $_ unless $_ eq 'No matching object found';
+    };
+
+    return $result->{value} if $result;
+    return;
+}
 
 =method aggregate
 
@@ -1235,6 +1295,25 @@ sub _clean_index_options {
     }
 
     return $opts;
+}
+
+#--------------------------------------------------------------------------#
+# utility function
+#--------------------------------------------------------------------------#
+
+sub __ixhash {
+    my ($ref) = @_;
+    my $type = ref($ref);
+    return $ref if $type eq 'Tie::IxHash';
+    if ( $type eq 'HASH' ) {
+        return Tie::IxHash->new( %$ref );
+    }
+    elsif ( $type eq 'ARRAY' ) {
+        return Tie::IxHash->new( @$ref );
+    }
+    else {
+        confess "Can't convert $type to a Tie::IxHash";
+    }
 }
 
 #--------------------------------------------------------------------------#

@@ -420,4 +420,26 @@ subtest 'bulk_write' => sub {
 
 };
 
+subtest "find_one_and_delete" => sub {
+    $coll->drop;
+    $coll->insert_one( { x => 1, y => 'a' } );
+    $coll->insert_one( { x => 1, y => 'b' } );
+    is( $coll->count( {} ), 2, "inserted 2 docs" );
+
+    my $doc;
+
+    # find non-existent doc
+    $doc = $coll->find_one_and_delete( { x => 2 } );
+    is( $doc, undef, "find_one_and_delete on nonexistent doc returns undef" );
+    is( $coll->count( {} ), 2, "still 2 docs" );
+
+    # find/remove existing doc (testing sort and projection, too)
+    $doc = $coll->find_one_and_delete( { x => 1 },
+        { sort => [ y => 1 ], projection => { y => 1 } } );
+    cmp_deeply( $doc, { _id => ignore(), y => 'a' }, "expected doc returned" );
+    is( $coll->count( {} ), 1, "only 1 doc left" );
+
+    # XXX how to test max_time_ms?
+};
+
 done_testing;
