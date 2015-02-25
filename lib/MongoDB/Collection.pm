@@ -388,6 +388,35 @@ sub delete_one {
 
 }
 
+=method delete_many
+
+    $res = $coll->delete_one( $filter );
+
+Deletes all documents that match the filter from the collection
+and returns a L<MongoDB::DeleteResult> object.
+
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for deletion.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+=cut
+
+sub delete_many {
+    my ($self, $filter) = @_;
+
+    my $op = MongoDB::Op::_Delete->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $filter,
+        just_one      => 0,
+        write_concern => $self->write_concern,
+    );
+
+    return $self->_client->send_write_op( $op );
+
+}
+
 
 =method update (\%criteria, \%object, \%options?)
 

@@ -152,4 +152,18 @@ subtest "delete_one" => sub {
 
 };
 
+subtest "delete_many" => sub {
+    $coll->drop;
+    $coll->insert_many( [ map { { id => $_, x => $_ } } 1 .. 3 ] );
+    is( $coll->count( {} ), 3, "inserted three docs" );
+    $res = $coll->delete_many( { x => { '$gt', 1 } } );
+    ok( $res->acknowledged, "result acknowledged" );
+    isa_ok( $res, "MongoDB::DeleteResult", "result" );
+    is( $res->deleted_count, 2, "deleted two documents" );
+    is( $coll->count( {} ), 1, "one documents left" );
+    $res = $coll->delete_many( { y => 'bar' } );
+    is( $res->deleted_count, 0, "delete non existent document does nothing" );
+    is( $coll->count( {} ), 1, "one documents left" );
+};
+
 done_testing;
