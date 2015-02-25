@@ -162,33 +162,6 @@ sub get_collection {
     return $self->_database->get_collection($self->name.'.'.$coll);
 }
 
-# utility function to generate an index name by concatenating key/value pairs
-sub __to_index_string {
-    my $keys = shift;
-
-    my @name;
-    if (ref $keys eq 'ARRAY') {
-        @name = @$keys;
-    }
-    elsif (ref $keys eq 'HASH' ) {
-        @name = %$keys
-    }
-    elsif (ref $keys eq 'Tie::IxHash') {
-        my @ks = $keys->Keys;
-        my @vs = $keys->Values;
-
-        for (my $i=0; $i<$keys->Length; $i++) {
-            push @name, $ks[$i];
-            push @name, $vs[$i];
-        }
-    }
-    else {
-        confess 'expected Tie::IxHash, hash, or array reference for keys';
-    }
-
-    return join("_", @name);
-}
-
 =method find, query
 
     my $cursor = $coll->find( $filter );
@@ -1301,6 +1274,7 @@ sub _clean_index_options {
 # utility function
 #--------------------------------------------------------------------------#
 
+# utility function to coerce array/hashref to Tie::Ixhash
 sub __ixhash {
     my ($ref) = @_;
     my $type = ref($ref);
@@ -1314,6 +1288,33 @@ sub __ixhash {
     else {
         confess "Can't convert $type to a Tie::IxHash";
     }
+}
+
+# utility function to generate an index name by concatenating key/value pairs
+sub __to_index_string {
+    my $keys = shift;
+
+    my @name;
+    if (ref $keys eq 'ARRAY') {
+        @name = @$keys;
+    }
+    elsif (ref $keys eq 'HASH' ) {
+        @name = %$keys
+    }
+    elsif (ref $keys eq 'Tie::IxHash') {
+        my @ks = $keys->Keys;
+        my @vs = $keys->Values;
+
+        for (my $i=0; $i<$keys->Length; $i++) {
+            push @name, $ks[$i];
+            push @name, $vs[$i];
+        }
+    }
+    else {
+        confess 'expected Tie::IxHash, hash, or array reference for keys';
+    }
+
+    return join("_", @name);
 }
 
 #--------------------------------------------------------------------------#
