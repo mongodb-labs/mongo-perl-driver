@@ -422,7 +422,7 @@ sub delete_many {
     $res = $coll->replace_one( $filter, $replacement );
     $res = $coll->replace_one( $filter, $replacement, { upsert => 1 } );
 
-Replace one document that match a filter and returns a
+Replaces one document that matches a filter and returns a
 L<MongoDB::UpdateResult> object.
 
 The filter provides the L<query
@@ -431,7 +431,8 @@ document for deletion.  It must be a hash reference, array reference or
 L<Tie::IxHash> object.
 
 The replacement document must be a hash reference, array reference or
-L<Tie::IxHash> object. It must not have any C<$> operators in it.
+L<Tie::IxHash> object. It must not have any field-update operators in it (e.g.
+C<$set>).
 
 An hash reference of options may be provided.  The only valid key is
 C<upsert>, which defaults to false.  If provided and true, the replacement
