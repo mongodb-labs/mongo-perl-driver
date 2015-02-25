@@ -236,4 +236,59 @@ subtest "replace_one" => sub {
     );
 };
 
+subtest "update_one" => sub {
+    $coll->drop;
+
+    # update missing doc without upsert
+    $res = $coll->update_one( { x => 1 }, { '$set' => { x => 2 } } );
+    ok( $res->acknowledged, "result acknowledged" );
+    isa_ok( $res, "MongoDB::UpdateResult", "result" );
+    is( $res->matched_count, 0, "matched count is zero" );
+    is( $coll->count( {} ), 0, "collection still empty" );
+
+    # update missing with upsert
+    $res = $coll->update_one( { x => 1 }, { '$set' => { x => 2 } }, { upsert => 1 } );
+    is( $res->matched_count, 0, "matched count is zero" );
+    is(
+        $res->modified_count,
+        ( $server_version >= v2.6.0 ? 0 : undef ),
+        "modified count correct based on server version"
+    );
+    isa_ok( $res->upserted_id, "MongoDB::OID", "got upserted id" );
+    is( $coll->count( {} ), 1, "one doc in database" );
+    my $got = $coll->find_one( { _id => $res->upserted_id } );
+    is( $got->{x}, 2, "document contents correct" );
+
+    # update existing with upsert -- add duplicate to confirm only one
+    $coll->insert( { x => 2 } );
+    $res = $coll->update_one( { x => 2 }, { '$set' => { x => 3 } }, { upsert => 1 } );
+    is( $coll->count( {} ), 2, "update existing with upsert" );
+    is( $res->matched_count, 1, "matched_count 1" );
+    is(
+        $res->modified_count,
+        ( $server_version >= v2.6.0 ? 1 : undef ),
+        "modified count correct based on server version"
+    );
+    cmp_deeply(
+        [ $coll->find( {} )->all ],
+        bag( { _id => ignore(), x => 2 }, { _id => ignore, x => 3 } ),
+        "collection docs correct"
+    );
+
+    # update existing without upsert
+    $res = $coll->update_one( { x => 3 }, { '$set' => { x => 4 } } );
+    is( $coll->count( {} ), 2, "update existing with upsert" );
+    is( $res->matched_count, 1, "matched_count 1" );
+    is(
+        $res->modified_count,
+        ( $server_version >= v2.6.0 ? 1 : undef ),
+        "modified count correct based on server version"
+    );
+    cmp_deeply(
+        [ $coll->find( {} )->all ],
+        bag( { _id => ignore(), x => 2 }, { _id => ignore, x => 4 } ),
+        "collection docs correct"
+    );
+};
+
 done_testing;
