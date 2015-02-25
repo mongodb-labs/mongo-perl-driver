@@ -350,4 +350,35 @@ subtest "update_many" => sub {
     );
 };
 
+subtest 'bulk_write' => sub {
+    $coll->drop;
+
+    # test mixed-form write models, array/hash refs or pairs
+    $res = $coll->bulk_write(
+        [
+            [ insert_one  => [ { x => 1 } ] ],
+            { insert_many => [ { x => 2 }, { x => 3 } ] },
+            replace_one => [ { x => 1 }, { x => 4 } ],
+            update_one  => [ { x => 7 }, { '$set' => { x => 5 } }, { upsert => 1 } ],
+            [ insert_one  => [ { x => 6 } ] ],
+            { insert_many => [ { x => 7 }, { x => 8 } ] },
+            delete_one  => [ { x => 4 } ],
+            delete_many => [ { x => { '$lt' => 3 } } ],
+            update_many => [ { x => { '$gt' => 5 } }, { '$inc' => { x => 1 } } ],
+        ],
+    );
+
+    ok( $res->acknowledged, "result acknowledged" );
+    isa_ok( $res, "MongoDB::BulkWriteResult", "result" );
+    is( $res->op_count, 11, "op count correct" );
+
+    my @got = $coll->find( {} )->all;
+    cmp_deeply(
+        \@got,
+        bag( map { { _id => ignore, x => $_ } } 3, 5, 7, 8, 9 ),
+        "collection docs correct",
+    ) or diag explain \@got;
+
+};
+
 done_testing;

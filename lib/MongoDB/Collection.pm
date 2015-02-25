@@ -990,11 +990,11 @@ sub drop {
 
 =method initialize_ordered_bulk_op, ordered_bulk
 
-    my $bulk = $collection->initialize_ordered_bulk_op;
+    $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->insert( $doc1 );
     $bulk->insert( $doc2 );
     ...
-    my $result = $bulk->execute;
+    $result = $bulk->execute;
 
 Returns a L<MongoDB::BulkWrite> object to group write operations into fewer network
 round-trips.  This method creates an B<ordered> operation, where operations halt after
@@ -1022,6 +1022,139 @@ The method C<unordered_bulk> may be used as an alias for C<initialize_unordered_
 sub initialize_unordered_bulk_op {
     my ($self) = @_;
     return MongoDB::BulkWrite->new( collection => $self, ordered => 0 );
+}
+
+=method bulk_write
+
+    $res = $coll->bulk_write( [ @requests ], $options )
+
+This method provides syntactic sugar to construct and execute a bulk operation
+directly, without using C<initialize_ordered_bulk> or
+C<initialize_unordered_bulk> to generate a L<MongoDB::BulkWrite> object and
+then calling methods on it.  It returns a L<MongoDB::BulkWriteResponse> object
+just like the bulk L<execute|MongoDB::BulkWrite/execute> method.
+
+The first argument must be an array reference of requests.  Requests consist
+of pairs of a MongoDB::Collection write method name (e.g. C<insert_one>,
+C<delete_many>) and an array reference of arguments to the corresponding
+Collection class method.  They may be given as pairs, or as hash or array
+references:
+
+    # pairs -- most efficient
+    @requests = (
+        insert_one  => [ { x => 1 } ],
+        replace_one => [ { x => 1 }, { x => 4 } ],
+        delete_one  => [ { x => 4 } ],
+        update_many => [ { x => { '$gt' => 5 } }, { '$inc' => { x => 1 } } ],
+    );
+
+    # hash references
+    @requests = (
+        { insert_one  => [ { x => 1 } ] },
+        { replace_one => [ { x => 1 }, { x => 4 } ] },
+        { delete_one  => [ { x => 4 } ] },
+        { update_many => [ { x => { '$gt' => 5 } }, { '$inc' => { x => 1 } } ] },
+    );
+
+    # array references
+    @requests = (
+        [ insert_one  => [ { x => 1 } ] ],
+        [ replace_one => [ { x => 1 }, { x => 4 } ] ],
+        [ delete_one  => [ { x => 4 } ] ],
+        [ update_many => [ { x => { '$gt' => 5 } }, { '$inc' => { x => 1 } } ] ],
+    );
+
+Valid method names include C<insert_one>, C<insert_many>, C<delete_one>,
+C<delete_many> C<replace_one>, C<update_one>, C<update_many>.
+
+An optional hash reference of options may be provided.  The only valid value
+is C<ordered>. It defaults to true.  When true, the bulk operation is executed
+like L</initialize_ordered_bulk>. When false, the bulk operation is executed
+like L</initialize_unordered_bulk>.
+
+See L<MongoDB::BulkWrite> for more details on bulk writes.  Be advised that
+the legacy Bulk API method names differ slightly from MongoDB::Collection
+method names.
+
+=cut
+
+sub bulk_write {
+    my ( $self, $requests, $options ) = @_;
+
+    confess 'requests not an array reference' unless ref $requests eq 'ARRAY';
+    confess 'empty request list' unless @$requests;
+    confess 'options not a hash reference'
+      if defined($options) && ref($options) ne 'HASH';
+
+    $options ||= { ordered => 1 };
+
+    my $bulk = $options->{ordered} ? $self->ordered_bulk : $self->unordered_bulk;
+
+    my $i = 0;
+
+    while ( $i <= $#$requests ) {
+        my ( $method, $args );
+
+        # pull off document or pair
+        if ( my $type = ref $requests->[$i] ) {
+            if ( $type eq 'ARRAY' ) {
+                ( $method, $args ) = @{ $requests->[$i] };
+            }
+            elsif ( $type eq 'HASH' ) {
+                ( $method, $args ) = %{ $requests->[$i] };
+            }
+            else {
+                confess "$requests->[$i] is not a hash or array reference";
+            }
+            $i++;
+        }
+        else {
+            ( $method, $args ) = @{$requests}[ $i, $i + 1 ];
+            $i += 2;
+        }
+
+        confess "'$method' requires an array reference of arguments"
+          unless ref($args) eq 'ARRAY';
+
+        # handle inserts
+        if ( $method eq 'insert_one' || $method eq 'insert_many' ) {
+            $bulk->insert($_) for @$args;
+        }
+        else {
+            my ($filter, $doc, $options) = @$args;
+
+            my $view = $bulk->find($filter);
+
+            # handle deletes
+            if ( $method eq 'delete_one' ) {
+                $view->remove_one;
+                next;
+            }
+            elsif ( $method eq 'delete_many' ) {
+                $view->remove;
+                next;
+            }
+
+            # updates might be upserts
+            $view = $view->upsert if $options && $options->{upsert};
+
+            # handle updates
+            if ( $method eq 'replace_one' ) {
+                $view->replace_one($doc);
+            }
+            elsif ( $method eq 'update_one' ) {
+                $view->update_one($doc);
+            }
+            elsif ( $method eq 'update_many' ) {
+                $view->update($doc);
+            }
+            else {
+                confess "unknown bulk operation '$method'";
+            }
+        }
+    }
+
+    return $bulk->execute;
 }
 
 BEGIN {
