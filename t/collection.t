@@ -392,7 +392,7 @@ subtest "multiple update" => sub {
     # also check that 'multi' is allowed
     my $res = $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multi' => 1});
     ok( $res->{ok}, "update succeeded" );
-    is( $res->{n}, 1, "update match count" );
+    is( $res->{n}, 0, "update match count" );
     isa_ok( $res->{upserted}, "MongoDB::OID" );
     ok($coll->find_one({"z" => 4}));
 

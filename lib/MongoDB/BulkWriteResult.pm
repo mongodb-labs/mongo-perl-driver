@@ -219,8 +219,14 @@ sub _parse_write_op {
     # parse by type
     my $type = ref($op);
     if ( $type eq 'MongoDB::InsertOneResult' ) {
-        $attrs->{inserted_count} = $has_write_error ? 0 : 1;
-        $attrs->{inserted} = [ { index => 0, _id => $op->inserted_id } ];
+        if ( $has_write_error ) {
+            $attrs->{inserted_count} = 0;
+            $attrs->{inserted} = [];
+        }
+        else {
+            $attrs->{inserted_count} = 1;
+            $attrs->{inserted} = [ { index => 0, _id => $op->inserted_id } ];
+        }
     }
     elsif ( $type eq 'MongoDB::DeleteResult' ) {
         $attrs->{deleted_count} = $op->deleted_count;
