@@ -427,7 +427,7 @@ L<MongoDB::UpdateResult> object.
 
 The filter provides the L<query
 criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for deletion.  It must be a hash reference, array reference or
+document for replacement.  It must be a hash reference, array reference or
 L<Tie::IxHash> object.
 
 The replacement document must be a hash reference, array reference or
@@ -466,7 +466,7 @@ L<MongoDB::UpdateResult> object.
 
 The filter provides the L<query
 criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for deletion.  It must be a hash reference, array reference or
+document for update.  It must be a hash reference, array reference or
 L<Tie::IxHash> object.
 
 The update document must be a hash reference, array reference or
