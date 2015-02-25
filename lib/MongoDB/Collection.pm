@@ -536,36 +536,6 @@ sub update_many {
     return $self->_client->send_write_op( $op );
 }
 
-=method find_and_modify
-
-    my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
-
-Perform an atomic update. C<find_and_modify> guarantees that nothing else will come along
-and change the queried documents before the update is performed.
-
-Returns the old version of the document, unless C<new => 1> is specified. If no documents
-match the query, it returns nothing.
-
-=cut
-
-sub find_and_modify {
-    my ( $self, $opts ) = @_;
-
-    my $conn = $self->_client;
-    my $db   = $self->_database;
-
-    my $result;
-    try {
-        $result = $db->run_command( [ findAndModify => $self->name, %$opts ] )
-    }
-    catch {
-        die $_ unless $_ eq 'No matching object found';
-    };
-
-    return $result->{value} if $result;
-    return;
-}
-
 
 =method aggregate
 
@@ -1368,6 +1338,24 @@ sub update {
         n => $result->matched_count,
         ( $result->upserted_id ? ( upserted => $result->upserted_id ) : () ),
     };
+}
+
+sub find_and_modify {
+    my ( $self, $opts ) = @_;
+
+    my $conn = $self->_client;
+    my $db   = $self->_database;
+
+    my $result;
+    try {
+        $result = $db->run_command( [ findAndModify => $self->name, %$opts ] )
+    }
+    catch {
+        die $_ unless $_ eq 'No matching object found';
+    };
+
+    return $result->{value} if $result;
+    return;
 }
 
 __PACKAGE__->meta->make_immutable;
