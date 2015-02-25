@@ -417,6 +417,44 @@ sub delete_many {
 
 }
 
+=method replace_one
+
+    $res = $coll->replace_one( $filter, $replacement );
+    $res = $coll->replace_one( $filter, $replacement, { upsert => 1 } );
+
+Replace one document that match a filter and returns a
+L<MongoDB::UpdateResult> object.
+
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for deletion.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+The replacement document must be a hash reference, array reference or
+L<Tie::IxHash> object. It must not have any C<$> operators in it.
+
+An hash reference of options may be provided.  The only valid key is
+C<upsert>, which defaults to false.  If provided and true, the replacement
+document will be upserted if no matching document exists.
+
+=cut
+
+sub replace_one {
+    my ($self, $filter, $replacement, $options) = @_;
+
+    my $op = MongoDB::Op::_Update->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $filter,
+        update        => $replacement,
+        multi         => false,
+        upsert        => $options->{upsert} ? true : false,
+        write_concern => $self->write_concern,
+    );
+
+    return $self->_client->send_write_op( $op );
+}
+
 
 =method update (\%criteria, \%object, \%options?)
 
