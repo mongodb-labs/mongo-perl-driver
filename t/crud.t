@@ -28,7 +28,7 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db server_version server_type/;
+use MongoDBTest qw/build_client get_test_db server_version server_type get_capped/;
 
 my $conn           = build_client();
 my $testdb         = get_test_db($conn);
@@ -139,7 +139,7 @@ subtest "insert_many" => sub {
 
 subtest "delete_one" => sub {
     $coll->drop;
-    $coll->insert_many( [ map { { id => $_, x => "foo" } } 1 .. 3 ] );
+    $coll->insert_many( [ map { { _id => $_, x => "foo" } } 1 .. 3 ] );
     is( $coll->count( { x => 'foo' } ), 3, "inserted three docs" );
     $res = $coll->delete_one( { x => 'foo' } );
     ok( $res->acknowledged, "result acknowledged" );
@@ -150,11 +150,18 @@ subtest "delete_one" => sub {
     is( $res->deleted_count, 0, "delete non existent document does nothing" );
     is( $coll->count( { x => 'foo' } ), 2, "two documents left" );
 
+    # test errors -- deletion invalid on capped collection
+    my $cap = get_capped($testdb);
+    $cap->insert_many( [ map { { _id => $_ } } 1..10 ] );
+    my $err = exception { $cap->delete_one( { _id => 4 } ) };
+    ok( $err, "deleting from capped collection throws error" );
+    isa_ok( $err, 'MongoDB::WriteError' );
+    like( $err->result->last_errmsg, qr/capped/, "error had string 'capped'" );
 };
 
 subtest "delete_many" => sub {
     $coll->drop;
-    $coll->insert_many( [ map { { id => $_, x => $_ } } 1 .. 3 ] );
+    $coll->insert_many( [ map { { _id => $_, x => $_ } } 1 .. 3 ] );
     is( $coll->count( {} ), 3, "inserted three docs" );
     $res = $coll->delete_many( { x => { '$gt', 1 } } );
     ok( $res->acknowledged, "result acknowledged" );
@@ -164,6 +171,14 @@ subtest "delete_many" => sub {
     $res = $coll->delete_many( { y => 'bar' } );
     is( $res->deleted_count, 0, "delete non existent document does nothing" );
     is( $coll->count( {} ), 1, "one documents left" );
+
+    # test errors -- deletion invalid on capped collection
+    my $cap = get_capped($testdb);
+    $cap->insert_many( [ map { { _id => $_ } } 1..10 ] );
+    my $err = exception { $cap->delete_many( {} ) };
+    ok( $err, "deleting from capped collection throws error" );
+    isa_ok( $err, 'MongoDB::WriteError' );
+    like( $err->result->last_errmsg, qr/capped/, "error had string 'capped'" );
 };
 
 done_testing;

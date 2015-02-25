@@ -24,10 +24,11 @@ use warnings;
 use Exporter 'import';
 use MongoDB;
 use Test::More;
+use boolean;
 use version;
 
 our @EXPORT_OK = qw(
-  build_client get_test_db server_version server_type clear_testdbs
+  build_client get_test_db server_version server_type clear_testdbs get_capped
 );
 
 my @testdbs;
@@ -62,6 +63,13 @@ sub get_test_db {
     return  $db;
 }
 
+sub get_capped {
+    my ($db, $name, %args) = @_;
+    $name ||= 'capped' . int(rand(2**31));
+    $args{size} ||= 500_000;
+    $db->run_command([ create => $name, capped => true, %args ]);
+    return $db->get_collection($name);
+}
 
 # XXX eventually, should move away from this and towards a fixture object instead
 BEGIN {
