@@ -124,7 +124,7 @@ subtest "insert_many" => sub {
     $res = $err->result;
     is( $res->inserted_count, 3, "only first three inserted" );
 
-    # unordered insert should halt on error
+    # unordered insert should not halt on error
     $coll->drop;
     $err = exception {
         $coll->insert_many( [ { _id => 0 }, { _id => 1 }, { _id => 1 }, { _id => 2 }, ], { ordered => 0 } )
@@ -358,7 +358,7 @@ subtest 'bulk_write' => sub {
         [
             [ insert_one  => [ { x => 1 } ] ],
             { insert_many => [ { x => 2 }, { x => 3 } ] },
-            replace_one => [ { x => 1 }, { x => 4 } ],
+            replace_one => [ { x => 1 }, { x      => 4 } ],
             update_one  => [ { x => 7 }, { '$set' => { x => 5 } }, { upsert => 1 } ],
             [ insert_one  => [ { x => 6 } ] ],
             { insert_many => [ { x => 7 }, { x => 8 } ] },
@@ -378,6 +378,45 @@ subtest 'bulk_write' => sub {
         bag( map { { _id => ignore, x => $_ } } 3, 5, 7, 8, 9 ),
         "collection docs correct",
     ) or diag explain \@got;
+
+    # test ordered error
+    # ordered insert should not halt on error
+    $coll->drop;
+    my $err = exception {
+        $coll->bulk_write(
+            [
+                insert_one => [ { _id => 1 } ],
+                insert_one => [ { _id => 2 } ],
+                insert_one => [ { _id => 1 } ],
+            ],
+            { ordered => 1, },
+        );
+    };
+    ok( $err, "ordered bulk got an error" );
+    isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
+      or diag explain $err;
+    $res = $err->result;
+    is( $res->inserted_count, 2, "only first two inserted" );
+
+    # test unordered error
+    # unordered insert should halt on error
+    $coll->drop;
+    $err = exception {
+        $coll->bulk_write(
+            [
+                insert_one => [ { _id => 1 } ],
+                insert_one => [ { _id => 2 } ],
+                insert_one => [ { _id => 1 } ],
+                insert_one => [ { _id => 3 } ],
+            ],
+            { ordered => 0, },
+        );
+    };
+    ok( $err, "unordered bulk got an error" );
+    isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
+      or diag explain $err;
+    $res = $err->result;
+    is( $res->inserted_count, 3, "three valid docs inserted" );
 
 };
 
