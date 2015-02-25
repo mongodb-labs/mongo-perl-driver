@@ -536,73 +536,6 @@ sub update_many {
     return $self->_client->send_write_op( $op );
 }
 
-
-=method update (\%criteria, \%object, \%options?)
-
-    $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
-
-Updates an existing C<$object> matching C<$criteria> in the database.
-
-Returns 1 unless the C<safe> option is set. If C<safe> is set, this will return
-a hash of information about the update, including number of documents updated
-(C<n>).  If C<safe> is set and the update fails, C<update> will croak. You can
-also check if the update succeeded by doing an unsafe update, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
-C<update> can take a hash reference of options.  The options currently supported
-are:
-
-=over
-
-=item C<upsert>
-If no object matching C<$criteria> is found, C<$object> will be inserted.
-
-=item C<multiple|multi>
-All of the documents that match C<$criteria> will be updated, not just
-the first document found. (Only available with database version 1.1.3 and
-newer.)  An error will be throw if both C<multiple> and C<multi> exist
-and their boolean values differ.
-
-=item C<safe>
-If the update fails and safe is set, the update will croak.
-
-=back
-
-See also core documentation on update: L<http://docs.mongodb.org/manual/core/update/>.
-
-=cut
-
-sub update {
-    my ( $self, $query, $object, $opts ) = @_;
-
-    if ( exists $opts->{multiple} ) {
-        if ( exists( $opts->{multi} ) && !!$opts->{multi} ne !!$opts->{multiple} ) {
-            MongoDB::Error->throw(
-                "can't use conflicting values of 'multiple' and 'multi' in 'update'");
-        }
-        $opts->{multi} = delete $opts->{multiple};
-    }
-
-    my $op = MongoDB::Op::_Update->new(
-        db_name       => $self->_database->name,
-        coll_name     => $self->name,
-        filter        => $query,
-        update        => $object,
-        multi         => $opts->{multi},
-        upsert        => $opts->{upsert},
-        write_concern => $self->_dynamic_write_concern($opts),
-    );
-
-    my $result = $self->_client->send_write_op( $op );
-
-    # emulate key fields of legacy GLE result
-    return {
-        ok => 1,
-        n => $result->matched_count,
-        ( $result->upserted_id ? ( upserted => $result->upserted_id ) : () ),
-    };
-}
-
 =method find_and_modify
 
     my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
@@ -1270,6 +1203,37 @@ sub remove {
     return {
         ok => 1,
         n => $result->deleted_count,
+    };
+}
+
+sub update {
+    my ( $self, $query, $object, $opts ) = @_;
+
+    if ( exists $opts->{multiple} ) {
+        if ( exists( $opts->{multi} ) && !!$opts->{multi} ne !!$opts->{multiple} ) {
+            MongoDB::Error->throw(
+                "can't use conflicting values of 'multiple' and 'multi' in 'update'");
+        }
+        $opts->{multi} = delete $opts->{multiple};
+    }
+
+    my $op = MongoDB::Op::_Update->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $query,
+        update        => $object,
+        multi         => $opts->{multi},
+        upsert        => $opts->{upsert},
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
+
+    my $result = $self->_client->send_write_op( $op );
+
+    # emulate key fields of legacy GLE result
+    return {
+        ok => 1,
+        n => $result->matched_count,
+        ( $result->upserted_id ? ( upserted => $result->upserted_id ) : () ),
     };
 }
 
