@@ -126,7 +126,7 @@ subtest "insert_many" => sub {
 
     # unordered insert should halt on error
     $coll->drop;
-    my $err = exception {
+    $err = exception {
         $coll->insert_many( [ { _id => 0 }, { _id => 1 }, { _id => 1 }, { _id => 2 }, ], { ordered => 0 } )
     };
     ok( $err, "unordered insert got an error" );
