@@ -98,7 +98,7 @@ sub _legacy_op_insert {
 
 sub _parse_cmd {
     my ( $self, $res ) = @_;
-    return inserted_id => $res->{ok} ? $self->document->FETCH("_id") : undef;
+    return ( $res->{ok} ? ( inserted_id => $self->document->FETCH("_id") ) : () );
 }
 
 BEGIN {
