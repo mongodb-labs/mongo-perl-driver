@@ -496,6 +496,46 @@ sub update_one {
     return $self->_client->send_write_op( $op );
 }
 
+=method update_many
+
+    $res = $coll->update_many( $filter, $update );
+    $res = $coll->update_many( $filter, $update, { upsert => 1 } );
+
+Updates multiple document that match a filter and returns a
+L<MongoDB::UpdateResult> object.
+
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select
+documents for update.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+The update document must be a hash reference, array reference or
+L<Tie::IxHash> object. It must have only field-update operators in it (e.g.
+C<$set>).
+
+An hash reference of options may be provided.  The only valid key is
+C<upsert>, which defaults to false.  If provided and true, a new document will
+be inserted by taking the filter document and applying the update document
+operations to it prior to insertion.
+
+=cut
+
+sub update_many {
+    my ($self, $filter, $replacement, $options) = @_;
+
+    my $op = MongoDB::Op::_Update->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $filter,
+        update        => $replacement,
+        multi         => true,
+        upsert        => $options->{upsert} ? true : false,
+        write_concern => $self->write_concern,
+    );
+
+    return $self->_client->send_write_op( $op );
+}
+
 
 =method update (\%criteria, \%object, \%options?)
 
