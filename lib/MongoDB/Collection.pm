@@ -524,19 +524,21 @@ L<Tie::IxHash> object.
 An hash reference of options may be provided. Valid keys include:
 
 =for :list
-* max_time_ms – causes the server to abort the operation if the specified time
-  in milliseconds is exceeded.
-* projection – limits fields to return from the document found. See the
-  L<project fields tutorial|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results>
-  for more information.
-* sort – determines which document is found first
+* maxTimeMS – the maximum amount of time to allow the query to run.
+* projection - a hash reference defining fields to return. See L<Limit fields
+  to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
+  in the MongoDB documentation for details.
+* sort – a L<Tie::IxHash> or array reference of key value pairs defining the
+  order in which to find a matching document.
 
 =cut
 
 my %FIND_MODIFY_MAP = (
-    max_time_ms => 'maxTimeMS',
+    maxTimeMS   => 'maxTimeMS',
     projection  => 'fields',
     sort        => 'sort',
+    upsert      => 'upsert',
 );
 
 sub find_one_and_delete {
@@ -544,7 +546,7 @@ sub find_one_and_delete {
     $filter ||= {};
 
     my %args;
-    for my $k (qw/max_time_ms projection sort/) {
+    for my $k (qw/maxTimeMS projection sort/) {
         $args{ $FIND_MODIFY_MAP{$k} } = $options->{$k} if exists $options->{$k};
     }
 
