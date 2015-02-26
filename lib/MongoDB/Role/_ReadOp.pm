@@ -23,7 +23,9 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose::Role;
 
-use MongoDB::_Types;
+use MongoDB::ReadPreference;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 my $PRIMARY = MongoDB::ReadPreference->new;
@@ -32,7 +34,7 @@ with 'MongoDB::Role::_DatabaseOp';
 
 has read_preference => (
     is      => 'ro',
-    isa     => 'ReadPreference',
+    isa     => ReadPreference,
     coerce  => 1,
     default => sub { $PRIMARY },
 );

@@ -20,48 +20,49 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 my $uri_re = MongoDB::_Types::connection_uri_re();
 
 has uri => (
     is => 'ro',
-    isa => 'ConnectionStr',
+    isa => ConnectionStr,
     required => 1,
 );
 
 has username => (
     is => 'ro',
-    isa => 'Str',
+    isa => Str,
     writer => '_set_username',
     default => '',
 );
 
 has password => (
     is => 'ro',
-    isa => 'Str',
+    isa => Str,
     writer => '_set_password',
     default => '',
 );
 
 has db_name => (
     is => 'ro',
-    isa => 'Str',
+    isa => Str,
     writer => '_set_db_name',
     default => '',
 );
 
 has options => (
     is => 'ro',
-    isa => 'HashRef',
+    isa => HashRef,
     writer => '_set_options',
     default => sub { {} },
 );
 
 has hostpairs => (
     is => 'ro',
-    isa => 'ArrayRef',
+    isa => ArrayRef,
     writer => '_set_hostpairs',
     default => sub { [] },
 );

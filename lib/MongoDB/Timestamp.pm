@@ -36,6 +36,7 @@ L<DateTime>.  See <MongoDB::DataTypes> for more information.
 =cut
 
 use Moose;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 =head1 ATTRIBUTES
@@ -48,7 +49,7 @@ Seconds since epoch.
 
 has sec => (
     is       => 'ro',
-    isa      => 'Int',
+    isa      => Int,
     required => 1,
 );
 
@@ -60,7 +61,7 @@ Incrementing field.
 
 has inc => (
     is       => 'ro',
-    isa      => 'Int',
+    isa      => Int,
     required => 1,
 );
 

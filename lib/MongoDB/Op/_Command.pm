@@ -23,19 +23,20 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
 
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Tie::IxHash;
 use namespace::clean -except => 'meta';
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has query => (
     is       => 'ro',
-    isa      => 'IxHash',
+    isa      => IxHash,
     coerce   => 1,
     required => 1,
     writer   => '_set_query',
@@ -43,7 +44,7 @@ has query => (
 
 has query_flags => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     default => sub { {} },
 );
 

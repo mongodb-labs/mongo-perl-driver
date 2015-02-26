@@ -23,6 +23,7 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 =head1 NAME
@@ -96,7 +97,7 @@ A string of binary data.
 
 has data => (
     is => 'ro',
-    isa => 'Str',
+    isa => Str,
     required => 1
 );
 
@@ -108,7 +109,7 @@ A subtype.  Defaults to C<SUBTYPE_GENERIC>.
 
 has subtype => (
     is => 'ro',
-    isa => 'Int',
+    isa => Int,
     required => 0,
     default => MongoDB::BSON::Binary->SUBTYPE_GENERIC
 );

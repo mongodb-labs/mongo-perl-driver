@@ -25,6 +25,7 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 use MongoDB::GridFS;
 use IO::File;
 use Moose;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 =head1 NAME
@@ -43,7 +44,7 @@ MongoDB::GridFS::File - A Mongo GridFS file
 
 has _grid => (
     is       => 'ro',
-    isa      => 'MongoDB::GridFS',
+    isa      => InstanceOf['MongoDB::GridFS'],
     required => 1,
 );
 
@@ -57,7 +58,7 @@ A hash of info information saved with this file.
 
 has info => (
     is => 'ro',
-    isa => 'HashRef',
+    isa => HashRef,
     required => 1,
 );
 

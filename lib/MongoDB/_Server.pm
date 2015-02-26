@@ -20,7 +20,8 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use List::Util qw/first/;
 use Syntax::Keyword::Junction qw/any none/;
 use Time::HiRes qw/tv_interval/;
@@ -32,7 +33,7 @@ use namespace::clean -except => 'meta';
 
 has address => (
     is       => 'ro',
-    isa      => 'HostAddress',
+    isa      => HostAddress,
     coerce   => 1,
     required => 1,
 );
@@ -41,7 +42,7 @@ has address => (
 
 has last_update_time => (
     is       => 'ro',
-    isa      => 'ArrayRef', # [ Time::HighRes::gettimeofday() ]
+    isa      => ArrayRef, # [ Time::HighRes::gettimeofday() ]
     required => 1,
 );
 
@@ -49,7 +50,7 @@ has last_update_time => (
 
 has error => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     default => '',
 );
 
@@ -57,7 +58,7 @@ has error => (
 
 has rtt_ms => (
     is      => 'ro',
-    isa     => 'NonNegNum',
+    isa     => NonNegNum,
     default => 0,
 );
 
@@ -65,7 +66,7 @@ has rtt_ms => (
 
 has is_master => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     default => sub { {} },
 );
 
@@ -84,7 +85,7 @@ has is_master => (
 
 has type => (
     is      => 'ro',
-    isa     => 'ServerType',
+    isa     => ServerType,
     lazy    => 1,
     builder => '_build_type',
     writer  => '_set_type',
@@ -122,7 +123,7 @@ sub _build_type {
 for my $s (qw/hosts passives arbiters/) {
     has $s => (
         is      => 'ro',
-        isa     => 'HostAddressList',
+        isa     => HostAddressList,
         lazy    => 1,
         builder => "_build_$s",
         coerce  => 1,
@@ -136,7 +137,7 @@ for my $s (qw/hosts passives arbiters/) {
 
 has set_name => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     builder => "_build_set_name",
 );
@@ -151,7 +152,7 @@ sub _build_set_name {
 
 has primary => (
     is      => 'ro',
-    isa     => 'Str',           # not HostAddress -- might be empty string
+    isa     => Str,           # not HostAddress -- might be empty string
     lazy    => 1,
     builder => "_build_primary",
 );
@@ -165,7 +166,7 @@ sub _build_primary {
 
 has tags => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     lazy    => 1,
     builder => "_build_tags",
 );
@@ -177,7 +178,7 @@ sub _build_tags {
 
 has is_available => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     lazy    => 1,
     builder => "_build_is_available",
 );
@@ -189,7 +190,7 @@ sub _build_is_available {
 
 has is_writable => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     lazy    => 1,
     builder => "_build_is_writable",
 );

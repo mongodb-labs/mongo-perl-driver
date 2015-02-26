@@ -5,17 +5,18 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 has pattern => ( 
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has flags => ( 
     is        => 'ro',
-    isa       => 'Str',
+    isa       => Str,
     required  => 0,
     predicate => 'has_flags',
     writer    => '_set_flags',

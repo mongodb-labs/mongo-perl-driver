@@ -25,7 +25,8 @@ use MongoDB::BSON;
 use MongoDB::CommandResult;
 use MongoDB::Error;
 use MongoDB::_Protocol;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Moose::Role;
 use Syntax::Keyword::Junction qw/any/;
 use namespace::clean -except => 'meta';
@@ -41,7 +42,7 @@ requires qw/db_name _parse_cmd _parse_gle/;
 
 has write_concern => (
     is       => 'ro',
-    isa      => 'WriteConcern',
+    isa      => WriteConcern,
     required => 1,
 );
 

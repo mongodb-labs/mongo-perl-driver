@@ -28,7 +28,8 @@ use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::QueryResult;
 use MongoDB::_Protocol;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use boolean;
 use Tie::IxHash;
 use Try::Tiny;
@@ -107,14 +108,14 @@ with 'MongoDB::Role::_Cursor';
 # attributes for sending a query
 has query => (
     is => 'ro',
-    isa => 'MongoDB::_Query',
+    isa => InstanceOf['MongoDB::_Query'],
     required => 1,
 );
 
 # lazy result attribute
 has result => (
     is        => 'ro',
-    isa       => 'MongoDB::QueryResult',
+    isa       => InstanceOf['MongoDB::QueryResult'],
     lazy      => 1,
     builder   => '_build_result',
     predicate => 'started_iterating',

@@ -27,6 +27,8 @@ use MongoDB::Error;
 use MongoDB::GridFS;
 use MongoDB::Op::_ListCollections;
 use MongoDB::_Query;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Carp 'carp';
 use boolean;
 use Moose;
@@ -35,7 +37,7 @@ use namespace::clean -except => 'meta';
 
 has _client => ( 
     is       => 'ro',
-    isa      => 'MongoDB::MongoClient',
+    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
 );
 
@@ -47,7 +49,7 @@ The name of the database.
 
 has name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
@@ -61,7 +63,7 @@ that will be coerced into a new MongoDB::ReadPreference object.
 
 has read_preference => (
     is       => 'ro',
-    isa      => 'ReadPreference',
+    isa      => ReadPreference,
     required => 1,
     coerce   => 1,
 );
@@ -75,7 +77,7 @@ reference that will be coerced into a new MongoDB::WriteConcern object.
 
 has write_concern => (
     is       => 'ro',
-    isa      => 'WriteConcern',
+    isa      => WriteConcern,
     required => 1,
     coerce   => 1,
 );

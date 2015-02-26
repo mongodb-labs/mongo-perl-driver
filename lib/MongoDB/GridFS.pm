@@ -26,6 +26,7 @@ use MongoDB::GridFS::File;
 use DateTime 0.78; # drops dependency on bug-prone Math::Round
 use Digest::MD5;
 use Moose;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 =head1 NAME
@@ -62,7 +63,7 @@ $MongoDB::GridFS::chunk_size = 261120;
 
 has _database => (
     is       => 'ro',
-    isa      => 'MongoDB::Database',
+    isa      => InstanceOf['MongoDB::Database'],
     required => 1,
 );
 
@@ -74,7 +75,7 @@ The prefix used for the collections.  Defaults to "fs".
 
 has prefix => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     default => 'fs'
 );
 
@@ -87,7 +88,7 @@ length fields, plus user-defined metadata (and an _id).
 
 has files => (
     is => 'ro',
-    isa => 'MongoDB::Collection',
+    isa => InstanceOf['MongoDB::Collection'],
     lazy_build => 1
 );
 
@@ -107,7 +108,7 @@ in the files collection it belongs to).
 
 has chunks => (
     is => 'ro',
-    isa => 'MongoDB::Collection',
+    isa => InstanceOf['MongoDB::Collection'],
     lazy_build => 1
 );
 

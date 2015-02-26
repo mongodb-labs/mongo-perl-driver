@@ -26,31 +26,32 @@ use Moose;
 
 use MongoDB::CommandResult;
 use MongoDB::Op::_InsertMany;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Tie::IxHash;
 use namespace::clean -except => 'meta';
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has indexes => (
     is       => 'ro',
-    isa      => 'ArrayRef[HashRef]', # XXX ArrayRef[IndexModel]?
+    isa      => ArrayRef[HashRef], # XXX ArrayRef[IndexModel]?
     required => 1,
 );
 
 has write_concern => (
     is       => 'ro',
-    isa      => 'WriteConcern',
+    isa      => WriteConcern,
     required => 1,
 );
 

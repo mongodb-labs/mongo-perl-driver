@@ -25,7 +25,8 @@ use Moose;
 use MongoDB::Error;
 use MongoDB::Op::_GetMore;
 use MongoDB::Op::_KillCursors;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 use constant { CURSOR_ZERO => "\0" x 8, };
@@ -36,25 +37,25 @@ with 'MongoDB::Role::_Cursor';
 
 has _client => (
     is       => 'rw',
-    isa      => 'MongoDB::MongoClient',
+    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
 );
 
 has address => (
     is       => 'ro',
-    isa      => 'HostAddress',
+    isa      => HostAddress,
     required => 1,
 );
 
 has ns => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has batch_size => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
     default => 0,
 );
 
@@ -62,7 +63,7 @@ has batch_size => (
 
 has cursor_at => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     traits  => ['Counter'],
     default => 0,
     handles => {
@@ -73,7 +74,7 @@ has cursor_at => (
 
 has limit => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
 );
 
@@ -81,28 +82,28 @@ has limit => (
 
 has cursor_id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
     writer   => '_set_cursor_id',
 );
 
 has cursor_start => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
     writer  => '_set_cursor_start',
 );
 
 has cursor_flags => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     default => sub { {} },
     writer  => '_set_cursor_flags',
 );
 
 has cursor_num => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     traits  => ['Counter'],
     default => 0,
     handles => {
@@ -113,7 +114,7 @@ has cursor_num => (
 
 has _docs => (
     is      => 'ro',
-    isa     => 'ArrayRef',
+    isa     => ArrayRef,
     traits  => ['Array'],
     default => sub { [] },
     handles => {

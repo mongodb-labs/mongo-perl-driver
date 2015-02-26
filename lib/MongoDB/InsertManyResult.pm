@@ -22,7 +22,8 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_WriteResult';
@@ -42,7 +43,7 @@ The number of documents inserted.
 
 has inserted_count => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
 );
 
@@ -54,7 +55,7 @@ Array reference of dentifiers of inserted documents.
 
 has inserted_ids => (
     is  => 'ro',
-    isa => 'ArrayRef',
+    isa => ArrayRef,
 );
 
 __PACKAGE__->meta->make_immutable;

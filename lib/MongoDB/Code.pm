@@ -29,6 +29,7 @@ MongoDB::Code - JavaScript code
 =cut
 
 use Moose;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 =head1 ATTRIBUTES
@@ -41,7 +42,7 @@ A string of JavaScript code.
 
 has code => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
@@ -53,7 +54,7 @@ An optional hash of variables to pass as the scope.
 
 has scope => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => HashRef,
     required => 0,
 );
 

@@ -29,6 +29,7 @@ use MongoDB::BulkWriteView;
 use Syntax::Keyword::Junction qw/any/;
 
 use Moose;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 =attr collection (required)
@@ -39,7 +40,7 @@ The L<MongoDB::Collection> where the operations are to be performed.
 
 has 'collection' => (
     is       => 'ro',
-    isa      => 'MongoDB::Collection',
+    isa      => InstanceOf['MongoDB::Collection'],
     required => 1,
 );
 
@@ -52,20 +53,20 @@ unordered (false).
 
 has 'ordered' => (
     is       => 'ro',
-    isa      => 'Bool',
+    isa      => Bool,
     required => 1,
 );
 
 has '_executed' => (
     is       => 'rw',
-    isa      => 'Bool',
+    isa      => Bool,
     init_arg => undef,
     default  => 0,
 );
 
 has '_queue' => (
     is       => 'rw',
-    isa      => 'ArrayRef[ArrayRef]',
+    isa      => ArrayRef[ArrayRef],
     init_arg => undef,
     default  => sub { [] },
     traits   => ['Array'],
@@ -79,7 +80,7 @@ has '_queue' => (
 
 has '_database' => (
     is         => 'ro',
-    isa        => 'MongoDB::Database',
+    isa        => InstanceOf['MongoDB::Database'],
     lazy_build => 1,
 );
 
@@ -90,7 +91,7 @@ sub _build__database {
 
 has '_client' => (
     is         => 'ro',
-    isa        => 'MongoDB::MongoClient',
+    isa        => InstanceOf['MongoDB::MongoClient'],
     lazy_build => 1,
 );
 

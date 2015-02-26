@@ -22,7 +22,8 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 use overload (
@@ -46,7 +47,7 @@ for a read operation.  Valid values are:
 
 has mode => (
     is      => 'ro',
-    isa     => 'ReadPrefMode',
+    isa     => ReadPrefMode,
     default => 'primary',
     coerce  => 1,
 );
@@ -63,7 +64,7 @@ the C<mode> is 'primary', then C<tag_sets> must not be supplied.
 
 has tag_sets => (
     is      => 'ro',
-    isa     => 'ArrayOfHashRef',
+    isa     => ArrayOfHashRef,
     default => sub { [ {} ] },
     coerce  => 1,
 );

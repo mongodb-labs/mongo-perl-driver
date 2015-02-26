@@ -24,13 +24,15 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 use Moose;
 
 use Syntax::Keyword::Junction qw/any/;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use boolean;
 use namespace::clean -except => 'meta';
 
 # A hash reference containing a MongoDB query document
 has _query => (
     is       => 'ro',
-    isa      => 'IxHash',
+    isa      => IxHash,
     coerce   => 1,
     required => 1
 );
@@ -38,14 +40,14 @@ has _query => (
 # Originating bulk write object for executing write operations.
 has _bulk => (
     is       => 'ro',
-    isa      => 'MongoDB::BulkWrite',
+    isa      => InstanceOf['MongoDB::BulkWrite'],
     required => 1,
     handles  => [qw/_enqueue_write/]
 );
 
 has _upsert => (
     is      => 'ro',
-    isa     => 'boolean',
+    isa     => Booleanpm,
     default => sub { false },
 );
 

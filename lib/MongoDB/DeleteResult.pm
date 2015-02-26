@@ -22,7 +22,8 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_WriteResult';
@@ -42,7 +43,7 @@ The number of documents that matched the filter.
 
 has deleted_count => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
 );
 

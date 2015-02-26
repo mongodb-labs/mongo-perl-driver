@@ -23,7 +23,8 @@ use Moose;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Link;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use MongoDB::_Server;
 use List::Util qw/first/;
 use Safe::Isa;
@@ -44,88 +45,88 @@ use constant {
 
 has uri => (
     is       => 'ro',
-    isa      => 'MongoDB::_URI',
+    isa      => InstanceOf['MongoDB::_URI'],
     required => 1,
 );
 
 has max_wire_version => (
     is       => 'ro',
-    isa      => 'Num',
+    isa      => Num,
     required => 1,
 );
 
 has min_wire_version => (
     is       => 'ro',
-    isa      => 'Num',
+    isa      => Num,
     required => 1,
 );
 
 has credential => (
     is       => 'ro',
-    isa      => 'MongoDB::_Credential',
+    isa      => InstanceOf['MongoDB::_Credential'],
     required => 1,
 );
 
 has type => (
     is      => 'ro',
-    isa     => 'TopologyType',
+    isa     => TopologyType,
     writer  => '_set_type',
     default => 'Unknown'
 );
 
 has replica_set_name => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     default => '',
     writer  => '_set_replica_set_name', # :-)
 );
 
 has heartbeat_frequency_ms => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 60_000,
 );
 
 has last_scan_time => (
     is      => 'ro',
-    isa     => 'ArrayRef',              # [ Time::HighRes::gettimeofday() ]
+    isa     => ArrayRef,              # [ Time::HighRes::gettimeofday() ]
     default => sub { EPOCH },
     writer  => '_set_last_scan_time',
 );
 
 has local_threshold_ms => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 15,
 );
 
 has socket_check_interval_ms => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 5_000,
 );
 
 has server_selection_timeout_ms => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 60_000,
 );
 
 has ewma_alpha => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 0.2,
 );
 
 has link_options => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     default => sub { {} },
 );
 
 has number_of_seeds => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     lazy    => 1,
     builder => '_build_number_of_seeds',
 );
@@ -134,19 +135,19 @@ has number_of_seeds => (
 
 has servers => (
     is      => 'ro',
-    isa     => 'HashRef[MongoDB::_Server]',
+    isa     => HashRef[InstanceOf['MongoDB::_Server']],
     default => sub { {} },
 );
 
 has links => (
     is      => 'ro',
-    isa     => 'HashRef[MongoDB::_Link]',
+    isa     => HashRef[InstanceOf['MongoDB::_Link']],
     default => sub { {} },
 );
 
 has rtt_ewma_ms => (
     is      => 'ro',
-    isa     => 'HashRef[Num]',
+    isa     => HashRef[Num],
     default => sub { {} },
 );
 

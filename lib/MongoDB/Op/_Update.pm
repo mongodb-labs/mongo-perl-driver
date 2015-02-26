@@ -26,45 +26,46 @@ use Moose;
 use MongoDB::BSON;
 use MongoDB::UpdateResult;
 use MongoDB::_Protocol;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Tie::IxHash;
 use boolean;
 use namespace::clean -except => 'meta';
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has filter => (
     is       => 'ro',
-    isa      => 'IxHash',
+    isa      => IxHash,
     coerce   => 1,
     required => 1,
 );
 
 has update => (
     is       => 'ro',
-    isa      => 'IxHash',
+    isa      => IxHash,
     coerce   => 1,
     required => 1,
 );
 
 has multi => (
     is     => 'ro',
-    isa    => 'Bool',
+    isa    => Bool,
 );
 
 has upsert => (
     is     => 'ro',
-    isa    => 'Bool',
+    isa    => Bool,
 );
 
 with qw/MongoDB::Role::_WriteOp/;

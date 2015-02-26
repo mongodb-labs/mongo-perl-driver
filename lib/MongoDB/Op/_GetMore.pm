@@ -24,37 +24,38 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
 
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use MongoDB::_Protocol;
 use namespace::clean -except => 'meta';
 
 has ns => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has client => (
     is       => 'ro',
-    isa      => 'MongoDB::MongoClient',
+    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
 );
 
 has bson_codec => (
     is       => 'ro',
-    isa      => 'MongoDB::MongoClient', # XXX only for now
+    isa      => InstanceOf['MongoDB::MongoClient'], # XXX only for now
     required => 1,
 );
 
 has cursor_id => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has batch_size => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
 );
 

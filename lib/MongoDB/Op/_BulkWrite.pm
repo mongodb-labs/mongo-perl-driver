@@ -31,7 +31,8 @@ use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_Update;
 use MongoDB::Op::_Delete;
 use MongoDB::_Protocol;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Safe::Isa;
 use Scalar::Util qw/blessed reftype/;
 use Tie::IxHash;
@@ -41,31 +42,31 @@ use namespace::clean -except => 'meta';
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has queue => (
     is       => 'ro',
-    isa      => 'ArrayRef',
+    isa      => ArrayRef,
     required => 1,
 );
 
 has ordered => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 1,
 );
 
 has write_concern => (
     is       => 'ro',
-    isa      => 'WriteConcern',
+    isa      => WriteConcern,
     coerce   => 1,
     required => 1,
 );

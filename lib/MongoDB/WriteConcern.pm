@@ -23,41 +23,42 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
 use MongoDB::Error;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Scalar::Util qw/looks_like_number/;
 use namespace::clean -except => 'meta';
 
 has w => (
     is        => 'ro',
-    isa       => 'Str',
+    isa       => Str,
     predicate => '_has_w',
     default   => 1,
 );
 
 has wtimeout => (
     is        => 'ro',
-    isa       => 'Num',
+    isa       => Num,
     predicate => '_has_wtimeout',
     default   => 1000,
 );
 
 has j => (
     is        => 'ro',
-    isa       => 'booleanpm',
+    isa       => Booleanpm,
     coerce    => 1,
     predicate => '_has_j',
 );
 
 has is_safe => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     lazy    => 1,
     builder => '_build_is_safe',
 );
 
 has as_struct => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     lazy    => 1,
     builder => '_build_as_struct',
 );

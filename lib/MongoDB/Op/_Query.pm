@@ -26,36 +26,37 @@ use Moose;
 use MongoDB::BSON;
 use MongoDB::QueryResult;
 use MongoDB::_Protocol;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has client => (
     is       => 'ro',
-    isa      => 'MongoDB::MongoClient',
+    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
 );
 
 has bson_codec => (
     is       => 'ro',
-    isa      => 'MongoDB::MongoClient', # XXX only for now
+    isa      => InstanceOf['MongoDB::MongoClient'], # XXX only for now
     required => 1,
 );
 
 has query => (
     is       => 'ro',
-    isa      => 'IxHash',
+    isa      => IxHash,
     coerce   => 1,
     required => 1,
     writer   => '_set_query',
@@ -63,26 +64,26 @@ has query => (
 
 has projection => (
     is     => 'ro',
-    isa    => 'IxHash',
+    isa    => IxHash,
     coerce => 1,
 );
 
 has [qw/batch_size limit skip/] => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
 );
 
 # XXX eventually make this a hash with restricted keys?
 has query_flags => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     default => sub { {} },
 );
 
 has post_filter => (
     is        => 'ro',
-    isa       => 'Maybe[CodeRef]',
+    isa       => Maybe[CodeRef],
     predicate => 'has_post_filter',
 );
 

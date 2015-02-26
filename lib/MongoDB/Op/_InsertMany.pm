@@ -28,7 +28,8 @@ use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::InsertManyResult;
 use MongoDB::_Protocol;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Safe::Isa;
 use Scalar::Util qw/blessed reftype/;
 use Tie::IxHash;
@@ -36,13 +37,13 @@ use namespace::clean -except => 'meta';
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
@@ -50,19 +51,19 @@ has coll_name => (
 # on legacy mongod does not use _id
 has documents => (
     is       => 'ro',
-    isa      => 'ArrayRef',
+    isa      => ArrayRef,
     required => 1,
 );
 
 has ordered => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 1,
 );
 
 has check_keys => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 1,
 );
 

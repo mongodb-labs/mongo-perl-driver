@@ -24,6 +24,7 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 use MongoDB::BSON;
 use Moose;
 use MongoDB;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 =head1 NAME
@@ -72,7 +73,7 @@ Its string representation is the 24-character string.
 
 has value => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     required => 1,
     builder => '_build_value',
 );

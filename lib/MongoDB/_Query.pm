@@ -22,7 +22,8 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use MongoDB::Op::_Query;
 use Syntax::Keyword::Junction qw/any/;
 use Tie::IxHash;
@@ -34,25 +35,25 @@ use namespace::clean -except => 'meta';
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has client => (
     is       => 'ro',
-    isa      => 'MongoDB::MongoClient',
+    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
 );
 
 has read_preference => (
     is       => 'rw',            # mutable for Cursor
-    isa      => 'ReadPreference',
+    isa      => ReadPreference,
     required => 1,
     coerce   => 1,
 );
@@ -66,78 +67,78 @@ has read_preference => (
 
 has filter => (
     is       => 'ro',
-    isa      => 'IxHash',
+    isa      => IxHash,
     required => 1,
     coerce   => 1,
 );
 
 has modifiers => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     default => sub { {} },
 );
 
 has allowPartialResults => (
     is  => 'rw',
-    isa => 'Bool',
+    isa => Bool,
 );
 
 has batchSize => (
     is      => 'rw',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
 );
 
 has comment => (
     is      => 'rw',
-    isa     => 'Str',
+    isa     => Str,
     default => '',
 );
 
 has cursorType => (
     is      => 'rw',
-    isa     => 'CursorType',
+    isa     => CursorType,
     default => 'non_tailable',
 );
 
 has limit => (
     is      => 'rw',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
 );
 
 has maxTimeMS => (
     is      => 'rw',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
 );
 
 has noCursorTimeout => (
     is  => 'rw',
-    isa => 'Bool',
+    isa => Bool,
 );
 
 has oplogReplay => (
     is  => 'rw',
-    isa => 'Bool',
+    isa => Bool,
 );
 
 has projection => (
     is      => 'rw',
-    isa     => 'IxHash',
+    isa     => IxHash,
     coerce  => 1,
     default => sub { Tie::IxHash->new },
 );
 
 has skip => (
     is      => 'rw',
-    isa     => 'Num',
+    isa     => Num,
     default => 0,
 );
 
 has sort => (
     is      => 'rw',
-    isa     => 'IxHash',
+    isa     => IxHash,
     coerce  => 1,
     default => sub { Tie::IxHash->new },
 );

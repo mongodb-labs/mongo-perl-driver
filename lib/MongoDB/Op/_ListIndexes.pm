@@ -26,7 +26,8 @@ use Moose;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Tie::IxHash;
 use Try::Tiny;
 use Safe::Isa;
@@ -34,25 +35,25 @@ use namespace::clean -except => 'meta';
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has client => (
     is       => 'ro',
-    isa      => 'MongoDB::MongoClient',
+    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
 );
 
 has bson_codec => (
     is       => 'ro',
-    isa      => 'MongoDB::MongoClient', # XXX only for now
+    isa      => InstanceOf['MongoDB::MongoClient'], # XXX only for now
     required => 1,
 );
 

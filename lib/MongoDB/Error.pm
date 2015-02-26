@@ -26,7 +26,8 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
 use Moose::Meta::Class ();
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Exporter 5.57 qw/import/;
 use namespace::clean -except => [ 'meta', 'import' ];
 
@@ -67,7 +68,7 @@ use overload (
 
 has message => (
     is      => 'ro',
-    isa     => 'ErrorStr',
+    isa     => ErrorStr,
     default => 'unspecified error',
 );
 
@@ -96,6 +97,7 @@ around BUILDARGS => sub {
 
 package MongoDB::DatabaseError;
 use Moose;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
 
@@ -110,7 +112,7 @@ has result => (
 
 has code => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     builder => '_build_code',
 );
 
@@ -118,12 +120,14 @@ sub _build_code { return MongoDB::Error::UNKNOWN_ERROR() }
 
 package MongoDB::DocumentError;
 use Moose;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
 
 has document => (
     is       => 'ro',
-    isa      => 'HashRef|IxHash',
+    isa      => HashRef|IxHash,
     required => 1,
 );
 
@@ -198,12 +202,13 @@ Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
 package MongoDB::_CommandSizeError;
 use Moose;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
 
 has size => (
     is       => 'ro',
-    isa      => 'Int',
+    isa      => Int,
     required => 1,
 );
 

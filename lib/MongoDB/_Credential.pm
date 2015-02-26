@@ -21,7 +21,7 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
 use MongoDB::Op::_Command;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
 
 use Authen::SCRAM::Client '0.003';
 use Digest::MD5 qw/md5_hex/;
@@ -30,54 +30,55 @@ use MIME::Base64 qw/encode_base64 decode_base64/;
 use Syntax::Keyword::Junction 'any';
 use Tie::IxHash;
 use Try::Tiny;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 has mechanism => (
     is       => 'ro',
-    isa      => 'AuthMechanism',
+    isa      => AuthMechanism,
     required => 1,
 );
 
 has username => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     default => '',
 );
 
 has source => (
     is      => 'ro',
-    isa     => 'NonEmptyStr',
+    isa     => NonEmptyStr,
     lazy    => 1,
     builder => '_build_source',
 );
 
 has password => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     default => '',
 );
 
 has pw_is_digest => (
     is  => 'ro',
-    isa => 'Bool',
+    isa => Bool,
 );
 
 has mechanism_properties => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     default => sub { {} },
 );
 
 has _digested_password => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     builder => '_build__digested_password',
 );
 
 has _scram_client => (
     is      => 'ro',
-    isa     => 'Authen::SCRAM::Client',
+    isa     => InstanceOf['Authen::SCRAM::Client'],
     lazy    => 1,
     builder => '_build__scram_client',
 );

@@ -22,7 +22,8 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_WriteResult';
@@ -42,7 +43,7 @@ The identifier of the inserted document.
 
 has inserted_id => (
     is  => 'ro',
-    isa => 'Any',
+    isa => Any,
 );
 
 __PACKAGE__->meta->make_immutable;

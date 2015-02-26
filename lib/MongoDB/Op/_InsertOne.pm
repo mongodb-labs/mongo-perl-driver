@@ -28,20 +28,21 @@ use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::InsertOneResult;
 use MongoDB::_Protocol;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Tie::IxHash;
 use boolean;
 use namespace::clean -except => 'meta';
 
 has db_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
@@ -49,7 +50,7 @@ has coll_name => (
 # on legacy mongod does not use _id
 has document => (
     is       => 'ro',
-    isa      => 'IxHash',
+    isa      => IxHash,
     coerce   => 1,
     required => 1,
 );

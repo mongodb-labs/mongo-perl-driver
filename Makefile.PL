@@ -28,6 +28,7 @@ requires 'Throwable';
 requires 'Tie::IxHash';
 requires 'Time::HiRes';
 requires 'Try::Tiny';
+requires 'Type::Tiny' => '1';
 requires 'boolean';
 requires 'namespace::clean';
 requires 'version';

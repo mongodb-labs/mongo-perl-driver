@@ -22,6 +22,7 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
+use Types::Standard -types;
 
 extends 'MongoDB::QueryResult';
 
@@ -29,7 +30,7 @@ use namespace::clean -except => 'meta';
 
 has post_filter => (
     is       => 'ro',
-    isa      => 'CodeRef',
+    isa      => CodeRef,
     required => 1,
 );
 

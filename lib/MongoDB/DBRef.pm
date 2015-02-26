@@ -24,7 +24,8 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 use Carp 'croak';
 use Tie::IxHash;
 use Moose;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 # no type constraint since an _id can be anything
@@ -35,34 +36,34 @@ has id => (
 
 has ref => (
     is        => 'rw',
-    isa       => 'DBRefColl',
+    isa       => DBRefColl,
     required  => 1,
     coerce    => 1,
 );
 
 has db => ( 
     is        => 'rw',
-    isa       => 'DBRefDB',
+    isa       => DBRefDB,
     required  => 1,
     coerce    => 1,
 );
 
 has client => (
     is        => 'rw',
-    isa       => 'MongoDB::MongoClient',
+    isa       => InstanceOf['MongoDB::MongoClient'],
     required  => 0
 );
 
 has verify_db => (
     is        => 'rw',
-    isa       => 'Bool',
+    isa       => Bool,
     required  => 0,
     default   => 1
 );
 
 has verify_coll => ( 
     is        => 'rw',
-    isa       => 'Bool',
+    isa       => Bool,
     required  => 0,
     default   => 1
 );

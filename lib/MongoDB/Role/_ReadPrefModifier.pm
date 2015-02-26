@@ -24,7 +24,6 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 use Moose::Role;
 
 use MongoDB::Error;
-use MongoDB::_Types;
 use Syntax::Keyword::Junction qw/any/;
 use namespace::clean -except => 'meta';
 

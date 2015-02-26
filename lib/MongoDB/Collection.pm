@@ -31,6 +31,8 @@ use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_InsertMany;
 use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_Update;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
@@ -43,13 +45,13 @@ use namespace::clean -except => 'meta';
 
 has _database => (
     is       => 'ro',
-    isa      => 'MongoDB::Database',
+    isa      => InstanceOf['MongoDB::Database'],
     required => 1,
 );
 
 has _client => (
     is      => 'ro',
-    isa     => 'MongoDB::MongoClient',
+    isa     => InstanceOf['MongoDB::MongoClient'],
     lazy    => 1,
     builder => '_build__client',
 );
@@ -62,7 +64,7 @@ The name of the collection.
 
 has name => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => Str,
     required => 1,
 );
 
@@ -75,7 +77,7 @@ in.
 
 has full_name => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     builder => '_build_full_name',
 );
@@ -90,7 +92,7 @@ that will be coerced into a new MongoDB::ReadPreference object.
 
 has read_preference => (
     is       => 'ro',
-    isa      => 'ReadPreference',
+    isa      => ReadPreference,
     required => 1,
     coerce   => 1,
 );
@@ -104,7 +106,7 @@ reference that will be coerced into a new MongoDB::WriteConcern object.
 
 has write_concern => (
     is       => 'ro',
-    isa      => 'WriteConcern',
+    isa      => WriteConcern,
     required => 1,
     coerce   => 1,
 );

@@ -23,13 +23,14 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
 
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use MongoDB::_Protocol;
 use namespace::clean -except => 'meta';
 
 has cursor_ids => (
     is       => 'ro',
-    isa      => 'ArrayRef[Str]',
+    isa      => ArrayRef[Str],
     required => 1,
 );
 

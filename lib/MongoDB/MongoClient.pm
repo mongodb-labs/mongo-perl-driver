@@ -43,7 +43,8 @@ use Syntax::Keyword::Junction 'any';
 use boolean;
 use Encode;
 use Try::Tiny;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 use constant {
@@ -74,7 +75,7 @@ Defaults to the connection string URI C<mongodb://localhost:27017>.
 
 has host => (
     is      => 'ro',
-    isa     => 'Str',
+    isa     => Str,
     default => 'mongodb://localhost:27017', # XXX eventually, make this localhost
 );
 
@@ -87,7 +88,7 @@ attribute provides the port to use.  It defaults to 27107.
 
 has port => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
     default => 27017,
 );
 
@@ -110,7 +111,7 @@ Valid values include:
 
 has connect_type => (
     is      => 'ro',
-    isa     => 'ConnectType',
+    isa     => ConnectType,
     builder => '_build_connect_type',
     lazy    => 1
 );
@@ -123,7 +124,7 @@ Connection timeout in milliseconds. Defaults to C<20000>.
 
 has timeout => (
     is      => 'rw',
-    isa     => 'Int',
+    isa     => Int,
     default => 20000,
 );
 
@@ -159,7 +160,7 @@ This value overrides L<MongoDB::Cursor/timeout>.
 
 has query_timeout => (
     is      => 'rw',
-    isa     => 'Int',
+    isa     => Int,
     default => sub { return $MongoDB::Cursor::timeout; },
 );
 
@@ -201,7 +202,7 @@ recommended>.
 
 has ssl => (
     is      => 'ro',
-    isa     => 'Bool|HashRef',
+    isa     => Bool|HashRef,
     default => 0,
     writer  => '_set_ssl',
 );
@@ -244,7 +245,7 @@ http://www.mongodb.org/display/DOCS/Data+Center+Awareness
 
 has w => (
     is      => 'rw',
-    isa     => 'Int|Str',
+    isa     => Int|Str,
     default => 1,
     trigger => \&_update_write_concern,
 );
@@ -262,7 +263,7 @@ See C<w> above for more information.
 
 has wtimeout => (
     is      => 'rw',
-    isa     => 'Int',
+    isa     => Int,
     default => 1000,
     trigger => \&_update_write_concern,
 );
@@ -278,7 +279,7 @@ if this option is used when the server is running without journaling.
 
 has j => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
     trigger => \&_update_write_concern,
 );
@@ -299,7 +300,7 @@ See L</SERVER SELECTION> for more details.
 
 has server_selection_timeout_ms => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 30_000,
 );
 
@@ -322,7 +323,7 @@ See L</SERVER SELECTION> for more details.
 
 has local_threshold_ms => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 15,
 );
 
@@ -343,7 +344,7 @@ C<get_collection>.
 
 has read_preference => (
     is        => 'ro',
-    isa       => 'ReadPreference',
+    isa       => ReadPreference,
     writer    => '_set_read_preference',
     coerce    => 1,
     lazy      => 1,
@@ -366,7 +367,7 @@ are up and update their latency.  Defaults to 60,000 ms.
 
 has heartbeat_frequency_ms => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     default => 60_000,
 );
 
@@ -383,7 +384,7 @@ set for authentication to succeed.
 
 has username => (
     is      => 'rw',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     builder => '_build_username',
 );
@@ -397,7 +398,7 @@ used.  Otherwise, it will be ignored.
 
 has password => (
     is      => 'rw',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     builder => '_build_password',
 );
@@ -412,7 +413,7 @@ this attribute will be used.  Otherwise, it will be ignored. Defaults to
 
 has db_name => (
     is      => 'rw',
-    isa     => 'Str',
+    isa     => Str,
     lazy    => 1,
     builder => '_build_db_name',
 );
@@ -439,7 +440,7 @@ available or MONGODB-CR otherwise.
 
 has auth_mechanism => (
     is      => 'ro',
-    isa     => 'AuthMechanism',
+    isa     => AuthMechanism,
     lazy    => 1,
     builder => '_build_auth_mechanism',
     writer  => '_set_auth_mechanism',
@@ -454,7 +455,7 @@ See L</AUTHENTICATION> for details.
 
 has auth_mechanism_properties => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     lazy    => 1,
     builder => '_build_auth_mechanism_properties',
     writer  => '_set_auth_mechanism_properties',
@@ -486,7 +487,7 @@ Set this to C<0> if you don't want to auto-inflate them.
 
 has inflate_dbrefs => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 1
 );
 
@@ -498,7 +499,7 @@ Controls whether regular expressions stored in MongoDB are inflated into L<Mongo
 
 has inflate_regexps => (
     is      => 'rw',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
 );
 
@@ -515,7 +516,7 @@ demand.
 
 has auto_connect => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 1,
 );
 
@@ -528,7 +529,7 @@ demand.
 
 has auto_reconnect => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 1,
 );
 
@@ -542,7 +543,7 @@ to find an appropriate server for every operation.
 
 has find_master => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0,
 );
 
@@ -555,7 +556,7 @@ C<sasl_mechanism> property.
 
 has sasl => (
     is      => 'ro',
-    isa     => 'Bool',
+    isa     => Bool,
     default => 0
 );
 
@@ -568,7 +569,7 @@ It has the same valid values as L</auth_mechanism>.  The default is GSSAPI.
 
 has sasl_mechanism => (
     is      => 'ro',
-    isa     => 'AuthMechanism',
+    isa     => AuthMechanism,
     default => 'GSSAPI',
 );
 
@@ -578,7 +579,7 @@ has sasl_mechanism => (
 
 has _topology => (
     is         => 'ro',
-    isa        => 'MongoDB::_Topology',
+    isa        => InstanceOf['MongoDB::_Topology'],
     lazy_build => 1,
     handles    => { topology_type => 'type' },
     clearer    => '_clear__topology',
@@ -586,7 +587,7 @@ has _topology => (
 
 has _credential => (
     is         => 'ro',
-    isa        => 'MongoDB::_Credential',
+    isa        => InstanceOf['MongoDB::_Credential'],
     builder    => '_build__credential',
     lazy       => 1,
     writer     => '_set__credential',
@@ -594,26 +595,26 @@ has _credential => (
 
 has _min_wire_version => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
     default => 0
 );
 
 has _max_wire_version => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => Int,
     default => 3
 );
 
 has _uri => (
     is      => 'ro',
-    isa     => 'MongoDB::_URI',
+    isa     => InstanceOf['MongoDB::_URI'],
     lazy    => 1,
     builder => '_build__uri',
 );
 
 has _write_concern => (
     is     => 'ro',
-    isa    => 'MongoDB::WriteConcern',
+    isa    => InstanceOf['MongoDB::WriteConcern'],
     writer => '_set_write_concern',
 );
 

@@ -23,6 +23,8 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use Moose;
 use MongoDB::Error;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_LastError';
@@ -35,7 +37,7 @@ Hash reference with the result of a database command
 
 has result => (
     is       => 'ro',
-    isa      => 'HashRef',
+    isa      => HashRef,
     required => 1,
 );
 
@@ -47,7 +49,7 @@ Address ("host:port") of server that ran the command
 
 has address => (
     is       => 'ro',
-    isa      => 'HostAddress',
+    isa      => HostAddress,
     required => 1,
 );
 

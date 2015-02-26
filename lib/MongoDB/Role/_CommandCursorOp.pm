@@ -24,13 +24,14 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 use MongoDB::Error;
 use MongoDB::QueryResult;
 use Moose::Role;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 requires 'client';
 
 has 'cursor_options' => (
     is      => 'ro',
-    isa     => 'HashRef',
+    isa     => HashRef,
     default => sub { {} },
 );
 

@@ -26,7 +26,8 @@ our @ISA = qw/MongoDB::WriteResult/;
 
 use Moose;
 use MongoDB::Error;
-use MongoDB::_Types;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use Syntax::Keyword::Junction qw/any/;
 use namespace::clean -except => 'meta';
 
@@ -34,7 +35,7 @@ with 'MongoDB::Role::_WriteResult';
 
 has upserted_ids => (
     is      => 'ro',
-    isa     => 'ArrayOfHashRef',
+    isa     => ArrayOfHashRef,
     coerce  => 1,
     default => sub { [] },
 );
@@ -42,7 +43,7 @@ has upserted_ids => (
 for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
     has $attr => (
         is      => 'ro',
-        isa     => 'Num',
+        isa     => Num,
         writer  => "_set_$attr",
         default => 0,
     );
@@ -55,21 +56,21 @@ for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
 
 has modified_count => (
     is      => 'ro',
-    isa     => 'Maybe[Num]',
+    isa     => Maybe[Num],
     writer  => '_set_modified_count',
     default => undef,
 );
 
 has op_count => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     writer  => '_set_op_count',
     default => 0,
 );
 
 has batch_count => (
     is      => 'ro',
-    isa     => 'Num',
+    isa     => Num,
     writer  => '_set_batch_count',
     default => 0,
 );

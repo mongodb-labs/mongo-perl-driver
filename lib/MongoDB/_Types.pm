@@ -21,9 +21,40 @@ package MongoDB::_Types;
 use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
+use Type::Library
+  -base,
+  -declare => qw(
+  ArrayofHashRef
+  AuthMechanism
+  Booleanpm
+  ConnectType
+  ConnectionStr
+  CursorType
+  DBRefColl
+  DBRefDB
+  ErrorStr
+  HashLike
+  HostAddress
+  HostAddressList
+  IxHash
+  MongoDBCollection
+  MongoDBDatabase
+  MongoDBQuery
+  NonEmptyStr
+  NonNegNum
+  ReadPrefMode
+  ReadPreference
+  ServerType
+  TopologyType
+  WriteConcern
+);
+
+use Type::Utils -all;
+use Types::Standard -types;
+
 use Scalar::Util qw/reftype/;
 use boolean;
-use Moose::Util::TypeConstraints;
+require Tie::IxHash;
 
 sub connection_uri_re {
     return qr{
@@ -39,97 +70,113 @@ sub connection_uri_re {
 
 my $uri_re = MongoDB::_Types::connection_uri_re();
 
-enum 'AuthMechanism',
+#--------------------------------------------------------------------------#
+# Type declarations
+#--------------------------------------------------------------------------#
+
+declare ArrayOfHashRef, as ArrayRef [HashRef];
+
+enum AuthMechanism,
   [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1/];
 
-enum 'TopologyType',
-  [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Unknown/];
+class_type Booleanpm, { class => 'boolean' };
 
-enum 'ConnectType', [qw/replicaSet direct none/];
+enum ConnectType, [qw/replicaSet direct none/];
 
-enum 'CursorType', [qw/non_tailable tailable tailable_await/];
-
-enum 'ServerType',
-  [
-    qw/Standalone Mongos PossiblePrimary RSPrimary RSSecondary RSArbiter RSOther RSGhost Unknown/
-  ];
-
-enum 'ReadPrefMode',
-  [qw/primary primaryPreferred secondary secondaryPreferred nearest/];
-
-class_type 'IxHash'            => { class => 'Tie::IxHash' };
-class_type 'MongoDBCollection' => { class => 'MongoDB::Collection' };
-class_type 'MongoDBDatabase'   => { class => 'MongoDB::Database' };
-class_type 'booleanpm'         => { class => 'boolean' };
-class_type 'MongoDBQuery'      => { class => 'MongoDB::_Query' };
-class_type 'ReadPreference'    => { class => 'MongoDB::ReadPreference' };
-class_type 'WriteConcern'      => { class => 'MongoDB::WriteConcern' };
-
-subtype ArrayOfHashRef => as 'ArrayRef[HashRef]';
-
-subtype DBRefColl => as 'Str';
-subtype DBRefDB   => as 'Str';
-subtype
-  ConnectionStr => as 'Str',
+declare ConnectionStr, as Str,
   where { $_ =~ /^$uri_re$/ },
   message { "Could not parse URI '$_'" };
 
-subtype HashLike => as 'Ref', where { reftype($_) eq 'HASH' };
+enum CursorType, [qw/non_tailable tailable tailable_await/];
 
-subtype NonEmptyStr => as 'Str' => where { defined $_ && length $_ };
+declare DBRefColl, as Str;
 
-subtype NonNegNum => as 'Num' => where { defined($_) && $_ >= 0 },
-    message { "value must be a non-negative number" };
+declare DBRefDB, as Str;
 
-# Error string has to be a true value
-subtype ErrorStr => as 'Str' => where { $_ };
+declare ErrorStr, as Str, where { $_ }; # needs a true value
+
+declare HashLike, as Ref, where { reftype($_) eq 'HASH' };
 
 # XXX loose address validation for now.  Host part should really be hostname or
 # IPv4/IPv6 literals
-subtype
-  HostAddress => as 'Str',
+declare HostAddress, as Str,
   where { $_ =~ /^[^:]+:[0-9]+$/ and lc($_) eq $_ }, message {
     "Address '$_' not formatted as 'hostname:port'"
   };
 
-subtype
-  HostAddressList => as 'ArrayRef[HostAddress]',
-  message {
+declare HostAddressList, as ArrayRef [HostAddress], message {
     "Address list <@$_> is not all hostname:port pairs"
-  };
+};
 
-coerce ArrayOfHashRef => from 'HashRef'           => via { [$_] };
-coerce DBRefColl      => from 'MongoDBCollection' => via { $_->name };
-coerce DBRefDB        => from 'MongoDBDatabase'   => via { $_->name };
-coerce HostAddress => from 'Str' => via { /:/ ? lc $_ : lc "$_:27017" };
-coerce ReadPrefMode => from 'Str' =>
-  via { $_ = lc $_; s/_?preferred/Preferred/; $_ };
-coerce booleanpm => from 'Any' => via { boolean($_) };
+class_type IxHash, { class => 'Tie::IxHash' };
 
-coerce IxHash => from 'HashRef'  => via { Tie::IxHash->new(%$_) };
-coerce IxHash => from 'ArrayRef' => via { Tie::IxHash->new(@$_) };
-coerce IxHash => from 'Undef'    => via { Tie::IxHash->new() };
-coerce IxHash => from 'HashLike' => via { Tie::IxHash->new(%$_) };
+class_type MongoDBCollection, { class => 'MongoDB::Collection' };
 
-coerce HostAddressList => from 'ArrayRef' => via {
+class_type MongoDBDatabase, { class => 'MongoDB::Database' };
+
+class_type MongoDBQuery, { class => 'MongoDB::_Query' };
+
+declare NonEmptyStr, as Str, where { defined $_ && length $_ };
+
+declare NonNegNum, as Num,
+  where { defined($_) && $_ >= 0 },
+  message { "value must be a non-negative number" };
+
+enum ReadPrefMode,
+  [qw/primary primaryPreferred secondary secondaryPreferred nearest/];
+
+class_type ReadPreference, { class => 'MongoDB::ReadPreference' };
+
+enum ServerType,
+  [
+    qw/Standalone Mongos PossiblePrimary RSPrimary RSSecondary RSArbiter RSOther RSGhost Unknown/
+  ];
+
+enum TopologyType,
+  [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Unknown/];
+
+class_type WriteConcern, { class => 'MongoDB::WriteConcern' };
+
+#--------------------------------------------------------------------------#
+# Coercions
+#--------------------------------------------------------------------------#
+
+coerce ArrayOfHashRef, from HashRef, via { [$_] };
+
+coerce Booleanpm, from Any, via { boolean($_) };
+
+coerce DBRefColl, from MongoDBCollection, via { $_->name };
+
+coerce DBRefDB, from MongoDBDatabase, via { $_->name };
+
+coerce ErrorStr, from Str, via { $_ || "unspecified error" };
+
+coerce HostAddress, from Str, via { /:/ ? lc $_ : lc "$_:27017" };
+
+coerce HostAddressList, from ArrayRef, via {
     [ map { /:/ ? lc $_ : lc "$_:27017" } @$_ ]
 };
 
-coerce ReadPreference => from 'HashRef' => via { MongoDB::ReadPreference->new($_) };
-coerce ReadPreference => from 'Str' =>
-  via { MongoDB::ReadPreference->new( mode => $_ ) };
-coerce ReadPreference => from 'ArrayRef' =>
+coerce ReadPrefMode, from Str, via { $_ = lc $_; s/_?preferred/Preferred/; $_ };
+
+coerce IxHash, from HashRef, via { Tie::IxHash->new(%$_) };
+
+coerce IxHash, from ArrayRef, via { Tie::IxHash->new(@$_) };
+
+coerce IxHash, from Undef, via { Tie::IxHash->new() };
+
+coerce IxHash, from HashLike, via { Tie::IxHash->new(%$_) };
+
+coerce ReadPreference, from HashRef,
+  via { require MongoDB::ReadPreference; MongoDB::ReadPreference->new($_) };
+
+coerce ReadPreference, from Str,
+  via { require MongoDB::ReadPreference; MongoDB::ReadPreference->new( mode => $_ ) };
+
+coerce ReadPreference, from ArrayRef,
   via { MongoDB::ReadPreference->new( mode => $_->[0], tag_sets => $_->[1] ) };
 
-coerce WriteConcern => from 'HashRef' => via { MongoDB::WriteConcern->new($_) };
-
-coerce ErrorStr => from 'Str' => via { $_ || "unspecified error" };
-
-no Moose::Util::TypeConstraints;
-
-# Classes for coercions
-require Tie::IxHash;
-require MongoDB::ReadPreference;
-require MongoDB::WriteConcern;
+coerce WriteConcern, from HashRef,
+  via { require MongoDB::WriteConcern; MongoDB::WriteConcern->new($_) };
 
 1;
