@@ -601,31 +601,51 @@ sub find_one_and_replace {
     my ( $self, $filter, $replacement, $options ) = @_;
     $filter ||= {};
 
-    # XXX validate replacement doc
+    # XXX validate replacement doc having no $op operators
 
-    my %args;
-    for my $k (qw/maxTimeMS projection sort upsert/) {
-        $args{ $FIND_MODIFY_MAP{$k} } = $options->{$k} if exists $options->{$k};
-    }
+    return $self->_find_one_and_update_or_replace($filter, $replacement, $options);
+}
 
-    # coerce to IxHash
-    $args{sort} = __ixhash($args{sort}) if exists $args{sort};
+=method find_one_and_update
 
-    # returnDocument ('before'|'after') maps to field 'new'
-    if ( exists $options->{returnDocument} ) {
-        confess "Invalid returnDocument parameter '$options->{returnDocument}'"
-            unless $options->{returnDocument} =~ /^(?:before|after)$/;
-        $args{new} = $options->{returnDocument} eq 'after' ? true : false;
-    }
+    $doc = $coll->find_one_and_update( $filter, $update, $options );
 
-    my @command = (
-        findAndModify => $self->name,
-        query         => $filter,
-        update        => $replacement,
-        %args
-    );
+Updates a single document and returns it as it was either right before or
+right after the update.
 
-    return $self->_try_find_and_modify( \@command );
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for update.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+The update document must be a hash reference, array reference or
+L<Tie::IxHash> object. It must contain only field-update operators (e.g.
+C<$set>).
+
+An hash reference of options may be provided. Valid keys include:
+
+=for :list
+* maxTimeMS – the maximum amount of time to allow the query to run.
+* projection - a hash reference defining fields to return. See L<Limit fields
+  to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
+  in the MongoDB documentation for details.
+* returnDocument – either the string C<'before'> or C<'after'>, to indicate
+  whether the returned document should be the one before or after replacement.
+  The default is C<'before'>.
+* sort – a L<Tie::IxHash> or array reference of key value pairs defining the
+  order in which to find a matching document.
+* upsert – defaults to false; if true, a new document will be added if one is
+  not found
+
+=cut
+
+sub find_one_and_update {
+    my ( $self, $filter, $update, $options ) = @_;
+
+    # XXX validate update doc having $op operators
+
+    return $self->_find_one_and_update_or_replace($filter, $update, $options);
 }
 
 =method aggregate
@@ -1281,6 +1301,34 @@ sub _dynamic_write_concern {
     else {
         return MongoDB::WriteConcern->new( w => 0 );
     }
+}
+
+sub _find_one_and_update_or_replace {
+    my ($self, $filter, $modifier, $options) = @_;
+
+    my %args;
+    for my $k (qw/maxTimeMS projection sort upsert/) {
+        $args{ $FIND_MODIFY_MAP{$k} } = $options->{$k} if exists $options->{$k};
+    }
+
+    # coerce to IxHash
+    $args{sort} = __ixhash($args{sort}) if exists $args{sort};
+
+    # returnDocument ('before'|'after') maps to field 'new'
+    if ( exists $options->{returnDocument} ) {
+        confess "Invalid returnDocument parameter '$options->{returnDocument}'"
+            unless $options->{returnDocument} =~ /^(?:before|after)$/;
+        $args{new} = $options->{returnDocument} eq 'after' ? true : false;
+    }
+
+    my @command = (
+        findAndModify => $self->name,
+        query         => $filter,
+        update        => $modifier,
+        %args
+    );
+
+    return $self->_try_find_and_modify( \@command );
 }
 
 sub _legacy_index_insert {
