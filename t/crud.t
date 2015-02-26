@@ -442,4 +442,55 @@ subtest "find_one_and_delete" => sub {
     # XXX how to test max_time_ms?
 };
 
+subtest "find_one_and_replace" => sub {
+    $coll->drop;
+    $coll->insert_one( { x => 1, y => 'a' } );
+    $coll->insert_one( { x => 1, y => 'b' } );
+    is( $coll->count( {} ), 2, "inserted 2 docs" );
+
+    my $doc;
+
+    # find and replace non-existent doc, without upsert
+    $doc = $coll->find_one_and_replace( { x => 2 }, { x => 3, y => 'c' } );
+    is( $doc, undef, "find_one_and_replace on nonexistent doc returns undef" );
+    is( $coll->count( {} ), 2, "still 2 docs" );
+    is( $coll->count( { x => 3 } ), 0, "no docs matching replacment" );
+
+    # find and replace non-existent doc, with upsert
+    $doc = $coll->find_one_and_replace( { x => 2 }, { x => 3, y => 'c' }, { upsert => 1 } );
+    is( $doc, undef, "find_one_and_replace upsert on nonexistent doc returns undef" );
+    is( $coll->count( {} ), 3, "doc has been upserted" );
+    is( $coll->count( { x => 3 } ), 1, "1 doc matching replacment" );
+
+    # find and replace existing doc, with upsert
+    $doc = $coll->find_one_and_replace( { x => 3 }, { x => 4, y => 'c' }, { upsert => 1 });
+    cmp_deeply(
+        $doc,
+        { _id => ignore(), x => 3, y => 'c' },
+        "find_one_and_replace on existing doc returned old doc",
+    );
+    is( $coll->count( {} ), 3, "no new doc added" );
+    is( $coll->count( { x => 4 } ), 1, "1 doc matching replacment" );
+
+    # find and replace existing doc, with after doc
+    $doc = $coll->find_one_and_replace( { x => 4 }, { x => 5, y => 'c' }, { returnDocument => 'after' });
+    cmp_deeply(
+        $doc,
+        { _id => ignore(), x => 5, y => 'c' },
+        "find_one_and_replace on existing doc returned new doc",
+    );
+    is( $coll->count( {} ), 3, "no new doc added" );
+    is( $coll->count( { x => 5 } ), 1, "1 doc matching replacment" );
+
+    # test project and sort
+    $doc = $coll->find_one_and_replace( { x => 1 }, { x => 2, y => 'z' }, { sort => [ y => -1 ], projection => { y => 1 } } );
+    cmp_deeply(
+        $doc,
+        { _id => ignore(), y => 'b' },
+        "find_one_and_replace on existing doc returned new doc",
+    );
+    is( $coll->count( { x => 2 } ), 1, "1 doc matching replacment" );
+    is( $coll->count( { x => 1, y => 'a' } ), 1, "correct doc untouched" );
+};
+
 done_testing;
