@@ -491,6 +491,16 @@ subtest "find_one_and_replace" => sub {
     );
     is( $coll->count( { x => 2 } ), 1, "1 doc matching replacment" );
     is( $coll->count( { x => 1, y => 'a' } ), 1, "correct doc untouched" );
+
+    # test duplicate key error
+    $coll->drop;
+    $coll->insert_many( [ map { { _id => $_ } } 0 .. 2 ] );
+    my $err = exception {
+        $coll->find_one_and_replace( { x => 1 }, { _id => 0 }, { upsert => 1 } );
+    };
+    ok( $err, "upsert dup key got an error" );
+    isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
+      or diag explain $err;
 };
 
 subtest "find_one_and_update" => sub {
@@ -542,6 +552,16 @@ subtest "find_one_and_update" => sub {
     );
     is( $coll->count( { x => 2 } ), 1, "1 doc matching replacment" );
     is( $coll->count( { x => 1, y => 'a' } ), 1, "correct doc untouched" );
+
+    # test duplicate key error
+    $coll->drop;
+    $coll->insert_many( [ map { { _id => $_ } } 0 .. 2 ] );
+    my $err = exception {
+        $coll->find_one_and_update( { x => 0 }, { '$set' => { _id => 1 } }, { upsert => 1 } );
+    };
+    ok( $err, "update dup key got an error" );
+    isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
+      or diag explain $err;
 };
 
 done_testing;
