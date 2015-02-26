@@ -312,13 +312,11 @@ sub _add_address_as_unknown {
     $error = $error ? "$error" : "";
     $error =~ s/ at \S+ line \d+.*//ms;
 
-    $self->servers->{$address} = MongoDB::_Server->new(
+    return $self->servers->{$address} = MongoDB::_Server->new(
         address          => $address,
         last_update_time => $last_update || EPOCH,
         error            => $error,
     );
-
-    return;
 }
 
 sub _check_oldest_server {
@@ -526,7 +524,8 @@ sub _reset_address_to_unknown {
     $update_time ||= [gettimeofday];
 
     $self->_remove_address($address);
-    $self->_add_address_as_unknown( $address, $update_time, $error );
+    my $desc = $self->_add_address_as_unknown( $address, $update_time, $error );
+    $self->_update_topology_from_server_desc($address, $desc);
 
     return;
 }
