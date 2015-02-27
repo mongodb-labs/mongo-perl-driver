@@ -44,8 +44,10 @@ use Type::Library
   NonNegNum
   ReadPrefMode
   ReadPreference
+  ReplaceDoc
   ServerType
   TopologyType
+  UpdateDoc
   WriteConcern
 );
 
@@ -71,7 +73,7 @@ sub connection_uri_re {
 my $uri_re = MongoDB::_Types::connection_uri_re();
 
 #--------------------------------------------------------------------------#
-# Type declarations
+# Type declarations (without inherited coercions)
 #--------------------------------------------------------------------------#
 
 declare ArrayOfHashRef, as ArrayRef [HashRef];
@@ -176,5 +178,17 @@ coerce ReadPreference, from ArrayRef,
 
 coerce WriteConcern, from HashRef,
   via { require MongoDB::WriteConcern; MongoDB::WriteConcern->new($_) };
+
+#--------------------------------------------------------------------------#
+# subtypes with inherited coercions
+#--------------------------------------------------------------------------#
+
+declare ReplaceDoc, as IxHash, coercion => 1,
+  where { !$_->Length || substr( $_->Keys(0), 0, 1 ) ne '$' },
+  message { "replacement document ($_) must not use '\$op' style update operators" };
+
+declare UpdateDoc, as IxHash, coercion => 1,
+  where { $_->Length && substr( $_->Keys(0), 0, 1 ) eq '$' },
+  message { "update document must only use '\$op' style update operators" };
 
 1;

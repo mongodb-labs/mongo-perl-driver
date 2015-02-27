@@ -34,6 +34,7 @@ use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_Update;
 use MongoDB::_Types -types;
 use Types::Standard -types;
+use Type::Params qw/compile/;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
@@ -413,8 +414,9 @@ document will be upserted if no matching document exists.
 
 =cut
 
+my $replace_one_args = compile( Object, IxHash, ReplaceDoc, Optional[HashRef] );
 sub replace_one {
-    my ($self, $filter, $replacement, $options) = @_;
+    my ($self, $filter, $replacement, $options) = $replace_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->_database->name,
@@ -453,14 +455,15 @@ operations to it prior to insertion.
 
 =cut
 
+my $update_one_args = compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
 sub update_one {
-    my ($self, $filter, $replacement, $options) = @_;
+    my ($self, $filter, $update, $options) = $update_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
         filter        => $filter,
-        update        => $replacement,
+        update        => $update,
         multi         => false,
         upsert        => $options->{upsert} ? true : false,
         write_concern => $self->write_concern,
@@ -493,14 +496,15 @@ operations to it prior to insertion.
 
 =cut
 
+my $update_many_args = compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
 sub update_many {
-    my ($self, $filter, $replacement, $options) = @_;
+    my ($self, $filter, $update, $options) = $update_many_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
         filter        => $filter,
-        update        => $replacement,
+        update        => $update,
         multi         => true,
         upsert        => $options->{upsert} ? true : false,
         write_concern => $self->write_concern,
@@ -543,7 +547,6 @@ my %FIND_MODIFY_MAP = (
 
 sub find_one_and_delete {
     my ( $self, $filter, $options ) = @_;
-    $filter ||= {};
 
     my %args;
     for my $k (qw/maxTimeMS projection sort/) {
@@ -599,7 +602,6 @@ An hash reference of options may be provided. Valid keys include:
 
 sub find_one_and_replace {
     my ( $self, $filter, $replacement, $options ) = @_;
-    $filter ||= {};
 
     # XXX validate replacement doc having no $op operators
 

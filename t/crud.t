@@ -234,6 +234,14 @@ subtest "replace_one" => sub {
         bag( { _id => ignore(), x => 2 }, { _id => ignore, x => 4 } ),
         "collection docs correct"
     );
+
+    # replace doc with $op is an error
+    my $err = exception {
+        $coll->replace_one( { x => 3} , { '$set' => { x => 4 } } )
+    };
+    ok( $err, "replace with update operators is an error" );
+    like( $err, qr/must not use '\$op'/, "correct error message" );
+
 };
 
 subtest "update_one" => sub {
@@ -289,6 +297,14 @@ subtest "update_one" => sub {
         bag( { _id => ignore(), x => 2 }, { _id => ignore, x => 4 } ),
         "collection docs correct"
     );
+
+    # update doc without $op is an error
+    my $err = exception {
+        $coll->update_one( { x => 3} , { x => 4 } )
+    };
+    ok( $err, "update without update operators is an error" );
+    like( $err, qr/must only use '\$op'/, "correct error message" );
+
 };
 
 subtest "update_many" => sub {
@@ -348,6 +364,14 @@ subtest "update_many" => sub {
         bag( { _id => ignore(), x => 4 }, { _id => ignore, x => 4 } ),
         "collection docs correct"
     );
+
+    # update doc without $op is an error
+    my $err = exception {
+        $coll->update_one( { x => 3 } , { x => 4 } )
+    };
+    ok( $err, "update without update operators is an error" );
+    like( $err, qr/must only use '\$op'/, "correct error message" );
+
 };
 
 subtest 'bulk_write' => sub {
