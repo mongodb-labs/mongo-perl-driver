@@ -222,7 +222,7 @@ sub find {
         coll_name       => $self->name,
         client          => $self->_client,
         read_preference => $self->read_preference,
-        filter          => $filter,
+        filter          => $filter || {},
         %$opts,
     );
 
@@ -1495,7 +1495,7 @@ sub remove {
     my $op = MongoDB::Op::_Delete->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
-        filter        => $query,
+        filter        => $query || {},
         just_one      => !! $opts->{just_one},
         write_concern => $self->_dynamic_write_concern($opts),
     );
@@ -1523,8 +1523,8 @@ sub update {
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
-        filter        => $query,
-        update        => $object,
+        filter        => $query || {},
+        update        => $object || {},
         multi         => $opts->{multi},
         upsert        => $opts->{upsert},
         write_concern => $self->_dynamic_write_concern($opts),

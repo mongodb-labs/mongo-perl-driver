@@ -163,8 +163,6 @@ coerce IxHash, from HashRef, via { Tie::IxHash->new(%$_) };
 
 coerce IxHash, from ArrayRef, via { Tie::IxHash->new(@$_) };
 
-coerce IxHash, from Undef, via { Tie::IxHash->new() };
-
 coerce IxHash, from HashLike, via { Tie::IxHash->new(%$_) };
 
 coerce ReadPreference, from HashRef,
