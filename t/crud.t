@@ -555,9 +555,10 @@ subtest "find_one_and_update" => sub {
 
     # test duplicate key error
     $coll->drop;
-    $coll->insert_many( [ map { { _id => $_ } } 0 .. 2 ] );
+    $coll->ensure_index([x => 1], {unique => 1});
+    $coll->insert_many( [ map { { _id => $_, x => $_ } } 1 .. 3 ] );
     my $err = exception {
-        $coll->find_one_and_update( { x => 0 }, { '$set' => { _id => 1 } }, { upsert => 1 } );
+        $coll->find_one_and_update( { x => 0 }, { '$set' => { x => 1 } }, { upsert => 1 } );
     };
     ok( $err, "update dup key got an error" );
     isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
