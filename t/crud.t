@@ -82,6 +82,10 @@ subtest "insert_one" => sub {
         "insert without _id: Tie::IxHash doc inserted"
     );
 
+    # insert bad type
+    my $err = exception { $coll->insert_one( sub { die } ) };
+    like( $err, qr/did not pass type constraint/, "exception inserting bad type" );
+
 };
 
 subtest "insert_many" => sub {
@@ -101,14 +105,14 @@ subtest "insert_many" => sub {
     isa_ok( $res, "MongoDB::InsertManyResult", "result" );
     cmp_deeply(
         $res->inserted,
-        [ { index => 0, _id => 'foo' }, { index => 1, _id => $doc->{_id} } ],
+        [ { index => 0, _id => 'foo' }, { index => 1, _id => obj_isa("MongoDB::OID") } ],
         "inserted contains correct hashrefs"
     );
     cmp_deeply(
         $res->inserted_ids,
         {
             0 => "foo",
-            1 => $doc->{_id}
+            1 => $res->inserted->[1]{_id},
         },
         "inserted_ids contains correct keys/values"
     );
@@ -135,6 +139,9 @@ subtest "insert_many" => sub {
     $res = $err->result;
     is( $res->inserted_count, 3, "all valid docs inserted" );
 
+    # insert bad type
+    $err = exception { $coll->insert_many( { x => 1 } ) };
+    like( $err, qr/did not pass type constraint/, "exception inserting bad type" );
 };
 
 subtest "delete_one" => sub {

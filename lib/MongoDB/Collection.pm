@@ -274,8 +274,10 @@ will be added to the original document.
 
 =cut
 
+my $insert_one_args;
 sub insert_one {
-    my ( $self, $document ) = @_;
+    $insert_one_args ||= compile( Object, IxHash);
+    my ( $self, $document ) = $insert_one_args->(@_);
 
     $self->_add_oids( [$document] );
 
@@ -314,14 +316,13 @@ calls.
 
 =cut
 
+my $insert_many_args;
 sub insert_many {
-    my ($self, $documents, $opts) = @_;
-
-    confess 'not an array reference' unless ref $documents eq 'ARRAY';
-    confess 'not a hash reference' if defined($opts) && ref($opts) ne 'HASH';
+    $insert_many_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef] );
+    my ($self, $documents, $opts) = $insert_many_args->(@_);
 
     # ordered defaults to true
-    my $ordered = exists($opts->{ordered}) ? $opts->{ordered} : 1;
+    my $ordered = ( defined $opts && exists $opts->{ordered} ) ? $opts->{ordered} : 1;
 
     my $wc = $self->write_concern;
     my $bulk = $ordered ? $self->ordered_bulk : $self->unordered_bulk;
@@ -347,8 +348,10 @@ L<Tie::IxHash> object.
 
 =cut
 
+my $delete_one_args;
 sub delete_one {
-    my ($self, $filter) = @_;
+    $delete_one_args ||= compile( Object, IxHash );
+    my ($self, $filter) = $delete_one_args->(@_);
 
     my $op = MongoDB::Op::_Delete->new(
         db_name       => $self->_database->name,
@@ -376,8 +379,10 @@ L<Tie::IxHash> object.
 
 =cut
 
+my $delete_many_args;
 sub delete_many {
-    my ($self, $filter) = @_;
+    $delete_many_args ||= compile( Object, IxHash );
+    my ($self, $filter) = $delete_many_args->(@_);
 
     my $op = MongoDB::Op::_Delete->new(
         db_name       => $self->_database->name,
@@ -414,8 +419,9 @@ document will be upserted if no matching document exists.
 
 =cut
 
-my $replace_one_args = compile( Object, IxHash, ReplaceDoc, Optional[HashRef] );
+my $replace_one_args;
 sub replace_one {
+    $replace_one_args ||= compile( Object, IxHash, ReplaceDoc, Optional[HashRef] );
     my ($self, $filter, $replacement, $options) = $replace_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
@@ -455,8 +461,9 @@ operations to it prior to insertion.
 
 =cut
 
-my $update_one_args = compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
+my $update_one_args;
 sub update_one {
+    $update_one_args ||= compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
     my ($self, $filter, $update, $options) = $update_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
@@ -496,8 +503,9 @@ operations to it prior to insertion.
 
 =cut
 
-my $update_many_args = compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
+my $update_many_args;
 sub update_many {
+    $update_many_args ||= compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
     my ($self, $filter, $update, $options) = $update_many_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
@@ -545,8 +553,10 @@ my %FIND_MODIFY_MAP = (
     upsert      => 'upsert',
 );
 
+my $foad_args;
 sub find_one_and_delete {
-    my ( $self, $filter, $options ) = @_;
+    $foad_args ||= compile( Object, IxHash, Optional[HashRef] );
+    my ( $self, $filter, $options ) = $foad_args->(@_);
 
     my %args;
     for my $k (qw/maxTimeMS projection sort/) {
@@ -600,10 +610,10 @@ An hash reference of options may be provided. Valid keys include:
 
 =cut
 
+my $foar_args;
 sub find_one_and_replace {
-    my ( $self, $filter, $replacement, $options ) = @_;
-
-    # XXX validate replacement doc having no $op operators
+    $foar_args ||= compile( Object, IxHash, ReplaceDoc, Optional[HashRef] );
+    my ( $self, $filter, $replacement, $options ) = $foar_args->(@_);
 
     return $self->_find_one_and_update_or_replace($filter, $replacement, $options);
 }
@@ -642,10 +652,10 @@ An hash reference of options may be provided. Valid keys include:
 
 =cut
 
+my $foau_args;
 sub find_one_and_update {
-    my ( $self, $filter, $update, $options ) = @_;
-
-    # XXX validate update doc having $op operators
+    $foau_args ||= compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
+    my ( $self, $filter, $update, $options ) = $foau_args->(@_);
 
     return $self->_find_one_and_update_or_replace($filter, $update, $options);
 }
@@ -910,22 +920,18 @@ L<MongoDB::Database/"last_error($options?)">.
 
 =cut
 
+my $legacy_save_args;
 sub save {
-    my ($self, $doc, $options) = @_;
+    $legacy_save_args ||= compile( Object, IxHash, Optional[HashRef] );
+    my ($self, $doc, $options) = $legacy_save_args->(@_);
 
-    if (exists $doc->{"_id"}) {
-
-        if (!$options || !ref $options eq 'HASH') {
-            $options = {"upsert" => boolean::true};
-        }
-        else {
-            $options->{'upsert'} = boolean::true;
-        }
-
-        return $self->update({"_id" => $doc->{"_id"}}, $doc, $options);
+    if ( $doc->EXISTS("_id") ) {
+        $options ||= {};
+        $options->{'upsert'} = boolean::true;
+        return $self->update( { "_id" => $doc->FETCH( ("_id") ) }, $doc, $options );
     }
     else {
-        return $self->insert($doc, $options);
+        return $self->insert( $doc, ( $options ? $options : () ) );
     }
 }
 
@@ -1253,10 +1259,10 @@ BEGIN {
 #--------------------------------------------------------------------------#
 
 sub _add_oids {
-    my ($self, $docs) = @_;
+    my ($self, $target) = @_;
     my @ids;
 
-    for my $d ( @$docs ) {
+    for my $d ( ref($target) eq 'ARRAY' ? @$target : $target ) {
         my $type = reftype($d);
         my $found_id;
         if (ref($d) eq 'Tie::IxHash') {
@@ -1278,7 +1284,6 @@ sub _add_oids {
             }
         }
         elsif ($type eq 'HASH') {
-            # hash or IxHash
             $found_id = $d->{_id};
             unless ( defined $found_id ) {
                 $found_id = MongoDB::OID->new;
@@ -1443,11 +1448,13 @@ sub __to_index_string {
 # Deprecated legacy methods
 #--------------------------------------------------------------------------#
 
+my $legacy_insert_args;
 sub insert {
-    my ( $self, $document, $opts ) = @_;
+    $legacy_insert_args ||= compile( Object, IxHash, Optional[HashRef] );
+    my ( $self, $document, $opts ) = $legacy_insert_args->(@_);
 
     unless ( $opts->{'no_ids'} ) {
-        $self->_add_oids( [$document] );
+        $self->_add_oids( $document );
     }
 
     my $op = MongoDB::Op::_InsertOne->new(
@@ -1462,10 +1469,10 @@ sub insert {
     return $result->inserted_id;
 }
 
+my $legacy_batch_args;
 sub batch_insert {
     my ( $self, $documents, $opts ) = @_;
-
-    confess 'not an array reference' unless ref $documents eq 'ARRAY';
+    $legacy_batch_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef] );
 
     unless ( $opts->{'no_ids'} ) {
         $self->_add_oids($documents);
@@ -1489,10 +1496,11 @@ sub batch_insert {
     return @ids;
 }
 
+my $legacy_remove_args;
 sub remove {
-    my ($self, $query, $opts) = @_;
-    confess "optional argument to remove must be a hash reference"
-        if defined $opts && ref $opts ne 'HASH';
+    $legacy_remove_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
+    my ($self, $query, $opts) = $legacy_remove_args->(@_);
+    $opts ||= {};
 
     my $op = MongoDB::Op::_Delete->new(
         db_name       => $self->_database->name,
@@ -1511,8 +1519,11 @@ sub remove {
     };
 }
 
+my $legacy_update_args;
 sub update {
-    my ( $self, $query, $object, $opts ) = @_;
+    $legacy_update_args ||= compile( Object, Optional[IxHash], Optional[IxHash], Optional[HashRef] );
+    my ( $self, $query, $object, $opts ) = $legacy_update_args->(@_);
+    $opts ||= {};
 
     if ( exists $opts->{multiple} ) {
         if ( exists( $opts->{multi} ) && !!$opts->{multi} ne !!$opts->{multiple} ) {
@@ -1542,8 +1553,10 @@ sub update {
     };
 }
 
+my $legacy_fam_args;
 sub find_and_modify {
-    my ( $self, $opts ) = @_;
+    $legacy_fam_args ||= compile( Object, HashRef );
+    my ( $self, $opts ) = $legacy_fam_args->(@_);
 
     my $conn = $self->_client;
     my $db   = $self->_database;

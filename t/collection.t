@@ -482,7 +482,7 @@ SKIP: {
     my $err = exception { $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, { safe => 0 } ) };
     is($err, undef, "bad update with safe => 0: no error");
 
-    for my $h ( undef, { safe => 1 } ) {
+    for my $h ( {}, { safe => 1 } ) {
         my $res;
         $err = exception { $res = $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, $h ) };
         my $case = $h ? "explicit" : "default";
