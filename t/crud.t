@@ -596,4 +596,32 @@ subtest "find_one_and_update" => sub {
       or diag explain $err;
 };
 
+subtest "write concern errors" => sub {
+    plan skip_all => "not a replica set"
+        unless $server_type eq 'RSPrimary';
+
+    $coll->drop;
+    my $coll2 = $coll->clone( write_concern => { w => 99 } );
+
+    # findAndModify doesn't take write concern, so we don't test that
+    my @cases = (
+        [ insert_one => [ { x => 1 } ] ],
+        [ insert_many => [ [ { x => 2 }, { x => 3 } ] ] ],
+        [ delete_one => [ { x => 1 } ] ],
+        [ delete_one => [ {} ] ],
+        [ replace_one => [ { x => 0 }, { x => 1 }, { upsert => 1 } ] ],
+        [ update_one => [ { x => 1 }, { '$inc' => { x => 1 } } ] ],
+    );
+
+    for my $c ( @cases ) {
+        my ($method, $args) = @$c;
+        my $res;
+        my $err = exception { $res = $coll2->$method( @$args ) };
+        ok( $err, "caught error for $method" ) or diag explain $res;
+        isa_ok( $err, 'MongoDB::WriteConcernError', "$method error" )
+            or diag explain $err;
+    }
+};
+
+
 done_testing;
