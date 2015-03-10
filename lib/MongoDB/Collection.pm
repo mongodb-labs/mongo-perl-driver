@@ -163,125 +163,6 @@ sub get_collection {
     return $self->_database->get_collection($self->name.'.'.$coll);
 }
 
-=method find
-
-    my $cursor = $coll->find( $filter );
-    my $cursor = $coll->find( $filter, $options );
-
-    my $cursor = $coll->find({ i => { '$gt' => 42 } }, {limit => 20});
-
-Executes a query with filter expression and returns a C<MongoDB::Cursor>
-object.
-
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for replacement.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
-
-The query can be customized using L<MongoDB::Cursor> methods, or with an
-optional hash reference of options.
-
-Valid options include:
-
-=for :list
-* C<allowPartialResults> - get partial results from a mongos if some shards are
-  down (instead of throwing an error).
-* C<batchSize> – the number of documents to return per batch.
-* C<comment> – attaches a comment to the query. If C<$comment> also exists in the
-  modifiers document, the comment field overwrites C<$comment>.
-* C<cursorType> – indicates the type of cursor to use. It must be one of three
-  enumerated values: C<non_tailable> (the default), C<tailable>, and
-  C<tailable_await>.
-* C<limit> – the maximum number of documents to return.
-* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
-  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
-  overwrites C<$maxTimeMS>.
-* C<modifiers> – a hash reference of meta-operators modifying the output or
-  behavior of a query.
-* C<noCursorTimeout> – if true, prevents the server from timing out a cursor after
-  a period of inactivity
-* C<projection> - a hash reference defining fields to return. See L<Limit fields
-  to
-  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
-  in the MongoDB documentation for details.
-* C<skip> – the number of documents to skip before returning.
-* C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
-  order in which to return matching documents. If C<$orderby> also exists
-  in the modifiers document, the sort field overwrites C<$orderby>.
-
-See also core documentation on querying:
-L<http://docs.mongodb.org/manual/core/read/>.
-
-B<Note>, a L<MongoDB::Cursor> object holds the query and does not issue the
-query to the server until the C<request> method is called on it or until an
-iterator method like C<next> is called.  Performance will be better directly on
-a L<MongoDB::QueryResult> object:
-
-    my $query_result = $coll->find( $filter )->result;
-
-    while ( my $next = $query_result->next ) {
-        ...
-    }
-
-=cut
-
-my $find_args;
-sub find {
-    $find_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
-    my ( $self, $filter, $options ) = $find_args->(@_);
-    $options ||= {};
-
-    # backwards compatible sort option
-    $options->{sort} = delete $options->{sort_by} if $options->{sort_by};
-
-    # coerce to IxHash
-    $options->{sort} = __ixhash($options->{sort}) if exists $options->{sort};
-
-    my $query = MongoDB::_Query->new(
-        db_name         => $self->_database->name,
-        coll_name       => $self->name,
-        client          => $self->_client,
-        read_preference => $self->read_preference,
-        filter          => $filter || {},
-        %$options,
-    );
-
-    return MongoDB::Cursor->new( query => $query );
-}
-
-=method find_one($query, $fields?, $options?)
-
-    my $object = $collection->find_one({ name => 'Resi' });
-    my $object = $collection->find_one({ name => 'Resi' }, { name => 1, age => 1});
-    my $object = $collection->find_one({ name => 'Resi' }, {}, {max_time_ms => 100});
-
-Executes the given C<$query> and returns the first object matching it.
-C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).  If C<$fields> is specified, the resulting document
-will only include the fields given (and the C<_id> field) which can cut down on
-wire traffic. If C<$options> is specified, the cursor will be set with the contained options.
-
-=cut
-
-sub find_one {
-    my ($self, $query, $fields, $options) = @_;
-    $query ||= {};
-    $fields ||= {};
-    $options ||= {};
-
-    my $cursor = $self->find($query)->limit(-1)->fields($fields);
-
-    for my $key (keys %$options) {
-
-        if (!MongoDB::Cursor->can($key)) {
-            confess("$key is not a known method in MongoDB::Cursor");
-        }
-        $cursor->$key($options->{$key});
-    }
-
-    return $cursor->next;
-}
-
 =method insert_one
 
     $res = $coll->insert_one( $document );
@@ -541,6 +422,125 @@ sub update_many {
     );
 
     return $self->_client->send_write_op( $op );
+}
+
+=method find
+
+    my $cursor = $coll->find( $filter );
+    my $cursor = $coll->find( $filter, $options );
+
+    my $cursor = $coll->find({ i => { '$gt' => 42 } }, {limit => 20});
+
+Executes a query with filter expression and returns a C<MongoDB::Cursor>
+object.
+
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for replacement.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+The query can be customized using L<MongoDB::Cursor> methods, or with an
+optional hash reference of options.
+
+Valid options include:
+
+=for :list
+* C<allowPartialResults> - get partial results from a mongos if some shards are
+  down (instead of throwing an error).
+* C<batchSize> – the number of documents to return per batch.
+* C<comment> – attaches a comment to the query. If C<$comment> also exists in the
+  modifiers document, the comment field overwrites C<$comment>.
+* C<cursorType> – indicates the type of cursor to use. It must be one of three
+  enumerated values: C<non_tailable> (the default), C<tailable>, and
+  C<tailable_await>.
+* C<limit> – the maximum number of documents to return.
+* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
+  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
+  overwrites C<$maxTimeMS>.
+* C<modifiers> – a hash reference of meta-operators modifying the output or
+  behavior of a query.
+* C<noCursorTimeout> – if true, prevents the server from timing out a cursor after
+  a period of inactivity
+* C<projection> - a hash reference defining fields to return. See L<Limit fields
+  to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
+  in the MongoDB documentation for details.
+* C<skip> – the number of documents to skip before returning.
+* C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
+  order in which to return matching documents. If C<$orderby> also exists
+  in the modifiers document, the sort field overwrites C<$orderby>.
+
+See also core documentation on querying:
+L<http://docs.mongodb.org/manual/core/read/>.
+
+B<Note>, a L<MongoDB::Cursor> object holds the query and does not issue the
+query to the server until the C<request> method is called on it or until an
+iterator method like C<next> is called.  Performance will be better directly on
+a L<MongoDB::QueryResult> object:
+
+    my $query_result = $coll->find( $filter )->result;
+
+    while ( my $next = $query_result->next ) {
+        ...
+    }
+
+=cut
+
+my $find_args;
+sub find {
+    $find_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
+    my ( $self, $filter, $options ) = $find_args->(@_);
+    $options ||= {};
+
+    # backwards compatible sort option
+    $options->{sort} = delete $options->{sort_by} if $options->{sort_by};
+
+    # coerce to IxHash
+    $options->{sort} = __ixhash($options->{sort}) if exists $options->{sort};
+
+    my $query = MongoDB::_Query->new(
+        db_name         => $self->_database->name,
+        coll_name       => $self->name,
+        client          => $self->_client,
+        read_preference => $self->read_preference,
+        filter          => $filter || {},
+        %$options,
+    );
+
+    return MongoDB::Cursor->new( query => $query );
+}
+
+=method find_one($query, $fields?, $options?)
+
+    my $object = $collection->find_one({ name => 'Resi' });
+    my $object = $collection->find_one({ name => 'Resi' }, { name => 1, age => 1});
+    my $object = $collection->find_one({ name => 'Resi' }, {}, {max_time_ms => 100});
+
+Executes the given C<$query> and returns the first object matching it.
+C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
+even number of elements).  If C<$fields> is specified, the resulting document
+will only include the fields given (and the C<_id> field) which can cut down on
+wire traffic. If C<$options> is specified, the cursor will be set with the contained options.
+
+=cut
+
+sub find_one {
+    my ($self, $query, $fields, $options) = @_;
+    $query ||= {};
+    $fields ||= {};
+    $options ||= {};
+
+    my $cursor = $self->find($query)->limit(-1)->fields($fields);
+
+    for my $key (keys %$options) {
+
+        if (!MongoDB::Cursor->can($key)) {
+            confess("$key is not a known method in MongoDB::Cursor");
+        }
+        $cursor->$key($options->{$key});
+    }
+
+    return $cursor->next;
 }
 
 =method find_one_and_delete
