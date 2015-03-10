@@ -143,24 +143,13 @@ sub clone {
     return $class->new( %$self, @args );
 }
 
-=method get_collection ($name)
-
-    my $collection = $database->get_collection('foo');
-
-Returns a L<MongoDB::Collection> for the collection called C<$name> within this
-collection.
-
-=cut
-
 =method get_collection
 
-Collection names can be chained together to access subcollections.  For
-instance, the collection C<foo.bar> can be accessed with either:
+Collection names can be chained together to simulate subcollections joined by a
+dot.  For example, the collection C<foo.bar> can be accessed with either of
+these expressions:
 
     my $collection = $db->get_collection( 'foo' )->get_collection( 'bar' );
-
-or
-
     my $collection = $db->get_collection( 'foo.bar' );
 
 =cut
