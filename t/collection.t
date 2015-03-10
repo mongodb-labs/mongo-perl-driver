@@ -167,18 +167,11 @@ subtest write_concern => sub {
     is($obj->{just}, "an\xE4oth\0er");
 }
 
-# find_one MaxTimeMS
-{
-    my $err_re = qr/must be non-negative/;
-    eval { $coll->find_one({}, {}, { max_time_ms => -1 }) };
-    like( $@, $err_re, "find_one sets max_time_ms");
-}
-
 # find_one invalid option
 {
-    my $err_re = qr/max_slime_ms is not/;
-    eval { $coll->find_one({}, {}, { max_slime_ms => -1 }) };
-    like( $@, $err_re, "max_slime_ms is not a Cursor method");
+    my $err_re = qr/invalid options.*max_time_ms/;
+    eval { $coll->find_one({}, {}, { max_time_ms => -1 }) };
+    like( $@, $err_re, "max_time_ms is not a valid option for 'find_one'");
 }
 
 # validate and remove
@@ -297,9 +290,11 @@ subtest write_concern => sub {
     $coll->insert({'x' => 1, 'y' => 2, 'z' => 3});
     my $yer = $coll->find_one({}, {'y' => 1});
 
-    ok(exists $yer->{'y'}, 'y exists');
-    ok(!exists $yer->{'x'}, 'x doesn\'t');
-    ok(!exists $yer->{'z'}, 'z doesn\'t');
+    cmp_deeply(
+        $yer,
+        { _id => ignore(), y => 2 },
+        "projection fields correct"
+    );
 
     $coll->drop;
     $coll->batch_insert([{"x" => 1}, {"x" => 1}, {"x" => 1}]);

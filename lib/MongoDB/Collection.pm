@@ -461,9 +461,8 @@ Valid options include:
   behavior of a query.
 * C<noCursorTimeout> – if true, prevents the server from timing out a cursor after
   a period of inactivity
-* C<projection> - a hash reference defining fields to return. See L<Limit fields
-  to
-  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
+* C<projection> - a hash reference defining fields to return. See "L<limit fields
+  to return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
 * C<skip> – the number of documents to skip before returning.
 * C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
@@ -486,17 +485,41 @@ a L<MongoDB::QueryResult> object:
 
 =cut
 
+my @FIND_OPTIONS = qw(
+  allowPartialResults
+  batchSize
+  comment
+  cursorType
+  limit
+  maxTimeMS
+  modifiers
+  noCursorTimeout
+  projection
+  skip
+  sort
+  upsert
+);
+
 my $find_args;
 sub find {
     $find_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
     my ( $self, $filter, $options ) = $find_args->(@_);
     $options ||= {};
 
-    # backwards compatible sort option
+    # backwards compatible sort option for deprecated 'query' alias
     $options->{sort} = delete $options->{sort_by} if $options->{sort_by};
 
+    my %args;
+    for my $k ( @FIND_OPTIONS ) {
+        $args{ $k } = delete $options->{$k} if exists $options->{$k};
+    }
+
+    if ( %$options ) {
+        confess "invalid options for find: " . join(", ", keys %$options);
+    }
+
     # coerce to IxHash
-    $options->{sort} = __ixhash($options->{sort}) if exists $options->{sort};
+    $args{sort} = __ixhash($args{sort}) if exists $args{sort};
 
     my $query = MongoDB::_Query->new(
         db_name         => $self->_database->name,
@@ -504,43 +527,84 @@ sub find {
         client          => $self->_client,
         read_preference => $self->read_preference,
         filter          => $filter || {},
-        %$options,
+        %args,
     );
 
     return MongoDB::Cursor->new( query => $query );
 }
 
-=method find_one($query, $fields?, $options?)
+=method find_one
 
-    my $object = $collection->find_one({ name => 'Resi' });
-    my $object = $collection->find_one({ name => 'Resi' }, { name => 1, age => 1});
-    my $object = $collection->find_one({ name => 'Resi' }, {}, {max_time_ms => 100});
+    my $doc = $collection->find_one( $filter, $projection );
+    my $doc = $collection->find_one( $filter, $projection, $options );
 
-Executes the given C<$query> and returns the first object matching it.
-C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).  If C<$fields> is specified, the resulting document
-will only include the fields given (and the C<_id> field) which can cut down on
-wire traffic. If C<$options> is specified, the cursor will be set with the contained options.
+Executes a query with filter expression and returns a single document.
+
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for replacement.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+If a projection document is provided, it must be a hash reference specifying
+fields to return.  See L<Limit fields to
+return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
+in the MongoDB documentation for details.
+
+If only a filter is provided or if the projection document is an empty hash
+reference, all fields will be returned.
+
+    my $doc = $collection->find_one( $filter );
+    my $doc = $collection->find_one( $filter, {}, $options );
+
+A hash reference of options may be provided as a third argument. Valid keys
+include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
+  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
+  overwrites C<$maxTimeMS>.
+* C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
+  order in which to return matching documents. If C<$orderby> also exists
+  in the modifiers document, the sort field overwrites C<$orderby>.
+
+See also core documentation on querying:
+L<http://docs.mongodb.org/manual/core/read/>.
 
 =cut
 
+my $find_one_args;
 sub find_one {
-    my ($self, $query, $fields, $options) = @_;
-    $query ||= {};
-    $fields ||= {};
-    $options ||= {};
+    $find_one_args ||= compile( Object,
+        Optional [IxHash],
+        Optional [MaybeHashRef],
+        Optional [MaybeHashRef],
+    );
+    my ( $self, $filter, $projection, $options ) = $find_one_args->(@_);
 
-    my $cursor = $self->find($query)->limit(-1)->fields($fields);
-
-    for my $key (keys %$options) {
-
-        if (!MongoDB::Cursor->can($key)) {
-            confess("$key is not a known method in MongoDB::Cursor");
-        }
-        $cursor->$key($options->{$key});
+    my %args;
+    for my $k ( qw/maxTimeMS sort/ ) {
+        $args{ $k } = delete $options->{$k} if exists $options->{$k};
     }
 
-    return $cursor->next;
+    if ( %$options ) {
+        confess "invalid options for find_one: " . join(", ", keys %$options);
+    }
+
+    # coerce to IxHash
+    $args{sort} = __ixhash($args{sort}) if exists $args{sort};
+
+    my $query = MongoDB::_Query->new(
+        db_name         => $self->_database->name,
+        coll_name       => $self->name,
+        client          => $self->_client,
+        read_preference => $self->read_preference,
+        filter          => $filter || {},
+        projection      => $projection || {},
+        limit           => -1,
+        %args,
+    );
+
+    return $query->execute->next;
 }
 
 =method find_one_and_delete
@@ -571,10 +635,10 @@ A hash reference of options may be provided. Valid keys include:
 =cut
 
 my %FIND_MODIFY_MAP = (
-    maxTimeMS   => 'maxTimeMS',
-    projection  => 'fields',
-    sort        => 'sort',
-    upsert      => 'upsert',
+    maxTimeMS           => 'maxTimeMS',
+    projection          => 'fields',
+    sort                => 'sort',
+    upsert              => 'upsert',
 );
 
 my $foad_args;
@@ -584,7 +648,11 @@ sub find_one_and_delete {
 
     my %args;
     for my $k (qw/maxTimeMS projection sort/) {
-        $args{ $FIND_MODIFY_MAP{$k} } = $options->{$k} if exists $options->{$k};
+        $args{ $FIND_MODIFY_MAP{$k} } = delete $options->{$k} if exists $options->{$k};
+    }
+
+    if ( %$options ) {
+        confess "invalid options for find: " . join(", ", keys %$options);
     }
 
     # coerce to IxHash
@@ -1343,7 +1411,7 @@ sub _find_one_and_update_or_replace {
 
     my %args;
     for my $k (qw/maxTimeMS projection sort upsert/) {
-        $args{ $FIND_MODIFY_MAP{$k} } = $options->{$k} if exists $options->{$k};
+        $args{ $FIND_MODIFY_MAP{$k} } = delete $options->{$k} if exists $options->{$k};
     }
 
     # coerce to IxHash
@@ -1353,7 +1421,11 @@ sub _find_one_and_update_or_replace {
     if ( exists $options->{returnDocument} ) {
         confess "Invalid returnDocument parameter '$options->{returnDocument}'"
             unless $options->{returnDocument} =~ /^(?:before|after)$/;
-        $args{new} = $options->{returnDocument} eq 'after' ? true : false;
+        $args{new} = delete( $options->{returnDocument} ) eq 'after' ? true : false;
+    }
+
+    if ( %$options ) {
+        confess "invalid options for find_and_update/replace: " . join(", ", keys %$options);
     }
 
     my @command = (

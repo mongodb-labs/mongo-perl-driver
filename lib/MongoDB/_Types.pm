@@ -112,6 +112,8 @@ declare HostAddressList, as ArrayRef [HostAddress], message {
 
 class_type IxHash, { class => 'Tie::IxHash' };
 
+declare MaybeHashRef, as Maybe[ HashRef ];
+
 class_type MongoDBCollection, { class => 'MongoDB::Collection' };
 
 class_type MongoDBDatabase, { class => 'MongoDB::Database' };

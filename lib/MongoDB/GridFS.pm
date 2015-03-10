@@ -203,6 +203,7 @@ Returns a matching MongoDB::GridFS::File or undef.
 
 sub find_one {
     my ($self, $criteria, $fields) = @_;
+    $criteria ||= {};
 
     my $file = $self->files->find_one($criteria, $fields);
     return undef unless $file;
