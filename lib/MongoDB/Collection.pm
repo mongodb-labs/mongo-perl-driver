@@ -26,6 +26,7 @@ use MongoDB::Error;
 use MongoDB::InsertManyResult;
 use MongoDB::WriteConcern;
 use MongoDB::_Query;
+use MongoDB::Op::_Aggregate;
 use MongoDB::Op::_BatchInsert;
 use MongoDB::Op::_CreateIndexes;
 use MongoDB::Op::_Delete;
@@ -758,104 +759,59 @@ sub find_one_and_update {
 
 =method aggregate
 
-    my $result = $collection->aggregate( [ ... ] );
+    my $result = $collection->aggregate( [ { ... }, { ... } ] );
+    my $result = $collection->aggregate( \@pipeline, $options );
 
-Run a query using the MongoDB 2.2+ aggregation framework. The first argument is an array-ref of
-aggregation pipeline operators.
+Runs a query using the MongoDB 2.2+ aggregation framework and returns a
+L<MongoDB::QueryResult> object.
 
-The type of return value from C<aggregate> depends on how you use it.
+The first argument must be an array-ref of
+L<aggregation pipeline|http://docs.mongodb.org/manual/core/aggregation-pipeline/>
+documents.  Each pipeline document must be a hash reference.
 
-=over 4
+A hash reference of options may be provided. Valid keys include:
 
-=item * By default, the aggregation framework returns a document with an embedded array of results, and
-the C<aggregate> method returns a reference to that array.
+=for :list
+* C<allowDiskUse> – if, true enables writing to temporary files.
+* C<batchSize> – the number of documents to return per batch.
+* C<explain> – if true, return a single document with execution information.
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
 
-=item * MongoDB 2.6+ supports returning cursors from aggregation queries, allowing you to bypass
-the 16MB size limit of documents. If you specifiy a C<cursor> option, the C<aggregate> method
-will return a L<MongoDB::QueryResult> object which can be iterated in the normal fashion.
-
-    my $cursor = $collection->aggregate( [ ... ], { cursor => 1 } );
-
-Specifying a C<cursor> option will cause an error on versions of MongoDB below 2.6.
-
-The C<cursor> option may also have some useful options of its own. Currently, the only one
-is C<batchSize>, which allows you to control how frequently the cursor must go back to the
-database for more documents.
-
-    my $cursor = $collection->aggregate( [ ... ], { cursor => { batchSize => 10 } } );
-
-=item * MongoDB 2.6+ supports an C<explain> option to aggregation queries to retrieve data
-about how the server will process a query pipeline.
-
-    my $result = $collection->aggregate( [ ... ], { explain => 1 } );
-
-In this case, C<aggregate> will return a document (not an array) containing the explanation
-structure.
-
-=item * Finally, MongoDB 2.6+ will return an empty results array if the C<$out> pipeline operator is used to
-write aggregation results directly to a collection. Create a new C<Collection> object to
-query the result collection.
-
-=back
+B<Note> MongoDB 2.6+ will return an empty result if the C<$out> pipeline
+operator is used to write aggregation results directly to a collection. Create
+a new collection> object to query the generated result collection.
 
 See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
 for more information on how to construct aggregation queries.
 
 =cut
 
+my $aggregate_args;
 sub aggregate {
-    my ( $self, $pipeline, $opts ) = @_;
-    $opts = ref $opts eq 'HASH' ? $opts : { };
+    $aggregate_args ||= compile( Object, ArrayOfHashRef, Optional [HashRef] );
+    my ( $self, $pipeline, $options ) = $aggregate_args->(@_);
 
-    my $db   = $self->_database;
-
-    if ( exists $opts->{cursor} ) {
-        $opts->{cursor} = { } unless ref $opts->{cursor} eq 'HASH';
+    # boolify some options
+    for my $k (qw/allowDiskUse explain/) {
+        $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
     }
 
-    # explain requires a boolean
-    if ( exists $opts->{explain} ) {
-        $opts->{explain} = $opts->{explain} ? true : false;
-    }
-
-    my @command = ( aggregate => $self->name, pipeline => $pipeline, %$opts );
-    my ($last_op) = keys %{$pipeline->[-1]};
+    # read preferences are ignored if the last stage is $out
+    my ($last_op) = keys %{ $pipeline->[-1] };
     my $read_pref = $last_op eq '$out' ? undef : $self->read_preference;
 
-    my $op = MongoDB::Op::_Command->new(
-        db_name => $db->name,
-        query => \@command,
-        ( $read_pref ? ( read_preference => $read_pref ) : () )
+    my $op = MongoDB::Op::_Aggregate->new(
+        db_name    => $self->_database->name,
+        coll_name  => $self->name,
+        client     => $self->_client,
+        bson_codec => $self->_client,
+        pipeline   => $pipeline,
+        options    => $options,
+        ( $read_pref ? ( read_preference => $read_pref ) : () ),
     );
 
-    my $result = $self->_client->send_read_op( $op );
-    my $response = $result->result;
-
-    # if we got a cursor option then we need to construct a wonky cursor
-    # object on our end and populate it with the first batch, since
-    # commands can't actually return cursors.
-    if ( exists $opts->{cursor} ) {
-        unless ( exists $response->{cursor} ) {
-            die "no cursor returned from aggregation";
-        }
-
-        my $qr = MongoDB::QueryResult->new(
-            _client => $self->_client,
-            address => $result->address,
-            cursor  => $response->{cursor},
-        );
-
-        return $qr;
-    }
-
-    # return the whole response document if they want an explain
-    if ( $opts->{explain} ) {
-        return $response;
-    }
-
-    # TODO: handle errors?
-
-    return $response->{result};
+    return $self->_client->send_read_op($op);
 }
 
 =method parallel_scan($max_cursors)

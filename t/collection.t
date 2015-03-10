@@ -697,18 +697,19 @@ subtest "aggregation" => sub {
                            { wanted => 1, score => 33 },
                            { wanted => 0, score => 1000 } ] );
 
-    my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
+    my $cursor = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
                                   { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
 
-    is( ref( $res ), ref [ ] );
+    isa_ok( $cursor, 'MongoDB::QueryResult' );
+    my $res = [ $cursor->all ];
     ok $res->[0]{avgScore} < 59;
     ok $res->[0]{avgScore} > 57;
 
     if ( $server_version < v2.5.0 ) {
-        like(
-            exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
-            qr/unrecognized field.*cursor/,
-            "asking for cursor when unsupported throws error"
+        is(
+            exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => {} } ) },
+            undef,
+            "asking for cursor when unsupported does not throw error"
         );
     }
 };
@@ -787,8 +788,10 @@ subtest "aggregation explain" => sub {
         $coll->insert( { count => $_ } );
     }
 
-    my $result = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$sort' => { count => 1 } } ],
+    my $cursor = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$sort' => { count => 1 } } ],
                                    { explain => 1 } );
+
+    my $result = $cursor->next;
 
     is( ref( $result ), 'HASH', "aggregate with explain returns a hashref" );
 

@@ -132,9 +132,6 @@ class.  L<MongoDB::Cursor> is now just a thin wrapper that holds query
 parameters, instantiates a L<MongoDB::QueryResult> on demand, and passes
 iteration methods through to the query result object.
 
-Aggregation "cursors" and parallel scan "cursors" are now L<QueryResult>
-objects, with the same iteration methods as in v0.
-
 This significantly simplifes the code base and should have little end-user
 visibility unless users are specifically checking the return type of
 queries and query-like methods.
@@ -143,6 +140,19 @@ The C<explain> cursor method no longer resets the cursor.
 
 The C<slave_ok> cursor method now sets the C<read_preference>
 to 'secondaryPreferred' or clears it to 'primary'.
+
+Pparallel scan "cursors" are now L<QueryResult> objects, with the same
+iteration methods as in v0.
+
+=head2 Aggregation API
+
+On MongoDB 2.6 or later, C<aggregate> always uses a cursor to execute
+the query.  The C<batchSize> option has been added (but has no effect
+prior to 2.6).  The C<cursor> option is deprecated.
+
+The return types for the C<aggregate> method are now B<always>
+L<QueryResult> objects, regardless of whether the aggregation uses a cursor
+internally or is an 'explain'.
 
 =head2 Read preference objects and the C<read_preference> method
 

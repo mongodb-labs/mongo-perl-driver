@@ -24,7 +24,7 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 use Type::Library
   -base,
   -declare => qw(
-  ArrayofHashRef
+  ArrayOfHashRef
   AuthMechanism
   Booleanpm
   ConnectType
