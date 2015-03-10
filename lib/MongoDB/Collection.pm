@@ -225,11 +225,17 @@ a L<MongoDB::QueryResult> object:
 
 =cut
 
+my $find_args;
 sub find {
-    my ( $self, $filter, $opts ) = @_;
+    $find_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
+    my ( $self, $filter, $options ) = $find_args->(@_);
+    $options ||= {};
 
-    $opts ||= {};
-    $opts->{sort} = delete $opts->{sort_by} if $opts->{sort_by};
+    # backwards compatible sort option
+    $options->{sort} = delete $options->{sort_by} if $options->{sort_by};
+
+    # coerce to IxHash
+    $options->{sort} = __ixhash($options->{sort}) if exists $options->{sort};
 
     my $query = MongoDB::_Query->new(
         db_name         => $self->_database->name,
@@ -237,7 +243,7 @@ sub find {
         client          => $self->_client,
         read_preference => $self->read_preference,
         filter          => $filter || {},
-        %$opts,
+        %$options,
     );
 
     return MongoDB::Cursor->new( query => $query );
