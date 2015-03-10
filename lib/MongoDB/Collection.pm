@@ -163,52 +163,65 @@ sub get_collection {
     return $self->_database->get_collection($self->name.'.'.$coll);
 }
 
-=method find, query
+=method find
 
     my $cursor = $coll->find( $filter );
     my $cursor = $coll->find( $filter, $options );
 
-    my $cursor = $collection->find({ i => { '$gt' => 42 } }, {limit => 20});
+    my $cursor = $coll->find({ i => { '$gt' => 42 } }, {limit => 20});
 
-Executes a query with the given C<$filter> and returns a C<MongoDB::Cursor> with the results.
-C<$filter> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).
+Executes a query with filter expression and returns a C<MongoDB::Cursor>
+object.
 
-The query can be customized using L<MongoDB::Cursor> methods, or with an optional
-hash reference of options.
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for replacement.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+The query can be customized using L<MongoDB::Cursor> methods, or with an
+optional hash reference of options.
 
 Valid options include:
 
 =for :list
-* allowPartialResults - get partial results from a mongos if some shards are
+* C<allowPartialResults> - get partial results from a mongos if some shards are
   down (instead of throwing an error).
-* batchSize – the number of documents to return per batch.
-* comment – attaches a comment to the query. If C<$comment> also exists in the
+* C<batchSize> – the number of documents to return per batch.
+* C<comment> – attaches a comment to the query. If C<$comment> also exists in the
   modifiers document, the comment field overwrites C<$comment>.
-* cursorType – indicates the type of cursor to use. It must be one of three
+* C<cursorType> – indicates the type of cursor to use. It must be one of three
   enumerated values: C<non_tailable> (the default), C<tailable>, and
   C<tailable_await>.
-* limit – the maximum number of documents to return.
-* maxTimeMS – the maximum amount of time to allow the query to run. If
+* C<limit> – the maximum number of documents to return.
+* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
   C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
   overwrites C<$maxTimeMS>.
-* modifiers – a hash reference of meta-operators modifying the output or
+* C<modifiers> – a hash reference of meta-operators modifying the output or
   behavior of a query.
-* noCursorTimeout – if true, prevents the server from timing out a cursor after
+* C<noCursorTimeout> – if true, prevents the server from timing out a cursor after
   a period of inactivity
-* projection - a hash reference defining fields to return. See L<Limit fields
+* C<projection> - a hash reference defining fields to return. See L<Limit fields
   to
   return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
   in the MongoDB documentation for details.
-* skip – the number of documents to skip before returning.
-* sort – a L<Tie::IxHash> or array reference of key value pairs defining the
+* C<skip> – the number of documents to skip before returning.
+* C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
   order in which to return matching documents. If C<$orderby> also exists
-   * in the modifiers document, the sort field overwrites C<$orderby>.
+  in the modifiers document, the sort field overwrites C<$orderby>.
 
 See also core documentation on querying:
 L<http://docs.mongodb.org/manual/core/read/>.
 
-The C<query> method is a legacy alias for C<find>.
+B<Note>, a L<MongoDB::Cursor> object holds the query and does not issue the
+query to the server until the C<request> method is called on it or until an
+iterator method like C<next> is called.  Performance will be better directly on
+a L<MongoDB::QueryResult> object:
+
+    my $query_result = $coll->find( $filter )->result;
+
+    while ( my $next = $query_result->next ) {
+        ...
+    }
 
 =cut
 
