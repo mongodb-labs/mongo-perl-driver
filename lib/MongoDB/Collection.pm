@@ -780,7 +780,9 @@ A hash reference of options may be provided. Valid keys include:
 
 B<Note> MongoDB 2.6+ will return an empty result if the C<$out> pipeline
 operator is used to write aggregation results directly to a collection. Create
-a new collection> object to query the generated result collection.
+a new collection> object to query the generated result collection.  When
+C<$out> is used, the command is treated as a write operation and read
+preference is ignored.
 
 See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
 for more information on how to construct aggregation queries.

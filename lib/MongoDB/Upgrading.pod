@@ -154,6 +154,11 @@ The return types for the C<aggregate> method are now B<always>
 L<QueryResult> objects, regardless of whether the aggregation uses a cursor
 internally or is an 'explain'.
 
+B<NOTE>: To help users with a 2.6 mongos and mixed version shards with
+versions before 2.6, passing the deprecated 'cursor' option with a false
+value will disable the use of a cursor.  This workaround is provided for
+convenience and will be removed when 2.4 is no longer supported.
+
 =head2 Read preference objects and the C<read_preference> method
 
 A new L<MongoDB::ReadPreference> class is used to encapsulate read
