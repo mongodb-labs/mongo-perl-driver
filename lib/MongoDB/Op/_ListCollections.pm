@@ -77,7 +77,7 @@ sub _command_list_colls {
 
     my $res = $op->execute( $link, $topology );
 
-    return $self->_build_query_result( $res );
+    return $self->_build_result_from_cursor( $res );
 }
 
 sub _legacy_list_colls {

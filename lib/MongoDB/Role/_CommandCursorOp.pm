@@ -29,13 +29,7 @@ use namespace::clean -except => 'meta';
 
 requires 'client';
 
-has 'cursor_options' => (
-    is      => 'ro',
-    isa     => HashRef,
-    default => sub { {} },
-);
-
-sub _build_query_result {
+sub _build_result_from_cursor {
     my ( $self, $res ) = @_;
 
     my $cursor = $res->result->{cursor}

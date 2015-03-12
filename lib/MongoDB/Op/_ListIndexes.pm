@@ -93,7 +93,7 @@ sub _command_list_indexes {
         die $_;
     };
 
-    return $res ? $self->_build_query_result($res) : $self->_empty_query_result($link);
+    return $res ? $self->_build_result_from_cursor($res) : $self->_empty_query_result($link);
 }
 
 sub _legacy_list_indexes {
