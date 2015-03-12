@@ -489,7 +489,9 @@ subtest "find_one_and_replace" => sub {
 
     # find and replace non-existent doc, with upsert
     $doc = $coll->find_one_and_replace( { x => 2 }, { x => 3, y => 'c' }, { upsert => 1 } );
-    is( $doc, undef, "find_one_and_replace upsert on nonexistent doc returns undef" );
+    if ( $server_version >= v2.2.0 ) {
+        is( $doc, undef, "find_one_and_replace upsert on nonexistent doc returns undef" );
+    }
     is( $coll->count( {} ), 3, "doc has been upserted" );
     is( $coll->count( { x => 3 } ), 1, "1 doc matching replacment" );
 
@@ -550,7 +552,9 @@ subtest "find_one_and_update" => sub {
 
     # find and update non-existent doc, with upsert
     $doc = $coll->find_one_and_update( { x => 2 }, { '$inc' => { x => 1 }, '$set' => { y => 'c' } }, { upsert => 1 } );
-    is( $doc, undef, "find_one_and_update upsert on nonexistent doc returns undef" );
+    if ( $server_version >= v2.2.0 ) {
+        is( $doc, undef, "find_one_and_update upsert on nonexistent doc returns undef" );
+    }
     is( $coll->count( {} ), 3, "doc has been upserted" );
     is( $coll->count( { x => 3 } ), 1, "1 doc matching upsert" );
 
