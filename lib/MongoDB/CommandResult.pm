@@ -61,7 +61,16 @@ Error code (if any) or 0 if there was no error.
 
 sub last_code {
     my ($self) = @_;
-    return $self->result->{code} || 0;
+    my $result = $self->result;
+    if ( $result->{code} ) {
+        return $result->{code};
+    }
+    elsif ( $result->{lastErrorObject} ) {
+        return $result->{lastErrorObject}{code} || 0;
+    }
+    else {
+        return 0;
+    }
 }
 
 =method last_errmsg
