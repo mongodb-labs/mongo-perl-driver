@@ -436,8 +436,8 @@ Executes a query with filter expression and returns a C<MongoDB::Cursor>
 object.
 
 The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for replacement.  It must be a hash reference, array reference or
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select
+documents from the collection.  It must be a hash reference, array reference or
 L<Tie::IxHash> object.
 
 The query can be customized using L<MongoDB::Cursor> methods, or with an
