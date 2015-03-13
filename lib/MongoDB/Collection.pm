@@ -816,6 +816,34 @@ sub aggregate {
     return $self->_client->send_read_op($op);
 }
 
+=method count($query?)
+
+    my $n_objects = $collection->count({ name => 'Bob' });
+
+Counts the number of objects in this collection that match the given C<$query>.
+If no query is given, the total number of objects in the collection is returned.
+
+=cut
+
+sub count {
+    my ($self, $query, $options) = @_;
+    $query ||= {};
+    $options ||= {};
+
+    my $cursor = $self->find($query);
+
+    for my $key (keys %$options) {
+
+        if (!MongoDB::Cursor->can($key)) {
+            confess("$key is not a known method in MongoDB::Cursor");
+        }
+        $cursor->$key($options->{$key});
+    }
+
+    return $cursor->count;
+}
+
+
 =method parallel_scan($max_cursors)
 
     my @query_results = $collection->parallel_scan(10);
@@ -987,34 +1015,6 @@ sub save {
     else {
         return $self->insert( $doc, ( $options ? $options : () ) );
     }
-}
-
-
-=method count($query?)
-
-    my $n_objects = $collection->count({ name => 'Bob' });
-
-Counts the number of objects in this collection that match the given C<$query>.
-If no query is given, the total number of objects in the collection is returned.
-
-=cut
-
-sub count {
-    my ($self, $query, $options) = @_;
-    $query ||= {};
-    $options ||= {};
-
-    my $cursor = $self->find($query);
-
-    for my $key (keys %$options) {
-
-        if (!MongoDB::Cursor->can($key)) {
-            confess("$key is not a known method in MongoDB::Cursor");
-        }
-        $cursor->$key($options->{$key});
-    }
-
-    return $cursor->count;
 }
 
 
