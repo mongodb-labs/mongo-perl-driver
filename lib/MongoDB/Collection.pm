@@ -24,12 +24,14 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use MongoDB::Error;
 use MongoDB::InsertManyResult;
+use MongoDB::QueryResult;
 use MongoDB::WriteConcern;
 use MongoDB::_Query;
 use MongoDB::Op::_Aggregate;
 use MongoDB::Op::_BatchInsert;
 use MongoDB::Op::_CreateIndexes;
 use MongoDB::Op::_Delete;
+use MongoDB::Op::_Distinct;
 use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_Update;
@@ -828,10 +830,7 @@ criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
 document for replacement.  It must be a hash reference, array reference or
 L<Tie::IxHash> object.
 
-The query can be customized using L<MongoDB::Cursor> methods, or with an
-optional hash reference of options.
-
-Valid options include:
+A hash reference of options may be provided. Valid keys include:
 
 =for :list
 * C<hint> – L<specify an index to
@@ -855,7 +854,7 @@ my $count_args;
 
 sub count {
     $count_args ||= compile( Object, Optional [IxHash], Optional [HashRef] );
-    my ( $self, $filter, $options ) = @_;
+    my ( $self, $filter, $options ) = $count_args->(@_);
     $filter  ||= {};
     $options ||= {};
 
@@ -867,6 +866,54 @@ sub count {
         $self->read_preference );
 
     return $res->{n};
+}
+
+=method distinct 
+
+    my $result = $coll->count( $fieldname, $filter );
+    my $result = $coll->count( $fieldname, $filter, $options );
+
+Returns a L<MongoDB::QueryResult> object that will provide distinct values
+for a specified field.  The query may be limited by a filter document.
+
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for replacement.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+A hash reference of options may be provided. Valid keys include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
+  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
+  overwrites C<$maxTimeMS>.
+
+See documentation for the L<distinct
+command|http://docs.mongodb.org/manual/reference/command/distinct/> for
+details.
+
+=cut
+
+my $distinct_args;
+
+sub distinct {
+    $distinct_args ||= compile( Object, Str, Optional [IxHash], Optional [HashRef] );
+    my ( $self, $fieldname, $filter, $options ) = $distinct_args->(@_);
+    $filter ||= {};
+    $options ||= {};
+
+    my $op = MongoDB::Op::_Distinct->new(
+        db_name         => $self->_database->name,
+        coll_name       => $self->name,
+        client          => $self->_client,
+        bson_codec      => $self->_client,
+        fieldname       => $fieldname,
+        filter          => $filter,
+        options         => $options,
+        read_preference => $self->read_preference,
+    );
+
+    return $self->_client->send_read_op($op);
 }
 
 

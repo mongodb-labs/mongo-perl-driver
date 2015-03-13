@@ -356,8 +356,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         );
 
         # check expected values
-        my $distinct =
-          $testdb->run_command( [ distinct => $coll->name, key => "key" ] )->{values};
+        my $distinct = [ $coll->distinct("key")->all ];
         cmp_deeply( $distinct, bag( 1, 3 ), "only one document replaced" );
     };
 
@@ -855,8 +854,7 @@ subtest "unordered batch with errors" => sub {
         );
     }
 
-    my $distinct =
-      $testdb->run_command( [ distinct => $coll->name, key => "a" ] )->{values};
+    my $distinct = [ $coll->distinct("a")->all ];
     cmp_deeply( $distinct, bag( 1 .. 3 ), "distinct keys" );
 
 };
