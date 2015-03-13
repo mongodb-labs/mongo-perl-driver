@@ -816,31 +816,57 @@ sub aggregate {
     return $self->_client->send_read_op($op);
 }
 
-=method count($query?)
+=method count
 
-    my $n_objects = $collection->count({ name => 'Bob' });
+    my $count = $coll->count( $filter );
+    my $count = $coll->count( $filter, $options );
 
-Counts the number of objects in this collection that match the given C<$query>.
-If no query is given, the total number of objects in the collection is returned.
+Returns a count of documents matching a filter expression.
+
+The filter provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for replacement.  It must be a hash reference, array reference or
+L<Tie::IxHash> object.
+
+The query can be customized using L<MongoDB::Cursor> methods, or with an
+optional hash reference of options.
+
+Valid options include:
+
+=for :list
+* C<hint> – L<specify an index to
+  use|http://docs.mongodb.org/manual/reference/command/count/#specify-the-index-to-use>;
+  must be a string, array reference, hash reference or L<Tie::IxHash> object.
+* C<limit> – the maximum number of documents to count.
+* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
+  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
+  overwrites C<$maxTimeMS>.
+* C<skip> – the number of documents to skip before counting documents.
+
+B<NOTE>: On a sharded cluster, C<count> can result in an inaccurate count if
+orphaned documents exist or if a chunk migration is in progress.  See L<count
+command
+documentation|http://docs.mongodb.org/manual/reference/command/count/#behavior>
+for details and a work-around using L</aggregate>.
 
 =cut
 
+my $count_args;
+
 sub count {
-    my ($self, $query, $options) = @_;
-    $query ||= {};
+    $count_args ||= compile( Object, Optional [IxHash], Optional [HashRef] );
+    my ( $self, $filter, $options ) = @_;
+    $filter  ||= {};
     $options ||= {};
 
-    my $cursor = $self->find($query);
+    # string is OK so we check ref, not just exists
+    $options->{hint} = __ixhash($options->{hint}) if ref $options->{hint};
 
-    for my $key (keys %$options) {
+    my $res = $self->_database->run_command(
+        Tie::IxHash->new( count => $self->name, query => $filter, %$options ),
+        $self->read_preference );
 
-        if (!MongoDB::Cursor->can($key)) {
-            confess("$key is not a known method in MongoDB::Cursor");
-        }
-        $cursor->$key($options->{$key});
-    }
-
-    return $cursor->count;
+    return $res->{n};
 }
 
 
