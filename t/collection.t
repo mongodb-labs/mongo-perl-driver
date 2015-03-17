@@ -606,31 +606,6 @@ subtest 'text indices' => sub {
     $coll->drop;
 }
 
-# findAndModify
-{
-    $coll->insert_one( { name => "find_and_modify_test", value => 42 } );
-    $coll->find_and_modify( { query => { name => "find_and_modify_test" }, update => { '$set' => { value => 43 } } } );
-    my $doc = $coll->find_one( { name => "find_and_modify_test" } );
-    is( $doc->{value}, 43 );
-
-    $coll->drop;
-
-    $coll->insert_one( { name => "find_and_modify_test", value => 46 } );
-    my $new = $coll->find_and_modify( { query  => { name => "find_and_modify_test" },
-                                        update => { '$set' => { value => 57 } },
-                                        new    => 1 } );
-
-    is ( $new->{value}, 57 );
-
-    $coll->drop;
-
-    my $nothing = $coll->find_and_modify( { query => { name => "does not exist" }, update => { name => "barf" } } );
-
-    is ( $nothing, undef );
-
-    $coll->drop;
-}
-
 # aggregate
 subtest "aggregation" => sub {
     plan skip_all => "Aggregation framework unsupported on MongoDB $server_version"
