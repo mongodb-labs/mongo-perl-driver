@@ -42,7 +42,7 @@ subtest "realloc" => sub {
     $c->drop;
 
     my $long_str = "y" x 8184;
-    $c->insert({'text' => $long_str});
+    $c->insert_one({'text' => $long_str});
     my $result = $c->find_one;
     is($result->{'text'}, $long_str, 'realloc');
 };
@@ -52,7 +52,7 @@ subtest "id realloc" => sub {
     $c->drop;
 
     my $med_str = "z" x 4014;
-    $c->insert({'text' => $med_str, 'id2' => MongoDB::OID->new});
+    $c->insert_one({'text' => $med_str, 'id2' => MongoDB::OID->new});
     my $result = $c->find_one;
     is($result->{'text'}, $med_str, 'id realloc');
 };
@@ -60,7 +60,7 @@ subtest "id realloc" => sub {
 subtest "types" => sub {
     $c->drop;
 
-    my $id = $c->insert({"n" => undef,
+    my $id = $c->insert_one({"n" => undef,
                 "l" => 234234124,
                 "d" => 23.23451452,
                 "b" => true,
@@ -70,7 +70,7 @@ subtest "types" => sub {
                 "d2" => DateTime->from_epoch(epoch => 1271079861),
                 "regex" => qr/xtz/,
                 "_id" => MongoDB::OID->new("49b6d9fb17330414a0c63101"),
-                "string" => "string"});
+                "string" => "string"})->inserted_id;
 
     my $obj = $c->find_one;
 
@@ -115,7 +115,7 @@ subtest "UTF-8 strings" => sub {
     $c->drop;
 
     # latin1
-    $c->insert({char => "\xFE"});
+    $c->insert_one({char => "\xFE"});
     my $x =$c->find_one;
     is($x->{char}, "\xFE");
 
@@ -123,7 +123,7 @@ subtest "UTF-8 strings" => sub {
 
     # non-latin1
     my $valid = "\x{8D4B}\x{8BD5}";
-    $c->insert({char => $valid});
+    $c->insert_one({char => $valid});
     $x = $c->find_one;
 
     # make sure it's being returned as a utf8 string
@@ -148,7 +148,7 @@ subtest "bad UTF8" => sub {
         my $label = "0x" . unpack("H*", $bad_utf8);
         Encode::_utf8_on($bad_utf8); # force on internal UTF8 flag
         like(
-            exception { $c->insert({char => $bad_utf8}) },
+            exception { $c->insert_one({char => $bad_utf8}) },
             qr/Invalid UTF-8 detected while encoding/,
             "invalid UTF-8 throws an error inserting $label"
         );
@@ -166,7 +166,7 @@ subtest "circular references" => sub {
     $q->{'q'} = $q;
 
     eval {
-        $c->insert($q);
+        $c->insert_one($q);
     };
 
     ok($@ =~ /circular ref/);
@@ -176,7 +176,7 @@ subtest "circular references" => sub {
     $test{t} = \%test;
 
     eval {
-        $c->insert(\%test);
+        $c->insert_one(\%test);
     };
 
     ok($@ =~ /circular ref/);
@@ -185,7 +185,7 @@ subtest "circular references" => sub {
     $tie->Push("t" => $tie);
 
     eval {
-        $c->insert($tie);
+        $c->insert_one($tie);
     };
 
     ok($@ =~ /circular ref/);
@@ -193,22 +193,22 @@ subtest "circular references" => sub {
 
 subtest "no . in key names" => sub {
     eval {
-        $c->insert({"x.y" => "foo"});
+        $c->insert_one({"x.y" => "foo"});
     };
     like($@, qr/documents for storage cannot contain/, "insert");
 
     eval {
-        $c->insert({"x.y" => "foo", "bar" => "baz"});
+        $c->insert_one({"x.y" => "foo", "bar" => "baz"});
     };
     like($@, qr/documents for storage cannot contain/, "insert");
 
     eval {
-        $c->insert({"bar" => "baz", "x.y" => "foo"});
+        $c->insert_one({"bar" => "baz", "x.y" => "foo"});
     };
     like($@, qr/documents for storage cannot contain/, "insert");
 
     eval {
-        $c->insert({"bar" => {"x.y" => "foo"}});
+        $c->insert_one({"bar" => {"x.y" => "foo"}});
     };
     like($@, qr/documents for storage cannot contain/, "insert");
 
@@ -225,7 +225,7 @@ subtest "no . in key names" => sub {
 
 subtest "empty key name" => sub {
     eval {
-        $c->insert({"" => "foo"});
+        $c->insert_one({"" => "foo"});
     };
     ok($@ =~ /empty key name/);
 };
@@ -254,13 +254,13 @@ subtest "warn on floating timezone" => sub {
     my $warned = 0;
     local $SIG{__WARN__} = sub { if ($_[0] =~ /floating/) { $warned = 1; } else { warn(@_); } };
     my $date = DateTime->new(year => 2010, time_zone => "floating");
-    $c->insert({"date" => $date});
+    $c->insert_one({"date" => $date});
     is($warned, 1, "warn on floating timezone");
 };
 
 subtest "epoch time" => sub {
     my $date = DateTime->from_epoch( epoch => 0 );
-    is( exception { $c->insert( { "date" => $date } ) },
+    is( exception { $c->insert_one( { "date" => $date } ) },
         undef, "inserting DateTime at epoch succeeds" );
 };
 
@@ -273,7 +273,7 @@ subtest "half-conversion to int type" => sub {
     $var = int($var) if (int($var) eq $var);
     }
 
-    $c->insert({'key' => $var});
+    $c->insert_one({'key' => $var});
     my $v = $c->find_one;
 
     # make sure it was saved as string
@@ -291,7 +291,7 @@ subtest "store a scalar with magic that's both a float and int (PVMG w/pIOK set)
     int($size);
     }
 
-    $c->insert({'key' => $size});
+    $c->insert_one({'key' => $size});
     my $v = $c->find_one;
 
     # make sure it was saved as float
@@ -304,10 +304,10 @@ subtest "make sure _ids aren't double freed" => sub {
     my $insert1 = ['_id' => 1];
     my $insert2 = Tie::IxHash->new('_id' => 2);
 
-    my $id = $c->insert($insert1, {safe => 1});
+    my $id = $c->insert_one($insert1)->inserted_id;
     is($id, 1);
 
-    $id = $c->insert($insert2, {safe => 1});
+    $id = $c->insert_one($insert2)->inserted_id;
     is($id, 2);
 };
 
@@ -316,13 +316,13 @@ subtest "aggressively convert numbers" => sub {
 
     $c->drop;
 
-    $c->insert({num => "4"});
-    $c->insert({num => "5"});
-    $c->insert({num => "6"});
+    $c->insert_one({num => "4"});
+    $c->insert_one({num => "5"});
+    $c->insert_one({num => "6"});
 
-    $c->insert({num => 4});
-    $c->insert({num => 5});
-    $c->insert({num => 6});
+    $c->insert_one({num => 4});
+    $c->insert_one({num => 5});
+    $c->insert_one({num => 6});
 
     is($c->count({num => {'$gt' => 4}}), 4);
     is($c->count({num => {'$gte' => "5"}}), 4);
@@ -338,8 +338,8 @@ subtest "MongoDB::BSON::String type" => sub {
 
     my $num = "001";
 
-    $c->insert({num => $num}, {safe => 1});
-    $c->insert({num => bless(\$num, "MongoDB::BSON::String")}, {safe => 1});
+    $c->insert_one({num => $num} );
+    $c->insert_one({num => bless(\$num, "MongoDB::BSON::String")});
 
     $MongoDB::BSON::looks_like_number = 0;
 
@@ -365,7 +365,7 @@ subtest "MongoDB::BSON::Binary type" => sub {
                    MongoDB::BSON::Binary->new(data => $str, subtype => MongoDB::BSON::Binary->SUBTYPE_MD5),
                    MongoDB::BSON::Binary->new(data => $str, subtype => MongoDB::BSON::Binary->SUBTYPE_USER_DEFINED)]};
 
-    $c->insert($bin, {safe => 1});
+    $c->insert_one($bin);
 
     my $doc = $c->find_one;
 
@@ -398,7 +398,7 @@ subtest "Checking hash key unicode support" => sub {
     my $hash = { $testkey => 1 };
 
     my $oid;
-    eval { $oid = $c->insert( $hash, {safe => 1}); };
+    eval { $oid = $c->insert_one( $hash )->inserted_id; };
     is ( $@, '' );
     my $obj = $c->find_one( { _id => $oid } );
     is ( $obj->{$testkey}, 1 );
@@ -408,7 +408,7 @@ subtest "PERL-489 ref to PVNV" => sub {
     my $value = 42.2;
     $value = "hello";
     is(
-        exception { $c->insert( { value => \$value } ) },
+        exception { $c->insert_one( { value => \$value } ) },
         undef,
         "inserting ref to PVNV is not fatal",
     );

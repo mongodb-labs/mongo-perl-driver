@@ -41,7 +41,7 @@ my $coll = $testdb->get_collection('test_collection');
 
 my $test_regex = eval 'qr/foo/iu';    # eval regex to prevent compile failure on pre-5.14
 warning_like { 
-    $coll->insert( { name => 'foo', test_regex => $test_regex } )
+    $coll->insert_one( { name => 'foo', test_regex => $test_regex } )
 } qr{unsupported regex flag /u}, 'unsupported flag warning';
 
 

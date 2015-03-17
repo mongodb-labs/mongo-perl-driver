@@ -40,7 +40,7 @@ $testdb->drop;
 my $now = DateTime->now;
 
 {
-    $testdb->get_collection( 'test_collection' )->insert( { date => $now } );
+    $testdb->get_collection( 'test_collection' )->insert_one( { date => $now } );
 
     my $date1 = $testdb->get_collection( 'test_collection' )->find_one->{date};
     isa_ok $date1, 'DateTime';
@@ -49,7 +49,7 @@ my $now = DateTime->now;
 }
 
 {
-    $testdb->get_collection( 'test_collection' )->insert( { date => $now } );
+    $testdb->get_collection( 'test_collection' )->insert_one( { date => $now } );
     $conn->dt_type( undef );
     my $date3 = $testdb->get_collection( 'test_collection' )->find_one->{date};
     ok( not ref $date3 );
@@ -59,7 +59,7 @@ my $now = DateTime->now;
 
 
 {
-    $testdb->get_collection( 'test_collection' )->insert( { date => $now } );
+    $testdb->get_collection( 'test_collection' )->insert_one( { date => $now } );
     $conn->dt_type( 'DateTime::Tiny' );
     my $date2 = $testdb->get_collection( 'test_collection' )->find_one->{date};
     isa_ok( $date2, 'DateTime::Tiny' );
@@ -68,7 +68,7 @@ my $now = DateTime->now;
 }
 
 {
-    $testdb->get_collection( 'test_collection' )->insert( { date => $now } );
+    $testdb->get_collection( 'test_collection' )->insert_one( { date => $now } );
     $conn->dt_type( 'DateTime::Bad' );
     like( exception { 
             my $date4 = $testdb->get_collection( 'test_collection' )->find_one->{date};
@@ -84,7 +84,7 @@ my $now = DateTime->now;
 {
     $conn->dt_type( 'DateTime' );
     my $coll = $testdb->get_collection( 'test_collection' );
-    $coll->insert( { date => $now } );
+    $coll->insert_one( { date => $now } );
     my $doc = $coll->find_one;
 
     $doc->{date}->add( seconds => 60 );
@@ -101,7 +101,7 @@ my $now = DateTime->now;
     $conn->dt_type( 'DateTime::Tiny' );
     my $dtt_now = DateTime::Tiny->now;
     my $coll = $testdb->get_collection( 'test_collection' );
-    $coll->insert( { date => $dtt_now } );
+    $coll->insert_one( { date => $dtt_now } );
     my $doc = $coll->find_one;
 
     is $doc->{date}->year,   $dtt_now->year;
@@ -127,7 +127,7 @@ my $now = DateTime->now;
     my $now = DateTime->now;
     $now->add( nanoseconds => 500_000_000 );
     
-    $coll->insert( { date => $now } );
+    $coll->insert_one( { date => $now } );
     my $doc = $coll->find_one;
 
     is $doc->{date}->year,       $now->year;

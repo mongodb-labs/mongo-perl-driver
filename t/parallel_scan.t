@@ -54,7 +54,7 @@ subtest "parallel scan" => sub {
     my $num_docs = 2000;
 
     for ( 1 .. $num_docs ) {
-        $coll->insert( { _id => $_ } );
+        $coll->insert_one( { _id => $_ } );
     }
 
     my $err_re = qr/must be a positive integer between 1 and 10000/;

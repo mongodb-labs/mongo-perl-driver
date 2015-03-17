@@ -51,7 +51,7 @@ like(
     my $testdb = get_test_db($conn);
     my $coll = $testdb->get_collection("test_collection");
     
-    $coll->insert( {
+    $coll->insert_one( {
         _id => 'spl0rt',
         foo => MongoDB::BSON::Regexp->new( pattern => 'foo.+bar', flags => 'ims' ) } 
     );

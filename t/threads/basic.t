@@ -39,7 +39,7 @@ $col->drop;
 
     my $ret = try {
         threads->create(sub {
-            $col->insert({ foo => 42 }, { safe => 1 });
+            $col->insert_one({ foo => 42 })->inserted_id;
         })->join->value;
     }
     catch {
@@ -58,7 +58,7 @@ $col->drop;
     my @threads = map {
         threads->create(sub {
             my $col = $conn->get_database($testdb->name)->get_collection('kooh');
-            map { $col->insert({ foo => threads->self->tid }, { safe => 1 }) } 1 .. $n_inserts;
+            map { $col->insert_one({ foo => threads->self->tid })->inserted_id } 1 .. $n_inserts;
         })
     } 1 .. $n_threads;
 

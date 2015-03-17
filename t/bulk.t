@@ -217,7 +217,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "update all docs with $method" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        $coll->insert($_) for map { { key => $_ } } 1, 2;
+        $coll->insert_one($_) for map { { key => $_ } } 1, 2;
         my @docs = $coll->find( {} )->all;
 
         $bulk->find( {} )->update( { '$set' => { x => 3 } } );
@@ -244,7 +244,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "update only matching docs with $method" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        $coll->insert($_) for map { { key => $_ } } 1, 2;
+        $coll->insert_one($_) for map { { key => $_ } } 1, 2;
         my @docs = $coll->find( {} )->all;
 
         $bulk->find( { key => 1 } )->update( { '$set' => { x => 1 } } );
@@ -272,7 +272,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "update_one with $method" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        $coll->insert($_) for map { { key => $_ } } 1, 2;
+        $coll->insert_one($_) for map { { key => $_ } } 1, 2;
 
         $bulk->find( {} )->update_one( { '$set' => { key => 3 } } );
         my ( $result, $err );
@@ -337,7 +337,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "replace_one with $method" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
 
         $bulk->find( {} )->replace_one( { key => 3 } );
         my ( $result, $err );
@@ -429,7 +429,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "upsert-update updates with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
         my @docs = $coll->find( {} )->all;
 
         my $bulk = $coll->$method;
@@ -523,7 +523,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "upsert-update_one (no insert) with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
         my @docs = $coll->find( {} )->all;
 
         my $bulk = $coll->$method;
@@ -589,7 +589,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "upsert-replace_one (no insert) with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
         my @docs = $coll->find( {} )->all;
 
         my $bulk = $coll->$method;
@@ -636,7 +636,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "remove all with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
 
         my $bulk = $coll->$method;
         $bulk->find( {} )->remove;
@@ -661,7 +661,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "remove matching with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => $_ } ) for 1 .. 2;
+        $coll->insert_one( { key => $_ } ) for 1 .. 2;
 
         my $bulk = $coll->$method;
         $bulk->find( { key => 1 } )->remove;
@@ -703,7 +703,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "remove_one with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
 
         my $bulk = $coll->$method;
         $bulk->find( {} )->remove_one;
@@ -730,7 +730,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 note("QA-477 MIXED OPERATIONS, UNORDERED");
 subtest "mixed operations, unordered" => sub {
     $coll->drop;
-    $coll->insert( { a => $_ } ) for 1 .. 2;
+    $coll->insert_one( { a => $_ } ) for 1 .. 2;
 
     my $bulk = $coll->initialize_unordered_bulk_op;
     $bulk->find( { a => 1 } )->update( { '$set' => { b => 1 } } );
@@ -1164,7 +1164,7 @@ subtest "insert (ARRAY)" => sub {
 
 subtest "update (ARRAY)" => sub {
     $coll->drop;
-    $coll->insert( { _id => 1 } );
+    $coll->insert_one( { _id => 1 } );
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( [] )->update( [ '$set' => { x => 2 } ] );
     my ( $result, $err );
@@ -1175,7 +1175,7 @@ subtest "update (ARRAY)" => sub {
 
 subtest "update_one (ARRAY)" => sub {
     $coll->drop;
-    $coll->insert( { _id => $_ } ) for 1 .. 2;
+    $coll->insert_one( { _id => $_ } ) for 1 .. 2;
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( [] )->update_one( [ '$set' => { x => 2 } ] );
     my ( $result, $err );
@@ -1186,7 +1186,7 @@ subtest "update_one (ARRAY)" => sub {
 
 subtest "replace_one (ARRAY)" => sub {
     $coll->drop;
-    $coll->insert( { key => $_ } ) for 1 .. 2;
+    $coll->insert_one( { key => $_ } ) for 1 .. 2;
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( [] )->replace_one( [ key => 3 ] );
     my ( $result, $err );
@@ -1211,7 +1211,7 @@ subtest "insert (Tie::IxHash)" => sub {
 
 subtest "update (Tie::IxHash)" => sub {
     $coll->drop;
-    $coll->insert( { _id => 1 } );
+    $coll->insert_one( { _id => 1 } );
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( Tie::IxHash->new() )
       ->update( Tie::IxHash->new( '$set' => { x => 2 } ) );
@@ -1223,7 +1223,7 @@ subtest "update (Tie::IxHash)" => sub {
 
 subtest "update_one (Tie::IxHash)" => sub {
     $coll->drop;
-    $coll->insert( { _id => $_ } ) for 1 .. 2;
+    $coll->insert_one( { _id => $_ } ) for 1 .. 2;
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( Tie::IxHash->new() )
       ->update_one( Tie::IxHash->new( '$set' => { x => 2 } ) );
@@ -1235,7 +1235,7 @@ subtest "update_one (Tie::IxHash)" => sub {
 
 subtest "replace_one (Tie::IxHash)" => sub {
     $coll->drop;
-    $coll->insert( { key => $_ } ) for 1 .. 2;
+    $coll->insert_one( { key => $_ } ) for 1 .. 2;
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( Tie::IxHash->new() )->replace_one( Tie::IxHash->new( key => 3 ) );
     my ( $result, $err );

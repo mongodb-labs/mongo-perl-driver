@@ -55,7 +55,7 @@ plan tests => 28;
 
 # test fetch
 { 
-    $testdb->get_collection( 'test_coll' )->insert( { _id => 123, foo => 'bar' } );
+    $testdb->get_collection( 'test_coll' )->insert_one( { _id => 123, foo => 'bar' } );
 
     my $ref = MongoDB::DBRef->new( db => 'fake_db_does_not_exist', 'ref', 'fake_coll_does_not_exist', id => 123 );
     like(
@@ -84,7 +84,7 @@ plan tests => 28;
     my $dbref = MongoDB::DBRef->new( db => 'some_db', ref => 'some_coll', id => 123 );
     my $coll = $testdb->get_collection( 'test_coll' );
 
-    $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
+    $coll->insert_one( { _id => 'wut wut wut', thing => $dbref } );
 
     my $doc = $coll->find_one( { _id => 'wut wut wut' } );
     ok exists $doc->{thing};
@@ -102,11 +102,11 @@ plan tests => 28;
 # test fetch via find
 {
     my $some_coll = $testdb->get_collection( 'some_coll' );
-    $some_coll->insert( { _id => 123, value => 'foobar' } );
+    $some_coll->insert_one( { _id => 123, value => 'foobar' } );
     my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
 
     my $coll = $testdb->get_collection( 'test_coll' );
-    $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
+    $coll->insert_one( { _id => 'wut wut wut', thing => $dbref } );
 
     my $ref_doc = $coll->find_one( { _id => 'wut wut wut' } )->{thing}->fetch;
 
@@ -124,7 +124,7 @@ plan tests => 28;
     my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
 
     my $coll = $testdb->get_collection( 'test_coll' );
-    $coll->insert( { _id => 'wut wut wut', thing => $dbref } );
+    $coll->insert_one( { _id => 'wut wut wut', thing => $dbref } );
 
     my $doc = $coll->find_one( { _id => 'wut wut wut' } );
     ok exists $doc->{thing};

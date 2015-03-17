@@ -42,10 +42,10 @@ $testdb->drop;
 {
     $coll = $testdb->get_collection('test_collection');
 
-    $coll->insert({ foo => 9,  bar => 3, shazbot => 1 });
-    $coll->insert({ foo => 2,  bar => 5 });
-    $coll->insert({ foo => -3, bar => 4 });
-    $coll->insert({ foo => 4,  bar => 9, shazbot => 1 });
+    $coll->insert_one({ foo => 9,  bar => 3, shazbot => 1 });
+    $coll->insert_one({ foo => 2,  bar => 5 });
+    $coll->insert_one({ foo => -3, bar => 4 });
+    $coll->insert_one({ foo => 4,  bar => 9, shazbot => 1 });
 }
 
 # $coll->query
@@ -102,8 +102,8 @@ $testdb->drop;
     is($coll->query->next, undef, 'test undef');
     is_deeply([$coll->query->all], []);
 
-    my $id1 = $coll->insert({x => 1});
-    my $id2 = $coll->insert({x => 5});
+    my $id1 = $coll->insert_one({x => 1})->inserted_id;
+    my $id2 = $coll->insert_one({x => 5})->inserted_id;
 
     is($coll->count, 2);
     $cursor = $coll->query;
@@ -147,9 +147,9 @@ $testdb->drop;
 
 # paging
 {
-    $coll->insert({x => 2});
-    $coll->insert({x => 3});
-    $coll->insert({x => 4});
+    $coll->insert_one({x => 2});
+    $coll->insert_one({x => 3});
+    $coll->insert_one({x => 4});
     my $paging = $coll->query->skip(1)->limit(2);
     is($paging->has_next, 1, 'check skip/limit');
     $paging->next;
@@ -223,7 +223,7 @@ $testdb->drop;
 
     $coll->drop;
 
-    $coll->insert({'num' => 1, 'foo' => 1});
+    $coll->insert_one({'num' => 1, 'foo' => 1});
 
     like( exception { $coll->query->hint( { 'num' => 1 } )->explain },
         qr/MongoDB::DatabaseError/, "check error on hint with explain" );
@@ -282,7 +282,7 @@ $testdb->drop;
 
     #test is actual cursor
     $coll->drop;
-    $coll->insert({"x" => 1});
+    $coll->insert_one({"x" => 1});
     $cursor = $coll->find()->tailable(0);
     my $doc = $cursor->next;
     is($doc->{'x'}, 1);
@@ -304,7 +304,7 @@ $testdb->drop;
 {
     $coll->drop;
 
-    $coll->insert({"x" => 1});
+    $coll->insert_one({"x" => 1});
 
     $cursor = $coll->find;
     my $doc = $cursor->next;
@@ -343,7 +343,7 @@ $testdb->drop;
     $coll->drop;
 
     for (my $i=0; $i < 5; $i++) {
-        $coll->insert({x => $i});
+        $coll->insert_one({x => $i});
     }
 
     $cursor = $testdb->get_collection( 'test_collection' )->query({}, { limit => 10, skip => 0, sort_by => {created => 1 }});
@@ -358,7 +358,7 @@ subtest "delayed tailable cursor" => sub {
     my $cmd = [ create => "test_collection", capped => 1, size => 10000 ];
     $testdb->run_command($cmd);
 
-    $coll->insert( { x => $_ } ) for 0 .. 9;
+    $coll->insert_one( { x => $_ } ) for 0 .. 9;
 
     # Get last doc
     my $cursor = $coll->find()->sort({x => -1})->limit(1);
@@ -370,7 +370,7 @@ subtest "delayed tailable cursor" => sub {
     $cursor->next();
 
     for (my $i=10; $i < 20; $i++) {
-        $coll->insert({x => $i});
+        $coll->insert_one({x => $i});
     }
 
     # We should retrieve documents here since we are tailable.
@@ -387,7 +387,7 @@ subtest "await data" => sub {
     my $cmd = [ create => "test_collection", capped => 1, size => 10000 ];
     $testdb->run_command($cmd);
 
-    $coll->insert( { x => $_ } ) for 0 .. 9;
+    $coll->insert_one( { x => $_ } ) for 0 .. 9;
 
     # Get last doc
     my $cursor = $coll->find()->sort( { x => -1 } )->limit(1);
@@ -408,8 +408,8 @@ subtest "await data" => sub {
 subtest "count w/ hint" => sub {
 
     $coll->drop;
-    $coll->insert( { i => 1 } );
-    $coll->insert( { i => 2 } );
+    $coll->insert_one( { i => 1 } );
+    $coll->insert_one( { i => 2 } );
     is ($coll->find()->count(), 2, 'count = 2');
 
     $coll->ensure_index( { i => 1 } );
