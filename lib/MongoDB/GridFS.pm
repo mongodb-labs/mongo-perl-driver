@@ -26,6 +26,8 @@ use MongoDB::GridFS::File;
 use DateTime 0.78; # drops dependency on bug-prone Math::Round
 use Digest::MD5;
 use Moose;
+use MongoDB::WriteConcern;
+use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
@@ -67,6 +69,35 @@ has _database => (
     required => 1,
 );
 
+=attr read_preference
+
+A L<MongoDB::ReadPreference> object.  It may be initialized with a string
+corresponding to one of the valid read preference modes or a hash reference
+that will be coerced into a new MongoDB::ReadPreference object.
+
+=cut
+
+has read_preference => (
+    is       => 'ro',
+    isa      => ReadPreference,
+    required => 1,
+    coerce   => 1,
+);
+
+=attr write_concern
+
+A L<MongoDB::WriteConcern> object.  It may be initialized with a hash
+reference that will be coerced into a new MongoDB::WriteConcern object.
+
+=cut
+
+has write_concern => (
+    is       => 'ro',
+    isa      => WriteConcern,
+    required => 1,
+    coerce   => 1,
+);
+
 =head2 prefix
 
 The prefix used for the collections.  Defaults to "fs".
@@ -94,7 +125,13 @@ has files => (
 
 sub _build_files {
     my $self = shift;
-    my $coll = $self->_database->get_collection($self->prefix . '.files');
+    my $coll = $self->_database->get_collection(
+        $self->prefix . '.files',
+        {
+            read_preference => $self->read_preference,
+            write_concern   => $self->write_concern
+        }
+    );
     return $coll;
 }
 
@@ -114,7 +151,13 @@ has chunks => (
 
 sub _build_chunks {
     my $self = shift;
-    my $coll = $self->_database->get_collection($self->prefix . '.chunks');
+    my $coll = $self->_database->get_collection(
+        $self->prefix . '.chunks',
+        {
+            read_preference => $self->read_preference,
+            write_concern   => $self->write_concern
+        }
+    );
     return $coll;
 }
 
@@ -210,68 +253,73 @@ sub find_one {
     return MongoDB::GridFS::File->new({_grid => $self,info => $file});
 }
 
-=head2 remove ($criteria?, $options?)
+=head2 remove
 
     $grid->remove({"filename" => "foo.txt"});
+    $grid->remove({"filename" => "foo.txt"}, $options);
 
 Cleanly removes files from the database.  C<$options> is a hash of options for
-the remove.  Possible options are:
+the remove.
 
-=over 4
+A hashref of options may be provided with the following keys:
 
-=item just_one
-If true, only one file matching the criteria will be removed.
-
-=item safe
-If true, each remove will be checked for success and die on failure.
-
-=back
+=for :list
+* C<just_one>: If true, only one file matching the criteria will be removed.
+* C<safe>: (DEPRECATED) If true, each remove will be checked for success and
+  die on failure.  Set the L</write_concern> attribute instead.
 
 This method doesn't return anything.
 
 =cut
 
 sub remove {
-    my ($self, $criteria, $options) = @_;
+    my ( $self, $criteria, $options ) = @_;
+    $options ||= {};
 
-    my $just_one = 0;
-    my $safe = 0;
+    my $chunks =
+      exists $options->{safe}
+      ? $self->chunks->clone( write_concern => $self->_dynamic_write_concern($options) )
+      : $self->chunks;
 
-    if (defined $options) {
-        if (ref $options eq 'HASH') {
-            $just_one = $options->{just_one} && 1;
-            $safe = $options->{safe} && 1;
-        }
-        elsif ($options) {
-            $just_one = $options && 1;
-        }
-    }
+    my $files =
+      exists $options->{safe}
+      ? $self->files->clone( write_concern => $self->_dynamic_write_concern($options) )
+      : $self->files;
 
-    if ($just_one) {
-        my $meta = $self->files->find_one($criteria);
-        $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
-        $self->files->remove({"_id" => $meta->{'_id'}}, {safe => $safe});
+    if ( $options->{just_one} ) {
+        my $meta = $files->find_one($criteria);
+        $chunks->delete_many( { "files_id" => $meta->{'_id'} } );
+        $files->delete_one( { "_id" => $meta->{'_id'} } );
     }
     else {
-        my $cursor = $self->files->query($criteria);
-        while (my $meta = $cursor->next) {
-            $self->chunks->remove({"files_id" => $meta->{'_id'}}, {safe => $safe});
+        my $cursor = $files->find($criteria);
+        while ( my $meta = $cursor->next ) {
+            $chunks->delete_many( { "files_id" => $meta->{'_id'} } );
         }
-        $self->files->remove($criteria, {safe => $safe});
+        $files->delete_many($criteria);
     }
+    return;
 }
 
 
-=head2 insert ($fh, $metadata?, $options?)
+=head2 insert
+
+    my $id = $gridfs->insert($fh);
+    my $id = $gridfs->insert($fh, $metadata);
+    my $id = $gridfs->insert($fh, $metadata, $options);
 
     my $id = $gridfs->insert($fh, {"content-type" => "text/html"});
 
 Reads from a file handle into the database.  Saves the file with the given
-metadata.  The file handle must be readable.  C<$options> can be
-C<{"safe" => true}>, which will do safe inserts and check the MD5 hash
-calculated by the database against an MD5 hash calculated by the local
-filesystem.  If the two hashes do not match, then the chunks already inserted
-will be removed and the program will die.
+metadata.  The file handle must be readable.
+
+A hashref of options may be provided with the following keys:
+
+=for :list
+* C<safe>: (DEPRECATED) Will do safe inserts and check the MD5 hash calculated
+  by the database against an MD5 hash calculated by the local filesystem.  If
+  the two hashes do not match, then the chunks already inserted will be removed
+  and the program will die. Set the L</write_concern> attribute instead.
 
 Because C<MongoDB::GridFS::insert> takes a file handle, it can be used to insert
 very long strings into the database (as well as files).  C<$fh> must be a
@@ -297,6 +345,16 @@ sub insert {
     confess "not a file handle" unless $fh;
     $metadata = {} unless $metadata && ref $metadata eq 'HASH';
 
+    my $chunks =
+      exists $options->{safe}
+      ? $self->chunks->clone( write_concern => $self->_dynamic_write_concern($options) )
+      : $self->chunks;
+
+    my $files =
+      exists $options->{safe}
+      ? $self->files->clone( write_concern => $self->_dynamic_write_concern($options) )
+      : $self->files;
+
     my $start_pos = $fh->getpos();
 
     my $id;
@@ -310,29 +368,31 @@ sub insert {
     my $n = 0;
     my $length = 0;
     while ((my $len = $fh->read(my $data, $MongoDB::GridFS::chunk_size)) != 0) {
-        $self->chunks->insert({"files_id" => $id,
+        $chunks->insert_one({"files_id" => $id,
                                "n"        => $n,
-                               "data"     => bless(\$data)}, $options);
+                               "data"     => bless(\$data)});
         $n++;
         $length += $len;
     }
+
     $fh->setpos($start_pos);
 
     my %copy = %{$metadata};
     # compare the md5 hashes
-    if ($options->{safe}) {
+    if ($files->write_concern->is_safe) {
         # get an md5 hash for the file. set the retry flag to 'true' incase the 
         # database, collection, or indexes are missing. That way we can recreate them 
         # retry the md5 calc.
-        my $result = $self->_calc_md5($id, $self->prefix, 1);
+        my $result = $self->_calc_md5($chunks, $id, $self->prefix, 1);
         $copy{"md5"} = $result->{"md5"};
 
         my $md5 = Digest::MD5->new;
         $md5->addfile($fh);
+        $fh->setpos($start_pos);
         my $digest = $md5->hexdigest;
         if ($digest ne $result->{md5}) {
             # cleanup and die
-            $self->chunks->remove({files_id => $id});
+            $chunks->delete_many({files_id => $id});
             die "md5 hashes don't match: database got $result->{md5}, fs got $digest";
         }
     }
@@ -341,16 +401,17 @@ sub insert {
     $copy{"chunkSize"} = $MongoDB::GridFS::chunk_size;
     $copy{"uploadDate"} = DateTime->now;
     $copy{"length"} = $length;
-    return $self->files->insert(\%copy, $options);
+    return $files->insert_one(\%copy)->inserted_id;
 }
 
 # Calculates the md5 of the file on the server
+# $chunks: collection object with correct write concern
 # $id    : reference to the object we want to hash
 # $root  : the namespace the file resides in
 # $retry : a flag which controls whether or not to retry the md5 calc. 
 #         (which is currently only if we are missing our indexes)
 sub _calc_md5 {
-    my ($self, $id, $root, $retry) = @_;
+    my ($self, $chunks, $id, $root, $retry) = @_;
    
     # Try to get an md5 hash for the file
     my $result = $self->_database->run_command(["filemd5", $id, "root" => $self->prefix]);
@@ -362,11 +423,11 @@ sub _calc_md5 {
         # but we wont pass set the $retry flag again. We don't want an infinite loop for any reason. 
         if ($retry == 1 && $result eq 'need an index on { files_id : 1 , n : 1 }'){
             $self->_ensure_indexes();
-            $result = $self->_calc_md5($id, $root, 0);
+            $result = $self->_calc_md5($chunks, $id, $root, 0);
         }
         # Well, something bad is happening, so lets clean up and die. 
         else{
-            $self->chunks->remove({files_id => $id});
+            $chunks->delete_many({files_id => $id});
             die "recieve an unexpected error from the server: $result";
         }
     }
@@ -403,7 +464,7 @@ sub all {
     my ($self) = @_;
     my @ret;
 
-    my $cursor = $self->files->query;
+    my $cursor = $self->files->find({});
     while (my $meta = $cursor->next) {
         push @ret, MongoDB::GridFS::File->new(
             _grid => $self,
@@ -411,6 +472,27 @@ sub all {
     }
     return @ret;
 }
+
+#--------------------------------------------------------------------------#
+# private methods
+#--------------------------------------------------------------------------#
+
+sub _dynamic_write_concern {
+    my ( $self, $opts ) = @_;
+
+    my $wc = $self->write_concern;
+
+    if ( !exists $opts->{safe} ) {
+        return $wc;
+    }
+    elsif ( $opts->{safe} ) {
+        return $wc->is_safe ? $wc : MongoDB::WriteConcern->new( w => 1 );
+    }
+    else {
+        return MongoDB::WriteConcern->new( w => 0 );
+    }
+}
+
 
 __PACKAGE__->meta->make_immutable;
 

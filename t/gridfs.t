@@ -191,7 +191,7 @@ $grid->drop;
     $grid->insert($img, {"filename" => "garbage.png"});
 
     is($grid->files->count, 2);
-    $grid->remove({'filename' => 'garbage.png'}, 1);
+    $grid->remove({'filename' => 'garbage.png'}, {just_one => 1});
     is($grid->files->count, 1, 'remove just one');
 
     unlink 't/output.txt', 't/output.png', 't/outsub.txt';

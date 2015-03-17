@@ -259,6 +259,19 @@ $result->isa("MongoDB::WriteResult") >> will continue to work as expected.
 The attributes have been renamed to be consistent with the new CRUD API.
 The legacy names are deprecated, but are available as aliases.
 
+=head2 GridFS
+
+The L<MongoDB::GridFS> class now has explicit read preference and write
+concern attributes inherited from L<MongoDB::MongoClient> or
+L<MongoDB::Database>, just like L<MongoDB::Collection>.  This means that
+GridFS operations now default to an acknowledged write concern, just like
+collection operations have been doing since v0.502.0 in 2012.
+
+The use of C<safe> is deprecated.
+
+Support for ancient, undocumented positional parameters circa 2010
+has been removed.
+
 =head2 Low-level functions removed
 
 Low-level driver functions have been removed from the public API.
