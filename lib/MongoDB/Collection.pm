@@ -170,9 +170,8 @@ sub get_collection {
 
     $res = $coll->insert_one( $document );
 
-Inserts a single document into the database and returns a
-L<MongoDB::InsertOneResult> object.  The document may be a hash reference, an
-array reference or a L<Tie::IxHash> object.  If no C<_id> field is present, one
+Inserts a single L<document|/Document> into the database and returns a
+L<MongoDB::InsertOneResult> object.If no C<_id> field is present, one
 will be added to the original document.
 
 =cut
@@ -199,13 +198,12 @@ sub insert_one {
     $res = $coll->insert_many( [ @documents ] );
     $res = $coll->insert_many( [ @documents ], { ordered => 0 } );
 
-Inserts each of the documents in an array reference into the database and
-returns a L<MongoDB::InsertManyResult>.  This is syntactic sugar for
-doing a L<MongoDB::BulkWrite> operation.
+Inserts each of the L<documents|/Documents> in an array reference into the
+database and returns a L<MongoDB::InsertManyResult>.  This is syntactic sugar
+for doing a L<MongoDB::BulkWrite> operation.
 
-The documents to be inserted may be hash references, array references or
-L<Tie::IxHash> objects.  If no C<_id> field is present in a document, one will
-be added to the original document.
+If no C<_id> field is present in a document, one will be added to the original
+document.
 
 An optional hash reference of options may be provided.  The only valid option
 is C<ordered>, which defaults to true.  When true, the server will halt
@@ -243,13 +241,8 @@ sub insert_many {
     $res = $coll->delete_one( $filter );
     $res = $coll->delete_one( { _id => $id } );
 
-Deletes a single document that matches a filter expression and returns a
+Deletes a single document that matches a L<filter expression|/Filter expression> and returns a
 L<MongoDB::DeleteResult> object.
-
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for deletion.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
 
 =cut
 
@@ -275,13 +268,8 @@ sub delete_one {
     $res = $coll->delete_many( $filter );
     $res = $coll->delete_many( { name => "Larry" } );
 
-Deletes all documents that match a filter expression and returns a
+Deletes all documents that match a L<filter expression|/Filter expression> and returns a
 L<MongoDB::DeleteResult> object.
-
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for deletion.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
 
 =cut
 
@@ -307,16 +295,10 @@ sub delete_many {
     $res = $coll->replace_one( $filter, $replacement );
     $res = $coll->replace_one( $filter, $replacement, { upsert => 1 } );
 
-Replaces one document that matches a filter expression and returns a
-L<MongoDB::UpdateResult> object.
+Replaces one document that matches a L<filter expression|/Filter expression>
+and returns a L<MongoDB::UpdateResult> object.
 
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for replacement.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
-
-The replacement document must be a hash reference, array reference or
-L<Tie::IxHash> object. It must not have any field-update operators in it (e.g.
+The replacement document must not have any field-update operators in it (e.g.
 C<$set>).
 
 A hash reference of options may be provided.  The only valid option is
@@ -348,21 +330,15 @@ sub replace_one {
     $res = $coll->update_one( $filter, $update );
     $res = $coll->update_one( $filter, $update, { upsert => 1 } );
 
-Updates one document that matches a filter expression and returns a
-L<MongoDB::UpdateResult> object.
+Updates one document that matches a L<filter expression|/Filter expression> and
+returns a L<MongoDB::UpdateResult> object.
 
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for update.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
-
-The update document must be a hash reference, array reference or
-L<Tie::IxHash> object. It must have only field-update operators in it (e.g.
+The update document must have only field-update operators in it (e.g.
 C<$set>).
 
 A hash reference of options may be provided.  The only valid option is
 C<upsert>, which defaults to false.  If provided and true, a new document will
-be inserted by taking the filter document and applying the update document
+be inserted by taking the filter expression and applying the update document
 operations to it prior to insertion.
 
 =cut
@@ -390,16 +366,10 @@ sub update_one {
     $res = $coll->update_many( $filter, $update );
     $res = $coll->update_many( $filter, $update, { upsert => 1 } );
 
-Updates multiple document that match a filter expression and returns a
-L<MongoDB::UpdateResult> object.
+Updates multiple document that match a L<filter expression|/Filter expression>
+and returns a L<MongoDB::UpdateResult> object.
 
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select
-documents for update.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
-
-The update document must be a hash reference, array reference or
-L<Tie::IxHash> object. It must have only field-update operators in it (e.g.
+The update document must have only field-update operators in it (e.g.
 C<$set>).
 
 A hash reference of options may be provided.  The only valid option is
@@ -429,18 +399,13 @@ sub update_many {
 
 =method find
 
-    my $cursor = $coll->find( $filter );
-    my $cursor = $coll->find( $filter, $options );
+    $cursor = $coll->find( $filter );
+    $cursor = $coll->find( $filter, $options );
 
-    my $cursor = $coll->find({ i => { '$gt' => 42 } }, {limit => 20});
+    $cursor = $coll->find({ i => { '$gt' => 42 } }, {limit => 20});
 
-Executes a query with filter expression and returns a C<MongoDB::Cursor>
-object.
-
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select
-documents from the collection.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
+Executes a query with a L<filter expression|/Filter expression> and returns a
+C<MongoDB::Cursor> object.
 
 The query can be customized using L<MongoDB::Cursor> methods, or with an
 optional hash reference of options.
@@ -451,29 +416,33 @@ Valid options include:
 * C<allowPartialResults> - get partial results from a mongos if some shards are
   down (instead of throwing an error).
 * C<batchSize> – the number of documents to return per batch.
-* C<comment> – attaches a comment to the query. If C<$comment> also exists in the
-  modifiers document, the comment field overwrites C<$comment>.
+* C<comment> – attaches a comment to the query. If C<$comment> also exists in
+  the C<modifiers> document, the comment field overwrites C<$comment>.
 * C<cursorType> – indicates the type of cursor to use. It must be one of three
-  enumerated values: C<non_tailable> (the default), C<tailable>, and
-  C<tailable_await>.
+  string values: C<'non_tailable'> (the default), C<'tailable'>, and
+  C<'tailable_await'>.
 * C<limit> – the maximum number of documents to return.
 * C<maxTimeMS> – the maximum amount of time to allow the query to run. If
-  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
+  C<$maxTimeMS> also exists in the modifiers document, the C<maxTimeMS> field
   overwrites C<$maxTimeMS>.
-* C<modifiers> – a hash reference of meta-operators modifying the output or
-  behavior of a query.
-* C<noCursorTimeout> – if true, prevents the server from timing out a cursor after
-  a period of inactivity
-* C<projection> - a hash reference defining fields to return. See "L<limit fields
-  to return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
+* C<modifiers> – a hash reference of L<query
+  modifiers|http://docs.mongodb.org/manual/reference/operator/query-modifier/>
+  modifying the output or behavior of a query.
+* C<noCursorTimeout> – if true, prevents the server from timing out a cursor
+  after a period of inactivity
+* C<projection> - a hash reference defining fields to return. See "L<limit
+  fields to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
 * C<skip> – the number of documents to skip before returning.
-* C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
-  order in which to return matching documents. If C<$orderby> also exists
-  in the modifiers document, the sort field overwrites C<$orderby>.
+* C<sort> – an L<ordered document|/Ordered document> defining the order in which
+  to return matching documents. If C<$orderby> also exists in the modifiers
+  document, the sort field overwrites C<$orderby>.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
 
-See also core documentation on querying:
-L<http://docs.mongodb.org/manual/core/read/>.
+For more infomation, see the L<Read Operations
+Overview|http://docs.mongodb.org/manual/core/read-operations-introduction/> in
+the MongoDB documentation.
 
 B<Note>, a L<MongoDB::Cursor> object holds the query and does not issue the
 query to the server until the C<request> method is called on it or until an
@@ -538,17 +507,13 @@ sub find {
 
 =method find_one
 
-    my $doc = $collection->find_one( $filter, $projection );
-    my $doc = $collection->find_one( $filter, $projection, $options );
+    $doc = $collection->find_one( $filter, $projection );
+    $doc = $collection->find_one( $filter, $projection, $options );
 
-Executes a query with filter expression and returns a single document.
+Executes a query with a L<filter expression|/Filter expression> and returns a
+single document.
 
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for replacement.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
-
-If a projection document is provided, it must be a hash reference specifying
+If a projection argument is provided, it must be a hash reference specifying
 fields to return.  See L<Limit fields to
 return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
 in the MongoDB documentation for details.
@@ -563,12 +528,12 @@ A hash reference of options may be provided as a third argument. Valid keys
 include:
 
 =for :list
-* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
-  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
-  overwrites C<$maxTimeMS>.
-* C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
-  order in which to return matching documents. If C<$orderby> also exists
-  in the modifiers document, the sort field overwrites C<$orderby>.
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+* C<sort> – an L<ordered document|/Ordered document> defining the order in which
+  to return matching documents. If C<$orderby> also exists in the modifiers
+  document, the sort field overwrites C<$orderby>.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
 
 See also core documentation on querying:
 L<http://docs.mongodb.org/manual/core/read/>.
@@ -615,25 +580,21 @@ sub find_one {
     $doc = $coll->find_one_and_delete( $filter );
     $doc = $coll->find_one_and_delete( $filter, $options );
 
-Deletes a document from the database and returns it as it appeared when right
-before it was deleted.
-
-The filter argument provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for deletion.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
+Given a L<filter expression|/Filter expression>, this deletes a document from
+the database and returns it as it appeared right before it was deleted.
 
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
-* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the command to run.
-* C<projection> - a hash reference defining fields to return. See "L<limit fields
-  to return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+* C<projection> - a hash reference defining fields to return. See "L<limit
+  fields to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
-* C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
-  order in which to find a matching document. See the similar
-  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>
-  for rules on constructing sort documents.
+* C<sort> – an L<ordered document|/Ordered document> defining the order in
+  which to return matching documents.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
 
 =cut
 
@@ -676,34 +637,30 @@ sub find_one_and_delete {
     $doc = $coll->find_one_and_replace( $filter, $replacement );
     $doc = $coll->find_one_and_replace( $filter, $replacement, $options );
 
-Replaces a document from the database and returns it as it was either right
-before or right after the replacement.
+Given a L<filter expression|/Filter expression> and a replacement document,
+this replaces a document from the database and returns it as it was either
+right before or right after the replacement.  The default is 'before'.
 
-The filter argument provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for replacement.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
-
-The replacement document must be a hash reference, array reference or
-L<Tie::IxHash> object. It must not have any field-update operators in it (e.g.
+The replacement document must not have any field-update operators in it (e.g.
 C<$set>).
 
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
-* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the command to run.
-* C<projection> - a hash reference defining fields to return. See "L<limit fields
-  to return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+* C<projection> - a hash reference defining fields to return. See "L<limit
+  fields to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
 * C<returnDocument> – either the string C<'before'> or C<'after'>, to indicate
   whether the returned document should be the one before or after replacement.
   The default is C<'before'>.
-* C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
-  order in which to find a matching document. See the similar
-  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>
-  for rules on constructing sort documents.
-* C<upsert> – defaults to false; if true, a new document will be added if one is
-  not found
+* C<sort> – an L<ordered document|/Ordered document> defining the order in
+  which to return matching documents.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
+* C<upsert> – defaults to false; if true, a new document will be added if one
+  is not found
 
 =cut
 
@@ -720,34 +677,29 @@ sub find_one_and_replace {
     $doc = $coll->find_one_and_update( $filter, $update );
     $doc = $coll->find_one_and_update( $filter, $update, $options );
 
-Updates a single document and returns it as it was either right before or
-right after the update.
+Given a L<filter expression|/Filter expression> and a document of update
+operators, this updates a single document and returns it as it was either right
+before or right after the update.  The default is 'before'.
 
-The filter argument provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for update.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
-
-The update document must be a hash reference, array reference or
-L<Tie::IxHash> object. It must contain only field-update operators (e.g.
-C<$set>).
+The update document must contain only field-update operators (e.g. C<$set>).
 
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
-* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the command to run.
-* C<projection> - a hash reference defining fields to return. See "L<limit fields
-  to return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+* C<projection> - a hash reference defining fields to return. See "L<limit
+  fields to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
 * C<returnDocument> – either the string C<'before'> or C<'after'>, to indicate
   whether the returned document should be the one before or after replacement.
   The default is C<'before'>.
-* C<sort> – a L<Tie::IxHash> or array reference of key value pairs defining the
-  order in which to find a matching document. See the similar
-  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>
-  for rules on constructing sort documents.
-* C<upsert> – defaults to false; if true, a new document will be added if one is
-  not found
+* C<sort> – an L<ordered document|/Ordered document> defining the order in
+  which to return matching documents.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
+* C<upsert> – defaults to false; if true, a new document will be added if one
+  is not found
 
 =cut
 
@@ -761,15 +713,20 @@ sub find_one_and_update {
 
 =method aggregate
 
-    my $result = $collection->aggregate( [ { ... }, { ... } ] );
-    my $result = $collection->aggregate( \@pipeline, $options );
+    @pipeline = (
+        { '$group' => { _id => '$state,' totalPop => { '$sum' => '$pop' } } },
+        { '$match' => { totalPop => { '$gte' => 10 * 1000 * 1000 } } }
+    );
+
+    $result = $collection->aggregate( \@pipeline );
+    $result = $collection->aggregate( \@pipeline, $options );
 
 Runs a query using the MongoDB 2.2+ aggregation framework and returns a
 L<MongoDB::QueryResult> object.
 
-The first argument must be an array-ref of
-L<aggregation pipeline|http://docs.mongodb.org/manual/core/aggregation-pipeline/>
-documents.  Each pipeline document must be a hash reference.
+The first argument must be an array-ref of L<aggregation
+pipeline|http://docs.mongodb.org/manual/core/aggregation-pipeline/> documents.
+Each pipeline document must be a hash reference.
 
 A hash reference of options may be provided. Valid keys include:
 
@@ -780,11 +737,11 @@ A hash reference of options may be provided. Valid keys include:
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.
 
-B<Note> MongoDB 2.6+ will return an empty result if the C<$out> pipeline
-operator is used to write aggregation results directly to a collection. Create
-a new collection> object to query the generated result collection.  When
-C<$out> is used, the command is treated as a write operation and read
-preference is ignored.
+B<Note> MongoDB 2.6+ added the '$out' pipeline operator.  If this operator is
+used to write aggregation results directly to a collection, an empty result
+will be returned. Create a new collection> object to query the generated result
+collection.  When C<$out> is used, the command is treated as a write operation
+and read preference is ignored.
 
 See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
 for more information on how to construct aggregation queries.
@@ -820,15 +777,10 @@ sub aggregate {
 
 =method count
 
-    my $count = $coll->count( $filter );
-    my $count = $coll->count( $filter, $options );
+    $count = $coll->count( $filter );
+    $count = $coll->count( $filter, $options );
 
-Returns a count of documents matching a filter expression.
-
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for replacement.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
+Returns a count of documents matching a L<filter expression|/Filter expression>.
 
 A hash reference of options may be provided. Valid keys include:
 
@@ -837,9 +789,8 @@ A hash reference of options may be provided. Valid keys include:
   use|http://docs.mongodb.org/manual/reference/command/count/#specify-the-index-to-use>;
   must be a string, array reference, hash reference or L<Tie::IxHash> object.
 * C<limit> – the maximum number of documents to count.
-* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
-  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
-  overwrites C<$maxTimeMS>.
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
 * C<skip> – the number of documents to skip before counting documents.
 
 B<NOTE>: On a sharded cluster, C<count> can result in an inaccurate count if
@@ -870,23 +821,21 @@ sub count {
 
 =method distinct 
 
-    my $result = $coll->count( $fieldname, $filter );
-    my $result = $coll->count( $fieldname, $filter, $options );
+    $result = $coll->count( $fieldname );
+    $result = $coll->count( $fieldname, $filter );
+    $result = $coll->count( $fieldname, $filter, $options );
 
-Returns a L<MongoDB::QueryResult> object that will provide distinct values
-for a specified field.  The query may be limited by a filter document.
+Returns a L<MongoDB::QueryResult> object that will provide distinct values for
+a specified field name.
 
-The filter provides the L<query
-criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
-document for replacement.  It must be a hash reference, array reference or
-L<Tie::IxHash> object.
+The query may be limited by an optional L<filter expression|/Filter
+expression>.
 
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
-* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
-  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
-  overwrites C<$maxTimeMS>.
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
 
 See documentation for the L<distinct
 command|http://docs.mongodb.org/manual/reference/command/distinct/> for
@@ -917,20 +866,19 @@ sub distinct {
 }
 
 
-=method parallel_scan($max_cursors)
+=method parallel_scan
 
-    my @query_results = $collection->parallel_scan(10);
+    @result_objs = $collection->parallel_scan(10);
 
-Scan the collection in parallel. The argument is the maximum number of
-L<MongoDB::QueryResult> objects to return and must be a positive integer between 1
-and 10,000.
+Returns one or more L<MongoDB::QueryResult> objects to scan the collection in
+parallel. The argument is the maximum number of L<MongoDB::QueryResult> objects
+to return and must be a positive integer between 1 and 10,000.
 
 As long as the collection is not modified during scanning, each document will
 appear only once in one of the cursors' result sets.
 
-Only iteration methods may be called on parallel scan cursors.
-
-If an error occurs, an exception will be thrown.
+B<Note>: the server may return fewer cursors than requested, depending on the
+underlying storage engine and resource availability.
 
 =cut
 
@@ -972,14 +920,15 @@ sub parallel_scan {
     return @cursors;
 }
 
-=method rename ("newcollectionname")
+=method rename
 
-    my $newcollection = $collection->rename("mynewcollection");
+    $newcollection = $collection->rename("mynewcollection");
 
-Renames the collection.  It expects that the new name is currently not in use.
+Renames the collection.  If a collection already exists with the new collection
+name, this method will throw an exception.
 
-Returns the new collection.  If a collection already exists with that new collection name this will
-die.
+It returns a new L<MongoDB::Collection> object corresponding to the renamed
+collection.
 
 =cut
 
@@ -1057,7 +1006,7 @@ sub ensure_index {
 =method save($doc, $options)
 
     $collection->save({"author" => "joe"});
-    my $post = $collection->find_one;
+    $post = $collection->find_one;
 
     $post->{author} = {"name" => "joe", "id" => 123, "phone" => "555-5555"};
 
@@ -1148,7 +1097,7 @@ sub drop_index {
 
 =method get_indexes
 
-    my @indexes = $collection->get_indexes;
+    @indexes = $collection->get_indexes;
 
 Returns a list of all indexes of this collection.
 Each index contains C<ns>, C<name>, and C<key>
@@ -1204,9 +1153,9 @@ sub drop {
     return;
 }
 
-=method initialize_ordered_bulk_op, ordered_bulk
+=method ordered_bulk
 
-    $bulk = $coll->initialize_ordered_bulk_op;
+    $bulk = $coll->ordered_bulk;
     $bulk->insert( $doc1 );
     $bulk->insert( $doc2 );
     ...
@@ -1216,7 +1165,7 @@ Returns a L<MongoDB::BulkWrite> object to group write operations into fewer netw
 round-trips.  This method creates an B<ordered> operation, where operations halt after
 the first error. See L<MongoDB::BulkWrite> for more details.
 
-The method C<ordered_bulk> may be used as an alias for C<initialize_ordered_bulk_op>.
+The method C<initialize_ordered_bulk_op> may be used as an alias.
 
 =cut
 
@@ -1225,13 +1174,13 @@ sub initialize_ordered_bulk_op {
     return MongoDB::BulkWrite->new( collection => $self, ordered => 1 );
 }
 
-=method initialize_unordered_bulk_op, unordered_bulk
+=method unordered_bulk
 
-This method works just like L</initialize_ordered_bulk_op> except that the order that
+This method works just like L</ordered_bulk> except that the order that
 operations are sent to the database is not guaranteed and errors do not halt processing.
 See L<MongoDB::BulkWrite> for more details.
 
-The method C<unordered_bulk> may be used as an alias for C<initialize_unordered_bulk_op>.
+The method C<initialize_unordered_bulk_op> may be used as an alias.
 
 =cut
 
@@ -1248,12 +1197,12 @@ This method provides syntactic sugar to construct and execute a bulk operation
 directly, without using C<initialize_ordered_bulk> or
 C<initialize_unordered_bulk> to generate a L<MongoDB::BulkWrite> object and
 then calling methods on it.  It returns a L<MongoDB::BulkWriteResponse> object
-just like the bulk L<execute|MongoDB::BulkWrite/execute> method.
+just like the L<MongoDB::BulkWrite execute|MongoDB::BulkWrite/execute> method.
 
 The first argument must be an array reference of requests.  Requests consist
 of pairs of a MongoDB::Collection write method name (e.g. C<insert_one>,
 C<delete_many>) and an array reference of arguments to the corresponding
-Collection class method.  They may be given as pairs, or as hash or array
+method name.  They may be given as pairs, or as hash or array
 references:
 
     # pairs -- most efficient
@@ -1715,7 +1664,7 @@ __END__
 =head1 SYNOPSIS
 
     # get a Collection via the Database object
-    my $coll = $db->get_collection("people");
+    $coll = $db->get_collection("people");
 
     # insert a document
     $coll->insert_one( { name => "John Doe", age => 42 } );
@@ -1730,10 +1679,15 @@ __END__
     $coll->update_one( { name => "John Doe" }, { '$inc' => { age => 1 } } );
 
     # find a single document
-    my $doc = $coll->find_one( { name => "John Doe" } )
+    $doc = $coll->find_one( { name => "John Doe" } )
 
     # Get a MongoDB::Cursor for a query
-    my $cursor = $coll->find( { age => 42 } );
+    $cursor = $coll->find( { age => 42 } );
+
+    # Cursor iteration
+    while ( my $doc = $cursor->next ) {
+        ...
+    }
 
 =head1 DESCRIPTION
 
@@ -1742,6 +1696,56 @@ with it.
 
 Generally, you never construct one of these directly with C<new>.  Instead, you
 call C<get_collection> on a L<MongoDB::Database> object.
+
+=head1 USAGE
+
+=head2 Error handling
+
+Unless otherwise explictly documented, all methods throw exceptions if
+an error occurs.  The error types are documented in L<MongoDB::Error>.
+
+To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
+are recommended:
+
+    use Try::Tiny;
+    use Safe::Isa; # provides $_isa
+
+    try {
+        $coll->insert( $doc )
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::DuplicateKeyError" ) {
+            ...
+        }
+        else {
+            ...
+        }
+    };
+
+To retry failures automatically, consider using L<Try::Tiny::Retry>.
+
+=head2 Terminology
+
+=head3 Document
+
+A collection of key-value pairs.  A Perl hash is a document.  Array
+references with an even number of elements and L<Tie::IxHash> objects may also
+be used as documents.
+
+=head3 Ordered document
+
+Many MongoDB::Collection method parameters or options require an B<ordered
+document>: an ordered list of key/value pairs.  Perl's hashes are B<not>
+ordered and since Perl v5.18 are guaranteed to have random order.  Therefore,
+when an ordered document is called for, you may use an array reference of pairs
+or a L<Tie::IxHash> object.  You may use a hash reference if there is only
+one key/value pair.
+
+=head3 Filter expression
+
+A filter expression provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for deletion.  It must be an L</Ordered document>.
 
 =cut
 
