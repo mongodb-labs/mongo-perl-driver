@@ -579,7 +579,11 @@ subtest "find_one_and_update" => sub {
     is( $coll->count( { x => 5 } ), 1, "1 doc matching replacment" );
 
     # test project and sort
-    $doc = $coll->find_one_and_update( { x => 1 }, { '$inc' => { x => 1 }, '$set' => { y => 'z' } }, { sort => [ y => -1 ], projection => { y => 1 } } );
+    $doc = $coll->find_one_and_update(
+        { x      => 1 },
+        { '$inc' => { x => 1 }, '$set' => { y => 'z' } },
+        { sort   => [ y => -1 ], projection => { y => 1 } }
+    );
     cmp_deeply(
         $doc,
         { _id => ignore(), y => 'b' },

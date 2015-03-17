@@ -167,13 +167,6 @@ subtest write_concern => sub {
     is($obj->{just}, "an\xE4oth\0er");
 }
 
-# find_one invalid option
-{
-    my $err_re = qr/invalid options.*max_time_ms/;
-    eval { $coll->find_one({}, {}, { max_time_ms => -1 }) };
-    like( $@, $err_re, "max_time_ms is not a valid option for 'find_one'");
-}
-
 # validate and remove
 {
     is( exception { $coll->validate }, undef, 'validate' );

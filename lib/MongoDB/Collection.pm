@@ -457,21 +457,6 @@ a L<MongoDB::QueryResult> object:
 
 =cut
 
-my @FIND_OPTIONS = qw(
-  allowPartialResults
-  batchSize
-  comment
-  cursorType
-  limit
-  maxTimeMS
-  modifiers
-  noCursorTimeout
-  projection
-  skip
-  sort
-  upsert
-);
-
 my $find_args;
 sub find {
     $find_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
@@ -481,25 +466,16 @@ sub find {
     # backwards compatible sort option for deprecated 'query' alias
     $options->{sort} = delete $options->{sort_by} if $options->{sort_by};
 
-    my %args;
-    for my $k ( @FIND_OPTIONS ) {
-        $args{ $k } = delete $options->{$k} if exists $options->{$k};
-    }
-
-    if ( %$options ) {
-        confess "invalid options for find: " . join(", ", keys %$options);
-    }
-
     # coerce to IxHash
-    $args{sort} = __ixhash($args{sort}) if exists $args{sort};
+    __ixhash($options, 'sort');
 
     my $query = MongoDB::_Query->new(
+        %$options,
         db_name         => $self->_database->name,
         coll_name       => $self->name,
         client          => $self->_client,
         read_preference => $self->read_preference,
         filter          => $filter || {},
-        %args,
     );
 
     return MongoDB::Cursor->new( query => $query );
@@ -549,19 +525,11 @@ sub find_one {
     );
     my ( $self, $filter, $projection, $options ) = $find_one_args->(@_);
 
-    my %args;
-    for my $k ( qw/maxTimeMS sort/ ) {
-        $args{ $k } = delete $options->{$k} if exists $options->{$k};
-    }
-
-    if ( %$options ) {
-        confess "invalid options for find_one: " . join(", ", keys %$options);
-    }
-
     # coerce to IxHash
-    $args{sort} = __ixhash($args{sort}) if exists $args{sort};
+    __ixhash($options, 'sort');
 
     my $query = MongoDB::_Query->new(
+        %$options,
         db_name         => $self->_database->name,
         coll_name       => $self->name,
         client          => $self->_client,
@@ -569,7 +537,6 @@ sub find_one {
         filter          => $filter || {},
         projection      => $projection || {},
         limit           => -1,
-        %args,
     );
 
     return $query->execute->next;
@@ -598,35 +565,22 @@ A hash reference of options may be provided. Valid keys include:
 
 =cut
 
-my %FIND_MODIFY_MAP = (
-    maxTimeMS           => 'maxTimeMS',
-    projection          => 'fields',
-    sort                => 'sort',
-    upsert              => 'upsert',
-);
-
 my $foad_args;
 sub find_one_and_delete {
     $foad_args ||= compile( Object, IxHash, Optional[HashRef] );
     my ( $self, $filter, $options ) = $foad_args->(@_);
 
-    my %args;
-    for my $k (qw/maxTimeMS projection sort/) {
-        $args{ $FIND_MODIFY_MAP{$k} } = delete $options->{$k} if exists $options->{$k};
-    }
-
-    if ( %$options ) {
-        confess "invalid options for find: " . join(", ", keys %$options);
-    }
+    # rename projection -> fields
+    $options->{fields} = delete $options->{projection} if exists $options->{projection};
 
     # coerce to IxHash
-    $args{sort} = __ixhash($args{sort}) if exists $args{sort};
+    __ixhash($options, 'sort');
 
     my @command = (
         findAndModify => $self->name,
         query         => $filter,
         remove        => true,
-        %args
+        %$options,
     );
 
     return $self->_try_find_and_modify( \@command );
@@ -810,7 +764,7 @@ sub count {
     $options ||= {};
 
     # string is OK so we check ref, not just exists
-    $options->{hint} = __ixhash($options->{hint}) if ref $options->{hint};
+    __ixhash($options, 'hint') if ref $options->{hint};
 
     my $res = $self->_database->run_command(
         Tie::IxHash->new( count => $self->name, query => $filter, %$options ),
@@ -1389,30 +1343,24 @@ sub _dynamic_write_concern {
 sub _find_one_and_update_or_replace {
     my ($self, $filter, $modifier, $options) = @_;
 
-    my %args;
-    for my $k (qw/maxTimeMS projection sort upsert/) {
-        $args{ $FIND_MODIFY_MAP{$k} } = delete $options->{$k} if exists $options->{$k};
-    }
+    # rename projection -> fields
+    $options->{fields} = delete $options->{projection} if exists $options->{projection};
 
     # coerce to IxHash
-    $args{sort} = __ixhash($args{sort}) if exists $args{sort};
+    __ixhash($options, 'sort');
 
     # returnDocument ('before'|'after') maps to field 'new'
     if ( exists $options->{returnDocument} ) {
         confess "Invalid returnDocument parameter '$options->{returnDocument}'"
             unless $options->{returnDocument} =~ /^(?:before|after)$/;
-        $args{new} = delete( $options->{returnDocument} ) eq 'after' ? true : false;
-    }
-
-    if ( %$options ) {
-        confess "invalid options for find_and_update/replace: " . join(", ", keys %$options);
+        $options->{new} = delete( $options->{returnDocument} ) eq 'after' ? true : false;
     }
 
     my @command = (
         findAndModify => $self->name,
         query         => $filter,
         update        => $modifier,
-        %args
+        %$options
     );
 
     return $self->_try_find_and_modify( \@command );
@@ -1483,18 +1431,21 @@ sub _clean_index_options {
 
 # utility function to coerce array/hashref to Tie::Ixhash
 sub __ixhash {
-    my ($ref) = @_;
+    my ($hash, $key) = @_;
+    return unless exists $hash->{$key};
+    my $ref = $hash->{$key};
     my $type = ref($ref);
-    return $ref if $type eq 'Tie::IxHash';
+    return if $type eq 'Tie::IxHash';
     if ( $type eq 'HASH' ) {
-        return Tie::IxHash->new( %$ref );
+        $hash->{$key} = Tie::IxHash->new( %$ref );
     }
     elsif ( $type eq 'ARRAY' ) {
-        return Tie::IxHash->new( @$ref );
+        $hash->{$key} = Tie::IxHash->new( @$ref );
     }
     else {
         confess "Can't convert $type to a Tie::IxHash";
     }
+    return;
 }
 
 # utility function to generate an index name by concatenating key/value pairs
