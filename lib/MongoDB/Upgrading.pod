@@ -194,6 +194,35 @@ that calling C<read_preference> on a cursor object no longer changes the
 read preference globally on the client – the read preference change is
 scoped to the cursor object only.
 
+=head2 Write concern objects and removing the C<safe> option
+
+A new L<MongoDB::WriteConcern> class is used to encapsulate write concern
+attributes.  In the v1 driver, it is set as an immutable
+attribute on L<MongoDB::MongoClient>:
+
+    MongoDB::MongoClient->new( ..., write_concern => { ... } );
+
+If provided as a hash reference, it will be coerced to a
+L<MongoDB::WriteConcern> object (and validated).
+
+It is inherited by L<MongoDB::Database>, L<MongoDB::Collection>,
+and L<MongoDB::GridFS> objects unless provided as an option to
+the relevant factory methods:
+
+    $db = $client->get_database(
+        "test", { write_concern => { w => 'majority' }
+    );
+
+    $coll = $db->get_collection(
+        "people", { write_concern => { w => 1 }
+    );
+
+    $gridfs = $db->get_gridfs(
+        "fs", { write_concern => { w => 0 }
+    );
+
+The C<safe> option is no longer used in new method APIs.
+
 =head2 Authentication
 
 Authentication now happens automatically on connection during the
