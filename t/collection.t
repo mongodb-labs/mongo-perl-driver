@@ -264,8 +264,8 @@ subtest write_concern => sub {
 # batch insert
 {
     $coll->drop;
-    my $ids = $coll->batch_insert([{'x' => 1}, {'x' => 2}, {'x' => 3}]);
-    is($coll->count, 3, 'batch_insert');
+    my $ids = $coll->insert_many([{'x' => 1}, {'x' => 2}, {'x' => 3}])->inserted_ids;
+    is($coll->count, 3, 'insert_many');
 }
 
 # sort
@@ -290,7 +290,7 @@ subtest write_concern => sub {
     );
 
     $coll->drop;
-    $coll->batch_insert([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
+    $coll->insert_many([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
     $coll->delete_one( { "x" => 1 } );
     is ($coll->count, 2, 'remove just one');
 }
@@ -589,10 +589,10 @@ subtest 'text indices' => sub {
     utf8::encode($kanji_b);
     utf8::encode($kanji_c);
     eval {
-     $ok = $coll->batch_insert([{ $kanji_a => "some data"} , { $kanji_b => "some more data"}, { $kanji_c => "even more data"}]);
+     $ok = $coll->insert_many([{ $kanji_a => "some data"} , { $kanji_b => "some more data"}, { $kanji_c => "even more data"}]);
     };
-    is($ok,0, "batch_insert key with Null Char in Key Operation Failed");
-    is($coll->count, 0, "batch_insert key with Null Char in Key Failed");
+    is($ok,0, "insert_many key with Null Char in Key Operation Failed");
+    is($coll->count, 0, "insert_many key with Null Char in Key Failed");
     $coll->drop;
 
     #test ixhash
@@ -636,7 +636,7 @@ subtest "aggregation" => sub {
     plan skip_all => "Aggregation framework unsupported on MongoDB $server_version"
         unless $server_version >= v2.2.0;
 
-    $coll->batch_insert( [ { wanted => 1, score => 56 },
+    $coll->insert_many( [ { wanted => 1, score => 56 },
                            { wanted => 1, score => 72 },
                            { wanted => 1, score => 96 },
                            { wanted => 1, score => 32 },

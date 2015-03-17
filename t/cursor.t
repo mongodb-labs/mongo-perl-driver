@@ -245,7 +245,7 @@ $testdb->drop;
 {
     $coll->drop;
     is ($coll->count, 0, "empty" );
-    $coll->batch_insert([{'x' => 1}, {'x' => 1}, {'y' => 1}, {'x' => 1, 'z' => 1}]);
+    $coll->insert_many([{'x' => 1}, {'x' => 1}, {'y' => 1}, {'x' => 1, 'z' => 1}]);
 
     is($coll->query->count, 4, 'count');
     is($coll->query({'x' => 1})->count, 3, 'count query');
