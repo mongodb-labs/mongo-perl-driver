@@ -89,7 +89,7 @@ my $now = DateTime->now;
 
     $doc->{date}->add( seconds => 60 );
 
-    $coll->update( { _id => $doc->{_id} }, { date => $doc->{date} } );
+    $coll->replace_one( { _id => $doc->{_id} }, { date => $doc->{date} } );
 
     my $doc2 = $coll->find_one;
     is( $doc2->{date}->epoch, ( $now->epoch + 60 ) );
@@ -112,7 +112,7 @@ my $now = DateTime->now;
     is $doc->{date}->second, $dtt_now->second;
 
     $doc->{date} = DateTime::Tiny->from_string( $doc->{date}->DateTime->add( seconds => 30 )->iso8601 );
-    $coll->update( { _id => $doc->{_id} }, $doc );
+    $coll->replace_one( { _id => $doc->{_id} }, $doc );
 
     my $doc2 = $coll->find_one( { _id => $doc->{_id} } );
 

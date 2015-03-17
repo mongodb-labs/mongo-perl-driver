@@ -92,7 +92,7 @@ subtest "types" => sub {
 subtest "\$MongoDB::BSON::char '='" => sub {
     local $MongoDB::BSON::char = "=";
     $c->drop;
-    $c->update({x => 1}, {"=inc" => {x => 1}}, {upsert => true});
+    $c->update_one({x => 1}, {"=inc" => {x => 1}}, {upsert => true});
 
     my $up = $c->find_one;
     is($up->{x}, 2);

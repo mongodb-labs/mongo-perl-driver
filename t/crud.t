@@ -247,7 +247,7 @@ subtest "replace_one" => sub {
         $coll->replace_one( { x => 3} , { '$set' => { x => 4 } } )
     };
     ok( $err, "replace with update operators is an error" );
-    like( $err, qr/must not use '\$op'/, "correct error message" );
+    like( $err, qr/must not contain update operators/, "correct error message" );
 
 };
 
@@ -310,7 +310,7 @@ subtest "update_one" => sub {
         $coll->update_one( { x => 3} , { x => 4 } )
     };
     ok( $err, "update without update operators is an error" );
-    like( $err, qr/must only use '\$op'/, "correct error message" );
+    like( $err, qr/must only contain update operators/, "correct error message" );
 
 };
 
@@ -377,7 +377,7 @@ subtest "update_many" => sub {
         $coll->update_one( { x => 3 } , { x => 4 } )
     };
     ok( $err, "update without update operators is an error" );
-    like( $err, qr/must only use '\$op'/, "correct error message" );
+    like( $err, qr/must only contain update operators/, "correct error message" );
 
 };
 

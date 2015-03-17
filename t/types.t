@@ -245,7 +245,7 @@ SKIP: {
     skip "Skipping 64 bit native SV", 1
         if ( !$Config{use64bitint} );
 
-    $coll->update({ x => 1 }, { '$inc' => { 'y' => 19401194714 } }, { 'upsert' => 1 });
+    $coll->update_one({ x => 1 }, { '$inc' => { 'y' => 19401194714 } }, { 'upsert' => 1 });
     my $result = $coll->find_one;
     is($result->{'y'},19401194714,'64 bit ints without Math::BigInt');
 }

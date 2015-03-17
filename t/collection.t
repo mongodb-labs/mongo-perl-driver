@@ -127,7 +127,7 @@ subtest write_concern => sub {
     $id = $coll->insert_one({ just => 'another', perl => 'hacker' })->inserted_id;
     is($coll->count, 1, 'count');
 
-    $coll->update({ _id => $id }, {
+    $coll->replace_one({ _id => $id }, {
         just => "an\xE4oth\0er",
         mongo => 'hacker',
         with => { a => 'reference' },
@@ -310,7 +310,7 @@ subtest write_concern => sub {
 
     my $criteria = Tie::IxHash->new("_id" => $id);
     $hash->Push("something" => "else");
-    $coll->update($criteria, $hash);
+    $coll->replace_one($criteria, $hash);
     $tied = $coll->find_one;
     is($tied->{'f'}, 1);
     is($tied->{'something'}, 'else');
@@ -331,7 +331,7 @@ subtest write_concern => sub {
 
     my @criteria = ("_id" => $id);
     my @newobj = ('$inc' => {"f" => 1});
-    $coll->update(\@criteria, \@newobj);
+    $coll->update_one(\@criteria, \@newobj);
     $tied = $coll->find_one;
     is($tied->{'f'}, 2);
 }
@@ -345,12 +345,12 @@ subtest write_concern => sub {
     $coll->insert_one({"x" => 2, "y" => 3});
     $coll->insert_one({"x" => 2, "y" => 4});
 
-    $coll->update({"x" => 1}, {'$set' => {'x' => "hi"}});
+    $coll->update_one({"x" => 1}, {'$set' => {'x' => "hi"}});
     # make sure one is set, one is not
     ok($coll->find_one({"x" => "hi"}));
     ok($coll->find_one({"x" => 1}));
 
-    my $res = $coll->update({"x" => 2}, {'$set' => {'x' => 4}}, {'multiple' => 1});
+    my $res = $coll->update_many({"x" => 2}, {'$set' => {'x' => 4}});
     is($coll->count({"x" => 4}), 2) or diag explain $res;
 
     $cursor = $coll->query({"x" => 4})->sort({"y" => 1});
@@ -366,7 +366,7 @@ subtest "multiple update" => sub {
     plan skip_all => "multiple update won't work with db version $server_version"
       unless $server_version >= v1.3.0;
 
-    $coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1});
+    $coll->update_many({"x" => 4}, {'$set' => {"x" => 3}}, {'upsert' => 1});
     is($coll->count({"x" => 3}), 2, 'count');
 
     $cursor = $coll->query({"x" => 3})->sort({"y" => 1});
@@ -375,29 +375,6 @@ subtest "multiple update" => sub {
     is($obj->{'y'}, 3, 'y == 3');
     $obj = $cursor->next();
     is($obj->{'y'}, 4, 'y == 4');
-
-    # check with upsert if there are no matches
-    # also check that 'multi' is allowed
-    my $res = $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multi' => 1});
-    ok( $res->{ok}, "update succeeded" );
-    is( $res->{n}, 0, "update match count" );
-    isa_ok( $res->{upserted}, "MongoDB::OID" );
-    ok($coll->find_one({"z" => 4}));
-
-    # check that 'multi' and 'multiple' conflicting is an error
-    like(
-        exception {
-            $coll->update(
-                { "x"     => 15 },
-                { '$set'  => { "z" => 4 } },
-                { 'multi' => 1, 'multiple' => undef }
-              )
-        },
-        qr/can't use conflicting values/,
-        "multi and multiple conflicting is an error"
-    );
-
-    is($coll->count(), 5);
 };
 
 
@@ -458,29 +435,6 @@ SKIP: {
     ok( $err, "got error" );
     isa_ok( $err, 'MongoDB::DatabaseError', "duplicate insert error" );
     like( $err->message, qr/duplicate key/, 'error was duplicate key exception')
-}
-
-# safe update
-{
-    $coll->drop;
-    $coll->ensure_index({name => 1}, {unique => 1});
-    $coll->insert_one( {name => 'Alice'} );
-    $coll->insert_one( {name => 'Bob'} );
-
-    my $err = exception { $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, { safe => 0 } ) };
-    is($err, undef, "bad update with safe => 0: no error");
-
-    for my $h ( {}, { safe => 1 } ) {
-        my $res;
-        $err = exception { $res = $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, $h ) };
-        my $case = $h ? "explicit" : "default";
-        ok( $err, "bad update with $case safe gives error" ) or diag explain $res;
-        like( $err->message, qr/duplicate key/, 'error was duplicate key exception');
-        ok( my $ok = $coll->update( { name => 'Alice' }, { '$set' => { age => 23 } }, $h ), "did legal update" );
-        isa_ok( $ok, "HASH" );
-        is( $ok->{n}, 1, "n set to 1" );
-        ok( $ok->{ok}, "legal update with $case safe had no error" );
-    }
 }
 
 # save
@@ -800,13 +754,13 @@ subtest "deep update" => sub {
     $coll->drop;
     $coll->insert_one( { _id => 1 } );
 
-    $coll->update( { _id => 1 }, { '$set' => { 'x.y' => 42 } } );
+    $coll->update_one( { _id => 1 }, { '$set' => { 'x.y' => 42 } } );
 
     my $doc = $coll->find_one( { _id => 1 } );
     is( $doc->{x}{y}, 42, "deep update worked" );
 
     like(
-        exception { $coll->update( { _id => 1 }, { 'p.q' => 23 } ) },
+        exception { $coll->replace_one( { _id => 1 }, { 'p.q' => 23 } ) },
         qr/documents for storage cannot contain/,
         "replace with dots in field dies"
     );
