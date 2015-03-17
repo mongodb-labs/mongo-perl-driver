@@ -30,19 +30,7 @@ my $conn           = build_client();
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
-my $coll;
-
-# get_collection
-{
-    $testdb->drop;
-
-    $coll = $testdb->get_collection('test_collection');
-    isa_ok( $coll, 'MongoDB::Collection' );
-
-    is( $coll->name, 'test_collection', 'get name' );
-
-    $testdb->drop;
-}
+my $coll           = $testdb->get_collection('test_collection');
 
 # parallel_scan
 subtest "parallel scan" => sub {
@@ -97,7 +85,7 @@ subtest "parallel scan" => sub {
 
     # empty collection
     subtest "empty collection" => sub {
-        $coll->remove( {} );
+        $coll->delete_many({});
         my @cursors = $coll->parallel_scan($max);
         _check_parallel_results( 0, @cursors );
       }

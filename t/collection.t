@@ -102,14 +102,14 @@ subtest get_namespace => sub {
     my $tiny = $coll->find_one;
     is($tiny->{'_id'}, 1);
 
-    $coll->remove;
+    $coll->drop;
 
     $id = $coll->insert_one({})->inserted_id;
     isa_ok($id, 'MongoDB::OID');
     $tiny = $coll->find_one;
     is($tiny->{'_id'}, $id);
 
-    $coll->remove;
+    $coll->drop;
 }
 
 subtest write_concern => sub {
@@ -171,7 +171,7 @@ subtest write_concern => sub {
 {
     is( exception { $coll->validate }, undef, 'validate' );
 
-    $coll->remove($obj);
+    $coll->delete_one($obj);
     is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
 }
 
@@ -291,7 +291,7 @@ subtest write_concern => sub {
 
     $coll->drop;
     $coll->batch_insert([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
-    $coll->remove( { "x" => 1 }, { just_one => 1 } );
+    $coll->delete_one( { "x" => 1 } );
     is ($coll->count, 2, 'remove just one');
 }
 

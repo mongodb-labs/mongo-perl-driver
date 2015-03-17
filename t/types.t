@@ -137,7 +137,7 @@ is($id."", $id->value);
 
 # tie::ixhash
 {
-    $coll->remove;
+    $coll->drop;
 
     my %test;
     tie %test, 'Tie::IxHash'; 
@@ -153,7 +153,7 @@ is($id."", $id->value);
 
 # binary
 {
-    $coll->remove;
+    $coll->drop;
 
     my $invalid = "\xFE";
     ok( $coll->insert_one({"bin" => \$invalid}), "inserted binary data" );
@@ -165,7 +165,7 @@ is($id."", $id->value);
 # 64-bit ints
 {
     use bigint;
-    $coll->remove;
+    $coll->drop;
 
     my $x = 2 ** 34;
     $coll->save({x => $x});
@@ -174,7 +174,7 @@ is($id."", $id->value);
     is($result->{'x'}, 17179869184)
         or diag explain $result;
 
-    $coll->remove;
+    $coll->drop;
 
     $x = (2 ** 34) * -1;
     $coll->save({x => $x});
@@ -183,7 +183,7 @@ is($id."", $id->value);
     is($result->{'x'}, -17179869184)
         or diag explain $result;
 
-    $coll->remove;
+    $coll->drop;
 
     $coll->save({x => 2712631400});
     $result = $coll->find_one;
@@ -196,7 +196,7 @@ is($id."", $id->value);
 
     ok($@ =~ m/BigInt is too large/);
 
-    $coll->remove;
+    $coll->drop;
 }
 
 # code
@@ -228,7 +228,7 @@ is($id."", $id->value);
         is($x, "Fred");
     }
 
-    $coll->remove;
+    $coll->drop;
 
     $coll->insert_one({"x" => "foo", "y" => $code, "z" => 1});
     $x = $coll->find_one;
@@ -237,7 +237,7 @@ is($id."", $id->value);
     is($x->{y}->scope->{"name"}, "Fred");
     is($x->{z}, 1);
 
-    $coll->remove;
+    $coll->drop;
 }
 
 SKIP: {
@@ -324,7 +324,7 @@ SKIP: {
     is($result->{x}, 1);
     $result = $coll->find_one($int_type);
     is($result, undef);
-    $coll->remove({});
+    $coll->drop;
 
     MongoDB::force_int($x);
     $coll->insert_one({x => $x});
