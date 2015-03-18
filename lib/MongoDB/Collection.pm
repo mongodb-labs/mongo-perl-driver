@@ -366,8 +366,8 @@ sub update_one {
     $res = $coll->update_many( $filter, $update );
     $res = $coll->update_many( $filter, $update, { upsert => 1 } );
 
-Updates multiple document that match a L<filter expression|/Filter expression>
-and returns a L<MongoDB::UpdateResult> object.
+Updates one or more documents that match a L<filter expression|/Filter
+expression> and returns a L<MongoDB::UpdateResult> object.
 
 The update document must have only field-update operators in it (e.g.
 C<$set>).
