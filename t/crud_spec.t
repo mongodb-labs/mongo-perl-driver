@@ -33,9 +33,9 @@ my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 my $coll           = $testdb->get_collection('test_collection');
 
-subtest "read tests" => sub {
-    my $iterator = path('t/data/CRUD/read')->iterator( { recurse => 1 } );
 
+for my $dir ( map { path("t/data/CRUD/$_") } qw/read/ ) {
+    my $iterator = $dir->iterator( { recurse => 1 } );
     while ( my $path = $iterator->() ) {
         next unless -f $path && $path =~ /\.json$/;
         my $plan = eval { decode_json( $path->slurp_utf8 ) };
@@ -43,7 +43,7 @@ subtest "read tests" => sub {
             die "Error decoding $path: $@";
         }
 
-        my $name = $path->relative('t/data/CRUD/read')->basename(".json");
+        my $name = $path->relative($dir)->basename(".json");
 
         subtest $name => sub {
             $coll->drop;
@@ -52,14 +52,15 @@ subtest "read tests" => sub {
             for my $test ( @{ $plan->{tests} } ) {
                 my $op   = $test->{operation};
                 my $meth = "test_$op->{name}";
-                my $res  = main->$meth( $test->{description}, $op->{arguments}, $test->{outcome} );
+                my $res = main->$meth( $test->{description}, $op->{name}, $op->{arguments},
+                    $test->{outcome} );
             }
         };
     }
-};
+}
 
 sub test_aggregate {
-    my ( $class, $label, $args, $outcome ) = @_;
+    my ( $class, $label, $method, $args, $outcome ) = @_;
     my $pipeline = delete $args->{pipeline};
 
     # $out not supported until 2.6
@@ -74,26 +75,21 @@ sub test_aggregate {
 }
 
 sub test_count {
-    my ( $class, $label, $args, $outcome ) = @_;
+    my ( $class, $label, $method, $args, $outcome ) = @_;
     my $filter = delete $args->{filter};
-    my $res = $coll->count( grep { defined } $filter, $args );
+    my $res = $coll->$method( grep { defined } $filter, $args );
     check_outcome( $label, $res, $outcome );
 }
 
 sub test_distinct {
-    my ( $class, $label, $args, $outcome ) = @_;
+    my ( $class, $label, $method, $args, $outcome ) = @_;
     my $fieldname = delete $args->{fieldName};
     my $filter    = delete $args->{filter};
     my $res       = $coll->distinct( grep { defined } $fieldname, $filter, $args );
     check_outcome( $label, $res, $outcome );
 }
 
-sub test_find {
-    my ( $class, $label, $args, $outcome ) = @_;
-    my $filter = delete $args->{filter};
-    my $res = $coll->find( grep { defined } $filter, $args );
-    check_outcome( $label, $res, $outcome );
-}
+BEGIN { *test_find = \&test_count } 
 
 sub check_outcome {
     my ( $label, $res, $outcome ) = @_;
