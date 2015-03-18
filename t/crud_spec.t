@@ -95,6 +95,17 @@ sub test_modify {
     my $doc = delete $args->{replacement} || delete $args->{update};
     $args->{returnDocument} = lc( $args->{returnDocument} )
       if exists $args->{returnDocument};
+    if ( $method =~ /^find_one/ ) {
+        # SERVER-17650 -- before 3.0, this case returned empty doc
+        if (   $server_version < v3.0.0
+            && !$coll->find_one($filter)
+            && ( ! $args->{returnDocument} || $args->{returnDocument} eq 'before' )
+            && $args->{upsert}
+            && $args->{sort} )
+        {
+            $outcome->{result} = {};
+        }
+    }
     my $res = $coll->$method( $filter, $doc, ( scalar %$args ? $args : () ) );
     if ( $method =~ /^find_one/ ) {
         check_find_one_outcome( $label, $res, $outcome );
@@ -181,7 +192,8 @@ sub check_write_outcome {
 
 sub check_find_one_outcome {
     my ( $label, $res, $outcome ) = @_;
-    cmp_deeply( $res, $outcome->{result}, "$label: result doc" );
+    cmp_deeply( $res, $outcome->{result}, "$label: result doc" )
+      or diag explain $res;
     check_collection( $label, $outcome );
 }
 
