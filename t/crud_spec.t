@@ -50,18 +50,16 @@ subtest "read tests" => sub {
             $coll->insert_many( $plan->{data} );
 
             for my $test ( @{ $plan->{tests} } ) {
-                subtest $test->{description} => sub {
-                    my $op   = $test->{operation};
-                    my $meth = "test_$op->{name}";
-                    my $res  = main->$meth( $op->{arguments}, $test->{outcome} );
-                };
+                my $op   = $test->{operation};
+                my $meth = "test_$op->{name}";
+                my $res  = main->$meth( $test->{description}, $op->{arguments}, $test->{outcome} );
             }
         };
     }
 };
 
 sub test_aggregate {
-    my ( $class, $args, $outcome ) = @_;
+    my ( $class, $label, $args, $outcome ) = @_;
     my $pipeline = delete $args->{pipeline};
 
     # $out not supported until 2.6
@@ -72,41 +70,41 @@ sub test_aggregate {
     $outcome->{result} = [] if $is_out;
 
     my $res = $coll->aggregate( grep { defined } $pipeline, $args );
-    check_outcome( $res, $outcome );
+    check_outcome( $label, $res, $outcome );
 }
 
 sub test_count {
-    my ( $class, $args, $outcome ) = @_;
+    my ( $class, $label, $args, $outcome ) = @_;
     my $filter = delete $args->{filter};
     my $res = $coll->count( grep { defined } $filter, $args );
-    check_outcome( $res, $outcome );
+    check_outcome( $label, $res, $outcome );
 }
 
 sub test_distinct {
-    my ( $class, $args, $outcome ) = @_;
+    my ( $class, $label, $args, $outcome ) = @_;
     my $fieldname = delete $args->{fieldName};
     my $filter    = delete $args->{filter};
     my $res       = $coll->distinct( grep { defined } $fieldname, $filter, $args );
-    check_outcome( $res, $outcome );
+    check_outcome( $label, $res, $outcome );
 }
 
 sub test_find {
-    my ( $class, $args, $outcome ) = @_;
+    my ( $class, $label, $args, $outcome ) = @_;
     my $filter = delete $args->{filter};
     my $res = $coll->find( grep { defined } $filter, $args );
-    check_outcome( $res, $outcome );
+    check_outcome( $label, $res, $outcome );
 }
 
 sub check_outcome {
-    my ( $res, $outcome ) = @_;
+    my ( $label, $res, $outcome ) = @_;
 
     if ( ref $outcome->{result} ) {
         my $all = [ $res->all ];
-        cmp_deeply( $all, $outcome->{result}, "result documents" )
+        cmp_deeply( $all, $outcome->{result}, "$label: result documents" )
           or diag explain $all;
     }
     else {
-        is( $res, $outcome->{result}, "result scalar" );
+        is( $res, $outcome->{result}, "$label: result scalar" );
     }
 
     return unless exists $outcome->{collection};
@@ -117,7 +115,7 @@ sub check_outcome {
       : $coll;
 
     my $data = [ $out_coll->find( {} )->all ];
-    cmp_deeply( $data, $outcome->{collection}{data}, "collection data" )
+    cmp_deeply( $data, $outcome->{collection}{data}, "$label: collection data" )
       or diag explain $data;
 }
 
