@@ -170,6 +170,9 @@ sub check_write_outcome {
 
     for my $k ( keys %{ $outcome->{result} } ) {
         ( my $attr = $k ) =~ s{([A-Z])}{_\L$1}g;
+        if ( $k eq 'modifiedCount' && $server_version < v2.6.0 ) {
+            $outcome->{result}{$k} = undef;
+        }
         is( $res->$attr, $outcome->{result}{$k}, "$label: $k" );
     }
 
