@@ -24,7 +24,7 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 use Type::Library
   -base,
   -declare => qw(
-  ArrayofHashRef
+  ArrayOfHashRef
   AuthMechanism
   Booleanpm
   ConnectType
@@ -44,8 +44,10 @@ use Type::Library
   NonNegNum
   ReadPrefMode
   ReadPreference
+  ReplaceDoc
   ServerType
   TopologyType
+  UpdateDoc
   WriteConcern
 );
 
@@ -71,7 +73,7 @@ sub connection_uri_re {
 my $uri_re = MongoDB::_Types::connection_uri_re();
 
 #--------------------------------------------------------------------------#
-# Type declarations
+# Type declarations (without inherited coercions)
 #--------------------------------------------------------------------------#
 
 declare ArrayOfHashRef, as ArrayRef [HashRef];
@@ -109,6 +111,8 @@ declare HostAddressList, as ArrayRef [HostAddress], message {
 };
 
 class_type IxHash, { class => 'Tie::IxHash' };
+
+declare MaybeHashRef, as Maybe[ HashRef ];
 
 class_type MongoDBCollection, { class => 'MongoDB::Collection' };
 
@@ -163,8 +167,6 @@ coerce IxHash, from HashRef, via { Tie::IxHash->new(%$_) };
 
 coerce IxHash, from ArrayRef, via { Tie::IxHash->new(@$_) };
 
-coerce IxHash, from Undef, via { Tie::IxHash->new() };
-
 coerce IxHash, from HashLike, via { Tie::IxHash->new(%$_) };
 
 coerce ReadPreference, from HashRef,
@@ -178,5 +180,17 @@ coerce ReadPreference, from ArrayRef,
 
 coerce WriteConcern, from HashRef,
   via { require MongoDB::WriteConcern; MongoDB::WriteConcern->new($_) };
+
+#--------------------------------------------------------------------------#
+# subtypes with inherited coercions
+#--------------------------------------------------------------------------#
+
+declare ReplaceDoc, as IxHash, coercion => 1,
+  where { !$_->Length || substr( $_->Keys(0), 0, 1 ) ne $MongoDB::BSON::char },
+  message { "replacement document ($_) must not contain update operators" };
+
+declare UpdateDoc, as IxHash, coercion => 1,
+  where { $_->Length && substr( $_->Keys(0), 0, 1 ) eq $MongoDB::BSON::char },
+  message { "update document must only contain update operators" };
 
 1;

@@ -132,9 +132,6 @@ class.  L<MongoDB::Cursor> is now just a thin wrapper that holds query
 parameters, instantiates a L<MongoDB::QueryResult> on demand, and passes
 iteration methods through to the query result object.
 
-Aggregation "cursors" and parallel scan "cursors" are now L<QueryResult>
-objects, with the same iteration methods as in v0.
-
 This significantly simplifes the code base and should have little end-user
 visibility unless users are specifically checking the return type of
 queries and query-like methods.
@@ -143,6 +140,24 @@ The C<explain> cursor method no longer resets the cursor.
 
 The C<slave_ok> cursor method now sets the C<read_preference>
 to 'secondaryPreferred' or clears it to 'primary'.
+
+Pparallel scan "cursors" are now L<QueryResult> objects, with the same
+iteration methods as in v0.
+
+=head2 Aggregation API
+
+On MongoDB 2.6 or later, C<aggregate> always uses a cursor to execute
+the query.  The C<batchSize> option has been added (but has no effect
+prior to 2.6).  The C<cursor> option is deprecated.
+
+The return types for the C<aggregate> method are now B<always>
+L<QueryResult> objects, regardless of whether the aggregation uses a cursor
+internally or is an 'explain'.
+
+B<NOTE>: To help users with a 2.6 mongos and mixed version shards with
+versions before 2.6, passing the deprecated 'cursor' option with a false
+value will disable the use of a cursor.  This workaround is provided for
+convenience and will be removed when 2.4 is no longer supported.
 
 =head2 Read preference objects and the C<read_preference> method
 
@@ -179,6 +194,35 @@ that calling C<read_preference> on a cursor object no longer changes the
 read preference globally on the client – the read preference change is
 scoped to the cursor object only.
 
+=head2 Write concern objects and removing the C<safe> option
+
+A new L<MongoDB::WriteConcern> class is used to encapsulate write concern
+attributes.  In the v1 driver, it is set as an immutable
+attribute on L<MongoDB::MongoClient>:
+
+    MongoDB::MongoClient->new( ..., write_concern => { ... } );
+
+If provided as a hash reference, it will be coerced to a
+L<MongoDB::WriteConcern> object (and validated).
+
+It is inherited by L<MongoDB::Database>, L<MongoDB::Collection>,
+and L<MongoDB::GridFS> objects unless provided as an option to
+the relevant factory methods:
+
+    $db = $client->get_database(
+        "test", { write_concern => { w => 'majority' }
+    );
+
+    $coll = $db->get_collection(
+        "people", { write_concern => { w => 1 }
+    );
+
+    $gridfs = $db->get_gridfs(
+        "fs", { write_concern => { w => 0 }
+    );
+
+The C<safe> option is no longer used in new method APIs.
+
 =head2 Authentication
 
 Authentication now happens automatically on connection during the
@@ -194,6 +238,17 @@ to ensure authentication succeeds (or else an exception is thrown).
 In a future release, this method will be removed entirely and
 authentication options will only be allowed as constructor arguments.
 
+=head2 Bulk insertion
+
+Insertion via the bulk API will insert an C<_id> into the original
+document if one does not exist.  Previous documentation was not specific
+whether this was the case or if the C<_id> was added to a clone.
+
+As the regular insertion methods from L<MongoDB::Collection> modified the
+original, that was adopted for the Bulk API as well.
+
+All methods are now specifically documented as modifying the original.
+
 =head2 Bulk write results
 
 The bulk write results class has been renamed to
@@ -203,6 +258,19 @@ $result->isa("MongoDB::WriteResult") >> will continue to work as expected.
 
 The attributes have been renamed to be consistent with the new CRUD API.
 The legacy names are deprecated, but are available as aliases.
+
+=head2 GridFS
+
+The L<MongoDB::GridFS> class now has explicit read preference and write
+concern attributes inherited from L<MongoDB::MongoClient> or
+L<MongoDB::Database>, just like L<MongoDB::Collection>.  This means that
+GridFS operations now default to an acknowledged write concern, just like
+collection operations have been doing since v0.502.0 in 2012.
+
+The use of C<safe> is deprecated.
+
+Support for ancient, undocumented positional parameters circa 2010
+has been removed.
 
 =head2 Low-level functions removed
 

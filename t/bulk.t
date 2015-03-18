@@ -119,13 +119,14 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
 
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
-        is_deeply(
+        cmp_deeply(
             $result,
             MongoDB::BulkWriteResult->new(
                 inserted_count   => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
                 batch_count => 1,
+                inserted => [ { index => 0, _id => 1 } ],
             ),
             "result object correct"
         ) or diag explain $result;
@@ -137,19 +138,19 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         is( $coll->count, 0, "no docs in collection" );
         my $doc = {};
         $bulk->insert( $doc );
-        is( $doc->{_id}, undef, "adding _id doesn't modify original" );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on insert" ) or diag explain $err;
         is( $coll->count, 1, "one doc in collection" );
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
-        is_deeply(
+        cmp_deeply(
             $result,
             MongoDB::BulkWriteResult->new(
                 inserted_count   => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
                 batch_count => 1,
+                inserted => [ { index => 0, _id => obj_isa("MongoDB::OID") } ],
             ),
             "result object correct"
         );
@@ -216,7 +217,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "update all docs with $method" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        $coll->insert($_) for map { { key => $_ } } 1, 2;
+        $coll->insert_one($_) for map { { key => $_ } } 1, 2;
         my @docs = $coll->find( {} )->all;
 
         $bulk->find( {} )->update( { '$set' => { x => 3 } } );
@@ -243,7 +244,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "update only matching docs with $method" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        $coll->insert($_) for map { { key => $_ } } 1, 2;
+        $coll->insert_one($_) for map { { key => $_ } } 1, 2;
         my @docs = $coll->find( {} )->all;
 
         $bulk->find( { key => 1 } )->update( { '$set' => { x => 1 } } );
@@ -271,7 +272,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "update_one with $method" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        $coll->insert($_) for map { { key => $_ } } 1, 2;
+        $coll->insert_one($_) for map { { key => $_ } } 1, 2;
 
         $bulk->find( {} )->update_one( { '$set' => { key => 3 } } );
         my ( $result, $err );
@@ -336,7 +337,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "replace_one with $method" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
 
         $bulk->find( {} )->replace_one( { key => 3 } );
         my ( $result, $err );
@@ -355,8 +356,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         );
 
         # check expected values
-        my $distinct =
-          $testdb->run_command( [ distinct => $coll->name, key => "key" ] )->{values};
+        my $distinct = [ $coll->distinct("key")->all ];
         cmp_deeply( $distinct, bag( 1, 3 ), "only one document replaced" );
     };
 
@@ -397,7 +397,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count => 1,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids  => [ { index => 1, _id => ignore() } ],
+                upserted       => [ { index => 1, _id => ignore() } ],
                 op_count  => 2,
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
@@ -407,7 +407,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         cmp_deeply(
             [ $coll->find( {} )->all ],
             [ { _id => ignore(), key => 2, x => 2 } ],
-            "upserted_ids document correct"
+            "upserted document correct"
         );
 
         $bulk = $coll->$method;
@@ -429,7 +429,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "upsert-update updates with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
         my @docs = $coll->find( {} )->all;
 
         my $bulk = $coll->$method;
@@ -478,7 +478,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count   => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids    => [ { index => 0, _id => ignore() } ],
+                upserted        => [ { index => 0, _id => ignore() } ],
                 op_count    => 1,
                 batch_count => 1,
             ),
@@ -506,7 +506,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count => 1,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids  => [ { index => 1, _id => ignore() } ],
+                upserted      => [ { index => 1, _id => ignore() } ],
                 op_count  => 2,
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
@@ -516,14 +516,14 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         cmp_deeply(
             [ $coll->find( {} )->all ],
             [ { _id => ignore(), key => 2, x => 2 } ],
-            "upserted_ids document correct"
+            "upserted document correct"
         );
 
     };
 
     subtest "upsert-update_one (no insert) with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
         my @docs = $coll->find( {} )->all;
 
         my $bulk = $coll->$method;
@@ -572,7 +572,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count => 1,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids  => [ { index => 1, _id => ignore() } ],
+                upserted      => [ { index => 1, _id => ignore() } ],
                 op_count  => 2,
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
@@ -582,14 +582,14 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         cmp_deeply(
             [ $coll->find( {} )->all ],
             [ { _id => ignore(), x => 2 } ],
-            "upserted_ids document correct"
+            "upserted document correct"
         );
 
     };
 
     subtest "upsert-replace_one (no insert) with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
         my @docs = $coll->find( {} )->all;
 
         my $bulk = $coll->$method;
@@ -636,7 +636,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "remove all with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
 
         my $bulk = $coll->$method;
         $bulk->find( {} )->remove;
@@ -661,7 +661,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "remove matching with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => $_ } ) for 1 .. 2;
+        $coll->insert_one( { key => $_ } ) for 1 .. 2;
 
         my $bulk = $coll->$method;
         $bulk->find( { key => 1 } )->remove;
@@ -703,7 +703,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
     subtest "remove_one with $method" => sub {
         $coll->drop;
-        $coll->insert( { key => 1 } ) for 1 .. 2;
+        $coll->insert_one( { key => 1 } ) for 1 .. 2;
 
         my $bulk = $coll->$method;
         $bulk->find( {} )->remove_one;
@@ -730,7 +730,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 note("QA-477 MIXED OPERATIONS, UNORDERED");
 subtest "mixed operations, unordered" => sub {
     $coll->drop;
-    $coll->insert( { a => $_ } ) for 1 .. 2;
+    $coll->insert_one( { a => $_ } ) for 1 .. 2;
 
     my $bulk = $coll->initialize_unordered_bulk_op;
     $bulk->find( { a => 1 } )->update( { '$set' => { b => 1 } } );
@@ -753,7 +753,8 @@ subtest "mixed operations, unordered" => sub {
             batch_count => $server_does_bulk ? 3 : 4,
             # XXX QA Test says index should be 3, but with unordered, that's
             # not guaranteed, so we ignore the value
-            upserted_ids => [ { index => ignore(), _id => obj_isa("MongoDB::OID") } ],
+            upserted     => [ { index => ignore(), _id => obj_isa("MongoDB::OID") } ],
+            inserted     => [ { index => ignore(), _id => obj_isa("MongoDB::OID") } ],
         ),
         "result object correct"
     ) or diag explain $result;
@@ -784,7 +785,11 @@ subtest "mixed operations, ordered" => sub {
             deleted_count    => 1,
             op_count    => 5,
             batch_count => $server_does_bulk ? 4 : 5,
-            upserted_ids    => [ { index => 2, _id => obj_isa("MongoDB::OID") } ],
+            upserted        => [ { index => 2, _id => obj_isa("MongoDB::OID") } ],
+            inserted        => [
+                { index => 0, _id => obj_isa("MongoDB::OID") },
+                { index => 3, _id => obj_isa("MongoDB::OID") },
+            ],
         ),
         "result object correct"
     ) or diag explain $result;
@@ -827,7 +832,7 @@ subtest "unordered batch with errors" => sub {
         is( $details->modified_count, ( $server_does_bulk ? 0 : undef ), "modified_count" );
         is( $details->count_write_errors, 3, "writeError count" )
           or diag explain $details;
-        cmp_deeply( $details->upserted_ids, [ { index => 4, _id => obj_isa("MongoDB::OID") }, ],
+        cmp_deeply( $details->upserted, [ { index => 4, _id => obj_isa("MongoDB::OID") }, ],
             "upsert list" );
     }
     else {
@@ -840,7 +845,7 @@ subtest "unordered batch with errors" => sub {
         is( $details->count_write_errors, 2, "writeError count" )
           or diag explain $details;
         cmp_deeply(
-            $details->upserted_ids,
+            $details->upserted,
             [
                 { index => 0, _id => obj_isa("MongoDB::OID") },
                 { index => 1, _id => obj_isa("MongoDB::OID") },
@@ -849,8 +854,7 @@ subtest "unordered batch with errors" => sub {
         );
     }
 
-    my $distinct =
-      $testdb->run_command( [ distinct => $coll->name, key => "a" ] )->{values};
+    my $distinct = [ $coll->distinct("a")->all ];
     cmp_deeply( $distinct, bag( 1 .. 3 ), "distinct keys" );
 
 };
@@ -922,6 +926,11 @@ subtest "ordered batch split on size" => sub {
     my $details = $err->result;
     my $errdoc  = $details->write_errors->[0];
     is( $details->inserted_count,         6,     "inserted_count" );
+    cmp_deeply(
+        $details->inserted_ids,
+        { map { $_ => $_ } 0 .. 5 },
+        "inserted_ids correct"
+    );
     is( $details->count_write_errors, 1,     "count_write_errors" );
     is( $errdoc->{code},             11000, "error code" ) or diag explain $errdoc;
     is( $errdoc->{index},            6,     "error index" );
@@ -971,6 +980,11 @@ subtest "ordered batch split on number of ops" => sub {
     my $details = $err->result;
     my $errdoc  = $details->write_errors->[0];
     is( $details->inserted_count,         2000,  "inserted_count" );
+    cmp_deeply(
+        $details->inserted_ids,
+        { map { $_ => $_ } 0 .. 1999 },
+        "inserted_ids correct"
+    );
     is( $details->count_write_errors, 1,     "count_write_errors" );
     is( $errdoc->{code},             11000, "error code" );
     is( $errdoc->{index},            2000,  "error index" );
@@ -1150,7 +1164,7 @@ subtest "insert (ARRAY)" => sub {
 
 subtest "update (ARRAY)" => sub {
     $coll->drop;
-    $coll->insert( { _id => 1 } );
+    $coll->insert_one( { _id => 1 } );
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( [] )->update( [ '$set' => { x => 2 } ] );
     my ( $result, $err );
@@ -1161,7 +1175,7 @@ subtest "update (ARRAY)" => sub {
 
 subtest "update_one (ARRAY)" => sub {
     $coll->drop;
-    $coll->insert( { _id => $_ } ) for 1 .. 2;
+    $coll->insert_one( { _id => $_ } ) for 1 .. 2;
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( [] )->update_one( [ '$set' => { x => 2 } ] );
     my ( $result, $err );
@@ -1172,7 +1186,7 @@ subtest "update_one (ARRAY)" => sub {
 
 subtest "replace_one (ARRAY)" => sub {
     $coll->drop;
-    $coll->insert( { key => $_ } ) for 1 .. 2;
+    $coll->insert_one( { key => $_ } ) for 1 .. 2;
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( [] )->replace_one( [ key => 3 ] );
     my ( $result, $err );
@@ -1189,7 +1203,6 @@ subtest "insert (Tie::IxHash)" => sub {
     $bulk->insert( Tie::IxHash->new( _id => 1 ) );
     my $doc = Tie::IxHash->new();
     $bulk->insert( $doc  );
-    is( $doc->FETCH('_id'), undef, "inserting _id doesn't modify original" );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on insert" ) or diag explain $err;
@@ -1198,7 +1211,7 @@ subtest "insert (Tie::IxHash)" => sub {
 
 subtest "update (Tie::IxHash)" => sub {
     $coll->drop;
-    $coll->insert( { _id => 1 } );
+    $coll->insert_one( { _id => 1 } );
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( Tie::IxHash->new() )
       ->update( Tie::IxHash->new( '$set' => { x => 2 } ) );
@@ -1210,7 +1223,7 @@ subtest "update (Tie::IxHash)" => sub {
 
 subtest "update_one (Tie::IxHash)" => sub {
     $coll->drop;
-    $coll->insert( { _id => $_ } ) for 1 .. 2;
+    $coll->insert_one( { _id => $_ } ) for 1 .. 2;
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( Tie::IxHash->new() )
       ->update_one( Tie::IxHash->new( '$set' => { x => 2 } ) );
@@ -1222,7 +1235,7 @@ subtest "update_one (Tie::IxHash)" => sub {
 
 subtest "replace_one (Tie::IxHash)" => sub {
     $coll->drop;
-    $coll->insert( { key => $_ } ) for 1 .. 2;
+    $coll->insert_one( { key => $_ } ) for 1 .. 2;
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( Tie::IxHash->new() )->replace_one( Tie::IxHash->new( key => 3 ) );
     my ( $result, $err );
@@ -1252,7 +1265,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     };
 }
 
-# DRIVERS-151 Handle edge case for pre-2.6 when upserted_ids _id not returned
+# DRIVERS-151 Handle edge case for pre-2.6 when upserted _id not returned
 note("UPSERT _ID NOT RETURNED");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "$method: upsert with non OID _ids" => sub {
@@ -1276,7 +1289,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             MongoDB::BulkWriteResult->new(
                 upserted_count => 3,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
-                upserted_ids =>
+                upserted     =>
                   [ { index => 0, _id => 0 }, { index => 1, _id => 1 }, { index => 2, _id => 2 }, ],
                 op_count    => 3,
                 batch_count => $server_does_bulk ? 1 : 3,

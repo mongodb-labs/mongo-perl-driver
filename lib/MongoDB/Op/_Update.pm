@@ -128,7 +128,7 @@ sub _parse_cmd {
     my ( $self, $res ) = @_;
 
     return (
-        matched_count  => $res->{n},
+        matched_count  => $res->{n} - @{ $res->{upserted} || [] },
         modified_count => $res->{nModified},
         upserted_id    => $res->{upserted} ? $res->{upserted}[0]{_id} : undef,
     );
@@ -155,7 +155,7 @@ sub _parse_gle {
     }
 
     return (
-        matched_count  => $res->{n},
+        matched_count  => ($upserted ? 0 : $res->{n}),
         modified_count => undef,
         upserted_id    => $upserted,
     );

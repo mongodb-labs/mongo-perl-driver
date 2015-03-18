@@ -144,7 +144,7 @@ sub find {
 Queues a document for insertion when L</execute> is called.  The document may
 be a hash reference, an array reference (with balance key/value pairs) or a
 L<Tie::IxHash> object.  If the document does not have an C<_id> field, one will
-be added.
+be added to the original.
 
 The method has an empty return on success; an exception will be thrown on error.
 
@@ -160,20 +160,10 @@ sub insert {
     if ( ref $doc eq 'ARRAY' ) {
         confess "array reference to insert must have key/value pairs"
           if @$doc % 2;
-        $doc = {@$doc};
-    }
-    elsif ( ref $doc eq 'HASH' ) {
-        $doc = {%$doc}; # shallow copy
-    }
-    else {
-        $doc = Tie::IxHash->new( map {; $_ => $doc->FETCH($_) } $doc->Keys );
-        $doc->STORE( '_id', MongoDB::OID->new ) unless $doc->EXISTS('_id');
+        $doc = Tie::IxHash->new(@$doc);
     }
 
-    if ( ref $doc eq 'HASH' ) {
-        $doc->{_id} = MongoDB::OID->new unless exists $doc->{_id};
-    }
-
+    $self->collection->_add_oids([$doc]);
     $self->_enqueue_write( [ insert => $doc ] );
     return;
 }

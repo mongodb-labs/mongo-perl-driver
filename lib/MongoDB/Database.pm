@@ -138,23 +138,32 @@ sub get_collection {
 
 { no warnings 'once'; *coll = \&get_collection }
 
-=method get_gridfs ($prefix?)
+=method get_gridfs
 
     my $grid = $database->get_gridfs;
+    my $grid = $database->get_gridfs("fs");
+    my $grid = $database->get_gridfs("fs", $options);
 
 Returns a L<MongoDB::GridFS> for storing and retrieving files from the database.
 Default prefix is "fs", making C<$grid-E<gt>files> "fs.files" and C<$grid-E<gt>chunks>
 "fs.chunks".
+
+It takes an optional hash reference of options that are passed to the
+L<MongoDB::GridFS> constructor.
 
 See L<MongoDB::GridFS> for more information.
 
 =cut
 
 sub get_gridfs {
-    my ($self, $prefix) = @_;
+    my ($self, $prefix, $options) = @_;
     $prefix = "fs" unless $prefix;
 
     return MongoDB::GridFS->new(
+        read_preference => $self->read_preference,
+        write_concern   => $self->write_concern,
+        ( $options ? %$options : () ),
+        # not allowed to be overridden by options
         _database => $self,
         prefix => $prefix
     );

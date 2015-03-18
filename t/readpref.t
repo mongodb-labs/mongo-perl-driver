@@ -105,7 +105,7 @@ subtest 'commands' => sub {
     my $db = $conn2->get_database( $testdb_name );
 
     my $temp_coll = $db->get_collection("foo");
-    $temp_coll->insert({});
+    $temp_coll->insert_one({});
 
     is(
         exception {

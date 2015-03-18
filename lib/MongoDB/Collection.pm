@@ -23,16 +23,21 @@ use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
 use MongoDB::Error;
+use MongoDB::InsertManyResult;
+use MongoDB::QueryResult;
 use MongoDB::WriteConcern;
 use MongoDB::_Query;
+use MongoDB::Op::_Aggregate;
+use MongoDB::Op::_BatchInsert;
 use MongoDB::Op::_CreateIndexes;
 use MongoDB::Op::_Delete;
+use MongoDB::Op::_Distinct;
 use MongoDB::Op::_InsertOne;
-use MongoDB::Op::_InsertMany;
 use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_Update;
 use MongoDB::_Types -types;
 use Types::Standard -types;
+use Type::Params qw/compile/;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
@@ -161,473 +166,673 @@ sub get_collection {
     return $self->_database->get_collection($self->name.'.'.$coll);
 }
 
-# utility function to generate an index name by concatenating key/value pairs
-sub __to_index_string {
-    my $keys = shift;
+=method insert_one
 
-    my @name;
-    if (ref $keys eq 'ARRAY') {
-        @name = @$keys;
-    }
-    elsif (ref $keys eq 'HASH' ) {
-        @name = %$keys
-    }
-    elsif (ref $keys eq 'Tie::IxHash') {
-        my @ks = $keys->Keys;
-        my @vs = $keys->Values;
+    $res = $coll->insert_one( $document );
 
-        for (my $i=0; $i<$keys->Length; $i++) {
-            push @name, $ks[$i];
-            push @name, $vs[$i];
-        }
-    }
-    else {
-        confess 'expected Tie::IxHash, hash, or array reference for keys';
-    }
-
-    return join("_", @name);
-}
-
-=method find, query
-
-    my $cursor = $coll->find( $filter );
-    my $cursor = $coll->find( $filter, $options );
-
-    my $cursor = $collection->find({ i => { '$gt' => 42 } }, {limit => 20});
-
-Executes a query with the given C<$filter> and returns a C<MongoDB::Cursor> with the results.
-C<$filter> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).
-
-The query can be customized using L<MongoDB::Cursor> methods, or with an optional
-hash reference of options.
-
-Valid options include:
-
-=for :list
-* allowPartialResults - get partial results from a mongos if some shards are
-  down (instead of throwing an error).
-* batchSize – the number of documents to return per batch.
-* comment – attaches a comment to the query. If C<$comment> also exists in the
-  modifiers document, the comment field overwrites C<$comment>.
-* cursorType – indicates the type of cursor to use. It must be one of three
-  enumerated values: C<non_tailable> (the default), C<tailable>, and
-  C<tailable_await>.
-* limit – the maximum number of documents to return.
-* maxTimeMS – the maximum amount of time to allow the query to run. If
-  C<$maxTimeMS> also exists in the modifiers document, the maxTimeMS field
-  overwrites C<$maxTimeMS>.
-* modifiers – a hash reference of meta-operators modifying the output or
-  behavior of a query.
-* noCursorTimeout – if true, prevents the server from timing out a cursor after
-  a period of inactivity
-* projection - a hash reference defining fields to return. See L<Limit fields
-  to
-  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
-  in the MongoDB documentation for details.
-* skip – the number of documents to skip before returning.
-* sort – a L<Tie::IxHash> or array reference of key value pairs defining the
-  order in which to return matching documents. If C<$orderby> also exists
-   * in the modifiers document, the sort field overwrites C<$orderby>.
-
-See also core documentation on querying:
-L<http://docs.mongodb.org/manual/core/read/>.
-
-The C<query> method is a legacy alias for C<find>.
+Inserts a single L<document|/Document> into the database and returns a
+L<MongoDB::InsertOneResult> object.If no C<_id> field is present, one
+will be added to the original document.
 
 =cut
 
-sub find {
-    my ( $self, $filter, $opts ) = @_;
+my $insert_one_args;
+sub insert_one {
+    $insert_one_args ||= compile( Object, IxHash);
+    my ( $self, $document ) = $insert_one_args->(@_);
 
-    $opts ||= {};
-    $opts->{sort} = delete $opts->{sort_by} if $opts->{sort_by};
-
-    my $query = MongoDB::_Query->new(
-        db_name         => $self->_database->name,
-        coll_name       => $self->name,
-        client          => $self->_client,
-        read_preference => $self->read_preference,
-        filter          => $filter,
-        %$opts,
-    );
-
-    return MongoDB::Cursor->new( query => $query );
-}
-
-=method find_one($query, $fields?, $options?)
-
-    my $object = $collection->find_one({ name => 'Resi' });
-    my $object = $collection->find_one({ name => 'Resi' }, { name => 1, age => 1});
-    my $object = $collection->find_one({ name => 'Resi' }, {}, {max_time_ms => 100});
-
-Executes the given C<$query> and returns the first object matching it.
-C<$query> can be a hash reference, L<Tie::IxHash>, or array reference (with an
-even number of elements).  If C<$fields> is specified, the resulting document
-will only include the fields given (and the C<_id> field) which can cut down on
-wire traffic. If C<$options> is specified, the cursor will be set with the contained options.
-
-=cut
-
-sub find_one {
-    my ($self, $query, $fields, $options) = @_;
-    $query ||= {};
-    $fields ||= {};
-    $options ||= {};
-
-    my $cursor = $self->find($query)->limit(-1)->fields($fields);
-
-    for my $key (keys %$options) {
-
-        if (!MongoDB::Cursor->can($key)) {
-            confess("$key is not a known method in MongoDB::Cursor");
-        }
-        $cursor->$key($options->{$key});
-    }
-
-    return $cursor->next;
-}
-
-=method insert ($object, $options?)
-
-    my $id1 = $coll->insert({ name => 'mongo', type => 'database' });
-    my $id2 = $coll->insert({ name => 'mongo', type => 'database' }, {safe => 1});
-
-Inserts the given C<$object> into the database and returns it's id
-value. C<$object> can be a hash reference, a reference to an array with an
-even number of elements, or a L<Tie::IxHash>.  The id is the C<_id> value
-specified in the data or a L<MongoDB::OID>.
-
-The optional C<$options> parameter can be used to specify if this is a safe
-insert.  A safe insert will check with the database if the insert succeeded and
-croak if it did not.  You can also check if the insert succeeded by doing an
-unsafe insert, then calling L<MongoDB::Database/"last_error($options?)">.
-
-See also core documentation on insert: L<http://docs.mongodb.org/manual/core/create/>.
-
-=cut
-
-sub insert {
-    my ( $self, $document, $opts ) = @_;
-
-    unless ( $opts->{'no_ids'} ) {
-        $self->_add_oids( [$document] );
-    }
+    $self->_add_oids( [$document] );
 
     my $op = MongoDB::Op::_InsertOne->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
         document      => $document,
-        write_concern => $self->_dynamic_write_concern($opts),
+        write_concern => $self->write_concern,
     );
 
-    my $result = $self->_client->send_write_op($op);
-
-    return $result->inserted_id;
+    return $self->_client->send_write_op($op);
 }
 
-sub _add_oids {
-    my ($self, $docs) = @_;
-    my @ids;
+=method insert_many
 
-    for my $d ( @$docs ) {
-        my $type = reftype($d);
-        my $found_id;
-        if (ref($d) eq 'Tie::IxHash') {
-            $found_id = $d->FETCH('_id');
-            unless ( defined $found_id ) {
-                $d->Unshift( '_id', $found_id = MongoDB::OID->new );
-            }
-        }
-        elsif ($type eq 'ARRAY') {
-            # search for an _id or prepend one
-            for my $i ( 0 .. (@$d/2 - 1) ) {
-                if ( $d->[2*$i] eq '_id' ) {
-                    $found_id = $d->[2*$i+1];
-                    last;
-                }
-            }
-            unless (defined $found_id) {
-                unshift @$d, '_id', $found_id = MongoDB::OID->new;
-            }
-        }
-        elsif ($type eq 'HASH') {
-            # hash or IxHash
-            $found_id = $d->{_id};
-            unless ( defined $found_id ) {
-                $found_id = MongoDB::OID->new;
-                $d->{_id} = $found_id;
-            }
-        }
-        else {
-            $type = 'scalar' unless $type;
-            Carp::croak("unhandled type $type")
-        }
-        push @ids, $found_id;
-    }
+    $res = $coll->insert_many( [ @documents ] );
+    $res = $coll->insert_many( [ @documents ], { ordered => 0 } );
 
-    return \@ids;
-}
+Inserts each of the L<documents|/Documents> in an array reference into the
+database and returns a L<MongoDB::InsertManyResult>.  This is syntactic sugar
+for doing a L<MongoDB::BulkWrite> operation.
 
-=method batch_insert (\@array, $options)
+If no C<_id> field is present in a document, one will be added to the original
+document.
 
-    my @ids = $collection->batch_insert([{name => "Joe"}, {name => "Fred"}, {name => "Sam"}]);
+An optional hash reference of options may be provided.  The only valid option
+is C<ordered>, which defaults to true.  When true, the server will halt
+insertions after the first error (if any).  When false, all documents will be
+processed and any error will only be thrown after all insertions are
+attempted.
 
-Inserts each of the documents in the array into the database and returns an
-array of their _id fields.
-
-The optional C<$options> parameter can be used to specify if this is a safe
-insert.  A safe insert will check with the database if the insert succeeded and
-croak if it did not. You can also check if the inserts succeeded by doing an
-unsafe batch insert, then calling L<MongoDB::Database/"last_error($options?)">.
+On MongoDB servers before version 2.6, C<insert_many> bulk operations are
+emulated with individual inserts to capture error information.  On 2.6 or
+later, this method will be significantly faster than individual C<insert_one>
+calls.
 
 =cut
 
-sub batch_insert {
-    my ( $self, $documents, $opts ) = @_;
+my $insert_many_args;
+sub insert_many {
+    $insert_many_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef] );
+    my ($self, $documents, $opts) = $insert_many_args->(@_);
 
-    confess 'not an array reference' unless ref $documents eq 'ARRAY';
+    # ordered defaults to true
+    my $ordered = ( defined $opts && exists $opts->{ordered} ) ? $opts->{ordered} : 1;
 
-    unless ( $opts->{'no_ids'} ) {
-        $self->_add_oids($documents);
-    }
+    my $wc = $self->write_concern;
+    my $bulk = $ordered ? $self->ordered_bulk : $self->unordered_bulk;
+    $bulk->insert($_) for @$documents;
+    my $res = $bulk->execute( $wc );
+    return MongoDB::InsertManyResult->new(
+        acknowledged => $wc->is_safe,
+        inserted     => $res->inserted,
+    );
+}
 
-    my $op = MongoDB::Op::_InsertMany->new(
+=method delete_one
+
+    $res = $coll->delete_one( $filter );
+    $res = $coll->delete_one( { _id => $id } );
+
+Deletes a single document that matches a L<filter expression|/Filter expression> and returns a
+L<MongoDB::DeleteResult> object.
+
+=cut
+
+my $delete_one_args;
+sub delete_one {
+    $delete_one_args ||= compile( Object, IxHash );
+    my ($self, $filter) = $delete_one_args->(@_);
+
+    my $op = MongoDB::Op::_Delete->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
-        documents     => $documents,
-        write_concern => $self->_dynamic_write_concern($opts),
+        filter        => $filter,
+        just_one      => 1,
+        write_concern => $self->write_concern,
     );
 
-    my $result = $self->_client->send_write_op($op);
+    return $self->_client->send_write_op( $op );
 
-    return @{ $result->inserted_ids };
 }
 
-sub _legacy_index_insert {
-    my ($self, $doc, $options) = @_;
+=method delete_many
 
-    my $wc = $self->_dynamic_write_concern( $options );
-    my $result = $self->_client->send_insert($self->full_name, $doc, $wc, undef, 0);
+    $res = $coll->delete_many( $filter );
+    $res = $coll->delete_many( { name => "Larry" } );
 
-    $result->assert;
-
-    return 1;
-}
-
-=method update (\%criteria, \%object, \%options?)
-
-    $collection->update({'x' => 3}, {'$inc' => {'count' => -1} }, {"upsert" => 1, "multiple" => 1});
-
-Updates an existing C<$object> matching C<$criteria> in the database.
-
-Returns 1 unless the C<safe> option is set. If C<safe> is set, this will return
-a hash of information about the update, including number of documents updated
-(C<n>).  If C<safe> is set and the update fails, C<update> will croak. You can
-also check if the update succeeded by doing an unsafe update, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
-C<update> can take a hash reference of options.  The options currently supported
-are:
-
-=over
-
-=item C<upsert>
-If no object matching C<$criteria> is found, C<$object> will be inserted.
-
-=item C<multiple|multi>
-All of the documents that match C<$criteria> will be updated, not just
-the first document found. (Only available with database version 1.1.3 and
-newer.)  An error will be throw if both C<multiple> and C<multi> exist
-and their boolean values differ.
-
-=item C<safe>
-If the update fails and safe is set, the update will croak.
-
-=back
-
-See also core documentation on update: L<http://docs.mongodb.org/manual/core/update/>.
+Deletes all documents that match a L<filter expression|/Filter expression> and returns a
+L<MongoDB::DeleteResult> object.
 
 =cut
 
-sub update {
-    my ( $self, $query, $object, $opts ) = @_;
+my $delete_many_args;
+sub delete_many {
+    $delete_many_args ||= compile( Object, IxHash );
+    my ($self, $filter) = $delete_many_args->(@_);
 
-    if ( exists $opts->{multiple} ) {
-        if ( exists( $opts->{multi} ) && !!$opts->{multi} ne !!$opts->{multiple} ) {
-            MongoDB::Error->throw(
-                "can't use conflicting values of 'multiple' and 'multi' in 'update'");
-        }
-        $opts->{multi} = delete $opts->{multiple};
-    }
+    my $op = MongoDB::Op::_Delete->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $filter,
+        just_one      => 0,
+        write_concern => $self->write_concern,
+    );
+
+    return $self->_client->send_write_op( $op );
+
+}
+
+=method replace_one
+
+    $res = $coll->replace_one( $filter, $replacement );
+    $res = $coll->replace_one( $filter, $replacement, { upsert => 1 } );
+
+Replaces one document that matches a L<filter expression|/Filter expression>
+and returns a L<MongoDB::UpdateResult> object.
+
+The replacement document must not have any field-update operators in it (e.g.
+C<$set>).
+
+A hash reference of options may be provided.  The only valid option is
+C<upsert>, which defaults to false.  If provided and true, the replacement
+document will be upserted if no matching document exists.
+
+=cut
+
+my $replace_one_args;
+sub replace_one {
+    $replace_one_args ||= compile( Object, IxHash, ReplaceDoc, Optional[HashRef] );
+    my ($self, $filter, $replacement, $options) = $replace_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->_database->name,
         coll_name     => $self->name,
-        filter        => $query,
-        update        => $object,
-        multi         => $opts->{multi},
-        upsert        => $opts->{upsert},
-        write_concern => $self->_dynamic_write_concern($opts),
+        filter        => $filter,
+        update        => $replacement,
+        multi         => false,
+        upsert        => $options->{upsert} ? true : false,
+        write_concern => $self->write_concern,
     );
 
-    my $result = $self->_client->send_write_op( $op );
-
-    # emulate key fields of legacy GLE result
-    return {
-        ok => 1,
-        n => $result->matched_count,
-        ( $result->upserted_id ? ( upserted => $result->upserted_id ) : () ),
-    };
+    return $self->_client->send_write_op( $op );
 }
 
-=method find_and_modify
+=method update_one
 
-    my $result = $collection->find_and_modify( { query => { ... }, update => { ... } } );
+    $res = $coll->update_one( $filter, $update );
+    $res = $coll->update_one( $filter, $update, { upsert => 1 } );
 
-Perform an atomic update. C<find_and_modify> guarantees that nothing else will come along
-and change the queried documents before the update is performed.
+Updates one document that matches a L<filter expression|/Filter expression> and
+returns a L<MongoDB::UpdateResult> object.
 
-Returns the old version of the document, unless C<new => 1> is specified. If no documents
-match the query, it returns nothing.
+The update document must have only field-update operators in it (e.g.
+C<$set>).
+
+A hash reference of options may be provided.  The only valid option is
+C<upsert>, which defaults to false.  If provided and true, a new document will
+be inserted by taking the filter expression and applying the update document
+operations to it prior to insertion.
 
 =cut
 
-sub find_and_modify {
-    my ( $self, $opts ) = @_;
+my $update_one_args;
+sub update_one {
+    $update_one_args ||= compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
+    my ($self, $filter, $update, $options) = $update_one_args->(@_);
 
-    my $conn = $self->_client;
-    my $db   = $self->_database;
+    my $op = MongoDB::Op::_Update->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $filter,
+        update        => $update,
+        multi         => false,
+        upsert        => $options->{upsert} ? true : false,
+        write_concern => $self->write_concern,
+    );
 
-    my $result;
-    try {
-        $result = $db->run_command( [ findAndModify => $self->name, %$opts ] )
-    }
-    catch {
-        die $_ unless $_ eq 'No matching object found';
-    };
-
-    return $result->{value} if $result;
-    return;
+    return $self->_client->send_write_op( $op );
 }
 
+=method update_many
+
+    $res = $coll->update_many( $filter, $update );
+    $res = $coll->update_many( $filter, $update, { upsert => 1 } );
+
+Updates one or more documents that match a L<filter expression|/Filter
+expression> and returns a L<MongoDB::UpdateResult> object.
+
+The update document must have only field-update operators in it (e.g.
+C<$set>).
+
+A hash reference of options may be provided.  The only valid option is
+C<upsert>, which defaults to false.  If provided and true, a new document will
+be inserted by taking the filter document and applying the update document
+operations to it prior to insertion.
+
+=cut
+
+my $update_many_args;
+sub update_many {
+    $update_many_args ||= compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
+    my ($self, $filter, $update, $options) = $update_many_args->(@_);
+
+    my $op = MongoDB::Op::_Update->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $filter,
+        update        => $update,
+        multi         => true,
+        upsert        => $options->{upsert} ? true : false,
+        write_concern => $self->write_concern,
+    );
+
+    return $self->_client->send_write_op( $op );
+}
+
+=method find
+
+    $cursor = $coll->find( $filter );
+    $cursor = $coll->find( $filter, $options );
+
+    $cursor = $coll->find({ i => { '$gt' => 42 } }, {limit => 20});
+
+Executes a query with a L<filter expression|/Filter expression> and returns a
+C<MongoDB::Cursor> object.
+
+The query can be customized using L<MongoDB::Cursor> methods, or with an
+optional hash reference of options.
+
+Valid options include:
+
+=for :list
+* C<allowPartialResults> - get partial results from a mongos if some shards are
+  down (instead of throwing an error).
+* C<batchSize> – the number of documents to return per batch.
+* C<comment> – attaches a comment to the query. If C<$comment> also exists in
+  the C<modifiers> document, the comment field overwrites C<$comment>.
+* C<cursorType> – indicates the type of cursor to use. It must be one of three
+  string values: C<'non_tailable'> (the default), C<'tailable'>, and
+  C<'tailable_await'>.
+* C<limit> – the maximum number of documents to return.
+* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
+  C<$maxTimeMS> also exists in the modifiers document, the C<maxTimeMS> field
+  overwrites C<$maxTimeMS>.
+* C<modifiers> – a hash reference of L<query
+  modifiers|http://docs.mongodb.org/manual/reference/operator/query-modifier/>
+  modifying the output or behavior of a query.
+* C<noCursorTimeout> – if true, prevents the server from timing out a cursor
+  after a period of inactivity
+* C<projection> - a hash reference defining fields to return. See "L<limit
+  fields to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
+  in the MongoDB documentation for details.
+* C<skip> – the number of documents to skip before returning.
+* C<sort> – an L<ordered document|/Ordered document> defining the order in which
+  to return matching documents. If C<$orderby> also exists in the modifiers
+  document, the sort field overwrites C<$orderby>.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
+
+For more infomation, see the L<Read Operations
+Overview|http://docs.mongodb.org/manual/core/read-operations-introduction/> in
+the MongoDB documentation.
+
+B<Note>, a L<MongoDB::Cursor> object holds the query and does not issue the
+query to the server until the C<request> method is called on it or until an
+iterator method like C<next> is called.  Performance will be better directly on
+a L<MongoDB::QueryResult> object:
+
+    my $query_result = $coll->find( $filter )->result;
+
+    while ( my $next = $query_result->next ) {
+        ...
+    }
+
+=cut
+
+my $find_args;
+sub find {
+    $find_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
+    my ( $self, $filter, $options ) = $find_args->(@_);
+    $options ||= {};
+
+    # backwards compatible sort option for deprecated 'query' alias
+    $options->{sort} = delete $options->{sort_by} if $options->{sort_by};
+
+    # coerce to IxHash
+    __ixhash($options, 'sort');
+
+    my $query = MongoDB::_Query->new(
+        %$options,
+        db_name         => $self->_database->name,
+        coll_name       => $self->name,
+        client          => $self->_client,
+        read_preference => $self->read_preference,
+        filter          => $filter || {},
+    );
+
+    return MongoDB::Cursor->new( query => $query );
+}
+
+=method find_one
+
+    $doc = $collection->find_one( $filter, $projection );
+    $doc = $collection->find_one( $filter, $projection, $options );
+
+Executes a query with a L<filter expression|/Filter expression> and returns a
+single document.
+
+If a projection argument is provided, it must be a hash reference specifying
+fields to return.  See L<Limit fields to
+return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
+in the MongoDB documentation for details.
+
+If only a filter is provided or if the projection document is an empty hash
+reference, all fields will be returned.
+
+    my $doc = $collection->find_one( $filter );
+    my $doc = $collection->find_one( $filter, {}, $options );
+
+A hash reference of options may be provided as a third argument. Valid keys
+include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+* C<sort> – an L<ordered document|/Ordered document> defining the order in which
+  to return matching documents. If C<$orderby> also exists in the modifiers
+  document, the sort field overwrites C<$orderby>.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
+
+See also core documentation on querying:
+L<http://docs.mongodb.org/manual/core/read/>.
+
+=cut
+
+my $find_one_args;
+sub find_one {
+    $find_one_args ||= compile( Object,
+        Optional [IxHash],
+        Optional [MaybeHashRef],
+        Optional [MaybeHashRef],
+    );
+    my ( $self, $filter, $projection, $options ) = $find_one_args->(@_);
+
+    # coerce to IxHash
+    __ixhash($options, 'sort');
+
+    my $query = MongoDB::_Query->new(
+        %$options,
+        db_name         => $self->_database->name,
+        coll_name       => $self->name,
+        client          => $self->_client,
+        read_preference => $self->read_preference,
+        filter          => $filter || {},
+        projection      => $projection || {},
+        limit           => -1,
+    );
+
+    return $query->execute->next;
+}
+
+=method find_one_and_delete
+
+    $doc = $coll->find_one_and_delete( $filter );
+    $doc = $coll->find_one_and_delete( $filter, $options );
+
+Given a L<filter expression|/Filter expression>, this deletes a document from
+the database and returns it as it appeared before it was deleted.
+
+A hash reference of options may be provided. Valid keys include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+* C<projection> - a hash reference defining fields to return. See "L<limit
+  fields to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
+  in the MongoDB documentation for details.
+* C<sort> – an L<ordered document|/Ordered document> defining the order in
+  which to return matching documents.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
+
+=cut
+
+my $foad_args;
+sub find_one_and_delete {
+    $foad_args ||= compile( Object, IxHash, Optional[HashRef] );
+    my ( $self, $filter, $options ) = $foad_args->(@_);
+
+    # rename projection -> fields
+    $options->{fields} = delete $options->{projection} if exists $options->{projection};
+
+    # coerce to IxHash
+    __ixhash($options, 'sort');
+
+    my @command = (
+        findAndModify => $self->name,
+        query         => $filter,
+        remove        => true,
+        %$options,
+    );
+
+    return $self->_try_find_and_modify( \@command );
+}
+
+=method find_one_and_replace
+
+    $doc = $coll->find_one_and_replace( $filter, $replacement );
+    $doc = $coll->find_one_and_replace( $filter, $replacement, $options );
+
+Given a L<filter expression|/Filter expression> and a replacement document,
+this replaces a document from the database and returns it as it was either
+right before or right after the replacement.  The default is 'before'.
+
+The replacement document must not have any field-update operators in it (e.g.
+C<$set>).
+
+A hash reference of options may be provided. Valid keys include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+* C<projection> - a hash reference defining fields to return. See "L<limit
+  fields to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
+  in the MongoDB documentation for details.
+* C<returnDocument> – either the string C<'before'> or C<'after'>, to indicate
+  whether the returned document should be the one before or after replacement.
+  The default is C<'before'>.
+* C<sort> – an L<ordered document|/Ordered document> defining the order in
+  which to return matching documents.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
+* C<upsert> – defaults to false; if true, a new document will be added if one
+  is not found
+
+=cut
+
+my $foar_args;
+sub find_one_and_replace {
+    $foar_args ||= compile( Object, IxHash, ReplaceDoc, Optional[HashRef] );
+    my ( $self, $filter, $replacement, $options ) = $foar_args->(@_);
+
+    return $self->_find_one_and_update_or_replace($filter, $replacement, $options);
+}
+
+=method find_one_and_update
+
+    $doc = $coll->find_one_and_update( $filter, $update );
+    $doc = $coll->find_one_and_update( $filter, $update, $options );
+
+Given a L<filter expression|/Filter expression> and a document of update
+operators, this updates a single document and returns it as it was either right
+before or right after the update.  The default is 'before'.
+
+The update document must contain only field-update operators (e.g. C<$set>).
+
+A hash reference of options may be provided. Valid keys include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+* C<projection> - a hash reference defining fields to return. See "L<limit
+  fields to
+  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
+  in the MongoDB documentation for details.
+* C<returnDocument> – either the string C<'before'> or C<'after'>, to indicate
+  whether the returned document should be the one before or after replacement.
+  The default is C<'before'>.
+* C<sort> – an L<ordered document|/Ordered document> defining the order in
+  which to return matching documents.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
+* C<upsert> – defaults to false; if true, a new document will be added if one
+  is not found
+
+=cut
+
+my $foau_args;
+sub find_one_and_update {
+    $foau_args ||= compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
+    my ( $self, $filter, $update, $options ) = $foau_args->(@_);
+
+    return $self->_find_one_and_update_or_replace($filter, $update, $options);
+}
 
 =method aggregate
 
-    my $result = $collection->aggregate( [ ... ] );
+    @pipeline = (
+        { '$group' => { _id => '$state,' totalPop => { '$sum' => '$pop' } } },
+        { '$match' => { totalPop => { '$gte' => 10 * 1000 * 1000 } } }
+    );
 
-Run a query using the MongoDB 2.2+ aggregation framework. The first argument is an array-ref of
-aggregation pipeline operators.
+    $result = $collection->aggregate( \@pipeline );
+    $result = $collection->aggregate( \@pipeline, $options );
 
-The type of return value from C<aggregate> depends on how you use it.
+Runs a query using the MongoDB 2.2+ aggregation framework and returns a
+L<MongoDB::QueryResult> object.
 
-=over 4
+The first argument must be an array-ref of L<aggregation
+pipeline|http://docs.mongodb.org/manual/core/aggregation-pipeline/> documents.
+Each pipeline document must be a hash reference.
 
-=item * By default, the aggregation framework returns a document with an embedded array of results, and
-the C<aggregate> method returns a reference to that array.
+A hash reference of options may be provided. Valid keys include:
 
-=item * MongoDB 2.6+ supports returning cursors from aggregation queries, allowing you to bypass
-the 16MB size limit of documents. If you specifiy a C<cursor> option, the C<aggregate> method
-will return a L<MongoDB::QueryResult> object which can be iterated in the normal fashion.
+=for :list
+* C<allowDiskUse> – if, true enables writing to temporary files.
+* C<batchSize> – the number of documents to return per batch.
+* C<explain> – if true, return a single document with execution information.
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
 
-    my $cursor = $collection->aggregate( [ ... ], { cursor => 1 } );
-
-Specifying a C<cursor> option will cause an error on versions of MongoDB below 2.6.
-
-The C<cursor> option may also have some useful options of its own. Currently, the only one
-is C<batchSize>, which allows you to control how frequently the cursor must go back to the
-database for more documents.
-
-    my $cursor = $collection->aggregate( [ ... ], { cursor => { batchSize => 10 } } );
-
-=item * MongoDB 2.6+ supports an C<explain> option to aggregation queries to retrieve data
-about how the server will process a query pipeline.
-
-    my $result = $collection->aggregate( [ ... ], { explain => 1 } );
-
-In this case, C<aggregate> will return a document (not an array) containing the explanation
-structure.
-
-=item * Finally, MongoDB 2.6+ will return an empty results array if the C<$out> pipeline operator is used to
-write aggregation results directly to a collection. Create a new C<Collection> object to
-query the result collection.
-
-=back
+B<Note> MongoDB 2.6+ added the '$out' pipeline operator.  If this operator is
+used to write aggregation results directly to a collection, an empty result
+will be returned. Create a new collection> object to query the generated result
+collection.  When C<$out> is used, the command is treated as a write operation
+and read preference is ignored.
 
 See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
 for more information on how to construct aggregation queries.
 
 =cut
 
+my $aggregate_args;
 sub aggregate {
-    my ( $self, $pipeline, $opts ) = @_;
-    $opts = ref $opts eq 'HASH' ? $opts : { };
+    $aggregate_args ||= compile( Object, ArrayOfHashRef, Optional [HashRef] );
+    my ( $self, $pipeline, $options ) = $aggregate_args->(@_);
 
-    my $db   = $self->_database;
-
-    if ( exists $opts->{cursor} ) {
-        $opts->{cursor} = { } unless ref $opts->{cursor} eq 'HASH';
+    # boolify some options
+    for my $k (qw/allowDiskUse explain/) {
+        $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
     }
 
-    # explain requires a boolean
-    if ( exists $opts->{explain} ) {
-        $opts->{explain} = $opts->{explain} ? true : false;
-    }
-
-    my @command = ( aggregate => $self->name, pipeline => $pipeline, %$opts );
-    my ($last_op) = keys %{$pipeline->[-1]};
+    # read preferences are ignored if the last stage is $out
+    my ($last_op) = keys %{ $pipeline->[-1] };
     my $read_pref = $last_op eq '$out' ? undef : $self->read_preference;
 
-    my $op = MongoDB::Op::_Command->new(
-        db_name => $db->name,
-        query => \@command,
-        ( $read_pref ? ( read_preference => $read_pref ) : () )
+    my $op = MongoDB::Op::_Aggregate->new(
+        db_name    => $self->_database->name,
+        coll_name  => $self->name,
+        client     => $self->_client,
+        bson_codec => $self->_client,
+        pipeline   => $pipeline,
+        options    => $options,
+        ( $read_pref ? ( read_preference => $read_pref ) : () ),
     );
 
-    my $result = $self->_client->send_read_op( $op );
-    my $response = $result->result;
-
-    # if we got a cursor option then we need to construct a wonky cursor
-    # object on our end and populate it with the first batch, since
-    # commands can't actually return cursors.
-    if ( exists $opts->{cursor} ) {
-        unless ( exists $response->{cursor} ) {
-            die "no cursor returned from aggregation";
-        }
-
-        my $qr = MongoDB::QueryResult->new(
-            _client => $self->_client,
-            address => $result->address,
-            cursor  => $response->{cursor},
-        );
-
-        return $qr;
-    }
-
-    # return the whole response document if they want an explain
-    if ( $opts->{explain} ) {
-        return $response;
-    }
-
-    # TODO: handle errors?
-
-    return $response->{result};
+    return $self->_client->send_read_op($op);
 }
 
-=method parallel_scan($max_cursors)
+=method count
 
-    my @query_results = $collection->parallel_scan(10);
+    $count = $coll->count( $filter );
+    $count = $coll->count( $filter, $options );
 
-Scan the collection in parallel. The argument is the maximum number of
-L<MongoDB::QueryResult> objects to return and must be a positive integer between 1
-and 10,000.
+Returns a count of documents matching a L<filter expression|/Filter expression>.
+
+A hash reference of options may be provided. Valid keys include:
+
+=for :list
+* C<hint> – L<specify an index to
+  use|http://docs.mongodb.org/manual/reference/command/count/#specify-the-index-to-use>;
+  must be a string, array reference, hash reference or L<Tie::IxHash> object.
+* C<limit> – the maximum number of documents to count.
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+* C<skip> – the number of documents to skip before counting documents.
+
+B<NOTE>: On a sharded cluster, C<count> can result in an inaccurate count if
+orphaned documents exist or if a chunk migration is in progress.  See L<count
+command
+documentation|http://docs.mongodb.org/manual/reference/command/count/#behavior>
+for details and a work-around using L</aggregate>.
+
+=cut
+
+my $count_args;
+
+sub count {
+    $count_args ||= compile( Object, Optional [IxHash], Optional [HashRef] );
+    my ( $self, $filter, $options ) = $count_args->(@_);
+    $filter  ||= {};
+    $options ||= {};
+
+    # string is OK so we check ref, not just exists
+    __ixhash($options, 'hint') if ref $options->{hint};
+
+    my $res = $self->_database->run_command(
+        Tie::IxHash->new( count => $self->name, query => $filter, %$options ),
+        $self->read_preference );
+
+    return $res->{n};
+}
+
+=method distinct 
+
+    $result = $coll->count( $fieldname );
+    $result = $coll->count( $fieldname, $filter );
+    $result = $coll->count( $fieldname, $filter, $options );
+
+Returns a L<MongoDB::QueryResult> object that will provide distinct values for
+a specified field name.
+
+The query may be limited by an optional L<filter expression|/Filter
+expression>.
+
+A hash reference of options may be provided. Valid keys include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.
+
+See documentation for the L<distinct
+command|http://docs.mongodb.org/manual/reference/command/distinct/> for
+details.
+
+=cut
+
+my $distinct_args;
+
+sub distinct {
+    $distinct_args ||= compile( Object, Str, Optional [IxHash], Optional [HashRef] );
+    my ( $self, $fieldname, $filter, $options ) = $distinct_args->(@_);
+    $filter ||= {};
+    $options ||= {};
+
+    my $op = MongoDB::Op::_Distinct->new(
+        db_name         => $self->_database->name,
+        coll_name       => $self->name,
+        client          => $self->_client,
+        bson_codec      => $self->_client,
+        fieldname       => $fieldname,
+        filter          => $filter,
+        options         => $options,
+        read_preference => $self->read_preference,
+    );
+
+    return $self->_client->send_read_op($op);
+}
+
+
+=method parallel_scan
+
+    @result_objs = $collection->parallel_scan(10);
+
+Returns one or more L<MongoDB::QueryResult> objects to scan the collection in
+parallel. The argument is the maximum number of L<MongoDB::QueryResult> objects
+to return and must be a positive integer between 1 and 10,000.
 
 As long as the collection is not modified during scanning, each document will
 appear only once in one of the cursors' result sets.
 
-Only iteration methods may be called on parallel scan cursors.
-
-If an error occurs, an exception will be thrown.
+B<Note>: the server may return fewer cursors than requested, depending on the
+underlying storage engine and resource availability.
 
 =cut
 
@@ -669,14 +874,15 @@ sub parallel_scan {
     return @cursors;
 }
 
-=method rename ("newcollectionname")
+=method rename
 
-    my $newcollection = $collection->rename("mynewcollection");
+    $newcollection = $collection->rename("mynewcollection");
 
-Renames the collection.  It expects that the new name is currently not in use.
+Renames the collection.  If a collection already exists with the new collection
+name, this method will throw an exception.
 
-Returns the new collection.  If a collection already exists with that new collection name this will
-die.
+It returns a new L<MongoDB::Collection> object corresponding to the renamed
+collection.
 
 =cut
 
@@ -694,60 +900,6 @@ sub rename {
     return $conn->get_database( $db )->get_collection( $collectionname );
 }
 
-=method remove ($query?, $options?)
-
-    $collection->remove({ answer => { '$ne' => 42 } });
-
-Removes all objects matching the given C<$query> from the database. If no
-parameters are given, removes all objects from the collection (but does not
-delete indexes, as C<MongoDB::Collection::drop> does).
-
-Returns 1 unless the C<safe> option is set.  If C<safe> is set and the remove
-succeeds, C<remove> will return a hash of information about the remove,
-including how many documents were removed (C<n>).  If the remove fails and
-C<safe> is set, C<remove> will croak.  You can also check if the remove
-succeeded by doing an unsafe remove, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
-C<remove> can take a hash reference of options.  The options currently supported
-are
-
-=over
-
-=item C<just_one>
-Only one matching document to be removed.
-
-=item C<safe>
-If the update fails and safe is set, this function will croak.
-
-=back
-
-See also core documentation on remove: L<http://docs.mongodb.org/manual/core/delete/>.
-
-=cut
-
-
-sub remove {
-    my ($self, $query, $opts) = @_;
-    confess "optional argument to remove must be a hash reference"
-        if defined $opts && ref $opts ne 'HASH';
-
-    my $op = MongoDB::Op::_Delete->new(
-        db_name       => $self->_database->name,
-        coll_name     => $self->name,
-        filter        => $query,
-        just_one      => !! $opts->{just_one},
-        write_concern => $self->_dynamic_write_concern($opts),
-    );
-
-    my $result = $self->_client->send_write_op( $op );
-
-    # emulate key fields of legacy GLE result
-    return {
-        ok => 1,
-        n => $result->deleted_count,
-    };
-}
 
 =method ensure_index
 
@@ -808,7 +960,7 @@ sub ensure_index {
 =method save($doc, $options)
 
     $collection->save({"author" => "joe"});
-    my $post = $collection->find_one;
+    $post = $collection->find_one;
 
     $post->{author} = {"name" => "joe", "id" => 123, "phone" => "555-5555"};
 
@@ -826,51 +978,19 @@ L<MongoDB::Database/"last_error($options?)">.
 
 =cut
 
+my $legacy_save_args;
 sub save {
-    my ($self, $doc, $options) = @_;
+    $legacy_save_args ||= compile( Object, IxHash, Optional[HashRef] );
+    my ($self, $doc, $options) = $legacy_save_args->(@_);
 
-    if (exists $doc->{"_id"}) {
-
-        if (!$options || !ref $options eq 'HASH') {
-            $options = {"upsert" => boolean::true};
-        }
-        else {
-            $options->{'upsert'} = boolean::true;
-        }
-
-        return $self->update({"_id" => $doc->{"_id"}}, $doc, $options);
+    if ( $doc->EXISTS("_id") ) {
+        $options ||= {};
+        $options->{'upsert'} = boolean::true;
+        return $self->update( { "_id" => $doc->FETCH( ("_id") ) }, $doc, $options );
     }
     else {
-        return $self->insert($doc, $options);
+        return $self->insert( $doc, ( $options ? $options : () ) );
     }
-}
-
-
-=method count($query?)
-
-    my $n_objects = $collection->count({ name => 'Bob' });
-
-Counts the number of objects in this collection that match the given C<$query>.
-If no query is given, the total number of objects in the collection is returned.
-
-=cut
-
-sub count {
-    my ($self, $query, $options) = @_;
-    $query ||= {};
-    $options ||= {};
-
-    my $cursor = $self->find($query);
-
-    for my $key (keys %$options) {
-
-        if (!MongoDB::Cursor->can($key)) {
-            confess("$key is not a known method in MongoDB::Cursor");
-        }
-        $cursor->$key($options->{$key});
-    }
-
-    return $cursor->count;
 }
 
 
@@ -931,7 +1051,7 @@ sub drop_index {
 
 =method get_indexes
 
-    my @indexes = $collection->get_indexes;
+    @indexes = $collection->get_indexes;
 
 Returns a list of all indexes of this collection.
 Each index contains C<ns>, C<name>, and C<key>
@@ -987,19 +1107,19 @@ sub drop {
     return;
 }
 
-=method initialize_ordered_bulk_op, ordered_bulk
+=method ordered_bulk
 
-    my $bulk = $collection->initialize_ordered_bulk_op;
+    $bulk = $coll->ordered_bulk;
     $bulk->insert( $doc1 );
     $bulk->insert( $doc2 );
     ...
-    my $result = $bulk->execute;
+    $result = $bulk->execute;
 
 Returns a L<MongoDB::BulkWrite> object to group write operations into fewer network
 round-trips.  This method creates an B<ordered> operation, where operations halt after
 the first error. See L<MongoDB::BulkWrite> for more details.
 
-The method C<ordered_bulk> may be used as an alias for C<initialize_ordered_bulk_op>.
+The method C<initialize_ordered_bulk_op> may be used as an alias.
 
 =cut
 
@@ -1008,19 +1128,206 @@ sub initialize_ordered_bulk_op {
     return MongoDB::BulkWrite->new( collection => $self, ordered => 1 );
 }
 
-=method initialize_unordered_bulk_op, unordered_bulk
+=method unordered_bulk
 
-This method works just like L</initialize_ordered_bulk_op> except that the order that
+This method works just like L</ordered_bulk> except that the order that
 operations are sent to the database is not guaranteed and errors do not halt processing.
 See L<MongoDB::BulkWrite> for more details.
 
-The method C<unordered_bulk> may be used as an alias for C<initialize_unordered_bulk_op>.
+The method C<initialize_unordered_bulk_op> may be used as an alias.
 
 =cut
 
 sub initialize_unordered_bulk_op {
     my ($self) = @_;
     return MongoDB::BulkWrite->new( collection => $self, ordered => 0 );
+}
+
+=method bulk_write
+
+    $res = $coll->bulk_write( [ @requests ], $options )
+
+This method provides syntactic sugar to construct and execute a bulk operation
+directly, without using C<initialize_ordered_bulk> or
+C<initialize_unordered_bulk> to generate a L<MongoDB::BulkWrite> object and
+then calling methods on it.  It returns a L<MongoDB::BulkWriteResponse> object
+just like the L<MongoDB::BulkWrite execute|MongoDB::BulkWrite/execute> method.
+
+The first argument must be an array reference of requests.  Requests consist
+of pairs of a MongoDB::Collection write method name (e.g. C<insert_one>,
+C<delete_many>) and an array reference of arguments to the corresponding
+method name.  They may be given as pairs, or as hash or array
+references:
+
+    # pairs -- most efficient
+    @requests = (
+        insert_one  => [ { x => 1 } ],
+        replace_one => [ { x => 1 }, { x => 4 } ],
+        delete_one  => [ { x => 4 } ],
+        update_many => [ { x => { '$gt' => 5 } }, { '$inc' => { x => 1 } } ],
+    );
+
+    # hash references
+    @requests = (
+        { insert_one  => [ { x => 1 } ] },
+        { replace_one => [ { x => 1 }, { x => 4 } ] },
+        { delete_one  => [ { x => 4 } ] },
+        { update_many => [ { x => { '$gt' => 5 } }, { '$inc' => { x => 1 } } ] },
+    );
+
+    # array references
+    @requests = (
+        [ insert_one  => [ { x => 1 } ] ],
+        [ replace_one => [ { x => 1 }, { x => 4 } ] ],
+        [ delete_one  => [ { x => 4 } ] ],
+        [ update_many => [ { x => { '$gt' => 5 } }, { '$inc' => { x => 1 } } ] ],
+    );
+
+Valid method names include C<insert_one>, C<insert_many>, C<delete_one>,
+C<delete_many> C<replace_one>, C<update_one>, C<update_many>.
+
+An optional hash reference of options may be provided.  The only valid value
+is C<ordered>. It defaults to true.  When true, the bulk operation is executed
+like L</initialize_ordered_bulk>. When false, the bulk operation is executed
+like L</initialize_unordered_bulk>.
+
+See L<MongoDB::BulkWrite> for more details on bulk writes.  Be advised that
+the legacy Bulk API method names differ slightly from MongoDB::Collection
+method names.
+
+=cut
+
+sub bulk_write {
+    my ( $self, $requests, $options ) = @_;
+
+    confess 'requests not an array reference' unless ref $requests eq 'ARRAY';
+    confess 'empty request list' unless @$requests;
+    confess 'options not a hash reference'
+      if defined($options) && ref($options) ne 'HASH';
+
+    $options ||= { ordered => 1 };
+
+    my $bulk = $options->{ordered} ? $self->ordered_bulk : $self->unordered_bulk;
+
+    my $i = 0;
+
+    while ( $i <= $#$requests ) {
+        my ( $method, $args );
+
+        # pull off document or pair
+        if ( my $type = ref $requests->[$i] ) {
+            if ( $type eq 'ARRAY' ) {
+                ( $method, $args ) = @{ $requests->[$i] };
+            }
+            elsif ( $type eq 'HASH' ) {
+                ( $method, $args ) = %{ $requests->[$i] };
+            }
+            else {
+                confess "$requests->[$i] is not a hash or array reference";
+            }
+            $i++;
+        }
+        else {
+            ( $method, $args ) = @{$requests}[ $i, $i + 1 ];
+            $i += 2;
+        }
+
+        confess "'$method' requires an array reference of arguments"
+          unless ref($args) eq 'ARRAY';
+
+        # handle inserts
+        if ( $method eq 'insert_one' || $method eq 'insert_many' ) {
+            $bulk->insert($_) for @$args;
+        }
+        else {
+            my ($filter, $doc, $options) = @$args;
+
+            my $view = $bulk->find($filter);
+
+            # handle deletes
+            if ( $method eq 'delete_one' ) {
+                $view->remove_one;
+                next;
+            }
+            elsif ( $method eq 'delete_many' ) {
+                $view->remove;
+                next;
+            }
+
+            # updates might be upserts
+            $view = $view->upsert if $options && $options->{upsert};
+
+            # handle updates
+            if ( $method eq 'replace_one' ) {
+                $view->replace_one($doc);
+            }
+            elsif ( $method eq 'update_one' ) {
+                $view->update_one($doc);
+            }
+            elsif ( $method eq 'update_many' ) {
+                $view->update($doc);
+            }
+            else {
+                confess "unknown bulk operation '$method'";
+            }
+        }
+    }
+
+    return $bulk->execute;
+}
+
+BEGIN {
+    # aliases
+    no warnings 'once';
+    *query = \&find;
+    *ordered_bulk = \&initialize_ordered_bulk_op;
+    *unordered_bulk = \&initialize_unordered_bulk_op;
+}
+
+#--------------------------------------------------------------------------#
+# private methods
+#--------------------------------------------------------------------------#
+
+sub _add_oids {
+    my ($self, $target) = @_;
+    my @ids;
+
+    for my $d ( ref($target) eq 'ARRAY' ? @$target : $target ) {
+        my $type = reftype($d);
+        my $found_id;
+        if (ref($d) eq 'Tie::IxHash') {
+            $found_id = $d->FETCH('_id');
+            unless ( defined $found_id ) {
+                $d->Unshift( '_id', $found_id = MongoDB::OID->new );
+            }
+        }
+        elsif ($type eq 'ARRAY') {
+            # search for an _id or prepend one
+            for my $i ( 0 .. (@$d/2 - 1) ) {
+                if ( $d->[2*$i] eq '_id' ) {
+                    $found_id = $d->[2*$i+1];
+                    last;
+                }
+            }
+            unless (defined $found_id) {
+                unshift @$d, '_id', $found_id = MongoDB::OID->new;
+            }
+        }
+        elsif ($type eq 'HASH') {
+            $found_id = $d->{_id};
+            unless ( defined $found_id ) {
+                $found_id = MongoDB::OID->new;
+                $d->{_id} = $found_id;
+            }
+        }
+        else {
+            $type = 'scalar' unless $type;
+            Carp::croak("unhandled type $type")
+        }
+        push @ids, $found_id;
+    }
+
+    return \@ids;
 }
 
 sub _dynamic_write_concern {
@@ -1031,6 +1338,57 @@ sub _dynamic_write_concern {
     else {
         return MongoDB::WriteConcern->new( w => 0 );
     }
+}
+
+sub _find_one_and_update_or_replace {
+    my ($self, $filter, $modifier, $options) = @_;
+
+    # rename projection -> fields
+    $options->{fields} = delete $options->{projection} if exists $options->{projection};
+
+    # coerce to IxHash
+    __ixhash($options, 'sort');
+
+    # returnDocument ('before'|'after') maps to field 'new'
+    if ( exists $options->{returnDocument} ) {
+        confess "Invalid returnDocument parameter '$options->{returnDocument}'"
+            unless $options->{returnDocument} =~ /^(?:before|after)$/;
+        $options->{new} = delete( $options->{returnDocument} ) eq 'after' ? true : false;
+    }
+
+    my @command = (
+        findAndModify => $self->name,
+        query         => $filter,
+        update        => $modifier,
+        %$options
+    );
+
+    return $self->_try_find_and_modify( \@command );
+}
+
+sub _legacy_index_insert {
+    my ($self, $doc, $options) = @_;
+
+    my $wc = $self->_dynamic_write_concern( $options );
+    my $result = $self->_client->send_insert($self->full_name, $doc, $wc, undef, 0);
+
+    $result->assert;
+
+    return 1;
+}
+
+sub _try_find_and_modify {
+    my ($self, $command) = @_;
+    my $result;
+    try {
+        $result = $self->_database->run_command( $command );
+    }
+    catch {
+        die $_ unless $_ eq 'No matching object found';
+    };
+
+    return $result->{value} if $result;
+    return;
 }
 
 # old API allowed some snake_case options; some options must
@@ -1067,12 +1425,183 @@ sub _clean_index_options {
     return $opts;
 }
 
-BEGIN {
-    # aliases
-    no warnings 'once';
-    *query = \&find;
-    *ordered_bulk = \&initialize_ordered_bulk_op;
-    *unordered_bulk = \&initialize_unordered_bulk_op;
+#--------------------------------------------------------------------------#
+# utility function
+#--------------------------------------------------------------------------#
+
+# utility function to coerce array/hashref to Tie::Ixhash
+sub __ixhash {
+    my ($hash, $key) = @_;
+    return unless exists $hash->{$key};
+    my $ref = $hash->{$key};
+    my $type = ref($ref);
+    return if $type eq 'Tie::IxHash';
+    if ( $type eq 'HASH' ) {
+        $hash->{$key} = Tie::IxHash->new( %$ref );
+    }
+    elsif ( $type eq 'ARRAY' ) {
+        $hash->{$key} = Tie::IxHash->new( @$ref );
+    }
+    else {
+        confess "Can't convert $type to a Tie::IxHash";
+    }
+    return;
+}
+
+# utility function to generate an index name by concatenating key/value pairs
+sub __to_index_string {
+    my $keys = shift;
+
+    my @name;
+    if (ref $keys eq 'ARRAY') {
+        @name = @$keys;
+    }
+    elsif (ref $keys eq 'HASH' ) {
+        @name = %$keys
+    }
+    elsif (ref $keys eq 'Tie::IxHash') {
+        my @ks = $keys->Keys;
+        my @vs = $keys->Values;
+
+        for (my $i=0; $i<$keys->Length; $i++) {
+            push @name, $ks[$i];
+            push @name, $vs[$i];
+        }
+    }
+    else {
+        confess 'expected Tie::IxHash, hash, or array reference for keys';
+    }
+
+    return join("_", @name);
+}
+
+#--------------------------------------------------------------------------#
+# Deprecated legacy methods
+#--------------------------------------------------------------------------#
+
+my $legacy_insert_args;
+sub insert {
+    $legacy_insert_args ||= compile( Object, IxHash, Optional[HashRef] );
+    my ( $self, $document, $opts ) = $legacy_insert_args->(@_);
+
+    unless ( $opts->{'no_ids'} ) {
+        $self->_add_oids( $document );
+    }
+
+    my $op = MongoDB::Op::_InsertOne->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        document      => $document,
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
+
+    my $result = $self->_client->send_write_op($op);
+
+    return $result->inserted_id;
+}
+
+my $legacy_batch_args;
+sub batch_insert {
+    my ( $self, $documents, $opts ) = @_;
+    $legacy_batch_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef] );
+
+    unless ( $opts->{'no_ids'} ) {
+        $self->_add_oids($documents);
+    }
+
+    my $op = MongoDB::Op::_BatchInsert->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        documents     => $documents,
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
+
+    my $result = $self->_client->send_write_op($op);
+
+    my @ids;
+    my $inserted_ids = $result->inserted_ids;
+    for my $k ( sort { $a <=> $b } keys %$inserted_ids ) {
+        push @ids, $inserted_ids->{$k};
+    }
+
+    return @ids;
+}
+
+my $legacy_remove_args;
+sub remove {
+    $legacy_remove_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
+    my ($self, $query, $opts) = $legacy_remove_args->(@_);
+    $opts ||= {};
+
+    my $op = MongoDB::Op::_Delete->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $query || {},
+        just_one      => !! $opts->{just_one},
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
+
+    my $result = $self->_client->send_write_op( $op );
+
+    # emulate key fields of legacy GLE result
+    return {
+        ok => 1,
+        n => $result->deleted_count,
+    };
+}
+
+my $legacy_update_args;
+sub update {
+    $legacy_update_args ||= compile( Object, Optional[IxHash], Optional[IxHash], Optional[HashRef] );
+    my ( $self, $query, $object, $opts ) = $legacy_update_args->(@_);
+    $opts ||= {};
+
+    if ( exists $opts->{multiple} ) {
+        if ( exists( $opts->{multi} ) && !!$opts->{multi} ne !!$opts->{multiple} ) {
+            MongoDB::Error->throw(
+                "can't use conflicting values of 'multiple' and 'multi' in 'update'");
+        }
+        $opts->{multi} = delete $opts->{multiple};
+    }
+
+    my $op = MongoDB::Op::_Update->new(
+        db_name       => $self->_database->name,
+        coll_name     => $self->name,
+        filter        => $query || {},
+        update        => $object || {},
+        multi         => $opts->{multi},
+        upsert        => $opts->{upsert},
+        write_concern => $self->_dynamic_write_concern($opts),
+    );
+
+    my $result = $self->_client->send_write_op( $op );
+
+    # emulate key fields of legacy GLE result
+    return {
+        ok => 1,
+        n => $result->matched_count,
+        ( $result->upserted_id ? ( upserted => $result->upserted_id ) : () ),
+    };
+}
+
+my $legacy_fam_args;
+sub find_and_modify {
+    $legacy_fam_args ||= compile( Object, HashRef );
+    my ( $self, $opts ) = $legacy_fam_args->(@_);
+
+    my $conn = $self->_client;
+    my $db   = $self->_database;
+
+    my $result;
+    try {
+        $result = $db->run_command( [ findAndModify => $self->name, %$opts ] )
+    }
+    catch {
+        die $_ unless $_ eq 'No matching object found';
+    };
+
+    return $result->{value} if $result;
+    return;
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -1086,16 +1615,30 @@ __END__
 =head1 SYNOPSIS
 
     # get a Collection via the Database object
-    my $coll = $db->get_collection("people");
+    $coll = $db->get_collection("people");
 
     # insert a document
-    $coll->insert( { name => "John Doe", age => 42 } );
+    $coll->insert_one( { name => "John Doe", age => 42 } );
+
+    # insert one or more documents
+    $coll->insert_many( \@documents );
+
+    # delete a document
+    $coll->delete_one( { name => "John Doe" } );
+
+    # update a document
+    $coll->update_one( { name => "John Doe" }, { '$inc' => { age => 1 } } );
 
     # find a single document
-    my $doc = $coll->find_one( { name => "John Doe" } )
+    $doc = $coll->find_one( { name => "John Doe" } )
 
     # Get a MongoDB::Cursor for a query
-    my $cursor = $coll->find( { age => 42 } );
+    $cursor = $coll->find( { age => 42 } );
+
+    # Cursor iteration
+    while ( my $doc = $cursor->next ) {
+        ...
+    }
 
 =head1 DESCRIPTION
 
@@ -1104,6 +1647,56 @@ with it.
 
 Generally, you never construct one of these directly with C<new>.  Instead, you
 call C<get_collection> on a L<MongoDB::Database> object.
+
+=head1 USAGE
+
+=head2 Error handling
+
+Unless otherwise explictly documented, all methods throw exceptions if
+an error occurs.  The error types are documented in L<MongoDB::Error>.
+
+To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
+are recommended:
+
+    use Try::Tiny;
+    use Safe::Isa; # provides $_isa
+
+    try {
+        $coll->insert( $doc )
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::DuplicateKeyError" ) {
+            ...
+        }
+        else {
+            ...
+        }
+    };
+
+To retry failures automatically, consider using L<Try::Tiny::Retry>.
+
+=head2 Terminology
+
+=head3 Document
+
+A collection of key-value pairs.  A Perl hash is a document.  Array
+references with an even number of elements and L<Tie::IxHash> objects may also
+be used as documents.
+
+=head3 Ordered document
+
+Many MongoDB::Collection method parameters or options require an B<ordered
+document>: an ordered list of key/value pairs.  Perl's hashes are B<not>
+ordered and since Perl v5.18 are guaranteed to have random order.  Therefore,
+when an ordered document is called for, you may use an array reference of pairs
+or a L<Tie::IxHash> object.  You may use a hash reference if there is only
+one key/value pair.
+
+=head3 Filter expression
+
+A filter expression provides the L<query
+criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
+document for deletion.  It must be an L</Ordered document>.
 
 =cut
 

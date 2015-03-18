@@ -74,9 +74,9 @@ is($id."", $id->value);
 
 #regexes
 {
-    $coll->insert({'x' => 'FRED', 'y' => 1});
-    $coll->insert({'x' => 'bob'});
-    $coll->insert({'x' => 'fRed', 'y' => 2});
+    $coll->insert_one({'x' => 'FRED', 'y' => 1});
+    $coll->insert_one({'x' => 'bob'});
+    $coll->insert_one({'x' => 'fRed', 'y' => 2});
 
     my $freds = $coll->query({'x' => qr/fred/i})->sort({'y' => 1});
 
@@ -89,7 +89,7 @@ is($id."", $id->value);
 
     # saving/getting regexes
     $coll->drop;
-    $coll->insert({"r" => qr/foo/i});
+    $coll->insert_one({"r" => qr/foo/i});
     my $obj = $coll->find_one;
     ok("foo" =~ $obj->{'r'}, 'matches');
 
@@ -107,7 +107,7 @@ is($id."", $id->value);
 
     my $now = DateTime->now;
 
-    $coll->insert({'date' => $now});
+    $coll->insert_one({'date' => $now});
     my $date = $coll->find_one;
 
     is($date->{'date'}->epoch, $now->epoch);
@@ -115,7 +115,7 @@ is($id."", $id->value);
 
     my $past = DateTime->from_epoch('epoch' => 1234567890);
 
-    $coll->insert({'date' => $past});
+    $coll->insert_one({'date' => $past});
     $date = $coll->find_one({'date' => $past});
 
     is($date->{'date'}->epoch, 1234567890);
@@ -128,7 +128,7 @@ is($id."", $id->value);
     my $min = bless {}, "MongoDB::MinKey";
     my $max = bless {}, "MongoDB::MaxKey";
 
-    $coll->insert({min => $min, max => $max});
+    $coll->insert_one({min => $min, max => $max});
     my $x = $coll->find_one;
 
     isa_ok($x->{min}, 'MongoDB::MinKey');
@@ -137,14 +137,14 @@ is($id."", $id->value);
 
 # tie::ixhash
 {
-    $coll->remove;
+    $coll->drop;
 
     my %test;
     tie %test, 'Tie::IxHash'; 
     $test{one} = "on"; 
     $test{two} = 2; 
     
-    ok( $coll->insert(\%test), "inserted IxHash") ;
+    ok( $coll->insert_one(\%test), "inserted IxHash") ;
 
     my $doc = $coll->find_one;
     is($doc->{'one'}, 'on', "field one");
@@ -153,10 +153,10 @@ is($id."", $id->value);
 
 # binary
 {
-    $coll->remove;
+    $coll->drop;
 
     my $invalid = "\xFE";
-    ok( $coll->insert({"bin" => \$invalid}), "inserted binary data" );
+    ok( $coll->insert_one({"bin" => \$invalid}), "inserted binary data" );
 
     my $one = $coll->find_one;
     is($one->{'bin'}, "\xFE", "read binary data");
@@ -165,7 +165,7 @@ is($id."", $id->value);
 # 64-bit ints
 {
     use bigint;
-    $coll->remove;
+    $coll->drop;
 
     my $x = 2 ** 34;
     $coll->save({x => $x});
@@ -174,7 +174,7 @@ is($id."", $id->value);
     is($result->{'x'}, 17179869184)
         or diag explain $result;
 
-    $coll->remove;
+    $coll->drop;
 
     $x = (2 ** 34) * -1;
     $coll->save({x => $x});
@@ -183,7 +183,7 @@ is($id."", $id->value);
     is($result->{'x'}, -17179869184)
         or diag explain $result;
 
-    $coll->remove;
+    $coll->drop;
 
     $coll->save({x => 2712631400});
     $result = $coll->find_one;
@@ -196,7 +196,7 @@ is($id."", $id->value);
 
     ok($@ =~ m/BigInt is too large/);
 
-    $coll->remove;
+    $coll->drop;
 }
 
 # code
@@ -206,7 +206,7 @@ is($id."", $id->value);
     my $scope = $code->scope;
     is(keys %$scope, 0);
 
-    $coll->insert({"code" => $code});
+    $coll->insert_one({"code" => $code});
     my $ret = $coll->find_one;
     my $ret_code = $ret->{code};
     $scope = $ret_code->scope;
@@ -228,16 +228,16 @@ is($id."", $id->value);
         is($x, "Fred");
     }
 
-    $coll->remove;
+    $coll->drop;
 
-    $coll->insert({"x" => "foo", "y" => $code, "z" => 1});
+    $coll->insert_one({"x" => "foo", "y" => $code, "z" => 1});
     $x = $coll->find_one;
     is($x->{x}, "foo");
     is($x->{y}->code, $str);
     is($x->{y}->scope->{"name"}, "Fred");
     is($x->{z}, 1);
 
-    $coll->remove;
+    $coll->drop;
 }
 
 SKIP: {
@@ -245,7 +245,7 @@ SKIP: {
     skip "Skipping 64 bit native SV", 1
         if ( !$Config{use64bitint} );
 
-    $coll->update({ x => 1 }, { '$inc' => { 'y' => 19401194714 } }, { 'upsert' => 1 });
+    $coll->update_one({ x => 1 }, { '$inc' => { 'y' => 19401194714 } }, { 'upsert' => 1 });
     my $result = $coll->find_one;
     is($result->{'y'},19401194714,'64 bit ints without Math::BigInt');
 }
@@ -267,7 +267,7 @@ SKIP: {
     $coll->drop;
 
     my $t = MongoDB::Timestamp->new("sec" => 12345678, "inc" => 9876543);
-    $coll->insert({"ts" => $t});
+    $coll->insert_one({"ts" => $t});
 
     my $x = $coll->find_one;
 
@@ -281,7 +281,7 @@ SKIP: {
 
     $MongoDB::BSON::use_boolean = 0;
 
-    $coll->insert({"x" => boolean::true, "y" => boolean::false});
+    $coll->insert_one({"x" => boolean::true, "y" => boolean::false});
     my $x = $coll->find_one;
 
     isa_ok($x->{x}, 'SCALAR');
@@ -302,7 +302,7 @@ SKIP: {
 # unrecognized obj
 {
     eval {
-        $coll->insert({"x" => $coll});
+        $coll->insert_one({"x" => $coll});
     };
 
     ok($@ =~ m/type \(MongoDB::Collection\) unhandled/, "can't insert a non-recognized obj");
@@ -319,15 +319,15 @@ SKIP: {
                                                {x => {'$type' => 18}}]});
 
     MongoDB::force_double($x);
-    $coll->insert({x => $x});
+    $coll->insert_one({x => $x});
     my $result = $coll->find_one($double_type);
     is($result->{x}, 1);
     $result = $coll->find_one($int_type);
     is($result, undef);
-    $coll->remove({});
+    $coll->drop;
 
     MongoDB::force_int($x);
-    $coll->insert({x => $x});
+    $coll->insert_one({x => $x});
     $result = $coll->find_one($double_type);
     is($result, undef);
     $result = $coll->find_one($int_type);

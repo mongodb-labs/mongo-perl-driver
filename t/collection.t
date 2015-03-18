@@ -97,19 +97,19 @@ subtest get_namespace => sub {
 
 # very small insert
 {
-    $id = $coll->insert({_id => 1});
+    $id = $coll->insert_one({_id => 1})->inserted_id;
     is($id, 1);
     my $tiny = $coll->find_one;
     is($tiny->{'_id'}, 1);
 
-    $coll->remove;
+    $coll->drop;
 
-    $id = $coll->insert({});
+    $id = $coll->insert_one({})->inserted_id;
     isa_ok($id, 'MongoDB::OID');
     $tiny = $coll->find_one;
     is($tiny->{'_id'}, $id);
 
-    $coll->remove;
+    $coll->drop;
 }
 
 subtest write_concern => sub {
@@ -117,17 +117,17 @@ subtest write_concern => sub {
 
     ok( $c = $testdb->get_collection( 'foo', { write_concern => { w => 999 } } ),
         "get collection with w=999" );
-    my $err = exception { $c->insert( { _id => 1 } ) };
+    my $err = exception { $c->insert_one( { _id => 1 } ) };
     ok( $err->isa('MongoDB::DatabaseError'),
         "collection-level write concern applies to insert" );
 };
 
 # insert
 {
-    $id = $coll->insert({ just => 'another', perl => 'hacker' });
+    $id = $coll->insert_one({ just => 'another', perl => 'hacker' })->inserted_id;
     is($coll->count, 1, 'count');
 
-    $coll->update({ _id => $id }, {
+    $coll->replace_one({ _id => $id }, {
         just => "an\xE4oth\0er",
         mongo => 'hacker',
         with => { a => 'reference' },
@@ -167,32 +167,18 @@ subtest write_concern => sub {
     is($obj->{just}, "an\xE4oth\0er");
 }
 
-# find_one MaxTimeMS
-{
-    my $err_re = qr/must be non-negative/;
-    eval { $coll->find_one({}, {}, { max_time_ms => -1 }) };
-    like( $@, $err_re, "find_one sets max_time_ms");
-}
-
-# find_one invalid option
-{
-    my $err_re = qr/max_slime_ms is not/;
-    eval { $coll->find_one({}, {}, { max_slime_ms => -1 }) };
-    like( $@, $err_re, "max_slime_ms is not a Cursor method");
-}
-
 # validate and remove
 {
     is( exception { $coll->validate }, undef, 'validate' );
 
-    $coll->remove($obj);
+    $coll->delete_one($obj);
     is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
 }
 
 # doubles
 {
     my $pi = 3.14159265;
-    ok($id = $coll->insert({ data => 'pi', pi => $pi }), "inserting float number value");
+    ok($id = $coll->insert_one({ data => 'pi', pi => $pi })->inserted_id, "inserting float number value");
     ok($obj = $coll->find_one({ data => 'pi' }));
     # can't test exactly because floating point nums are weird
     ok(abs($obj->{pi} - $pi) < .000000001);
@@ -201,7 +187,7 @@ subtest write_concern => sub {
     my $object = {};
     $object->{'autoPartNum'} = '123456';
     $object->{'price'} = 123.19;
-    $coll->insert($object);
+    $coll->insert_one($object);
     my $auto = $coll->find_one;
     like($auto->{'price'}, qr/^123\.\d+/, "round trip float looks like float");
     ok(abs($auto->{'price'} - $object->{'price'}) < .000000001);
@@ -209,7 +195,7 @@ subtest write_concern => sub {
 
 # undefined values
 {
-    ok($id  = $coll->insert({ data => 'null', none => undef }), 'inserting undefined data');
+    ok($id  = $coll->insert_one({ data => 'null', none => undef })->inserted_id, 'inserting undefined data');
     ok($obj = $coll->find_one({ data => 'null' }), 'finding undefined row');
     ok(exists $obj->{none}, 'got null field');
     ok(!defined $obj->{none}, 'null field is undefined');
@@ -224,7 +210,7 @@ subtest write_concern => sub {
     utf8::downgrade($down);
     my $insert = { down => $down, up => $up, non_latin => $non_latin };
     my $copy = +{ %{$insert} };
-    $coll->insert($insert);
+    $coll->insert_one($insert);
     my $utfblah = $coll->find_one;
     delete $utfblah->{_id};
     is_deeply($utfblah, $copy, 'non-ascii values');
@@ -233,7 +219,7 @@ subtest write_concern => sub {
 
     $insert = { $down => "down", $up => "up", $non_latin => "non_latin" };
     $copy = +{ %{$insert} };
-    $coll->insert($insert);
+    $coll->insert_one($insert);
     $utfblah = $coll->find_one;
     delete $utfblah->{_id};
     is_deeply($utfblah, $copy, 'non-ascii keys');
@@ -243,7 +229,7 @@ subtest write_concern => sub {
 {
     local $MongoDB::BSON::utf8_flag_on = 0;
     $coll->drop;
-    $coll->insert({"\xe9" => "hi"});
+    $coll->insert_one({"\xe9" => "hi"});
     my $utfblah = $coll->find_one;
     is($utfblah->{"\xC3\xA9"}, "hi", 'byte key');
 }
@@ -265,7 +251,7 @@ subtest write_concern => sub {
 {
     $coll->drop;
 
-    $coll->insert({x => 1, y => 2, z => 3, w => 4});
+    $coll->insert_one({x => 1, y => 2, z => 3, w => 4});
     $cursor = $coll->query->fields({'y' => 1});
     $obj = $cursor->next;
     is(exists $obj->{'y'}, 1, 'y exists');
@@ -278,8 +264,8 @@ subtest write_concern => sub {
 # batch insert
 {
     $coll->drop;
-    my $ids = $coll->batch_insert([{'x' => 1}, {'x' => 2}, {'x' => 3}]);
-    is($coll->count, 3, 'batch_insert');
+    my $ids = $coll->insert_many([{'x' => 1}, {'x' => 2}, {'x' => 3}])->inserted_ids;
+    is($coll->count, 3, 'insert_many');
 }
 
 # sort
@@ -294,16 +280,18 @@ subtest write_concern => sub {
 # find_one fields
 {
     $coll->drop;
-    $coll->insert({'x' => 1, 'y' => 2, 'z' => 3});
+    $coll->insert_one({'x' => 1, 'y' => 2, 'z' => 3})->inserted_id;
     my $yer = $coll->find_one({}, {'y' => 1});
 
-    ok(exists $yer->{'y'}, 'y exists');
-    ok(!exists $yer->{'x'}, 'x doesn\'t');
-    ok(!exists $yer->{'z'}, 'z doesn\'t');
+    cmp_deeply(
+        $yer,
+        { _id => ignore(), y => 2 },
+        "projection fields correct"
+    );
 
     $coll->drop;
-    $coll->batch_insert([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
-    $coll->remove( { "x" => 1 }, { just_one => 1 } );
+    $coll->insert_many([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
+    $coll->delete_one( { "x" => 1 } );
     is ($coll->count, 2, 'remove just one');
 }
 
@@ -311,7 +299,7 @@ subtest write_concern => sub {
 {
     $coll->drop;
     my $hash = Tie::IxHash->new("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
-    $id = $coll->insert($hash);
+    $id = $coll->insert_one($hash)->inserted_id;
     isa_ok($id, 'MongoDB::OID');
     $tied = $coll->find_one;
     is($tied->{'_id'}."", "$id");
@@ -322,7 +310,7 @@ subtest write_concern => sub {
 
     my $criteria = Tie::IxHash->new("_id" => $id);
     $hash->Push("something" => "else");
-    $coll->update($criteria, $hash);
+    $coll->replace_one($criteria, $hash);
     $tied = $coll->find_one;
     is($tied->{'f'}, 1);
     is($tied->{'something'}, 'else');
@@ -332,7 +320,7 @@ subtest write_concern => sub {
 {
     $coll->drop;
     my @h = ("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
-    $id = $coll->insert(\@h);
+    $id = $coll->insert_one(\@h)->inserted_id;
     isa_ok($id, 'MongoDB::OID');
     $tied = $coll->find_one;
     is($tied->{'_id'}."", "$id");
@@ -343,7 +331,7 @@ subtest write_concern => sub {
 
     my @criteria = ("_id" => $id);
     my @newobj = ('$inc' => {"f" => 1});
-    $coll->update(\@criteria, \@newobj);
+    $coll->update_one(\@criteria, \@newobj);
     $tied = $coll->find_one;
     is($tied->{'f'}, 2);
 }
@@ -351,18 +339,18 @@ subtest write_concern => sub {
 # multiple update
 {
     $coll->drop;
-    $coll->insert({"x" => 1});
-    $coll->insert({"x" => 1});
+    $coll->insert_one({"x" => 1});
+    $coll->insert_one({"x" => 1});
 
-    $coll->insert({"x" => 2, "y" => 3});
-    $coll->insert({"x" => 2, "y" => 4});
+    $coll->insert_one({"x" => 2, "y" => 3});
+    $coll->insert_one({"x" => 2, "y" => 4});
 
-    $coll->update({"x" => 1}, {'$set' => {'x' => "hi"}});
+    $coll->update_one({"x" => 1}, {'$set' => {'x' => "hi"}});
     # make sure one is set, one is not
     ok($coll->find_one({"x" => "hi"}));
     ok($coll->find_one({"x" => 1}));
 
-    my $res = $coll->update({"x" => 2}, {'$set' => {'x' => 4}}, {'multiple' => 1});
+    my $res = $coll->update_many({"x" => 2}, {'$set' => {'x' => 4}});
     is($coll->count({"x" => 4}), 2) or diag explain $res;
 
     $cursor = $coll->query({"x" => 4})->sort({"y" => 1});
@@ -378,7 +366,7 @@ subtest "multiple update" => sub {
     plan skip_all => "multiple update won't work with db version $server_version"
       unless $server_version >= v1.3.0;
 
-    $coll->update({"x" => 4}, {'$set' => {"x" => 3}}, {'multiple' => 1, 'upsert' => 1});
+    $coll->update_many({"x" => 4}, {'$set' => {"x" => 3}}, {'upsert' => 1});
     is($coll->count({"x" => 3}), 2, 'count');
 
     $cursor = $coll->query({"x" => 3})->sort({"y" => 1});
@@ -387,29 +375,6 @@ subtest "multiple update" => sub {
     is($obj->{'y'}, 3, 'y == 3');
     $obj = $cursor->next();
     is($obj->{'y'}, 4, 'y == 4');
-
-    # check with upsert if there are no matches
-    # also check that 'multi' is allowed
-    my $res = $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multi' => 1});
-    ok( $res->{ok}, "update succeeded" );
-    is( $res->{n}, 1, "update match count" );
-    isa_ok( $res->{upserted}, "MongoDB::OID" );
-    ok($coll->find_one({"z" => 4}));
-
-    # check that 'multi' and 'multiple' conflicting is an error
-    like(
-        exception {
-            $coll->update(
-                { "x"     => 15 },
-                { '$set'  => { "z" => 4 } },
-                { 'multi' => 1, 'multiple' => undef }
-              )
-        },
-        qr/can't use conflicting values/,
-        "multi and multiple conflicting is an error"
-    );
-
-    is($coll->count(), 5);
 };
 
 
@@ -418,7 +383,7 @@ subtest "multiple update" => sub {
     $coll->drop;
     my @g = ();
     $g[1] = 'foo';
-    ok($id = $coll->insert({ data => \@g }));
+    ok($id = $coll->insert_one({ data => \@g })->inserted_id);
     ok($obj = $coll->find_one());
     is_deeply($obj->{data}, [undef, 'foo']);
 }
@@ -429,7 +394,7 @@ subtest "multiple update" => sub {
 
     my $val = 1.5;
     $val = 'foo';
-    ok($id = $coll->insert({ data => $val }));
+    ok($id = $coll->insert_one({ data => $val })->inserted_id);
     ok($obj = $coll->find_one({ data => $val }));
     is($obj->{data}, 'foo');
 }
@@ -438,7 +403,7 @@ subtest "multiple update" => sub {
 {
     my $f = 'abc';
     $f = 3.3;
-    ok($id = $coll->insert({ data => $f }), 'insert float');
+    ok($id = $coll->insert_one({ data => $f })->inserted_id, 'insert float');
     ok($obj = $coll->find_one({ data => $f }));
     ok(abs($obj->{data} - 3.3) < .000000001);
 }
@@ -450,7 +415,7 @@ SKIP: {
     $conn->query_timeout(0);
 
     for (0 .. 10000) {
-        $coll->insert({"field1" => "foo", "field2" => "bar", 'x' => $_});
+        $coll->insert_one({"field1" => "foo", "field2" => "bar", 'x' => $_});
     }
 
     eval {
@@ -465,34 +430,11 @@ SKIP: {
 # safe insert
 {
     $coll->drop;
-    $coll->insert({_id => 1}, {safe => 1});
-    my $err = exception { $coll->insert({_id => 1}, {safe => 1}) };
+    $coll->insert_one({_id => 1});
+    my $err = exception { $coll->insert_one({_id => 1}) };
     ok( $err, "got error" );
     isa_ok( $err, 'MongoDB::DatabaseError', "duplicate insert error" );
     like( $err->message, qr/duplicate key/, 'error was duplicate key exception')
-}
-
-# safe update
-{
-    $coll->drop;
-    $coll->ensure_index({name => 1}, {unique => 1});
-    $coll->insert( {name => 'Alice'} );
-    $coll->insert( {name => 'Bob'} );
-
-    my $err = exception { $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, { safe => 0 } ) };
-    is($err, undef, "bad update with safe => 0: no error");
-
-    for my $h ( undef, { safe => 1 } ) {
-        my $res;
-        $err = exception { $res = $coll->update( { name => 'Alice'}, { '$set' => { name => 'Bob' } }, $h ) };
-        my $case = $h ? "explicit" : "default";
-        ok( $err, "bad update with $case safe gives error" ) or diag explain $res;
-        like( $err->message, qr/duplicate key/, 'error was duplicate key exception');
-        ok( my $ok = $coll->update( { name => 'Alice' }, { '$set' => { age => 23 } }, $h ), "did legal update" );
-        isa_ok( $ok, "HASH" );
-        is( $ok->{n}, 1, "n set to 1" );
-        ok( $ok->{ok}, "legal update with $case safe had no error" );
-    }
 }
 
 # save
@@ -516,10 +458,10 @@ SKIP: {
 {
     $coll->drop;
 
-    $coll->insert({x => 1});
-    $coll->insert({x => 4});
-    $coll->insert({x => 5});
-    $coll->insert({x => 1, y => 2});
+    $coll->insert_one({x => 1});
+    $coll->insert_one({x => 4});
+    $coll->insert_one({x => 5});
+    $coll->insert_one({x => 1, y => 2});
 
     $cursor = $coll->find({x=>4});
     my $result = $cursor->next;
@@ -544,7 +486,7 @@ SKIP: {
     $coll->drop;
     # turn off utf8 flag now
     local $MongoDB::BSON::utf8_flag_on = 0;
-    $coll->insert({ foo => "\x{4e2d}\x{56fd}"});
+    $coll->insert_one({ foo => "\x{4e2d}\x{56fd}"});
     my $utfblah = $coll->find_one;
     # use utf8;
     my $utfv2 = encode('utf8',"\x{4e2d}\x{56fd}");
@@ -568,8 +510,8 @@ SKIP: {
 # sparse indexes
 {
     for (1..10) {
-        $coll->insert({x => $_, y => $_}, {safe => 1});
-        $coll->insert({x => $_}, {safe => 1});
+        $coll->insert_one({x => $_, y => $_});
+        $coll->insert_one({x => $_});
     }
     is($coll->count, 20);
 
@@ -594,7 +536,7 @@ subtest 'text indices' => sub {
         if !$res->{'textSearchEnabled'};
 
     my $coll = $testdb->get_collection('test_text');
-    $coll->insert({language => 'english', w1 => 'hello', w2 => 'world'}) foreach (1..10);
+    $coll->insert_one({language => 'english', w1 => 'hello', w2 => 'world'}) foreach (1..10);
     is($coll->count, 10);
 
     $res = $coll->ensure_index({'$**' => 'text'}, {
@@ -634,7 +576,7 @@ subtest 'text indices' => sub {
     my $kanji = "漢\0字";
     utf8::encode($kanji);
     eval{
-     $ok = $coll->insert({ $kanji => 1});
+     $ok = $coll->insert_one({ $kanji => 1});
     };
     is($ok,0,"Insert key with Null Char Operation Failed");
     is($coll->count, 0, "Insert key with Null Char in Key Failed");
@@ -647,45 +589,20 @@ subtest 'text indices' => sub {
     utf8::encode($kanji_b);
     utf8::encode($kanji_c);
     eval {
-     $ok = $coll->batch_insert([{ $kanji_a => "some data"} , { $kanji_b => "some more data"}, { $kanji_c => "even more data"}]);
+     $ok = $coll->insert_many([{ $kanji_a => "some data"} , { $kanji_b => "some more data"}, { $kanji_c => "even more data"}]);
     };
-    is($ok,0, "batch_insert key with Null Char in Key Operation Failed");
-    is($coll->count, 0, "batch_insert key with Null Char in Key Failed");
+    is($ok,0, "insert_many key with Null Char in Key Operation Failed");
+    is($coll->count, 0, "insert_many key with Null Char in Key Failed");
     $coll->drop;
 
     #test ixhash
     my $hash = Tie::IxHash->new("f\0f" => 1);
     eval {
-     $ok = $coll->insert($hash);
+     $ok = $coll->insert_one($hash);
     };
     is($ok,0, "ixHash Insert key with Null Char in Key Operation Failed");
     is($coll->count, 0, "ixHash key with Null Char in Key Operation Failed");
     $tied = $coll->find_one;
-    $coll->drop;
-}
-
-# findAndModify
-{
-    $coll->insert( { name => "find_and_modify_test", value => 42 } );
-    $coll->find_and_modify( { query => { name => "find_and_modify_test" }, update => { '$set' => { value => 43 } } } );
-    my $doc = $coll->find_one( { name => "find_and_modify_test" } );
-    is( $doc->{value}, 43 );
-
-    $coll->drop;
-
-    $coll->insert( { name => "find_and_modify_test", value => 46 } );
-    my $new = $coll->find_and_modify( { query  => { name => "find_and_modify_test" },
-                                        update => { '$set' => { value => 57 } },
-                                        new    => 1 } );
-
-    is ( $new->{value}, 57 );
-
-    $coll->drop;
-
-    my $nothing = $coll->find_and_modify( { query => { name => "does not exist" }, update => { name => "barf" } } );
-
-    is ( $nothing, undef );
-
     $coll->drop;
 }
 
@@ -694,7 +611,7 @@ subtest "aggregation" => sub {
     plan skip_all => "Aggregation framework unsupported on MongoDB $server_version"
         unless $server_version >= v2.2.0;
 
-    $coll->batch_insert( [ { wanted => 1, score => 56 },
+    $coll->insert_many( [ { wanted => 1, score => 56 },
                            { wanted => 1, score => 72 },
                            { wanted => 1, score => 96 },
                            { wanted => 1, score => 32 },
@@ -702,18 +619,19 @@ subtest "aggregation" => sub {
                            { wanted => 1, score => 33 },
                            { wanted => 0, score => 1000 } ] );
 
-    my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
+    my $cursor = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
                                   { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
 
-    is( ref( $res ), ref [ ] );
+    isa_ok( $cursor, 'MongoDB::QueryResult' );
+    my $res = [ $cursor->all ];
     ok $res->[0]{avgScore} < 59;
     ok $res->[0]{avgScore} > 57;
 
     if ( $server_version < v2.5.0 ) {
-        like(
-            exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
-            qr/unrecognized field.*cursor/,
-            "asking for cursor when unsupported throws error"
+        is(
+            exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => {} } ) },
+            undef,
+            "asking for cursor when unsupported does not throw error"
         );
     }
 };
@@ -724,7 +642,7 @@ subtest "aggregation cursors" => sub {
         unless $server_version >= v2.5.0;
 
     for( 1..20 ) {
-        $coll->insert( { count => $_ } );
+        $coll->insert_one( { count => $_ } );
     }
 
     $cursor = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } } ], { cursor => 1 } );
@@ -764,7 +682,7 @@ subtest "aggregation \$out" => sub {
         unless $server_version >= v2.5.0;
 
     for( 1..20 ) {
-        $coll->insert( { count => $_ } );
+        $coll->insert_one( { count => $_ } );
     }
 
     my $result = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$out' => 'test_out' } ] );
@@ -789,11 +707,13 @@ subtest "aggregation explain" => sub {
         unless $server_version >= v2.4.0;
 
     for ( 1..20 ) {
-        $coll->insert( { count => $_ } );
+        $coll->insert_one( { count => $_ } );
     }
 
-    my $result = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$sort' => { count => 1 } } ],
+    my $cursor = $coll->aggregate( [ { '$match' => { count => { '$gt' => 0 } } }, { '$sort' => { count => 1 } } ],
                                    { explain => 1 } );
+
+    my $result = $cursor->next;
 
     is( ref( $result ), 'HASH', "aggregate with explain returns a hashref" );
 
@@ -807,15 +727,15 @@ subtest "aggregation explain" => sub {
 
 subtest "deep update" => sub {
     $coll->drop;
-    $coll->insert( { _id => 1 } );
+    $coll->insert_one( { _id => 1 } );
 
-    $coll->update( { _id => 1 }, { '$set' => { 'x.y' => 42 } } );
+    $coll->update_one( { _id => 1 }, { '$set' => { 'x.y' => 42 } } );
 
     my $doc = $coll->find_one( { _id => 1 } );
     is( $doc->{x}{y}, 42, "deep update worked" );
 
     like(
-        exception { $coll->update( { _id => 1 }, { 'p.q' => 23 } ) },
+        exception { $coll->replace_one( { _id => 1 }, { 'p.q' => 23 } ) },
         qr/documents for storage cannot contain/,
         "replace with dots in field dies"
     );
@@ -825,8 +745,8 @@ subtest "deep update" => sub {
 subtest "count w/ hint" => sub {
 
     $coll->drop;
-    $coll->insert( { i => 1 } );
-    $coll->insert( { i => 2 } );
+    $coll->insert_one( { i => 1 } );
+    $coll->insert_one( { i => 2 } );
     is ($coll->count(), 2, 'count = 2');
 
     $coll->ensure_index( { i => 1 } );
@@ -868,12 +788,12 @@ for my $criteria ( $js_str, $js_obj ) {
     my $type = ref($criteria) || 'string';
     subtest "query with \$where as $type" => sub {
         $coll->drop;
-        $coll->insert( { a => 1, b => 1, n => 1 } );
-        $coll->insert( { a => 2, b => 1, n => 2 } );
-        $coll->insert( { a => 3, b => 1, n => 3 } );
-        $coll->insert( { a => 0, b => 1, n => 4 } );
-        $coll->insert( { a => 1, b => 2, n => 5 } );
-        $coll->insert( { a => 2, b => 3, n => 6 } );
+        $coll->insert_one( { a => 1, b => 1, n => 1 } );
+        $coll->insert_one( { a => 2, b => 1, n => 2 } );
+        $coll->insert_one( { a => 3, b => 1, n => 3 } );
+        $coll->insert_one( { a => 0, b => 1, n => 4 } );
+        $coll->insert_one( { a => 1, b => 2, n => 5 } );
+        $coll->insert_one( { a => 2, b => 3, n => 6 } );
 
         my @docs = $coll->find( { '$where' => $criteria } )->sort( { n => 1 } )->all;
         is( scalar @docs, 2, "correct count a > b" )

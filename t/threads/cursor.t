@@ -34,10 +34,10 @@ my $col = $testdb->get_collection('tiger');
 $col->drop;
 
 
-$col->insert({ foo => 9,  bar => 3, shazbot => 1 });
-$col->insert({ foo => 2,  bar => 5 });
-$col->insert({ foo => -3, bar => 4 });
-$col->insert({ foo => 4,  bar => 9, shazbot => 1 });
+$col->insert_one({ foo => 9,  bar => 3, shazbot => 1 });
+$col->insert_one({ foo => 2,  bar => 5 });
+$col->insert_one({ foo => -3, bar => 4 });
+$col->insert_one({ foo => 4,  bar => 9, shazbot => 1 });
 
 
 {

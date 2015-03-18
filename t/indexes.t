@@ -41,8 +41,8 @@ subtest 'basic indexes' => sub {
 
     $coll->drop;
     for ( my $i = 0; $i < 10; $i++ ) {
-        $coll->insert( { 'x' => $i, 'z' => 3, 'w' => 4 } );
-        $coll->insert( { 'x' => $i, 'y' => 2, 'z' => 3, 'w' => 4 } );
+        $coll->insert_one( { 'x' => $i, 'z' => 3, 'w' => 4 } );
+        $coll->insert_one( { 'x' => $i, 'y' => 2, 'z' => 3, 'w' => 4 } );
     }
 
     $coll->drop;
@@ -58,13 +58,13 @@ subtest 'basic indexes' => sub {
     $indexes = Tie::IxHash->new( foo => 1, bar => 1 );
     ok( $coll->ensure_index($indexes) );
 
-    $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 1 } );
-    $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 2 } );
+    $coll->insert_one( { foo => 1, bar => 1, baz => 1, boo => 1 } );
+    $coll->insert_one( { foo => 1, bar => 1, baz => 1, boo => 2 } );
     is( $coll->count, 2 );
 
     ok( $coll->ensure_index( { boo => 1 }, { unique => 1 } ) );
 
-    eval { $coll->insert( { foo => 3, bar => 3, baz => 3, boo => 2 } ) };
+    eval { $coll->insert_one( { foo => 3, bar => 3, baz => 3, boo => 2 } ) };
 
     is( $coll->count, 2, 'unique index' );
 
@@ -94,8 +94,8 @@ subtest 'basic indexes' => sub {
 subtest 'drop dups' => sub {
     $coll->drop;
 
-    $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 1 } );
-    $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 2 } );
+    $coll->insert_one( { foo => 1, bar => 1, baz => 1, boo => 1 } );
+    $coll->insert_one( { foo => 1, bar => 1, baz => 1, boo => 2 } );
     is( $coll->count, 2 );
 
     eval { $coll->ensure_index( { foo => 1 }, { unique => 1 } ) };
@@ -115,13 +115,13 @@ subtest 'new form of ensure index' => sub {
     ok( $coll->ensure_index( { foo => 1, bar => -1, baz => 1 } ) );
     ok( $coll->ensure_index( [ foo => 1, bar => 1 ] ) );
 
-    $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 1 } );
-    $coll->insert( { foo => 1, bar => 1, baz => 1, boo => 2 } );
+    $coll->insert_one( { foo => 1, bar => 1, baz => 1, boo => 1 } );
+    $coll->insert_one( { foo => 1, bar => 1, baz => 1, boo => 2 } );
     is( $coll->count, 2 );
 
     # unique index
     $coll->ensure_index( { boo => 1 }, { unique => 1 } );
-    eval { $coll->insert( { foo => 3, bar => 3, baz => 3, boo => 2 } ) };
+    eval { $coll->insert_one( { foo => 3, bar => 3, baz => 3, boo => 2 } ) };
     is( $coll->count, 2, 'unique index' );
 };
 

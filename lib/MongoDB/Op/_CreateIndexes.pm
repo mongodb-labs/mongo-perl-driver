@@ -25,9 +25,10 @@ our $VERSION = 'v0.999.998.3'; # TRIAL
 use Moose;
 
 use MongoDB::CommandResult;
-use MongoDB::Op::_InsertMany;
 use MongoDB::_Types -types;
 use Types::Standard -types;
+use MongoDB::Op::_BatchInsert;
+use MongoDB::_Types;
 use Tie::IxHash;
 use namespace::clean -except => 'meta';
 
@@ -97,7 +98,7 @@ sub _legacy_index_insert {
         } @{ $self->indexes }
     ];
 
-    my $op = MongoDB::Op::_InsertMany->new(
+    my $op = MongoDB::Op::_BatchInsert->new(
         db_name       => $self->db_name,
         coll_name     => "system.indexes",
         documents     => $indexes,
