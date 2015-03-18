@@ -1620,7 +1620,7 @@ __END__
     # insert a document
     $coll->insert_one( { name => "John Doe", age => 42 } );
 
-    # insert several documents
+    # insert one or more documents
     $coll->insert_many( \@documents );
 
     # delete a document
