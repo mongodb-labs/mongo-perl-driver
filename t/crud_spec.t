@@ -92,27 +92,47 @@ sub test_insert {
 sub test_modify {
     my ( $class, $label, $method, $args, $outcome ) = @_;
     my $filter = delete $args->{filter};
+    # SERVER-5289 -- _id not taken from filter before 2.6
+    if (   $server_version < v2.6.0
+        && !$coll->find_one($filter)
+        && $args->{upsert}
+        && exists( $args->{replacement} ) )
+    {
+        $outcome->{collection}{data}[-1]{_id} = ignore();
+    }
+    my $doc = delete $args->{replacement} || delete $args->{update};
+    my $res = $coll->$method( $filter, $doc, ( scalar %$args ? $args : () ) );
+    check_write_outcome( $label, $res, $outcome );
+}
+
+sub test_find_and_modify {
+    my ( $class, $label, $method, $args, $outcome ) = @_;
+    my $filter = delete $args->{filter};
     my $doc = delete $args->{replacement} || delete $args->{update};
     $args->{returnDocument} = lc( $args->{returnDocument} )
       if exists $args->{returnDocument};
-    if ( $method =~ /^find_one/ ) {
-        # SERVER-17650 -- before 3.0, this case returned empty doc
-        if (   $server_version < v3.0.0
-            && !$coll->find_one($filter)
-            && ( ! $args->{returnDocument} || $args->{returnDocument} eq 'before' )
-            && $args->{upsert}
-            && $args->{sort} )
-        {
-            $outcome->{result} = {};
+    # SERVER-17650 -- before 3.0, this case returned empty doc
+    if (   $server_version < v3.0.0
+        && !$coll->find_one($filter)
+        && ( !$args->{returnDocument} || $args->{returnDocument} eq 'before' )
+        && $args->{upsert}
+        && $args->{sort} )
+    {
+        $outcome->{result} = {};
+    }
+    # SERVER-5289 -- _id not taken from filter before 2.6
+    if (   $server_version < v2.6.0 ) {
+
+        if ( $outcome->{result} && ( !exists $args->{projection}{_id} || $args->{projection}{_id} ) ) {
+            $outcome->{result}{_id} = ignore();
+        }
+
+        if ( $args->{upsert} && !$coll->find_one($filter) ) {
+            $outcome->{collection}{data}[-1]{_id} = ignore();
         }
     }
     my $res = $coll->$method( $filter, $doc, ( scalar %$args ? $args : () ) );
-    if ( $method =~ /^find_one/ ) {
-        check_find_one_outcome( $label, $res, $outcome );
-    }
-    else {
-        check_write_outcome( $label, $res, $outcome );
-    }
+    check_find_one_outcome( $label, $res, $outcome );
 }
 
 BEGIN {
@@ -126,8 +146,8 @@ BEGIN {
     *test_update_one           = \&test_modify;
     *test_update_many          = \&test_modify;
     *test_find_one_and_delete  = \&test_write_w_filter;
-    *test_find_one_and_replace = \&test_modify;
-    *test_find_one_and_update  = \&test_modify;
+    *test_find_one_and_replace = \&test_find_and_modify;
+    *test_find_one_and_update  = \&test_find_and_modify;
 }
 
 #--------------------------------------------------------------------------#
@@ -181,10 +201,11 @@ sub check_write_outcome {
 
     for my $k ( keys %{ $outcome->{result} } ) {
         ( my $attr = $k ) =~ s{([A-Z])}{_\L$1}g;
-        if ( $k eq 'modifiedCount' && $server_version < v2.6.0 ) {
-            $outcome->{result}{$k} = undef;
+        if ( $server_version < v2.6.0 ) {
+            $outcome->{result}{$k} = undef    if $k eq 'modifiedCount';
+            $outcome->{result}{$k} = ignore() if $k eq 'upsertedId';
         }
-        is( $res->$attr, $outcome->{result}{$k}, "$label: $k" );
+        cmp_deeply( $res->$attr, $outcome->{result}{$k}, "$label: $k" );
     }
 
     check_collection( $label, $outcome );
@@ -192,6 +213,7 @@ sub check_write_outcome {
 
 sub check_find_one_outcome {
     my ( $label, $res, $outcome ) = @_;
+
     cmp_deeply( $res, $outcome->{result}, "$label: result doc" )
       or diag explain $res;
     check_collection( $label, $outcome );
@@ -224,7 +246,8 @@ sub check_collection {
 
     my $data = [ $out_coll->find( {} )->all ];
     cmp_deeply( $data, $outcome->{collection}{data}, "$label: collection data" )
-      or diag explain $data;
+      or diag "GOT:\n", explain($data), "EXPECTED:\n",
+      explain( $outcome->{collection}{data} );
 }
 
 done_testing;
