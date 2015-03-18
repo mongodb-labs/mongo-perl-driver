@@ -548,7 +548,7 @@ sub find_one {
     $doc = $coll->find_one_and_delete( $filter, $options );
 
 Given a L<filter expression|/Filter expression>, this deletes a document from
-the database and returns it as it appeared right before it was deleted.
+the database and returns it as it appeared before it was deleted.
 
 A hash reference of options may be provided. Valid keys include:
 
