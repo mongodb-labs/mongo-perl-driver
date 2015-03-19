@@ -156,6 +156,10 @@ BEGIN {
 
 sub test_aggregate {
     my ( $class, $label, $method, $args, $outcome ) = @_;
+
+    plan skip_all => "aggregate not available until MongoDB v2.2"
+        unless $server_version > v2.2.0;
+
     my $pipeline = delete $args->{pipeline};
 
     # $out not supported until 2.6
