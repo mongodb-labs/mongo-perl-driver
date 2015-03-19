@@ -18,6 +18,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Fatal;
 use IO::File;
 use File::Temp;
 use MongoDB::Timestamp; # needed if db is being run as master
@@ -32,8 +33,6 @@ use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db/;
 
 my $testdb = get_test_db(build_client());
-
-plan tests => 62;
 
 my $dumb_str;
 my $now;
@@ -287,3 +286,25 @@ $grid->drop;
     is($file, undef);
 }
 
+# no chunks asserts
+{
+    $grid->drop;
+
+    my $img = new IO::File("t/img.png", "r") or die $!;
+    $img->binmode;
+
+    ok( my $id = $grid->put($img), "inserted file" );
+
+    # delete chunks to simulate corruption
+    my $res = $grid->chunks->remove({"files_id" => $id});
+    ok( $res, "deleted chunks" );
+
+    like(
+        exception { $file = $grid->get($id)->slurp },
+        qr/GridFS file corrupt.*\Q$id\E/,
+        "invalid file throws error"
+    );
+
+}
+
+done_testing;
