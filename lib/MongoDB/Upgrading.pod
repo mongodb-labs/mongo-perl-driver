@@ -281,6 +281,12 @@ Low-level driver functions have been removed from the public API.
 The C<MongoDB::Collection> module was deprecated in v0.502.0 and has been
 removed.
 
+=head C<$MongoDB::BSON::use_boolean> removed
+
+This global variable never worked.  BSON booleans were always deserialized
+as L<boolean> objects.  A future driver will add the ability to control
+boolean deserialization without relying on global variables.
+
 =head1 DEPRECATIONS
 
 Deprecated features may be removed in a future release.

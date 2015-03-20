@@ -2,6 +2,13 @@
 
 {{ $NEXT }}
 
+  [Removals]
+
+  - PERL-497 The $MongoDB::BSON::use_boolean never worked; BSON boolean
+    values were always deserialized as boolean.pm objects.  Rather than
+    "fix" this and break people's code, the option has been removed and
+    documented as such.
+
 v0.999.998.2 2015-02-23 17:10:36-05:00 America/New_York (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]
