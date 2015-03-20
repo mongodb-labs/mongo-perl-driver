@@ -272,22 +272,9 @@ sub eval {
     }
 }
 
-=method last_error (DEPRECATED)
-
-    my $err = $db->last_error({w => 2});
-
-Because write operations now return result information, this function is
-deprecated.
-
-Finds out if the last database operation completed successfully. If a hash
-reference of options is provided, they are included with the database command.
-Throws an exception if C<getLastError> itself fails.
-
-See the
-L<getLastError|http://docs.mongodb.org/manual/reference/command/getLastError/>
-documentation for more on valid options and results.
-
-=cut
+#--------------------------------------------------------------------------#
+# deprecated methods
+#--------------------------------------------------------------------------#
 
 sub last_error {
     my ( $self, $opt ) = @_;
@@ -319,5 +306,13 @@ some convenience methods that use it.
 
 Generally, you never construct one of these directly with C<new>.  Instead, you
 call C<get_database> on a L<MongoDB::MongoClient> object.
+
+=head1 DEPRECATIONS
+
+The following methods are deprecated.  They are no longer documented and may
+be removed in a future major-version release.
+
+=for :list
+* last_error
 
 =cut
