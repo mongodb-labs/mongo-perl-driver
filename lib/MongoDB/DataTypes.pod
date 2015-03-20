@@ -294,8 +294,11 @@ from the database (this does not affect queries or Perl 5.10+).
 
 =head2 Booleans
 
-Use the L<boolean> package to get boolean values.  C<boolean::true> and
-C<boolean::false> are the only parts of the package used, currently.
+Boolean values are emulated using the L<boolean> package via the
+C<boolean::true> and C<boolean::false> functions.  Using L<boolean> objects
+in documents will ensure the documents have the BSON boolean type in the
+database.  Likewise, BSON boolean types in the database will be returned
+as L<boolean> objects.
 
 An example of inserting boolean values:
 
@@ -308,12 +311,10 @@ where the name field exists):
 
     my $cursor = $collection->query({"name" => {'$exists' => boolean::true}});
 
-Most of the time, you can just use 1 or 0 instead of C<true> and C<false>, such
-as for specifying fields to return.  L<boolean> is the only way to save
-booleans to the database, though.
-
-By default, booleans are returned from the database as integers.  To return
-booleans as L<boolean>s, set C<$MongoDB::BSON::use_boolean> to 1.
+Most of the time, you can just use 1 or 0 in query operations instead of
+C<true> and C<false>, such as for specifying fields to return, but some
+commands require L<boolean> objects and the database will return an error
+if integers 1 or 0 are used.
 
 =head2 MongoDB::OID
 

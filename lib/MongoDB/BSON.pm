@@ -84,18 +84,6 @@ If you turn off utf8 flag, the string  length will compute as bytes, and is_utf8
 
 $MongoDB::BSON::utf8_flag_on = 1;
 
-=head2 Return boolean values as booleans instead of integers
-
-    $MongoDB::BSON::use_boolean = 1
-
-By default, booleans are deserialized as integers.  If you would like them to be
-deserialized as L<boolean/true> and L<boolean/false>, set
-C<$MongoDB::BSON::use_boolean> to 1.
-
-=cut
-
-$MongoDB::BSON::use_boolean = 0;
-
 =head2 Return binary data as instances of L<MongoDB::BSON::Binary> instead of
 string refs.
 
@@ -108,6 +96,20 @@ you would like to have it deserialized as instances of L<MongoDB::BSON::Binary>
 =cut
 
 $MongoDB::BSON::use_binary = 0;
+
+=head1 UNSUPPORTED
+
+=head2 Return boolean values as integers
+
+Previously, the MongoDB driver documented the C<$MongoDB::BSON::use_boolean>
+global for toggling whether boolean BSON values were deserialized as integers
+or L<boolean> objects.  However, this value was actually never used and the
+driver always deserialized objects as L<boolean> values.  Rather than fix this
+and break people's code, instead this option is no longer supported.  A future
+driver (v1.0.0 or later) will provide a means for customizing the
+deserialization of boolean BSON values without the use of a global variable.
+
+=cut
 
 __PACKAGE__->meta->make_immutable;
 

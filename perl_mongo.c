@@ -40,7 +40,6 @@ int perl_mongo_machine_id;
 
 static SV *utf8_flag_on;
 static SV *use_binary;
-static SV *use_boolean;
 static SV *special_char;
 static SV *look_for_numbers;
 
@@ -48,7 +47,6 @@ void perl_mongo_init() {
   MUTEX_INIT(&inc_mutex);
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
-  use_boolean = get_sv("MongoDB::BSON::use_boolean", 0);
   special_char = get_sv("MongoDB::BSON::char", 0);
   look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
 }
@@ -437,11 +435,6 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
     dSP;
     bool d = bson_iter_bool(iter);
     int count;
-
-    if (!use_boolean) {
-      value = newSViv(d);
-      break;
-    }
 
     SAVETMPS;
 
