@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-480 retrieving a GridFS file now throws an error if no chunks exist
+    instead of returning an empty string
+
   [Removals]
 
   - PERL-497 The $MongoDB::BSON::use_boolean never worked; BSON boolean
