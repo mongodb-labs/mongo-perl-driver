@@ -804,6 +804,13 @@ sub disconnect {
 # semantics might change in future releases
 #--------------------------------------------------------------------------#
 
+# Undocumented in old MongoDB::MongoClient; semantics don't translate, but
+# best approximation is checking if we can talk to a primary
+sub connected {
+    my ($self) = @_;
+    return try { !! $self->_topology->get_writable_link }
+}
+
 sub send_admin_command {
     my ( $self, $command, $read_preference ) = @_;
 

@@ -31,6 +31,10 @@ use MongoDBTest qw/build_client get_test_db/;
 my $conn = build_client();
 my $testdb = get_test_db($conn);
 
+ok( $conn->connected, "client is connected" );
+ok( !build_client( host => "mongodb://localhost:9" )->connected,
+    "bogus client not connected" );
+
 is(
     exception { MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL}); },
     undef,
