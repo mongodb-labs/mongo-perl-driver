@@ -2,10 +2,19 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - PERL-502|PERL-503 Implement new common driver CRUD API
+    in MongoDB::Collection
+
   [Bug fixes]
 
   - PERL-480 retrieving a GridFS file now throws an error if no chunks exist
     instead of returning an empty string
+
+  [Documentation]
+
+  - PERL-464 Documented deprecation of 'last_error'
 
   [Removals]
 
@@ -24,7 +33,7 @@ v0.999.998.2 2015-02-23 17:10:36-05:00 America/New_York (TRIAL RELEASE)
 
   [*** Deprecations ***]
 
-  - Deprecated the 'last_error' Database method
+  - PERL-464 Deprecated the 'last_error' Database method
 
   [Additions]
 
