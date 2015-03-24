@@ -1400,17 +1400,6 @@ sub _find_one_and_update_or_replace {
     return $self->_try_find_and_modify( \@command );
 }
 
-sub _legacy_index_insert {
-    my ($self, $doc, $options) = @_;
-
-    my $wc = $self->_dynamic_write_concern( $options );
-    my $result = $self->client->send_insert($self->full_name, $doc, $wc, undef, 0);
-
-    $result->assert;
-
-    return 1;
-}
-
 sub _try_find_and_modify {
     my ($self, $command) = @_;
     my $result;
