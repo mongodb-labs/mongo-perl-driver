@@ -31,58 +31,7 @@ use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
-=head1 NAME
-
-MongoDB::GridFS - A file storage utility
-
-=head1 SYNOPSIS
-
-    use MongoDB::GridFS;
-
-    my $grid = $database->get_gridfs;
-    my $fh = IO::File->new("myfile", "r");
-    $grid->insert($fh, {"filename" => "mydbfile"});
-
-There are two interfaces for GridFS: a file-system/collection-like interface
-(insert, remove, drop, find_one) and a more general interface
-(get, put, delete).  Their functionality is the almost identical (get, put and
-delete are always safe ops, insert, remove, and find_one are optionally safe),
-using one over the other is a matter of preference.
-
-=head1 USAGE
-
-=head2 Error handling
-
-Unless otherwise explictly documented, all methods throw exceptions if
-an error occurs.  The error types are documented in L<MongoDB::Error>.
-
-To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
-are recommended:
-
-    use Try::Tiny;
-    use Safe::Isa; # provides $_isa
-
-    try {
-        $grid->get( $id )
-    }
-    catch {
-        if ( $_->$_isa("MongoDB::TimeoutError" ) {
-            ...
-        }
-        else {
-            ...
-        }
-    };
-
-To retry failures automatically, consider using L<Try::Tiny::Retry>.
-
-=head1 SEE ALSO
-
-Core documentation on GridFS: L<http://dochub.mongodb.org/core/gridfs>.
-
-=head1 ATTRIBUTES
-
-=head2 chunk_size
+=attr chunk_size
 
 The number of bytes per chunk.  Defaults to 261120 (255kb).
 
@@ -101,6 +50,7 @@ has _database => (
 A L<MongoDB::ReadPreference> object.  It may be initialized with a string
 corresponding to one of the valid read preference modes or a hash reference
 that will be coerced into a new MongoDB::ReadPreference object.
+By default it will be inherited from a L<MongoDB::Database> object.
 
 =cut
 
@@ -115,6 +65,7 @@ has read_preference => (
 
 A L<MongoDB::WriteConcern> object.  It may be initialized with a hash
 reference that will be coerced into a new MongoDB::WriteConcern object.
+By default it will be inherited from a L<MongoDB::Database> object.
 
 =cut
 
@@ -125,7 +76,7 @@ has write_concern => (
     coerce   => 1,
 );
 
-=head2 prefix
+=attr prefix
 
 The prefix used for the collections.  Defaults to "fs".
 
@@ -136,13 +87,6 @@ has prefix => (
     isa     => Str,
     default => 'fs'
 );
-
-=head2 files
-
-Collection in which file metadata is stored.  Each document contains md5 and
-length fields, plus user-defined metadata (and an _id).
-
-=cut
 
 has files => (
     is => 'ro',
@@ -161,14 +105,6 @@ sub _build_files {
     );
     return $coll;
 }
-
-=head2 chunks
-
-Actual content of the files stored.  Each chunk contains up to 4Mb of data, as
-well as a number (its order within the file) and a files_id (the _id of the file
-in the files collection it belongs to).
-
-=cut
 
 has chunks => (
     is => 'ro',
@@ -205,11 +141,9 @@ sub _ensure_indexes {
     $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1, "unique" => 1});
 }
 
-=head1 METHODS
+=method get
 
-=head2 get($id)
-
-    my $file = $grid->get($id);
+    $file = $grid->get($id);
 
 Get a file from GridFS based on its _id.  Returns a L<MongoDB::GridFS::File>.
 
@@ -224,19 +158,14 @@ sub get {
     return $self->find_one({_id => $id});
 }
 
-=head2 put($fh, $metadata)
+=method put
 
-    my $id = $grid->put($fh, {filename => "pic.jpg"});
+    $id = $grid->put($fh, $metadata);
+    $id = $grid->put($fh, {filename => "pic.jpg"});
 
 Inserts a file into GridFS, adding a L<MongoDB::OID> as the _id field if the
 field is not already defined.  This is a wrapper for C<MongoDB::GridFS::insert>,
 see that method below for more information.
-
-To use a filename as the _id for subsequent C<get> calls, you must set _id
-explicitly:
-
-    $grid->put($fh, {_id => "pic.jpg", filename => "pic.jpg"});
-    my $file = $grid->get("pic.jpg");
 
 Returns the _id field.
 
@@ -248,7 +177,7 @@ sub put {
     return $self->insert($fh, $metadata, {safe => 1});
 }
 
-=head2 delete($id)
+=method delete
 
     $grid->delete($id)
 
@@ -263,9 +192,10 @@ sub delete {
     $self->remove({_id => $id}, {safe => 1});
 }
 
-=head2 find_one ($criteria?, $fields?)
+=method find_one
 
-    my $file = $grid->find_one({"filename" => "foo.txt"});
+    $file = $grid->find_one({"filename" => "foo.txt"});
+    $file = $grid->find_one($criteria, $fields);
 
 Returns a matching MongoDB::GridFS::File or undef.
 
@@ -280,7 +210,7 @@ sub find_one {
     return MongoDB::GridFS::File->new({_grid => $self,info => $file});
 }
 
-=head2 remove
+=method remove
 
     $grid->remove({"filename" => "foo.txt"});
     $grid->remove({"filename" => "foo.txt"}, $options);
@@ -329,13 +259,13 @@ sub remove {
 }
 
 
-=head2 insert
+=method insert
 
-    my $id = $gridfs->insert($fh);
-    my $id = $gridfs->insert($fh, $metadata);
-    my $id = $gridfs->insert($fh, $metadata, $options);
+    $id = $gridfs->insert($fh);
+    $id = $gridfs->insert($fh, $metadata);
+    $id = $gridfs->insert($fh, $metadata, $options);
 
-    my $id = $gridfs->insert($fh, {"content-type" => "text/html"});
+    $id = $gridfs->insert($fh, {"content-type" => "text/html"});
 
 Reads from a file handle into the database.  Saves the file with the given
 metadata.  The file handle must be readable.
@@ -354,11 +284,10 @@ FileHandle (not just the native file handle type), so you can insert a string
 with:
 
     # open the string like a file
-    my $basic_fh;
     open($basic_fh, '<', \$very_long_string);
 
     # turn the file handle into a FileHandle
-    my $fh = FileHandle->new;
+    $fh = FileHandle->new;
     $fh->fdopen($basic_fh, 'r');
 
     $gridfs->insert($fh);
@@ -463,9 +392,9 @@ sub _calc_md5 {
 }
 
 
-=head2 drop
+=method drop
 
-    @files = $grid->drop;
+    $grid->drop;
 
 Removes all files' metadata and contents.
 
@@ -483,7 +412,8 @@ sub drop {
 
     @files = $grid->all;
 
-Returns a list of the files in the database.
+Returns a list of the files in the database as L<MongoDB::GridFS::File>
+objects.
 
 =cut
 
@@ -520,11 +450,61 @@ sub _dynamic_write_concern {
     }
 }
 
-
 __PACKAGE__->meta->make_immutable;
 
 1;
 
-=head1 AUTHOR
+=head1 SYNOPSIS
 
-  Kristina Chodorow <kristina@mongodb.org>
+    my $grid = $database->get_gridfs;
+    my $fh = IO::File->new("myfile", "r");
+    $grid->insert($fh, {"filename" => "mydbfile"});
+
+=head1 DESCRIPTION
+
+This class models a GridFS file store in a MongoDB database and provides an API
+for interacting with it.
+
+Generally, you never construct one of these directly with C<new>.  Instead, you
+call C<get_gridfs> on a L<MongoDB::Database> object.
+
+=head1 USAGE
+
+=head2 API
+
+There are two interfaces for GridFS: a file-system/collection-like interface
+(insert, remove, drop, find_one) and a more general interface
+(get, put, delete).  Their functionality is the almost identical (get, put and
+delete are always safe ops, insert, remove, and find_one are optionally safe),
+using one over the other is a matter of preference.
+
+=head2 Error handling
+
+Unless otherwise explictly documented, all methods throw exceptions if
+an error occurs.  The error types are documented in L<MongoDB::Error>.
+
+To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
+are recommended:
+
+    use Try::Tiny;
+    use Safe::Isa; # provides $_isa
+
+    try {
+        $grid->get( $id )
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::TimeoutError" ) {
+            ...
+        }
+        else {
+            ...
+        }
+    };
+
+To retry failures automatically, consider using L<Try::Tiny::Retry>.
+
+=head1 SEE ALSO
+
+Core documentation on GridFS: L<http://dochub.mongodb.org/core/gridfs>.
+
+=cut

@@ -28,31 +28,15 @@ use Moose;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
-=head1 NAME
-
-MongoDB::GridFS::File - A Mongo GridFS file
-
-=head1 SYNOPSIS
-
-    use MongoDB::GridFS::File;
-
-    my $outfile = IO::File->new("outfile", "w");
-    my $file = $grid->find_one;
-    $file->print($outfile);
-
-=cut
-
 has _grid => (
     is       => 'ro',
     isa      => InstanceOf['MongoDB::GridFS'],
     required => 1,
 );
 
-=head1 ATTRIBUTES
+=attr info
 
-=head2 info
-
-A hash of info information saved with this file.
+A hash reference of metadata saved with this file.
 
 =cut
 
@@ -62,11 +46,12 @@ has info => (
     required => 1,
 );
 
-=head1 METHODS
 
-=head2 print ($fh, $length?, $offset?)
+=method print
 
-    $written = $file->print($fh, 50, 200);
+    $written = $file->print($fh);
+    $written = $file->print($fh, $length);
+    $written = $file->print($fh, $length, $offset)
 
 Writes the number of bytes specified from the offset specified 
 to the given file handle.  If no C<$length> or C<$offset> are
@@ -132,17 +117,16 @@ sub print {
     return $written;
 }
 
-=head2 slurp ($length?, $offset?)
+=method slurp
 
-    $bytes = $file->slurp(50, 200);
     $all   = $file->slurp
+    $bytes = $file->slurp($length);
+    $bytes = $file->slurp($length, $offset);
 
-Return the number of bytes specified from the offset specified
-to the given file handle.  If no C<$length> or C<$offset> are
-given, the entire file is return.
+Return the number of bytes specified from the offset specified.  If no
+C<$length> or C<$offset> are given, the entire file is returned.
 
 =cut
-
 
 sub slurp {
     my ($self,$length,$offset) = @_;
@@ -164,6 +148,39 @@ __PACKAGE__->meta->make_immutable;
 
 1;
 
-=head1 AUTHOR
+=head1 SYNOPSIS
 
-  Kristina Chodorow <kristina@mongodb.org>
+    use MongoDB::GridFS::File;
+
+    $outfile = IO::File->new("outfile", "w");
+    $file = $grid->find_one;
+    $file->print($outfile);
+
+=head1 USAGE
+
+=head2 Error handling
+
+Unless otherwise explictly documented, all methods throw exceptions if
+an error occurs.  The error types are documented in L<MongoDB::Error>.
+
+To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
+are recommended:
+
+    use Try::Tiny;
+    use Safe::Isa; # provides $_isa
+
+    $bytes = try {
+        $file->slurp;
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::TimeoutError" ) {
+            ...
+        }
+        else {
+            ...
+        }
+    };
+
+To retry failures automatically, consider using L<Try::Tiny::Retry>.
+
+=cut
