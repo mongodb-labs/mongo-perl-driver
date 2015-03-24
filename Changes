@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [*** Deprecations ***]
+
+  - Legacy MongoDB::Collection CRUD methods (insert, update, etc.) have
+    been deprecated in favor of new CRUD API methods
+
   [Additions]
 
   - PERL-502|PERL-503 Implement new common driver CRUD API
