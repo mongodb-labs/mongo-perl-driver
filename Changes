@@ -20,11 +20,19 @@
   - Suppressed warning about "Can't locate package MongoDB::WriteResult"
     from MongoDB::BulkWriteResult::ISA
 
+  - Fixed incorrect 'matched_count' result attribute for upserts
+
+  - Ensure topology type is correct whenever a server is marked unavailable
+
   [Documentation]
 
   - PERL-464 Documented deprecation of 'last_error'
 
   - PERL-510 Documented MongoDB::QueryResult
+
+  - Improved docs for MongoDB::Error with info on exported error codes
+
+  - Clarified docs for MongoDB::Collection::get_collection
 
   [Removals]
 
