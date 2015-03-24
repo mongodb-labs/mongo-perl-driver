@@ -182,24 +182,6 @@ sub clone {
     return $class->new( %$self, @args );
 }
 
-=method get_collection
-
-Collection names can be chained together to simulate subcollections joined by a
-dot.  For example, the collection C<foo.bar> can be accessed with either of
-these expressions:
-
-    my $collection = $db->get_collection( 'foo' )->get_collection( 'bar' );
-    my $collection = $db->get_collection( 'foo.bar' );
-
-=cut
-
-sub get_collection {
-    my $self = shift @_;
-    my $coll = shift @_;
-
-    return $self->database->get_collection($self->name.'.'.$coll);
-}
-
 =method insert_one
 
     $res = $coll->insert_one( $document );
@@ -1627,6 +1609,13 @@ sub find_and_modify {
     return;
 }
 
+sub get_collection {
+    my $self = shift @_;
+    my $coll = shift @_;
+
+    return $self->database->get_collection($self->name.'.'.$coll);
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
@@ -1743,6 +1732,9 @@ have been deprecated:
 * query
 * remove
 * update
+
+The C<get_collection> method is deprecated; it implied a 'subcollection'
+relationship that is purely notional.
 
 The methods still exist, but are no longer documented.  In a future version
 they will warn when used, then will eventually be removed.

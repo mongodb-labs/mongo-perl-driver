@@ -323,5 +323,12 @@ executed.
 Read preferences should now be given as a client attribute.  The use
 of the C<read_preference> method as a mutator is deprecated.
 
+=head3 MongoDB::Collection::get_collection
+
+This method implied that collections could be contained inside collection.
+This doesn't actually happen so it's confusing to have a Collection be a
+factory for collections.  Users who want nested namespaces will be explicit
+and create them off Database objects instead.
+
 =cut
 
