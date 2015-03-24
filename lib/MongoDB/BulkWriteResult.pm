@@ -21,7 +21,9 @@ package MongoDB::BulkWriteResult;
 use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
-# empty superclass for backcompatibility
+# empty superclass for backcompatibility; add a variable to the
+# package namespace so Perl thinks it's a real package
+$MongoDB::WriteResult::VERSION = $VERSION;
 our @ISA = qw/MongoDB::WriteResult/;
 
 use Moose;

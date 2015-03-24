@@ -12,6 +12,9 @@
   - PERL-480 retrieving a GridFS file now throws an error if no chunks exist
     instead of returning an empty string
 
+  - Suppressed warning about "Can't locate package MongoDB::WriteResult"
+    from MongoDB::BulkWriteResult::ISA
+
   [Documentation]
 
   - PERL-464 Documented deprecation of 'last_error'
