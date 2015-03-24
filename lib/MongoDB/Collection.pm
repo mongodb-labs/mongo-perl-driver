@@ -48,17 +48,21 @@ use Try::Tiny;
 use Moose;
 use namespace::clean -except => 'meta';
 
-has _database => (
+#--------------------------------------------------------------------------#
+# constructor attributes
+#--------------------------------------------------------------------------#
+
+=attr database
+
+The L<MongoDB::Database> representing the database that contains
+the collection.
+
+=cut
+
+has database => (
     is       => 'ro',
     isa      => InstanceOf['MongoDB::Database'],
     required => 1,
-);
-
-has _client => (
-    is      => 'ro',
-    isa     => InstanceOf['MongoDB::MongoClient'],
-    lazy    => 1,
-    builder => '_build__client',
 );
 
 =attr name
@@ -104,16 +108,28 @@ has write_concern => (
     coerce   => 1,
 );
 
+#--------------------------------------------------------------------------#
+# computed attributes
+#--------------------------------------------------------------------------#
+
+=method client
+
+Returns the L<MongoDB::MongoClient> object associated with this
+object.
+
+=cut
+
+has _client => (
+    is      => 'ro',
+    isa     => InstanceOf['MongoDB::MongoClient'],
+    lazy    => 1,
+    reader  => 'client',
+    builder => '_build__client',
+);
+
 sub _build__client {
     my ($self) = @_;
-    return $self->_database->_client;
-}
-
-sub _build_full_name {
-    my ($self) = @_;
-    my $name    = $self->name;
-    my $db_name = $self->_database->name;
-    return "${db_name}.${name}";
+    return $self->database->_client;
 }
 
 =method full_name
@@ -166,7 +182,7 @@ sub get_collection {
     my $self = shift @_;
     my $coll = shift @_;
 
-    return $self->_database->get_collection($self->name.'.'.$coll);
+    return $self->database->get_collection($self->name.'.'.$coll);
 }
 
 =method insert_one
@@ -187,13 +203,13 @@ sub insert_one {
     $self->_add_oids( [$document] );
 
     my $op = MongoDB::Op::_InsertOne->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         document      => $document,
         write_concern => $self->write_concern,
     );
 
-    return $self->_client->send_write_op($op);
+    return $self->client->send_write_op($op);
 }
 
 =method insert_many
@@ -255,14 +271,14 @@ sub delete_one {
     my ($self, $filter) = $delete_one_args->(@_);
 
     my $op = MongoDB::Op::_Delete->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         filter        => $filter,
         just_one      => 1,
         write_concern => $self->write_concern,
     );
 
-    return $self->_client->send_write_op( $op );
+    return $self->client->send_write_op( $op );
 
 }
 
@@ -282,14 +298,14 @@ sub delete_many {
     my ($self, $filter) = $delete_many_args->(@_);
 
     my $op = MongoDB::Op::_Delete->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         filter        => $filter,
         just_one      => 0,
         write_concern => $self->write_concern,
     );
 
-    return $self->_client->send_write_op( $op );
+    return $self->client->send_write_op( $op );
 
 }
 
@@ -316,7 +332,7 @@ sub replace_one {
     my ($self, $filter, $replacement, $options) = $replace_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         filter        => $filter,
         update        => $replacement,
@@ -325,7 +341,7 @@ sub replace_one {
         write_concern => $self->write_concern,
     );
 
-    return $self->_client->send_write_op( $op );
+    return $self->client->send_write_op( $op );
 }
 
 =method update_one
@@ -352,7 +368,7 @@ sub update_one {
     my ($self, $filter, $update, $options) = $update_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         filter        => $filter,
         update        => $update,
@@ -361,7 +377,7 @@ sub update_one {
         write_concern => $self->write_concern,
     );
 
-    return $self->_client->send_write_op( $op );
+    return $self->client->send_write_op( $op );
 }
 
 =method update_many
@@ -388,7 +404,7 @@ sub update_many {
     my ($self, $filter, $update, $options) = $update_many_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         filter        => $filter,
         update        => $update,
@@ -397,7 +413,7 @@ sub update_many {
         write_concern => $self->write_concern,
     );
 
-    return $self->_client->send_write_op( $op );
+    return $self->client->send_write_op( $op );
 }
 
 =method find
@@ -474,9 +490,9 @@ sub find {
 
     my $query = MongoDB::_Query->new(
         %$options,
-        db_name         => $self->_database->name,
+        db_name         => $self->database->name,
         coll_name       => $self->name,
-        client          => $self->_client,
+        client          => $self->client,
         read_preference => $self->read_preference,
         filter          => $filter || {},
     );
@@ -533,9 +549,9 @@ sub find_one {
 
     my $query = MongoDB::_Query->new(
         %$options,
-        db_name         => $self->_database->name,
+        db_name         => $self->database->name,
         coll_name       => $self->name,
-        client          => $self->_client,
+        client          => $self->client,
         read_preference => $self->read_preference,
         filter          => $filter || {},
         projection      => $projection || {},
@@ -720,16 +736,16 @@ sub aggregate {
     my $read_pref = $last_op eq '$out' ? undef : $self->read_preference;
 
     my $op = MongoDB::Op::_Aggregate->new(
-        db_name    => $self->_database->name,
+        db_name    => $self->database->name,
         coll_name  => $self->name,
-        client     => $self->_client,
-        bson_codec => $self->_client,
+        client     => $self->client,
+        bson_codec => $self->client,
         pipeline   => $pipeline,
         options    => $options,
         ( $read_pref ? ( read_preference => $read_pref ) : () ),
     );
 
-    return $self->_client->send_read_op($op);
+    return $self->client->send_read_op($op);
 }
 
 =method count
@@ -769,7 +785,7 @@ sub count {
     # string is OK so we check ref, not just exists
     __ixhash($options, 'hint') if ref $options->{hint};
 
-    my $res = $self->_database->run_command(
+    my $res = $self->database->run_command(
         Tie::IxHash->new( count => $self->name, query => $filter, %$options ),
         $self->read_preference );
 
@@ -809,17 +825,17 @@ sub distinct {
     $options ||= {};
 
     my $op = MongoDB::Op::_Distinct->new(
-        db_name         => $self->_database->name,
+        db_name         => $self->database->name,
         coll_name       => $self->name,
-        client          => $self->_client,
-        bson_codec      => $self->_client,
+        client          => $self->client,
+        bson_codec      => $self->client,
         fieldname       => $fieldname,
         filter          => $filter,
         options         => $options,
         read_preference => $self->read_preference,
     );
 
-    return $self->_client->send_read_op($op);
+    return $self->client->send_read_op($op);
 }
 
 
@@ -848,7 +864,7 @@ sub parallel_scan {
     }
     $opts = ref $opts eq 'HASH' ? $opts : { };
 
-    my $db   = $self->_database;
+    my $db   = $self->database;
 
     my @command = ( parallelCollectionScan => $self->name, numCursors => $num_cursors );
 
@@ -858,7 +874,7 @@ sub parallel_scan {
         read_preference => $self->read_preference,
     );
 
-    my $result = $self->_client->send_read_op( $op );
+    my $result = $self->client->send_read_op( $op );
     my $response = $result->result;
 
     Carp::croak("No cursors returned")
@@ -867,7 +883,7 @@ sub parallel_scan {
     my @cursors;
     for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
         my $qr = MongoDB::QueryResult->new(
-            _client => $self->_client,
+            _client => $self->client,
             address => $result->address,
             cursor  => $c,
         );
@@ -892,7 +908,7 @@ collection.
 sub rename {
     my ($self, $collectionname) = @_;
 
-    my $conn = $self->_client;
+    my $conn = $self->client;
     my $database = $conn->get_database( 'admin' );
     my $fullname = $self->full_name;
 
@@ -949,13 +965,13 @@ sub ensure_index {
       : MongoDB::WriteConcern->new;
 
     my $op = MongoDB::Op::_CreateIndexes->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         indexes       => [ { key => $keys, %$opts } ],
         write_concern => $wc,
     );
 
-    $self->_client->send_write_op($op);
+    $self->client->send_write_op($op);
 
     return 1;
 }
@@ -1018,7 +1034,7 @@ about the collection.
 sub validate {
     my ($self, $scan_data) = @_;
     $scan_data = 0 unless defined $scan_data;
-    my $obj = $self->_database->run_command({ validate => $self->name });
+    my $obj = $self->database->run_command({ validate => $self->name });
 }
 
 
@@ -1046,7 +1062,7 @@ Use C<MongoDB::Collection::get_indexes> to find the index name.
 
 sub drop_index {
     my ($self, $index_name) = @_;
-    return $self->_database->run_command([
+    return $self->database->run_command([
         dropIndexes => $self->name,
         index => $index_name,
     ]);
@@ -1080,13 +1096,13 @@ sub get_indexes {
     my ($self) = @_;
 
     my $op = MongoDB::Op::_ListIndexes->new(
-        db_name    => $self->_database->name,
+        db_name    => $self->database->name,
         coll_name  => $self->name,
-        client     => $self->_client,
-        bson_codec => $self->_client,
+        client     => $self->client,
+        bson_codec => $self->client,
     );
 
-    my $res = $self->_client->send_read_op($op);
+    my $res = $self->client->send_read_op($op);
 
     return $res->all;
 }
@@ -1102,7 +1118,7 @@ Deletes a collection as well as all of its indexes.
 sub drop {
     my ($self) = @_;
     try {
-        $self->_database->run_command({ drop => $self->name });
+        $self->database->run_command({ drop => $self->name });
     }
     catch {
         die $_ unless /ns not found/;
@@ -1373,7 +1389,7 @@ sub _legacy_index_insert {
     my ($self, $doc, $options) = @_;
 
     my $wc = $self->_dynamic_write_concern( $options );
-    my $result = $self->_client->send_insert($self->full_name, $doc, $wc, undef, 0);
+    my $result = $self->client->send_insert($self->full_name, $doc, $wc, undef, 0);
 
     $result->assert;
 
@@ -1384,7 +1400,7 @@ sub _try_find_and_modify {
     my ($self, $command) = @_;
     my $result;
     try {
-        $result = $self->_database->run_command( $command );
+        $result = $self->database->run_command( $command );
     }
     catch {
         die $_ unless $_ eq 'No matching object found';
@@ -1492,13 +1508,13 @@ sub insert {
     }
 
     my $op = MongoDB::Op::_InsertOne->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         document      => $document,
         write_concern => $self->_dynamic_write_concern($opts),
     );
 
-    my $result = $self->_client->send_write_op($op);
+    my $result = $self->client->send_write_op($op);
 
     return $result->inserted_id;
 }
@@ -1513,13 +1529,13 @@ sub batch_insert {
     }
 
     my $op = MongoDB::Op::_BatchInsert->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         documents     => $documents,
         write_concern => $self->_dynamic_write_concern($opts),
     );
 
-    my $result = $self->_client->send_write_op($op);
+    my $result = $self->client->send_write_op($op);
 
     my @ids;
     my $inserted_ids = $result->inserted_ids;
@@ -1537,14 +1553,14 @@ sub remove {
     $opts ||= {};
 
     my $op = MongoDB::Op::_Delete->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         filter        => $query || {},
         just_one      => !! $opts->{just_one},
         write_concern => $self->_dynamic_write_concern($opts),
     );
 
-    my $result = $self->_client->send_write_op( $op );
+    my $result = $self->client->send_write_op( $op );
 
     # emulate key fields of legacy GLE result
     return {
@@ -1568,7 +1584,7 @@ sub update {
     }
 
     my $op = MongoDB::Op::_Update->new(
-        db_name       => $self->_database->name,
+        db_name       => $self->database->name,
         coll_name     => $self->name,
         filter        => $query || {},
         update        => $object || {},
@@ -1577,7 +1593,7 @@ sub update {
         write_concern => $self->_dynamic_write_concern($opts),
     );
 
-    my $result = $self->_client->send_write_op( $op );
+    my $result = $self->client->send_write_op( $op );
 
     # emulate key fields of legacy GLE result
     return {
@@ -1592,8 +1608,8 @@ sub find_and_modify {
     $legacy_fam_args ||= compile( Object, HashRef );
     my ( $self, $opts ) = $legacy_fam_args->(@_);
 
-    my $conn = $self->_client;
-    my $db   = $self->_database;
+    my $conn = $self->client;
+    my $db   = $self->database;
 
     my $result;
     try {

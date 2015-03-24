@@ -86,7 +86,7 @@ has '_database' => (
 
 sub _build__database {
     my ($self) = @_;
-    return $self->collection->_database;
+    return $self->collection->database;
 }
 
 has '_client' => (

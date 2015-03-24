@@ -133,8 +133,8 @@ sub get_collection {
         write_concern   => $self->write_concern,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options
-        _database => $self,
-        name      => $collection_name,
+        database => $self,
+        name     => $collection_name,
     );
 }
 
