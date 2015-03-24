@@ -92,6 +92,7 @@ has full_name => (
 A L<MongoDB::ReadPreference> object.  It may be initialized with a string
 corresponding to one of the valid read preference modes or a hash reference
 that will be coerced into a new MongoDB::ReadPreference object.
+By default it will be inherited from a L<MongoDB::Database> object.
 
 =cut
 
@@ -106,6 +107,7 @@ has read_preference => (
 
 A L<MongoDB::WriteConcern> object.  It may be initialized with a hash
 reference that will be coerced into a new MongoDB::WriteConcern object.
+By default it will be inherited from a L<MongoDB::Database> object.
 
 =cut
 
