@@ -308,27 +308,28 @@ attributes.  These are kept for backwards compatibility only.
 
 =head2 Methods
 
-=head3 authenticate
+=head3 MongoDB::MongoClient
 
-Authentication parameters should now be given as client attributes.
-See L<MongoDB::MongoClient/AUTHENTICATED> for more.
+=for :list
+* authenticate – Authentication parameters should now be given as client
+  attributes.  See L<MongoDB::MongoClient/AUTHENTICATED> for more.
+* read_preference — Read preferences should now be given as a client
+  attribute.  The use of the C<read_preference> method as a mutator is
+  deprecated.
 
-=head3 last_error
+=head3 MongoDB::Database
 
-Errors are now indicated via exceptions at the time database commands are
-executed.
+=for :list
+* last_error — Errors are now indicated via exceptions at the time database
+  commands are executed.
 
-=head3 read_preference
+=head3 MongoDB::Collection
 
-Read preferences should now be given as a client attribute.  The use
-of the C<read_preference> method as a mutator is deprecated.
-
-=head3 MongoDB::Collection::get_collection
-
-This method implied that collections could be contained inside collection.
-This doesn't actually happen so it's confusing to have a Collection be a
-factory for collections.  Users who want nested namespaces will be explicit
-and create them off Database objects instead.
+=for :list
+* get_collection — This method implied that collections could be contained
+  inside collection.  This doesn't actually happen so it's confusing to
+  have a Collection be a factory for collections.  Users who want nested
+  namespaces will be explicit and create them off Database objects instead.
 
 =cut
 
