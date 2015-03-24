@@ -92,6 +92,11 @@ sub force_int {
 
 __END__
 
+=for Pod::Coverage
+force_double
+force_int
+read_documents
+
 =begin :prelude
 
 This is the Alpha 2 release for v1.0.0.0.

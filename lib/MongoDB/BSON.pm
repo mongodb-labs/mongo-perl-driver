@@ -144,3 +144,10 @@ values without the use of a global variable.
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+=for Pod::Coverage
+decode_bson
+encode_bson
+generate_oid
+
+=cut

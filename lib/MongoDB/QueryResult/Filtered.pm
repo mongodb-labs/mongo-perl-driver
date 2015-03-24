@@ -60,3 +60,8 @@ sub has_next {
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+=for Pod::Coverage
+has_next
+
+=cut

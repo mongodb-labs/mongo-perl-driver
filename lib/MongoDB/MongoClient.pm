@@ -1075,6 +1075,13 @@ __END__
 
 =pod
 
+=for Pod::Coverage
+connected
+send_admin_command
+send_direct_op
+send_read_op
+send_write_op
+
 =head1 SYNOPSIS
 
     use MongoDB; # also loads MongoDB::MongoClient
