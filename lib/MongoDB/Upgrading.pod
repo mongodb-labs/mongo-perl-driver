@@ -141,7 +141,7 @@ The C<explain> cursor method no longer resets the cursor.
 The C<slave_ok> cursor method now sets the C<read_preference>
 to 'secondaryPreferred' or clears it to 'primary'.
 
-Pparallel scan "cursors" are now L<QueryResult> objects, with the same
+Parallel scan "cursors" are now L<QueryResult> objects, with the same
 iteration methods as in v0.
 
 =head2 Aggregation API
@@ -210,15 +210,15 @@ and L<MongoDB::GridFS> objects unless provided as an option to
 the relevant factory methods:
 
     $db = $client->get_database(
-        "test", { write_concern => { w => 'majority' }
+        "test", { write_concern => { w => 'majority' } }
     );
 
     $coll = $db->get_collection(
-        "people", { write_concern => { w => 1 }
+        "people", { write_concern => { w => 1 } }
     );
 
     $gridfs = $db->get_gridfs(
-        "fs", { write_concern => { w => 0 }
+        "fs", { write_concern => { w => 0 } }
     );
 
 The C<safe> option is no longer used in new method APIs.
@@ -289,7 +289,7 @@ boolean deserialization without relying on global variables.
 
 =head1 DEPRECATIONS
 
-Deprecated features may be removed in a future release.
+Deprecated options and methods may be removed in a future release.
 
 =head2 Configuration options
 
@@ -306,7 +306,7 @@ L<auth_mechanism|MongoDB::MongoClient/auth_mechanism> and
 L<auth_mechanism_properties|MongoDB::MongoClient/auth_mechanism_properties>
 attributes.  These are kept for backwards compatibility only.
 
-=head2 Methods
+=head2 Methods by module
 
 =head3 MongoDB::MongoClient
 
@@ -326,10 +326,11 @@ attributes.  These are kept for backwards compatibility only.
 =head3 MongoDB::Collection
 
 =for :list
+* insert, batch_insert, remove, update, query and find_and_modify — A new
+  common driver CRUD API replaces these legacy methods.
 * get_collection — This method implied that collections could be contained
   inside collection.  This doesn't actually happen so it's confusing to
   have a Collection be a factory for collections.  Users who want nested
   namespaces will be explicit and create them off Database objects instead.
 
 =cut
-
