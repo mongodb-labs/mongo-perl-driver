@@ -19,6 +19,8 @@
 
   - PERL-464 Documented deprecation of 'last_error'
 
+  - PERL-510 Documented MongoDB::QueryResult
+
   [Removals]
 
   - PERL-497 The $MongoDB::BSON::use_boolean never worked; BSON boolean
