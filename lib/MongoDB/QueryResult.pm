@@ -163,6 +163,7 @@ sub BUILDARGS {
 # for backward compatibility
 sub started_iterating() { 1 }
 
+# for backwards compatibility
 sub info {
     my ($self) = @_;
     return {
@@ -174,6 +175,18 @@ sub info {
     };
 }
 
+=method has_next
+
+    if ( $response->has_next ) {
+        ...
+    }
+
+Returns true if additional documents are available.  This will
+attempt to get another batch of documents from the server if
+necessary.
+
+=cut
+
 sub has_next {
     my ($self) = @_;
     my $limit = $self->limit;
@@ -183,6 +196,16 @@ sub has_next {
     }
     return !$self->_drained || $self->_get_more;
 }
+
+=method next
+
+    while ( $doc = $result->next ) {
+        process_doc($doc)
+    }
+
+Returns the next document or C<undef> if the server cursor is exhausted.
+
+=cut
 
 sub next {
     my ($self) = @_;
@@ -215,6 +238,14 @@ sub _get_more {
     $self->_add_docs( @{ $result->{docs} } );
     return scalar @{ $result->{docs} };
 }
+
+=method all
+
+    @docs = $result->all;
+
+Returns all documents as a list.
+
+=cut
 
 sub all {
     my ($self) = @_;
@@ -267,5 +298,48 @@ sub _pack_cursor_id {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=for Pod::Coverage
+started_iterating
+info
+
+=head1 SYNOPSIS
+
+    $cursor = $coll->find( $filter );
+    $resuilt = $cursor->result;
+
+    while ( $doc = $result->next ) {
+        process_doc($doc)
+    }
+
+=head1 DESCRIPTION
+
+This class defines an iterator against a query result.  It automatically
+fetches additional results from the originating mongod/mongos server
+on demand.
+
+For backwards compatibility reasons, L<MongoDB::Cursor> encapsulates query
+parameters and generates a C<MongoDB::QueryResult> object on demand.  All
+iterators on C<MongoDB::Cursor> delegate to C<MongoDB::QueryResult> object.
+
+Retrieving this object and iterating on it directly will be slightly
+more efficient.
+
+=head1 USAGE
+
+=head2 Error handling
+
+Unless otherwise explictly documented, all methods throw exceptions if
+an error occurs.  The error types are documented in L<MongoDB::Error>.
+
+To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
+are recommended:
+
+=head2 Cursor destruction
+
+When a C<MongoDB::QueryResult> object is destroyed, a cursor termination
+request will be sent to the originating server to free server resources.
+
+=cut
 
 1;
