@@ -140,13 +140,24 @@ would result in a C<full_name> of "test.foo".
 
 =cut
 
-has full_name => (
+has _full_name => (
     is      => 'ro',
     isa     => Str,
     lazy    => 1,
-    init_arg => undef,
-    builder => '_build_full_name',
+    reader  => 'full_name',
+    builder => '_build__full_name',
 );
+
+sub _build__full_name {
+    my ($self) = @_;
+    my $name    = $self->name;
+    my $db_name = $self->database->name;
+    return "${db_name}.${name}";
+}
+
+#--------------------------------------------------------------------------#
+# public methods
+#--------------------------------------------------------------------------#
 
 =method clone
 
