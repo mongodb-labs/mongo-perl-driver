@@ -310,6 +310,33 @@ some convenience methods that use it.
 Generally, you never construct one of these directly with C<new>.  Instead, you
 call C<get_database> on a L<MongoDB::MongoClient> object.
 
+=head1 USAGE
+
+=head2 Error handling
+
+Unless otherwise explictly documented, all methods throw exceptions if
+an error occurs.  The error types are documented in L<MongoDB::Error>.
+
+To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
+are recommended:
+
+    use Try::Tiny;
+    use Safe::Isa; # provides $_isa
+
+    try {
+        $db->run_command( @command )
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::DuplicateKeyError" ) {
+            ...
+        }
+        else {
+            ...
+        }
+    };
+
+To retry failures automatically, consider using L<Try::Tiny::Retry>.
+
 =head1 DEPRECATIONS
 
 The methods still exist, but are no longer documented.  In a future version
