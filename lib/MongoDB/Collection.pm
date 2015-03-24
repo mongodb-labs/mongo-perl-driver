@@ -73,20 +73,6 @@ has name => (
     required => 1,
 );
 
-=attr full_name
-
-The full_name of the collection, including the namespace of the database it's
-in.
-
-=cut
-
-has full_name => (
-    is      => 'ro',
-    isa     => Str,
-    lazy    => 1,
-    builder => '_build_full_name',
-);
-
 =attr read_preference
 
 A L<MongoDB::ReadPreference> object.  It may be initialized with a string
@@ -130,6 +116,21 @@ sub _build_full_name {
     return "${db_name}.${name}";
 }
 
+=method full_name
+
+Returns the full_name of the collection, including the namespace of the database it's
+in prefixed with a dot character.  E.g. collection "foo" in database "test"
+would result in a C<full_name> of "test.foo".
+
+=cut
+
+has full_name => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    init_arg => undef,
+    builder => '_build_full_name',
+);
 
 =method clone
 
