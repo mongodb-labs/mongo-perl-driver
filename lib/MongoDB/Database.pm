@@ -287,6 +287,9 @@ __PACKAGE__->meta->make_immutable;
 
 __END__
 
+=for Pod::Coverage
+last_error
+
 =head1 SYNOPSIS
 
     # get a Database object via MongoDB::MongoClient
@@ -309,8 +312,8 @@ call C<get_database> on a L<MongoDB::MongoClient> object.
 
 =head1 DEPRECATIONS
 
-The following methods are deprecated.  They are no longer documented and may
-be removed in a future major-version release.
+The methods still exist, but are no longer documented.  In a future version
+they will warn when used, then will eventually be removed.
 
 =for :list
 * last_error

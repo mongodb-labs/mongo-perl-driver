@@ -1612,6 +1612,16 @@ __END__
 
 =pod
 
+=for Pod::Coverage
+initialize_ordered_bulk_op
+initialize_unordered_bulk_op
+batch_insert
+find_and_modify
+insert
+query
+remove
+update
+
 =head1 SYNOPSIS
 
     # get a Collection via the Database object
@@ -1697,6 +1707,22 @@ one key/value pair.
 A filter expression provides the L<query
 criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
 document for deletion.  It must be an L</Ordered document>.
+
+=head1 DEPRECATIONS
+
+With the introduction of the common driver CRUD API, these legacy methods
+have been deprecated:
+
+=for :list
+* batch_insert
+* find_and_modify
+* insert
+* query
+* remove
+* update
+
+The methods still exist, but are no longer documented.  In a future version
+they will warn when used, then will eventually be removed.
 
 =cut
 
