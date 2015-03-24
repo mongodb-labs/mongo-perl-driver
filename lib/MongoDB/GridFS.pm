@@ -49,6 +49,33 @@ There are two interfaces for GridFS: a file-system/collection-like interface
 delete are always safe ops, insert, remove, and find_one are optionally safe),
 using one over the other is a matter of preference.
 
+=head1 USAGE
+
+=head2 Error handling
+
+Unless otherwise explictly documented, all methods throw exceptions if
+an error occurs.  The error types are documented in L<MongoDB::Error>.
+
+To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
+are recommended:
+
+    use Try::Tiny;
+    use Safe::Isa; # provides $_isa
+
+    try {
+        $grid->get( $id )
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::TimeoutError" ) {
+            ...
+        }
+        else {
+            ...
+        }
+    };
+
+To retry failures automatically, consider using L<Try::Tiny::Retry>.
+
 =head1 SEE ALSO
 
 Core documentation on GridFS: L<http://dochub.mongodb.org/core/gridfs>.
