@@ -24,6 +24,13 @@
 
   - Ensure topology type is correct whenever a server is marked unavailable
 
+  [Changes]
+
+  - MongoDB::Collection attributes that should not be set in the constructor
+    have been made private, but with public accessors for backwards
+    compatibility.  Private attributes that are set in the constructor
+    (e.g. 'database') are now public.
+
   [Documentation]
 
   - PERL-464 Documented deprecation of 'last_error'

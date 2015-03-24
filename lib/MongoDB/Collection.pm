@@ -114,6 +114,8 @@ has write_concern => (
 
 =method client
 
+    $client = $coll->client;
+
 Returns the L<MongoDB::MongoClient> object associated with this
 object.
 
@@ -134,9 +136,11 @@ sub _build__client {
 
 =method full_name
 
-Returns the full_name of the collection, including the namespace of the database it's
-in prefixed with a dot character.  E.g. collection "foo" in database "test"
-would result in a C<full_name> of "test.foo".
+    $full_name = $coll->full_name;
+
+Returns the full name of the collection, including the namespace of the
+database it's in prefixed with a dot character.  E.g. collection "foo" in
+database "test" would result in a C<full_name> of "test.foo".
 
 =cut
 
