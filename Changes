@@ -7,7 +7,7 @@
   - Legacy MongoDB::Collection CRUD methods (insert, update, etc.) have
     been deprecated in favor of new CRUD API methods
 
-  - MongoDB::Collection::get_collection is deprecated; it implied
+  - PERL-507 MongoDB::Collection::get_collection is deprecated; it implied
     subcollections, which don't actually exist
 
   [Additions]
