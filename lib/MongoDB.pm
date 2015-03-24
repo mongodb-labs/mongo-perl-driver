@@ -127,7 +127,7 @@ The legacy methods are now deprecated.
 
 L<MongoDB::GridFS> now respect the default read preference and write concern of
 the L<MongoDB::Database> object (possibly inherited from
-L<MongoDB::MongoClient>.  This means that all GridFS operations now default to
+L<MongoDB::MongoClient>).  This means that all GridFS operations now default to
 B<acknowledged> mode, just like collection operations have been doing since
 v0.502.0 in 2012.
 
@@ -152,13 +152,13 @@ Some expected (but not guaranteed) changes in future releases include:
 
 =item *
 
-Some existing options and methods will be deprecated to improve consistency and
-clarity of what remains.
+A new API for manipulating indexes.  Like the new CRUD API, this will
+be standard across MongoDB drivers.
 
 =item *
 
-Some configuration options and method return values will be implemented with
-objects for validation and interface consistency.
+Some existing options and methods will be deprecated to improve consistency and
+clarity of what remains.
 
 =item *
 
