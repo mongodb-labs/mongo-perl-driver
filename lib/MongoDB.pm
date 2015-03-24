@@ -63,6 +63,8 @@ URI|MongoDB::MongoClient/CONNECTION STRING URI>.  The second argument is
 optional.  If provided, it must be a hash reference of constructor arguments
 for L<MongoDB::MongoClient::new|MongoDB::MongoClient/ATTRIBUTES>.
 
+If an error occurs, a L<MongoDB::Error> object will be thrown.
+
 =cut
 
 sub connect {
@@ -99,7 +101,7 @@ read_documents
 
 =begin :prelude
 
-This is the Alpha 2 release for v1.0.0.0.
+This is the Alpha 3 release for v1.0.0.0.
 
 =head1 ALPHA RELEASE NOTICE AND ROADMAP
 
@@ -111,20 +113,28 @@ important and will be delivered to a great extent, it will not be guaranteed.
 Using the v0.999.998.x series means that you understand that your code may break
 due to changes in the driver between now and the v1.0.0.0 stable release.
 
-This Alpha 2 release includes these major changes:
+This Alpha 3 release includes these major changes:
 
 =over
 
 =item *
 
-The internal architecture for database write operations has been completely
-re-written.  For MongoDB 2.6 or later, writes are implemented using
-database write commands.  For earlier versions of MongoDB, writes continue
-to use legacy wire-protocol operations.
+L<MongoDB::Collection> now offers a new CRUD API.  All MongoDB drivers are
+converging on a common CRUD API, with similar names, signatures and options.
+The legacy methods are now deprecated.
 
 =item *
 
-Compatibility with MongoDB 3.0.
+L<MongoDB::GridFS> now respect the default read preference and write concern of
+the L<MongoDB::Database> object (possibly inherited from
+L<MongoDB::MongoClient>.  This means that all GridFS operations now default to
+B<acknowledged> mode, just like collection operations have been doing since
+v0.502.0 in 2012.
+
+=item *
+
+All collection and database operations throw L<MongoDB::Error> exceptions if
+an error condition occurs.
 
 =back
 
@@ -142,19 +152,13 @@ Some expected (but not guaranteed) changes in future releases include:
 
 =item *
 
-A revised CRUD API will be added, which will be consistent across all officially-maintained "next-generation" language drivers.  Many legacy CRUD method will be deprecated.
+Some existing options and methods will be deprecated to improve consistency and
+clarity of what remains.
 
 =item *
 
-An exception-based error system will be used exclusively throughout the driver.
-
-=item *
-
-Some existing options and methods will be deprecated to improve consistency and clarity of what remains.
-
-=item *
-
-Some configuration options and method return values will be implemented with objects for validation and interface consistency.
+Some configuration options and method return values will be implemented with
+objects for validation and interface consistency.
 
 =item *
 
@@ -169,15 +173,18 @@ until after the v1.0.0.0 release:
 
 =item *
 
-The driver will become pure-Perl capable, using the Moo framework instead of Moose.  This will significantly reduce the size of the total dependency tree.
+The driver will become pure-Perl capable, using the Moo framework instead of
+Moose.  This will significantly reduce the size of the total dependency tree.
 
 =item *
 
-BSON encoding will be extracted to a separate module, with both pure-Perl and C variants available.
+BSON encoding will be extracted to a separate module, with both pure-Perl and C
+variants available.
 
 =item *
 
-Transformation of Perl data structures to/from BSON will become more customizable.
+Transformation of Perl data structures to/from BSON will become more
+customizable.
 
 =back
 
