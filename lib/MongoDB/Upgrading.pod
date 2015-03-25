@@ -276,9 +276,9 @@ has been removed.
 
 Low-level driver functions have been removed from the public API.
 
-=head2 MongoDB::Collection removed
+=head2 MongoDB::Connection removed
 
-The C<MongoDB::Collection> module was deprecated in v0.502.0 and has been
+The C<MongoDB::Connection> module was deprecated in v0.502.0 and has been
 removed.
 
 =head2 C<$MongoDB::BSON::use_boolean> removed
