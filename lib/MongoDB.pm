@@ -101,7 +101,7 @@ read_documents
 
 =begin :prelude
 
-This is the Alpha 3 release for v1.0.0.0.
+This is the Alpha 4 release for v1.0.0.0.
 
 =head1 ALPHA RELEASE NOTICE AND ROADMAP
 
@@ -113,7 +113,7 @@ important and will be delivered to a great extent, it will not be guaranteed.
 Using the v0.999.998.x series means that you understand that your code may break
 due to changes in the driver between now and the v1.0.0.0 stable release.
 
-This Alpha 3 release includes these major changes:
+This Alpha 4 release includes these major changes:
 
 =over
 
