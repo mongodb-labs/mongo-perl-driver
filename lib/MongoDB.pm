@@ -251,6 +251,12 @@ classes may return other objects for specific features or functions.
 See the documentation of those classes for more details or the
 L<MongoDB Perl Driver Tutorial|MongoDB::Tutorial> for an example.
 
+=head2 Error handling
+
+Unless otherwise documented, errors result in fatal exceptions.  See
+L<MongoDB::Error> for a list of exception classes and error code
+constants.
+
 =head1 SEMANTIC VERSIONING SCHEME
 
 Starting with MongoDB v0.704.0.0, the driver will be using a modified
