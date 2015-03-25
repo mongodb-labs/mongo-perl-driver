@@ -21,7 +21,7 @@ use warnings;
 package MongoDB::_Protocol;
 
 use version;
-our $VERSION = 'v0.999.998.3'; # TRIAL
+our $VERSION = 'v0.999.998.5'; # TRIAL
 
 use constant {
     OP_REPLY        => 1,    # Reply to a client request. responseTo is set

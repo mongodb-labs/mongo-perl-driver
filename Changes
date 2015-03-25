@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.999.998.4 2015-03-25 14:37:52-04:00 America/New_York (TRIAL RELEASE)
+
   [*** Deprecations ***]
 
   - Legacy MongoDB::Collection CRUD methods (insert, update, etc.) have

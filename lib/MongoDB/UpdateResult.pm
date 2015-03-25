@@ -19,7 +19,7 @@ package MongoDB::UpdateResult;
 # ABSTRACT: MongoDB update result object
 
 use version;
-our $VERSION = 'v0.999.998.3'; # TRIAL
+our $VERSION = 'v0.999.998.5'; # TRIAL
 
 use Moose;
 use MongoDB::_Types -types;
