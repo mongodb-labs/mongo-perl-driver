@@ -40,33 +40,9 @@ use constant {
     FLAG_ZERO => "\0" x 4,
 };
 
-=head1 NAME
-
-MongoDB::Cursor - A cursor/iterator for Mongo query results
-
-=head1 SYNOPSIS
-
-    while (my $object = $cursor->next) {
-        ...
-    }
-
-    my @objects = $cursor->all;
-
-=head2 Multithreading
-
-Cursors are cloned in threads, but not reset.  Iterating the same cursor from
-multiple threads will give unpredictable results.  Only iterate from a single
-thread.
-
-=head1 SEE ALSO
-
-Core documentation on cursors: L<http://dochub.mongodb.org/core/cursors>.
-
-=cut
-
 $MongoDB::Cursor::_request_id = int(rand(1000000));
 
-=head1 STATIC ATTRIBUTES
+=head1 GLOBAL VARIABLES
 
 =head2 slave_okay
 
@@ -93,9 +69,7 @@ used.
 
 $MongoDB::Cursor::timeout = 30000;
 
-=head1 ATTRIBUTES
-
-=head2 started_iterating
+=attr started_iterating
 
 If this cursor has queried the database yet. Methods
 modifying the query will complain if they are called
@@ -202,7 +176,7 @@ sub fields {
     return $self;
 }
 
-=head2 sort ($order)
+=head2 sort
 
     # sort by name, descending
     $cursor->sort([name => -1]);
@@ -524,7 +498,7 @@ sub explain {
     return $new_query->execute->next;
 }
 
-=head2 count($all?)
+=head2 count
 
     my $num = $cursor->count;
     my $num = $cursor->skip(20)->count(1);
@@ -672,5 +646,28 @@ sub info {
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+=head1 SYNOPSIS
+
+    while (my $object = $cursor->next) {
+        ...
+    }
+
+    my @objects = $cursor->all;
+
+=head1 USAGE
+
+=head2 Multithreading
+
+Cursors are cloned in threads, but not reset.  Iterating the same cursor from
+multiple threads will give unpredictable results.  Only iterate from a single
+thread.
+
+=head1 SEE ALSO
+
+Core documentation on cursors: L<http://dochub.mongodb.org/core/cursors>.
+
+=cut
+
 
 # vim: ts=4 sts=4 sw=4 et tw=75:

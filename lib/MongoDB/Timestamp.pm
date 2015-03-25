@@ -15,33 +15,16 @@
 #
 
 package MongoDB::Timestamp;
-
-
 # ABSTRACT: Replication timestamp
 
 use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
 
-=head1 NAME
-
-MongoDB::Timestamp - Timestamp used for replication
-
-=head1 SYNOPSIS
-
-This is an internal type used for replication.  It is not for storing dates,
-times, or timestamps in the traditional sense.  Unless you are looking to mess
-with MongoDB's replication internals, the class you are probably looking for is
-L<DateTime>.  See <MongoDB::DataTypes> for more information.
-
-=cut
-
 use Moose;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
-=head1 ATTRIBUTES
-
-=head2 sec
+=attr sec
 
 Seconds since epoch.
 
@@ -53,7 +36,7 @@ has sec => (
     required => 1,
 );
 
-=head2 inc
+=attr inc
 
 Incrementing field.
 
@@ -68,3 +51,12 @@ has inc => (
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+=head1 DESCRIPTION
+
+This is an internal type used for replication.  It is not for storing dates,
+times, or timestamps in the traditional sense.  Unless you are looking to mess
+with MongoDB's replication internals, the class you are probably looking for is
+L<DateTime>.  See L<MongoDB::DataTypes> for more information.
+
+=cut

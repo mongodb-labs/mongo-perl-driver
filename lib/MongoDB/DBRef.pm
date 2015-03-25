@@ -16,7 +16,7 @@
 
 package MongoDB::DBRef;
 
-# ABSTRACT: Native DBRef support
+# ABSTRACT: A MongoDB database reference
 
 use version;
 our $VERSION = 'v0.999.998.3'; # TRIAL
@@ -31,7 +31,7 @@ use namespace::clean -except => 'meta';
 # no type constraint since an _id can be anything
 has id => (
     is        => 'rw',
-    required  => 1 
+    required  => 1
 );
 
 has ref => (
@@ -41,7 +41,7 @@ has ref => (
     coerce    => 1,
 );
 
-has db => ( 
+has db => (
     is        => 'rw',
     isa       => DBRefDB,
     required  => 1,
@@ -61,7 +61,7 @@ has verify_db => (
     default   => 1
 );
 
-has verify_coll => ( 
+has verify_coll => (
     is        => 'rw',
     isa       => Bool,
     required  => 0,
@@ -69,7 +69,7 @@ has verify_coll => (
 );
 
 
-sub fetch { 
+sub fetch {
     my $self = shift;
 
     my $client = $self->client;
@@ -79,14 +79,14 @@ sub fetch {
 
     my $db     = $self->db;
 
-    if ( $self->verify_db ) { 
+    if ( $self->verify_db ) {
         croak sprintf "No such database %s", $db
           unless grep { $_ eq $db } $client->database_names;
     }
 
     my $ref    = $self->ref;
 
-    if ( $self->verify_coll ) { 
+    if ( $self->verify_coll ) {
         croak sprintf "No such collection %s", $ref
           unless grep { $_ eq $ref } $client->get_database( $db )->collection_names;
     }
@@ -98,7 +98,7 @@ sub fetch {
 
 sub _ordered {
     my $self = shift;
-    
+
     return Tie::IxHash->new( '$ref' => $self->ref, '$id' => $self->id, '$db' => $self->db );
 }
 
@@ -109,10 +109,6 @@ __PACKAGE__->meta->make_immutable;
 
 __END__
 
-=head1 NAME
-
-MongoDB::DBRef - A MongoDB database reference
-
 =head1 SYNOPSIS
 
     my $dbref = MongoDB::DBRef->new( db => 'my_db', ref => 'my_collection', id => 123 );
@@ -122,8 +118,8 @@ MongoDB::DBRef - A MongoDB database reference
 
 =head1 DESCRIPTION
 
-This module provides support for database references (DBRefs) in the Perl 
-MongoDB driver. A DBRef is a special embedded document which points to 
+This module provides support for database references (DBRefs) in the Perl
+MongoDB driver. A DBRef is a special embedded document which points to
 another document in the database. DBRefs are not the same as foreign keys
 and do not provide any referential integrity or constraint checking. For example,
 a DBRef may point to a document that no longer exists (or never existed.)
@@ -142,7 +138,7 @@ object or a string containing the collection name. The object will be coerced to
 
 =head2 id
 
-Required. The C<_id> value of the referenced document. If the 
+Required. The C<_id> value of the referenced document. If the
 C<_id> is an ObjectID, then you must use a L<MongoDB::OID> object.
 
 =head2 client
@@ -154,7 +150,7 @@ When you retrieve a document from MongoDB, any DBRefs will automatically be infl
 into C<MongoDB::DBRef> objects with the C<client> attribute automatically populated.
 
 It is not necessary to specify a C<client> if you are just making DBRefs to insert
-in the database as part of a larger document. 
+in the database as part of a larger document.
 
 =head2 verify_db
 
@@ -174,6 +170,6 @@ Retrieve the referenced document from the database. If the document does not exi
 get back C<undef>. You must populate the C<client> attribute of the DBRef object in order
 to use this method. If there's no C<client>, C<fetch> will throw a fatal error.
 
-If C<verify_db> or <verify_coll> are on, C<fetch> will throw a fatal error if the 
+If C<verify_db> or <verify_coll> are on, C<fetch> will throw a fatal error if the
 database or collection concerned does not exist.
 
