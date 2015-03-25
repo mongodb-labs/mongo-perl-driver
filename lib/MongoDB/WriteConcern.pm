@@ -28,12 +28,25 @@ use Types::Standard -types;
 use Scalar::Util qw/looks_like_number/;
 use namespace::clean -except => 'meta';
 
+=attr w
+
+Specifies the desired acknowledgement level. Defaults to '1'.
+
+=cut
+
 has w => (
     is        => 'ro',
     isa       => Str,
     predicate => '_has_w',
     default   => 1,
 );
+
+=attr wtimeout
+
+Specifies how long to wait for the write concern to be satisfied (in
+milliseonds).  Defaults to 1000.
+
+=cut
 
 has wtimeout => (
     is        => 'ro',
@@ -42,6 +55,16 @@ has wtimeout => (
     default   => 1000,
 );
 
+=attr j
+
+The j option confirms that the mongod instance has written the data to the
+on-disk journal.  Defaults to false.
+
+B<Note>: specifying a write concern that set j to a true value may result in an
+error with a mongod or mongos running with --nojournal option now errors.
+
+=cut
+
 has j => (
     is        => 'ro',
     isa       => Booleanpm,
@@ -49,17 +72,19 @@ has j => (
     predicate => '_has_j',
 );
 
-has is_safe => (
+has _is_safe => (
     is      => 'ro',
     isa     => Bool,
     lazy    => 1,
+    reader  => 'is_safe',
     builder => '_build_is_safe',
 );
 
-has as_struct => (
+has _as_struct => (
     is      => 'ro',
     isa     => HashRef,
     lazy    => 1,
+    reader  => 'as_struct',
     builder => '_build_as_struct',
 );
 
@@ -92,3 +117,24 @@ sub _w_is_safe {
 }
 
 1;
+
+__END__
+
+=head1 SYNOPSIS
+
+    $rp = MongoDB::WriteConcern->new(); # w:1, wtimeout: 1000
+
+    $rp = MongoDB::WriteConcern->new(
+        w        => 'majority',
+        wtimeout => 10000, # milliseconds
+    );
+
+=head1 DESCRIPTION
+
+A write concern describes the guarantee that MongoDB provides when reporting on
+the success of a write operation.
+
+For core documentation on read preference see
+L<http://docs.mongodb.org/manual/core/read-preference/>.
+
+=cut
