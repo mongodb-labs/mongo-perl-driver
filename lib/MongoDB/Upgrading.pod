@@ -333,4 +333,9 @@ attributes.  These are kept for backwards compatibility only.
   have a Collection be a factory for collections.  Users who want nested
   namespaces will be explicit and create them off Database objects instead.
 
+=head3 MongoDB::CommandResult
+
+=for :list
+* result — has been renamed to 'output' for clarity
+
 =cut

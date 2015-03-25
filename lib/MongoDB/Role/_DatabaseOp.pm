@@ -76,7 +76,7 @@ sub _query_and_receive {
     if ( $result->{flags}{query_failure} ) {
         # pretend the query was a command and assert it here
         MongoDB::CommandResult->new(
-            result  => $result->{docs}[0],
+            output  => $result->{docs}[0],
             address => $link->address
         )->assert;
     }

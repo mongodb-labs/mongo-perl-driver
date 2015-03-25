@@ -186,9 +186,9 @@ sub drop {
 
 =method run_command
 
-    my $result = $database->run_command([ some_command => 1 ]);
+    my $output = $database->run_command([ some_command => 1 ]);
 
-    my $result = $database->run_command(
+    my $output = $database->run_command(
         [ some_command => 1 ],
         { mode => 'secondaryPreferred' }
     );
@@ -204,7 +204,7 @@ second argument may specify an alternative read preference.  If given, it must
 be a L<MongoDB::ReadPreference> object or a hash reference that can be used to
 construct one.
 
-It returns the result of the command (a hash reference) on success or throws a
+It returns the output of the command (a hash reference) on success or throws a
 L<MongoDB::DatabaseError|MongoDB::Error/MongoDB::DatabaseError> exception if
 the command fails.
 
@@ -233,12 +233,12 @@ sub run_command {
 
     my $obj = $self->_client->send_read_op($op);
 
-    return $obj->result;
+    return $obj->output;
 }
 
 =method eval ($code, $args?, $nolock?)
 
-    my $result = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
+    my $output = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
 
 Evaluate a JavaScript expression on the Mongo server. The C<$code> argument can
 be a string or an instance of L<MongoDB::Code>.  The C<$args> are an optional
@@ -265,12 +265,12 @@ sub eval {
              'args' => $args,
              'nolock' => $nolock);
 
-    my $result = $self->run_command($cmd);
-    if (ref $result eq 'HASH' && exists $result->{'retval'}) {
-        return $result->{'retval'};
+    my $output = $self->run_command($cmd);
+    if (ref $output eq 'HASH' && exists $output->{'retval'}) {
+        return $output->{'retval'};
     }
     else {
-        return $result;
+        return $output;
     }
 }
 

@@ -59,7 +59,7 @@ sub execute {
     $self->_apply_read_prefs( $link, $topology_type );
 
     my $res = MongoDB::CommandResult->new(
-        result  => $self->_send_command( $link, $self->query, $self->query_flags ),
+        output => $self->_send_command( $link, $self->query, $self->query_flags ),
         address => $link->address
     );
 

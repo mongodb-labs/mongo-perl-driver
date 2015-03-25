@@ -585,7 +585,7 @@ sub _update_topology_from_link {
             db_name => 'admin',
             query   => [ ismaster => 1 ],
         );
-        $op->execute( $link )->result;
+        $op->execute( $link )->output;
     }
     catch {
         warn $_;

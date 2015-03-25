@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Changes]
+
+  - MongoDB::CommandResult changed the name of the accessor for the document
+    returned by the server to 'output' instead of 'result' for clarity.
+
 v0.999.998.4 2015-03-25 14:37:52-04:00 America/New_York (TRIAL RELEASE)
 
   [*** Deprecations ***]

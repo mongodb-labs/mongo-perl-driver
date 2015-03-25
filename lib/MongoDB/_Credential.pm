@@ -188,7 +188,7 @@ sub _authenticate_NONE () { 1 }
 sub _authenticate_MONGODB_CR {
     my ( $self, $link ) = @_;
 
-    my $nonce = $self->_send_command( $link, 'admin', { getnonce => 1 } )->result->{nonce};
+    my $nonce = $self->_send_command( $link, 'admin', { getnonce => 1 } )->output->{nonce};
     my $key =
       md5_hex( encode( "UTF-8", $nonce . $self->username . $self->_digested_password ) );
 
@@ -348,10 +348,10 @@ sub _sasl_continue {
 
 sub _sasl_send {
     my ( $self, $link, $command ) = @_;
-    my $result = $self->_send_command( $link, $self->source, $command )->result;
+    my $output = $self->_send_command( $link, $self->source, $command )->output;
 
-    my $sasl_resp = $result->{payload} ? decode_base64( $result->{payload} ) : "";
-    return ( $sasl_resp, $result->{conversationId}, $result->{done} );
+    my $sasl_resp = $output->{payload} ? decode_base64( $output->{payload} ) : "";
+    return ( $sasl_resp, $output->{conversationId}, $output->{done} );
 }
 
 sub _send_command {

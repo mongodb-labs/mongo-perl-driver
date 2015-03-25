@@ -130,18 +130,18 @@ sub execute {
             cursor  => {
                 ns         => '',
                 id         => 0,
-                firstBatch => [ $res->result ],
+                firstBatch => [ $res->output ],
             },
         );
     }
 
     # Fake up a single-batch cursor if we didn't get a cursor response.
     # We use the 'results' fields as the first (and only) batch
-    if ( !$res->result->{cursor} ) {
-        $res->result->{cursor} = {
+    if ( !$res->output->{cursor} ) {
+        $res->output->{cursor} = {
             ns         => '',
             id         => 0,
-            firstBatch => ( delete $res->result->{result} ) || [],
+            firstBatch => ( delete $res->output->{result} ) || [],
         };
     }
 

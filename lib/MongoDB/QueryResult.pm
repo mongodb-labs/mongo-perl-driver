@@ -306,7 +306,7 @@ info
 =head1 SYNOPSIS
 
     $cursor = $coll->find( $filter );
-    $resuilt = $cursor->result;
+    $result = $cursor->result;
 
     while ( $doc = $result->next ) {
         process_doc($doc)

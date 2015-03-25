@@ -32,7 +32,7 @@ requires 'client';
 sub _build_result_from_cursor {
     my ( $self, $res ) = @_;
 
-    my $cursor = $res->result->{cursor}
+    my $cursor = $res->output->{cursor}
       or MongoDB::DatabaseError->throw(
         message => "no cursor found in command response",
         result  => $res,

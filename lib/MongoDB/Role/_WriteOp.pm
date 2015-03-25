@@ -65,7 +65,7 @@ sub _send_legacy_op_with_gle {
         # errors in the command itself get handled as normal CommandResult
         if ( !$res->{ok} && ( $res->{errmsg} || $res->{'$err'} ) ) {
             return MongoDB::CommandResult->new(
-                result  => $res,
+                output  => $res,
                 address => $link->address,
             );
         }
@@ -83,7 +83,7 @@ sub _send_legacy_op_with_gle {
             MongoDB::DatabaseError->throw(
                 message => $got_error,
                 result => MongoDB::CommandResult->new(
-                    result => $res,
+                    output => $res,
                     address => $link->address,
                 ),
             );
@@ -136,7 +136,7 @@ sub _send_write_command {
         # errors in the command itself get handled as normal CommandResult
         if ( !$res->{ok} && ( $res->{errmsg} || $res->{'$err'} ) ) {
             return MongoDB::CommandResult->new(
-                result  => $res,
+                output => $res,
                 address => $link->address,
             );
         }

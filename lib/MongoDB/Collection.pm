@@ -872,7 +872,7 @@ sub parallel_scan {
     );
 
     my $result = $self->client->send_read_op( $op );
-    my $response = $result->result;
+    my $response = $result->output;
 
     Carp::croak("No cursors returned")
         unless $response->{cursors} && ref $response->{cursors} eq 'ARRAY';

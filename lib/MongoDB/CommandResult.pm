@@ -29,13 +29,13 @@ use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_LastError';
 
-=attr result
+=attr output
 
-Hash reference with the result of a database command
+Hash reference with the output document of a database command
 
 =cut
 
-has result => (
+has output => (
     is       => 'ro',
     isa      => HashRef,
     required => 1,
@@ -61,12 +61,12 @@ Error code (if any) or 0 if there was no error.
 
 sub last_code {
     my ($self) = @_;
-    my $result = $self->result;
-    if ( $result->{code} ) {
-        return $result->{code};
+    my $output = $self->output;
+    if ( $output->{code} ) {
+        return $output->{code};
     }
-    elsif ( $result->{lastErrorObject} ) {
-        return $result->{lastErrorObject}{code} || 0;
+    elsif ( $output->{lastErrorObject} ) {
+        return $output->{lastErrorObject}{code} || 0;
     }
     else {
         return 0;
@@ -82,7 +82,7 @@ Error string (if any) or the empty string if there was no error.
 sub last_errmsg {
     my ($self) = @_;
     for my $err_key (qw/$err err errmsg/) {
-        return $self->result->{$err_key} if exists $self->result->{$err_key};
+        return $self->output->{$err_key} if exists $self->output->{$err_key};
     }
     return "";
 }
@@ -95,7 +95,7 @@ True if a write concern timed out or false otherwise.
 
 sub last_wtimeout {
     my ($self) = @_;
-    return !!$self->result->{wtimeout};
+    return !!$self->output->{wtimeout};
 }
 
 =method assert
@@ -108,10 +108,13 @@ sub assert {
     my ($self, $default_class) = @_;
 
     $self->_throw_database_error( $default_class )
-        if ! $self->result->{ok};
+        if ! $self->output->{ok};
 
     return 1;
 }
+
+# deprecated
+sub result { shift->output }
 
 __PACKAGE__->meta->make_immutable;
 
@@ -119,9 +122,20 @@ __PACKAGE__->meta->make_immutable;
 
 __END__
 
+=for Pod::Coverage
+result
+
 =head1 DESCRIPTION
 
-This class encapsulates the results from a database command.  Currently, it is only
-available from the C<result> attribute of C<MongoDB::DatabaseError>.
+This class encapsulates the results from a database command.  Currently, it is
+only available from the C<result> attribute of C<MongoDB::DatabaseError>.
+
+=head1 DEPRECATIONS
+
+The methods still exist, but are no longer documented.  In a future version
+they will warn when used, then will eventually be removed.
+
+=for :list
+* result
 
 =cut

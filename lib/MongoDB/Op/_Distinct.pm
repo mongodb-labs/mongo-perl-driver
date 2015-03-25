@@ -96,10 +96,10 @@ sub execute {
 
     my $res = $op->execute( $link, $topology );
 
-    $res->result->{cursor} = {
+    $res->output->{cursor} = {
         ns         => '',
         id         => 0,
-        firstBatch => ( delete $res->result->{values} ) || [],
+        firstBatch => ( delete $res->output->{values} ) || [],
     };
 
     return $self->_build_result_from_cursor($res);

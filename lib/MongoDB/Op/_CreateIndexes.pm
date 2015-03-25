@@ -82,7 +82,7 @@ sub _command_create_indexes {
     my $res = $self->_send_command( $link, $cmd );
 
     return MongoDB::CommandResult->new(
-        result => $self->write_concern->is_safe ? $res : { ok => 1 },
+        output => $self->write_concern->is_safe ? $res : { ok => 1 },
         address => $link->address,
     );
 }

@@ -148,7 +148,7 @@ sub _parse_cmd_result {
     my ( $op, $op_count, $batch_count, $result, $cmd_doc ) =
       @{$args}{qw/op op_count batch_count result cmd_doc/};
 
-    $result = $result->result
+    $result = $result->output
       if eval { $result->isa("MongoDB::CommandResult") };
 
     confess "op argument to parse must be one of: @op_map_keys"

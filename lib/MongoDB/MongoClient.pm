@@ -897,14 +897,14 @@ sub database_names {
     my $max_tries = 3;
     for my $try ( 1 .. $max_tries ) {
         last if try {
-            my $result = $self->send_admin_command([ listDatabases => 1 ])->result;
-            if (ref($result) eq 'HASH' && exists $result->{databases}) {
-                @databases = map { $_->{name} } @{ $result->{databases} };
+            my $output = $self->send_admin_command([ listDatabases => 1 ])->output;
+            if (ref($output) eq 'HASH' && exists $output->{databases}) {
+                @databases = map { $_->{name} } @{ $output->{databases} };
             }
             return 1;
         } catch {
             # can't open db in a read lock
-            return if $_->{result}->{result}{code} == CANT_OPEN_DB_IN_READ_LOCK() || $try < $max_tries;
+            return if $_->result->ouput->{code} == CANT_OPEN_DB_IN_READ_LOCK() || $try < $max_tries;
             die $_;
         };
     }
