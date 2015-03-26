@@ -184,13 +184,22 @@ Moose::Meta::Class->create( __PACKAGE__,
 sub _build_code { return MongoDB::Error::WRITE_CONCERN_ERROR() }
 
 # Other errors
+package MongoDB::AuthError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
 package MongoDB::CursorNotFoundError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+package MongoDB::GridFSError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
 package MongoDB::ProtocolError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
 package MongoDB::SelectionError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+package MongoDB::UsageError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
 package MongoDB::InternalError;
@@ -231,15 +240,44 @@ __END__
 
 This class defines a heirarchy of exception objects.
 
+=head1 USAGE
+
+Unless otherwise explictly documented, all driver methods throw exceptions if
+an error occurs.
+
+To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
+are recommended:
+
+    use Try::Tiny;
+    use Safe::Isa; # provides $_isa
+
+    try {
+        $coll->insert( $doc )
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::DuplicateKeyError" ) {
+            ...
+        }
+        else {
+            ...
+        }
+    };
+
+To retry failures automatically, consider using L<Try::Tiny::Retry>.
+
 =head1 EXCEPTION HIERARCHY
 
     MongoDB::Error
+        |
+        |->MongoDB::AuthError
         |
         |->MongoDB::ConnectionError
         |   |
         |   |->MongoDB::HandshakeError
         |   |
         |   |->MongoDB::NetworkError
+        |
+        |->MongoDB::CursorNotFoundError
         |
         |->MongoDB::DatabaseError
         |   |
@@ -251,21 +289,23 @@ This class defines a heirarchy of exception objects.
         |   |
         |   |->MongoDB::WriteConcernError
         |
+        |->MongoDB::DocumentError
+        |
+        |->MongoDB::GridFSError
+        |
+        |->MongoDB::InternalError
+        |
+        |->MongoDB::ProtocolError
+        |
+        |->MongoDB::SelectionError
+        |
         |->MongoDB::TimeoutError
         |   |
         |   |->MongoDB::ExecutionTimeout
         |   |
         |   |->MongoDB::NetworkTimeout
         |
-        |->MongoDB::CursorNotFoundError
-        |
-        |->MongoDB::DocumentError
-        |
-        |->MongoDB::ProtocolError
-        |
-        |->MongoDB::SelectionError
-        |
-        |->MongoDB::InternalError
+        |->MongoDB::UsageError
 
 
 All classes inherit from C<MongoDB::Error>.
@@ -274,6 +314,11 @@ All error classes have the attribute:
 
 =for :list
 * message — a text representation of the error
+
+=head2 MongoDB::AuthError
+
+This error indicates a problem with authentication, either in the underlying
+mechanism or a problem authenticating with the server.
 
 =head2 MongoDB::ConnectionError
 
@@ -288,6 +333,10 @@ handshakes fail.
 
 This error is thrown when a socket error occurs, when the wrong number of bytes
 are read, or other wire-related errors occur.
+
+=head2 MongoDB::CursorNotFoundError
+
+This error indicates that a cursor timed out on a server.
 
 =head2 MongoDB::DatabaseError
 
@@ -324,24 +373,6 @@ a result object.
 Errors indicating failure of a write concern.  The C<result> attribute is a
 result object.
 
-=head2 MongoDB::TimeoutError
-
-These errors indicate a user-specified timeout has been exceeded.
-
-=head3 MongoDB::ExecutionTimeout
-
-This error is thrown when a query or command fails because C<max_time_ms> has
-been reached.  The C<result> attribute is a L<MongoDB::CommandResult> object.
-
-=head3 MongoDB::NetworkTimeout
-
-This error is thrown when a network operation exceeds a timeout, typically
-C<connect_timeout_ms> or C<socket_timeout_ms>.
-
-=head2 MongoDB::CursorNotFoundError
-
-This error indicates that a cursor timed out on a server.
-
 =head2 MongoDB::DocumentError
 
 This error indicates a problem with a document to be inserted or replaced into
@@ -351,6 +382,10 @@ Attributes include:
 
 =for :list
 * document — the document that caused the error
+
+=head2 MongoDB::GridFSError
+
+Errors related to GridFS operations, such a corrupted file.
 
 =head2 MongoDB::InternalError
 
@@ -368,9 +403,30 @@ When server selection fails for a given operation, this is thrown. For example,
 attempting a write when no primary is available or reading with a specific mode
 and tag set and no servers match.
 
+=head2 MongoDB::TimeoutError
+
+These errors indicate a user-specified timeout has been exceeded.
+
+=head3 MongoDB::ExecutionTimeout
+
+This error is thrown when a query or command fails because C<max_time_ms> has
+been reached.  The C<result> attribute is a L<MongoDB::CommandResult> object.
+
+=head3 MongoDB::NetworkTimeout
+
+This error is thrown when a network operation exceeds a timeout, typically
+C<connect_timeout_ms> or C<socket_timeout_ms>.
+
+=head2 MongoDB::UsageError
+
+Indicates invalid arguments or configuration options.  Not all usage errors
+will throw this — only ones originating directly from the MongoDB::* library
+files.  Some type and usage errors will originate from the L<Moose> object
+system if the objects are used incorrectly.
+
 =head1 ERROR CODES
 
-The following error code constants are automatically exported by this module:
+The following error code constants are automatically exported by this module.
 
         BAD_VALUE                 => 2,
         UNKNOWN_ERROR             => 8,
@@ -388,7 +444,9 @@ The following error code constants are automatically exported by this module:
         CANT_OPEN_DB_IN_READ_LOCK => 15927,
 
 This is a very, very small subset of error codes possible from the server,
-but covers some of the more common ones.
+but covers some of the more common ones seen by drivers.
+
+B<Note>: only C<MongoDB::DatabaseError> objects have a C<code> attribute.
 
 =cut
 
