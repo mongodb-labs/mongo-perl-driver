@@ -25,6 +25,7 @@ use version;
 our $VERSION = 'v0.999.998.5'; # TRIAL
 
 use Moose;
+use Carp;
 use Moose::Meta::Class ();
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -131,6 +132,34 @@ has document => (
     required => 1,
 );
 
+package MongoDB::UsageError;
+use Moose;
+use MongoDB::_Types -types;
+use Types::Standard -types;
+use namespace::clean -except => 'meta';
+extends("MongoDB::Error");
+
+use overload (
+    q{""} => sub {
+        my $self = shift;
+        return sprintf( "%s: %s\n%s", ref($self), $self->message, $self->trace );
+    },
+    fallback => 1
+);
+
+has trace => (
+    is       => 'ro',
+    isa      => Str,
+);
+
+around BUILDARGS => sub {
+    my $orig  = shift;
+    my $class = shift;
+    my $args = $class->SUPER::BUILDARGS(@_);
+    $args->{trace} = Carp::longmess('');
+    return $args;
+};
+
 #--------------------------------------------------------------------------#
 # Empty subclasses generated programatically; this keeps packages visible
 # to metadata inspectors, but is shorter than Moose/namespace::clean/extends
@@ -193,16 +222,13 @@ Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 package MongoDB::GridFSError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
+package MongoDB::InternalError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
 package MongoDB::ProtocolError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
 package MongoDB::SelectionError;
-Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
-
-package MongoDB::UsageError;
-Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
-
-package MongoDB::InternalError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
 #--------------------------------------------------------------------------#
