@@ -142,7 +142,8 @@ extends("MongoDB::Error");
 use overload (
     q{""} => sub {
         my $self = shift;
-        return sprintf( "%s: %s\n%s", ref($self), $self->message, $self->trace );
+        return
+          sprintf( "%s: %s%s", ref($self), $self->message, $self->trace );
     },
     fallback => 1
 );
@@ -156,6 +157,15 @@ around BUILDARGS => sub {
     my $orig  = shift;
     my $class = shift;
     my $args = $class->SUPER::BUILDARGS(@_);
+
+    # start stack trace above where throw() is called (or
+    # at the top of the stack), so it works like confess
+    my $i = 0;
+    while ( my @caller = caller($i) ) {
+        $i++;
+        last if $caller[0] eq "Throwable";
+    }
+    local $Carp::CarpLevel = caller($i + 1)? $i + 1 : $i;
     $args->{trace} = Carp::longmess('');
     return $args;
 };
