@@ -20,6 +20,7 @@ use version;
 our $VERSION = 'v0.999.998.5'; # TRIAL
 
 use Moose;
+use MongoDB::Error;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
@@ -80,7 +81,7 @@ sub _parse_tag_set {
     for my $tag ( split /,/, $string ) {
         if ( $tag =~ /\S/ ) {
             my @kv = map { s{^\s*}{}; s{\s*$}{}; $_ } split /:/, $tag, 2;
-            confess "readPreferenceTagSet '$tag' is not a key:value pair"
+            MongoDB::UsageError->throw("readPreferenceTagSet '$tag' is not a key:value pair")
               unless @kv == 2;
             $set->{$kv[0]} = $kv[1];
         }
@@ -115,7 +116,7 @@ sub BUILD {
             for my $opt ( split '&', $result{options} ) {
                 my @kv = split '=', $opt;
                 push @kv, '' if @kv == 1;
-                confess 'expected key value pair' unless @kv == 2;
+                MongoDB::UsageError->throw("expected key value pair") unless @kv == 2;
                 my ($k, $v) = map { _unescape_all($_) } @kv;
                 if ( $k eq 'readPreferenceTags' ) {
                     $parsed{$k} ||= [];
@@ -133,7 +134,7 @@ sub BUILD {
         delete $result{db_name} unless defined $result{db_name} && length $result{db_name};
     }
     else {
-        confess "URI '$uri' could not be parsed";
+        MongoDB::UsageError->throw("URI '$uri' could not be parsed");
     }
 
     for my $attr ( qw/username password db_name options hostpairs/ ) {

@@ -26,6 +26,7 @@ use MongoDB::GridFS::File;
 use DateTime 0.78; # drops dependency on bug-prone Math::Round
 use Digest::MD5;
 use Moose;
+use MongoDB::Error;
 use MongoDB::WriteConcern;
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -298,7 +299,7 @@ sub insert {
     my ($self, $fh, $metadata, $options) = @_;
     $options ||= {};
 
-    confess "not a file handle" unless $fh;
+    MongoDB::UsageError->throw("not a file handle") unless $fh;
     $metadata = {} unless $metadata && ref $metadata eq 'HASH';
 
     my $chunks =

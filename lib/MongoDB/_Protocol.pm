@@ -23,6 +23,8 @@ package MongoDB::_Protocol;
 use version;
 our $VERSION = 'v0.999.998.5'; # TRIAL
 
+use MongoDB::Error;
+
 use constant {
     OP_REPLY        => 1,    # Reply to a client request. responseTo is set
     OP_MSG          => 1000, # generic msg command followed by a string

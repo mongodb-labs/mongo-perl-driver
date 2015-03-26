@@ -137,7 +137,7 @@ Returns this cursor for chaining operations.
 
 sub immortal {
     my ( $self, $bool ) = @_;
-    confess "cannot set immortal after querying"
+    MongoDB::UsageError->throw("cannot set immortal after querying")
         if $self->started_iterating;
 
     $self->query->noCursorTimeout(!!$bool);
@@ -167,10 +167,10 @@ Returns this cursor for chaining operations.
 
 sub fields {
     my ($self, $f) = @_;
-    confess "cannot set fields after querying"
-	if $self->started_iterating;
-    confess 'not a hash reference'
-	    unless ref $f eq 'HASH' || ref $f eq 'Tie::IxHash';
+    MongoDB::UsageError->throw("cannot set fields after querying")
+      if $self->started_iterating;
+    MongoDB::UsageError->throw("not a hash reference")
+      unless ref $f eq 'HASH' || ref $f eq 'Tie::IxHash';
 
     $self->query->projection($f);
     return $self;
@@ -191,7 +191,7 @@ Returns this cursor for chaining operations.
 
 sub sort {
     my ( $self, $order ) = @_;
-    confess "cannot set sort after querying"
+    MongoDB::UsageError->throw("cannot set sort after querying")
       if $self->started_iterating;
 
     $self->query->sort($order);
@@ -211,7 +211,7 @@ Returns this cursor for chaining operations.
 
 sub limit {
     my ( $self, $num ) = @_;
-    confess "cannot set limit after querying"
+    MongoDB::UsageError->throw("cannot set limit after querying")
       if $self->started_iterating;
     $self->query->limit($num);
     return $self;
@@ -232,9 +232,9 @@ Returns this cursor for chaining operations.
 sub max_time_ms {
     my ( $self, $num ) = @_;
     $num = 0 unless defined $num;
-    confess "max_time_ms must be non-negative"
+    MongoDB::UsageError->throw("max_time_ms must be non-negative")
       if $num < 0;
-    confess "can not set max_time_ms after querying"
+    MongoDB::UsageError->throw("can not set max_time_ms after querying")
       if $self->started_iterating;
 
     $self->query->maxTimeMS( $num );
@@ -264,7 +264,7 @@ Returns this cursor for chaining operations.
 
 sub tailable {
     my ( $self, $bool ) = @_;
-    confess "cannot set tailable after querying"
+    MongoDB::UsageError->throw("cannot set tailable after querying")
         if $self->started_iterating;
 
     $self->query->cursorType($bool ? 'tailable' : 'non_tailable');
@@ -288,7 +288,7 @@ was previously called.
 
 sub tailable_await {
     my ( $self, $bool ) = @_;
-    confess "cannot set tailable_await after querying"
+    MongoDB::UsageError->throw("cannot set tailable_await after querying")
         if $self->started_iterating;
 
     $self->query->cursorType($bool ? 'tailable_await' : 'non_tailable');
@@ -307,9 +307,9 @@ Returns this cursor for chaining operations.
 
 sub skip {
     my ( $self, $num ) = @_;
-    confess "skip must be non-negative"
+    MongoDB::UsageError->throw("skip must be non-negative")
       if $num < 0;
-    confess "cannot set skip after querying"
+    MongoDB::UsageError->throw("cannot set skip after querying")
       if $self->started_iterating;
 
     $self->query->skip($num);
@@ -335,7 +335,7 @@ Returns this cursor for chaining operations.
 # with the rest of the cursor API
 sub snapshot {
     my ($self) = @_;
-    confess "cannot set snapshot after querying"
+    MongoDB::UsageError->throw("cannot set snapshot after querying")
       if $self->started_iterating;
 
     $self->query->modifiers->{'$snapshot'} = 1;
@@ -356,7 +356,7 @@ Returns this cursor for chaining operations.
 
 sub hint {
     my ( $self, $index ) = @_;
-    confess "cannot set hint after querying"
+    MongoDB::UsageError->throw("cannot set hint after querying")
       if $self->started_iterating;
 
     # $index must either be a string or a reference to an array, hash, or IxHash
@@ -364,7 +364,7 @@ sub hint {
         $index = Tie::IxHash->new(@$index);
     }
     elsif ( ref $index && !( ref $index eq 'HASH' || ref $index eq 'Tie::IxHash' ) ) {
-        confess 'not a hash reference';
+        MongoDB::UsageError->throw("not a hash reference");
     }
 
     $self->query->modifiers->{'$hint'} = $index;
@@ -386,7 +386,7 @@ Returns this cursor for chaining operations.
 
 sub partial {
     my ($self, $value) = @_;
-    confess "cannot set partial after querying"
+    MongoDB::UsageError->throw("cannot set partial after querying")
       if $self->started_iterating;
 
     $self->query->allowPartialResults( !! $value );
@@ -414,7 +414,7 @@ Returns this cursor for chaining operations.
 
 sub read_preference {
     my $self = shift;
-    confess "cannot set read preference after querying"
+    MongoDB::UsageError->throw("cannot set read preference after querying")
       if $self->started_iterating;
 
     my $type = ref $_[0];
@@ -448,7 +448,7 @@ Returns this cursor for chaining operations.
 
 sub slave_okay {
     my ($self, $value) = @_;
-    confess "cannot set slave_ok after querying"
+    MongoDB::UsageError->throw("cannot set slave_ok after querying")
       if $self->started_iterating;
 
     if ( $value ) {

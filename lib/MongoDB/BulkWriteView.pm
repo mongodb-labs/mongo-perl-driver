@@ -24,6 +24,7 @@ our $VERSION = 'v0.999.998.5'; # TRIAL
 use Moose;
 
 use Syntax::Keyword::Junction qw/any/;
+use MongoDB::Error;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use boolean;
@@ -54,7 +55,7 @@ has _upsert => (
 sub upsert {
     my ($self) = @_;
     unless ( @_ == 1 ) {
-        confess "the upsert method takes no arguments";
+        MongoDB::UsageError->throw("the upsert method takes no arguments");
     }
     return $self->new( %$self, _upsert => true );
 }
@@ -79,11 +80,11 @@ sub _update {
     my ( $self, $doc ) = @_;
 
     unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
-        confess "argument to $method must be a single hashref, arrayref or Tie::IxHash";
+        MongoDB::UsageError->throw("argument to $method must be a single hashref, arrayref or Tie::IxHash");
     }
 
     if ( ref $doc eq 'ARRAY' ) {
-        confess "array reference to $method must have key/value pairs"
+        MongoDB::UsageError->throw("array reference to $method must have key/value pairs")
           if @$doc % 2;
         $doc = Tie::IxHash->new(@$doc);
     }
@@ -94,12 +95,12 @@ sub _update {
     my @keys = $doc->Keys;
     if ( $method eq 'replace_one' ) {
         if ( my @bad = grep { substr( $_, 0, 1 ) eq '$' } @keys ) {
-            confess "$method document can't have '\$' prefixed field names: @bad";
+            MongoDB::UsageError->throw("$method document can't have '\$' prefixed field names: @bad");
         }
     }
     else {
         if ( my @bad = grep { substr( $_, 0, 1 ) ne '$' } @keys ) {
-            confess "$method document can't have non- '\$' prefixed field names: @bad";
+            MongoDB::UsageError->throw("$method document can't have non- '\$' prefixed field names: @bad");
         }
     }
 

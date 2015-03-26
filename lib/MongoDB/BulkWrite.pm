@@ -118,15 +118,15 @@ An exception will be thrown on error.
 sub find {
     my ( $self, $doc ) = @_;
 
-    confess "find requires a criteria document. Use an empty hashref for no criteria."
+    MongoDB::UsageError->throw("find requires a criteria document. Use an empty hashref for no criteria.")
       unless defined $doc;
 
     unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
-        confess "argument to find must be a single hashref, arrayref or Tie::IxHash";
+        MongoDB::UsageError->throw("argument to find must be a single hashref, arrayref or Tie::IxHash");
     }
 
     if ( ref $doc eq 'ARRAY' ) {
-        confess "array reference to find must have key/value pairs"
+        MongoDB::UsageError->throw("array reference to find must have key/value pairs")
           if @$doc % 2;
         $doc = {@$doc};
     }
@@ -154,11 +154,11 @@ sub insert {
     my ( $self, $doc ) = @_;
 
     unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
-        confess "argument to insert must be a single hashref, arrayref or Tie::IxHash";
+        MongoDB::UsageError->throw("argument to insert must be a single hashref, arrayref or Tie::IxHash");
     }
 
     if ( ref $doc eq 'ARRAY' ) {
-        confess "array reference to insert must have key/value pairs"
+        MongoDB::UsageError->throw("array reference to insert must have key/value pairs")
           if @$doc % 2;
         $doc = Tie::IxHash->new(@$doc);
     }

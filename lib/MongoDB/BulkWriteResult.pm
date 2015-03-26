@@ -142,7 +142,7 @@ sub _parse_cmd_result {
     my $args = ref $_[0] eq 'HASH' ? shift : {@_};
 
     unless ( 2 == grep { exists $args->{$_} } qw/op result/ ) {
-        confess "parse requires 'op' and 'result' arguments";
+        MongoDB::UsageError->throw("parse requires 'op' and 'result' arguments");
     }
 
     my ( $op, $op_count, $batch_count, $result, $cmd_doc ) =
@@ -151,9 +151,9 @@ sub _parse_cmd_result {
     $result = $result->output
       if eval { $result->isa("MongoDB::CommandResult") };
 
-    confess "op argument to parse must be one of: @op_map_keys"
+    MongoDB::UsageError->throw("op argument to parse must be one of: @op_map_keys")
       unless $op eq any(@op_map_keys);
-    confess "results argument to parse must be a hash reference"
+    MongoDB::UsageError->throw("results argument to parse must be a hash reference")
       unless ref $result eq 'HASH';
 
     my $attrs = {

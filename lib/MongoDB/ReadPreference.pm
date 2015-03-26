@@ -22,6 +22,7 @@ use version;
 our $VERSION = 'v0.999.998.5'; # TRIAL
 
 use Moose;
+use MongoDB::Error;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
@@ -73,7 +74,7 @@ sub BUILD {
     my ($self) = @_;
 
     if ( $self->mode eq 'primary' && !$self->has_empty_tag_sets ) {
-        confess "A tag set list is not allowed with read preference mode 'primary'";
+        MongoDB::UsageError->throw("A tag set list is not allowed with read preference mode 'primary'");
     }
 
     return;

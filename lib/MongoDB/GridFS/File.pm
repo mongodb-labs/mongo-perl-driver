@@ -22,6 +22,7 @@ package MongoDB::GridFS::File;
 use version;
 our $VERSION = 'v0.999.998.5'; # TRIAL
 
+use MongoDB::Error;
 use MongoDB::GridFS;
 use IO::File;
 use Moose;

@@ -20,6 +20,7 @@ use version;
 our $VERSION = 'v0.999.998.5'; # TRIAL
 
 use Moose;
+use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Types -types;
 

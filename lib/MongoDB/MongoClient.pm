@@ -726,7 +726,7 @@ sub BUILD {
 
     my @addresses = @{ $uri->hostpairs };
     if ( $self->connect_type eq 'direct' && @addresses > 1 ) {
-        confess "Connect type 'direct' cannot be used with multiple addresses: @addresses";
+        MongoDB::UsageError->throw("Connect type 'direct' cannot be used with multiple addresses: @addresses");
     }
 
     my $options = $uri->options;
@@ -758,10 +758,10 @@ sub BUILD {
 
 sub _str_to_bool {
     my $str = shift;
-    confess "cannot convert undef to bool" unless defined $str;
+    MongoDB::UsageError->throw("cannot convert undef to bool") unless defined $str;
     my $ret = $str eq "true" ? 1 : $str eq "false" ? 0 : undef;
     return $ret unless !defined $ret;
-    confess "expected boolean string 'true' or 'false' but instead received '$str'";
+    MongoDB::UsageError->throw("expected boolean string 'true' or 'false' but instead received '$str'");
 }
 
 #--------------------------------------------------------------------------#

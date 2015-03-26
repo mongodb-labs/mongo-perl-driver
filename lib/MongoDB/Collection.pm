@@ -1216,9 +1216,10 @@ method names.
 sub bulk_write {
     my ( $self, $requests, $options ) = @_;
 
-    confess 'requests not an array reference' unless ref $requests eq 'ARRAY';
-    confess 'empty request list' unless @$requests;
-    confess 'options not a hash reference'
+    MongoDB::UsageError->throw("requests not an array reference")
+      unless ref $requests eq 'ARRAY';
+    MongoDB::UsageError->throw("empty request list") unless @$requests;
+    MongoDB::UsageError->throw("options not a hash reference")
       if defined($options) && ref($options) ne 'HASH';
 
     $options ||= { ordered => 1 };
@@ -1239,7 +1240,7 @@ sub bulk_write {
                 ( $method, $args ) = %{ $requests->[$i] };
             }
             else {
-                confess "$requests->[$i] is not a hash or array reference";
+                MongoDB::UsageError->throw("$requests->[$i] is not a hash or array reference");
             }
             $i++;
         }
@@ -1248,7 +1249,7 @@ sub bulk_write {
             $i += 2;
         }
 
-        confess "'$method' requires an array reference of arguments"
+        MongoDB::UsageError->throw("'$method' requires an array reference of arguments")
           unless ref($args) eq 'ARRAY';
 
         # handle inserts
@@ -1284,7 +1285,7 @@ sub bulk_write {
                 $view->update($doc);
             }
             else {
-                confess "unknown bulk operation '$method'";
+                MongoDB::UsageError->throw("unknown bulk operation '$method'");
             }
         }
     }
@@ -1367,7 +1368,7 @@ sub _find_one_and_update_or_replace {
 
     # returnDocument ('before'|'after') maps to field 'new'
     if ( exists $options->{returnDocument} ) {
-        confess "Invalid returnDocument parameter '$options->{returnDocument}'"
+        MongoDB::UsageError->throw("Invalid returnDocument parameter '$options->{returnDocument}'")
             unless $options->{returnDocument} =~ /^(?:before|after)$/;
         $options->{new} = delete( $options->{returnDocument} ) eq 'after' ? true : false;
     }
@@ -1448,7 +1449,7 @@ sub __ixhash {
         $hash->{$key} = Tie::IxHash->new( @$ref );
     }
     else {
-        confess "Can't convert $type to a Tie::IxHash";
+        MongoDB::UsageError->throw("Can't convert $type to a Tie::IxHash");
     }
     return;
 }
@@ -1474,7 +1475,7 @@ sub __to_index_string {
         }
     }
     else {
-        confess 'expected Tie::IxHash, hash, or array reference for keys';
+        MongoDB::UsageError->throw("expected Tie::IxHash, hash, or array reference for keys");
     }
 
     return join("_", @name);
