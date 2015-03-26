@@ -5,6 +5,7 @@ use version;
 our $VERSION = 'v0.999.998.5'; # TRIAL
 
 use Moose;
+use MongoDB::Error;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
@@ -38,7 +39,8 @@ sub BUILD {
         my %seen;
         my @flags = grep { !$seen{$_}++ } split '', $self->flags;
         foreach my $f( @flags ) { 
-            die "Regexp flag $f is not supported by MongoDB" if not exists $ALLOWED_FLAGS{$f};
+            MongoDB::UsageError->throw("Regexp flag $f is not supported by MongoDB")
+              if not exists $ALLOWED_FLAGS{$f};
         }
 
         $self->_set_flags( join '', sort @flags );

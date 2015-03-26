@@ -350,7 +350,8 @@ sub insert {
         if ($digest ne $result->{md5}) {
             # cleanup and die
             $chunks->delete_many({files_id => $id});
-            die "md5 hashes don't match: database got $result->{md5}, fs got $digest";
+            MongoDB::GridFSError->throw(
+                "md5 hashes don't match: database got $result->{md5}, fs got $digest" );
         }
     }
 
