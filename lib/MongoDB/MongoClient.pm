@@ -965,10 +965,10 @@ The C<ns> method is an alias for C<get_namespace>.
 
 sub get_namespace {
     my ( $self, $ns, $options ) = @_;
-    MongoDB::Error->throw("namespace requires a string argument")
+    MongoDB::UsageError->throw("namespace requires a string argument")
       unless defined($ns) && length($ns);
     my ( $db, $coll ) = split /\./, $ns, 2;
-    MongoDB::Error->throw("$ns is not a valid namespace")
+    MongoDB::UsageError->throw("$ns is not a valid namespace")
       unless defined($db) && defined($coll);
     return $self->db($db)->coll( $coll, $options );
 }

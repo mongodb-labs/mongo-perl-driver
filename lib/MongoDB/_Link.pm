@@ -53,10 +53,10 @@ my $SOCKET_CLASS =
 sub new {
     @_ == 2
       || @_ == 3
-      || MongoDB::Error->throw( q/Usage: MongoDB::_Link->new(address, [arg hashref])/ . "\n" );
+      || MongoDB::UsageError->throw( q/Usage: MongoDB::_Link->new(address, [arg hashref])/ . "\n" );
     my ( $class, $address, $args ) = @_;
     my ( $host, $port ) = split /:/, $address;
-    MongoDB::Error->throw("new requires 'host:port' address argument")
+    MongoDB::UsageError->throw("new requires 'host:port' address argument")
       unless defined($host) && length($host) && defined($port) && length($port);
     my $self = bless {
         host        => $host,
@@ -71,7 +71,7 @@ sub new {
 }
 
 sub connect {
-    @_ == 1 || MongoDB::Error->throw( q/Usage: $handle->connect()/ . "\n" );
+    @_ == 1 || MongoDB::UsageError->throw( q/Usage: $handle->connect()/ . "\n" );
     my ($self) = @_;
 
     if ( $self->{with_ssl} ) {
@@ -156,7 +156,7 @@ sub start_ssl {
 }
 
 sub close {
-    @_ == 1 || MongoDB::Error->throw( q/Usage: $handle->close()/ . "\n" );
+    @_ == 1 || MongoDB::UsageError->throw( q/Usage: $handle->close()/ . "\n" );
     my ($self) = @_;
     if ( $self->connected ) {
         CORE::close( $self->{fh} )
@@ -201,7 +201,7 @@ sub assert_valid_connection {
 }
 
 sub write {
-    @_ == 2 || MongoDB::Error->throw( q/Usage: $handle->write(buf)/ . "\n" );
+    @_ == 2 || MongoDB::UsageError->throw( q/Usage: $handle->write(buf)/ . "\n" );
     my ( $self, $buf ) = @_;
 
     $self->assert_valid_connection;
@@ -254,7 +254,7 @@ sub write {
 }
 
 sub read {
-    @_ == 1 || MongoDB::Error->throw( q/Usage: $handle->read()/ . "\n" );
+    @_ == 1 || MongoDB::UsageError->throw( q/Usage: $handle->read()/ . "\n" );
     my ($self) = @_;
     my $msg = '';
 
@@ -274,7 +274,7 @@ sub read {
 }
 
 sub _read_bytes {
-    @_ == 3 || MongoDB::Error->throw( q/Usage: $handle->read(len, bufref)/ . "\n" );
+    @_ == 3 || MongoDB::UsageError->throw( q/Usage: $handle->read(len, bufref)/ . "\n" );
     my ( $self, $len, $bufref ) = @_;
 
     while ( $len > 0 ) {
@@ -335,7 +335,7 @@ sub _do_timeout {
 }
 
 sub can_read {
-    @_ == 1 || @_ == 2 || MongoDB::Error->throw( q/Usage: $handle->can_read([timeout])/ . "\n" );
+    @_ == 1 || @_ == 2 || MongoDB::UsageError->throw( q/Usage: $handle->can_read([timeout])/ . "\n" );
     my $self = shift;
     if ( ref( $self->{fh} ) eq 'IO::Socket::SSL' ) {
         return 1 if $self->{fh}->pending;
@@ -346,17 +346,17 @@ sub can_read {
 sub can_write {
     @_ == 1
       || @_ == 2
-      || MongoDB::Error->throw( q/Usage: $handle->can_write([timeout])/ . "\n" );
+      || MongoDB::UsageError->throw( q/Usage: $handle->can_write([timeout])/ . "\n" );
     my $self = shift;
     return $self->_do_timeout( 'write', @_ );
 }
 
 sub _assert_ssl {
     # Need IO::Socket::SSL 1.42 for SSL_create_ctx_callback
-    MongoDB::Error->throw(qq/IO::Socket::SSL 1.42 must be installed for SSL support\n/)
+    MongoDB::UsageError->throw(qq/IO::Socket::SSL 1.42 must be installed for SSL support\n/)
       unless eval { require IO::Socket::SSL; IO::Socket::SSL->VERSION(1.42) };
     # Need Net::SSLeay 1.49 for MODE_AUTO_RETRY
-    MongoDB::Error->throw(qq/Net::SSLeay 1.49 must be installed for SSL support\n/)
+    MongoDB::UsageError->throw(qq/Net::SSLeay 1.49 must be installed for SSL support\n/)
       unless eval { require Net::SSLeay; Net::SSLeay->VERSION(1.49) };
 }
 
@@ -382,7 +382,7 @@ sub _find_CA_file {
         return $ca_bundle if -e $ca_bundle;
     }
 
-    MongoDB::Error->throw(
+    MongoDB::UsageError->throw(
       qq/Couldn't find a CA bundle with which to verify the SSL certificate.\n/
       . qq/Try installing Mozilla::CA from CPAN\n/);
 }

@@ -153,7 +153,7 @@ sub BUILD {
     while ( my ( $key, $validator ) = each %{ $CONSTRAINTS{$mech} } ) {
         local $_ = $self->$key;
         unless ( $validator->() ) {
-            MongoDB::Error->throw("invalid field $key ('$_') in $mech credential");
+            MongoDB::UsageError->throw("invalid field $key ('$_') in $mech credential");
         }
     }
 
@@ -230,7 +230,7 @@ sub _authenticate_GSSAPI {
     my ( $self, $link ) = @_;
 
     eval { require Authen::SASL; 1 }
-      or MongoDB::Error->throw(
+      or MongoDB::AuthError->throw(
         "GSSAPI requires Authen::SASL and GSSAPI or Authen::SASL::XS from CPAN");
 
     my ( $sasl, $client );
@@ -246,7 +246,7 @@ sub _authenticate_GSSAPI {
           $sasl->client_new( $self->mechanism_properties->{SERVICE_NAME}, $link->{host} );
     }
     catch {
-        MongoDB::Error->throw(
+        MongoDB::AuthError->throw(
             "Failed to initialize a GSSAPI backend (did you install GSSAPI or Authen::SASL::XS?) Error was: $_"
         );
     };
@@ -267,7 +267,7 @@ sub _authenticate_GSSAPI {
         }
     }
     catch {
-        MongoDB::Error->throw("GSSAPI error: $_");
+        MongoDB::AuthError->throw("GSSAPI error: $_");
     };
 
     return 1;
@@ -289,7 +289,7 @@ sub _authenticate_SCRAM_SHA_1 {
         $self->_sasl_continue( $link, "", $conv_id ) if !$done;
     }
     catch {
-        MongoDB::Error->throw("SCRAM-SHA-1 error: $_");
+        MongoDB::AuthError->throw("SCRAM-SHA-1 error: $_");
     };
 
     return 1;
@@ -308,13 +308,13 @@ sub _assert_gssapi {
         my $code = $client->code;
         if ( $code != 0 && $code != 1 ) { # not OK or CONTINUE
             my $error = join( "; ", $client->error );
-            MongoDB::Error->throw("$prefix$error");
+            MongoDB::AuthError->throw("$prefix$error");
         }
     }
     else {
         # Authen::SASL::Perl::GSSAPI or some unknown backend
         if ( my $error = $client->error ) {
-            MongoDB::Error->throw("$prefix$error");
+            MongoDB::AuthError->throw("$prefix$error");
         }
     }
 

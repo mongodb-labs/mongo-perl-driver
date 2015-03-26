@@ -105,7 +105,7 @@ sub _build_as_struct {
 sub BUILD {
     my ($self) = @_;
     if ( ! $self->_w_is_safe && $self->j ) {
-        MongoDB::Error->throw("can't use write concern w=0 with j=" . $self->j );
+        MongoDB::UsageError->throw("can't use write concern w=0 with j=" . $self->j );
     }
     return;
 }

@@ -209,14 +209,14 @@ to call C<execute> more than once on the same bulk object.
 sub execute {
     my ( $self, $write_concern ) = @_;
     if ( $self->_executed ) {
-        MongoDB::Error->throw("bulk op execute called more than once");
+        MongoDB::UsageError->throw("bulk op execute called more than once");
     }
     else {
         $self->_executed(1);
     }
 
     unless ( $self->_count_writes ) {
-        MongoDB::Error->throw("no bulk ops to execute");
+        MongoDB::UsageError->throw("no bulk ops to execute");
     }
 
     $write_concern ||= $self->collection->write_concern;

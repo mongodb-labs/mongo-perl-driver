@@ -344,7 +344,7 @@ sub _check_wire_versions {
         if (   ( $server_min_wire_version || 0 ) > $self->max_wire_version
             || ( $server_max_wire_version || 0 ) < $self->min_wire_version )
         {
-            MongoDB::Error->throw(
+            MongoDB::ProtocolError->throw(
                 "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library."
             );
         }
@@ -497,7 +497,7 @@ sub _initialize_link {
         catch {
             my $err = $_;
             $self->_reset_address_to_unknown( $_->address, $err ) for $self->all_servers;
-            MongoDB::Error->throw("Authentication to $address failed: $err");
+            MongoDB::AuthError->throw("Authentication to $address failed: $err");
         };
     }
 

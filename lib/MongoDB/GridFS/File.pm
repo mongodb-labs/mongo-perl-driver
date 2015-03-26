@@ -72,7 +72,7 @@ sub print {
     my $cursor = $self->_grid->chunks->query({"files_id" => $self->info->{"_id"}})->sort({"n" => 1});
 
     if ( !$cursor->has_next ) {
-        MongoDB::Error->throw(
+        MongoDB::GridFSError->throw(
             sprintf( "GridFS file corrupt: no chunks found for file ID '%s'",
                 $self->info->{_id} )
         );

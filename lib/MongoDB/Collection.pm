@@ -949,7 +949,7 @@ option.
 
 sub ensure_index {
     my ( $self, $keys, $opts ) = @_;
-    MongoDB::Error->throw("ensure_index options must be a hash reference")
+    MongoDB::UsageError->throw("ensure_index options must be a hash reference")
       if $opts && !ref($opts) eq 'HASH';
 
     $keys = Tie::IxHash->new(@$keys) if ref $keys eq 'ARRAY';
@@ -1563,7 +1563,7 @@ sub update {
 
     if ( exists $opts->{multiple} ) {
         if ( exists( $opts->{multi} ) && !!$opts->{multi} ne !!$opts->{multiple} ) {
-            MongoDB::Error->throw(
+            MongoDB::UsageError->throw(
                 "can't use conflicting values of 'multiple' and 'multi' in 'update'");
         }
         $opts->{multi} = delete $opts->{multiple};
