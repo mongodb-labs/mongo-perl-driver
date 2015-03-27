@@ -371,14 +371,17 @@ sub _find_CA_file {
     return Mozilla::CA::SSL_ca_file()
       if eval { require Mozilla::CA };
 
+    # cert list copied from golang src/crypto/x509/root_unix.go
     foreach my $ca_bundle (
-        qw{
-        /etc/ssl/certs/ca-certificates.crt
-        /etc/pki/tls/certs/ca-bundle.crt
-        /etc/ssl/ca-bundle.pem
-        }
-      )
-    {
+        "/etc/ssl/certs/ca-certificates.crt",     # Debian/Ubuntu/Gentoo etc.
+        "/etc/pki/tls/certs/ca-bundle.crt",       # Fedora/RHEL
+        "/etc/ssl/ca-bundle.pem",                 # OpenSUSE
+        "/etc/openssl/certs/ca-certificates.crt", # NetBSD
+        "/etc/ssl/cert.pem",                      # OpenBSD
+        "/usr/local/share/certs/ca-root-nss.crt", # FreeBSD/DragonFly
+        "/etc/pki/tls/cacert.pem",                # OpenELEC
+        "/etc/certs/ca-certificates.crt",         # Solaris 11.2+
+    ) {
         return $ca_bundle if -e $ca_bundle;
     }
 
