@@ -340,7 +340,7 @@ sub insert {
         # get an md5 hash for the file. set the retry flag to 'true' incase the 
         # database, collection, or indexes are missing. That way we can recreate them 
         # retry the md5 calc.
-        my $result = $self->_calc_md5($chunks, $id, $self->prefix, 1);
+        my $result = $self->_database->run_command([filemd5 => $id, root => $self->prefix]);
         $copy{"md5"} = $result->{"md5"};
 
         my $md5 = Digest::MD5->new;
@@ -361,38 +361,6 @@ sub insert {
     $copy{"length"} = $length;
     return $files->insert_one(\%copy)->inserted_id;
 }
-
-# Calculates the md5 of the file on the server
-# $chunks: collection object with correct write concern
-# $id    : reference to the object we want to hash
-# $root  : the namespace the file resides in
-# $retry : a flag which controls whether or not to retry the md5 calc. 
-#         (which is currently only if we are missing our indexes)
-sub _calc_md5 {
-    my ($self, $chunks, $id, $root, $retry) = @_;
-   
-    # Try to get an md5 hash for the file
-    my $result = $self->_database->run_command(["filemd5", $id, "root" => $self->prefix]);
-    
-    # If we didn't get a hash back, it means something is wrong (probably to do with gridfs's 
-    # indexes because its currently the only error that is thrown from the md5 class)
-    if (ref($result) ne 'HASH') {
-        # Yep, indexes are missing. If we have the $retry flag, lets create them calc the md5 again
-        # but we wont pass set the $retry flag again. We don't want an infinite loop for any reason. 
-        if ($retry == 1 && $result eq 'need an index on { files_id : 1 , n : 1 }'){
-            $self->_ensure_indexes();
-            $result = $self->_calc_md5($chunks, $id, $root, 0);
-        }
-        # Well, something bad is happening, so lets clean up and die. 
-        else{
-            $chunks->delete_many({files_id => $id});
-            die "recieve an unexpected error from the server: $result";
-        }
-    }
-    
-    return $result;
-}
-
 
 =method drop
 
