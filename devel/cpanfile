@@ -7,7 +7,7 @@ requires "Moo";
 requires "MooseX::Role::Logger";
 requires "Net::EmptyPort";
 requires "Path::Tiny";
-requires "Proc::Guard";
+requires "Proc::Guard" => 0.07;
 requires "Sys::Hostname";
 requires "Try::Tiny::Retry" => 0.004;
 requires "Type::Utils";
