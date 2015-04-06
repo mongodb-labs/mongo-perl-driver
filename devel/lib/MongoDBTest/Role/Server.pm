@@ -22,6 +22,7 @@ use MongoDB;
 
 use CPAN::Meta::Requirements;
 use Path::Tiny;
+use POSIX qw/SIGTERM SIGKILL/;
 use Proc::Guard;
 use Sys::Hostname;
 use Try::Tiny::Retry 0.004 ":all";
@@ -291,7 +292,21 @@ sub start {
 
 sub stop {
     my ($self) = @_;
-    $self->clear_guard if $self->has_guard;
+    if ( $self->has_guard ) {
+        # will give 30 seconds for graceful shutdown
+        eval {
+            local $SIG{ALRM} = sub { die "alarm\n" };
+            alarm 30;
+            $self->guard->stop(SIGTERM);
+            alarm 0;
+        };
+        if ($@) {
+            die unless $@ eq "alarm\n"; # propagate unexpected errors
+            # SIGTERM timed out so force it to stop
+            $self->guard->stop(SIGKILL);
+        }
+        $self->clear_guard;
+    }
     $self->clear_port;
     $self->clear_client;
     $self->_logger->debug("cleared guard and client for " . $self->name);
