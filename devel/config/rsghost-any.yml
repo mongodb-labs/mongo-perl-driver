@@ -1,0 +1,5 @@
+---
+type: single
+default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --replSet foo
+mongod:
+    - name: host1
