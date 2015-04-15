@@ -179,7 +179,10 @@ has tempdir => (
     coerce => AbsDir->coercion,
 );
 
-sub _build_tempdir { Path::Tiny->tempdir }
+sub _build_tempdir {
+    my $self = shift;
+    return Path::Tiny->tempdir( TEMPLATE => $self->name . "-XXXXXX" );
+}
 
 has logfile => (
     is => 'lazy',
