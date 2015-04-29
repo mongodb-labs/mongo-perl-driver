@@ -2,10 +2,26 @@
 
 {{ $NEXT }}
 
-  [Changes]
+  [*** Deprecations ***]
 
   - MongoDB::CommandResult changed the name of the accessor for the document
-    returned by the server to 'output' instead of 'result' for clarity.
+    returned by the server to 'output' instead of 'result' for clarity.  The
+    'result' method is deprecated.
+
+  [Changes]
+
+  - Generic MongoDB::Error exceptions have been replaced with subclasses
+    that have a specific, documented purpose, including: MongoDB::AuthError,
+    MongoDB::GridFSError, MongoDB::InternalError and MongoDB::UsageError.
+
+  - Calls to Carp::confess() or die() have been replaced with exceptions
+    from MongoDB::Error subclasses, typically MongoDB::UsageError.
+
+  - Failure to create indexes when constructing a GridFS object are
+    ignored rather than a fatal error.
+
+  - Now includes a longer list of default OS locations to search for
+    root CA files.
 
 v0.999.998.4 2015-03-25 14:37:52-04:00 America/New_York (TRIAL RELEASE)
 
