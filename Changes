@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.708.1.0 2015-04-29 16:51:52-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-479 retrieving a GridFS file now throws an error if no chunks exist
