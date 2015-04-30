@@ -19,7 +19,7 @@ package MongoDB::Role::_EmptyQueryResult;
 # MongoDB interface for generating an empty query result
 
 use version;
-our $VERSION = 'v0.999.998.5'; # TRIAL
+our $VERSION = 'v0.999.998.6';
 
 use MongoDB::QueryResult;
 use Moose::Role;

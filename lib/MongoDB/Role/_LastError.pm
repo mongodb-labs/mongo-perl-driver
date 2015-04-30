@@ -20,7 +20,7 @@ package MongoDB::Role::_LastError;
 # MongoDB interface for providing the last database error
 
 use version;
-our $VERSION = 'v0.999.998.5'; # TRIAL
+our $VERSION = 'v0.999.998.6';
 
 use Moose::Role;
 use MongoDB::Error;

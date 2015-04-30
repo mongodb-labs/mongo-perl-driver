@@ -19,7 +19,7 @@ package MongoDB::InsertOneResult;
 # ABSTRACT: MongoDB single insert result object
 
 use version;
-our $VERSION = 'v0.999.998.5'; # TRIAL
+our $VERSION = 'v0.999.998.6';
 
 use Moose;
 use MongoDB::_Types -types;
