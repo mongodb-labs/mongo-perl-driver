@@ -268,6 +268,40 @@ v0.999.998.1 2014-11-12 15:10:40-05:00 America/New_York (TRIAL RELEASE)
 
   - re-enabled threads tests
 
+v0.708.1.0 2015-04-29 16:51:52-04:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-479 retrieving a GridFS file now throws an error if no chunks exist
+    instead of returning an empty string
+
+  [Removals]
+
+  - PERL-496 The $MongoDB::BSON::use_boolean never worked; BSON boolean values
+    were always deserialized as boolean.pm objects.  Rather than
+    "fix" this and break people's code, the option has been removed
+    and documented as such.
+
+v0.708.0.0 2015-01-20 16:57:11-05:00 America/New_York
+
+  [Additions]
+
+  - Added 'get_namespace' method (and 'ns' alias) to MongoDB::MongoClient
+    for getting a collection directly without an intermediate database object.
+
+  - Added 'db' and 'coll' aliases for 'get_database' and 'get_collection'
+
+  [Bug fixes]
+
+  - PERL-489 references to scalars with both number and string slots internally
+    would crash on BSON encoding, rather than encode the string part as a
+    binary.
+
+  [Diagnostics]
+
+  - Added parenthetical note to "can't get db response" errors to disambiguate
+    where they occur.
+
 v0.707.2.0 2014-12-22 05:35:31-05:00 America/New_York
 
   [Bug fixes]
