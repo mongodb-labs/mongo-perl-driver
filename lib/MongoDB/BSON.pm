@@ -29,76 +29,9 @@ use MongoDB::Error;
 use Moose;
 use namespace::clean -except => 'meta';
 
-=head1 NAME
-
-MongoDB::BSON - Encoding and decoding utilities (more to come)
-
-=head1 ATTRIBUTES
-
-=head2 C<looks_like_number>
-
-    $MongoDB::BSON::looks_like_number = 1;
-    $collection->insert({age => "4"}); # stores 4 as an int
-
-If this is set, the driver will be more aggressive about converting strings into
-numbers.  Anything that L<Scalar::Util>'s looks_like_number would approve as a
-number will be sent to MongoDB as its numeric value.
-
-Defaults to 0 (for backwards compatibility).
-
-If you do not set this, you may be using strings more often than you intend to.
-See the L<MongoDB::DataTypes> section for more info on the behavior of strings
-vs. numbers.
-
-=cut
-
-$MongoDB::BSON::looks_like_number = 0;
-
-=head2 char
-
-    $MongoDB::BSON::char = ":";
-    $collection->query({"x" => {":gt" => 4}});
-
-Can be used to set a character other than "$" to use for special operators.
-
-=cut
-
-$MongoDB::BSON::char = '$';
-
-=head2 Turn on/off UTF8 flag when return strings
-
-    # turn off utf8 flag on strings
-    $MongoDB::BSON::utf8_flag_on = 0;
-
-Default is turn on, that compatible with version before 0.34.
-
-If set to 0, will turn of utf8 flag on string attribute and return on bytes mode, meant same as :
-
-    utf8::encode($str)
-
-Currently MongoDB return string with utf8 flag, on character mode , some people
-wish to turn off utf8 flag and return string on byte mode, it maybe help to display "pretty" strings.
-
-NOTE:
-
-If you turn off utf8 flag, the string  length will compute as bytes, and is_utf8 will return false.
-
-=cut
-
-$MongoDB::BSON::utf8_flag_on = 1;
-
-=head2 Return binary data as instances of L<MongoDB::BSON::Binary> instead of
-string refs.
-
-    $MongoDB::BSON::use_binary = 1
-
-For backwards compatibility, binary data is deserialized as a string ref.  If
-you would like to have it deserialized as instances of L<MongoDB::BSON::Binary>
-(to, say, preserve the subtype), set C<$MongoDB::BSON::use_binary> to 1.
-
-=cut
-
-$MongoDB::BSON::use_binary = 0;
+#--------------------------------------------------------------------------#
+# legacy functions
+#--------------------------------------------------------------------------#
 
 sub decode_bson {
     my ($msg,$client) = @_;
@@ -131,20 +64,6 @@ sub encode_bson {
     return $bson;
 }
 
-=head1 UNSUPPORTED
-
-=head2 Return boolean values as integers
-
-Previously, the MongoDB driver documented the C<$MongoDB::BSON::use_boolean>
-global for toggling whether boolean BSON values were deserialized as integers
-or L<boolean> objects.  However, this value was actually never used and the
-driver always deserialized objects as L<boolean> values.  Rather than fix this
-and break people's code, instead this option is no longer supported.  A future
-driver will provide a means for customizing the deserialization of boolean BSON
-values without the use of a global variable.
-
-=cut
-
 __PACKAGE__->meta->make_immutable;
 
 1;
@@ -152,6 +71,5 @@ __PACKAGE__->meta->make_immutable;
 =for Pod::Coverage
 decode_bson
 encode_bson
-generate_oid
 
 =cut

@@ -56,6 +56,14 @@ use constant {
 };
 
 #--------------------------------------------------------------------------#
+# deprecated global variables
+#--------------------------------------------------------------------------#
+
+# These are used to configure a BSON codec options if none is provided
+$MongoDB::BSON::looks_like_number = 0;
+$MongoDB::BSON::char = '$';
+
+#--------------------------------------------------------------------------#
 # public attributes
 #
 # XXX too many of these are mutable
