@@ -46,6 +46,7 @@ use Type::Library
   ReadPreference
   ReplaceDoc
   ServerType
+  SingleChar
   TopologyType
   UpdateDoc
   WriteConcern
@@ -135,6 +136,8 @@ enum ServerType,
   [
     qw/Standalone Mongos PossiblePrimary RSPrimary RSSecondary RSArbiter RSOther RSGhost Unknown/
   ];
+
+declare SingleChar, as Str, where { length $_ eq 1 };
 
 enum TopologyType,
   [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Unknown/];

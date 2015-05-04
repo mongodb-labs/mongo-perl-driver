@@ -44,7 +44,23 @@ typedef struct _stackette {
 
 #define EMPTY_STACK 0
 
+/* convenience functions taken from Text::CSV_XS by H.M. Brand */
+#define _is_arrayref(f) ( f && \
+     (SvROK (f) || (SvRMAGICAL (f) && (mg_get (f), 1) && SvROK (f))) && \
+      SvOK (f) && SvTYPE (SvRV (f)) == SVt_PVAV )
+#define _is_hashref(f) ( f && \
+     (SvROK (f) || (SvRMAGICAL (f) && (mg_get (f), 1) && SvROK (f))) && \
+      SvOK (f) && SvTYPE (SvRV (f)) == SVt_PVHV )
+#define _is_coderef(f) ( f && \
+     (SvROK (f) || (SvRMAGICAL (f) && (mg_get (f), 1) && SvROK (f))) && \
+      SvOK (f) && SvTYPE (SvRV (f)) == SVt_PVCV )
+
+/* shorthand for getting an SV* from a hash and key */
+#define _hv_fetchs_sv(h,k) \
+    (((svp = hv_fetchs(h, k, FALSE)) && *svp) ? *svp : 0)
+
 #include "perl_mongo.h"
+#include "string.h"
 
 /* perl call helpers
  *
@@ -71,18 +87,20 @@ static SV * perl_mongo_construct_instance_with_magic (const char *klass, void *p
  * Other functions are utility functions used during encoding.
  */
 
-static void hv_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
-static void ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
-static void avdoc_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
+static void hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack);
+static void ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack);
+static void avdoc_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack);
 
-static void sv_to_bson_elem (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
+static void sv_to_bson_elem (bson_t * bson, const char *key, SV *sv, HV *opts, stackette *stack);
+
+const char * maybe_append_first_key(bson_t *bson, HV *opts, stackette *stack);
 
 static void append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
-static void append_oid(bson_t * bson, AV *ids);
 static void append_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv);
 static void append_decomposed_regex(bson_t *bson, const char *key, const char *pattern, const char *flags);
 
-static void assert_no_null_in_key(const char* str, int len);
+static void assert_valid_key(const char* str, int len, HV *opts);
+static const char * bson_key(const char * str, HV *opts);
 static void get_regex_flags(char * flags, SV *sv);
 static stackette * check_circular_ref(void *ptr, stackette *stack);
 
@@ -99,9 +117,9 @@ static stackette * check_circular_ref(void *ptr, stackette *stack);
  *
  */
 
-static SV * bson_doc_to_hashref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
-static SV * bson_array_to_arrayref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
-static SV * bson_elem_to_sv(const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+static SV * bson_doc_to_hashref(bson_iter_t * iter, HV *opts);
+static SV * bson_array_to_arrayref(bson_iter_t * iter, HV *opts);
+static SV * bson_elem_to_sv(const bson_iter_t * iter, HV *opts);
 static SV * bson_oid_to_sv(const bson_iter_t * iter);
 
 /********************************************************************
@@ -148,15 +166,11 @@ timegm(struct tm *tm) {
 
 static SV *utf8_flag_on;
 static SV *use_binary;
-static SV *special_char;
-static SV *look_for_numbers;
 
 void
 perl_mongo_init() {
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
-  special_char = get_sv("MongoDB::BSON::char", 0);
-  look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
 }
 
 /********************************************************************
@@ -364,25 +378,22 @@ perl_mongo_construct_instance_single_arg (const char *klass, SV *arg) {
  ********************************************************************/
 
 void
-perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids) {
+perl_mongo_sv_to_bson (bson_t * bson, SV *sv, HV *opts) {
 
   if (!SvROK (sv)) {
     croak ("not a reference");
   }
 
-  special_char = get_sv("MongoDB::BSON::char", 0);
-  look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
-
   switch (SvTYPE (SvRV (sv))) {
   case SVt_PVHV:
-    hv_to_bson (bson, sv, ids, EMPTY_STACK, is_insert);
+    hv_to_bson (bson, sv, opts, EMPTY_STACK);
     break;
   case SVt_PVAV: {
     if (sv_isa(sv, "Tie::IxHash")) {
-      ixhash_to_bson(bson, sv, ids, EMPTY_STACK, is_insert);
+      ixhash_to_bson(bson, sv, opts, EMPTY_STACK);
     }
     else {
-      avdoc_to_bson(bson, sv, ids, EMPTY_STACK, is_insert);
+      avdoc_to_bson(bson, sv, opts, EMPTY_STACK);
     }
     break;
   }
@@ -393,27 +404,17 @@ perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids) {
 }
 
 static void
-hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
+hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
   HE *he;
   HV *hv;
+  const char *first_key;
 
   hv = (HV*)SvRV(sv);
   if (!(stack = check_circular_ref(hv, stack))) {
     croak("circular ref");
   }
 
-  if (ids) {
-    if(hv_exists(hv, "_id", strlen("_id"))) {
-      SV **id = hv_fetchs(hv, "_id", 0);
-      sv_to_bson_elem(bson, "_id", *id, stack, is_insert);
-      SvREFCNT_inc(*id);
-      av_push(ids, *id);
-    }
-    else {
-      append_oid(bson, ids);
-    }
-  }
-
+  first_key = maybe_append_first_key(bson, opts, stack);
 
   (void)hv_iterinit (hv);
   while ((he = hv_iternext (hv))) {
@@ -421,9 +422,10 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
     STRLEN len;
     const char *key = HePV (he, len);
     uint32_t utf8 = HeUTF8(he);
-    assert_no_null_in_key(key, len);
-    /* if we've already added the oid field, continue */
-    if (ids && strcmp(key, "_id") == 0) {
+    assert_valid_key(key, len, opts);
+
+    /* if we've already added the first key, continue */
+    if (first_key && strcmp(key, first_key) == 0) {
       continue;
     }
 
@@ -442,7 +444,7 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
         croak( "Invalid UTF-8 detected while encoding BSON" );
     }
 
-    sv_to_bson_elem (bson, key, *hval, stack, is_insert);
+    sv_to_bson_elem (bson, key, *hval, opts, stack);
     if (!utf8) {
       Safefree(key);
     }
@@ -458,36 +460,19 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
  * within* a document.
  */
 static void
-avdoc_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
+avdoc_to_bson (bson_t * bson, SV *sv, HV *opts, stackette *stack) {
     I32 i;
+    const char *first_key;
     AV *av = (AV *)SvRV (sv);
 
     if ((av_len (av) % 2) == 0) {
         croak ("odd number of elements in structure");
     }
 
-    /*
-     * the best (and not very good) way i can think of for
-     * checking for ids is to go through the array once
-     * looking for them... blah
+    first_key = maybe_append_first_key(bson, opts, stack);
+
+    /* XXX handle first key here
      */
-    if (ids) {
-        int has_id = 0;
-        for (i = 0; i <= av_len(av); i+= 2) {
-            SV **key = av_fetch(av, i, 0);
-            if (strcmp(SvPV_nolen(*key), "_id") == 0) {
-                SV **val = av_fetch(av, i+1, 0);
-                has_id = 1;
-                sv_to_bson_elem(bson, "_id", *val, EMPTY_STACK, is_insert);
-                SvREFCNT_inc(*val);
-                av_push(ids, *val);
-                break;
-            }
-        }
-        if (!has_id) {
-            append_oid(bson, ids);
-        }
-    }
 
     for (i = 0; i <= av_len (av); i += 2) {
         SV **key, **val;
@@ -499,16 +484,22 @@ avdoc_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
         }
 
         str = SvPVutf8(*key, len);
+        assert_valid_key(str, len, opts);
 
-        sv_to_bson_elem (bson, str, *val, EMPTY_STACK, is_insert);
+        if (first_key && strcmp(str, first_key) == 0) {
+            continue;
+        }
+
+        sv_to_bson_elem (bson, str, *val, opts, EMPTY_STACK);
     }
 }
 
 static void
-ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
+ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
   int i;
   SV **keys_sv, **values_sv;
   AV *array, *keys, *values;
+  const char *first_key;
 
   /*
    * a Tie::IxHash is of the form:
@@ -529,27 +520,7 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
   values_sv = av_fetch(array, 2, 0);
   values = (AV*)SvRV(*values_sv);
 
-  if (ids) {
-    /* check if the hash in position 0 contains an _id */
-    SV **hash_sv = av_fetch(array, 0, 0);
-    if (hv_exists((HV*)SvRV(*hash_sv), "_id", strlen("_id"))) {
-      /*
-       * if so, the value of the _id key is its index
-       * in the values array.
-       */
-      SV **index = hv_fetchs((HV*)SvRV(*hash_sv), "_id", 0);
-      SV **id = av_fetch(values, SvIV(*index), 0);
-      /*
-       * add it to the bson and the ids array
-       */
-      sv_to_bson_elem(bson, "_id", *id, stack, is_insert);
-      SvREFCNT_inc(*id);
-      av_push(ids, *id);
-    }
-    else {
-      append_oid(bson, ids);
-    }
-  }
+  first_key = maybe_append_first_key(bson, opts, stack);
 
   for (i=0; i<=av_len(keys); i++) {
     SV **k, **v;
@@ -562,8 +533,13 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
     }
 
     str = SvPVutf8(*k, len);
-    assert_no_null_in_key(str,len);
-    sv_to_bson_elem(bson, str, *v, stack, is_insert);
+    assert_valid_key(str,len, opts);
+
+    if (first_key && strcmp(str, first_key) == 0) {
+        continue;
+    }
+
+    sv_to_bson_elem(bson, str, *v, opts, stack);
   }
 
   // free the ixhash elem
@@ -572,7 +548,7 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
 
 /* This is for an array reference contained *within* a document */
 static void
-av_to_bson (bson_t * bson, AV *av, stackette *stack, int is_insert) {
+av_to_bson (bson_t * bson, AV *av, HV *opts, stackette *stack) {
   I32 i;
 
   if (!(stack = check_circular_ref(av, stack))) {
@@ -583,40 +559,55 @@ av_to_bson (bson_t * bson, AV *av, stackette *stack, int is_insert) {
     SV **sv;
     SV *key = sv_2mortal(newSViv (i));
     if (!(sv = av_fetch (av, i, 0)))
-      sv_to_bson_elem (bson, SvPV_nolen(key), newSV(0), stack, is_insert);
+      sv_to_bson_elem (bson, SvPV_nolen(key), newSV(0), opts, stack);
     else
-      sv_to_bson_elem (bson, SvPV_nolen(key), *sv, stack, is_insert);
+      sv_to_bson_elem (bson, SvPV_nolen(key), *sv, opts, stack);
   }
 
   // free the av elem
   Safefree(stack);
 }
 
-/** returns true if we need to free at the end */
+/* verify and transform key, if necessary */
 static const char *
-clean_key(const char * str, int is_insert) {
-  if (str[0] == '\0') {
-    croak("empty key name, did you use a $ with double quotes?");
-  }
+bson_key(const char * str, HV *opts) {
+  SV **svp;
+  SV *tempsv;
+  STRLEN len;
 
-  if (is_insert && strchr(str, '.')) {
-    croak("documents for storage cannot contain the . character");
-  }
-
-  if (special_char && SvPOK(special_char) && SvPV_nolen(special_char)[0] == str[0]) {
-    char * out = savepv(str);
-
+  /* first swap op_char if necessary */
+  if (
+      (tempsv = _hv_fetchs_sv(opts, "op_char"))
+      && SvOK(tempsv)
+      && SvPV_nolen(tempsv)[0] == str[0]
+  ) {
+    char *out = savepv(str);
+    SAVEFREEPV(out);
     *out = '$';
-
-    return out;
-  } else {
-    return str;
+    str = out;
   }
+
+  /* then check for validity */
+  if (
+      (tempsv = _hv_fetchs_sv(opts, "invalid_chars"))
+      && SvOK(tempsv)
+      && (len = sv_len(tempsv))
+  ) {
+    const char *invalid = SvPV_nolen(tempsv);
+    for (int i=0; i<len; i++) {
+      if (strchr(str, invalid[i])) {
+        croak("documents for storage cannot contain the '%c' character",invalid[i]);
+      }
+    }
+  }
+
+  return str;
 }
 
 static void
-sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_insert) {
-  const char * key = clean_key(in_key, is_insert);
+sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette *stack) {
+  SV **svp;
+  const char * key = bson_key(in_key,opts);
 
   if (!SvOK(sv)) {
     if (SvGMAGICAL(sv)) {
@@ -624,7 +615,6 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, i
     }
     else {
       bson_append_null(bson, key, -1);
-      if (in_key != key) Safefree((char *)key);
       return;
     }
   }
@@ -708,7 +698,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, i
         bson_t child;
 
         bson_append_document_begin(bson, key, -1, &child);
-        ixhash_to_bson(&child, sv, NO_PREP, stack, is_insert);
+        ixhash_to_bson(&child, sv, opts, stack);
         bson_append_document_end(bson, &child);
       }
       /* DateTime */
@@ -756,7 +746,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, i
         bson_t child;
         dbref = sv_2mortal(perl_mongo_call_reader(sv, "_ordered"));
         bson_append_document_begin(bson, key, -1, &child);
-        ixhash_to_bson(&child, dbref, NO_PREP, stack, is_insert);
+        ixhash_to_bson(&child, dbref, opts, stack);
         bson_append_document_end(bson, &child);
       }
 
@@ -775,7 +765,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, i
 
         if (SvOK(scope)) {
             bson_t * child = bson_new();
-            hv_to_bson(child, scope, NO_PREP, EMPTY_STACK, is_insert);
+            hv_to_bson(child, scope, opts, EMPTY_STACK);
             bson_append_code_with_scope(bson, key, -1, code_str, child);
             bson_destroy(child);
         } else {
@@ -887,7 +877,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, i
         bson_t child;
         bson_append_document_begin(bson, key, -1, &child);
         /* don't add a _id to inner objs */
-        hv_to_bson (&child, sv, NO_PREP, stack, is_insert);
+        hv_to_bson (&child, sv, opts, stack);
         bson_append_document_end(bson, &child);
         break;
       }
@@ -895,7 +885,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, i
         /* array */
         bson_t child;
         bson_append_array_begin(bson, key, -1, &child);
-        av_to_bson (&child, (AV *)SvRV (sv), stack, is_insert);
+        av_to_bson (&child, (AV *)SvRV (sv), opts, stack);
         bson_append_array_end(bson, &child);
         break;
       }
@@ -912,6 +902,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, i
       }
     }
   } else {
+    SV *tempsv;
     int is_string = 0, aggressively_number = 0;
 
 #if PERL_REVISION==5 && PERL_VERSION<=10
@@ -935,7 +926,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, i
     }
 #endif
 
-    if (look_for_numbers && SvIOK(look_for_numbers) && SvIV(look_for_numbers)) {
+    if ( (tempsv = _hv_fetchs_sv(opts, "prefer_numeric")) && SvTRUE (tempsv) ) {
       aggressively_number = looks_like_number(sv);
     }
 
@@ -991,7 +982,27 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, i
     }
   }
 
-  if (in_key != key) Safefree((char *)key);
+}
+
+const char *
+maybe_append_first_key(bson_t *bson, HV *opts, stackette *stack) {
+  SV *tempsv;
+  SV **svp;
+  const char *first_key;
+
+  if ( (tempsv = _hv_fetchs_sv(opts, "first_key")) && SvOK (tempsv) ) {
+    STRLEN len;
+    first_key = SvPVutf8(tempsv, len);
+    assert_valid_key(first_key, len, opts);
+    if ( (tempsv = _hv_fetchs_sv(opts, "first_value")) ) {
+      sv_to_bson_elem(bson, first_key, tempsv, opts, stack);
+    }
+    else {
+      bson_append_null(bson, first_key, -1);
+    }
+  }
+
+  return first_key;
 }
 
 static void
@@ -1029,35 +1040,15 @@ append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv) 
     bson_append_binary(bson, key, -1, subtype, bytes, len);
 }
 
-/* add an _id */
 static void
-append_oid(bson_t * bson, AV *ids) {
-  //  SV *id = perl_mongo_construct_instance ("MongoDB::OID", NULL);
-  SV *id;
-  HV *id_hv, *stash;
-  bson_oid_t oid;
-  char oid_s[25];
-
-  stash = gv_stashpv("MongoDB::OID", 0);
-
-  bson_oid_init(&oid, NULL);
-
-  bson_append_oid(bson, "_id", -1, &oid);
-
-  bson_oid_to_string(&oid, oid_s);
-  id_hv = newHV();
-  (void)hv_stores(id_hv, "value", newSVpvn(oid_s, 24));
-
-  id = sv_bless(newRV_noinc((SV *)id_hv), stash);
-
-  av_push(ids, id);
-}
-
-
-static void
-assert_no_null_in_key(const char* str, int len) {
-  if(strlen(str)  < len)
+assert_valid_key(const char* str, int len, HV *opts) {
+  if(strlen(str)  < len) {
     croak("key contains null char");
+  }
+  if (len == 0) {
+    croak("empty key name, did you use a $ with double quotes?");
+  }
+
 }
 
 static void
@@ -1156,7 +1147,7 @@ check_circular_ref(void *ptr, stackette *stack) {
  ********************************************************************/
 
 SV *
-perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+perl_mongo_bson_to_sv (const bson_t * bson, HV *opts) {
   bson_iter_t iter;
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
@@ -1165,11 +1156,11 @@ perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, i
       croak( "error creating BSON iterator" );
   }
 
-  return bson_doc_to_hashref(&iter, dt_type, inflate_dbrefs, inflate_regexps, client);
+  return bson_doc_to_hashref(&iter, opts);
 }
 
 static SV *
-bson_doc_to_hashref (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+bson_doc_to_hashref(bson_iter_t * iter, HV *opts) {
   HV *ret = newHV();
 
   int is_dbref = 1;
@@ -1195,7 +1186,7 @@ bson_doc_to_hashref (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int 
     // get past field name
 
     // get value
-    value = bson_elem_to_sv(iter, dt_type, inflate_dbrefs, inflate_regexps, client );
+    value = bson_elem_to_sv(iter, opts);
     if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
     	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
      	 croak ("failed storing value in hash");
@@ -1207,35 +1198,37 @@ bson_doc_to_hashref (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int 
     }
   }
 
-  if ( key_num == 3 && is_dbref == 1 && inflate_dbrefs == 1 ) { 
-    SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
-    SV *dbref = 
-      perl_mongo_call_method( dbr_class, "new", 0, 8,
-                              newSVpvs("ref"),
-                              *hv_fetch( ret, "$ref", 4, FALSE ),
-                              newSVpvs("id"),
-                              *hv_fetch( ret, "$id", 3, FALSE ),
-                              newSVpvs("db"),
-                              *hv_fetch( ret, "$db", 3, FALSE ),
-                              newSVpvs("client"),
-                              client
-                                 );
-
-    return dbref;
-  }
+  /* XXX handle dbref inflation here
+    *  if ( key_num == 3 && is_dbref == 1 && inflate_dbrefs == 1 ) { 
+    *    SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
+    *    SV *dbref = 
+    *      perl_mongo_call_method( dbr_class, "new", 0, 8,
+    *                              newSVpvs("ref"),
+    *                              *hv_fetch( ret, "$ref", 4, FALSE ),
+    *                              newSVpvs("id"),
+    *                              *hv_fetch( ret, "$id", 3, FALSE ),
+    *                              newSVpvs("db"),
+    *                              *hv_fetch( ret, "$db", 3, FALSE ),
+    *                              newSVpvs("client"),
+    *                              client
+    *                                 );
+    *
+    * return dbref;
+    * }
+    */
 
   return newRV_noinc ((SV *)ret);
 }
 
 static SV *
-bson_array_to_arrayref (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+bson_array_to_arrayref(bson_iter_t * iter, HV *opts) {
   AV *ret = newAV ();
 
   while (bson_iter_next(iter)) {
     SV *sv;
 
     // get value
-    if ((sv = bson_elem_to_sv (iter, dt_type, inflate_dbrefs, inflate_regexps, client ))) {
+    if ((sv = bson_elem_to_sv(iter, opts ))) {
       av_push (ret, sv);
     }
   }
@@ -1244,7 +1237,8 @@ bson_array_to_arrayref (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, i
 }
 
 static SV *
-bson_elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
+  SV **svp;
   SV *value = 0;
 
   switch(bson_iter_type(iter)) {
@@ -1285,7 +1279,7 @@ bson_elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, in
     bson_iter_t child;
     bson_iter_recurse(iter, &child);
 
-    value = bson_doc_to_hashref(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    value = bson_doc_to_hashref(&child, opts);
 
     break;
   }
@@ -1293,7 +1287,7 @@ bson_elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, in
     bson_iter_t child;
     bson_iter_recurse(iter, &child);
 
-    value = bson_array_to_arrayref(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    value = bson_array_to_arrayref(&child, opts);
 
     break;
   }
@@ -1365,9 +1359,15 @@ bson_elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, in
   case BSON_TYPE_DATE_TIME: {
     double ms_i = bson_iter_date_time(iter);
 
-    SV *datetime, *ms;
+    SV *datetime, *ms, *tempsv;
     HV *named_params;
+    const char *dt_type;
+
     ms_i /= 1000.0;
+
+    if ( (tempsv = _hv_fetchs_sv(opts, "dt_type")) && SvOK(tempsv) ) {
+      dt_type = SvPV_nolen(tempsv);
+    }
 
     if ( dt_type == NULL ) { 
       // raw epoch
@@ -1414,7 +1414,7 @@ bson_elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, in
   }
   case BSON_TYPE_REGEX: {
     SV *class_str = sv_2mortal(newSVpv("MongoDB::BSON::Regexp", 0));
-    SV *pattern, *regex_ref;
+    SV *pattern, *regex_ref, *tempsv;
     const char * regex_str;
     const char * options;
 #if PERL_REVISION==5 && PERL_VERSION<12
@@ -1432,7 +1432,7 @@ bson_elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, in
 
     pattern = sv_2mortal(newSVpv(regex_str, 0));
 
-    if ( inflate_regexps ) { 
+    if ( (tempsv = _hv_fetchs_sv(opts, "inflate_regexps")) && SvTRUE(tempsv) ) {
       /* make a MongoDB::BSON::Regexp object instead of a native Perl regexp. */
       value = perl_mongo_call_method( class_str, "new", 0, 4,
                                       sv_2mortal( newSVpvs("pattern") ),
@@ -1526,7 +1526,7 @@ bson_elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, in
         croak("error iterating BSON type %d\n", bson_iter_type(iter));
     }
 
-    scope_sv = bson_doc_to_hashref(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    scope_sv = bson_doc_to_hashref(&child, opts);
     value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
 
     break;

@@ -9,6 +9,8 @@ use MongoDB::Error;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
+# XXX needs overloading for =~ and qr
+
 has pattern => ( 
     is       => 'ro',
     isa      => Str,

@@ -469,48 +469,6 @@ has auth_mechanism_properties => (
     writer  => '_set_auth_mechanism_properties',
 );
 
-# BSON conversion attributes
-
-=attr dt_type
-
-Sets the type of object which is returned for DateTime fields. The default is
-L<DateTime>. Other acceptable values are L<DateTime::Tiny> and C<undef>. The
-latter will give you the raw epoch value rather than an object.
-
-=cut
-
-has dt_type => (
-    is      => 'rw',
-    default => 'DateTime'
-);
-
-
-=attr inflate_dbrefs
-
-Controls whether L<DBRef|http://docs.mongodb.org/manual/applications/database-references/#dbref>s
-are automatically inflated into L<MongoDB::DBRef> objects. Defaults to true.
-Set this to C<0> if you don't want to auto-inflate them.
-
-=cut
-
-has inflate_dbrefs => (
-    is      => 'rw',
-    isa     => Bool,
-    default => 1
-);
-
-=attr inflate_regexps
-
-Controls whether regular expressions stored in MongoDB are inflated into L<MongoDB::BSON::Regexp> objects instead of native Perl Regexps. The default is false. This can be dangerous, since the JavaScript regexps used internally by MongoDB are of a different dialect than Perl's. The default for this attribute may become true in future versions of the driver.
-
-=cut
-
-has inflate_regexps => (
-    is      => 'rw',
-    isa     => Bool,
-    default => 0,
-);
-
 #--------------------------------------------------------------------------#
 # deprecated public attributes
 #--------------------------------------------------------------------------#
@@ -542,15 +500,48 @@ has auto_reconnect => (
 );
 
 
+=attr dt_type (DEPRECATED)
+
+Sets the type of object which is returned for DateTime fields. The default is
+L<DateTime>. Other acceptable values are L<DateTime::Tiny> and C<undef>. The
+latter will give you the raw epoch value rather than an object.
+
+=cut
+
+has dt_type => (
+    is      => 'rw',
+    default => 'DateTime'
+);
+
 =attr find_master (DEPRECATED)
 
 This attribute no longer has any effect.  The driver will always attempt
 to find an appropriate server for every operation.
 
+XXX has no effect if a bson_codec is provided
+
 =cut
 
 has find_master => (
     is      => 'ro',
+    isa     => Bool,
+    default => 0,
+);
+
+=attr inflate_regexps (DEPRECATED)
+
+Controls whether regular expressions stored in MongoDB are inflated into
+L<MongoDB::BSON::Regexp> objects instead of native Perl Regexps. The default is
+false. This can be dangerous, since the JavaScript regexps used internally by
+MongoDB are of a different dialect than Perl's. The default for this attribute
+may become true in future versions of the driver.
+
+XXX has no effect if a bson_codec is provided
+
+=cut
+
+has inflate_regexps => (
+    is      => 'rw',
     isa     => Bool,
     default => 0,
 );
@@ -579,6 +570,24 @@ has sasl_mechanism => (
     is      => 'ro',
     isa     => AuthMechanism,
     default => 'GSSAPI',
+);
+
+#--------------------------------------------------------------------------#
+# attributes to be unwired and removed
+#--------------------------------------------------------------------------#
+
+=attr inflate_dbrefs (TO BE REMOVED)
+
+Controls whether L<DBRef|http://docs.mongodb.org/manual/applications/database-references/#dbref>s
+are automatically inflated into L<MongoDB::DBRef> objects. Defaults to true.
+Set this to C<0> if you don't want to auto-inflate them.
+
+=cut
+
+has inflate_dbrefs => (
+    is      => 'rw',
+    isa     => Bool,
+    default => 1
 );
 
 #--------------------------------------------------------------------------#

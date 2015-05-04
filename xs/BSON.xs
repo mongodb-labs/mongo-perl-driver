@@ -26,12 +26,9 @@ BOOT:
     legacy_mongo_init();
 
 void
-_decode_bson(msg, dt_type, inflate_dbrefs, inflate_regexps, client)
+_decode_bson(msg, options)
         SV *msg
-        SV *dt_type
-        int inflate_dbrefs
-        int inflate_regexps
-        SV *client
+        SV *options
 
     PREINIT:
         char * data;
@@ -39,30 +36,49 @@ _decode_bson(msg, dt_type, inflate_dbrefs, inflate_regexps, client)
         bson_reader_t * reader;
         bool reached_eof;
         STRLEN length;
+        HV *opts;
 
     PPCODE:
         data = SvPV_nolen(msg);
         length = SvCUR(msg);
 
+        if ( options ) {
+            if ( SvROK(options) && SvTYPE(SvRV(options)) == SVt_PVHV ) {
+                opts = (HV *) SvRV(options);
+            }
+            else {
+                croak("options must be a reference to a hash");
+            }
+        }
+
         reader = bson_reader_new_from_data((uint8_t *)data, length);
 
         while ((bson = bson_reader_read(reader, &reached_eof))) {
-          XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, (SvOK(dt_type) ? SvPV_nolen(dt_type) : NULL), inflate_dbrefs, inflate_regexps, client)));
+          XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, opts)));
         }
 
         bson_reader_destroy(reader);
 
 void
-_encode_bson(obj, clean_keys)
-         SV *obj
-         int clean_keys
+_encode_bson(doc, options)
+        SV *doc
+        SV *options
     PREINIT:
-         bson_t * bson;
+        bson_t * bson;
+        HV *opts;
     PPCODE:
-         bson = bson_new();
-         perl_mongo_sv_to_bson(bson, obj, clean_keys, NO_PREP);
-         XPUSHs(sv_2mortal(newSVpvn((const char *)bson_get_data(bson), bson->len)));
-         bson_destroy(bson);
+        bson = bson_new();
+        if ( options ) {
+            if ( SvROK(options) && SvTYPE(SvRV(options)) == SVt_PVHV ) {
+                opts = (HV *) SvRV(options);
+            }
+            else {
+                croak("options must be a reference to a hash");
+            }
+        }
+        perl_mongo_sv_to_bson(bson, doc, opts);
+        XPUSHs(sv_2mortal(newSVpvn((const char *)bson_get_data(bson), bson->len)));
+        bson_destroy(bson);
 
 void
 _legacy_decode_bson(msg, dt_type, inflate_dbrefs, inflate_regexps, client)
