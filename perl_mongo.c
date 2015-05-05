@@ -960,13 +960,11 @@ av_to_bson (bson_t * bson, AV *av, stackette *stack, int is_insert) {
 
   for (i = 0; i <= av_len (av); i++) {
     SV **sv;
-    SV *key = newSViv (i);
+    SV *key = sv_2mortal(newSViv (i));
     if (!(sv = av_fetch (av, i, 0)))
       append_sv (bson, SvPV_nolen(key), newSV(0), stack, is_insert);
     else
       append_sv (bson, SvPV_nolen(key), *sv, stack, is_insert);
-
-    SvREFCNT_dec (key);
   }
 
   // free the av elem
@@ -1124,14 +1122,13 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
     if (sv_isobject (sv)) {
       /* OIDs */
       if (sv_derived_from (sv, "MongoDB::OID")) {
-        SV *attr = perl_mongo_call_reader (sv, "value");
+        SV *attr = sv_2mortal(perl_mongo_call_reader(sv, "value"));
         char *str = SvPV_nolen (attr);
         bson_oid_t oid;
         bson_oid_init_from_string(&oid, str);
 
         bson_append_oid(bson, key, -1, &oid);
 
-        SvREFCNT_dec (attr);
       }
       /* 64-bit integers */
       else if (sv_isa(sv, "Math::BigInt")) {
@@ -1210,22 +1207,17 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         char *str;
 
         // check for floating tz
-        tz = perl_mongo_call_reader (sv, "time_zone");
-        tz_name = perl_mongo_call_reader (tz, "name");
+        tz = sv_2mortal(perl_mongo_call_reader (sv, "time_zone"));
+        tz_name = sv_2mortal(perl_mongo_call_reader (tz, "name"));
         str = SvPV(tz_name, len);
         if (len == 8 && strncmp("floating", str, 8) == 0) {
           warn("saving floating timezone as UTC");
         }
-        SvREFCNT_dec (tz);
-        SvREFCNT_dec (tz_name);
 
-        sec = perl_mongo_call_reader (sv, "epoch");
-        ms = perl_mongo_call_method (sv, "millisecond", 0, 0);
+        sec = sv_2mortal(perl_mongo_call_reader (sv, "epoch"));
+        ms = sv_2mortal(perl_mongo_call_method (sv, "millisecond", 0, 0));
 
         bson_append_date_time(bson, key, -1, (int64_t)SvIV(sec)*1000+SvIV(ms));
-
-        SvREFCNT_dec (sec);
-        SvREFCNT_dec (ms);
       }
       /* DateTime::TIny */
       else if (sv_isa(sv, "DateTime::Tiny")) { 
@@ -1233,12 +1225,12 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         time_t epoch_secs = time(NULL);
         int64_t epoch_ms;
 
-        t.tm_year   = SvIV( perl_mongo_call_reader( sv, "year"    ) ) - 1900;
-        t.tm_mon    = SvIV( perl_mongo_call_reader( sv, "month"   ) ) -    1;
-        t.tm_mday   = SvIV( perl_mongo_call_reader( sv, "day"     ) )       ;
-        t.tm_hour   = SvIV( perl_mongo_call_reader( sv, "hour"    ) )       ;
-        t.tm_min    = SvIV( perl_mongo_call_reader( sv, "minute"  ) )       ;
-        t.tm_sec    = SvIV( perl_mongo_call_reader( sv, "second"  ) )       ;
+        t.tm_year   = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "year"    )) ) - 1900;
+        t.tm_mon    = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "month"   )) ) -    1;
+        t.tm_mday   = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "day"     )) )       ;
+        t.tm_hour   = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "hour"    )) )       ;
+        t.tm_min    = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "minute"  )) )       ;
+        t.tm_sec    = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "second"  )) )       ;
         t.tm_isdst  = -1;     // no dst/tz info in DateTime::Tiny
 
         epoch_secs = timegm( &t );
@@ -1251,8 +1243,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
       else if (sv_isa(sv, "MongoDB::DBRef")) { 
         SV *dbref;
         bson_t child;
-        dbref = perl_mongo_call_reader(sv, "_ordered");
-
+        dbref = sv_2mortal(perl_mongo_call_reader(sv, "_ordered"));
         bson_append_document_begin(bson, key, -1, &child);
         ixhash_to_bson(&child, dbref, NO_PREP, stack, is_insert);
         bson_append_document_end(bson, &child);
@@ -1267,9 +1258,9 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         char *code_str;
         STRLEN code_len;
 
-        code = perl_mongo_call_reader (sv, "code");
+        code = sv_2mortal(perl_mongo_call_reader (sv, "code"));
         code_str = SvPV(code, code_len);
-        scope = perl_mongo_call_method (sv, "scope", 0, 0);
+        scope = sv_2mortal(perl_mongo_call_method (sv, "scope", 0, 0));
 
         if (SvOK(scope)) {
             bson_t * child = bson_new();
@@ -1280,19 +1271,14 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
             bson_append_code(bson, key, -1, code_str);
         }
 
-        SvREFCNT_dec(code);
-        SvREFCNT_dec(scope);
       }
       else if (sv_isa(sv, "MongoDB::Timestamp")) {
         SV *sec, *inc;
 
-        inc = perl_mongo_call_reader(sv, "inc");
-        sec = perl_mongo_call_reader(sv, "sec");
+        inc = sv_2mortal(perl_mongo_call_reader(sv, "inc"));
+        sec = sv_2mortal(perl_mongo_call_reader(sv, "sec"));
 
         bson_append_timestamp(bson, key, -1, SvIV(sec), SvIV(inc));
-
-        SvREFCNT_dec(sec);
-        SvREFCNT_dec(inc);
       }
       else if (sv_isa(sv, "MongoDB::MinKey")) {
         bson_append_minkey(bson, key, -1);
@@ -1342,13 +1328,10 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
       else if (sv_isa(sv, "MongoDB::BSON::Binary")) {
         SV *data, *subtype;
 
-        subtype = perl_mongo_call_reader(sv, "subtype");
-        data = perl_mongo_call_reader(sv, "data");
+        subtype = sv_2mortal(perl_mongo_call_reader(sv, "subtype"));
+        data = sv_2mortal(perl_mongo_call_reader(sv, "data"));
 
         serialize_binary(bson, key, SvIV(subtype), data);
-
-        SvREFCNT_dec(subtype);
-        SvREFCNT_dec(data);
       }
 #if PERL_REVISION==5 && PERL_VERSION>=12
       // Perl 5.12 regexes
@@ -1377,8 +1360,8 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
       else if (sv_isa(sv, "MongoDB::BSON::Regexp") ) { 
         /* Abstract regexp object */
         SV *pattern, *flags;
-        pattern = perl_mongo_call_reader( sv, "pattern" );
-        flags   = perl_mongo_call_reader( sv, "flags" );
+        pattern = sv_2mortal(perl_mongo_call_reader( sv, "pattern" ));
+        flags   = sv_2mortal(perl_mongo_call_reader( sv, "flags" ));
         
         serialize_regex_obj( bson, key, SvPV_nolen( pattern ), SvPV_nolen( flags ) );
       }

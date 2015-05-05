@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Fixes]
+
+  - Fixed a number of XS memory leaks from non-mortalized variables
+    during BSON encoding
+
 v0.999.998.5 2015-04-30 06:12:39-04:00 America/New_York
 
   [*** Deprecations ***]
