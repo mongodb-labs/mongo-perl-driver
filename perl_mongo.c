@@ -16,12 +16,16 @@
 
 #include "perl_mongo.h"
 
+/* perl call helpers */
+
 static SV *perl_mongo_call_reader (SV *self, const char *reader);
 static SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
 static SV *perl_mongo_call_function (const char *func, int num, ...);
 static SV *perl_mongo_construct_instance (const char *klass, ...);
 static SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 static SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
+
+/* BSON encoding */
 
 static stackette* check_circular_ref(void *ptr, stackette *stack);
 
@@ -34,6 +38,7 @@ static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t sub
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void containsNullChar(const char* str, int len);
 
+/* BSON decoding */
 static SV *bson_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
 static SV *bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 
