@@ -21,7 +21,8 @@ static SV *use_binary;
 static SV *special_char;
 static SV *look_for_numbers;
 
-void perl_mongo_init() {
+void
+perl_mongo_init() {
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
   special_char = get_sv("MongoDB::BSON::char", 0);
@@ -155,7 +156,8 @@ perl_mongo_call_function (const char *func, int num, ...) {
   return ret;
 }
 
-static void perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
+static void
+perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
   int ret_count;
   SV *flags_sv;
   SV *pat_sv;
@@ -184,8 +186,7 @@ static void perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
 }
 
 SV *
-perl_mongo_construct_instance (const char *klass, ...)
-{
+perl_mongo_construct_instance (const char *klass, ...) {
   SV *ret;
   va_list ap;
   va_start (ap, klass);
@@ -195,8 +196,7 @@ perl_mongo_construct_instance (const char *klass, ...)
 }
 
 SV *
-perl_mongo_construct_instance_va (const char *klass, va_list ap)
-{
+perl_mongo_construct_instance_va (const char *klass, va_list ap) {
   dSP;
   SV *ret;
   I32 count;
@@ -232,8 +232,7 @@ perl_mongo_construct_instance_va (const char *klass, va_list ap)
 }
 
 SV *
-perl_mongo_construct_instance_single_arg (const char *klass, SV *arg)
-{
+perl_mongo_construct_instance_single_arg (const char *klass, SV *arg) {
   dSP;
   SV *ret;
   I32 count;
@@ -266,8 +265,7 @@ perl_mongo_construct_instance_single_arg (const char *klass, SV *arg)
 
 
 static SV *
-oid_to_sv (const bson_iter_t * iter)
-{
+oid_to_sv (const bson_iter_t * iter) {
   HV *stash, *id_hv;
   char oid_s[25];
 
@@ -282,8 +280,7 @@ oid_to_sv (const bson_iter_t * iter)
 }
 
 static SV *
-elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client )
-{
+elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   SV *value = 0;
 
   switch(bson_iter_type(iter)) {
@@ -601,8 +598,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
 }
 
 static SV *
-bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client )
-{
+bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   AV *ret = newAV ();
 
   while (bson_iter_next(iter)) {
@@ -618,8 +614,7 @@ bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_r
 }
 
 SV *
-perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client )
-{
+perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   bson_iter_t iter;
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
@@ -632,8 +627,7 @@ perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, i
 }
 
 static SV *
-bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client )
-{
+bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   HV *ret = newHV();
 
   int is_dbref = 1;
@@ -705,7 +699,8 @@ void perl_mongo_resize_buf(buffer *buf, int size) {
   buf->end = buf->start + total;
 }
 
-void perl_mongo_serialize_string(buffer *buf, const char *str, unsigned int str_len) {
+void
+perl_mongo_serialize_string(buffer *buf, const char *str, unsigned int str_len) {
   if(BUF_REMAINING <= str_len+1) {
     perl_mongo_resize_buf(buf, str_len+1);
   }
@@ -716,7 +711,8 @@ void perl_mongo_serialize_string(buffer *buf, const char *str, unsigned int str_
   buf->pos += str_len + 1;
 }
 
-void perl_mongo_serialize_int(buffer *buf, int num) {
+void
+perl_mongo_serialize_int(buffer *buf, int num) {
   int i = MONGO_32(num);
 
   if(BUF_REMAINING <= INT_32) {
@@ -727,7 +723,8 @@ void perl_mongo_serialize_int(buffer *buf, int num) {
   buf->pos += INT_32;
 }
 
-void perl_mongo_serialize_long(buffer *buf, int64_t num) {
+void
+perl_mongo_serialize_long(buffer *buf, int64_t num) {
   int64_t i = MONGO_64(num);
 
   if(BUF_REMAINING <= INT_64) {
@@ -738,7 +735,8 @@ void perl_mongo_serialize_long(buffer *buf, int64_t num) {
   buf->pos += INT_64;
 }
 
-void perl_mongo_serialize_size(char *start, buffer *buf) {
+void
+perl_mongo_serialize_size(char *start, buffer *buf) {
   int total = buf->pos - start;
   total = MONGO_32(total);
 
@@ -773,7 +771,8 @@ perl_mongo_prep(bson_t * bson, AV *ids) {
  * checks if a ptr has been parsed already and, if not, adds it to the stack. If
  * we do have a circular ref, this function returns 0.
  */
-static stackette* check_circular_ref(void *ptr, stackette *stack) {
+static stackette*
+check_circular_ref(void *ptr, stackette *stack) {
   stackette *ette, *start = stack;
 
   while (stack) {
@@ -793,8 +792,7 @@ static stackette* check_circular_ref(void *ptr, stackette *stack) {
 }
 
 static void
-hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert)
-{
+hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
   HE *he;
   HV *hv;
 
@@ -940,7 +938,8 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
   Safefree(stack);
 }
 
-static void containsNullChar(const char* str, int len) {
+static void
+containsNullChar(const char* str, int len) {
   if(strlen(str)  < len)
     croak("key contains null char");
 }
@@ -953,14 +952,14 @@ static void containsNullChar(const char* str, int len) {
  *
  */
 
-static int is_leap_year(unsigned year)
-{
+static int
+is_leap_year(unsigned year) {
     year += 1900;
     return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0);
 }
 
-time_t timegm (struct tm *tm)
-{
+time_t
+timegm(struct tm *tm) {
   static const unsigned month_start[2][12] = {
 	{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 },
 	{ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 },
@@ -985,7 +984,8 @@ time_t timegm (struct tm *tm)
 #endif /* WIN32 */
 
 /** returns true if we need to free at the end */
-const char * clean_key(const char * str, int is_insert) {
+const char *
+clean_key(const char * str, int is_insert) {
   if (str[0] == '\0') {
     croak("empty key name, did you use a $ with double quotes?");
   }
@@ -1006,8 +1006,7 @@ const char * clean_key(const char * str, int is_insert) {
 }
 
 static void
-append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_insert)
-{
+append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_insert) {
   const char * key = clean_key(in_key, is_insert);
 
   if (!SvOK(sv)) {
@@ -1386,8 +1385,8 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
   if (in_key != key) Safefree((char *)key);
 }
 
-static void serialize_regex_obj(bson_t *bson, const char *key, 
-                                const char *pattern, const char *flags ) { 
+static void
+serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags ) {
   size_t pattern_length = strlen( pattern );
   char *buf;
 
@@ -1398,7 +1397,8 @@ static void serialize_regex_obj(bson_t *bson, const char *key,
   Safefree(buf);
 }
 
-static void serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
+static void
+serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
   char flags[]     = {0,0,0,0,0};
   char * buf;
   serialize_regex_flags(flags, sv);
@@ -1412,7 +1412,8 @@ static void serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv)
   Safefree(buf);
 }
 
-static void serialize_regex_flags(char * flags, SV *sv) {
+static void
+serialize_regex_flags(char * flags, SV *sv) {
   char flags_tmp[] = {0,0,0,0,0,0,0,0};
   unsigned int i = 0, f = 0;
 
@@ -1455,8 +1456,8 @@ static void serialize_regex_flags(char * flags, SV *sv) {
   }
 }
 
-static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv)
-{
+static void
+serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv) {
     STRLEN len;
     uint8_t * bytes = (uint8_t *) SvPVbyte(sv, len);
 
