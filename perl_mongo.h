@@ -64,12 +64,6 @@ typedef __int64 int64_t;
 #define SUBTYPE_BINARY_DEPRECATED 2
 #define SUBTYPE_BINARY 0
 
-#define INT_32 4
-#define INT_64 8
-#define DOUBLE_64 8
-#define BYTE_8 1
-#define OID_SIZE 12
-
 #define BSON_DOUBLE 1
 #define BSON_STRING 2
 #define BSON_OBJECT 3
