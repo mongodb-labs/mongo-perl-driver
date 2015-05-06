@@ -27,7 +27,9 @@ static SV *perl_mongo_construct_instance_with_magic (const char *klass, void *pt
 
 /* BSON encoding */
 
-static stackette* check_circular_ref(void *ptr, stackette *stack);
+static void hv_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
+static void ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
+static void avdoc_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
 
 static void perl_mongo_regex_flags( char *flags_ptr, SV *re );
 static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
@@ -37,20 +39,22 @@ static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t sub
 
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void append_oid(bson_t * bson, AV *ids);
+
 static void assert_no_null_in_key(const char* str, int len);
+static stackette* check_circular_ref(void *ptr, stackette *stack);
 
 /* BSON decoding */
 static SV *bson_doc_to_hv(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
 static SV *bson_array_to_av(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 static SV *bson_oid_to_sv(const bson_iter_t * iter);
+static SV *elem_to_sv(const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 
-#if defined(WIN32) || defined(sun)
-
-/*
+/********************************************************************
  * Some C libraries (e.g. MSVCRT) do not have a "timegm" function.
  * Here is a surrogate implementation.
- *
- */
+ ********************************************************************/
+
+#if defined(WIN32) || defined(sun)
 
 static int
 is_leap_year(unsigned year) {
@@ -83,6 +87,10 @@ timegm(struct tm *tm) {
 
 #endif /* WIN32 */
 
+/********************************************************************
+ * global data
+ ********************************************************************/
+
 static SV *utf8_flag_on;
 static SV *use_binary;
 static SV *special_char;
@@ -95,6 +103,10 @@ perl_mongo_init() {
   special_char = get_sv("MongoDB::BSON::char", 0);
   look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
 }
+
+/********************************************************************
+ * perl call helpers
+ ********************************************************************/
 
 static SV *
 perl_mongo_call_reader (SV *self, const char *reader) {
@@ -292,480 +304,37 @@ perl_mongo_construct_instance_single_arg (const char *klass, SV *arg) {
   return ret;
 }
 
+/********************************************************************
+ * BSON encoding
+ ********************************************************************/
 
-static SV *
-bson_oid_to_sv (const bson_iter_t * iter) {
-  HV *stash, *id_hv;
-  char oid_s[25];
+void
+perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids) {
 
-  const bson_oid_t * oid = bson_iter_oid(iter);
-  bson_oid_to_string(oid, oid_s);
-
-  id_hv = newHV();
-  (void)hv_stores(id_hv, "value", newSVpvn(oid_s, 24));
-
-  stash = gv_stashpv("MongoDB::OID", 0);
-  return sv_bless(newRV_noinc((SV *)id_hv), stash);
-}
-
-static SV *
-elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
-  SV *value = 0;
-
-  switch(bson_iter_type(iter)) {
-  case BSON_TYPE_OID: {
-    value = bson_oid_to_sv(iter);
-    break;
+  if (!SvROK (sv)) {
+    croak ("not a reference");
   }
-  case BSON_TYPE_DOUBLE: {
-    value = newSVnv(bson_iter_double(iter));
+
+  special_char = get_sv("MongoDB::BSON::char", 0);
+  look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
+
+  switch (SvTYPE (SvRV (sv))) {
+  case SVt_PVHV:
+    hv_to_bson (bson, sv, ids, EMPTY_STACK, is_insert);
     break;
-  }
-  case BSON_TYPE_SYMBOL:
-  case BSON_TYPE_UTF8: {
-    const char * str;
-    uint32_t len;
-
-    if (bson_iter_type(iter) == BSON_TYPE_SYMBOL) {
-      str = bson_iter_symbol(iter, &len);
-    } else {
-      str = bson_iter_utf8(iter, &len);
-    }
-
-    if ( ! is_utf8_string((const U8*)str,len)) {
-      croak( "Invalid UTF-8 detected while decoding BSON" );
-    }
-
-    // this makes a copy of the buffer
-    // len includes \0
-    value = newSVpvn(str, len);
-
-    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
-      SvUTF8_on(value);
-    }
-
-    break;
-  }
-  case BSON_TYPE_DOCUMENT: {
-    bson_iter_t child;
-    bson_iter_recurse(iter, &child);
-
-    value = bson_doc_to_hv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
-
-    break;
-  }
-  case BSON_TYPE_ARRAY: {
-    bson_iter_t child;
-    bson_iter_recurse(iter, &child);
-
-    value = bson_array_to_av(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
-
-    break;
-  }
-  case BSON_TYPE_BINARY: {
-    const char * buf;
-    uint32_t len;
-    bson_subtype_t type;
-    bson_iter_binary(iter, &type, &len, (const uint8_t **)&buf);
-
-    if (use_binary && SvTRUE(use_binary)) {
-      SV *data = sv_2mortal(newSVpvn(buf, len));
-      SV *subtype = sv_2mortal(newSViv(type));
-      value = perl_mongo_construct_instance("MongoDB::BSON::Binary", "data", data, "subtype", subtype, NULL);
+  case SVt_PVAV: {
+    if (sv_isa(sv, "Tie::IxHash")) {
+      ixhash_to_bson(bson, sv, ids, EMPTY_STACK, is_insert);
     }
     else {
-      value = newSVpvn(buf, len);
+      avdoc_to_bson(bson, sv, ids, EMPTY_STACK, is_insert);
     }
-
     break;
   }
-  case BSON_TYPE_BOOL: {
-    dSP;
-    bool d = bson_iter_bool(iter);
-    int count;
-
-    SAVETMPS;
-
-    PUSHMARK(SP);
-    PUTBACK;
-    if (d) {
-      count = call_pv("boolean::true", G_SCALAR);
-    }
-    else {
-      count = call_pv("boolean::false", G_SCALAR);
-    }
-    SPAGAIN;
-    if (count == 1)
-      value = newSVsv(POPs);
-
-    if (count != 1 || !SvOK(value)) {
-      value = newSViv(d);
-    }
-
-    PUTBACK;
-    FREETMPS;
-    break;
+  default:
+    sv_dump(sv);
+    croak ("type unhandled");
   }
-  case BSON_TYPE_UNDEFINED:
-  case BSON_TYPE_NULL: {
-    value = newSV(0);
-    break;
-  }
-  case BSON_TYPE_INT32: {
-    value = newSViv(bson_iter_int32(iter));
-    break;
-  }
-  case BSON_TYPE_INT64: {
-#if defined(MONGO_USE_64_BIT_INT)
-    value = newSViv(bson_iter_int64(iter));
-#else
-    char buf[22];
-    sprintf(buf,"%" PRIi64,bson_iter_int64(iter));
-    load_module(0,newSVpvs("Math::BigInt"),NULL,NULL);
-    SV *as_str = sv_2mortal(newSVpv(buf,0));
-    value = perl_mongo_construct_instance_single_arg("Math::BigInt", as_str);
-#endif
-    break;
-  }
-  case BSON_TYPE_DATE_TIME: {
-    double ms_i = bson_iter_date_time(iter);
-
-    SV *datetime, *ms;
-    HV *named_params;
-    ms_i /= 1000.0;
-
-    if ( dt_type == NULL ) { 
-      // raw epoch
-      value = newSViv(ms_i);
-    } else if ( strcmp( dt_type, "DateTime::Tiny" ) == 0 ) {
-      time_t epoch;
-      struct tm *dt;
-      datetime = sv_2mortal(newSVpv("DateTime::Tiny", 0));
-      epoch = bson_iter_time_t(iter);
-      dt = gmtime( &epoch );
-
-      value = 
-        perl_mongo_call_function("DateTime::Tiny::new", 13, datetime,
-                                 newSVpvs("year"),
-                                 newSViv( dt->tm_year + 1900 ),
-                                 newSVpvs("month"),
-                                 newSViv( dt->tm_mon  +    1 ),
-                                 newSVpvs("day"),
-                                 newSViv( dt->tm_mday ),
-                                 newSVpvs("hour"),
-                                 newSViv( dt->tm_hour ),
-                                 newSVpvs("minute"),
-                                 newSViv( dt->tm_min ),
-                                 newSVpvs("second"),
-                                 newSViv( dt->tm_sec )
-                                 );
-
-
-    } else if ( strcmp( dt_type, "DateTime" ) == 0 ) { 
-      datetime = sv_2mortal(newSVpv("DateTime", 0));
-      ms = newSVnv(ms_i);
-
-      named_params = newHV();
-      hv_stores(named_params, "epoch", ms);
-
-      value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
-                                       sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
-
-    } else {
-      croak( "Invalid dt_type \"%s\"", dt_type );
-    }
-
-    break;
-  }
-  case BSON_TYPE_REGEX: {
-    SV *class_str = sv_2mortal(newSVpv("MongoDB::BSON::Regexp", 0));
-    SV *pattern, *regex_ref;
-    const char * regex_str;
-    const char * options;
-#if PERL_REVISION==5 && PERL_VERSION<12
-    SV *regex;
-#endif
-    HV *stash;
-    U32 flags = 0;
-    REGEXP *re;
-#if PERL_REVISION==5 && PERL_VERSION<=8
-    PMOP pm;
-    STRLEN len;
-    char *pat;
-#endif
-    regex_str = bson_iter_regex(iter, &options);
-
-    pattern = sv_2mortal(newSVpv(regex_str, 0));
-
-    if ( inflate_regexps ) { 
-      /* make a MongoDB::BSON::Regexp object instead of a native Perl regexp. */
-      value = perl_mongo_call_method( class_str, "new", 0, 4,
-                                      sv_2mortal( newSVpvs("pattern") ),
-                                      pattern,
-                                      sv_2mortal( newSVpvs("flags") ),
-                                      sv_2mortal( newSVpv( options, 0 ) ) );
-
-      break;   /* exit case */
-    }
-
-
-    while(*options != 0) {
-      switch(*options) {
-      case 'l':
-#if PERL_REVISION==5 && PERL_VERSION<=12
-        flags |= PMf_LOCALE;
-#else
-        set_regex_charset(&flags, REGEX_LOCALE_CHARSET);
-#endif
-        break;
-      case 'm':
-        flags |= PMf_MULTILINE;
-        break;
-      case 'i':
-        flags |= PMf_FOLD;
-        break;
-      case 'x':
-        flags |= PMf_EXTENDED;
-        break;
-      case 's':
-        flags |= PMf_SINGLELINE;
-        break;
-      }
-      options++;
-    }
-    options++;
-
-#if PERL_REVISION==5 && PERL_VERSION<=8
-    /* 5.8 */
-    pm.op_pmdynflags = flags;
-    pat = SvPV(pattern, len);
-    re = pregcomp(pat, pat + len, &pm);
-#else
-    /* 5.10 and beyond */
-    re = re_compile(pattern, flags);
-#endif
-     // eo version-dependent code
-
-#if PERL_REVISION==5 && PERL_VERSION>=12
-    // they removed magic and made this a normal obj in 5.12
-    regex_ref = newRV((SV*)re);
-#else
-    regex = sv_2mortal(newSVpv("",0));
-    regex_ref = newRV((SV*)regex);
-
-    sv_magic(regex, (SV*)re, PERL_MAGIC_qr, 0, 0);
-#endif
-
-    stash = gv_stashpv("Regexp", 0);
-    sv_bless(regex_ref, stash);
-
-    value = regex_ref;
-    break;
-  }
-  case BSON_TYPE_CODE: {
-    const char * code;
-    uint32_t len;
-    SV *code_sv;
-
-    code = bson_iter_code(iter, &len);
-
-    code_sv = sv_2mortal(newSVpvn(code, len));
-
-    value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, NULL);
-
-    break;
-  }
-  case BSON_TYPE_CODEWSCOPE: {
-    const char * code;
-    const uint8_t * scope;
-    uint32_t code_len, scope_len;
-    SV * code_sv;
-    SV * scope_sv;
-    bson_t bson;
-    bson_iter_t child;
-
-    code = bson_iter_codewscope(iter, &code_len, &scope_len, &scope);
-    code_sv = sv_2mortal(newSVpvn(code, code_len));
-
-    if ( ! ( bson_init_static(&bson, scope, scope_len) && bson_iter_init(&child, &bson) ) ) {
-        croak("error iterating BSON type %d\n", bson_iter_type(iter));
-    }
-
-    scope_sv = bson_doc_to_hv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
-    value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
-
-    break;
-  }
-  case BSON_TYPE_TIMESTAMP: {
-    SV *sec_sv, *inc_sv;
-    uint32_t sec, inc;
-
-    bson_iter_timestamp(iter, &sec, &inc);
-
-    sec_sv = sv_2mortal(newSViv(sec));
-    inc_sv = sv_2mortal(newSViv(inc));
-
-    value = perl_mongo_construct_instance("MongoDB::Timestamp", "sec", sec_sv, "inc", inc_sv, NULL);
-    break;
-  }
-  case BSON_TYPE_MINKEY: {
-    HV *stash = gv_stashpv("MongoDB::MinKey", GV_ADD);
-    value = sv_bless(newRV((SV*)newHV()), stash);
-    break;
-  }
-  case BSON_TYPE_MAXKEY: {
-    HV *stash = gv_stashpv("MongoDB::MaxKey", GV_ADD);
-    value = sv_bless(newRV((SV*)newHV()), stash);
-    break;
-  }
-  default: {
-    croak("type %d not supported\n", bson_iter_type(iter));
-    // give up, it'll be trouble if we keep going
-  }
-  }
-  return value;
-}
-
-static SV *
-bson_array_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
-  AV *ret = newAV ();
-
-  while (bson_iter_next(iter)) {
-    SV *sv;
-
-    // get value
-    if ((sv = elem_to_sv (iter, dt_type, inflate_dbrefs, inflate_regexps, client ))) {
-      av_push (ret, sv);
-    }
-  }
-
-  return newRV_noinc ((SV *)ret);
-}
-
-SV *
-perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
-  bson_iter_t iter;
-  utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
-  use_binary = get_sv("MongoDB::BSON::use_binary", 0);
-
-  if ( ! bson_iter_init(&iter, bson) ) {
-      croak( "error creating BSON iterator" );
-  }
-
-  return bson_doc_to_hv(&iter, dt_type, inflate_dbrefs, inflate_regexps, client);
-}
-
-static SV *
-bson_doc_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
-  HV *ret = newHV();
-
-  int is_dbref = 1;
-  int key_num  = 0;
-
-  while (bson_iter_next(iter)) {
-    const char *name;
-    SV *value;
-
-    name = bson_iter_key(iter);
-
-    if ( ! is_utf8_string((const U8*)name,strlen(name))) {
-      croak( "Invalid UTF-8 detected while decoding BSON" );
-    }
-
-    key_num++;
-    /* check if this is a DBref. We must see the keys
-       $ref, $id, and $db in that order, with no extra keys */
-    if ( key_num == 1 && strcmp( name, "$ref" ) ) is_dbref = 0;
-    if ( key_num == 2 && is_dbref == 1 && strcmp( name, "$id" ) ) is_dbref = 0;
-    if ( key_num == 3 && is_dbref == 1 && strcmp( name, "$db" ) ) is_dbref = 0;
-
-    // get past field name
-
-    // get value
-    value = elem_to_sv(iter, dt_type, inflate_dbrefs, inflate_regexps, client );
-    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
-    	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
-     	 croak ("failed storing value in hash");
-    	}
-    } else {
-    	if (!hv_store (ret, name, strlen (name), value, 0)) {
-     	 croak ("failed storing value in hash");
-    	}
-    }
-  }
-
-  if ( key_num == 3 && is_dbref == 1 && inflate_dbrefs == 1 ) { 
-    SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
-    SV *dbref = 
-      perl_mongo_call_method( dbr_class, "new", 0, 8,
-                              newSVpvs("ref"),
-                              *hv_fetch( ret, "$ref", 4, FALSE ),
-                              newSVpvs("id"),
-                              *hv_fetch( ret, "$id", 3, FALSE ),
-                              newSVpvs("db"),
-                              *hv_fetch( ret, "$db", 3, FALSE ),
-                              newSVpvs("client"),
-                              client
-                                 );
-
-    return dbref;
-  }
-
-  return newRV_noinc ((SV *)ret);
-}
-
-/* add an _id */
-static void
-append_oid(bson_t * bson, AV *ids) {
-  //  SV *id = perl_mongo_construct_instance ("MongoDB::OID", NULL);
-  SV *id;
-  HV *id_hv, *stash;
-  bson_oid_t oid;
-  char oid_s[25];
-
-  stash = gv_stashpv("MongoDB::OID", 0);
-
-  bson_oid_init(&oid, NULL);
-
-  bson_append_oid(bson, "_id", -1, &oid);
-
-  bson_oid_to_string(&oid, oid_s);
-  id_hv = newHV();
-  (void)hv_stores(id_hv, "value", newSVpvn(oid_s, 24));
-
-  id = sv_bless(newRV_noinc((SV *)id_hv), stash);
-
-  av_push(ids, id);
-}
-
-static void
-assert_no_null_in_key(const char* str, int len) {
-  if(strlen(str)  < len)
-    croak("key contains null char");
-}
-
-/**
- * checks if a ptr has been parsed already and, if not, adds it to the stack. If
- * we do have a circular ref, this function returns 0.
- */
-static stackette*
-check_circular_ref(void *ptr, stackette *stack) {
-  stackette *ette, *start = stack;
-
-  while (stack) {
-    if (ptr == stack->ptr) {
-      return 0;
-    }
-    stack = stack->prev;
-  }
-
-  // push this onto the circular ref stack
-  Newx(ette, 1, stackette);
-  ette->ptr = ptr;
-  // if stack has not been initialized, stack will be 0 so this will work out
-  ette->prev = start;
-
-  return ette;
 }
 
 static void
@@ -828,25 +397,56 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
   Safefree(stack);
 }
 
+
+/* This is for an array reference of key/value pairs given as a document
+ * instead of a hash reference or Tie::Ixhash, not for an array ref contained
+ * within* a document.
+ */
 static void
-av_to_bson (bson_t * bson, AV *av, stackette *stack, int is_insert) {
-  I32 i;
+avdoc_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
+    I32 i;
+    AV *av = (AV *)SvRV (sv);
 
-  if (!(stack = check_circular_ref(av, stack))) {
-    croak("circular ref");
-  }
+    if ((av_len (av) % 2) == 0) {
+        croak ("odd number of elements in structure");
+    }
 
-  for (i = 0; i <= av_len (av); i++) {
-    SV **sv;
-    SV *key = sv_2mortal(newSViv (i));
-    if (!(sv = av_fetch (av, i, 0)))
-      append_sv (bson, SvPV_nolen(key), newSV(0), stack, is_insert);
-    else
-      append_sv (bson, SvPV_nolen(key), *sv, stack, is_insert);
-  }
+    /*
+     * the best (and not very good) way i can think of for
+     * checking for ids is to go through the array once
+     * looking for them... blah
+     */
+    if (ids) {
+        int has_id = 0;
+        for (i = 0; i <= av_len(av); i+= 2) {
+            SV **key = av_fetch(av, i, 0);
+            if (strcmp(SvPV_nolen(*key), "_id") == 0) {
+                SV **val = av_fetch(av, i+1, 0);
+                has_id = 1;
+                append_sv(bson, "_id", *val, EMPTY_STACK, is_insert);
+                SvREFCNT_inc(*val);
+                av_push(ids, *val);
+                break;
+            }
+        }
+        if (!has_id) {
+            append_oid(bson, ids);
+        }
+    }
 
-  // free the av elem
-  Safefree(stack);
+    for (i = 0; i <= av_len (av); i += 2) {
+        SV **key, **val;
+        STRLEN len;
+        const char *str;
+
+        if ( !((key = av_fetch (av, i, 0)) && (val = av_fetch (av, i + 1, 0))) ) {
+            croak ("failed to fetch array element");
+        }
+
+        str = SvPVutf8(*key, len);
+
+        append_sv (bson, str, *val, EMPTY_STACK, is_insert);
+    }
 }
 
 static void
@@ -912,6 +512,28 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
   }
 
   // free the ixhash elem
+  Safefree(stack);
+}
+
+/* This is for an array reference contained *within* a document */
+static void
+av_to_bson (bson_t * bson, AV *av, stackette *stack, int is_insert) {
+  I32 i;
+
+  if (!(stack = check_circular_ref(av, stack))) {
+    croak("circular ref");
+  }
+
+  for (i = 0; i <= av_len (av); i++) {
+    SV **sv;
+    SV *key = sv_2mortal(newSViv (i));
+    if (!(sv = av_fetch (av, i, 0)))
+      append_sv (bson, SvPV_nolen(key), newSV(0), stack, is_insert);
+    else
+      append_sv (bson, SvPV_nolen(key), *sv, stack, is_insert);
+  }
+
+  // free the av elem
   Safefree(stack);
 }
 
@@ -1424,82 +1046,482 @@ serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * s
 
     bson_append_binary(bson, key, -1, subtype, bytes, len);
 }
+/* add an _id */
+static void
+append_oid(bson_t * bson, AV *ids) {
+  //  SV *id = perl_mongo_construct_instance ("MongoDB::OID", NULL);
+  SV *id;
+  HV *id_hv, *stash;
+  bson_oid_t oid;
+  char oid_s[25];
 
-void
-perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids) {
+  stash = gv_stashpv("MongoDB::OID", 0);
 
-  if (!SvROK (sv)) {
-    croak ("not a reference");
+  bson_oid_init(&oid, NULL);
+
+  bson_append_oid(bson, "_id", -1, &oid);
+
+  bson_oid_to_string(&oid, oid_s);
+  id_hv = newHV();
+  (void)hv_stores(id_hv, "value", newSVpvn(oid_s, 24));
+
+  id = sv_bless(newRV_noinc((SV *)id_hv), stash);
+
+  av_push(ids, id);
+}
+
+
+static void
+assert_no_null_in_key(const char* str, int len) {
+  if(strlen(str)  < len)
+    croak("key contains null char");
+}
+
+/**
+ * checks if a ptr has been parsed already and, if not, adds it to the stack. If
+ * we do have a circular ref, this function returns 0.
+ */
+static stackette*
+check_circular_ref(void *ptr, stackette *stack) {
+  stackette *ette, *start = stack;
+
+  while (stack) {
+    if (ptr == stack->ptr) {
+      return 0;
+    }
+    stack = stack->prev;
   }
 
-  special_char = get_sv("MongoDB::BSON::char", 0);
-  look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
+  // push this onto the circular ref stack
+  Newx(ette, 1, stackette);
+  ette->ptr = ptr;
+  // if stack has not been initialized, stack will be 0 so this will work out
+  ette->prev = start;
 
-  switch (SvTYPE (SvRV (sv))) {
-  case SVt_PVHV:
-    hv_to_bson (bson, sv, ids, EMPTY_STACK, is_insert);
+  return ette;
+}
+
+/********************************************************************
+ * BSON decoding
+ ********************************************************************/
+
+SV *
+perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+  bson_iter_t iter;
+  utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
+  use_binary = get_sv("MongoDB::BSON::use_binary", 0);
+
+  if ( ! bson_iter_init(&iter, bson) ) {
+      croak( "error creating BSON iterator" );
+  }
+
+  return bson_doc_to_hv(&iter, dt_type, inflate_dbrefs, inflate_regexps, client);
+}
+
+static SV *
+bson_doc_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+  HV *ret = newHV();
+
+  int is_dbref = 1;
+  int key_num  = 0;
+
+  while (bson_iter_next(iter)) {
+    const char *name;
+    SV *value;
+
+    name = bson_iter_key(iter);
+
+    if ( ! is_utf8_string((const U8*)name,strlen(name))) {
+      croak( "Invalid UTF-8 detected while decoding BSON" );
+    }
+
+    key_num++;
+    /* check if this is a DBref. We must see the keys
+       $ref, $id, and $db in that order, with no extra keys */
+    if ( key_num == 1 && strcmp( name, "$ref" ) ) is_dbref = 0;
+    if ( key_num == 2 && is_dbref == 1 && strcmp( name, "$id" ) ) is_dbref = 0;
+    if ( key_num == 3 && is_dbref == 1 && strcmp( name, "$db" ) ) is_dbref = 0;
+
+    // get past field name
+
+    // get value
+    value = elem_to_sv(iter, dt_type, inflate_dbrefs, inflate_regexps, client );
+    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
+    	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
+     	 croak ("failed storing value in hash");
+    	}
+    } else {
+    	if (!hv_store (ret, name, strlen (name), value, 0)) {
+     	 croak ("failed storing value in hash");
+    	}
+    }
+  }
+
+  if ( key_num == 3 && is_dbref == 1 && inflate_dbrefs == 1 ) { 
+    SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
+    SV *dbref = 
+      perl_mongo_call_method( dbr_class, "new", 0, 8,
+                              newSVpvs("ref"),
+                              *hv_fetch( ret, "$ref", 4, FALSE ),
+                              newSVpvs("id"),
+                              *hv_fetch( ret, "$id", 3, FALSE ),
+                              newSVpvs("db"),
+                              *hv_fetch( ret, "$db", 3, FALSE ),
+                              newSVpvs("client"),
+                              client
+                                 );
+
+    return dbref;
+  }
+
+  return newRV_noinc ((SV *)ret);
+}
+
+static SV *
+bson_array_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+  AV *ret = newAV ();
+
+  while (bson_iter_next(iter)) {
+    SV *sv;
+
+    // get value
+    if ((sv = elem_to_sv (iter, dt_type, inflate_dbrefs, inflate_regexps, client ))) {
+      av_push (ret, sv);
+    }
+  }
+
+  return newRV_noinc ((SV *)ret);
+}
+
+static SV *
+elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+  SV *value = 0;
+
+  switch(bson_iter_type(iter)) {
+  case BSON_TYPE_OID: {
+    value = bson_oid_to_sv(iter);
     break;
-  case SVt_PVAV: {
-    if (sv_isa(sv, "Tie::IxHash")) {
-      ixhash_to_bson(bson, sv, ids, EMPTY_STACK, is_insert);
+  }
+  case BSON_TYPE_DOUBLE: {
+    value = newSVnv(bson_iter_double(iter));
+    break;
+  }
+  case BSON_TYPE_SYMBOL:
+  case BSON_TYPE_UTF8: {
+    const char * str;
+    uint32_t len;
+
+    if (bson_iter_type(iter) == BSON_TYPE_SYMBOL) {
+      str = bson_iter_symbol(iter, &len);
+    } else {
+      str = bson_iter_utf8(iter, &len);
+    }
+
+    if ( ! is_utf8_string((const U8*)str,len)) {
+      croak( "Invalid UTF-8 detected while decoding BSON" );
+    }
+
+    // this makes a copy of the buffer
+    // len includes \0
+    value = newSVpvn(str, len);
+
+    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
+      SvUTF8_on(value);
+    }
+
+    break;
+  }
+  case BSON_TYPE_DOCUMENT: {
+    bson_iter_t child;
+    bson_iter_recurse(iter, &child);
+
+    value = bson_doc_to_hv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+
+    break;
+  }
+  case BSON_TYPE_ARRAY: {
+    bson_iter_t child;
+    bson_iter_recurse(iter, &child);
+
+    value = bson_array_to_av(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+
+    break;
+  }
+  case BSON_TYPE_BINARY: {
+    const char * buf;
+    uint32_t len;
+    bson_subtype_t type;
+    bson_iter_binary(iter, &type, &len, (const uint8_t **)&buf);
+
+    if (use_binary && SvTRUE(use_binary)) {
+      SV *data = sv_2mortal(newSVpvn(buf, len));
+      SV *subtype = sv_2mortal(newSViv(type));
+      value = perl_mongo_construct_instance("MongoDB::BSON::Binary", "data", data, "subtype", subtype, NULL);
     }
     else {
-      /*
-       * this is a special case of array:
-       * ("foo" => "bar", "baz" => "bat")
-       * which is, as far as i can tell,
-       * indistinguishable from a "normal"
-       * array.
-       */
-
-      I32 i;
-      AV *av = (AV *)SvRV (sv);
-
-      if ((av_len (av) % 2) == 0) {
-        croak ("odd number of elements in structure");
-      }
-
-      /*
-       * the best (and not very good) way i can think of for
-       * checking for ids is to go through the array once
-       * looking for them... blah
-       */
-      if (ids) {
-        int has_id = 0;
-        for (i = 0; i <= av_len(av); i+= 2) {
-          SV **key = av_fetch(av, i, 0);
-          if (strcmp(SvPV_nolen(*key), "_id") == 0) {
-            SV **val = av_fetch(av, i+1, 0);
-            has_id = 1;
-            append_sv(bson, "_id", *val, EMPTY_STACK, is_insert);
-            SvREFCNT_inc(*val);
-            av_push(ids, *val);
-            break;
-          }
-        }
-        if (!has_id) {
-          append_oid(bson, ids);
-        }
-      }
-
-      for (i = 0; i <= av_len (av); i += 2) {
-        SV **key, **val;
-        STRLEN len;
-        const char *str;
-
-        if ( !((key = av_fetch (av, i, 0)) && (val = av_fetch (av, i + 1, 0))) ) {
-          croak ("failed to fetch array element");
-        }
-
-        str = SvPVutf8(*key, len);
-
-        append_sv (bson, str, *val, EMPTY_STACK, is_insert);
-      }
+      value = newSVpvn(buf, len);
     }
+
     break;
   }
-  default:
-    sv_dump(sv);
-    croak ("type unhandled");
+  case BSON_TYPE_BOOL: {
+    dSP;
+    bool d = bson_iter_bool(iter);
+    int count;
+
+    SAVETMPS;
+
+    PUSHMARK(SP);
+    PUTBACK;
+    if (d) {
+      count = call_pv("boolean::true", G_SCALAR);
+    }
+    else {
+      count = call_pv("boolean::false", G_SCALAR);
+    }
+    SPAGAIN;
+    if (count == 1)
+      value = newSVsv(POPs);
+
+    if (count != 1 || !SvOK(value)) {
+      value = newSViv(d);
+    }
+
+    PUTBACK;
+    FREETMPS;
+    break;
   }
+  case BSON_TYPE_UNDEFINED:
+  case BSON_TYPE_NULL: {
+    value = newSV(0);
+    break;
+  }
+  case BSON_TYPE_INT32: {
+    value = newSViv(bson_iter_int32(iter));
+    break;
+  }
+  case BSON_TYPE_INT64: {
+#if defined(MONGO_USE_64_BIT_INT)
+    value = newSViv(bson_iter_int64(iter));
+#else
+    char buf[22];
+    sprintf(buf,"%" PRIi64,bson_iter_int64(iter));
+    load_module(0,newSVpvs("Math::BigInt"),NULL,NULL);
+    SV *as_str = sv_2mortal(newSVpv(buf,0));
+    value = perl_mongo_construct_instance_single_arg("Math::BigInt", as_str);
+#endif
+    break;
+  }
+  case BSON_TYPE_DATE_TIME: {
+    double ms_i = bson_iter_date_time(iter);
+
+    SV *datetime, *ms;
+    HV *named_params;
+    ms_i /= 1000.0;
+
+    if ( dt_type == NULL ) { 
+      // raw epoch
+      value = newSViv(ms_i);
+    } else if ( strcmp( dt_type, "DateTime::Tiny" ) == 0 ) {
+      time_t epoch;
+      struct tm *dt;
+      datetime = sv_2mortal(newSVpv("DateTime::Tiny", 0));
+      epoch = bson_iter_time_t(iter);
+      dt = gmtime( &epoch );
+
+      value = 
+        perl_mongo_call_function("DateTime::Tiny::new", 13, datetime,
+                                 newSVpvs("year"),
+                                 newSViv( dt->tm_year + 1900 ),
+                                 newSVpvs("month"),
+                                 newSViv( dt->tm_mon  +    1 ),
+                                 newSVpvs("day"),
+                                 newSViv( dt->tm_mday ),
+                                 newSVpvs("hour"),
+                                 newSViv( dt->tm_hour ),
+                                 newSVpvs("minute"),
+                                 newSViv( dt->tm_min ),
+                                 newSVpvs("second"),
+                                 newSViv( dt->tm_sec )
+                                 );
+
+
+    } else if ( strcmp( dt_type, "DateTime" ) == 0 ) { 
+      datetime = sv_2mortal(newSVpv("DateTime", 0));
+      ms = newSVnv(ms_i);
+
+      named_params = newHV();
+      hv_stores(named_params, "epoch", ms);
+
+      value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
+                                       sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
+
+    } else {
+      croak( "Invalid dt_type \"%s\"", dt_type );
+    }
+
+    break;
+  }
+  case BSON_TYPE_REGEX: {
+    SV *class_str = sv_2mortal(newSVpv("MongoDB::BSON::Regexp", 0));
+    SV *pattern, *regex_ref;
+    const char * regex_str;
+    const char * options;
+#if PERL_REVISION==5 && PERL_VERSION<12
+    SV *regex;
+#endif
+    HV *stash;
+    U32 flags = 0;
+    REGEXP *re;
+#if PERL_REVISION==5 && PERL_VERSION<=8
+    PMOP pm;
+    STRLEN len;
+    char *pat;
+#endif
+    regex_str = bson_iter_regex(iter, &options);
+
+    pattern = sv_2mortal(newSVpv(regex_str, 0));
+
+    if ( inflate_regexps ) { 
+      /* make a MongoDB::BSON::Regexp object instead of a native Perl regexp. */
+      value = perl_mongo_call_method( class_str, "new", 0, 4,
+                                      sv_2mortal( newSVpvs("pattern") ),
+                                      pattern,
+                                      sv_2mortal( newSVpvs("flags") ),
+                                      sv_2mortal( newSVpv( options, 0 ) ) );
+
+      break;   /* exit case */
+    }
+
+
+    while(*options != 0) {
+      switch(*options) {
+      case 'l':
+#if PERL_REVISION==5 && PERL_VERSION<=12
+        flags |= PMf_LOCALE;
+#else
+        set_regex_charset(&flags, REGEX_LOCALE_CHARSET);
+#endif
+        break;
+      case 'm':
+        flags |= PMf_MULTILINE;
+        break;
+      case 'i':
+        flags |= PMf_FOLD;
+        break;
+      case 'x':
+        flags |= PMf_EXTENDED;
+        break;
+      case 's':
+        flags |= PMf_SINGLELINE;
+        break;
+      }
+      options++;
+    }
+    options++;
+
+#if PERL_REVISION==5 && PERL_VERSION<=8
+    /* 5.8 */
+    pm.op_pmdynflags = flags;
+    pat = SvPV(pattern, len);
+    re = pregcomp(pat, pat + len, &pm);
+#else
+    /* 5.10 and beyond */
+    re = re_compile(pattern, flags);
+#endif
+     // eo version-dependent code
+
+#if PERL_REVISION==5 && PERL_VERSION>=12
+    // they removed magic and made this a normal obj in 5.12
+    regex_ref = newRV((SV*)re);
+#else
+    regex = sv_2mortal(newSVpv("",0));
+    regex_ref = newRV((SV*)regex);
+
+    sv_magic(regex, (SV*)re, PERL_MAGIC_qr, 0, 0);
+#endif
+
+    stash = gv_stashpv("Regexp", 0);
+    sv_bless(regex_ref, stash);
+
+    value = regex_ref;
+    break;
+  }
+  case BSON_TYPE_CODE: {
+    const char * code;
+    uint32_t len;
+    SV *code_sv;
+
+    code = bson_iter_code(iter, &len);
+
+    code_sv = sv_2mortal(newSVpvn(code, len));
+
+    value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, NULL);
+
+    break;
+  }
+  case BSON_TYPE_CODEWSCOPE: {
+    const char * code;
+    const uint8_t * scope;
+    uint32_t code_len, scope_len;
+    SV * code_sv;
+    SV * scope_sv;
+    bson_t bson;
+    bson_iter_t child;
+
+    code = bson_iter_codewscope(iter, &code_len, &scope_len, &scope);
+    code_sv = sv_2mortal(newSVpvn(code, code_len));
+
+    if ( ! ( bson_init_static(&bson, scope, scope_len) && bson_iter_init(&child, &bson) ) ) {
+        croak("error iterating BSON type %d\n", bson_iter_type(iter));
+    }
+
+    scope_sv = bson_doc_to_hv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
+
+    break;
+  }
+  case BSON_TYPE_TIMESTAMP: {
+    SV *sec_sv, *inc_sv;
+    uint32_t sec, inc;
+
+    bson_iter_timestamp(iter, &sec, &inc);
+
+    sec_sv = sv_2mortal(newSViv(sec));
+    inc_sv = sv_2mortal(newSViv(inc));
+
+    value = perl_mongo_construct_instance("MongoDB::Timestamp", "sec", sec_sv, "inc", inc_sv, NULL);
+    break;
+  }
+  case BSON_TYPE_MINKEY: {
+    HV *stash = gv_stashpv("MongoDB::MinKey", GV_ADD);
+    value = sv_bless(newRV((SV*)newHV()), stash);
+    break;
+  }
+  case BSON_TYPE_MAXKEY: {
+    HV *stash = gv_stashpv("MongoDB::MaxKey", GV_ADD);
+    value = sv_bless(newRV((SV*)newHV()), stash);
+    break;
+  }
+  default: {
+    croak("type %d not supported\n", bson_iter_type(iter));
+    // give up, it'll be trouble if we keep going
+  }
+  }
+  return value;
+}
+
+static SV *
+bson_oid_to_sv (const bson_iter_t * iter) {
+  HV *stash, *id_hv;
+  char oid_s[25];
+
+  const bson_oid_t * oid = bson_iter_oid(iter);
+  bson_oid_to_string(oid, oid_s);
+
+  id_hv = newHV();
+  (void)hv_stores(id_hv, "value", newSVpvn(oid_s, 24));
+
+  stash = gv_stashpv("MongoDB::OID", 0);
+  return sv_bless(newRV_noinc((SV *)id_hv), stash);
 }
