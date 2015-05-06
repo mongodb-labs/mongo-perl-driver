@@ -37,6 +37,45 @@ static void containsNullChar(const char* str, int len);
 static SV *bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
 static SV *bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 
+#if defined(WIN32) || defined(sun)
+
+/*
+ * Some C libraries (e.g. MSVCRT) do not have a "timegm" function.
+ * Here is a surrogate implementation.
+ *
+ */
+
+static int
+is_leap_year(unsigned year) {
+    year += 1900;
+    return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0);
+}
+
+static time_t
+timegm(struct tm *tm) {
+  static const unsigned month_start[2][12] = {
+        { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 },
+        { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 },
+        };
+  time_t ret = 0;
+  int i;
+
+  for (i = 70; i < tm->tm_year; ++i)
+    ret += is_leap_year(i) ? 366 : 365;
+
+  ret += month_start[is_leap_year(tm->tm_year)][tm->tm_mon];
+  ret += tm->tm_mday - 1;
+  ret *= 24;
+  ret += tm->tm_hour;
+  ret *= 60;
+  ret += tm->tm_min;
+  ret *= 60;
+  ret += tm->tm_sec;
+  return ret;
+}
+
+#endif /* WIN32 */
+
 static SV *utf8_flag_on;
 static SV *use_binary;
 static SV *special_char;
@@ -868,45 +907,6 @@ containsNullChar(const char* str, int len) {
   if(strlen(str)  < len)
     croak("key contains null char");
 }
-
- #if defined(WIN32) || defined(sun)
-
-/* 
- * Some C libraries (e.g. MSVCRT) do not have a "timegm" function.
- * Here is a surrogate implementation.
- *
- */
-
-static int
-is_leap_year(unsigned year) {
-    year += 1900;
-    return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0);
-}
-
-static time_t
-timegm(struct tm *tm) {
-  static const unsigned month_start[2][12] = {
-	{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 },
-	{ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 },
-	};
-  time_t ret = 0;
-  int i;
-
-  for (i = 70; i < tm->tm_year; ++i)
-    ret += is_leap_year(i) ? 366 : 365;
-
-  ret += month_start[is_leap_year(tm->tm_year)][tm->tm_mon];
-  ret += tm->tm_mday - 1;
-  ret *= 24;
-  ret += tm->tm_hour;
-  ret *= 60;
-  ret += tm->tm_min;
-  ret *= 60;
-  ret += tm->tm_sec;
-  return ret;
-}
-
-#endif /* WIN32 */
 
 /** returns true if we need to free at the end */
 static const char *
