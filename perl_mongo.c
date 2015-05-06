@@ -34,9 +34,9 @@ static void avdoc_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int 
 static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
 static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
 static void serialize_regex_flags(char*, SV*);
-static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
 
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
+static void append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
 static void append_oid(bson_t * bson, AV *ids);
 
 static void copy_regex_flags( char *flags_ptr, SV *re );
@@ -787,7 +787,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         subtype = sv_2mortal(perl_mongo_call_reader(sv, "subtype"));
         data = sv_2mortal(perl_mongo_call_reader(sv, "data"));
 
-        serialize_binary(bson, key, SvIV(subtype), data);
+        append_binary(bson, key, SvIV(subtype), data);
       }
 #if PERL_REVISION==5 && PERL_VERSION>=12
       // Perl 5.12 regexes
@@ -810,7 +810,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         else {
           /* binary */
 
-          serialize_binary(bson, key, BSON_SUBTYPE_BINARY, SvRV(sv));
+          append_binary(bson, key, BSON_SUBTYPE_BINARY, SvRV(sv));
         }
       }
       else if (sv_isa(sv, "MongoDB::BSON::Regexp") ) { 
@@ -847,7 +847,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
       default: {
           if ( SvPOK(deref) ) {
             /* binary */
-            serialize_binary(bson, key, BSON_SUBTYPE_BINARY, deref);
+            append_binary(bson, key, BSON_SUBTYPE_BINARY, deref);
           }
           else {
             sv_dump(deref);
@@ -916,7 +916,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
 
       /* string */
       if (sv_len (sv) != strlen (SvPV_nolen (sv))) {
-        serialize_binary(bson, key, SUBTYPE_BINARY, sv);
+        append_binary(bson, key, SUBTYPE_BINARY, sv);
       }
       else {
         STRLEN len;
@@ -1040,12 +1040,13 @@ serialize_regex_flags(char * flags, SV *sv) {
 }
 
 static void
-serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv) {
+append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv) {
     STRLEN len;
     uint8_t * bytes = (uint8_t *) SvPVbyte(sv, len);
 
     bson_append_binary(bson, key, -1, subtype, bytes, len);
 }
+
 /* add an _id */
 static void
 append_oid(bson_t * bson, AV *ids) {
