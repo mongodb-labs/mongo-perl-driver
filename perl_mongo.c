@@ -36,6 +36,7 @@ static void serialize_regex_flags(char*, SV*);
 static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
 
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
+static void append_oid(bson_t * bson, AV *ids);
 static void assert_no_null_in_key(const char* str, int len);
 
 /* BSON decoding */
@@ -714,7 +715,7 @@ bson_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_r
 
 /* add an _id */
 static void
-perl_mongo_prep(bson_t * bson, AV *ids) {
+append_oid(bson_t * bson, AV *ids) {
   //  SV *id = perl_mongo_construct_instance ("MongoDB::OID", NULL);
   SV *id;
   HV *id_hv, *stash;
@@ -784,7 +785,7 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
       av_push(ids, *id);
     }
     else {
-      perl_mongo_prep(bson, ids);
+      append_oid(bson, ids);
     }
   }
 
@@ -890,7 +891,7 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
       av_push(ids, *id);
     }
     else {
-      perl_mongo_prep(bson, ids);
+      append_oid(bson, ids);
     }
   }
 
@@ -1476,7 +1477,7 @@ perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids) {
           }
         }
         if (!has_id) {
-          perl_mongo_prep(bson, ids);
+          append_oid(bson, ids);
         }
       }
 
