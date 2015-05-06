@@ -32,7 +32,6 @@
 #include "bson-clock.h"
 #include "bson-error.h"
 #include "bson-iter.h"
-#include "bson-json.h"
 #include "bson-keys.h"
 #include "bson-md5.h"
 #include "bson-memory.h"
