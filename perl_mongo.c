@@ -16,6 +16,29 @@
 
 #include "perl_mongo.h"
 
+static void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
+static SV *perl_mongo_call_reader (SV *self, const char *reader);
+static SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
+static SV *perl_mongo_call_function (const char *func, int num, ...);
+
+static void perl_mongo_regex_flags( char *flags_ptr, SV *re );
+
+static SV *perl_mongo_construct_instance (const char *klass, ...);
+static SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
+static SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
+
+static stackette* check_circular_ref(void *ptr, stackette *stack);
+
+static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
+static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
+static void serialize_regex_flags(char*, SV*);
+static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
+
+static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
+static void containsNullChar(const char* str, int len);
+static SV *bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
+static SV * bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+
 static SV *utf8_flag_on;
 static SV *use_binary;
 static SV *special_char;

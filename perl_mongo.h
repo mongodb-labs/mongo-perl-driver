@@ -133,31 +133,7 @@ typedef struct _stackette {
 #define EMPTY_STACK 0
 
 void perl_mongo_init();
-
-void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
-SV *perl_mongo_call_reader (SV *self, const char *reader);
-SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
-SV *perl_mongo_call_function (const char *func, int num, ...);
-
-SV *perl_mongo_construct_instance (const char *klass, ...);
-SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
-SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
-
-// serialization
 SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids);
-
-static stackette* check_circular_ref(void *ptr, stackette *stack);
-
-static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
-static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
-static void serialize_regex_flags(char*, SV*);
-static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
-
-static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
-static void containsNullChar(const char* str, int len);
-static SV *bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
-static SV * bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
-
 
 #endif
