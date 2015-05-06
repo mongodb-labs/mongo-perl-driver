@@ -685,64 +685,6 @@ bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_r
   return newRV_noinc ((SV *)ret);
 }
 
-void perl_mongo_resize_buf(buffer *buf, int size) {
-  int total = buf->end - buf->start;
-  int used = buf->pos - buf->start;
-
-  total = total < GROW_SLOWLY ? total*2 : total+INITIAL_BUF_SIZE;
-  while (total-used < size) {
-    total += size;
-  }
-
-  Renew(buf->start, total, char);
-  buf->pos = buf->start + used;
-  buf->end = buf->start + total;
-}
-
-void
-perl_mongo_serialize_string(buffer *buf, const char *str, unsigned int str_len) {
-  if(BUF_REMAINING <= str_len+1) {
-    perl_mongo_resize_buf(buf, str_len+1);
-  }
-
-  memcpy(buf->pos, str, str_len);
-  // add \0 at the end of the string
-  buf->pos[str_len] = 0;
-  buf->pos += str_len + 1;
-}
-
-void
-perl_mongo_serialize_int(buffer *buf, int num) {
-  int i = MONGO_32(num);
-
-  if(BUF_REMAINING <= INT_32) {
-    perl_mongo_resize_buf(buf, INT_32);
-  }
-
-  memcpy(buf->pos, &i, INT_32);
-  buf->pos += INT_32;
-}
-
-void
-perl_mongo_serialize_long(buffer *buf, int64_t num) {
-  int64_t i = MONGO_64(num);
-
-  if(BUF_REMAINING <= INT_64) {
-    perl_mongo_resize_buf(buf, INT_64);
-  }
-
-  memcpy(buf->pos, &i, INT_64);
-  buf->pos += INT_64;
-}
-
-void
-perl_mongo_serialize_size(char *start, buffer *buf) {
-  int total = buf->pos - start;
-  total = MONGO_32(total);
-
-  memcpy(start, &total, INT_32);
-}
-
 /* add an _id */
 static void
 perl_mongo_prep(bson_t * bson, AV *ids) {

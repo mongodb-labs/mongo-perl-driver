@@ -167,11 +167,6 @@ SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVT
 SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids);
 
-void perl_mongo_serialize_string(buffer *buf, const char *str, unsigned int str_len);
-void perl_mongo_serialize_int(buffer *buf, int num);
-void perl_mongo_serialize_long(buffer *buf, int64_t num);
-void perl_mongo_serialize_size(char *start, buffer *buf);
-
 static stackette* check_circular_ref(void *ptr, stackette *stack);
 static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
 static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
