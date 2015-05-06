@@ -318,8 +318,6 @@ perl_mongo_construct_instance_single_arg (const char *klass, SV *arg)
 }
 
 
-static SV *bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
-
 static SV *
 oid_to_sv (const bson_iter_t * iter)
 {
