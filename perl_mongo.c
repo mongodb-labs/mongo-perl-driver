@@ -41,7 +41,7 @@ static void assert_no_null_in_key(const char* str, int len);
 
 /* BSON decoding */
 static SV *bson_doc_to_hv(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
-static SV *bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+static SV *bson_array_to_av(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 static SV *bson_oid_to_sv(const bson_iter_t * iter);
 
 #if defined(WIN32) || defined(sun)
@@ -358,7 +358,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
     bson_iter_t child;
     bson_iter_recurse(iter, &child);
 
-    value = bson_to_av(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    value = bson_array_to_av(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
 
     break;
   }
@@ -627,7 +627,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
 }
 
 static SV *
-bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+bson_array_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   AV *ret = newAV ();
 
   while (bson_iter_next(iter)) {
