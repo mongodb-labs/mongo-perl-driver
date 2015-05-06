@@ -20,15 +20,13 @@ static void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV
 static SV *perl_mongo_call_reader (SV *self, const char *reader);
 static SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
 static SV *perl_mongo_call_function (const char *func, int num, ...);
-
-static void perl_mongo_regex_flags( char *flags_ptr, SV *re );
-
 static SV *perl_mongo_construct_instance (const char *klass, ...);
 static SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 static SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
 
 static stackette* check_circular_ref(void *ptr, stackette *stack);
 
+static void perl_mongo_regex_flags( char *flags_ptr, SV *re );
 static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
 static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
 static void serialize_regex_flags(char*, SV*);
@@ -176,35 +174,6 @@ perl_mongo_call_function (const char *func, int num, ...) {
   LEAVE;
 
   return ret;
-}
-
-static void
-perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
-  int ret_count;
-  SV *flags_sv;
-  SV *pat_sv;
-  char *flags;
-  dSP;
-  ENTER;
-  SAVETMPS;
-  PUSHMARK (SP);
-  XPUSHs (re);
-  PUTBACK;
-
-  ret_count = call_pv( "re::regexp_pattern", G_ARRAY );
-  SPAGAIN;
-
-  if ( ret_count != 2 ) { 
-    croak( "error introspecting regex" );
-  }
-
-  // regexp_pattern returns two items (in list context), the pattern and a list of flags
-  flags_sv = POPs;
-  pat_sv   = POPs;
-
-  flags = SvPVutf8_nolen(flags_sv);
-
-  strncpy( flags_ptr, flags, 7 );
 }
 
 static SV *
@@ -1347,6 +1316,35 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
   }
 
   if (in_key != key) Safefree((char *)key);
+}
+
+static void
+perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
+  int ret_count;
+  SV *flags_sv;
+  SV *pat_sv;
+  char *flags;
+  dSP;
+  ENTER;
+  SAVETMPS;
+  PUSHMARK (SP);
+  XPUSHs (re);
+  PUTBACK;
+
+  ret_count = call_pv( "re::regexp_pattern", G_ARRAY );
+  SPAGAIN;
+
+  if ( ret_count != 2 ) {
+    croak( "error introspecting regex" );
+  }
+
+  // regexp_pattern returns two items (in list context), the pattern and a list of flags
+  flags_sv = POPs;
+  pat_sv   = POPs;
+
+  flags = SvPVutf8_nolen(flags_sv);
+
+  strncpy( flags_ptr, flags, 7 );
 }
 
 static void
