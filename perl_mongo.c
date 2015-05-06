@@ -31,7 +31,6 @@ static void hv_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_
 static void ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
 static void avdoc_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
 
-static void perl_mongo_regex_flags( char *flags_ptr, SV *re );
 static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
 static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
 static void serialize_regex_flags(char*, SV*);
@@ -40,6 +39,7 @@ static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t sub
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void append_oid(bson_t * bson, AV *ids);
 
+static void copy_regex_flags( char *flags_ptr, SV *re );
 static void assert_no_null_in_key(const char* str, int len);
 static stackette* check_circular_ref(void *ptr, stackette *stack);
 
@@ -940,7 +940,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
 }
 
 static void
-perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
+copy_regex_flags( char *flags_ptr, SV *re ) {
   int ret_count;
   SV *flags_sv;
   SV *pat_sv;
@@ -1021,7 +1021,7 @@ serialize_regex_flags(char * flags, SV *sv) {
 
 
 #else
-  perl_mongo_regex_flags( flags_tmp, sv );
+  copy_regex_flags( flags_tmp, sv );
 #endif
 
   for ( i = 0; i < sizeof( flags_tmp ); i++ ) { 
