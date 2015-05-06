@@ -31,19 +31,12 @@ static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack,
 static void containsNullChar(const char* str, int len);
 static SV *bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
 
-#ifdef USE_ITHREADS
-static perl_mutex inc_mutex;
-#endif
-
-int perl_mongo_machine_id;
-
 static SV *utf8_flag_on;
 static SV *use_binary;
 static SV *special_char;
 static SV *look_for_numbers;
 
 void perl_mongo_init() {
-  MUTEX_INIT(&inc_mutex);
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
   special_char = get_sv("MongoDB::BSON::char", 0);
@@ -692,26 +685,6 @@ bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_r
   }
 
   return newRV_noinc ((SV *)ret);
-}
-
-SV *
-perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, int inflate_regexps, SV * client)
-{
-  bson_reader_t * reader;
-  const bson_t * bson;
-  bool reached_eof;
-  SV * sv;
-  
-  reader = bson_reader_new_from_data((uint8_t *)buffer->pos, buffer->end - buffer->pos);
-  bson = bson_reader_read(reader, &reached_eof);
-
-  sv = perl_mongo_bson_to_sv(bson, dt_type, inflate_dbrefs, inflate_regexps, client);
-
-  buffer->pos += bson_reader_tell(reader);
-
-  bson_reader_destroy(reader);
-
-  return sv;
 }
 
 SV *
@@ -1558,35 +1531,6 @@ static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t sub
     uint8_t * bytes = (uint8_t *) SvPVbyte(sv, len);
 
     bson_append_binary(bson, key, -1, subtype, bytes, len);
-}
-
-void * mongo_renew(void * ptr, size_t size)
-{
-  Renew(ptr, size, char);
-
-  return ptr;
-}
-
-void perl_mongo_sv_to_buffer(buffer * buf, SV *sv, AV *ids)
-{
-  bson_t * bson;
-  bson_writer_t * writer;
-  size_t buf_len;
-  size_t offset;
-
-  buf_len = buf->end - buf->start;
-  offset = buf->pos - buf->start;
-
-  writer = bson_writer_new((uint8_t **)&buf->start, &buf_len, offset, &mongo_renew);
-
-  bson_writer_begin(writer, &bson);
-  perl_mongo_sv_to_bson(bson, sv, ids!=0, ids);
-  bson_writer_end(writer);
-
-  buf->end = buf->start + buf_len;
-  buf->pos = buf->start + bson_writer_get_length(writer);
-
-  bson_writer_destroy(writer);
 }
 
 void
