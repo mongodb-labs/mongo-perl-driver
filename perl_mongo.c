@@ -52,7 +52,7 @@ perl_mongo_init() {
   look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
 }
 
-void
+static void
 perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark) {
   dSP;
   PUSHMARK (mark);
@@ -60,7 +60,7 @@ perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark) {
   PUTBACK;
 }
 
-SV *
+static SV *
 perl_mongo_call_reader (SV *self, const char *reader) {
   dSP;
   SV *ret;
@@ -91,8 +91,7 @@ perl_mongo_call_reader (SV *self, const char *reader) {
   return ret;
 }
 
-
-SV *
+static SV *
 perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...) {
   dSP;
   SV *ret = NULL;
@@ -139,7 +138,7 @@ perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...) {
   return ret;
 }
 
-SV *
+static SV *
 perl_mongo_call_function (const char *func, int num, ...) {
   dSP;
   SV *ret;
@@ -208,7 +207,7 @@ perl_mongo_regex_flags( char *flags_ptr, SV *re ) {
   strncpy( flags_ptr, flags, 7 );
 }
 
-SV *
+static SV *
 perl_mongo_construct_instance (const char *klass, ...) {
   SV *ret;
   va_list ap;
@@ -218,7 +217,7 @@ perl_mongo_construct_instance (const char *klass, ...) {
   return ret;
 }
 
-SV *
+static SV *
 perl_mongo_construct_instance_va (const char *klass, va_list ap) {
   dSP;
   SV *ret;
@@ -254,7 +253,7 @@ perl_mongo_construct_instance_va (const char *klass, va_list ap) {
   return ret;
 }
 
-SV *
+static SV *
 perl_mongo_construct_instance_single_arg (const char *klass, SV *arg) {
   dSP;
   SV *ret;
@@ -923,7 +922,7 @@ is_leap_year(unsigned year) {
     return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0);
 }
 
-time_t
+static time_t
 timegm(struct tm *tm) {
   static const unsigned month_start[2][12] = {
 	{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 },
@@ -949,7 +948,7 @@ timegm(struct tm *tm) {
 #endif /* WIN32 */
 
 /** returns true if we need to free at the end */
-const char *
+static const char *
 clean_key(const char * str, int is_insert) {
   if (str[0] == '\0') {
     croak("empty key name, did you use a $ with double quotes?");
