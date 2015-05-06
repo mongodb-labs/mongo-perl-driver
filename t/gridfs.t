@@ -39,6 +39,11 @@ my $now;
 my $file;
 my $save_id;
 
+# XXX work around SERVER-18062; create collection to initialize DB for
+# sharded collection so gridfs index creation doesn't fail
+$testdb->coll("testtesttest")->insert({});
+
+# DB initialized, so now get gridfs object
 my $grid = $testdb->get_gridfs;
 $grid->drop;
 
