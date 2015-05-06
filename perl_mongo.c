@@ -1018,8 +1018,6 @@ serialize_regex_flags(char * flags, SV *sv) {
       break;
     }
   }
-
-
 #else
   copy_regex_flags( flags_tmp, sv );
 #endif
