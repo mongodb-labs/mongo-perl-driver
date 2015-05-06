@@ -36,7 +36,7 @@ static void serialize_regex_flags(char*, SV*);
 static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
 
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
-static void containsNullChar(const char* str, int len);
+static void assert_no_null_in_key(const char* str, int len);
 
 /* BSON decoding */
 static SV *bson_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
@@ -736,6 +736,12 @@ perl_mongo_prep(bson_t * bson, AV *ids) {
   av_push(ids, id);
 }
 
+static void
+assert_no_null_in_key(const char* str, int len) {
+  if(strlen(str)  < len)
+    croak("key contains null char");
+}
+
 /**
  * checks if a ptr has been parsed already and, if not, adds it to the stack. If
  * we do have a circular ref, this function returns 0.
@@ -789,7 +795,7 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
     STRLEN len;
     const char *key = HePV (he, len);
     uint32_t utf8 = HeUTF8(he);
-    containsNullChar(key, len);
+    assert_no_null_in_key(key, len);
     /* if we've already added the oid field, continue */
     if (ids && strcmp(key, "_id") == 0) {
       continue;
@@ -899,18 +905,12 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
     }
 
     str = SvPVutf8(*k, len);
-    containsNullChar(str,len);
+    assert_no_null_in_key(str,len);
     append_sv(bson, str, *v, stack, is_insert);
   }
 
   // free the ixhash elem
   Safefree(stack);
-}
-
-static void
-containsNullChar(const char* str, int len) {
-  if(strlen(str)  < len)
-    croak("key contains null char");
 }
 
 /** returns true if we need to free at the end */
