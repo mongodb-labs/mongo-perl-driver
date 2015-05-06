@@ -42,6 +42,7 @@ static void assert_no_null_in_key(const char* str, int len);
 /* BSON decoding */
 static SV *bson_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
 static SV *bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+static SV *bson_oid_to_sv(const bson_iter_t * iter);
 
 #if defined(WIN32) || defined(sun)
 
@@ -293,7 +294,7 @@ perl_mongo_construct_instance_single_arg (const char *klass, SV *arg) {
 
 
 static SV *
-oid_to_sv (const bson_iter_t * iter) {
+bson_oid_to_sv (const bson_iter_t * iter) {
   HV *stash, *id_hv;
   char oid_s[25];
 
@@ -313,7 +314,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
 
   switch(bson_iter_type(iter)) {
   case BSON_TYPE_OID: {
-    value = oid_to_sv(iter);
+    value = bson_oid_to_sv(iter);
     break;
   }
   case BSON_TYPE_DOUBLE: {
