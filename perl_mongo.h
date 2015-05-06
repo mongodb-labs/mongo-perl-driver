@@ -23,14 +23,8 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
-
-#include "ppport.h"
-
-#ifdef WIN32
-#include <memory.h>
-#endif
-
 #include "regcomp.h"
+#include "ppport.h"
 
 /* not yet provided by ppport.h */
 #ifndef HeUTF8
@@ -42,16 +36,6 @@
 /* whether to add an _id field */
 #define PREP 1
 #define NO_PREP 0
-
-#ifdef WIN32
-#ifdef _MSC_VER
-typedef __int64 int64_t;
-#define inline __inline
-#else
-#include <stdint.h>
-#endif // _MSC_VER
-#endif // WIN32
-#include <limits.h>
 
 // define regex macros for Perl 5.8
 #ifndef RX_PRECOMP
