@@ -16,7 +16,6 @@
 
 #include "perl_mongo.h"
 
-static void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 static SV *perl_mongo_call_reader (SV *self, const char *reader);
 static SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
 static SV *perl_mongo_call_function (const char *func, int num, ...);
@@ -49,14 +48,6 @@ perl_mongo_init() {
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
   special_char = get_sv("MongoDB::BSON::char", 0);
   look_for_numbers = get_sv("MongoDB::BSON::looks_like_number", 0);
-}
-
-static void
-perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *), CV *cv, SV **mark) {
-  dSP;
-  PUSHMARK (mark);
-  (*subaddr) (aTHX_ cv);
-  PUTBACK;
 }
 
 static SV *
