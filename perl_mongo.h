@@ -124,16 +124,6 @@ typedef __int64 int64_t;
 #endif
 #define BSON_MAXKEY 127
 
-#define INITIAL_BUF_SIZE 4096
-#define GROW_SLOWLY 1048576
-#define MAX_OBJ_SIZE (1024*1024*4)
-
-typedef struct {
-  char *start;
-  char *pos;
-  char *end;
-} buffer;
-
 // struct for 
 typedef struct _stackette {
   void *ptr;
@@ -142,23 +132,13 @@ typedef struct _stackette {
 
 #define EMPTY_STACK 0
 
-// it's safer to leave this signed in case there are any other missing BUF_REMAININGs
-#define BUF_REMAINING (buf->end-buf->pos)
-#define set_type(buf, type) perl_mongo_serialize_byte(buf, (char)type)
-#define perl_mongo_serialize_null(buf) perl_mongo_serialize_byte(buf, (char)0)
-#define perl_mongo_serialize_bool(buf, b) perl_mongo_serialize_byte(buf, (char)b)
-
-extern MGVTBL connection_vtbl, cursor_vtbl;
-
-int isUTF8(const char*, int);
 void perl_mongo_init();
+
 void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
 SV *perl_mongo_call_reader (SV *self, const char *reader);
 SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
 SV *perl_mongo_call_function (const char *func, int num, ...);
-void perl_mongo_attach_ptr_to_instance (SV *self, void *ptr, MGVTBL *vtbl);
-void *perl_mongo_maybe_get_ptr_from_instance (SV *self, MGVTBL *vtbl);
-void *perl_mongo_get_ptr_from_instance (SV *self, MGVTBL *vtbl);
+
 SV *perl_mongo_construct_instance (const char *klass, ...);
 SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
 SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
@@ -168,10 +148,12 @@ SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbref
 void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids);
 
 static stackette* check_circular_ref(void *ptr, stackette *stack);
+
 static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
 static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
 static void serialize_regex_flags(char*, SV*);
 static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
+
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void containsNullChar(const char* str, int len);
 static SV *bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
