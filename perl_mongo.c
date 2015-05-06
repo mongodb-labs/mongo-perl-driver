@@ -34,7 +34,7 @@ static void serialize_binary(bson_t * bson, const char * key, bson_subtype_t sub
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void containsNullChar(const char* str, int len);
 
-static SV *bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
+static SV *bson_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
 static SV *bson_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 
 #if defined(WIN32) || defined(sun)
@@ -343,7 +343,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
     bson_iter_t child;
     bson_iter_recurse(iter, &child);
 
-    value = bson_to_sv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    value = bson_to_hv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
 
     break;
   }
@@ -584,7 +584,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
         croak("error iterating BSON type %d\n", bson_iter_type(iter));
     }
 
-    scope_sv = bson_to_sv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    scope_sv = bson_to_hv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
     value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
 
     break;
@@ -645,11 +645,11 @@ perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, i
       croak( "error creating BSON iterator" );
   }
 
-  return bson_to_sv(&iter, dt_type, inflate_dbrefs, inflate_regexps, client);
+  return bson_to_hv(&iter, dt_type, inflate_dbrefs, inflate_regexps, client);
 }
 
 static SV *
-bson_to_sv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+bson_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   HV *ret = newHV();
 
   int is_dbref = 1;
