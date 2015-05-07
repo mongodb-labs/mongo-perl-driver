@@ -24,14 +24,9 @@
 #include "perl.h"
 #include "XSUB.h"
 #include "regcomp.h"
-#include "ppport.h"
 
-/* not yet provided by ppport.h */
-#ifndef HeUTF8
-#define HeUTF8(he)  ((HeKLEN(he) == HEf_SVKEY) ? \
-                    SvUTF8(HeKEY_sv(he)) :       \
-                    (U32)HeKUTF8(he))
-#endif
+//load after other Perl headers
+#include "ppport.h"
 
 /* whether to add an _id field */
 #define PREP 1
