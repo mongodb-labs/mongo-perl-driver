@@ -62,7 +62,7 @@ sub mongo {
 
     $self->xs_files;
 
-    $self->makemaker_args( INC   => '-I. -Ibson -Iyajl' );
+    $self->makemaker_args( INC   => '-I. -Ibson' );
 
     return;
 }
@@ -80,7 +80,7 @@ sub xs_files {
         push @clean, $o;
     }
 
-    for my $c (<*.c>, <bson/*.c>, <yajl/*.c>) {
+    for my $c (<*.c>, <bson/*.c>) {
         (my $o = $c) =~ s/\.c$/\$(OBJ_EXT)/i;
 
         push @OBJECT, $o;

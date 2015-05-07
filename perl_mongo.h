@@ -23,31 +23,14 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#include "regcomp.h"
 
+//load after other Perl headers
 #include "ppport.h"
-
-/* not yet provided by ppport.h */
-#ifndef HeUTF8
-#define HeUTF8(he)  ((HeKLEN(he) == HEf_SVKEY) ? \
-                    SvUTF8(HeKEY_sv(he)) :       \
-                    (U32)HeKUTF8(he))
-#endif
-
-#define PERL_MONGO_CALL_BOOT(name)  perl_mongo_call_xs (aTHX_ name, cv, mark)
 
 /* whether to add an _id field */
 #define PREP 1
 #define NO_PREP 0
-
-#ifdef WIN32
-#ifdef _MSC_VER
-typedef __int64 int64_t;
-#define inline __inline
-#else
-#include <stdint.h>
-#endif // _MSC_VER
-#endif // WIN32
-#include <limits.h>
 
 // define regex macros for Perl 5.8
 #ifndef RX_PRECOMP
@@ -58,76 +41,6 @@ typedef __int64 int64_t;
 #define SUBTYPE_BINARY_DEPRECATED 2
 #define SUBTYPE_BINARY 0
 
-#if MONGO_BIG_ENDIAN
-
-#define BYTE1_32(b) ((b & 0xff000000) >> 24)
-#define BYTE2_32(b) ((b & 0x00ff0000) >> 8)
-#define BYTE3_32(b) ((b & 0x0000ff00) << 8)
-#define BYTE4_32(b) ((b & 0x000000ff) << 24)
-
-#define MONGO_32(b) (BYTE4_32(b) | BYTE3_32(b) | BYTE2_32(b) | BYTE1_32(b))
-
-#define BYTE1_64(b) ((b & 0xff00000000000000ll) >> 56)
-#define BYTE2_64(b) ((b & 0x00ff000000000000ll) >> 40)
-#define BYTE3_64(b) ((b & 0x0000ff0000000000ll) >> 24)
-#define BYTE4_64(b) ((b & 0x000000ff00000000ll) >> 8)
-#define BYTE5_64(b) ((b & 0x00000000ff000000ll) << 8)
-#define BYTE6_64(b) ((b & 0x0000000000ff0000ll) << 24)
-#define BYTE7_64(b) ((b & 0x000000000000ff00ll) << 40)
-#define BYTE8_64(b) ((b & 0x00000000000000ffll) << 56)
-
-#define MONGO_64(b) (BYTE8_64(b) | BYTE7_64(b) | BYTE6_64(b) | BYTE5_64(b) | \
-                     BYTE4_64(b) | BYTE3_64(b) | BYTE2_64(b) | BYTE1_64(b))
-
-#else
-#define MONGO_32(b) (b)
-
-#define MONGO_64(b) (b)
-#endif
-
-
-
-#define INT_32 4
-#define INT_64 8
-#define DOUBLE_64 8
-#define BYTE_8 1
-#define OID_SIZE 12
-
-#define BSON_DOUBLE 1
-#define BSON_STRING 2
-#define BSON_OBJECT 3
-#define BSON_ARRAY 4
-#define BSON_BINARY 5
-#define BSON_UNDEF 6
-#define BSON_OID 7
-#define BSON_BOOL 8
-#define BSON_DATE 9
-#define BSON_NULL 10
-#define BSON_REGEX 11
-#define BSON_DBREF 12
-#define BSON_CODE__D 13
-#define BSON_SYMBOL 14
-#define BSON_CODE 15
-#define BSON_INT 16
-#define BSON_TIMESTAMP 17
-#define BSON_LONG 18
-#if CHAR_MIN == 0  // char is unsigned
-#define BSON_MINKEY 255
-#else
-#define BSON_MINKEY -1
-#endif
-#define BSON_MAXKEY 127
-
-#define INITIAL_BUF_SIZE 4096
-#define GROW_SLOWLY 1048576
-#define MAX_OBJ_SIZE (1024*1024*4)
-
-typedef struct {
-  char *start;
-  char *pos;
-  char *end;
-} buffer;
-
 // struct for 
 typedef struct _stackette {
   void *ptr;
@@ -136,36 +49,8 @@ typedef struct _stackette {
 
 #define EMPTY_STACK 0
 
-// it's safer to leave this signed in case there are any other missing BUF_REMAININGs
-#define BUF_REMAINING (buf->end-buf->pos)
-#define set_type(buf, type) perl_mongo_serialize_byte(buf, (char)type)
-#define perl_mongo_serialize_null(buf) perl_mongo_serialize_byte(buf, (char)0)
-#define perl_mongo_serialize_bool(buf, b) perl_mongo_serialize_byte(buf, (char)b)
-
-extern MGVTBL connection_vtbl, cursor_vtbl;
-
-int isUTF8(const char*, int);
 void perl_mongo_init();
-void perl_mongo_call_xs (pTHX_ void (*subaddr) (pTHX_ CV *cv), CV *cv, SV **mark);
-SV *perl_mongo_call_reader (SV *self, const char *reader);
-SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
-SV *perl_mongo_call_function (const char *func, int num, ...);
-void perl_mongo_attach_ptr_to_instance (SV *self, void *ptr, MGVTBL *vtbl);
-void *perl_mongo_maybe_get_ptr_from_instance (SV *self, MGVTBL *vtbl);
-void *perl_mongo_get_ptr_from_instance (SV *self, MGVTBL *vtbl);
-SV *perl_mongo_construct_instance (const char *klass, ...);
-SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
-SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
-
-// serialization
-SV *perl_mongo_buffer_to_sv(buffer * buffer, char * dt_type, int inflate_dbrefs, int inflate_regexps, SV * client);
-SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+SV * perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids);
-void perl_mongo_sv_to_buffer(buffer * buf, SV *sv, AV *ids);
-
-void perl_mongo_serialize_string(buffer *buf, const char *str, unsigned int str_len);
-void perl_mongo_serialize_int(buffer *buf, int num);
-void perl_mongo_serialize_long(buffer *buf, int64_t num);
-void perl_mongo_serialize_size(char *start, buffer *buf);
 
 #endif
