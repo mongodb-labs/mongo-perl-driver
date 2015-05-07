@@ -33,7 +33,7 @@ static void avdoc_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int 
 
 static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
 static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
-static void serialize_regex_flags(char*, SV*);
+static void get_regex_flags(char*, SV*);
 
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
@@ -984,7 +984,7 @@ static void
 serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
   char flags[]     = {0,0,0,0,0};
   char * buf;
-  serialize_regex_flags(flags, sv);
+  get_regex_flags(flags, sv);
 
   Newx(buf, (RX_PRELEN(re) + 1), char );
   Copy(RX_PRECOMP(re), buf, RX_PRELEN(re), char );
@@ -996,7 +996,7 @@ serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
 }
 
 static void
-serialize_regex_flags(char * flags, SV *sv) {
+get_regex_flags(char * flags, SV *sv) {
   char flags_tmp[] = {0,0,0,0,0,0,0,0};
   unsigned int i = 0, f = 0;
 
