@@ -31,12 +31,12 @@ static void hv_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_
 static void ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
 static void avdoc_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
 
-static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
-static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
 
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
 static void append_oid(bson_t * bson, AV *ids);
+static void append_regex(bson_t *, const char*, REGEXP*, SV *);
+static void append_decomposed_regex(bson_t *bson, const char *key, const char *pattern, const char *flags);
 
 static void assert_no_null_in_key(const char* str, int len);
 static void get_regex_flags(char*, SV*);
@@ -793,7 +793,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
       else if (sv_isa(sv, "Regexp")) {
         REGEXP * re = SvRX(sv);
 
-        serialize_regex(bson, key, re, sv);
+        append_regex(bson, key, re, sv);
       }
 #endif
       else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
@@ -804,7 +804,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         if ((remg = mg_find((SV*)SvRV(sv), PERL_MAGIC_qr)) != 0) {
           REGEXP *re = (REGEXP *) remg->mg_obj;
 
-          serialize_regex(bson, key, re, sv);
+          append_regex(bson, key, re, sv);
         }
         else {
           /* binary */
@@ -818,7 +818,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
         pattern = sv_2mortal(perl_mongo_call_reader( sv, "pattern" ));
         flags   = sv_2mortal(perl_mongo_call_reader( sv, "flags" ));
         
-        serialize_regex_obj( bson, key, SvPV_nolen( pattern ), SvPV_nolen( flags ) );
+        append_decomposed_regex( bson, key, SvPV_nolen( pattern ), SvPV_nolen( flags ) );
       }
       else {
         croak ("type (%s) unhandled", HvNAME(SvSTASH(SvRV(sv))));
@@ -939,7 +939,7 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
 }
 
 static void
-serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags ) {
+append_decomposed_regex(bson_t *bson, const char *key, const char *pattern, const char *flags ) {
   size_t pattern_length = strlen( pattern );
   char *buf;
 
@@ -951,7 +951,7 @@ serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const ch
 }
 
 static void
-serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
+append_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
   char flags[]     = {0,0,0,0,0};
   char * buf;
   get_regex_flags(flags, sv);
