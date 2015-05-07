@@ -1,5 +1,5 @@
 /*
- *  Copyright 2009-2013 MongoDB, Inc.
+ *  Copyright 2009-2015 MongoDB, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,7 +16,12 @@
 
 #include "perl_mongo.h"
 
-/* perl call helpers */
+/* perl call helpers
+ *
+ * For convenience, these functions encapsulate the verbose stack
+ * manipulation code necessary to call perl functions from C.
+ *
+ */
 
 static SV * perl_mongo_call_reader (SV *self, const char *reader);
 static SV * perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
@@ -25,7 +30,16 @@ static SV * perl_mongo_construct_instance (const char *klass, ...);
 static SV * perl_mongo_construct_instance_va (const char *klass, va_list ap);
 static SV * perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
 
-/* BSON encoding */
+/* BSON encoding
+ *
+ * Public function perl_mongo_sv_to_bson is the entry point.  It calls one of
+ * the container encoding functions, hv_to_bson, ixhash_to_bson or
+ * avdoc_to_bson.  Those iterate their contents, encoding them with
+ * sv_to_bson_elem.  sv_to_bson_elem delegates to various append_* functions
+ * for particular types.
+ *
+ * Other functions are utility functions used during encoding.
+ */
 
 static void hv_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
 static void ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
@@ -42,7 +56,18 @@ static void assert_no_null_in_key(const char* str, int len);
 static void get_regex_flags(char * flags, SV *sv);
 static stackette * check_circular_ref(void *ptr, stackette *stack);
 
-/* BSON decoding */
+/* BSON decoding
+ *
+ * Public function perl_mongo_bson_to_sv is the entry point.  It calls
+ * bson_doc_to_hashref, which construct a container and fills it using
+ * bson_elem_to_sv.  That may call bson_doc_to_hashref or
+ * bson_doc_to_arrayref to decode sub-containers.
+ *
+ * The bson_oid_to_sv function manually constructs a MongoDB::OID object to
+ * avoid the overhead of calling its constructor.  This optimization is
+ * fragile and might need to be reconsidered.
+ *
+ */
 
 static SV * bson_doc_to_hashref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
 static SV * bson_array_to_arrayref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
