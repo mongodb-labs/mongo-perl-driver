@@ -50,7 +50,7 @@ typedef struct _stackette {
 #define EMPTY_STACK 0
 
 void perl_mongo_init();
-SV *perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+SV * perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids);
 
 #endif

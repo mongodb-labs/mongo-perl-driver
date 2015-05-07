@@ -18,12 +18,12 @@
 
 /* perl call helpers */
 
-static SV *perl_mongo_call_reader (SV *self, const char *reader);
-static SV *perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
-static SV *perl_mongo_call_function (const char *func, int num, ...);
-static SV *perl_mongo_construct_instance (const char *klass, ...);
-static SV *perl_mongo_construct_instance_va (const char *klass, va_list ap);
-static SV *perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
+static SV * perl_mongo_call_reader (SV *self, const char *reader);
+static SV * perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
+static SV * perl_mongo_call_function (const char *func, int num, ...);
+static SV * perl_mongo_construct_instance (const char *klass, ...);
+static SV * perl_mongo_construct_instance_va (const char *klass, va_list ap);
+static SV * perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
 
 /* BSON encoding */
 
@@ -35,18 +35,19 @@ static void sv_to_bson_elem (bson_t * bson, const char *key, SV *sv, stackette *
 
 static void append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
 static void append_oid(bson_t * bson, AV *ids);
-static void append_regex(bson_t *, const char*, REGEXP*, SV *);
+static void append_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv);
 static void append_decomposed_regex(bson_t *bson, const char *key, const char *pattern, const char *flags);
 
 static void assert_no_null_in_key(const char* str, int len);
-static void get_regex_flags(char*, SV*);
-static stackette* check_circular_ref(void *ptr, stackette *stack);
+static void get_regex_flags(char * flags, SV *sv);
+static stackette * check_circular_ref(void *ptr, stackette *stack);
 
 /* BSON decoding */
-static SV *bson_doc_to_hashref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
-static SV *bson_array_to_arrayref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
-static SV *bson_oid_to_sv(const bson_iter_t * iter);
-static SV *bson_elem_to_sv(const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+
+static SV * bson_doc_to_hashref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
+static SV * bson_array_to_arrayref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+static SV * bson_elem_to_sv(const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+static SV * bson_oid_to_sv(const bson_iter_t * iter);
 
 /********************************************************************
  * Some C libraries (e.g. MSVCRT) do not have a "timegm" function.
