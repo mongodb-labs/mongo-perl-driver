@@ -43,10 +43,10 @@ static void get_regex_flags(char*, SV*);
 static stackette* check_circular_ref(void *ptr, stackette *stack);
 
 /* BSON decoding */
-static SV *bson_doc_to_hv(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
-static SV *bson_array_to_av(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+static SV *bson_doc_to_hashref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client);
+static SV *bson_array_to_arrayref(bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 static SV *bson_oid_to_sv(const bson_iter_t * iter);
-static SV *elem_to_sv(const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+static SV *bson_elem_to_sv(const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
 
 /********************************************************************
  * Some C libraries (e.g. MSVCRT) do not have a "timegm" function.
@@ -1109,11 +1109,11 @@ perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, i
       croak( "error creating BSON iterator" );
   }
 
-  return bson_doc_to_hv(&iter, dt_type, inflate_dbrefs, inflate_regexps, client);
+  return bson_doc_to_hashref(&iter, dt_type, inflate_dbrefs, inflate_regexps, client);
 }
 
 static SV *
-bson_doc_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+bson_doc_to_hashref (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   HV *ret = newHV();
 
   int is_dbref = 1;
@@ -1139,7 +1139,7 @@ bson_doc_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int infla
     // get past field name
 
     // get value
-    value = elem_to_sv(iter, dt_type, inflate_dbrefs, inflate_regexps, client );
+    value = bson_elem_to_sv(iter, dt_type, inflate_dbrefs, inflate_regexps, client );
     if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
     	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
      	 croak ("failed storing value in hash");
@@ -1172,14 +1172,14 @@ bson_doc_to_hv (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int infla
 }
 
 static SV *
-bson_array_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+bson_array_to_arrayref (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   AV *ret = newAV ();
 
   while (bson_iter_next(iter)) {
     SV *sv;
 
     // get value
-    if ((sv = elem_to_sv (iter, dt_type, inflate_dbrefs, inflate_regexps, client ))) {
+    if ((sv = bson_elem_to_sv (iter, dt_type, inflate_dbrefs, inflate_regexps, client ))) {
       av_push (ret, sv);
     }
   }
@@ -1188,7 +1188,7 @@ bson_array_to_av (bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
 }
 
 static SV *
-elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+bson_elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   SV *value = 0;
 
   switch(bson_iter_type(iter)) {
@@ -1229,7 +1229,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
     bson_iter_t child;
     bson_iter_recurse(iter, &child);
 
-    value = bson_doc_to_hv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    value = bson_doc_to_hashref(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
 
     break;
   }
@@ -1237,7 +1237,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
     bson_iter_t child;
     bson_iter_recurse(iter, &child);
 
-    value = bson_array_to_av(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    value = bson_array_to_arrayref(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
 
     break;
   }
@@ -1470,7 +1470,7 @@ elem_to_sv (const bson_iter_t * iter, char *dt_type, int inflate_dbrefs, int inf
         croak("error iterating BSON type %d\n", bson_iter_type(iter));
     }
 
-    scope_sv = bson_doc_to_hv(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
+    scope_sv = bson_doc_to_hashref(&child, dt_type, inflate_dbrefs, inflate_regexps, client );
     value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
 
     break;
