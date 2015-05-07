@@ -33,14 +33,13 @@ static void avdoc_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int 
 
 static void serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags);
 static void serialize_regex(bson_t *, const char*, REGEXP*, SV *);
-static void get_regex_flags(char*, SV*);
 
 static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
 static void append_oid(bson_t * bson, AV *ids);
 
-static void copy_regex_flags( char *flags_ptr, SV *re );
 static void assert_no_null_in_key(const char* str, int len);
+static void get_regex_flags(char*, SV*);
 static stackette* check_circular_ref(void *ptr, stackette *stack);
 
 /* BSON decoding */
@@ -940,35 +939,6 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
 }
 
 static void
-copy_regex_flags( char *flags_ptr, SV *re ) {
-  int ret_count;
-  SV *flags_sv;
-  SV *pat_sv;
-  char *flags;
-  dSP;
-  ENTER;
-  SAVETMPS;
-  PUSHMARK (SP);
-  XPUSHs (re);
-  PUTBACK;
-
-  ret_count = call_pv( "re::regexp_pattern", G_ARRAY );
-  SPAGAIN;
-
-  if ( ret_count != 2 ) {
-    croak( "error introspecting regex" );
-  }
-
-  // regexp_pattern returns two items (in list context), the pattern and a list of flags
-  flags_sv = POPs;
-  pat_sv   = POPs;
-
-  flags = SvPVutf8_nolen(flags_sv);
-
-  strncpy( flags_ptr, flags, 7 );
-}
-
-static void
 serialize_regex_obj(bson_t *bson, const char *key, const char *pattern, const char *flags ) {
   size_t pattern_length = strlen( pattern );
   char *buf;
@@ -993,48 +963,6 @@ serialize_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
   bson_append_regex(bson, key, -1, buf, flags);
 
   Safefree(buf);
-}
-
-static void
-get_regex_flags(char * flags, SV *sv) {
-  char flags_tmp[] = {0,0,0,0,0,0,0,0};
-  unsigned int i = 0, f = 0;
-
-#if PERL_REVISION == 5 && PERL_VERSION < 10
-  // pre-5.10 doesn't have the re API
-  STRLEN string_length;
-  char *re_string = SvPV( sv, string_length );
-  
-  /* pre-5.14 regexes are stringified in the format: (?ix-sm:foo) where
-     everything between ? and - are the current flags. The format changed
-     around 5.14, but for everything after 5.10 we use the re API anyway. */
-  for( i = 2; i < string_length && re_string[i] != '-'; i++ ) { 
-    if ( re_string[i] == 'i'  ||
-         re_string[i] == 'm'  ||
-         re_string[i] == 'x'  ||
-         re_string[i] == 's' ) { 
-      flags[f++] = re_string[i];
-    } else if ( re_string[i] == ':' ) {
-      break;
-    }
-  }
-#else
-  copy_regex_flags( flags_tmp, sv );
-#endif
-
-  for ( i = 0; i < sizeof( flags_tmp ); i++ ) { 
-    if ( flags_tmp[i] == 0 ) break;
-
-    // MongoDB supports only flags /imxs, so warn if we get anything else and discard them.
-    if ( flags_tmp[i] == 'i' ||
-         flags_tmp[i] == 'm' ||
-         flags_tmp[i] == 'x' ||
-         flags_tmp[i] == 's' ) { 
-      flags[f++] = flags_tmp[i];
-    } else { 
-      warn( "stripped unsupported regex flag /%c from MongoDB regex\n", flags_tmp[i] );
-    }
-  }
 }
 
 static void
@@ -1074,6 +1002,73 @@ static void
 assert_no_null_in_key(const char* str, int len) {
   if(strlen(str)  < len)
     croak("key contains null char");
+}
+
+static void
+get_regex_flags(char * flags, SV *sv) {
+  unsigned int i = 0, f = 0;
+
+#if PERL_REVISION == 5 && PERL_VERSION < 10
+  // pre-5.10 doesn't have the re API
+  STRLEN string_length;
+  char *re_string = SvPV( sv, string_length );
+
+  /* pre-5.14 regexes are stringified in the format: (?ix-sm:foo) where
+     everything between ? and - are the current flags. The format changed
+     around 5.14, but for everything after 5.10 we use the re API anyway. */
+  for( i = 2; i < string_length && re_string[i] != '-'; i++ ) {
+    if ( re_string[i] == 'i'  ||
+         re_string[i] == 'm'  ||
+         re_string[i] == 'x'  ||
+         re_string[i] == 's' ) { 
+      flags[f++] = re_string[i];
+    } else if ( re_string[i] == ':' ) {
+      break;
+    }
+  }
+#else
+  /* 5.10 added an API to extract flags, so we use that */
+  int ret_count;
+  SV *flags_sv;
+  SV *pat_sv;
+  char *flags_tmp;
+  dSP;
+  ENTER;
+  SAVETMPS;
+  PUSHMARK (SP);
+  XPUSHs (sv);
+  PUTBACK;
+
+  ret_count = call_pv( "re::regexp_pattern", G_ARRAY );
+  SPAGAIN;
+
+  if ( ret_count != 2 ) {
+    croak( "error introspecting regex" );
+  }
+
+  // regexp_pattern returns two items (in list context), the pattern and a list of flags
+  flags_sv = POPs;
+  pat_sv   = POPs; // too bad we throw this away
+
+  flags_tmp = SvPVutf8_nolen(flags_sv);
+  for ( i = 0; i < sizeof( flags_tmp ); i++ ) {
+    if ( flags_tmp[i] == 0 ) break;
+
+    // MongoDB supports only flags /imxs, so warn if we get anything else and discard them.
+    if ( flags_tmp[i] == 'i' ||
+         flags_tmp[i] == 'm' ||
+         flags_tmp[i] == 'x' ||
+         flags_tmp[i] == 's' ) {
+      flags[f++] = flags_tmp[i];
+    } else {
+      warn( "stripped unsupported regex flag /%c from MongoDB regex\n", flags_tmp[i] );
+    }
+  }
+
+  PUTBACK;
+  FREETMPS;
+  LEAVE;
+#endif
 }
 
 /**
