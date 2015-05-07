@@ -31,8 +31,8 @@ static void hv_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_
 static void ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
 static void avdoc_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert);
 
+static void sv_to_bson_elem (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 
-static void append_sv (bson_t * bson, const char *key, SV *sv, stackette *stack, int is_insert);
 static void append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv);
 static void append_oid(bson_t * bson, AV *ids);
 static void append_regex(bson_t *, const char*, REGEXP*, SV *);
@@ -349,7 +349,7 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
   if (ids) {
     if(hv_exists(hv, "_id", strlen("_id"))) {
       SV **id = hv_fetchs(hv, "_id", 0);
-      append_sv(bson, "_id", *id, stack, is_insert);
+      sv_to_bson_elem(bson, "_id", *id, stack, is_insert);
       SvREFCNT_inc(*id);
       av_push(ids, *id);
     }
@@ -386,7 +386,7 @@ hv_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) {
         croak( "Invalid UTF-8 detected while encoding BSON" );
     }
 
-    append_sv (bson, key, *hval, stack, is_insert);
+    sv_to_bson_elem (bson, key, *hval, stack, is_insert);
     if (!utf8) {
       Safefree(key);
     }
@@ -422,7 +422,7 @@ avdoc_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
             if (strcmp(SvPV_nolen(*key), "_id") == 0) {
                 SV **val = av_fetch(av, i+1, 0);
                 has_id = 1;
-                append_sv(bson, "_id", *val, EMPTY_STACK, is_insert);
+                sv_to_bson_elem(bson, "_id", *val, EMPTY_STACK, is_insert);
                 SvREFCNT_inc(*val);
                 av_push(ids, *val);
                 break;
@@ -444,7 +444,7 @@ avdoc_to_bson (bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
 
         str = SvPVutf8(*key, len);
 
-        append_sv (bson, str, *val, EMPTY_STACK, is_insert);
+        sv_to_bson_elem (bson, str, *val, EMPTY_STACK, is_insert);
     }
 }
 
@@ -486,7 +486,7 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
       /*
        * add it to the bson and the ids array
        */
-      append_sv(bson, "_id", *id, stack, is_insert);
+      sv_to_bson_elem(bson, "_id", *id, stack, is_insert);
       SvREFCNT_inc(*id);
       av_push(ids, *id);
     }
@@ -507,7 +507,7 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
 
     str = SvPVutf8(*k, len);
     assert_no_null_in_key(str,len);
-    append_sv(bson, str, *v, stack, is_insert);
+    sv_to_bson_elem(bson, str, *v, stack, is_insert);
   }
 
   // free the ixhash elem
@@ -527,9 +527,9 @@ av_to_bson (bson_t * bson, AV *av, stackette *stack, int is_insert) {
     SV **sv;
     SV *key = sv_2mortal(newSViv (i));
     if (!(sv = av_fetch (av, i, 0)))
-      append_sv (bson, SvPV_nolen(key), newSV(0), stack, is_insert);
+      sv_to_bson_elem (bson, SvPV_nolen(key), newSV(0), stack, is_insert);
     else
-      append_sv (bson, SvPV_nolen(key), *sv, stack, is_insert);
+      sv_to_bson_elem (bson, SvPV_nolen(key), *sv, stack, is_insert);
   }
 
   // free the av elem
@@ -559,7 +559,7 @@ clean_key(const char * str, int is_insert) {
 }
 
 static void
-append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_insert) {
+sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_insert) {
   const char * key = clean_key(in_key, is_insert);
 
   if (!SvOK(sv)) {
