@@ -161,17 +161,6 @@ timegm(struct tm *tm) {
 #endif /* WIN32 */
 
 /********************************************************************
- * global data
- ********************************************************************/
-
-static SV *use_binary;
-
-void
-perl_mongo_init() {
-  use_binary = get_sv("MongoDB::BSON::use_binary", 0);
-}
-
-/********************************************************************
  * perl call helpers
  ********************************************************************/
 
@@ -1147,7 +1136,6 @@ check_circular_ref(void *ptr, stackette *stack) {
 SV *
 perl_mongo_bson_to_sv (const bson_t * bson, HV *opts) {
   bson_iter_t iter;
-  use_binary = get_sv("MongoDB::BSON::use_binary", 0);
 
   if ( ! bson_iter_init(&iter, bson) ) {
       croak( "error creating BSON iterator" );
@@ -1283,14 +1271,9 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     bson_subtype_t type;
     bson_iter_binary(iter, &type, &len, (const uint8_t **)&buf);
 
-    if (use_binary && SvTRUE(use_binary)) {
-      SV *data = sv_2mortal(newSVpvn(buf, len));
-      SV *subtype = sv_2mortal(newSViv(type));
-      value = perl_mongo_construct_instance("MongoDB::BSON::Binary", "data", data, "subtype", subtype, NULL);
-    }
-    else {
-      value = newSVpvn(buf, len);
-    }
+    SV *data = sv_2mortal(newSVpvn(buf, len));
+    SV *subtype = sv_2mortal(newSViv(type));
+    value = perl_mongo_construct_instance("MongoDB::BSON::Binary", "data", data, "subtype", subtype, NULL);
 
     break;
   }

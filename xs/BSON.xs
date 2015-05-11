@@ -22,7 +22,6 @@ MODULE = MongoDB  PACKAGE = MongoDB::BSON
 PROTOTYPES: DISABLE
 
 BOOT:
-    perl_mongo_init();
     legacy_mongo_init();
 
 void
