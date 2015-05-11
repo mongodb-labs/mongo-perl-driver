@@ -164,12 +164,10 @@ timegm(struct tm *tm) {
  * global data
  ********************************************************************/
 
-static SV *utf8_flag_on;
 static SV *use_binary;
 
 void
 perl_mongo_init() {
-  utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
 }
 
@@ -1149,7 +1147,6 @@ check_circular_ref(void *ptr, stackette *stack) {
 SV *
 perl_mongo_bson_to_sv (const bson_t * bson, HV *opts) {
   bson_iter_t iter;
-  utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
 
   if ( ! bson_iter_init(&iter, bson) ) {
@@ -1183,18 +1180,10 @@ bson_doc_to_hashref(bson_iter_t * iter, HV *opts) {
     if ( key_num == 2 && is_dbref == 1 && strcmp( name, "$id" ) ) is_dbref = 0;
     if ( key_num == 3 && is_dbref == 1 && strcmp( name, "$db" ) ) is_dbref = 0;
 
-    // get past field name
-
-    // get value
+    /* get value and store into hash */
     value = bson_elem_to_sv(iter, opts);
-    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
-    	if (!hv_store (ret, name, 0-strlen (name), value, 0)) {
-     	 croak ("failed storing value in hash");
-    	}
-    } else {
-    	if (!hv_store (ret, name, strlen (name), value, 0)) {
-     	 croak ("failed storing value in hash");
-    	}
+    if (!hv_store (ret, name, 0-strlen(name), value, 0)) {
+      croak ("failed storing value in hash");
     }
   }
 
@@ -1268,10 +1257,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     // this makes a copy of the buffer
     // len includes \0
     value = newSVpvn(str, len);
-
-    if (!utf8_flag_on || !SvIOK(utf8_flag_on) || SvIV(utf8_flag_on) != 0) {
-      SvUTF8_on(value);
-    }
+    SvUTF8_on(value);
 
     break;
   }
