@@ -1545,3 +1545,5 @@ bson_oid_to_sv (const bson_iter_t * iter) {
   stash = gv_stashpv("MongoDB::OID", 0);
   return sv_bless(newRV_noinc((SV *)id_hv), stash);
 }
+
+/* vim: set ts=2 sts=2 sw=2 et tw=75: */

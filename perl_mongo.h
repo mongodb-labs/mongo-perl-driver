@@ -54,3 +54,5 @@ SV * perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbre
 void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids);
 
 #endif
+
+/* vim: set ts=2 sts=2 sw=2 et tw=75: */
