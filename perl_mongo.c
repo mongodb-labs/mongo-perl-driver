@@ -69,12 +69,13 @@ typedef struct _stackette {
  *
  */
 
-static SV * perl_mongo_call_reader (SV *self, const char *reader);
-static SV * perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...);
-static SV * perl_mongo_call_function (const char *func, int num, ...);
-static SV * perl_mongo_construct_instance (const char *klass, ...);
-static SV * perl_mongo_construct_instance_va (const char *klass, va_list ap);
-static SV * perl_mongo_construct_instance_with_magic (const char *klass, void *ptr, MGVTBL *vtbl, ...);
+static SV * call_method_va(SV *self, const char *method, int num, ...);
+static SV * call_method_with_pairs(SV *self, const char *method, ...);
+static SV * new_object_from_pairs(const char *klass, ...);
+static SV * _call_method_with_pairs (SV *self, const char *method, va_list args);
+static SV * call_sv_va (SV *func, int num, ...);
+
+#define call_perl_reader(s,m) call_method_va(s,m,0)
 
 /* BSON encoding
  *
@@ -164,86 +165,12 @@ timegm(struct tm *tm) {
  * perl call helpers
  ********************************************************************/
 
-static SV *
-perl_mongo_call_reader (SV *self, const char *reader) {
-  dSP;
-  SV *ret;
-  I32 count;
-
-  ENTER;
-  SAVETMPS;
-
-  PUSHMARK (SP);
-  XPUSHs (self);
-  PUTBACK;
-
-  count = call_method (reader, G_SCALAR);
-
-  SPAGAIN;
-
-  if (count != 1) {
-    croak ("reader didn't return a value");
-  }
-
-  ret = POPs;
-  SvREFCNT_inc (ret);
-
-  PUTBACK;
-  FREETMPS;
-  LEAVE;
-
-  return ret;
-}
+/* call_method_va -- calls a method with a variable number
+ * of SV * arguments.  The SV* arguments are NOT mortalized.
+ * Must give the number of arguments before the variable list */
 
 static SV *
-perl_mongo_call_method (SV *self, const char *method, I32 flags, int num, ...) {
-  dSP;
-  SV *ret = NULL;
-  I32 count;
-  va_list args;
-
-  if (flags & G_ARRAY) {
-    croak("perl_mongo_call_method doesn't support list context");
-  }
-
-  ENTER;
-  SAVETMPS;
-
-  PUSHMARK (SP);
-  XPUSHs (self);
-
-  va_start( args, num );
-
-  for( ; num > 0; num-- ) {
-    XPUSHs (va_arg( args, SV* ));
-  }
-
-  va_end( args );
-
-  PUTBACK;
-
-  count = call_method (method, flags | G_SCALAR);
-
-  if (!(flags & G_DISCARD)) {
-    SPAGAIN;
-
-    if (count != 1) {
-      croak ("method didn't return a value");
-    }
-
-    ret = POPs;
-    SvREFCNT_inc (ret);
-  }
-
-  PUTBACK;
-  FREETMPS;
-  LEAVE;
-
-  return ret;
-}
-
-static SV *
-perl_mongo_call_function (const char *func, int num, ...) {
+call_method_va (SV *self, const char *method, int num, ...) {
   dSP;
   SV *ret;
   I32 count;
@@ -251,27 +178,84 @@ perl_mongo_call_function (const char *func, int num, ...) {
 
   ENTER;
   SAVETMPS;
-
   PUSHMARK (SP);
+  XPUSHs (self);
 
-  va_start( args, num );
-
+  va_start (args, num);
   for( ; num > 0; num-- ) {
     XPUSHs (va_arg( args, SV* ));
   }
-
-  va_end( args );
+  va_end(args);
 
   PUTBACK;
-
-  count = call_pv (func, G_SCALAR);
+  count = call_method (method, G_SCALAR);
 
   SPAGAIN;
-
   if (count != 1) {
     croak ("method didn't return a value");
   }
+  ret = POPs;
+  SvREFCNT_inc (ret);
 
+  PUTBACK;
+  FREETMPS;
+  LEAVE;
+
+  return ret;
+}
+
+/* call_method_va_paris -- calls a method with a variable number
+ * of key/value pairs as paired char* and SV* arguments.  The SV* arguments
+ * are NOT mortalized.  The final argument must be a NULL key. */
+
+static SV *
+call_method_with_pairs (SV *self, const char *method, ...) {
+  SV *ret;
+  va_list args;
+  va_start (args, method);
+  ret = _call_method_with_pairs(self, method, args);
+  va_end(args);
+  return ret;
+}
+
+/* new_object_from_pairs -- calls 'new' with a variable number of
+ * of key/value pairs as paired char* and SV* arguments.  The SV* arguments
+ * are NOT mortalized.  The final argument must be a NULL key. */
+
+static SV *
+new_object_from_pairs(const char *klass, ...) {
+  SV *ret;
+  va_list args;
+  va_start (args, klass);
+  ret = _call_method_with_pairs(sv_2mortal(newSVpv(klass,0)), "new", args);
+  va_end(args);
+  return ret;
+}
+
+static SV *
+_call_method_with_pairs (SV *self, const char *method, va_list args) {
+  dSP;
+  SV *ret = NULL;
+  char *key;
+  I32 count;
+
+  ENTER;
+  SAVETMPS;
+  PUSHMARK (SP);
+  XPUSHs (self);
+
+  while ((key = va_arg (args, char *))) {
+    mXPUSHp (key, strlen (key));
+    XPUSHs (va_arg (args, SV *));
+  }
+
+  PUTBACK;
+  count = call_method (method, G_SCALAR);
+
+  SPAGAIN;
+  if (count != 1) {
+    croak ("method didn't return a value");
+  }
   ret = POPs;
   SvREFCNT_inc (ret);
 
@@ -283,73 +267,29 @@ perl_mongo_call_function (const char *func, int num, ...) {
 }
 
 static SV *
-perl_mongo_construct_instance (const char *klass, ...) {
-  SV *ret;
-  va_list ap;
-  va_start (ap, klass);
-  ret = perl_mongo_construct_instance_va (klass, ap);
-  va_end(ap);
-  return ret;
-}
-
-static SV *
-perl_mongo_construct_instance_va (const char *klass, va_list ap) {
+call_sv_va (SV *func, int num, ...) {
   dSP;
   SV *ret;
   I32 count;
-  char *init_arg;
+  va_list args;
 
   ENTER;
   SAVETMPS;
-
   PUSHMARK (SP);
-  mXPUSHp (klass, strlen (klass));
-  while ((init_arg = va_arg (ap, char *))) {
-    mXPUSHp (init_arg, strlen (init_arg));
-    XPUSHs (va_arg (ap, SV *));
-  }
-  PUTBACK;
 
-  count = call_method ("new", G_SCALAR);
+  va_start (args, num);
+  for( ; num > 0; num-- ) {
+    XPUSHs (va_arg( args, SV* ));
+  }
+  va_end(args);
+
+  PUTBACK;
+  count = call_sv(func, G_SCALAR);
 
   SPAGAIN;
-
   if (count != 1) {
-    croak ("constructor didn't return an instance");
+    croak ("method didn't return a value");
   }
-
-  ret = POPs;
-  SvREFCNT_inc (ret);
-
-  PUTBACK;
-  FREETMPS;
-  LEAVE;
-
-  return ret;
-}
-
-static SV *
-perl_mongo_construct_instance_single_arg (const char *klass, SV *arg) {
-  dSP;
-  SV *ret;
-  I32 count;
-
-  ENTER;
-  SAVETMPS;
-
-  PUSHMARK (SP);
-  mXPUSHp (klass, strlen (klass));
-  XPUSHs(arg);
-  PUTBACK;
-
-  count = call_method ("new", G_SCALAR);
-
-  SPAGAIN;
-
-  if (count != 1) {
-    croak ("constructor didn't return an instance");
-  }
-
   ret = POPs;
   SvREFCNT_inc (ret);
 
@@ -610,7 +550,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
     if (sv_isobject (sv)) {
       /* OIDs */
       if (sv_derived_from (sv, "MongoDB::OID")) {
-        SV *attr = sv_2mortal(perl_mongo_call_reader(sv, "value"));
+        SV *attr = sv_2mortal(call_perl_reader(sv, "value"));
         char *str = SvPV_nolen (attr);
         bson_oid_t oid;
         bson_oid_init_from_string(&oid, str);
@@ -695,15 +635,15 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
         char *str;
 
         // check for floating tz
-        tz = sv_2mortal(perl_mongo_call_reader (sv, "time_zone"));
-        tz_name = sv_2mortal(perl_mongo_call_reader (tz, "name"));
+        tz = sv_2mortal(call_perl_reader (sv, "time_zone"));
+        tz_name = sv_2mortal(call_perl_reader (tz, "name"));
         str = SvPV(tz_name, len);
         if (len == 8 && strncmp("floating", str, 8) == 0) {
           warn("saving floating timezone as UTC");
         }
 
-        sec = sv_2mortal(perl_mongo_call_reader (sv, "epoch"));
-        ms = sv_2mortal(perl_mongo_call_method (sv, "millisecond", 0, 0));
+        sec = sv_2mortal(call_perl_reader (sv, "epoch"));
+        ms = sv_2mortal(call_perl_reader(sv, "millisecond"));
 
         bson_append_date_time(bson, key, -1, (int64_t)SvIV(sec)*1000+SvIV(ms));
       }
@@ -713,12 +653,12 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
         time_t epoch_secs = time(NULL);
         int64_t epoch_ms;
 
-        t.tm_year   = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "year"    )) ) - 1900;
-        t.tm_mon    = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "month"   )) ) -    1;
-        t.tm_mday   = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "day"     )) )       ;
-        t.tm_hour   = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "hour"    )) )       ;
-        t.tm_min    = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "minute"  )) )       ;
-        t.tm_sec    = SvIV( sv_2mortal(perl_mongo_call_reader( sv, "second"  )) )       ;
+        t.tm_year   = SvIV( sv_2mortal(call_perl_reader( sv, "year"    )) ) - 1900;
+        t.tm_mon    = SvIV( sv_2mortal(call_perl_reader( sv, "month"   )) ) -    1;
+        t.tm_mday   = SvIV( sv_2mortal(call_perl_reader( sv, "day"     )) )       ;
+        t.tm_hour   = SvIV( sv_2mortal(call_perl_reader( sv, "hour"    )) )       ;
+        t.tm_min    = SvIV( sv_2mortal(call_perl_reader( sv, "minute"  )) )       ;
+        t.tm_sec    = SvIV( sv_2mortal(call_perl_reader( sv, "second"  )) )       ;
         t.tm_isdst  = -1;     // no dst/tz info in DateTime::Tiny
 
         epoch_secs = timegm( &t );
@@ -731,7 +671,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
       else if (sv_isa(sv, "MongoDB::DBRef")) { 
         SV *dbref;
         bson_t child;
-        dbref = sv_2mortal(perl_mongo_call_reader(sv, "_ordered"));
+        dbref = sv_2mortal(call_perl_reader(sv, "_ordered"));
         bson_append_document_begin(bson, key, -1, &child);
         ixhash_to_bson(&child, dbref, opts, stack);
         bson_append_document_end(bson, &child);
@@ -746,9 +686,9 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
         char *code_str;
         STRLEN code_len;
 
-        code = sv_2mortal(perl_mongo_call_reader (sv, "code"));
+        code = sv_2mortal(call_perl_reader (sv, "code"));
         code_str = SvPV(code, code_len);
-        scope = sv_2mortal(perl_mongo_call_method (sv, "scope", 0, 0));
+        scope = sv_2mortal(call_perl_reader(sv, "scope"));
 
         if (SvOK(scope)) {
             bson_t * child = bson_new();
@@ -763,8 +703,8 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
       else if (sv_isa(sv, "MongoDB::Timestamp")) {
         SV *sec, *inc;
 
-        inc = sv_2mortal(perl_mongo_call_reader(sv, "inc"));
-        sec = sv_2mortal(perl_mongo_call_reader(sv, "sec"));
+        inc = sv_2mortal(call_perl_reader(sv, "inc"));
+        sec = sv_2mortal(call_perl_reader(sv, "sec"));
 
         bson_append_timestamp(bson, key, -1, SvIV(sec), SvIV(inc));
       }
@@ -816,8 +756,8 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
       else if (sv_isa(sv, "MongoDB::BSON::Binary")) {
         SV *data, *subtype;
 
-        subtype = sv_2mortal(perl_mongo_call_reader(sv, "subtype"));
-        data = sv_2mortal(perl_mongo_call_reader(sv, "data"));
+        subtype = sv_2mortal(call_perl_reader(sv, "subtype"));
+        data = sv_2mortal(call_perl_reader(sv, "data"));
 
         append_binary(bson, key, SvIV(subtype), data);
       }
@@ -848,8 +788,8 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
       else if (sv_isa(sv, "MongoDB::BSON::Regexp") ) { 
         /* Abstract regexp object */
         SV *pattern, *flags;
-        pattern = sv_2mortal(perl_mongo_call_reader( sv, "pattern" ));
-        flags   = sv_2mortal(perl_mongo_call_reader( sv, "flags" ));
+        pattern = sv_2mortal(call_perl_reader( sv, "pattern" ));
+        flags   = sv_2mortal(call_perl_reader( sv, "flags" ));
         
         append_decomposed_regex( bson, key, SvPV_nolen( pattern ), SvPV_nolen( flags ) );
       }
@@ -1179,7 +1119,7 @@ bson_doc_to_hashref(bson_iter_t * iter, HV *opts) {
     *  if ( key_num == 3 && is_dbref == 1 && inflate_dbrefs == 1 ) { 
     *    SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
     *    SV *dbref = 
-    *      perl_mongo_call_method( dbr_class, "new", 0, 8,
+    *      call_method_va( dbr_class, "new", 0, 8,
     *                              newSVpvs("ref"),
     *                              *hv_fetch( ret, "$ref", 4, FALSE ),
     *                              newSVpvs("id"),
@@ -1273,7 +1213,8 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
 
     SV *data = sv_2mortal(newSVpvn(buf, len));
     SV *subtype = sv_2mortal(newSViv(type));
-    value = perl_mongo_construct_instance("MongoDB::BSON::Binary", "data", data, "subtype", subtype, NULL);
+    value = new_object_from_pairs("MongoDB::BSON::Binary", "data", data, "subtype", subtype, NULL
+    );
 
     break;
   }
@@ -1318,10 +1259,11 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     value = newSViv(bson_iter_int64(iter));
 #else
     char buf[22];
-    sprintf(buf,"%" PRIi64,bson_iter_int64(iter));
-    load_module(0,newSVpvs("Math::BigInt"),NULL,NULL);
     SV *as_str = sv_2mortal(newSVpv(buf,0));
-    value = perl_mongo_construct_instance_single_arg("Math::BigInt", as_str);
+    SV *big_int = sv_2mortal(newSVpvs("Math::BigInt"));
+    sprintf(buf,"%" PRIi64,bson_iter_int64(iter));
+    load_module(0,big_int,NULL,NULL);
+    value = call_method_va(big_int, "new", 1, as_str);
 #endif
     break;
   }
@@ -1344,37 +1286,24 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     } else if ( strcmp( dt_type, "DateTime::Tiny" ) == 0 ) {
       time_t epoch;
       struct tm *dt;
-      datetime = sv_2mortal(newSVpv("DateTime::Tiny", 0));
       epoch = bson_iter_time_t(iter);
       dt = gmtime( &epoch );
 
-      value = 
-        perl_mongo_call_function("DateTime::Tiny::new", 13, datetime,
-                                 newSVpvs("year"),
-                                 newSViv( dt->tm_year + 1900 ),
-                                 newSVpvs("month"),
-                                 newSViv( dt->tm_mon  +    1 ),
-                                 newSVpvs("day"),
-                                 newSViv( dt->tm_mday ),
-                                 newSVpvs("hour"),
-                                 newSViv( dt->tm_hour ),
-                                 newSVpvs("minute"),
-                                 newSViv( dt->tm_min ),
-                                 newSVpvs("second"),
-                                 newSViv( dt->tm_sec )
-                                 );
-
-
-    } else if ( strcmp( dt_type, "DateTime" ) == 0 ) { 
-      datetime = sv_2mortal(newSVpv("DateTime", 0));
-      ms = newSVnv(ms_i);
-
-      named_params = newHV();
-      hv_stores(named_params, "epoch", ms);
-
-      value = perl_mongo_call_function("DateTime::from_epoch", 2, datetime,
-                                       sv_2mortal(newRV_inc(sv_2mortal((SV*)named_params))));
-
+      value = new_object_from_pairs(
+        dt_type,
+        "year",   newSViv( dt->tm_year + 1900 ),
+        "month",  newSViv( dt->tm_mon  +    1 ),
+        "day",    newSViv( dt->tm_mday ),
+        "hour",   newSViv( dt->tm_hour ),
+        "minute", newSViv( dt->tm_min ),
+        "second", newSViv( dt->tm_sec ),
+        NULL
+      );
+    } else if ( strcmp( dt_type, "DateTime" ) == 0 ) {
+      SV *epoch = sv_2mortal(newSVnv(ms_i));
+      value = call_method_with_pairs(
+        sv_2mortal(newSVpv(dt_type,0)), "from_epoch", "epoch", epoch, NULL
+      );
     } else {
       croak( "Invalid dt_type \"%s\"", dt_type );
     }
@@ -1382,7 +1311,6 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     break;
   }
   case BSON_TYPE_REGEX: {
-    SV *class_str = sv_2mortal(newSVpv("MongoDB::BSON::Regexp", 0));
     SV *pattern, *regex_ref, *tempsv;
     const char * regex_str;
     const char * options;
@@ -1403,11 +1331,9 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
 
     if ( (tempsv = _hv_fetchs_sv(opts, "inflate_regexps")) && SvTRUE(tempsv) ) {
       /* make a MongoDB::BSON::Regexp object instead of a native Perl regexp. */
-      value = perl_mongo_call_method( class_str, "new", 0, 4,
-                                      sv_2mortal( newSVpvs("pattern") ),
-                                      pattern,
-                                      sv_2mortal( newSVpvs("flags") ),
-                                      sv_2mortal( newSVpv( options, 0 ) ) );
+      value = new_object_from_pairs(
+        "MongoDB::BSON::Regexp", "pattern", pattern, "flags", sv_2mortal( newSVpv( options, 0 ) ), NULL
+      );
 
       break;   /* exit case */
     }
@@ -1475,7 +1401,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
 
     code_sv = sv_2mortal(newSVpvn(code, len));
 
-    value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, NULL);
+    value = new_object_from_pairs("MongoDB::Code", "code", code_sv, NULL);
 
     break;
   }
@@ -1496,7 +1422,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     }
 
     scope_sv = bson_doc_to_hashref(&child, opts);
-    value = perl_mongo_construct_instance("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
+    value = new_object_from_pairs("MongoDB::Code", "code", code_sv, "scope", scope_sv, NULL);
 
     break;
   }
@@ -1509,7 +1435,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     sec_sv = sv_2mortal(newSViv(sec));
     inc_sv = sv_2mortal(newSViv(inc));
 
-    value = perl_mongo_construct_instance("MongoDB::Timestamp", "sec", sec_sv, "inc", inc_sv, NULL);
+    value = new_object_from_pairs("MongoDB::Timestamp", "sec", sec_sv, "inc", inc_sv, NULL);
     break;
   }
   case BSON_TYPE_MINKEY: {
