@@ -141,8 +141,9 @@ sub _execute_write_command_batch {
         ];
 
         my $op = MongoDB::Op::_Command->new(
-            db_name => $db_name,
-            query   => $cmd_doc,
+            db_name    => $db_name,
+            query      => $cmd_doc,
+            bson_codec => $self->bson_codec,
         );
 
         my $cmd_result = try {

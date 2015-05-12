@@ -61,8 +61,12 @@ sub execute {
     my ( $self, $link ) = @_;
 
     # XXX until we have a proper BSON::Raw class, we bless on the fly
-    my $max_size   = $link->max_bson_object_size;
-    my $bson_doc   = MongoDB::BSON::encode_bson( $self->document, 1, $max_size );
+    my $bson_doc   = $self->bson_codec->encode_one(
+        $self->document, {
+            invalid_chars => '.',
+            max_length => $link->max_bson_object_size,
+        }
+    );
     my $insert_doc = bless \$bson_doc, "MongoDB::BSON::Raw";
 
     my $res =

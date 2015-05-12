@@ -48,12 +48,6 @@ has client => (
     required => 1,
 );
 
-has bson_codec => (
-    is       => 'ro',
-    isa      => InstanceOf ['MongoDB::MongoClient'], # XXX only for now
-    required => 1,
-);
-
 has pipeline => (
     is       => 'ro',
     isa      => ArrayOfHashRef,
@@ -66,7 +60,7 @@ has options => (
     default => sub { {} },
 );
 
-with qw(
+with $_ for qw(
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
@@ -117,6 +111,7 @@ sub execute {
         db_name         => $self->db_name,
         query           => Tie::IxHash->new(@command),
         read_preference => $self->read_preference,
+        bson_codec      => $self->bson_codec,
     );
 
     my $res = $op->execute( $link, $topology );
@@ -125,9 +120,10 @@ sub execute {
     # different server versions
     if ( $options->{explain} ) {
         return MongoDB::QueryResult->new(
-            _client => $self->client,
-            address => $link->address,
-            cursor  => {
+            _client    => $self->client,
+            address    => $link->address,
+            bson_codec => $self->bson_codec,
+            cursor     => {
                 ns         => '',
                 id         => 0,
                 firstBatch => [ $res->output ],

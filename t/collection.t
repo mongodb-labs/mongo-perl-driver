@@ -227,11 +227,10 @@ subtest write_concern => sub {
 
 # more utf8
 {
-    local $MongoDB::BSON::utf8_flag_on = 0;
     $coll->drop;
     $coll->insert_one({"\xe9" => "hi"});
     my $utfblah = $coll->find_one;
-    is($utfblah->{"\xC3\xA9"}, "hi", 'byte key');
+    is($utfblah->{"\xe9"}, "hi", 'byte key');
 }
 
 # get_indexes
@@ -484,15 +483,10 @@ SKIP: {
 {
     my $coll = $testdb->get_collection('test_collection');
     $coll->drop;
-    # turn off utf8 flag now
-    local $MongoDB::BSON::utf8_flag_on = 0;
-    $coll->insert_one({ foo => "\x{4e2d}\x{56fd}"});
+    my $utf8 = "\x{4e2d}\x{56fd}";
+    $coll->insert_one({ foo => $utf8});
     my $utfblah = $coll->find_one;
-    # use utf8;
-    my $utfv2 = encode('utf8',"\x{4e2d}\x{56fd}");
-    # my $utfv2 = encode('utf8',"中国");
-    # diag(Dumper(\$utfv2));
-    is($utfblah->{foo},$utfv2,'turn utf8 flag off,return perl internal form(bytes)');
+    is($utfblah->{foo}, $utf8,'round trip UTF-8');
     $coll->drop;
 }
 

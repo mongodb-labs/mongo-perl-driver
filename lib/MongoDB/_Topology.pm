@@ -20,6 +20,7 @@ use version;
 our $VERSION = 'v0.999.998.6';
 
 use Moose;
+use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Link;
@@ -122,6 +123,12 @@ has link_options => (
     is      => 'ro',
     isa     => HashRef,
     default => sub { {} },
+);
+
+has bson_codec => (
+    is       => 'ro',
+    isa      => BSONCodec,
+    default  => sub { MongoDB::BSON->new },
 );
 
 has number_of_seeds => (
@@ -492,7 +499,7 @@ sub _initialize_link {
     # servers are considered invalid and we throw an error
     if ( $server->type eq any(qw/Standalone Mongos RSPrimary RSSecondary/) ) {
         try {
-            $self->credential->authenticate($link);
+            $self->credential->authenticate($link, $self->bson_codec);
         }
         catch {
             my $err = $_;
@@ -582,8 +589,9 @@ sub _update_topology_from_link {
     my $start_time = [ gettimeofday() ];
     my $is_master = try {
         my $op = MongoDB::Op::_Command->new(
-            db_name => 'admin',
-            query   => [ ismaster => 1 ],
+            db_name    => 'admin',
+            query      => [ ismaster => 1 ],
+            bson_codec => $self->bson_codec,
         );
         $op->execute( $link )->output;
     }

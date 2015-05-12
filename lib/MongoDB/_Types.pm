@@ -27,6 +27,7 @@ use Type::Library
   ArrayOfHashRef
   AuthMechanism
   Booleanpm
+  BSONCodec
   ConnectType
   ConnectionStr
   CursorType
@@ -83,6 +84,8 @@ enum AuthMechanism,
   [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1/];
 
 class_type Booleanpm, { class => 'boolean' };
+
+duck_type BSONCodec, [ qw/encode_one decode_one/ ];
 
 enum ConnectType, [qw/replicaSet direct none/];
 

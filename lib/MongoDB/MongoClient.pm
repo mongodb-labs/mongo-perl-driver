@@ -23,9 +23,11 @@ our $VERSION = 'v0.999.998.6';
 
 use Moose;
 use MongoDB;
-use MongoDB::Cursor;
+use MongoDB::BSON;
 use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
+use MongoDB::Cursor;
+use MongoDB::DBRef;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::ReadPreference;
@@ -59,7 +61,7 @@ use constant {
 # deprecated global variables
 #--------------------------------------------------------------------------#
 
-# These are used to configure a BSON codec options if none is provided
+# These are used to configure a BSON codec options if none is provided.
 $MongoDB::BSON::looks_like_number = 0;
 $MongoDB::BSON::char = '$';
 
@@ -469,6 +471,26 @@ has auth_mechanism_properties => (
     writer  => '_set_auth_mechanism_properties',
 );
 
+# BSON codec
+
+=attr bson_codec
+
+An object that provides the C<encode_one> and C<decode_one> methods, such
+as from L<MongoDB::BSON>.
+
+If not provided, one will be generated from deprecated configuration
+options.
+
+=cut
+
+has bson_codec => (
+    is      => 'ro',
+    isa     => BSONCodec,
+    lazy    => 1,
+    builder => '_build_bson_codec',
+    writer  => '_set_bson_codec',
+);
+
 #--------------------------------------------------------------------------#
 # deprecated public attributes
 #--------------------------------------------------------------------------#
@@ -506,6 +528,8 @@ Sets the type of object which is returned for DateTime fields. The default is
 L<DateTime>. Other acceptable values are L<DateTime::Tiny> and C<undef>. The
 latter will give you the raw epoch value rather than an object.
 
+XXX has no effect if a bson_codec is provided
+
 =cut
 
 has dt_type => (
@@ -517,8 +541,6 @@ has dt_type => (
 
 This attribute no longer has any effect.  The driver will always attempt
 to find an appropriate server for every operation.
-
-XXX has no effect if a bson_codec is provided
 
 =cut
 
@@ -532,9 +554,7 @@ has find_master => (
 
 Controls whether regular expressions stored in MongoDB are inflated into
 L<MongoDB::BSON::Regexp> objects instead of native Perl Regexps. The default is
-false. This can be dangerous, since the JavaScript regexps used internally by
-MongoDB are of a different dialect than Perl's. The default for this attribute
-may become true in future versions of the driver.
+true.
 
 XXX has no effect if a bson_codec is provided
 
@@ -543,7 +563,7 @@ XXX has no effect if a bson_codec is provided
 has inflate_regexps => (
     is      => 'rw',
     isa     => Bool,
-    default => 0,
+    default => 1,
 );
 
 =attr sasl (DEPRECATED)
@@ -570,24 +590,6 @@ has sasl_mechanism => (
     is      => 'ro',
     isa     => AuthMechanism,
     default => 'GSSAPI',
-);
-
-#--------------------------------------------------------------------------#
-# attributes to be unwired and removed
-#--------------------------------------------------------------------------#
-
-=attr inflate_dbrefs (TO BE REMOVED)
-
-Controls whether L<DBRef|http://docs.mongodb.org/manual/applications/database-references/#dbref>s
-are automatically inflated into L<MongoDB::DBRef> objects. Defaults to true.
-Set this to C<0> if you don't want to auto-inflate them.
-
-=cut
-
-has inflate_dbrefs => (
-    is      => 'rw',
-    isa     => Bool,
-    default => 1
 );
 
 #--------------------------------------------------------------------------#
@@ -665,6 +667,26 @@ sub _build_auth_mechanism_properties {
     };
 }
 
+# skipping op_char unless $MongoDB::BSON::char is not '$' is an optimization
+sub _build_bson_codec {
+    my ($self) = @_;
+    return MongoDB::BSON->new(
+        dbref_callback => sub {
+            my $doc = shift;
+            return MongoDB::DBRef->new(
+                client => $self,
+                ref    => $doc->{'$ref'},
+                id     => $doc->{'$id'},
+                db     => $doc->{'$db'},
+            );
+        },
+        dt_type         => $self->dt_type,
+        inflate_regexps => $self->inflate_regexps,
+        prefer_numeric  => $MongoDB::BSON::looks_like_number || 0,
+        ( $MongoDB::BSON::char ne '$' ? ( op_char => $MongoDB::BSON::char ) : () ),
+    );
+}
+
 sub _build__topology {
     my ($self) = @_;
 
@@ -675,6 +697,7 @@ sub _build__topology {
 
     MongoDB::_Topology->new(
         uri                         => $self->_uri,
+        bson_codec                  => $self->bson_codec,
         type                        => $type,
         server_selection_timeout_ms => $self->server_selection_timeout_ms,
         local_threshold_ms          => $self->local_threshold_ms,
@@ -766,6 +789,26 @@ sub BUILD {
         $self->_set_read_preference($rp);
     }
 
+    # Add error handler to codec if user didn't provide their own
+    unless ( $self->bson_codec->error_callback ) {
+        $self->_set_bson_codec(
+            $self->bson_codec->clone(
+                error_callback => sub {
+                    my ($msg, $ref, $op) = @_;
+                    if ( $op =~ /^encode/ ) {
+                        MongoDB::DocumentError->throw(
+                            message => $msg,
+                            document => $ref
+                        );
+                    }
+                    else {
+                        MongoDB::DecodingError->throw($msg);
+                    }
+                },
+            )
+        );
+    }
+
     return;
 }
 
@@ -831,10 +874,11 @@ sub connected {
 sub send_admin_command {
     my ( $self, $command, $read_preference ) = @_;
 
-    my $op   = MongoDB::Op::_Command->new(
-        db_name => 'admin',
-        query => $command,
-        ( $read_preference ? (read_preference => $read_preference) : ()),
+    my $op = MongoDB::Op::_Command->new(
+        db_name    => 'admin',
+        query      => $command,
+        bson_codec => $self->bson_codec,
+        ( $read_preference ? ( read_preference => $read_preference ) : () ),
     );
 
     return $self->send_read_op( $op );
@@ -949,7 +993,8 @@ sub get_database {
     my ( $self, $database_name, $options ) = @_;
     return MongoDB::Database->new(
         read_preference => $self->read_preference,
-        write_concern => $self->_write_concern,
+        write_concern   => $self->_write_concern,
+        bson_codec      => $self->bson_codec,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options
         _client       => $self,

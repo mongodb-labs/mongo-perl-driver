@@ -168,7 +168,7 @@ sub BUILD {
 }
 
 sub authenticate {
-    my ( $self, $link ) = @_;
+    my ( $self, $link, $bson_codec ) = @_;
 
     my $mech = $self->mechanism;
     if ( $mech eq 'DEFAULT' ) {
@@ -187,7 +187,7 @@ sub authenticate {
 sub _authenticate_NONE () { 1 }
 
 sub _authenticate_MONGODB_CR {
-    my ( $self, $link ) = @_;
+    my ( $self, $link, $bson_codec ) = @_;
 
     my $nonce = $self->_send_command( $link, 'admin', { getnonce => 1 } )->output->{nonce};
     my $key =
@@ -205,7 +205,7 @@ sub _authenticate_MONGODB_CR {
 }
 
 sub _authenticate_MONGODB_X509 {
-    my ( $self, $link ) = @_;
+    my ( $self, $link, $bson_codec ) = @_;
 
     my $command = Tie::IxHash->new(
         authenticate => 1,
@@ -218,7 +218,7 @@ sub _authenticate_MONGODB_X509 {
 }
 
 sub _authenticate_PLAIN {
-    my ( $self, $link ) = @_;
+    my ( $self, $link, $bson_codec ) = @_;
 
     my $auth_bytes =
       encode( "UTF-8", "\x00" . $self->username . "\x00" . $self->password );
@@ -228,7 +228,7 @@ sub _authenticate_PLAIN {
 }
 
 sub _authenticate_GSSAPI {
-    my ( $self, $link ) = @_;
+    my ( $self, $link, $bson_codec ) = @_;
 
     eval { require Authen::SASL; 1 }
       or MongoDB::AuthError->throw(
@@ -275,7 +275,7 @@ sub _authenticate_GSSAPI {
 }
 
 sub _authenticate_SCRAM_SHA_1 {
-    my ( $self, $link ) = @_;
+    my ( $self, $link, $bson_codec ) = @_;
 
     my $client = $self->_scram_client;
 
@@ -323,7 +323,7 @@ sub _assert_gssapi {
 }
 
 sub _sasl_start {
-    my ( $self, $link, $payload, $mechanism ) = @_;
+    my ( $self, $link, $bson_codec, $payload, $mechanism ) = @_;
 
     my $command = Tie::IxHash->new(
         saslStart     => 1,
@@ -336,7 +336,7 @@ sub _sasl_start {
 }
 
 sub _sasl_continue {
-    my ( $self, $link, $payload, $conv_id ) = @_;
+    my ( $self, $link, $bson_codec, $payload, $conv_id ) = @_;
 
     my $command = Tie::IxHash->new(
         saslContinue   => 1,
@@ -348,19 +348,20 @@ sub _sasl_continue {
 }
 
 sub _sasl_send {
-    my ( $self, $link, $command ) = @_;
-    my $output = $self->_send_command( $link, $self->source, $command )->output;
+    my ( $self, $link, $bson_codec, $command ) = @_;
+    my $output = $self->_send_command( $link, $bson_codec, $self->source, $command )->output;
 
     my $sasl_resp = $output->{payload} ? decode_base64( $output->{payload} ) : "";
     return ( $sasl_resp, $output->{conversationId}, $output->{done} );
 }
 
 sub _send_command {
-    my ($self, $link, $db_name, $command) = @_;
+    my ($self, $link, $bson_codec, $db_name, $command) = @_;
 
     my $op = MongoDB::Op::_Command->new(
         db_name => $db_name,
         query => $command,
+        bson_codec => $bson_codec,
     );
     my $res = $op->execute( $link );
     return $res;

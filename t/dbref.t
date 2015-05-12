@@ -21,6 +21,7 @@ use Test::More;
 use Test::Fatal;
 
 use MongoDB;
+use MongoDB::BSON;
 use Scalar::Util 'blessed', 'reftype';
 
 use lib "t/lib";
@@ -29,17 +30,14 @@ use MongoDBTest qw/build_client get_test_db/;
 my $conn = build_client();
 my $testdb = get_test_db($conn);
 
-plan tests => 28;
-
-
 {
     my $ref = MongoDB::DBRef->new( db => 'test', ref => 'test_coll', id => 123 );
     ok $ref;
     isa_ok $ref, 'MongoDB::DBRef';
 }
 
-# test type coercions 
-{ 
+# test type coercions
+{
     my $coll = $testdb->get_collection( 'test_collection' );
 
     my $ref = MongoDB::DBRef->new( db => $testdb, ref => $coll, id => 123 );
@@ -54,7 +52,7 @@ plan tests => 28;
 }
 
 # test fetch
-{ 
+{
     $testdb->get_collection( 'test_coll' )->insert_one( { _id => 123, foo => 'bar' } );
 
     my $ref = MongoDB::DBRef->new( db => 'fake_db_does_not_exist', 'ref', 'fake_coll_does_not_exist', id => 123 );
@@ -71,7 +69,7 @@ plan tests => 28;
     like( exception { $ref->fetch }, qr/No such collection fake_coll_does_not_exist/, "collection doesn't exist throws" );
 
     $ref->ref( 'test_coll' );
-    
+
     my $doc = $ref->fetch;
     is $doc->{_id}, 123;
     is $doc->{foo}, 'bar';
@@ -118,22 +116,25 @@ plan tests => 28;
     $some_coll->drop;
 }
 
-# test inflate_dbrefs flag
+# test changing dbref_callback on bson_codec
 {
-    $conn->inflate_dbrefs( 0 );
+    my $coll =
+      $testdb->get_collection( 'test_coll', { bson_codec => MongoDB::BSON->new } );
+
     my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
 
-    my $coll = $testdb->get_collection( 'test_coll' );
     $coll->insert_one( { _id => 'wut wut wut', thing => $dbref } );
 
     my $doc = $coll->find_one( { _id => 'wut wut wut' } );
-    ok exists $doc->{thing};
-    ok ref $doc->{thing};
-    ok reftype $doc->{thing} eq reftype { };
-    ok not blessed $doc->{thing};
-    is $doc->{thing}{'$db'}, $testdb->name;
-    is $doc->{thing}{'$ref'}, 'some_coll';
-    is $doc->{thing}{'$id'}, 123;
+    ok( exists $doc->{thing}, "got inserted doc from db" );
+    is( ref $doc->{thing}, 'HASH', "doc is hash, not object" );;
+    is( $doc->{thing}{'$db'}, $testdb->name, '$db' );
+    is( $doc->{thing}{'$ref'}, 'some_coll', '$ref' );
+    is( $doc->{thing}{'$id'}, 123, '$id' );
 
     $coll->drop;
 }
+
+done_testing;
+
+# vim: set ts=4 sts=4 sw=4 et tw=75:

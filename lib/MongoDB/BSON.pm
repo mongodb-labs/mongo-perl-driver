@@ -68,7 +68,7 @@ latter will give you the raw epoch value rather than an object.
 
 has dt_type => (
     is      => 'ro',
-    isa     => Str,
+    isa     => Str|Undef,
     default => 'DateTime',
 );
 
@@ -94,8 +94,7 @@ If not provided, errors messages will be thrown with C<Carp::croak>.
 
 has error_callback => (
     is      => 'ro',
-    isa     => CodeRef,
-    default => sub { sub { Carp::croak("During $_[2], $_[0]") } },
+    isa     => Maybe[CodeRef],
 );
 
 =attr inflate_regexps
@@ -211,8 +210,7 @@ The default is "$".
 
 has op_char => (
     is => 'ro',
-    isa => SingleChar,
-    default => '$',
+    isa => Maybe[ SingleChar ],
 );
 
 =attr prefer_numeric
@@ -264,19 +262,23 @@ my @encode_overrides =
 my $encode_one_args;
 
 sub encode_one {
-    $encode_one_args ||= compile( Object, IxHash|HashRef|ArrayRef, Optional [HashRef] );
+    $encode_one_args ||=
+      compile( Object, IxHash | HashRef | ArrayRef, Optional [HashRef] );
     my ( $self, $document, $options ) = $encode_one_args->(@_);
 
-    for my $k ( @encode_overrides ) {
+    for my $k (@encode_overrides) {
         $options->{$k} = $self->$k unless exists $options->{$k};
     }
 
     my $bson = eval { MongoDB::BSON::_encode_bson( $document, $options ) };
-    $options->{error_callback}->( $@, $document, 'encode_one' ) if $@;
-
-    if ( $options->{max_length} && length($bson) > $options->{max_length} ) {
-        my $msg = "Document exceeds maximum size $options->{max_length}";
-        $options->{error_callback}->( $msg, $document, 'encode_one' );
+    if ( $@ or ( $options->{max_length} && length($bson) > $options->{max_length} ) ) {
+        my $msg = $@ || "Document exceeds maximum size $options->{max_length}";
+        if ( $options->{error_callback} ) {
+            $options->{error_callback}->( $msg, $document, 'encode_one' );
+        }
+        else {
+            Carp::croak("During encode_one, $msg");
+        }
     }
 
     return $bson;
@@ -315,57 +317,50 @@ sub decode_one {
 
     if ( $options->{max_length} && length($string) > $options->{max_length} ) {
         my $msg = "Document exceeds maximum size $options->{max_length}";
-        $options->{error_callback}->( $msg, \$string, 'decode_one' );
+        if ( $options->{error_callback} ) {
+            $options->{error_callback}->( $msg, \$string, 'decode_one' );
+        }
+        else {
+            Carp::croak("During decode_one, $msg");
+        }
     }
 
     my $document = eval { MongoDB::BSON::_decode_bson( $string, $options ) };
-    $options->{error_callback}->($@, \$string, 'decode_one') if $@;
+    if ( $@ ) {
+        if ( $options->{error_callback} ) {
+            $options->{error_callback}->( $@, \$string, 'decode_one' );
+        }
+        else {
+            Carp::croak("During decode_one, $@");
+        }
+    }
 
     return $document;
 }
 
-#--------------------------------------------------------------------------#
-# legacy functions
-#--------------------------------------------------------------------------#
+=method clone
 
-sub decode_bson {
-    my ($msg,$client) = @_;
-    my @decode_args;
-    if ( $client ) {
-        @decode_args = map { $client->$_ } qw/dt_type inflate_dbrefs inflate_regexps/;
-        push @decode_args, $client;
+    $codec->clone( dt_type => 'DateTime::Tiny' );
+
+Constructs a copy of the original codec, but allows changing
+attributes in the copy.
+
+=cut
+
+sub clone {
+    my ($self, @args) = @_;
+    my $class = ref($self);
+    if ( @args == 1 && ref( $args[0] ) eq 'HASH' ) {
+        return $class->new( %$self, %{$args[0]} );
     }
-    else {
-        @decode_args = (undef, 0, 0, undef);
-    }
-    my $struct = eval { MongoDB::BSON::_legacy_decode_bson($msg, @decode_args) };
-    MongoDB::ProtocolError->throw($@) if $@;
-    return $struct;
+
+    return $class->new( %$self, @args );
 }
 
-sub encode_bson {
-    my ($struct, $clean_keys, $max_size) = @_;
-    $clean_keys = 0 unless defined $clean_keys;
-    my $bson = eval { MongoDB::BSON::_legacy_encode_bson($struct, $clean_keys) };
-    MongoDB::DocumentError->throw( message => $@, document => $struct) if $@;
-
-    if ( $max_size && length($bson) > $max_size ) {
-        MongoDB::DocumentError->throw(
-            message => "Document exceeds maximum size $max_size",
-            document => $struct,
-        );
-    }
-
-    return $bson;
-}
 
 __PACKAGE__->meta->make_immutable;
 
 1;
-
-=for Pod::Coverage
-decode_bson
-encode_bson
 
 =head1 SYNOPSIS
 
