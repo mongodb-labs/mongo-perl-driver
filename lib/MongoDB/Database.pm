@@ -84,6 +84,19 @@ has write_concern => (
     coerce   => 1,
 );
 
+=attr bson_codec
+
+An object that provides the C<encode_one> and C<decode_one> methods, such
+as from L<MongoDB::BSON>.
+
+=cut
+
+has bson_codec => (
+    is       => 'ro',
+    isa      => BSONCodec,
+    required => 1,
+);
+
 #--------------------------------------------------------------------------#
 # methods
 #--------------------------------------------------------------------------#
@@ -102,7 +115,7 @@ sub collection_names {
     my $op = MongoDB::Op::_ListCollections->new(
         db_name    => $self->name,
         client     => $self->_client,
-        bson_codec => $self->_client,
+        bson_codec => $self->bson_codec,
     );
 
     my $res = $self->_client->send_read_op($op);
@@ -131,6 +144,7 @@ sub get_collection {
     return MongoDB::Collection->new(
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
+        bson_codec      => $self->bson_codec,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options
         database => $self,
@@ -228,6 +242,7 @@ sub run_command {
     my $op = MongoDB::Op::_Command->new(
         db_name         => $self->name,
         query           => $command,
+        bson_codec      => $self->bson_codec,
         ( $read_pref ? ( read_preference => $read_pref ) : () ),
     );
 

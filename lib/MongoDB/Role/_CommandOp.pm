@@ -29,7 +29,7 @@ use namespace::clean -except => 'meta';
 
 with 'MongoDB::Role::_DatabaseOp';
 
-requires 'db_name';
+requires qw/db_name/;
 
 use constant {
     MAX_BSON_WIRE_SIZE => 16_793_600, # 16MiB + 16KiB
@@ -40,7 +40,7 @@ use constant {
 sub _send_command {
     my ( $self, $link, $doc, $flags ) = @_;
 
-    my $command = MongoDB::BSON::encode_bson( $doc, 0 );
+    my $command = $self->bson_codec->encode_one( $doc );
 
     my ( $op_bson, $request_id ) =
       MongoDB::_Protocol::write_query( $self->db_name . '.$cmd',

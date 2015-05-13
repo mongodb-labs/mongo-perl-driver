@@ -37,7 +37,9 @@ plan tests => 2;
 
 $testdb->drop;
 
-my $coll = $testdb->get_collection('test_collection');
+my $coll = $testdb->get_collection('test_collection',
+    { bson_codec => $testdb->bson_codec->clone ( { inflate_regexps => 0 } ) }
+);
 
 my $test_regex = eval 'qr/foo/iu';    # eval regex to prevent compile failure on pre-5.14
 warning_like { 

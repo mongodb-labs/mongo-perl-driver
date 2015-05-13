@@ -229,6 +229,9 @@ Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 package MongoDB::CursorNotFoundError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
+package MongoDB::DecodingError;
+Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
 package MongoDB::GridFSError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
@@ -325,6 +328,8 @@ To retry failures automatically, consider using L<Try::Tiny::Retry>.
         |   |
         |   |->MongoDB::WriteConcernError
         |
+        |->MongoDB::DecodingError
+        |
         |->MongoDB::DocumentError
         |
         |->MongoDB::GridFSError
@@ -408,6 +413,12 @@ a result object.
 
 Errors indicating failure of a write concern.  The C<result> attribute is a
 result object.
+
+=head2 MongoDB::DecodingError
+
+This error indicates a problem during BSON decoding; it wraps
+the error provided by the underlying BSON encoder.  Note: Encoding errors
+will be thrown as a L</MongoDB::DocumentError>.
 
 =head2 MongoDB::DocumentError
 

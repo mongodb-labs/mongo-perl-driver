@@ -90,7 +90,7 @@ sub _legacy_op_delete {
     my $flags = { just_one => $self->just_one ? 1 : 0 };
 
     my $ns         = $self->db_name . "." . $self->coll_name;
-    my $query_bson = MongoDB::BSON::encode_bson( $self->filter, 0 );
+    my $query_bson = $self->bson_codec->encode_one( $self->filter );
     my $op_bson    = MongoDB::_Protocol::write_delete( $ns, $query_bson, $flags );
     my $op_doc     = { q => $self->filter, limit => $flags->{just_one} };
 

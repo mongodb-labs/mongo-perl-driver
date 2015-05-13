@@ -104,10 +104,13 @@ sub execute {
     # XXX until we have a proper BSON::Raw class, we bless on the fly
     my $max_size = $link->max_bson_object_size;
 
-    my $ck = $self->check_keys;
+    my $opts = {
+        invalid_chars => $self->check_keys ? '.' : '',
+        max_length => $max_size
+    };
     my $insert_docs = [
         map {
-            my $s = MongoDB::BSON::encode_bson( $_, $ck, $max_size );
+            my $s = $self->bson_codec->encode_one( $_, $opts );
             bless \$s, "MongoDB::BSON::Raw";
         } @{ $self->documents }
     ];

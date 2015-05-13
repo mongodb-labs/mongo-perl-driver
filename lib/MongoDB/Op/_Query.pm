@@ -48,12 +48,6 @@ has client => (
     required => 1,
 );
 
-has bson_codec => (
-    is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'], # XXX only for now
-    required => 1,
-);
-
 has query => (
     is       => 'ro',
     isa      => IxHash,
@@ -94,11 +88,11 @@ sub execute {
     my ( $self, $link, $topology_type ) = @_;
 
     my $ns         = $self->db_name . "." . $self->coll_name;
-    my $filter     = MongoDB::BSON::encode_bson( $self->query, 0 );
+    my $filter     = $self->bson_codec->encode_one( $self->query );
     my $batch_size = $self->limit || $self->batch_size;            # limit trumps
 
     my $proj =
-      $self->projection ? MongoDB::BSON::encode_bson( $self->projection, 0 ) : undef;
+      $self->projection ? $self->bson_codec->encode_one( $self->projection ) : undef;
 
     $self->_apply_read_prefs( $link, $topology_type );
 
@@ -114,6 +108,7 @@ sub execute {
 
     return $class->new(
         _client     => $self->client,
+        bson_codec  => $self->bson_codec,
         address     => $link->address,
         ns          => $ns,
         limit       => $self->limit,

@@ -9,6 +9,14 @@ use MongoDB::Error;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
+# XXX needs overloading for =~ and qr
+use overload
+    'qr' => sub {
+        my ($p,$f) = map { $_[0]->$_ } qw/pattern flags/;
+        eval "qr/$p/$f";
+    },
+    fallback => 1;
+
 has pattern => ( 
     is       => 'ro',
     isa      => Str,

@@ -53,6 +53,12 @@ has ns => (
     required => 1,
 );
 
+has bson_codec => (
+    is       => 'ro',
+    isa      => BSONCodec,
+    required => 1,
+);
+
 has batch_size => (
     is      => 'ro',
     isa     => Int,
@@ -224,7 +230,7 @@ sub _get_more {
     my $op = MongoDB::Op::_GetMore->new(
         ns         => $self->ns,
         client     => $self->_client,
-        bson_codec => $self->_client,  # XXX for now
+        bson_codec => $self->bson_codec,
         cursor_id  => $self->cursor_id,
         batch_size => $want,
     );
@@ -260,7 +266,7 @@ sub all {
 
 sub _kill_cursor {
     my ($self) = @_;
-    return if $self->cursor_id eq CURSOR_ZERO;
+    return if !defined $self->cursor_id || $self->cursor_id eq CURSOR_ZERO;
     my $op = MongoDB::Op::_KillCursors->new( cursor_ids => [ $self->cursor_id ], );
     $self->_client->send_direct_op( $op, $self->address );
     $self->_set_cursor_id(CURSOR_ZERO);

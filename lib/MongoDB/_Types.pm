@@ -27,6 +27,7 @@ use Type::Library
   ArrayOfHashRef
   AuthMechanism
   Booleanpm
+  BSONCodec
   ConnectType
   ConnectionStr
   CursorType
@@ -46,6 +47,7 @@ use Type::Library
   ReadPreference
   ReplaceDoc
   ServerType
+  SingleChar
   TopologyType
   UpdateDoc
   WriteConcern
@@ -82,6 +84,8 @@ enum AuthMechanism,
   [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1/];
 
 class_type Booleanpm, { class => 'boolean' };
+
+duck_type BSONCodec, [ qw/encode_one decode_one/ ];
 
 enum ConnectType, [qw/replicaSet direct none/];
 
@@ -135,6 +139,8 @@ enum ServerType,
   [
     qw/Standalone Mongos PossiblePrimary RSPrimary RSSecondary RSArbiter RSOther RSGhost Unknown/
   ];
+
+declare SingleChar, as Str, where { length $_ eq 1 };
 
 enum TopologyType,
   [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Unknown/];

@@ -41,12 +41,6 @@ has client => (
     required => 1,
 );
 
-has bson_codec => (
-    is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'], # XXX only for now
-    required => 1,
-);
-
 has cursor_id => (
     is       => 'ro',
     isa      => Str,

@@ -226,6 +226,7 @@ sub execute {
         coll_name     => $self->collection->name,
         queue         => $self->_queue,
         ordered       => $self->ordered,
+        bson_codec    => $self->collection->bson_codec,
         write_concern => $write_concern,
     );
 

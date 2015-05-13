@@ -15,9 +15,7 @@
 #
 
 package MongoDB::BSON::Binary;
-
-
-# ABSTRACT: Binary type
+# ABSTRACT: MongoDB binary type
 
 use version;
 our $VERSION = 'v0.999.998.6';
@@ -26,16 +24,57 @@ use Moose;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
-=head1 NAME
+use constant {
+    SUBTYPE_GENERIC            => 0,
+    SUBTYPE_FUNCTION           => 1,
+    SUBTYPE_GENERIC_DEPRECATED => 2,
+    SUBTYPE_UUID_DEPRECATED    => 3,
+    SUBTYPE_UUID               => 4,
+    SUBTYPE_MD5                => 5,
+    SUBTYPE_USER_DEFINED       => 128
+};
 
-MongoDB::BSON::Binary - A type that can be used to send binary data to the
-database
+use overload (
+    q{""} => sub { $_[0]->{data} },
+    fallback => 1
+);
+
+=attr data
+
+A string of binary data.
+
+=cut
+
+has data => (
+    is => 'ro',
+    isa => Str,
+    required => 1
+);
+
+=attr subtype
+
+A subtype.  Defaults to C<SUBTYPE_GENERIC>.
+
+=cut
+
+has subtype => (
+    is => 'ro',
+    isa => Int,
+    required => 0,
+    default => MongoDB::BSON::Binary->SUBTYPE_GENERIC
+);
+
+__PACKAGE__->meta->make_immutable;
+
+1;
+
+__END__
 
 =head1 SYNOPSIS
 
 Creates an instance of binary data with a specific subtype.
 
-=head1 EXAMPLE
+=head1 USAGE
 
 For example, suppose we wanted to store a profile pic.
 
@@ -47,6 +86,11 @@ You can also, optionally, specify a subtype:
     my $pic = MongoDB::BSON::Binary->new(data => $pic_bytes,
         subtype => MongoDB::BSON::Binary->SUBTYPE_GENERIC);
     $collection->insert({name => "profile pic", pic => $pic});
+
+=head2 Overloading
+
+MongoDB::BSON::Binary objects have stringification overloaded to return
+the binary data.
 
 =head1 SUBTYPES
 
@@ -77,43 +121,6 @@ differently based on type.
 
 =back
 
-=cut
-
-use constant {
-    SUBTYPE_GENERIC            => 0,
-    SUBTYPE_FUNCTION           => 1,
-    SUBTYPE_GENERIC_DEPRECATED => 2,
-    SUBTYPE_UUID_DEPRECATED    => 3,
-    SUBTYPE_UUID               => 4,
-    SUBTYPE_MD5                => 5,
-    SUBTYPE_USER_DEFINED       => 128
-};
-
-=head2 data
-
-A string of binary data.
-
-=cut
-
-has data => (
-    is => 'ro',
-    isa => Str,
-    required => 1
-);
-
-=head2 subtype
-
-A subtype.  Defaults to C<SUBTYPE_GENERIC>.
-
-=cut
-
-has subtype => (
-    is => 'ro',
-    isa => Int,
-    required => 0,
-    default => MongoDB::BSON::Binary->SUBTYPE_GENERIC
-);
-
 =head2 Why is C<SUBTYPE_GENERIC_DEPRECATED> deprecated?
 
 Binary data is stored with the length of the binary data, the subtype, and the
@@ -140,7 +147,4 @@ any native UUID type.
 
 =cut
 
-__PACKAGE__->meta->make_immutable;
-
-1;
 

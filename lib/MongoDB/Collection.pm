@@ -108,6 +108,19 @@ has write_concern => (
     coerce   => 1,
 );
 
+=attr bson_codec
+
+An object that provides the C<encode_one> and C<decode_one> methods, such
+as from L<MongoDB::BSON>.
+
+=cut
+
+has bson_codec => (
+    is       => 'ro',
+    isa      => BSONCodec,
+    required => 1,
+);
+
 #--------------------------------------------------------------------------#
 # computed attributes
 #--------------------------------------------------------------------------#
@@ -176,7 +189,7 @@ sub clone {
     my ($self, @args) = @_;
     my $class = ref($self);
     if ( @args == 1 && ref( $args[0] ) eq 'HASH' ) {
-        return class->new( %$self, %{$args[0]} );
+        return $class->new( %$self, %{$args[0]} );
     }
 
     return $class->new( %$self, @args );
@@ -201,6 +214,7 @@ sub insert_one {
 
     my $op = MongoDB::Op::_InsertOne->new(
         db_name       => $self->database->name,
+        bson_codec    => $self->bson_codec,
         coll_name     => $self->name,
         document      => $document,
         write_concern => $self->write_concern,
@@ -270,6 +284,7 @@ sub delete_one {
     my $op = MongoDB::Op::_Delete->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         filter        => $filter,
         just_one      => 1,
         write_concern => $self->write_concern,
@@ -297,6 +312,7 @@ sub delete_many {
     my $op = MongoDB::Op::_Delete->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         filter        => $filter,
         just_one      => 0,
         write_concern => $self->write_concern,
@@ -331,6 +347,7 @@ sub replace_one {
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         filter        => $filter,
         update        => $replacement,
         multi         => false,
@@ -367,6 +384,7 @@ sub update_one {
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         filter        => $filter,
         update        => $update,
         multi         => false,
@@ -403,6 +421,7 @@ sub update_many {
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         filter        => $filter,
         update        => $update,
         multi         => true,
@@ -489,6 +508,7 @@ sub find {
         %$options,
         db_name         => $self->database->name,
         coll_name       => $self->name,
+        bson_codec      => $self->bson_codec,
         client          => $self->client,
         read_preference => $self->read_preference,
         filter          => $filter || {},
@@ -548,6 +568,7 @@ sub find_one {
         %$options,
         db_name         => $self->database->name,
         coll_name       => $self->name,
+        bson_codec      => $self->bson_codec,
         client          => $self->client,
         read_preference => $self->read_preference,
         filter          => $filter || {},
@@ -736,7 +757,7 @@ sub aggregate {
         db_name    => $self->database->name,
         coll_name  => $self->name,
         client     => $self->client,
-        bson_codec => $self->client,
+        bson_codec => $self->bson_codec,
         pipeline   => $pipeline,
         options    => $options,
         ( $read_pref ? ( read_preference => $read_pref ) : () ),
@@ -825,7 +846,7 @@ sub distinct {
         db_name         => $self->database->name,
         coll_name       => $self->name,
         client          => $self->client,
-        bson_codec      => $self->client,
+        bson_codec      => $self->bson_codec,
         fieldname       => $fieldname,
         filter          => $filter,
         options         => $options,
@@ -868,6 +889,7 @@ sub parallel_scan {
     my $op = MongoDB::Op::_Command->new(
         db_name         => $db->name,
         query           => \@command,
+        bson_codec      => $self->bson_codec,
         read_preference => $self->read_preference,
     );
 
@@ -880,9 +902,10 @@ sub parallel_scan {
     my @cursors;
     for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
         my $qr = MongoDB::QueryResult->new(
-            _client => $self->client,
-            address => $result->address,
-            cursor  => $c,
+            _client    => $self->client,
+            address    => $result->address,
+            bson_codec => $self->bson_codec,
+            cursor     => $c,
         );
         push @cursors, $qr;
     }
@@ -964,6 +987,7 @@ sub ensure_index {
     my $op = MongoDB::Op::_CreateIndexes->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         indexes       => [ { key => $keys, %$opts } ],
         write_concern => $wc,
     );
@@ -1096,7 +1120,7 @@ sub get_indexes {
         db_name    => $self->database->name,
         coll_name  => $self->name,
         client     => $self->client,
-        bson_codec => $self->client,
+        bson_codec => $self->bson_codec,
     );
 
     my $res = $self->client->send_read_op($op);
@@ -1386,6 +1410,7 @@ sub _find_one_and_update_or_replace {
 sub _try_find_and_modify {
     my ($self, $command) = @_;
     my $result;
+    # XXX this ought to use our codec
     try {
         $result = $self->database->run_command( $command );
     }
@@ -1497,6 +1522,7 @@ sub insert {
     my $op = MongoDB::Op::_InsertOne->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         document      => $document,
         write_concern => $self->_dynamic_write_concern($opts),
     );
@@ -1518,6 +1544,7 @@ sub batch_insert {
     my $op = MongoDB::Op::_BatchInsert->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         documents     => $documents,
         write_concern => $self->_dynamic_write_concern($opts),
     );
@@ -1542,6 +1569,7 @@ sub remove {
     my $op = MongoDB::Op::_Delete->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         filter        => $query || {},
         just_one      => !! $opts->{just_one},
         write_concern => $self->_dynamic_write_concern($opts),
@@ -1573,6 +1601,7 @@ sub update {
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
         filter        => $query || {},
         update        => $object || {},
         multi         => $opts->{multi},

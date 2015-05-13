@@ -25,9 +25,17 @@ use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::_Protocol;
 use Moose::Role;
+use MongoDB::_Types -types;
+use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 requires 'execute';
+
+has bson_codec => (
+    is       => 'ro',
+    isa      => BSONCodec,
+    required => 1,
+);
 
 # Sends a BSON query string, then read, parse and validate the reply.
 # Throws various errors if the results indicate a problem.  Returns
@@ -35,8 +43,7 @@ requires 'execute';
 # the 'docs' field replaced with inflated documents.
 
 sub _query_and_receive {
-    my ( $self, $link, $op_bson, $request_id, $bson_codec ) = @_;
-
+    my ( $self, $link, $op_bson, $request_id ) = @_;
     $link->write($op_bson);
     my $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id );
 
@@ -54,13 +61,15 @@ sub _query_and_receive {
     # loop here.  Alternatively, BSON strings could be returned as objects that
     # inflate lazily
 
+    my $bson_codec = $self->bson_codec;
+
     for ( 1 .. $result->{number_returned} ) {
         my $len = unpack( MongoDB::_Protocol::P_INT32(), substr( $doc_bson, 0, 4 ) );
         if ( $len > length($doc_bson) ) {
             MongoDB::ProtocolError->throw("document in response was truncated");
         }
         push @documents,
-          MongoDB::BSON::decode_bson( substr( $doc_bson, 0, $len, '' ), $bson_codec );
+          $bson_codec->decode_one( substr( $doc_bson, 0, $len, '' ) );
     }
 
     if ( @documents != $result->{number_returned} ) {

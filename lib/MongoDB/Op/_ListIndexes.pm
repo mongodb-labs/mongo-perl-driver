@@ -51,16 +51,9 @@ has client => (
     required => 1,
 );
 
-has bson_codec => (
-    is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'], # XXX only for now
-    required => 1,
-);
-
-with qw(
+with $_ for qw(
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
-  MongoDB::Role::_EmptyQueryResult
 );
 
 sub execute {
@@ -81,6 +74,7 @@ sub _command_list_indexes {
         db_name         => $self->db_name,
         query           => Tie::IxHash->new( listIndexes => $self->coll_name, cursor => {} ),
         read_preference => $self->read_preference,
+        bson_codec      => $self->bson_codec,
     );
 
     my $res = try {

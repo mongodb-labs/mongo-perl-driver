@@ -25,133 +25,353 @@ our $VERSION = 'v0.999.998.6';
 use XSLoader;
 XSLoader::load("MongoDB", $VERSION);
 
+use Carp ();
 use MongoDB::Error;
 use Moose;
+use MongoDB::_Types -types;
+use Types::Standard -types;
+use Type::Params qw/compile/;
 use namespace::clean -except => 'meta';
 
-=head1 NAME
+=attr dbref_callback
 
-MongoDB::BSON - Encoding and decoding utilities (more to come)
+A document with keys C<$ref> and C<$id> is a special MongoDB convention
+representing a
+L<DBRef|http://docs.mongodb.org/manual/applications/database-references/#dbref>.
 
-=head1 ATTRIBUTES
+This attribute specifies a function reference that will be called with a hash
+reference argument representing a DBRef.
 
-=head2 C<looks_like_number>
+The hash reference will have keys C<$ref> and C<$id> and may have C<$db> and
+other keys.  The callback must return a scalar value representing the dbref
+(e.g. a document, an object, etc.)
 
-    $MongoDB::BSON::looks_like_number = 1;
-    $collection->insert({age => "4"}); # stores 4 as an int
-
-If this is set, the driver will be more aggressive about converting strings into
-numbers.  Anything that L<Scalar::Util>'s looks_like_number would approve as a
-number will be sent to MongoDB as its numeric value.
-
-Defaults to 0 (for backwards compatibility).
-
-If you do not set this, you may be using strings more often than you intend to.
-See the L<MongoDB::DataTypes> section for more info on the behavior of strings
-vs. numbers.
+The default returns the DBRef hash reference without modification.
 
 =cut
 
-$MongoDB::BSON::looks_like_number = 0;
+has dbref_callback => (
+    is      => 'ro',
+    isa     => CodeRef,
+    default => sub { sub { shift }  },
+);
 
-=head2 char
+=attr dt_type
 
-    $MongoDB::BSON::char = ":";
-    $collection->query({"x" => {":gt" => 4}});
+Sets the type of object which is returned for BSON DateTime fields. The default
+is L<DateTime>. Other acceptable values are L<DateTime::Tiny> and C<undef>. The
+latter will give you the raw epoch value rather than an object.
 
-Can be used to set a character other than "$" to use for special operators.
-
-=cut
-
-$MongoDB::BSON::char = '$';
-
-=head2 Turn on/off UTF8 flag when return strings
-
-    # turn off utf8 flag on strings
-    $MongoDB::BSON::utf8_flag_on = 0;
-
-Default is turn on, that compatible with version before 0.34.
-
-If set to 0, will turn of utf8 flag on string attribute and return on bytes mode, meant same as :
-
-    utf8::encode($str)
-
-Currently MongoDB return string with utf8 flag, on character mode , some people
-wish to turn off utf8 flag and return string on byte mode, it maybe help to display "pretty" strings.
-
-NOTE:
-
-If you turn off utf8 flag, the string  length will compute as bytes, and is_utf8 will return false.
+# XXX add MongoDB::BSON::DateTime support and make it the default
 
 =cut
 
-$MongoDB::BSON::utf8_flag_on = 1;
+has dt_type => (
+    is      => 'ro',
+    isa     => Str|Undef,
+    default => 'DateTime',
+);
 
-=head2 Return binary data as instances of L<MongoDB::BSON::Binary> instead of
-string refs.
+=attr error_callback
 
-    $MongoDB::BSON::use_binary = 1
+This attribute specifies a function reference that will be called with
+three positional arguments:
 
-For backwards compatibility, binary data is deserialized as a string ref.  If
-you would like to have it deserialized as instances of L<MongoDB::BSON::Binary>
-(to, say, preserve the subtype), set C<$MongoDB::BSON::use_binary> to 1.
+=for :list
+* an error string argument describing the error condition
+* a reference to the problematic document or byte-string
+* the method in which the error occurred (e.g. C<encode_one> or C<decode_one>)
+
+Note: for decoding errors, the byte-string is passed as a reference to avoid
+copying possibly large strings.
+
+If not provided, errors messages will be thrown with C<Carp::croak>.
 
 =cut
 
-$MongoDB::BSON::use_binary = 0;
+# XXX should this be separate for encode & decode? e.g. encode always want
+# to throw with document and decode doesn't?
 
-sub decode_bson {
-    my ($msg,$client) = @_;
-    my @decode_args;
-    if ( $client ) {
-        @decode_args = map { $client->$_ } qw/dt_type inflate_dbrefs inflate_regexps/;
-        push @decode_args, $client;
+has error_callback => (
+    is      => 'ro',
+    isa     => Maybe[CodeRef],
+);
+
+=attr inflate_regexps
+
+Controls whether regular expressions stored in MongoDB are inflated into
+L<MongoDB::BSON::Regexp> objects instead of native Perl regular expression. The
+default is true.
+
+This ensures that stored regular expressions round trip, as there are
+L<some differences between PCRE and Perl regular expressions|
+https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions#Differences_from_Perl>
+
+=cut
+
+has inflate_regexps => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 1,
+);
+
+=attr invalid_chars
+
+A string containing ASCII characters that must not appear in keys.  The default
+is the empty string, meaning there are no invalid characters.
+
+=cut
+
+has invalid_chars => (
+    is      => 'ro',
+    isa     => Str,
+    default => '',
+);
+
+## XXX don't need this yet; do with 'invalid_chars' first for now
+##
+##=attr key_validator
+##
+##This attribute must be either a regular expresssion reference or
+##a function reference to validate a key during encoding.
+##
+##A function reference will get a single string argument and must return
+##an error string if the key is B<invalid>; if the key is B<valid> it must
+##return B<nothing>.
+##
+##A regular expression will be matched against the key; if it matches, the
+##key is valid.
+##
+##If not provided, any key is ok.
+##
+##=cut
+##
+##has key_validator => (
+##    is      => 'ro',
+##    isa     => Maybe[RegexpRef|CodeRef],
+##);
+##
+## XXX don't need this until encode_many is implemented
+##
+##=attr max_batch_size
+##
+##This attribute defines the maximum number of documents to return in a chunk
+##when using C<encode_many>.  The default is 0, which disables any maximum.
+##
+##=cut
+##
+##has max_batch_size=> (
+##    is => 'ro',
+##    isa => NonNegNum,
+##    default => 0,
+##);
+
+## XXX don't need this until we have a back-end that isn't hard-coded
+##
+##=attr max_depth
+##
+##This attribute defines the maximum document depth allowed.  The default
+##is 100 for both encoding and decoding.
+##
+##This
+##
+##=cut
+##
+##has max_depth => (
+##    is => 'ro',
+##    isa => NonNegNum,
+##    default => 100,
+##);
+
+=attr max_length
+
+This attribute defines the maximum document size. The default is 0, which
+disables any maximum.
+
+If set to a positive number, it applies to both encoding B<and> decoding (the
+latter is necessary for prevention of resource consumption attacks).
+
+=cut
+
+has max_length => (
+    is => 'ro',
+    isa => NonNegNum,
+    default => 0,
+);
+
+=attr op_char
+
+This is a single character to use for special operators.  If a key starts
+with C<op_char>, the C<op_char> character will be replaced with "$".
+
+The default is "$".
+
+=cut
+
+has op_char => (
+    is => 'ro',
+    isa => Maybe[ SingleChar ],
+);
+
+=attr prefer_numeric
+
+If set to true, scalar values that look like a numeric value will be
+encoded as a BSON numeric type.  When false, if the scalar value was ever
+used as a string, it will be encoded as a BSON UTF-8 string.
+
+The default is false.
+
+=cut
+
+has prefer_numeric => (
+    is => 'ro',
+    isa => Bool,
+);
+
+#--------------------------------------------------------------------------#
+# public methods
+#--------------------------------------------------------------------------#
+
+=method encode_one
+
+    $byte_string = $codec->encode_one( $doc );
+    $byte_string = $codec->encode_one( $doc, \%options );
+
+Takes a "document", typically a hash reference, an array reference, or a
+Tie::IxHash object and returns a byte string with the BSON representation of
+the document.
+
+An optional hash reference of options may be provided.  Valid options include:
+
+=for :list
+* first_key – if C<first_key> is defined, it and C<first_value>
+  will be encoded first in the output BSON; any matching key found in the
+  document will be ignored.
+* first_value - value to assign to C<first_key>; will encode as Null if omitted
+* error_callback – overrides codec default
+* invalid_chars – overrides codec default
+* max_length – overrides codec default
+* op_char – overrides codec default
+* prefer_numeric – overrides codec default
+
+=cut
+
+
+my @encode_overrides =
+  qw/error_callback invalid_chars max_length op_char prefer_numeric/;
+my $encode_one_args;
+
+sub encode_one {
+    $encode_one_args ||=
+      compile( Object, IxHash | HashRef | ArrayRef, Optional [HashRef] );
+    my ( $self, $document, $options ) = $encode_one_args->(@_);
+
+    for my $k (@encode_overrides) {
+        $options->{$k} = $self->$k unless exists $options->{$k};
     }
-    else {
-        @decode_args = (undef, 0, 0, undef);
-    }
-    my $struct = eval { MongoDB::BSON::_decode_bson($msg, @decode_args) };
-    MongoDB::ProtocolError->throw($@) if $@;
-    return $struct;
-}
 
-sub encode_bson {
-    my ($struct, $clean_keys, $max_size) = @_;
-    $clean_keys = 0 unless defined $clean_keys;
-    my $bson = eval { MongoDB::BSON::_encode_bson($struct, $clean_keys) };
-    MongoDB::DocumentError->throw( message => $@, document => $struct) if $@;
-
-    if ( $max_size && length($bson) > $max_size ) {
-        MongoDB::DocumentError->throw(
-            message => "Document exceeds maximum size $max_size",
-            document => $struct,
-        );
+    my $bson = eval { MongoDB::BSON::_encode_bson( $document, $options ) };
+    if ( $@ or ( $options->{max_length} && length($bson) > $options->{max_length} ) ) {
+        my $msg = $@ || "Document exceeds maximum size $options->{max_length}";
+        if ( $options->{error_callback} ) {
+            $options->{error_callback}->( $msg, $document, 'encode_one' );
+        }
+        else {
+            Carp::croak("During encode_one, $msg");
+        }
     }
 
     return $bson;
 }
 
-=head1 UNSUPPORTED
+=method decode_one
 
-=head2 Return boolean values as integers
+    $doc = $codec->decode_one( $byte_string );
+    $doc = $codec->decode_one( $byte_string, \%options );
 
-Previously, the MongoDB driver documented the C<$MongoDB::BSON::use_boolean>
-global for toggling whether boolean BSON values were deserialized as integers
-or L<boolean> objects.  However, this value was actually never used and the
-driver always deserialized objects as L<boolean> values.  Rather than fix this
-and break people's code, instead this option is no longer supported.  A future
-driver will provide a means for customizing the deserialization of boolean BSON
-values without the use of a global variable.
+Takes a byte string with a BSON-encoded document and returns a
+hash reference representin the decoded document.
+
+An optional hash reference of options may be provided.  Valid options include:
+
+=for :list
+* dbref_callback – overrides codec default
+* dt_type – overrides codec default
+* error_callback – overrides codec default
+* inflate_regexps – overrides codec default
+* max_length – overrides codec default
 
 =cut
+
+my @decode_overrides =
+  qw/dbref_callback dt_type error_callback inflate_regexps max_length/;
+my $decode_one_args;
+
+sub decode_one {
+    $decode_one_args ||= compile( Object, Str, Optional [HashRef] );
+    my ( $self, $string, $options ) = $decode_one_args->(@_);
+
+    for my $k ( @decode_overrides ) {
+        $options->{$k} = $self->$k unless exists $options->{$k};
+    }
+
+    if ( $options->{max_length} && length($string) > $options->{max_length} ) {
+        my $msg = "Document exceeds maximum size $options->{max_length}";
+        if ( $options->{error_callback} ) {
+            $options->{error_callback}->( $msg, \$string, 'decode_one' );
+        }
+        else {
+            Carp::croak("During decode_one, $msg");
+        }
+    }
+
+    my $document = eval { MongoDB::BSON::_decode_bson( $string, $options ) };
+    if ( $@ ) {
+        if ( $options->{error_callback} ) {
+            $options->{error_callback}->( $@, \$string, 'decode_one' );
+        }
+        else {
+            Carp::croak("During decode_one, $@");
+        }
+    }
+
+    return $document;
+}
+
+=method clone
+
+    $codec->clone( dt_type => 'DateTime::Tiny' );
+
+Constructs a copy of the original codec, but allows changing
+attributes in the copy.
+
+=cut
+
+sub clone {
+    my ($self, @args) = @_;
+    my $class = ref($self);
+    if ( @args == 1 && ref( $args[0] ) eq 'HASH' ) {
+        return $class->new( %$self, %{$args[0]} );
+    }
+
+    return $class->new( %$self, @args );
+}
+
 
 __PACKAGE__->meta->make_immutable;
 
 1;
 
-=for Pod::Coverage
-decode_bson
-encode_bson
-generate_oid
+=head1 SYNOPSIS
+
+    my $codec = MongoDB::BSON->new;
+
+    my $bson = $codec->encode_one( $document );
+    my $doc  = $codec->decode_one( $bson     );
+
+=head1 DESCRIPTION
+
+This class implements a BSON encoder/decoder ("codec").  It consumes documents
+and emits BSON strings and vice versa.
 
 =cut

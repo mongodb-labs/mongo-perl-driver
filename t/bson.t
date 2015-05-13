@@ -89,20 +89,24 @@ subtest "types" => sub {
     is($obj->{'string'}, 'string');
 };
 
-subtest "\$MongoDB::BSON::char '='" => sub {
+subtest "\$MongoDB::BSON::char" => sub {
     local $MongoDB::BSON::char = "=";
-    $c->drop;
-    $c->update_one({x => 1}, {"=inc" => {x => 1}}, {upsert => true});
+    my $alt_client = build_client();
+    my $alt_c=$alt_client->db($testdb->name)->coll($c->name);
+    $alt_c->drop;
+    $alt_c->update_one({x => 1}, {"=inc" => {x => 1}}, {upsert => true});
 
     my $up = $c->find_one;
     is($up->{x}, 2);
 };
 
-subtest "\$MongoDB::BSON::char ';'" => sub {
+subtest "\$MongoDB::BSON::char ':'" => sub {
     local $MongoDB::BSON::char = ":";
-    $c->drop;
-    $c->insert_many([{x => 1}, {x => 2}, {x => 3}, {x => 4}, {x => 5}]);
-    my $cursor = $c->query({x => {":gt" => 2, ":lte" => 4}})->sort({x => 1});
+    my $alt_client = build_client();
+    my $alt_c=$alt_client->db($testdb->name)->coll($c->name);
+    $alt_c->drop;
+    $alt_c->insert_many([{x => 1}, {x => 2}, {x => 3}, {x => 4}, {x => 5}]);
+    my $cursor = $alt_c->query({x => {":gt" => 2, ":lte" => 4}})->sort({x => 1});
     my $result = $cursor->next;
     is($result->{x}, 3);
     $result = $cursor->next;
@@ -316,36 +320,38 @@ subtest "make sure _ids aren't double freed" => sub {
 };
 
 subtest "aggressively convert numbers" => sub {
-    $MongoDB::BSON::looks_like_number = 1;
+    local $MongoDB::BSON::looks_like_number = 1;
+    my $alt_client = build_client();
+    my $alt_c=$alt_client->db($testdb->name)->coll($c->name);
 
-    $c->drop;
+    $alt_c->drop;
 
-    $c->insert_one({num => "4"});
-    $c->insert_one({num => "5"});
-    $c->insert_one({num => "6"});
+    $alt_c->insert_one({num => "4"});
+    $alt_c->insert_one({num => "5"});
+    $alt_c->insert_one({num => "6"});
 
-    $c->insert_one({num => 4});
-    $c->insert_one({num => 5});
-    $c->insert_one({num => 6});
+    $alt_c->insert_one({num => 4});
+    $alt_c->insert_one({num => 5});
+    $alt_c->insert_one({num => 6});
 
-    is($c->count({num => {'$gt' => 4}}), 4);
-    is($c->count({num => {'$gte' => "5"}}), 4);
-    is($c->count({num => {'$gte' => "4.1"}}), 4);
-
-    $MongoDB::BSON::looks_like_number = 0;
+    is($alt_c->count({num => {'$gt' => 4}}), 4);
+    is($alt_c->count({num => {'$gte' => "5"}}), 4);
+    is($alt_c->count({num => {'$gte' => "4.1"}}), 4);
 };
 
 subtest "MongoDB::BSON::String type" => sub {
-    $MongoDB::BSON::looks_like_number = 1;
+    {
+        local $MongoDB::BSON::looks_like_number = 1;
+        my $alt_client = build_client();
+        my $alt_c=$alt_client->db($testdb->name)->coll($c->name);
 
-    $c->drop;
+        $c->drop;
 
-    my $num = "001";
+        my $num = "001";
 
-    $c->insert_one({num => $num} );
-    $c->insert_one({num => bless(\$num, "MongoDB::BSON::String")});
-
-    $MongoDB::BSON::looks_like_number = 0;
+        $alt_c->insert_one({num => $num} );
+        $alt_c->insert_one({num => bless(\$num, "MongoDB::BSON::String")});
+    }
 
     is($c->count({num => 1}), 1);
     is($c->count({num => "001"}), 1);

@@ -84,7 +84,12 @@ sub execute {
     my $first_key  = $update_op->{u}->Keys(0);
     my $is_replace = substr( $first_key, 0, 1 ) ne '$';
     my $max_size   = $is_replace ? $link->max_bson_object_size : undef;
-    my $bson_doc = MongoDB::BSON::encode_bson( $update_op->{u}, $is_replace, $max_size );
+    my $bson_doc = $self->bson_codec->encode_one(
+        $update_op->{u}, {
+            invalid_chars => $is_replace ? '.' : '',
+            max_length => $max_size
+        }
+    );
     my $orig_op = { %$update_op };
     $update_op->{u} = bless \$bson_doc, "MongoDB::BSON::Raw";
 
@@ -116,7 +121,9 @@ sub _legacy_op_update {
     @{$flags}{qw/upsert multi/} = @{$op_doc}{qw/upsert multi/};
 
     my $ns          = $self->db_name . "." . $self->coll_name;
-    my $query_bson  = MongoDB::BSON::encode_bson( $op_doc->{q}, 0 );
+    my $query_bson  = $self->bson_codec->encode_one(
+        $op_doc->{q}, { invalid_chars => '' }
+    );
     my $update_bson = ${ $op_doc->{u} };                            # already raw BSON
     my $op_bson =
       MongoDB::_Protocol::write_update( $ns, $query_bson, $update_bson, $flags );

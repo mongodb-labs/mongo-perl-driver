@@ -31,76 +31,81 @@ use MongoDBTest qw/build_client get_test_db/;
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
-
-plan tests => 22;
-
-
-$testdb->drop;
+my $base_coll = $testdb->get_collection( 'test_collection' );
 
 my $now = DateTime->now;
 
 {
-    $testdb->get_collection( 'test_collection' )->insert_one( { date => $now } );
-
-    my $date1 = $testdb->get_collection( 'test_collection' )->find_one->{date};
+    $base_coll->insert_one( { date => $now } );
+    my $date1 = $base_coll->find_one->{date};
     isa_ok $date1, 'DateTime';
     is $date1->epoch, $now->epoch;
-    $testdb->drop;
+    $base_coll->drop;
 }
 
 {
-    $testdb->get_collection( 'test_collection' )->insert_one( { date => $now } );
-    $conn->dt_type( undef );
-    my $date3 = $testdb->get_collection( 'test_collection' )->find_one->{date};
-    ok( not ref $date3 );
-    is $date3, $now->epoch;
-    $testdb->drop;
+    my $coll = $base_coll->clone(
+        { bson_codec => $base_coll->bson_codec->clone( { dt_type => undef } ) }
+    );
+
+    $coll->insert_one( { date => $now } );
+    my $date3 = $coll->find_one->{date};
+    ok( ! ref $date3, "dt_type undef returns unblessed value" );
+    is( $date3, $now->epoch, "returned value is epoch secs without fractions" );
+    $coll->drop;
 }
 
 
 {
-    $testdb->get_collection( 'test_collection' )->insert_one( { date => $now } );
-    $conn->dt_type( 'DateTime::Tiny' );
-    my $date2 = $testdb->get_collection( 'test_collection' )->find_one->{date};
+    my $coll = $base_coll->clone(
+        { bson_codec => $base_coll->bson_codec->clone( { dt_type => "DateTime::Tiny" } ) }
+    );
+
+    $coll->insert_one( { date => $now } );
+    my $date2 = $coll->find_one->{date};
     isa_ok( $date2, 'DateTime::Tiny' );
     is $date2->DateTime->epoch, $now->epoch;
-    $testdb->drop;
+    $coll->drop;
 }
 
 {
-    $testdb->get_collection( 'test_collection' )->insert_one( { date => $now } );
+    my $coll = $base_coll->clone(
+        { bson_codec => $base_coll->bson_codec->clone( { dt_type => "DateTime::Bad" } ) }
+    );
+
+    $coll->insert_one( { date => $now } );
     $conn->dt_type( 'DateTime::Bad' );
     like( exception { 
-            my $date4 = $testdb->get_collection( 'test_collection' )->find_one->{date};
+            my $date4 = $coll->find_one->{date};
         },
         qr/Invalid dt_type "DateTime::Bad"/i,
         "invalid dt_type throws"
     );
-    $testdb->drop;
+    $coll->drop;
 }
 
 # roundtrips
 
 {
-    $conn->dt_type( 'DateTime' );
-    my $coll = $testdb->get_collection( 'test_collection' );
-    $coll->insert_one( { date => $now } );
-    my $doc = $coll->find_one;
+    $base_coll->insert_one( { date => $now } );
+    my $doc = $base_coll->find_one;
 
     $doc->{date}->add( seconds => 60 );
 
-    $coll->replace_one( { _id => $doc->{_id} }, { date => $doc->{date} } );
+    $base_coll->replace_one( { _id => $doc->{_id} }, { date => $doc->{date} } );
 
-    my $doc2 = $coll->find_one;
+    my $doc2 = $base_coll->find_one;
     is( $doc2->{date}->epoch, ( $now->epoch + 60 ) );
-    $testdb->drop;
+    $base_coll->drop;
 }
 
 
 {
-    $conn->dt_type( 'DateTime::Tiny' );
+    my $coll = $base_coll->clone(
+        { bson_codec => $base_coll->bson_codec->clone( { dt_type => "DateTime::Tiny" } ) }
+    );
+
     my $dtt_now = DateTime::Tiny->now;
-    my $coll = $testdb->get_collection( 'test_collection' );
     $coll->insert_one( { date => $dtt_now } );
     my $doc = $coll->find_one;
 
@@ -117,18 +122,16 @@ my $now = DateTime->now;
     my $doc2 = $coll->find_one( { _id => $doc->{_id} } );
 
     is( $doc2->{date}->DateTime->epoch, $dtt_now->DateTime->epoch + 30 );
-    $testdb->drop;
+    $coll->drop;
 }
 
 {
     # test fractional second roundtrip
-    $conn->dt_type( 'DateTime' );
-    my $coll = $testdb->get_collection( 'test_collection' );
     my $now = DateTime->now;
     $now->add( nanoseconds => 500_000_000 );
-    
-    $coll->insert_one( { date => $now } );
-    my $doc = $coll->find_one;
+
+    $base_coll->insert_one( { date => $now } );
+    my $doc = $base_coll->find_one;
 
     is $doc->{date}->year,       $now->year;
     is $doc->{date}->month,      $now->month;
@@ -137,4 +140,7 @@ my $now = DateTime->now;
     is $doc->{date}->minute,     $now->minute;
     is $doc->{date}->second,     $now->second;
     is $doc->{date}->nanosecond, $now->nanosecond;
+    $base_coll->drop;
 }
+
+done_testing;

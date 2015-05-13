@@ -51,7 +51,7 @@ sub _send_legacy_op_with_gle {
 
     if ( $self->write_concern->is_safe ) {
         my @write_concern = %{ $self->write_concern->as_struct };
-        my $gle = MongoDB::BSON::encode_bson( [ getlasterror => 1, @write_concern ], 0 );
+        my $gle = $self->bson_codec->encode_one( [ getlasterror => 1, @write_concern ] );
         my ( $gle_bson, $request_id ) =
           MongoDB::_Protocol::write_query( $self->db_name . '.$cmd', $gle, undef, 0, -1 );
 

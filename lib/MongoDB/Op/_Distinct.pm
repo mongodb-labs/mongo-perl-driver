@@ -46,12 +46,6 @@ has client => (
     required => 1,
 );
 
-has bson_codec => (
-    is       => 'ro',
-    isa      => InstanceOf ['MongoDB::MongoClient'], # XXX only for now
-    required => 1,
-);
-
 has fieldname=> (
     is       => 'ro',
     isa      => Str,
@@ -71,7 +65,7 @@ has options => (
     default => sub { {} },
 );
 
-with qw(
+with $_ for qw(
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
@@ -92,6 +86,7 @@ sub execute {
         db_name         => $self->db_name,
         query           => Tie::IxHash->new(@command),
         read_preference => $self->read_preference,
+        bson_codec      => $self->bson_codec,
     );
 
     my $res = $op->execute( $link, $topology );

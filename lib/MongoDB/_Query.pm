@@ -51,6 +51,12 @@ has client => (
     required => 1,
 );
 
+has bson_codec => (
+    is       => 'ro',
+    isa      => BSONCodec,
+    required => 1,
+);
+
 has read_preference => (
     is       => 'rw',            # mutable for Cursor
     isa      => ReadPreference,
@@ -182,7 +188,7 @@ sub as_query_op {
         db_name     => $self->db_name,
         coll_name   => $self->coll_name,
         client      => $self->client,
-        bson_codec  => $self->client,    # XXX for now
+        bson_codec  => $self->bson_codec,
         query       => $query,
         projection  => $self->projection,
         batch_size  => $self->batchSize,

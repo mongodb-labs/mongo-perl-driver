@@ -19,38 +19,15 @@
 
 #define PERL_GCC_BRACE_GROUPS_FORBIDDEN
 
-#include <bson.h>
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
-#include "regcomp.h"
-
-//load after other Perl headers
-#include "ppport.h"
-
-/* whether to add an _id field */
-#define PREP 1
-#define NO_PREP 0
-
-// define regex macros for Perl 5.8
-#ifndef RX_PRECOMP
-#define RX_PRECOMP(re) ((re)->precomp)
-#define RX_PRELEN(re) ((re)->prelen)
-#endif
-
-#define SUBTYPE_BINARY_DEPRECATED 2
-#define SUBTYPE_BINARY 0
-
-// struct for 
-typedef struct _stackette {
-  void *ptr;
-  struct _stackette *prev;
-} stackette;
-
-#define EMPTY_STACK 0
+#include "bson.h"
 
 void perl_mongo_init();
-SV * perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
-void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids);
+SV * perl_mongo_bson_to_sv (const bson_t * bson, HV *opts);
+void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, HV *opts);
 
 #endif
+
+/* vim: set ts=2 sts=2 sw=2 et tw=75: */

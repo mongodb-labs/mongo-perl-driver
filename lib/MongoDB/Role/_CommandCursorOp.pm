@@ -27,7 +27,7 @@ use Moose::Role;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
-requires 'client';
+requires qw/client bson_codec/;
 
 sub _build_result_from_cursor {
     my ( $self, $res ) = @_;
@@ -39,9 +39,25 @@ sub _build_result_from_cursor {
       );
 
     my $qr = MongoDB::QueryResult->new(
+        _client    => $self->client,
+        address    => $res->address,
+        cursor     => $cursor,
+        bson_codec => $self->bson_codec,
+    );
+}
+
+sub _empty_query_result {
+    my ( $self, $link ) = @_;
+
+    my $qr = MongoDB::QueryResult->new(
         _client => $self->client,
-        address => $res->address,
-        cursor  => $cursor,
+        address => $link->address,
+        cursor  => {
+            ns         => '',
+            id         => 0,
+            firstBatch => [],
+        },
+        bson_codec => $self->bson_codec,
     );
 }
 
