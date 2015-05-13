@@ -94,7 +94,7 @@ sub xs_files {
     );
 
     $self->postamble(<<'HERE');
-$(OBJECT) : perl_mongo.h
+$(OBJECT) : perl_mongo.h legacy_mongo.h
 
 cover : pure_all
 	HARNESS_PERL_SWITCHES=-MDevel::Cover make test

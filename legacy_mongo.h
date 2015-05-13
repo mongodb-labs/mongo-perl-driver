@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-#ifndef PERL_MONGO_H
-#define PERL_MONGO_H
+#ifndef LEGACY_MONGO_H
+#define LEGACY_MONGO_H
 
 #define PERL_GCC_BRACE_GROUPS_FORBIDDEN
 
@@ -24,10 +24,12 @@
 #include "XSUB.h"
 #include "bson.h"
 
-void perl_mongo_init();
-SV * perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
-void perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids);
+/* whether to add an _id field */
+#define PREP 1
+#define NO_PREP 0
+
+void legacy_mongo_init();
+SV * legacy_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client );
+void legacy_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids);
 
 #endif
-
-/* vim: set ts=2 sts=2 sw=2 et tw=75: */

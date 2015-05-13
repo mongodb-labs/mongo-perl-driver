@@ -110,7 +110,7 @@ sub decode_bson {
     else {
         @decode_args = (undef, 0, 0, undef);
     }
-    my $struct = eval { MongoDB::BSON::_decode_bson($msg, @decode_args) };
+    my $struct = eval { MongoDB::BSON::_legacy_decode_bson($msg, @decode_args) };
     MongoDB::ProtocolError->throw($@) if $@;
     return $struct;
 }
@@ -118,7 +118,7 @@ sub decode_bson {
 sub encode_bson {
     my ($struct, $clean_keys, $max_size) = @_;
     $clean_keys = 0 unless defined $clean_keys;
-    my $bson = eval { MongoDB::BSON::_encode_bson($struct, $clean_keys) };
+    my $bson = eval { MongoDB::BSON::_legacy_encode_bson($struct, $clean_keys) };
     MongoDB::DocumentError->throw( message => $@, document => $struct) if $@;
 
     if ( $max_size && length($bson) > $max_size ) {

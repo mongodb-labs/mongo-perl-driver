@@ -23,10 +23,6 @@
 //load after other Perl headers
 #include "ppport.h"
 
-/* whether to add an _id field */
-#define PREP 1
-#define NO_PREP 0
-
 // define regex macros for Perl 5.8
 #ifndef RX_PRECOMP
 #define RX_PRECOMP(re) ((re)->precomp)
@@ -44,7 +40,7 @@ typedef struct _stackette {
 
 #define EMPTY_STACK 0
 
-#include "perl_mongo.h"
+#include "legacy_mongo.h"
 
 /* perl call helpers
  *
@@ -152,7 +148,7 @@ static SV *special_char;
 static SV *look_for_numbers;
 
 void
-perl_mongo_init() {
+legacy_mongo_init() {
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
   special_char = get_sv("MongoDB::BSON::char", 0);
@@ -364,7 +360,7 @@ perl_mongo_construct_instance_single_arg (const char *klass, SV *arg) {
  ********************************************************************/
 
 void
-perl_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids) {
+legacy_mongo_sv_to_bson (bson_t * bson, SV *sv, int is_insert, AV *ids) {
 
   if (!SvROK (sv)) {
     croak ("not a reference");
@@ -1156,7 +1152,7 @@ check_circular_ref(void *ptr, stackette *stack) {
  ********************************************************************/
 
 SV *
-perl_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
+legacy_mongo_bson_to_sv (const bson_t * bson, char *dt_type, int inflate_dbrefs, int inflate_regexps, SV *client ) {
   bson_iter_t iter;
   utf8_flag_on = get_sv("MongoDB::BSON::utf8_flag_on", 0);
   use_binary = get_sv("MongoDB::BSON::use_binary", 0);
@@ -1575,5 +1571,3 @@ bson_oid_to_sv (const bson_iter_t * iter) {
   stash = gv_stashpv("MongoDB::OID", 0);
   return sv_bless(newRV_noinc((SV *)id_hv), stash);
 }
-
-/* vim: set ts=2 sts=2 sw=2 et tw=75: */
