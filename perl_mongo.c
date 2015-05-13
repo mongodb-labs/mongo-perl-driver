@@ -1086,7 +1086,10 @@ perl_mongo_bson_to_sv (const bson_t * bson, HV *opts) {
 
 static SV *
 bson_doc_to_hashref(bson_iter_t * iter, HV *opts) {
-  HV *ret = newHV();
+  SV **svp;
+  SV *cb;
+  SV *ret;
+  HV *hv = newHV();
 
   int is_dbref = 1;
   int key_num  = 0;
@@ -1110,31 +1113,22 @@ bson_doc_to_hashref(bson_iter_t * iter, HV *opts) {
 
     /* get value and store into hash */
     value = bson_elem_to_sv(iter, opts);
-    if (!hv_store (ret, name, 0-strlen(name), value, 0)) {
+    if (!hv_store (hv, name, 0-strlen(name), value, 0)) {
       croak ("failed storing value in hash");
     }
   }
 
-  /* XXX handle dbref inflation here
-    *  if ( key_num == 3 && is_dbref == 1 && inflate_dbrefs == 1 ) { 
-    *    SV *dbr_class = sv_2mortal(newSVpv("MongoDB::DBRef", 0));
-    *    SV *dbref = 
-    *      call_method_va( dbr_class, "new", 0, 8,
-    *                              newSVpvs("ref"),
-    *                              *hv_fetch( ret, "$ref", 4, FALSE ),
-    *                              newSVpvs("id"),
-    *                              *hv_fetch( ret, "$id", 3, FALSE ),
-    *                              newSVpvs("db"),
-    *                              *hv_fetch( ret, "$db", 3, FALSE ),
-    *                              newSVpvs("client"),
-    *                              client
-    *                                 );
-    *
-    * return dbref;
-    * }
-    */
+  ret = newRV_noinc ((SV *)hv);
 
-  return newRV_noinc ((SV *)ret);
+  /* XXX shouldn't need to limit to size 3 */
+  if ( key_num == 3 && is_dbref == 1
+      && (cb = _hv_fetchs_sv(opts, "dbref_callback")) && SvOK(cb)
+  ) {
+    SV *dbref = call_sv_va(cb, 1, ret);
+    return dbref;
+  }
+
+  return ret;
 }
 
 static SV *

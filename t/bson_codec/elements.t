@@ -23,6 +23,7 @@ use DateTime;
 use DateTime::Tiny;
 use MongoDB;
 use MongoDB::OID;
+use MongoDB::DBRef;
 
 my $oid = MongoDB::OID->new("554ce5e4096df3be01323321");
 my $bin_oid = pack( "C*", map hex($_), unpack( "(a2)12", "$oid" ) );
@@ -42,13 +43,19 @@ my $dt = DateTime->new(
 my $dt_epoch_fraction = $dt->epoch + $dt->nanosecond / 1e9;
 
 my $dtt = DateTime::Tiny->new(
-    year       => 1984,
-    month      => 10,
-    day        => 16,
-    hour       => 16,
-    minute     => 12,
-    second     => 47,
+    year   => 1984,
+    month  => 10,
+    day    => 16,
+    hour   => 16,
+    minute => 12,
+    second => 47,
 );
+
+my $dbref = MongoDB::DBRef->new( db => 'test', ref => 'test_coll', id => '123' );
+my $dbref_cb = sub {
+    my $hr = shift;
+    return [ map { $_ => $hr->{$_} } sort keys %$hr ];
+};
 
 use constant PERL58 => $] lt '5.010';
 
@@ -57,6 +64,7 @@ use constant {
     P_INT64 => PERL58 ? "q" : "q<",
     BSON_DOUBLE   => "\x01",
     BSON_STRING   => "\x02",
+    BSON_DOC      => "\x03",
     BSON_OID      => "\x07",
     BSON_DATETIME => "\x09",
     BSON_NULL     => "\x0A",
@@ -117,7 +125,7 @@ my @cases = (
     {
         label    => "BSON Datetime from DateTime::Tiny to DateTime::Tiny",
         input    => { a => $dtt },
-        bson     => _doc( BSON_DATETIME . _ename("a") . _datetime($dtt->DateTime) ),
+        bson     => _doc( BSON_DATETIME . _ename("a") . _datetime( $dtt->DateTime ) ),
         dec_opts => { dt_type => "DateTime::Tiny" },
         output   => { a => $dtt },
     },
@@ -127,6 +135,21 @@ my @cases = (
         bson     => _doc( BSON_DATETIME . _ename("a") . _datetime($dt) ),
         dec_opts => { dt_type => "DateTime" },
         output   => { a => DateTime->from_epoch( epoch => $dt_epoch_fraction ) },
+    },
+    {
+        label => "BSON DBRef to unblessed",
+        input => { a => $dbref },
+        bson  => _doc( BSON_DOC . _ename("a") . _dbref($dbref) ),
+        output =>
+          { a => { '$ref' => $dbref->ref, '$id' => $dbref->id, '$db' => $dbref->db } },
+    },
+    {
+        label    => "BSON DBRef to arrayref",
+        input    => { a => $dbref },
+        bson     => _doc( BSON_DOC . _ename("a") . _dbref($dbref) ),
+        dec_opts => { dbref_callback => $dbref_cb },
+        output =>
+          { a => [ '$db' => $dbref->db, '$id' => $dbref->id, '$ref' => $dbref->ref ] },
     },
 );
 
@@ -138,7 +161,7 @@ for my $c (@cases) {
         my $decoded = $codec->decode_one( $encoded, $c->{dec_opts} || {} );
         warn $@ if $@;
         cmp_deeply( $decoded, $output, "$label: decode_one" )
-            or diag "GOT:", explain($decoded), "EXPECTED:", explain($output);
+          or diag "GOT:", explain($decoded), "EXPECTED:", explain($output);
     }
 }
 
@@ -167,11 +190,23 @@ sub _string {
 
 sub _datetime {
     my $dt = shift;
-    return pack( P_INT64, 1000 * $dt->epoch + $dt->millisecond ) }
+    return pack( P_INT64, 1000 * $dt->epoch + $dt->millisecond );
+}
 
 sub _regexp {
     my ( $pattern, $flags ) = @_;
     return _cstring($pattern) . _cstring($flags);
+}
+
+sub _dbref {
+    my $dbref = shift;
+    #<<< No perltidy
+    return _doc(
+          BSON_STRING . _ename('$ref') . _string($dbref->ref)
+        . BSON_STRING . _ename('$id' ) . _string($dbref->id)
+        . BSON_STRING . _ename('$db' ) . _string($dbref->db)
+    );
+    #>>>
 }
 
 done_testing;
