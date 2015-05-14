@@ -159,6 +159,7 @@ is($id."", $id->value);
     ok( $coll->insert_one({"bin" => \$invalid}), "inserted binary data" );
 
     my $one = $coll->find_one;
+    isa_ok($one->{bin}, "MongoDB::BSON::Binary", "binary data");
     is($one->{'bin'}, "\xFE", "read binary data");
 }
 
