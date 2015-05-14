@@ -19,10 +19,10 @@
 
 #define PERL_GCC_BRACE_GROUPS_FORBIDDEN
 
+#include "bson.h"
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
-#include "bson.h"
 
 void perl_mongo_init();
 SV * perl_mongo_bson_to_sv (const bson_t * bson, HV *opts);

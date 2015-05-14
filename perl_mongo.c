@@ -14,11 +14,11 @@
  *  limitations under the License.
  */
 
+#include "bson.h"
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
 #include "regcomp.h"
-#include "bson.h"
 
 /* load after other Perl headers */
 #include "ppport.h"
