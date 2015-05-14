@@ -565,7 +565,6 @@ subtest 'text indices' => sub {
 
 # utf8 test, croak when null key is inserted
 {
-    local $MongoDB::BSON::utf8_flag_on = 1;
     $ok = 0;
     my $kanji = "漢\0字";
     utf8::encode($kanji);
