@@ -20,14 +20,14 @@
 #include "regcomp.h"
 #include "bson.h"
 
-//load after other Perl headers
+/* load after other Perl headers */
 #include "ppport.h"
 
 /* whether to add an _id field */
 #define PREP 1
 #define NO_PREP 0
 
-// define regex macros for Perl 5.8
+/* define regex macros for Perl 5.8 */
 #ifndef RX_PRECOMP
 #define RX_PRECOMP(re) ((re)->precomp)
 #define RX_PRELEN(re) ((re)->prelen)
@@ -36,7 +36,7 @@
 #define SUBTYPE_BINARY_DEPRECATED 2
 #define SUBTYPE_BINARY 0
 
-// struct for 
+/* struct for circular ref checks */
 typedef struct _stackette {
   void *ptr;
   struct _stackette *prev;
@@ -100,7 +100,7 @@ static void append_binary(bson_t * bson, const char * key, bson_subtype_t subtyp
 static void append_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv);
 static void append_decomposed_regex(bson_t *bson, const char *key, const char *pattern, const char *flags);
 
-static void assert_valid_key(const char* str, int len, HV *opts);
+static void assert_valid_key(const char* str, STRLEN len);
 static const char * bson_key(const char * str, HV *opts);
 static void get_regex_flags(char * flags, SV *sv);
 static stackette * check_circular_ref(void *ptr, stackette *stack);
@@ -349,7 +349,7 @@ hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
     STRLEN len;
     const char *key = HePV (he, len);
     uint32_t utf8 = HeUTF8(he);
-    assert_valid_key(key, len, opts);
+    assert_valid_key(key, len);
 
     /* if we've already added the first key, continue */
     if (first_key && strcmp(key, first_key) == 0) {
@@ -377,7 +377,7 @@ hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
     }
   }
 
-  // free the hv elem
+  /* free the hv elem */
   Safefree(stack);
 }
 
@@ -411,7 +411,7 @@ avdoc_to_bson (bson_t * bson, SV *sv, HV *opts, stackette *stack) {
         }
 
         str = SvPVutf8(*key, len);
-        assert_valid_key(str, len, opts);
+        assert_valid_key(str, len);
 
         if (first_key && strcmp(str, first_key) == 0) {
             continue;
@@ -434,7 +434,7 @@ ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
    */
   array = (AV*)SvRV(sv);
 
-  // check if we're in an infinite loop
+  /* check if we're in an infinite loop */
   if (!(stack = check_circular_ref(array, stack))) {
     croak("circular ref");
   }
@@ -460,7 +460,7 @@ ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
     }
 
     str = SvPVutf8(*k, len);
-    assert_valid_key(str,len, opts);
+    assert_valid_key(str,len);
 
     if (first_key && strcmp(str, first_key) == 0) {
         continue;
@@ -469,7 +469,7 @@ ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
     sv_to_bson_elem(bson, str, *v, opts, stack);
   }
 
-  // free the ixhash elem
+  /* free the ixhash elem */
   Safefree(stack);
 }
 
@@ -491,7 +491,7 @@ av_to_bson (bson_t * bson, AV *av, HV *opts, stackette *stack) {
       sv_to_bson_elem (bson, SvPV_nolen(key), *sv, opts, stack);
   }
 
-  // free the av elem
+  /* free the av elem */
   Safefree(stack);
 }
 
@@ -520,8 +520,10 @@ bson_key(const char * str, HV *opts) {
       && SvOK(tempsv)
       && (len = sv_len(tempsv))
   ) {
+    STRLEN i;
     const char *invalid = SvPV_nolen(tempsv);
-    for (int i=0; i<len; i++) {
+
+    for (i=0; i<len; i++) {
       if (strchr(str, invalid[i])) {
         croak("documents for storage cannot contain the '%c' character",invalid[i]);
       }
@@ -565,7 +567,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
         SV **av_ref, **sign_ref;
         AV *av;
 
-        // get sign
+        /* get sign */
         sign_ref = hv_fetchs((HV*)SvRV(sv), "sign", 0);
         if (!sign_ref) {
           croak( "couldn't get BigInt sign" );
@@ -574,7 +576,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
           sign = -1;
         }
 
-        // get value
+        /* get value */
         av_ref = hv_fetchs((HV*)SvRV(sv), "value", 0);
         if (!av_ref) {
           croak( "couldn't get BigInt value" );
@@ -634,7 +636,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
         STRLEN len;
         char *str;
 
-        // check for floating tz
+        /* check for floating tz */
         tz = sv_2mortal(call_perl_reader (sv, "time_zone"));
         tz_name = sv_2mortal(call_perl_reader (tz, "name"));
         str = SvPV(tz_name, len);
@@ -659,11 +661,11 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
         t.tm_hour   = SvIV( sv_2mortal(call_perl_reader( sv, "hour"    )) )       ;
         t.tm_min    = SvIV( sv_2mortal(call_perl_reader( sv, "minute"  )) )       ;
         t.tm_sec    = SvIV( sv_2mortal(call_perl_reader( sv, "second"  )) )       ;
-        t.tm_isdst  = -1;     // no dst/tz info in DateTime::Tiny
+        t.tm_isdst  = -1;     /* no dst/tz info in DateTime::Tiny */
 
         epoch_secs = timegm( &t );
 
-        // no miliseconds in DateTime::Tiny, so just multiply by 1000
+        /* no miliseconds in DateTime::Tiny, so just multiply by 1000 */
         epoch_ms = (int64_t)epoch_secs*1000;
         bson_append_date_time(bson, key, -1, epoch_ms);
       }
@@ -722,7 +724,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
 
         str_sv = SvRV(sv);
 
-        // check type ok
+        /* check type ok */
         if (!SvPOK(str_sv)) {
           croak("MongoDB::BSON::Raw must be a blessed string reference");
         }
@@ -740,7 +742,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
 
         str_sv = SvRV(sv);
 
-        // check type ok
+        /* check type ok */
         if (!SvPOK(str_sv)) {
           croak("MongoDB::BSON::String must be a blessed string reference");
         }
@@ -762,7 +764,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
         append_binary(bson, key, SvIV(subtype), data);
       }
 #if PERL_REVISION==5 && PERL_VERSION>=12
-      // Perl 5.12 regexes
+      /* Perl 5.12 regexes */
       else if (sv_isa(sv, "Regexp")) {
         REGEXP * re = SvRX(sv);
 
@@ -877,7 +879,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
         break;
       }
 
-      // if it's publicly an int OR (privately an int AND not publicly a string)
+      /* if it's publicly an int OR (privately an int AND not publicly a string) */
       if (aggressively_number || (!is_string && (SvIOK(sv) || (SvIOKp(sv) && !SvPOK(sv))))) {
 #if defined(MONGO_USE_64_BIT_INT)
         bson_append_int64(bson, key, -1, (int64_t)SvIV(sv));
@@ -915,12 +917,12 @@ const char *
 maybe_append_first_key(bson_t *bson, HV *opts, stackette *stack) {
   SV *tempsv;
   SV **svp;
-  const char *first_key;
+  const char *first_key = NULL;
 
   if ( (tempsv = _hv_fetchs_sv(opts, "first_key")) && SvOK (tempsv) ) {
     STRLEN len;
     first_key = SvPVutf8(tempsv, len);
-    assert_valid_key(first_key, len, opts);
+    assert_valid_key(first_key, len);
     if ( (tempsv = _hv_fetchs_sv(opts, "first_value")) ) {
       sv_to_bson_elem(bson, first_key, tempsv, opts, stack);
     }
@@ -968,7 +970,7 @@ append_binary(bson_t * bson, const char * key, bson_subtype_t subtype, SV * sv) 
 }
 
 static void
-assert_valid_key(const char* str, int len, HV *opts) {
+assert_valid_key(const char* str, STRLEN len) {
   if(strlen(str)  < len) {
     croak("key contains null char");
   }
@@ -983,7 +985,7 @@ get_regex_flags(char * flags, SV *sv) {
   unsigned int i = 0, f = 0;
 
 #if PERL_REVISION == 5 && PERL_VERSION < 10
-  // pre-5.10 doesn't have the re API
+  /* pre-5.10 doesn't have the re API */
   STRLEN string_length;
   char *re_string = SvPV( sv, string_length );
 
@@ -1020,15 +1022,15 @@ get_regex_flags(char * flags, SV *sv) {
     croak( "error introspecting regex" );
   }
 
-  // regexp_pattern returns two items (in list context), the pattern and a list of flags
+  /* regexp_pattern returns two items (in list context), the pattern and a list of flags */
   flags_sv = POPs;
-  pat_sv   = POPs; // too bad we throw this away
+  pat_sv   = POPs; /* too bad we throw this away */
 
   flags_tmp = SvPVutf8_nolen(flags_sv);
   for ( i = 0; i < sizeof( flags_tmp ); i++ ) {
     if ( flags_tmp[i] == 0 ) break;
 
-    // MongoDB supports only flags /imxs, so warn if we get anything else and discard them.
+    /* MongoDB supports only flags /imxs, so warn if we get anything else and discard them. */
     if ( flags_tmp[i] == 'i' ||
          flags_tmp[i] == 'm' ||
          flags_tmp[i] == 'x' ||
@@ -1060,10 +1062,10 @@ check_circular_ref(void *ptr, stackette *stack) {
     stack = stack->prev;
   }
 
-  // push this onto the circular ref stack
+  /* push this onto the circular ref stack */
   Newx(ette, 1, stackette);
   ette->ptr = ptr;
-  // if stack has not been initialized, stack will be 0 so this will work out
+  /* if stack has not been initialized, stack will be 0 so this will work out */
   ette->prev = start;
 
   return ette;
@@ -1138,7 +1140,7 @@ bson_array_to_arrayref(bson_iter_t * iter, HV *opts) {
   while (bson_iter_next(iter)) {
     SV *sv;
 
-    // get value
+    /* get value */
     if ((sv = bson_elem_to_sv(iter, opts ))) {
       av_push (ret, sv);
     }
@@ -1176,8 +1178,8 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
       croak( "Invalid UTF-8 detected while decoding BSON" );
     }
 
-    // this makes a copy of the buffer
-    // len includes \0
+    /* this makes a copy of the buffer */
+    /* len includes \0 */
     value = newSVpvn(str, len);
     SvUTF8_on(value);
 
@@ -1204,10 +1206,11 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     uint32_t len;
     bson_subtype_t type;
     bson_iter_binary(iter, &type, &len, (const uint8_t **)&buf);
-
-    SV *data = sv_2mortal(newSVpvn(buf, len));
-    SV *subtype = sv_2mortal(newSViv(type));
-    value = new_object_from_pairs("MongoDB::BSON::Binary", "data", data, "subtype", subtype, NULL
+    value = new_object_from_pairs(
+        "MongoDB::BSON::Binary",
+        "data", sv_2mortal(newSVpvn(buf, len)),
+        "subtype", sv_2mortal(newSViv(type)),
+        NULL
     );
 
     break;
@@ -1264,9 +1267,8 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
   case BSON_TYPE_DATE_TIME: {
     double ms_i = bson_iter_date_time(iter);
 
-    SV *datetime, *ms, *tempsv;
-    HV *named_params;
-    const char *dt_type;
+    SV *tempsv;
+    const char *dt_type = NULL;
 
     ms_i /= 1000.0;
 
@@ -1275,7 +1277,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     }
 
     if ( dt_type == NULL ) { 
-      // raw epoch
+      /* raw epoch */
       value = newSViv(ms_i);
     } else if ( strcmp( dt_type, "DateTime::Tiny" ) == 0 ) {
       time_t epoch;
@@ -1368,10 +1370,10 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     /* 5.10 and beyond */
     re = re_compile(pattern, flags);
 #endif
-     // eo version-dependent code
+     /* eo version-dependent code */
 
 #if PERL_REVISION==5 && PERL_VERSION>=12
-    // they removed magic and made this a normal obj in 5.12
+    /* they removed magic and made this a normal obj in 5.12 */
     regex_ref = newRV((SV*)re);
 #else
     regex = sv_2mortal(newSVpv("",0));
@@ -1444,7 +1446,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
   }
   default: {
     croak("type %d not supported\n", bson_iter_type(iter));
-    // give up, it'll be trouble if we keep going
+    /* give up, it'll be trouble if we keep going */
   }
   }
   return value;
