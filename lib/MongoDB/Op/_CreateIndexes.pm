@@ -103,6 +103,7 @@ sub _legacy_index_insert {
         coll_name     => "system.indexes",
         documents     => $indexes,
         write_concern => $self->write_concern,
+        bson_codec    => $self->bson_codec,
         check_keys    => 0,
     );
 

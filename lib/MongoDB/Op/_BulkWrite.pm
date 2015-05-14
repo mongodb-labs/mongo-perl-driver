@@ -298,6 +298,7 @@ sub _execute_legacy_batch {
                 coll_name     => $self->coll_name,
                 document      => $doc,
                 write_concern => $wc,
+                bson_codec    => $self->bson_codec,
             );
         }
         elsif ( $type eq 'update' ) {
@@ -309,6 +310,7 @@ sub _execute_legacy_batch {
                 multi         => $doc->{multi},
                 upsert        => $doc->{upsert},
                 write_concern => $wc,
+                bson_codec    => $self->bson_codec,
             );
         }
         elsif ( $type eq 'delete' ) {
@@ -318,6 +320,7 @@ sub _execute_legacy_batch {
                 filter        => $doc->{q},
                 just_one      => !!$doc->{limit},
                 write_concern => $wc,
+                bson_codec    => $self->bson_codec,
             );
         }
 
