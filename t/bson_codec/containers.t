@@ -239,7 +239,7 @@ sub error_case {
 sub is_bin {
     my ( $got, $exp, $label ) = @_;
     $label ||= '';
-    s{(\p{PosixCntrl})}{sprintf("\\x{%02x}",ord($1))}ge for $got, $exp;
+    s{([[:cntrl:]])}{sprintf("\\x{%02x}",ord($1))}ge for $got, $exp;
     local $Test::Builder::Level = $Test::Builder::Level + 1;
     is( $got, $exp, $label );
 }
@@ -249,7 +249,7 @@ sub _doc {
     return pack( P_INT32, 5 + length($string) ) . $string . "\x00";
 }
 
-sub _cstring { return shift . "\x00" }
+sub _cstring { return $_[0] . "\x00" }
 BEGIN { *_ename = \&_cstring }
 
 sub _string {
