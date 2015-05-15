@@ -1363,7 +1363,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
 
 #if PERL_REVISION==5 && PERL_VERSION<=8
     /* 5.8 */
-    pm.op_pmdynflags = flags;
+    pm.op_pmflags = flags;
     pat = SvPV(pattern, len);
     re = pregcomp(pat, pat + len, &pm);
 #else
