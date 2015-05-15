@@ -97,17 +97,17 @@ my @cases = (
         output => { _id => $oid },
     },
     {
-        label  => "BSON Regexp (qr to obj)",
-        input  => { re => qr/abcd/i },
-        bson   => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'i' ) ),
-        output => { re => re($regexp) },
+        label    => "BSON Regexp (qr to obj)",
+        input    => { re => qr/abcd/i },
+        bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'i' ) ),
+        output   => { re => $regexp },
     },
     {
         label    => "BSON Regexp (qr to qr)",
         input    => { re => qr/abcd/i },
         bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'i' ) ),
         dec_opts => { inflate_regexps => 0 },
-        output   => { re => re(qr/abcd/i) },
+        output   => { re => qr/abcd/i },
     },
     {
         label    => "BSON Regexp (obj to obj)",
@@ -166,6 +166,11 @@ for my $c (@cases) {
     is_bin( $encoded, $bson, "$label: encode_one" );
     if ($output) {
         my $decoded = $codec->decode_one( $encoded, $c->{dec_opts} || {} );
+        for my $obj ( $output, $decoded ) {
+            if ( exists $obj->{re} && ref($obj->{re}) eq 'MongoDB::BSON::Regexp' ) {
+                $obj->{re}->_regex; # resolve lazy attribute before testing
+            }
+        }
         cmp_deeply( $decoded, $output, "$label: decode_one" )
           or diag "GOT:", explain($decoded), "EXPECTED:", explain($output);
     }
