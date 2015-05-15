@@ -552,16 +552,13 @@ has find_master => (
 
 =attr inflate_regexps (DEPRECATED)
 
-Controls whether regular expressions stored in MongoDB are inflated into
-L<MongoDB::BSON::Regexp> objects instead of native Perl Regexps. The default is
-true.
-
-XXX has no effect if a bson_codec is provided
+Regular expressions are now always turned into
+L<MongoDB::BSON::Regexp> objects instead of native Perl Regexps.
 
 =cut
 
 has inflate_regexps => (
-    is      => 'rw',
+    is      => 'ro',
     isa     => Bool,
     default => 1,
 );
@@ -681,7 +678,6 @@ sub _build_bson_codec {
             );
         },
         dt_type         => $self->dt_type,
-        inflate_regexps => $self->inflate_regexps,
         prefer_numeric  => $MongoDB::BSON::looks_like_number || 0,
         ( $MongoDB::BSON::char ne '$' ? ( op_char => $MongoDB::BSON::char ) : () ),
     );

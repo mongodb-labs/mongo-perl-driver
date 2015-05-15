@@ -275,22 +275,33 @@ milliseconds portion of the datetime will be set to zero.
 
 =head2 Regular Expressions
 
-Use C<qr/.../> to use a regular expression in a query:
+Use C<qr/.../> to use a regular expression in a query, but be sure to limit
+your regular expression to syntax and features supported by PCRE, which are
+L<not actually fully compatible with
+Perl|https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions#Differences_from_Perl>.
 
     my $cursor = $collection->query({"name" => qr/[Jj]oh?n/});
 
 Regular expressions will match strings saved in the database.
 
-You can also save and retrieve regular expressions themselves:
+B<NOTE>: only the following flags are supported: "imxs".
+
+You can also save and retrieve regular expressions themselves, but
+regular expressions will be retrieved as L<MongoDB::BSON::Regexp>
+objects for safety (these will round-trip correctly).
+
+From that object, you can attempt to compile a reference to a C<qr{}> using
+the C<try_compile> method, though due to PCRE differences, this could fail
+to compile or could have different match behavior than intended.
 
     $collection->insert({"regex" => qr/foo/i});
     $obj = $collection->find_one;
-    if ("FOO" =~ $obj->{'regex'}) { # matches
+    if ("FOO" =~ $obj->{regex}->try_compile) { # matches
         print "hooray\n";
     }
 
-Note for Perl 5.8 users: flags are lost when regular expressions are retrieved
-from the database (this does not affect queries or Perl 5.10+).
+B<SECURITY NOTE>: A regular expression can evaluate arbitrary code.  You
+are strongly advised never to use untrusted input as a regular expression.
 
 =head2 Booleans
 

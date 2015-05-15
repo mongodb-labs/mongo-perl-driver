@@ -949,8 +949,22 @@ append_decomposed_regex(bson_t *bson, const char *key, const char *pattern, cons
 static void
 append_regex(bson_t * bson, const char *key, REGEXP *re, SV * sv) {
   char flags[]     = {0,0,0,0,0};
-  char * buf;
+  char *buf;
+  int i, j;
+
   get_regex_flags(flags, sv);
+
+  /* sort flags -- how cool to write a sort algorithm by hand! Since we're
+   * only sorting a tiny array, who cares if it's n-squared? */
+  for ( i=0; flags[i]; i++ ) {
+    for ( j=i+1; flags[j] ; j++ ) {
+      if ( flags[i] > flags[j] ) {
+        char t = flags[j];
+        flags[j] = flags[i];
+        flags[i] = t;
+      }
+    }
+  }
 
   Newx(buf, (RX_PRELEN(re) + 1), char );
   Copy(RX_PRECOMP(re), buf, RX_PRELEN(re), char );
@@ -1307,81 +1321,20 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     break;
   }
   case BSON_TYPE_REGEX: {
-    SV *pattern, *regex_ref, *tempsv;
     const char * regex_str;
     const char * options;
-#if PERL_REVISION==5 && PERL_VERSION<12
-    SV *regex;
-#endif
-    HV *stash;
-    U32 flags = 0;
-    REGEXP *re;
-#if PERL_REVISION==5 && PERL_VERSION<=8
-    PMOP pm;
-    STRLEN len;
-    char *pat;
-#endif
     regex_str = bson_iter_regex(iter, &options);
 
-    pattern = sv_2mortal(newSVpv(regex_str, 0));
+    /* always make a MongoDB::BSON::Regexp object instead of a native Perl
+     * regexp to prevent the risk of compilation failure as well as
+     * security risks compiling unknown regular expressions. */
 
-    if ( (tempsv = _hv_fetchs_sv(opts, "inflate_regexps")) && SvTRUE(tempsv) ) {
-      /* make a MongoDB::BSON::Regexp object instead of a native Perl regexp. */
-      value = new_object_from_pairs(
-        "MongoDB::BSON::Regexp", "pattern", pattern, "flags", sv_2mortal( newSVpv( options, 0 ) ), NULL
-      );
-
-      break;   /* exit case */
-    }
-
-
-    while(*options != 0) {
-      switch(*options) {
-      case 'l':
-#if PERL_REVISION==5 && PERL_VERSION<=12
-        flags |= PMf_LOCALE;
-#else
-        set_regex_charset(&flags, REGEX_LOCALE_CHARSET);
-#endif
-        break;
-      case 'm':
-        flags |= PMf_MULTILINE;
-        break;
-      case 'i':
-        flags |= PMf_FOLD;
-        break;
-      case 'x':
-        flags |= PMf_EXTENDED;
-        break;
-      case 's':
-        flags |= PMf_SINGLELINE;
-        break;
-      }
-      options++;
-    }
-    options++;
-
-#if PERL_REVISION==5 && PERL_VERSION<=8
-    /* 5.8 */
-    pm.op_pmflags = flags;
-    pat = SvPV(pattern, len);
-    re = pregcomp(pat, pat + len, &pm);
-#else
-    /* 5.10 and beyond */
-    re = re_compile(pattern, flags);
-#endif
-     /* eo version-dependent code */
-
-#if PERL_REVISION==5 && PERL_VERSION>=12
-    /* they removed magic and made this a normal obj in 5.12 */
-    regex_ref = newRV((SV*)re);
-    sv_bless(regex_ref, gv_stashpv("Regexp",0));
-#else
-    regex_ref = newSV(0);
-    regex = newSVrv(regex_ref,"Regexp");
-    sv_magic(regex, (SV*)re, PERL_MAGIC_qr, 0, 0);
-#endif
-    value = regex_ref;
+    value = new_object_from_pairs(
+      "MongoDB::BSON::Regexp",
+      "pattern", sv_2mortal(newSVpv(regex_str,0)),
+      "flags", sv_2mortal(newSVpv(options,0)),
+      NULL
+    );
     break;
   }
   case BSON_TYPE_CODE: {

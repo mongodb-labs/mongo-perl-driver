@@ -9,19 +9,13 @@ use MongoDB::Error;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
-# XXX needs overloading for =~ and qr
-use overload
-    q{""}    => sub { "" . $_[0]->_regex },
-    'qr'     => sub { $_[0]->_regex },
-    fallback => 1;
-
-has pattern => ( 
+has pattern => (
     is       => 'ro',
     isa      => Str,
     required => 1,
 );
 
-has flags => ( 
+has flags => (
     is        => 'ro',
     isa       => Str,
     required  => 0,
@@ -29,19 +23,7 @@ has flags => (
     writer    => '_set_flags',
 );
 
-has _regex => (
-    is        => 'ro',
-    isa       => RegexpRef,
-    lazy      => 1,
-    builder   => '_build__regexp',
-);
-
-sub _build__regexp {
-    my ($p,$f) = map { $_[0]->$_ } qw/pattern flags/;
-    eval "qr/$p/$f";
-}
-
-my %ALLOWED_FLAGS = ( 
+my %ALLOWED_FLAGS = (
     i   => 1,
     m   => 1,
     x   => 1,
@@ -50,13 +32,13 @@ my %ALLOWED_FLAGS = (
     u   => 1
 );
 
-sub BUILD { 
+sub BUILD {
     my $self = shift;
 
-    if ( $self->has_flags ) { 
+    if ( $self->has_flags ) {
         my %seen;
         my @flags = grep { !$seen{$_}++ } split '', $self->flags;
-        foreach my $f( @flags ) { 
+        foreach my $f( @flags ) {
             MongoDB::UsageError->throw("Regexp flag $f is not supported by MongoDB")
               if not exists $ALLOWED_FLAGS{$f};
         }
@@ -65,6 +47,31 @@ sub BUILD {
     }
 }
 
+=method
+
+    my $qr = $regexp->try_compile;
+
+Tries to compile the C<pattern> and C<flags> into a reference to a regular
+expression.  If the pattern or flags can't be compiled, a
+C<MongoDB::DecodingError> exception will be thrown.
+
+B<SECURITY NOTE>: Executing a regular expression can evaluate arbitrary
+code.  You are strongly advised never to use untrusted input with
+C<try_compile>.
+
+=cut
+
+sub try_compile {
+    my ($self) = @_;
+    my ( $p, $f ) = map { $self->$_ } qw/pattern flags/;
+    my $re = eval { qr/(?$f:$p)/ };
+    MongoDB::DecodingError->throw("error compiling regex 'qr/$p/$f': $@")
+      if $@;
+    return $re;
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+# vim: set ts=4 sts=4 sw=4 et tw=75:

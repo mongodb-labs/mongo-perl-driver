@@ -28,7 +28,7 @@ use MongoDB::DBRef;
 my $oid = MongoDB::OID->new("554ce5e4096df3be01323321");
 my $bin_oid = pack( "C*", map hex($_), unpack( "(a2)12", "$oid" ) );
 
-my $regexp = MongoDB::BSON::Regexp->new( pattern => "abcd", flags => "i" );
+my $regexp = MongoDB::BSON::Regexp->new( pattern => "abcd", flags => "ismx" );
 
 my $dt = DateTime->new(
     year       => 1984,
@@ -98,29 +98,15 @@ my @cases = (
     },
     {
         label    => "BSON Regexp (qr to obj)",
-        input    => { re => qr/abcd/i },
-        bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'i' ) ),
+        input    => { re => qr/abcd/imsx },
+        bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'imsx' ) ),
         output   => { re => $regexp },
-    },
-    {
-        label    => "BSON Regexp (qr to qr)",
-        input    => { re => qr/abcd/i },
-        bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'i' ) ),
-        dec_opts => { inflate_regexps => 0 },
-        output   => { re => qr/abcd/i },
     },
     {
         label    => "BSON Regexp (obj to obj)",
         input    => { re => $regexp },
-        bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'i' ) ),
+        bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'imsx' ) ),
         output   => { re => $regexp },
-    },
-    {
-        label    => "BSON Regexp (obj to qr)",
-        input    => { re => $regexp },
-        bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'i' ) ),
-        dec_opts => { inflate_regexps => 0 },
-        output   => { re => qr/abcd/i },
     },
     {
         label    => "BSON Datetime from DateTime to raw",
@@ -166,11 +152,6 @@ for my $c (@cases) {
     is_bin( $encoded, $bson, "$label: encode_one" );
     if ($output) {
         my $decoded = $codec->decode_one( $encoded, $c->{dec_opts} || {} );
-        for my $obj ( $output, $decoded ) {
-            if ( exists $obj->{re} && ref($obj->{re}) eq 'MongoDB::BSON::Regexp' ) {
-                $obj->{re}->_regex; # resolve lazy attribute before testing
-            }
-        }
         cmp_deeply( $decoded, $output, "$label: decode_one" )
           or diag "GOT:", explain($decoded), "EXPECTED:", explain($output);
     }

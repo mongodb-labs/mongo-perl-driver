@@ -97,24 +97,6 @@ has error_callback => (
     isa     => Maybe[CodeRef],
 );
 
-=attr inflate_regexps
-
-Controls whether regular expressions stored in MongoDB are inflated into
-L<MongoDB::BSON::Regexp> objects instead of native Perl regular expression. The
-default is true.
-
-This ensures that stored regular expressions round trip, as there are
-L<some differences between PCRE and Perl regular expressions|
-https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions#Differences_from_Perl>
-
-=cut
-
-has inflate_regexps => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 1,
-);
-
 =attr invalid_chars
 
 A string containing ASCII characters that must not appear in keys.  The default
@@ -298,13 +280,12 @@ An optional hash reference of options may be provided.  Valid options include:
 * dbref_callback – overrides codec default
 * dt_type – overrides codec default
 * error_callback – overrides codec default
-* inflate_regexps – overrides codec default
 * max_length – overrides codec default
 
 =cut
 
 my @decode_overrides =
-  qw/dbref_callback dt_type error_callback inflate_regexps max_length/;
+  qw/dbref_callback dt_type error_callback max_length/;
 my $decode_one_args;
 
 sub decode_one {
