@@ -522,18 +522,24 @@ has auto_reconnect => (
 );
 
 
-=attr dt_type (DEPRECATED)
+=attr dt_type (DEPRECATED AND READ-ONLY)
 
 Sets the type of object which is returned for DateTime fields. The default is
 L<DateTime>. Other acceptable values are L<DateTime::Tiny> and C<undef>. The
 latter will give you the raw epoch value rather than an object.
 
-XXX has no effect if a bson_codec is provided
+This will be used to construct L</bson_codec> object if one is not provided.
+
+As this has a one-time effect, it is now read-only to help you detect
+code that was trying to change after the fact during program execution.
+
+For temporary or localized changes, look into overriding the C<bson_codec>
+object for a database or collection object.
 
 =cut
 
 has dt_type => (
-    is      => 'rw',
+    is      => 'ro',
     default => 'DateTime'
 );
 

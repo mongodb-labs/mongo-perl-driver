@@ -90,7 +90,9 @@ As of Alpha 2, the following attributes are now immutable:
 =for :list
 * C<ssl>
 * C<read_preference> – but read preference can be set at the database and
-  collection level for localized needs.  See a subsequent section for more.
+  collection level for localized needs.
+* C<dt_type> — but a C<bson_codec> attribute can be set at the database and
+  collection level for localized needs.
 
 Other attributes will be made immutable in subsequent alpha releases
 as internal options handling is revised.

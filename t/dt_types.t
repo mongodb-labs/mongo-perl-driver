@@ -74,7 +74,6 @@ my $now = DateTime->now;
     );
 
     $coll->insert_one( { date => $now } );
-    $conn->dt_type( 'DateTime::Bad' );
     like( exception { 
             my $date4 = $coll->find_one->{date};
         },
