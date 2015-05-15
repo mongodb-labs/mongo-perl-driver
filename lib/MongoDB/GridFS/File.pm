@@ -104,6 +104,7 @@ sub print {
                 $pos += $len-($offset-$pos);
             }
             else {
+                no warnings 'substr';
                 $fh->print(substr($chunk->{'data'}, $offset-$pos, $length));
                 $written += $length;
                 $pos += $length;
