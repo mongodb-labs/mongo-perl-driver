@@ -11,10 +11,8 @@ use namespace::clean -except => 'meta';
 
 # XXX needs overloading for =~ and qr
 use overload
-    'qr' => sub {
-        my ($p,$f) = map { $_[0]->$_ } qw/pattern flags/;
-        eval "qr/$p/$f";
-    },
+    q{""}    => sub { "" . $_[0]->_regex },
+    'qr'     => sub { $_[0]->_regex },
     fallback => 1;
 
 has pattern => ( 
@@ -30,6 +28,18 @@ has flags => (
     predicate => 'has_flags',
     writer    => '_set_flags',
 );
+
+has _regex => (
+    is        => 'ro',
+    isa       => RegexpRef,
+    lazy      => 1,
+    builder   => '_build__regexp',
+);
+
+sub _build__regexp {
+    my ($p,$f) = map { $_[0]->$_ } qw/pattern flags/;
+    eval "qr/$p/$f";
+}
 
 my %ALLOWED_FLAGS = ( 
     i   => 1,

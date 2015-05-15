@@ -1375,16 +1375,12 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
 #if PERL_REVISION==5 && PERL_VERSION>=12
     /* they removed magic and made this a normal obj in 5.12 */
     regex_ref = newRV((SV*)re);
+    sv_bless(regex_ref, gv_stashpv("Regexp",0));
 #else
-    regex = sv_2mortal(newSVpv("",0));
-    regex_ref = newRV((SV*)regex);
-
+    regex_ref = newSV(0);
+    regex = newSVrv(regex_ref,"Regexp");
     sv_magic(regex, (SV*)re, PERL_MAGIC_qr, 0, 0);
 #endif
-
-    stash = gv_stashpv("Regexp", 0);
-    sv_bless(regex_ref, stash);
-
     value = regex_ref;
     break;
   }
