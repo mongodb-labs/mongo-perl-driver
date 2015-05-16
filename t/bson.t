@@ -361,8 +361,6 @@ subtest "MongoDB::BSON::String type" => sub {
 subtest "MongoDB::BSON::Binary type" => sub {
     $c->drop;
 
-    local $MongoDB::BSON::use_binary = 0;
-
     my $str = "foo";
     my $bin = {bindata => [
                    \$str,
@@ -383,8 +381,6 @@ subtest "MongoDB::BSON::Binary type" => sub {
     foreach (@$data) {
         is($_, "foo");
     }
-
-    $MongoDB::BSON::use_binary = 1;
 
     $doc = $c->find_one;
 
