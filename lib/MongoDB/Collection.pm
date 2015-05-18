@@ -1771,4 +1771,4 @@ they will warn when used, then will eventually be removed.
 
 =cut
 
-# vim: ts=4 sts=4 sw=4 et:
+# vim: set ts=4 sts=4 sw=4 et tw=75:
