@@ -92,23 +92,12 @@ sub _update {
         $doc = Tie::IxHash->new(%$doc);
     }
 
-    my @keys = $doc->Keys;
-    if ( $method eq 'replace_one' ) {
-        if ( my @bad = grep { substr( $_, 0, 1 ) eq '$' } @keys ) {
-            MongoDB::UsageError->throw("$method document can't have '\$' prefixed field names: @bad");
-        }
-    }
-    else {
-        if ( my @bad = grep { substr( $_, 0, 1 ) ne '$' } @keys ) {
-            MongoDB::UsageError->throw("$method document can't have non- '\$' prefixed field names: @bad");
-        }
-    }
-
     my $update = {
         q      => $self->_query,
         u      => $doc,
         multi  => $method eq 'update' ? true : false,
         upsert => boolean( $self->_upsert ),
+        is_replace => $method eq 'replace_one',
     };
 
     $self->_enqueue_write( [ update => $update ] );

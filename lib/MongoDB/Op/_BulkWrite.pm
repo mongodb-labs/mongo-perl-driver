@@ -72,7 +72,7 @@ has write_concern => (
 );
 
 # not _WriteOp because we construct our own result objects
-with qw/MongoDB::Role::_CommandOp/;
+with $_ for qw/MongoDB::Role::_CommandOp MongoDB::Role::_UpdatePreEncoder/;
 
 sub execute {
     my ( $self, $link ) = @_;
@@ -133,6 +133,10 @@ sub _execute_write_command_batch {
     while (@left_to_send) {
         my $chunk = shift @left_to_send;
 
+        if ( $cmd eq 'update' ) {
+            $chunk = $self->_pre_encode_update_chunk($link, $chunk);
+        }
+
         my $cmd_doc = [
             $cmd         => $coll_name,
             $op_key      => $chunk,
@@ -188,6 +192,20 @@ sub _execute_write_command_batch {
     }
 
     return;
+}
+
+# take array of hash, validate and encode each update doc; since this
+# might be called more than once if chunks are getting split, check if
+# the update doc is already encoded; this also removes the 'is_replace'
+# field that needs to not be in the command sent to the server
+sub _pre_encode_update_chunk {
+    my ( $self, $link, $chunk ) = @_;
+    for ( my $i = 0; $i <= $#$chunk; $i++ ) {
+        next if ref( $chunk->[$i]{u} ) eq 'MongoDB::BSON::Raw';
+        my $is_replace = delete $chunk->[$i]{is_replace};
+        $chunk->[$i]{u} = $self->_pre_encode( $link, $chunk->[$i]{u}, $is_replace );
+    }
+    return $chunk;
 }
 
 sub _split_chunk {
@@ -310,6 +328,7 @@ sub _execute_legacy_batch {
                 multi         => $doc->{multi},
                 upsert        => $doc->{upsert},
                 write_concern => $wc,
+                is_replace    => $doc->{is_replace},
                 bson_codec    => $self->bson_codec,
             );
         }

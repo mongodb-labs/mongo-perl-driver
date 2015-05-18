@@ -252,6 +252,13 @@ subtest "replace_one" => sub {
     ok( $err, "replace with update operators is an error" );
     like( $err, qr/must not contain update operators/, "correct error message" );
 
+    # replace doc with custom op_char is an error
+    $err = exception {
+        my $coll2 = $coll->with_codec( op_char => '-' );
+        $coll2->replace_one( { x => 3} , { -set => { x => 4 } } )
+    };
+    ok( $err, "replace with op_char update operators is an error" );
+    like( $err, qr/must not contain update operators/, "correct error message" );
 };
 
 subtest "update_one" => sub {

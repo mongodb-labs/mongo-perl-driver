@@ -53,8 +53,13 @@ has filter => (
 
 has update => (
     is       => 'ro',
-    isa      => IxHash,
-    coerce   => 1,
+    isa      => Any,
+    required => 1,
+);
+
+has is_replace => (
+    is     => 'ro',
+    isa    => Bool,
     required => 1,
 );
 
@@ -68,7 +73,7 @@ has upsert => (
     isa    => Bool,
 );
 
-with qw/MongoDB::Role::_WriteOp/;
+with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_UpdatePreEncoder/;
 
 sub execute {
     my ( $self, $link ) = @_;
@@ -80,18 +85,9 @@ sub execute {
         upsert => boolean($self->upsert),
     };
 
-    # XXX until we have a proper BSON::Raw class, we bless on the fly
-    my $first_key  = $update_op->{u}->Keys(0);
-    my $is_replace = substr( $first_key, 0, 1 ) ne '$';
-    my $max_size   = $is_replace ? $link->max_bson_object_size : undef;
-    my $bson_doc = $self->bson_codec->encode_one(
-        $update_op->{u}, {
-            invalid_chars => $is_replace ? '.' : '',
-            max_length => $max_size
-        }
-    );
     my $orig_op = { %$update_op };
-    $update_op->{u} = bless \$bson_doc, "MongoDB::BSON::Raw";
+
+    $update_op->{u} = $self->_pre_encode( $link, $update_op->{u}, $self->is_replace );
 
     my $res =
         $link->accepts_wire_version(2)

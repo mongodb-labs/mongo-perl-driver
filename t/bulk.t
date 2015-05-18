@@ -177,7 +177,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 note("QA-477 UPDATE and UPDATE_ONE");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "update and update_one errors with $method" => sub {
-        my $bulk = $coll->$method;
+        my $bulk;
         # raise errors on wrong arg types
         my %bad_args = (
             SCALAR => ['foo'],
@@ -185,6 +185,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         );
 
         for my $update (qw/update update_one/) {
+            $bulk = $coll->$method;
             for my $k ( sort keys %bad_args ) {
                 like(
                     exception { $bulk->find( {} )->$update( @{ $bad_args{$k} } ) },
@@ -193,22 +194,27 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 );
             }
 
+            $bulk = $coll->$method;
             like(
                 exception { $bulk->$update( { '$set' => { x => 1 } } ) },
                 qr/^Can't locate object method "$update"/,
                 "$update on bulk object (without find) throws an error",
             );
 
+            $bulk = $coll->$method;
+            $bulk->find( {} )->$update( { key => 1 } );
             like(
-                exception { $bulk->find( {} )->$update( { key => 1 } ) },
-                qr/$update document can't have non- '\$' prefixed field names: key/,
+                exception { $bulk->execute },
+                qr/update document must only contain update operators/,
                 "single non-op key in $update doc throws exception"
             );
 
+            $bulk = $coll->$method;
+            $bulk->find( {} )->$update( [ key => 1, '$key' => 1 ]);
             like(
-                exception { $bulk->find( {} )->$update( { key => 1, '$key' => 1 } ) },
-                qr/$update document can't have non- '\$' prefixed field names: key/,
-                "mixed op and non-op key in $update doc throws exception"
+                exception { $bulk->execute },
+                qr/update document must only contain update operators/,
+                "first non-op key in $update doc throws exception"
             );
 
         }
@@ -299,13 +305,14 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 note("QA-477 REPLACE_ONE");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "replace_one errors with $method" => sub {
-        my $bulk = $coll->$method;
+        my $bulk;
         # raise errors on wrong arg types
         my %bad_args = (
             SCALAR => ['foo'],
             EMPTY  => [],     # not in QA test
         );
 
+        $bulk = $coll->$method;
         for my $k ( sort keys %bad_args ) {
             like(
                 exception { $bulk->find( {} )->replace_one( @{ $bad_args{$k} } ) },
@@ -320,15 +327,19 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             "replace_one on bulk object (without find) throws an error",
         );
 
+        $bulk = $coll->$method;
+        $bulk->find( {} )->replace_one( { '$key' => 1 } );
         like(
-            exception { $bulk->find( {} )->replace_one( { '$key' => 1 } ) },
-            qr/replace_one document can't have '\$' prefixed field names: \$key/,
+            exception { $bulk->execute },
+            qr/replacement document must not contain update operators/,
             "single op key in replace_one doc throws exception"
         );
 
+        $bulk = $coll->$method;
+        $bulk->find( {} )->replace_one( [ '$key' => 1, key => 1 ] );
         like(
-            exception { $bulk->find( {} )->replace_one( { key => 1, '$key' => 1 } ) },
-            qr/replace_one document can't have '\$' prefixed field names: \$key/,
+            exception { $bulk->execute },
+            qr/replacement document must not contain update operators/,
             "mixed op and non-op key in replace_one doc throws exception"
         );
 
@@ -877,6 +888,7 @@ subtest "ordered batch with errors" => sub {
     isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' );
 
     my $details = $err->result;
+
     is( $details->upserted_count, 0, "upserted_count" );
     is( $details->matched_count,  0, "matched_count" );
     is( $details->deleted_count,  0, "deleted_count" );
@@ -898,7 +910,7 @@ subtest "ordered batch with errors" => sub {
         $details->write_errors->[0]{op},
         {
             q => Tie::IxHash->new( b      => 2 ),
-            u => Tie::IxHash->new( '$set' => { a => 1 } ),
+            u => obj_isa( $server_does_bulk ? 'MongoDB::BSON::Raw' : 'Tie::IxHash' ),
             multi  => false,
             upsert => true,
         },
@@ -1298,6 +1310,20 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         ) or diag explain $result;
     };
 }
+
+subtest "replace with custom op_char" => sub {
+    $coll->drop;
+    my $coll2 = $coll->with_codec( op_char => '-' );
+    my $bulk = $coll2->ordered_bulk;
+
+    $bulk->insert( { _id => 0 } );
+    $bulk->find( { _id => 0 } )->replace_one( { '-set' => { key => 1} } );
+    like(
+        exception { $bulk->execute },
+        qr/replacement document must not contain update operators/,
+        "single non-op key in update doc throws exception"
+    );
+};
 
 # XXX QA-477 tests not covered herein:
 # MIXED OPERATIONS, AUTH

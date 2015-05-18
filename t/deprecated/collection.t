@@ -564,7 +564,7 @@ subtest "deep update" => sub {
 
     like(
         exception { $coll->update( { _id => 1 }, { 'p.q' => 23 } ) },
-        qr/documents for storage cannot contain/,
+        qr/cannot contain the '\.' character/,
         "replace with dots in field dies"
     );
 

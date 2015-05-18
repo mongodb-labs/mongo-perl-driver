@@ -379,7 +379,7 @@ document will be upserted if no matching document exists.
 
 my $replace_one_args;
 sub replace_one {
-    $replace_one_args ||= compile( Object, IxHash, ReplaceDoc, Optional[HashRef] );
+    $replace_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
     my ($self, $filter, $replacement, $options) = $replace_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
@@ -390,6 +390,7 @@ sub replace_one {
         update        => $replacement,
         multi         => false,
         upsert        => $options->{upsert} ? true : false,
+        is_replace    => 1,
         write_concern => $self->write_concern,
     );
 
@@ -416,7 +417,7 @@ operations to it prior to insertion.
 
 my $update_one_args;
 sub update_one {
-    $update_one_args ||= compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
+    $update_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
     my ($self, $filter, $update, $options) = $update_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
@@ -427,6 +428,7 @@ sub update_one {
         update        => $update,
         multi         => false,
         upsert        => $options->{upsert} ? true : false,
+        is_replace    => 0,
         write_concern => $self->write_concern,
     );
 
@@ -453,7 +455,7 @@ operations to it prior to insertion.
 
 my $update_many_args;
 sub update_many {
-    $update_many_args ||= compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
+    $update_many_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
     my ($self, $filter, $update, $options) = $update_many_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
@@ -464,6 +466,7 @@ sub update_many {
         update        => $update,
         multi         => true,
         upsert        => $options->{upsert} ? true : false,
+        is_replace    => 0,
         write_concern => $self->write_concern,
     );
 
@@ -695,7 +698,7 @@ A hash reference of options may be provided. Valid keys include:
 
 my $foar_args;
 sub find_one_and_replace {
-    $foar_args ||= compile( Object, IxHash, ReplaceDoc, Optional[HashRef] );
+    $foar_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
     my ( $self, $filter, $replacement, $options ) = $foar_args->(@_);
 
     return $self->_find_one_and_update_or_replace($filter, $replacement, $options);
@@ -734,7 +737,7 @@ A hash reference of options may be provided. Valid keys include:
 
 my $foau_args;
 sub find_one_and_update {
-    $foau_args ||= compile( Object, IxHash, UpdateDoc, Optional[HashRef] );
+    $foau_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
     my ( $self, $filter, $update, $options ) = $foau_args->(@_);
 
     return $self->_find_one_and_update_or_replace($filter, $update, $options);
@@ -1586,6 +1589,14 @@ sub update {
         $opts->{multi} = delete $opts->{multiple};
     }
 
+    # figure out if first key based on op_char or '$'
+    my $is_replace;
+    if ( $object && $object->Length ) {
+        my $fk = substr($object->FIRSTKEY, 0, 1);
+        my $op_char = eval { $self->bson_codec->op_char } || '';
+        $is_replace = $fk ne '$' && $fk ne $op_char;
+    }
+
     my $op = MongoDB::Op::_Update->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
@@ -1594,6 +1605,7 @@ sub update {
         update        => $object || {},
         multi         => $opts->{multi},
         upsert        => $opts->{upsert},
+        is_replace    => $is_replace,
         write_concern => $self->_dynamic_write_concern($opts),
     );
 

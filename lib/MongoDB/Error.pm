@@ -128,7 +128,7 @@ extends("MongoDB::Error");
 
 has document => (
     is       => 'ro',
-    isa      => HashRef|IxHash,
+    isa      => Any,
     required => 1,
 );
 
@@ -423,7 +423,7 @@ will be thrown as a L</MongoDB::DocumentError>.
 =head2 MongoDB::DocumentError
 
 This error indicates a problem with a document to be inserted or replaced into
-the database.
+the database, or used as an update document.
 
 Attributes include:
 

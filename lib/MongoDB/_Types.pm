@@ -45,11 +45,9 @@ use Type::Library
   NonNegNum
   ReadPrefMode
   ReadPreference
-  ReplaceDoc
   ServerType
   SingleChar
   TopologyType
-  UpdateDoc
   WriteConcern
 );
 
@@ -186,17 +184,5 @@ coerce ReadPreference, from ArrayRef,
 
 coerce WriteConcern, from HashRef,
   via { require MongoDB::WriteConcern; MongoDB::WriteConcern->new($_) };
-
-#--------------------------------------------------------------------------#
-# subtypes with inherited coercions
-#--------------------------------------------------------------------------#
-
-declare ReplaceDoc, as IxHash, coercion => 1,
-  where { !$_->Length || substr( $_->Keys(0), 0, 1 ) ne $MongoDB::BSON::char },
-  message { "replacement document ($_) must not contain update operators" };
-
-declare UpdateDoc, as IxHash, coercion => 1,
-  where { $_->Length && substr( $_->Keys(0), 0, 1 ) eq $MongoDB::BSON::char },
-  message { "update document must only contain update operators" };
 
 1;
