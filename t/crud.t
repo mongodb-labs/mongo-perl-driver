@@ -54,7 +54,9 @@ subtest "insert_one" => sub {
 
     # insert doc without _id
     $coll->drop;
-    $res = $coll->insert_one( { value => "bar" } );
+    my $orig = { value => "bar" };
+    my $doc = { %$orig };
+    $res = $coll->insert_one( $doc );
     my @got = $coll->find( {} )->all;
     cmp_deeply(
         \@got,
@@ -63,6 +65,7 @@ subtest "insert_one" => sub {
     );
     ok( $res->acknowledged, "result acknowledged" );
     is( $got[0]{_id}, $res->inserted_id, "doc has expected inserted _id" );
+    cmp_deeply( $doc, $orig, "original unmodified" );
 
     # insert arrayref
     $coll->drop;

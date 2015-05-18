@@ -250,8 +250,6 @@ sub insert_one {
     $insert_one_args ||= compile( Object, IxHash);
     my ( $self, $document ) = $insert_one_args->(@_);
 
-    $self->_add_oids( [$document] );
-
     my $op = MongoDB::Op::_InsertOne->new(
         db_name       => $self->database->name,
         bson_codec    => $self->bson_codec,
@@ -1369,48 +1367,6 @@ BEGIN {
 # private methods
 #--------------------------------------------------------------------------#
 
-sub _add_oids {
-    my ($self, $target) = @_;
-    my @ids;
-
-    for my $d ( ref($target) eq 'ARRAY' ? @$target : $target ) {
-        my $type = reftype($d);
-        my $found_id;
-        if (ref($d) eq 'Tie::IxHash') {
-            $found_id = $d->FETCH('_id');
-            unless ( defined $found_id ) {
-                $d->Unshift( '_id', $found_id = MongoDB::OID->new );
-            }
-        }
-        elsif ($type eq 'ARRAY') {
-            # search for an _id or prepend one
-            for my $i ( 0 .. (@$d/2 - 1) ) {
-                if ( $d->[2*$i] eq '_id' ) {
-                    $found_id = $d->[2*$i+1];
-                    last;
-                }
-            }
-            unless (defined $found_id) {
-                unshift @$d, '_id', $found_id = MongoDB::OID->new;
-            }
-        }
-        elsif ($type eq 'HASH') {
-            $found_id = $d->{_id};
-            unless ( defined $found_id ) {
-                $found_id = MongoDB::OID->new;
-                $d->{_id} = $found_id;
-            }
-        }
-        else {
-            $type = 'scalar' unless $type;
-            Carp::croak("unhandled type $type")
-        }
-        push @ids, $found_id;
-    }
-
-    return \@ids;
-}
-
 sub _dynamic_write_concern {
     my ( $self, $opts ) = @_;
     if ( !exists( $opts->{safe} ) || $opts->{safe} ) {
@@ -1555,10 +1511,6 @@ sub insert {
     $legacy_insert_args ||= compile( Object, IxHash, Optional[HashRef] );
     my ( $self, $document, $opts ) = $legacy_insert_args->(@_);
 
-    unless ( $opts->{'no_ids'} ) {
-        $self->_add_oids( $document );
-    }
-
     my $op = MongoDB::Op::_InsertOne->new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
@@ -1576,10 +1528,6 @@ my $legacy_batch_args;
 sub batch_insert {
     my ( $self, $documents, $opts ) = @_;
     $legacy_batch_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef] );
-
-    unless ( $opts->{'no_ids'} ) {
-        $self->_add_oids($documents);
-    }
 
     my $op = MongoDB::Op::_BatchInsert->new(
         db_name       => $self->database->name,

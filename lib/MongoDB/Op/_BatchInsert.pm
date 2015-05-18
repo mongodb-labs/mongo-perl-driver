@@ -27,6 +27,7 @@ use Moose;
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::InsertManyResult;
+use MongoDB::OID;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -47,8 +48,7 @@ has coll_name => (
     required => 1,
 );
 
-# may or may not have _id; caller must get it right. E.g. index creation
-# on legacy mongod does not use _id
+# may or may not have _id; will be added if check_keys is true
 has documents => (
     is       => 'ro',
     isa      => ArrayRef,
@@ -65,6 +65,12 @@ has check_keys => (
     is      => 'ro',
     isa     => Bool,
     default => 1,
+);
+
+has _doc_ids => (
+    is      => 'ro',
+    isa     => ArrayRef,
+    writer  => '_set_doc_ids',
 );
 
 with qw/MongoDB::Role::_WriteOp/;
@@ -103,17 +109,33 @@ sub execute {
 
     # XXX until we have a proper BSON::Raw class, we bless on the fly
     my $max_size = $link->max_bson_object_size;
+    my $check_keys = $self->check_keys;
 
     my $opts = {
-        invalid_chars => $self->check_keys ? '.' : '',
-        max_length => $max_size
+        invalid_chars => $check_keys ? '.' : '',
+        max_length => $max_size,
     };
+
+    my @ids;
+
     my $insert_docs = [
         map {
-            my $s = $self->bson_codec->encode_one( $_, $opts );
+            my $local_opts = { %$opts };
+            if ( $check_keys ) {
+                my $id = $_->FETCH('_id') || MongoDB::OID->new;
+                push @ids, $id;
+                $local_opts->{first_key} = '_id';
+                $local_opts->{first_value} = $id;
+            }
+            else {
+                push @ids, undef;
+            }
+            my $s = $self->bson_codec->encode_one( $_, $local_opts );
             bless \$s, "MongoDB::BSON::Raw";
         } @{ $self->documents }
     ];
+
+    $self->_set_doc_ids(\@ids);
 
     my $res =
         $link->accepts_wire_version(2)
@@ -154,11 +176,9 @@ sub _legacy_op_insert {
 sub _parse_cmd {
     my ( $self, $res ) = @_;
     return unless $res->{ok};
-    my $ids = {};
-    for my $i ( 0 .. $#{ $self->documents } ) {
-        $ids->{$i} = $self->documents->[$i]->FETCH("_id");
-    }
-    return ( inserted_ids => $ids );
+    my $inserted = $self->_doc_ids;
+    my $ids = [ map +{ index => $_,  _id => $inserted->[$_] }, 0 .. $#{$inserted} ];
+    return ( inserted_count => scalar @$inserted, inserted => $ids );
 }
 
 BEGIN {

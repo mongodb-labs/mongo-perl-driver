@@ -27,6 +27,7 @@ use Moose;
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::InsertOneResult;
+use MongoDB::OID;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -46,8 +47,6 @@ has coll_name => (
     required => 1,
 );
 
-# may or may not have _id; caller must get it right. E.g. index creation
-# on legacy mongod does not use _id
 has document => (
     is       => 'ro',
     isa      => IxHash,
@@ -55,18 +54,34 @@ has document => (
     required => 1,
 );
 
+has _doc_id => (
+    is        => 'ro',
+    isa       => Any,
+    writer    => '_set_doc_id',
+);
+
 with qw/MongoDB::Role::_WriteOp/;
 
 sub execute {
     my ( $self, $link ) = @_;
 
+    my $document = $self->document;
+
+    my $id = $self->_set_doc_id(
+        $document->EXISTS('_id') ? $document->FETCH('_id') : MongoDB::OID->new
+    );
+
     # XXX until we have a proper BSON::Raw class, we bless on the fly
-    my $bson_doc   = $self->bson_codec->encode_one(
-        $self->document, {
+    my $bson_doc = $self->bson_codec->encode_one(
+        $document,
+        {
             invalid_chars => '.',
-            max_length => $link->max_bson_object_size,
+            max_length    => $link->max_bson_object_size,
+            first_key => '_id',
+            first_value => $id,
         }
     );
+
     my $insert_doc = bless \$bson_doc, "MongoDB::BSON::Raw";
 
     my $res =
@@ -102,7 +117,7 @@ sub _legacy_op_insert {
 
 sub _parse_cmd {
     my ( $self, $res ) = @_;
-    return ( $res->{ok} ? ( inserted_id => $self->document->FETCH("_id") ) : () );
+    return ( $res->{ok} ? ( inserted_id => $self->_doc_id ) : () );
 }
 
 BEGIN {

@@ -115,8 +115,11 @@ subtest get_namespace => sub {
 
 # insert
 {
-    $id = $coll->insert({ just => 'another', perl => 'hacker' });
+    my $doc = { just => 'another', perl => 'hacker' };
+    my $orig = { %$doc };
+    $id = $coll->insert($doc);
     is($coll->count, 1, 'count');
+    cmp_deeply( $doc, $orig, "doc not modified by insert" );
 
     $coll->update({ _id => $id }, {
         just => "an\xE4oth\0er",
