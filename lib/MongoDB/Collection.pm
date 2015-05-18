@@ -195,6 +195,46 @@ sub clone {
     return $class->new( %$self, @args );
 }
 
+=method with_codec
+
+    $coll2 = $coll1->with_codec( $new_codec );
+    $coll2 = $coll1->with_codec( prefer_numeric => 1 );
+
+Constructs a copy of the original collection, but clones the C<bson_codec>.
+If given an object that does C<encode_one> and C<decode_one>, it is
+equivalent to:
+
+    $coll2 = $coll1->clone( bson_codec => $new_codec );
+
+If given a hash reference or a list of key/value pairs, it is equivalent
+to:
+
+    $coll2 = $coll1->clone(
+        bson_codec => $coll1->bson_codec->clone( @list )
+    );
+
+=cut
+
+sub with_codec {
+    my ( $self, @args ) = @_;
+    if ( @args == 1 ) {
+        my $arg = $args[0];
+        if ( eval { $arg->can('encode_bson') && $arg->can('decode_bson') } ) {
+            return $self->clone( bson_codec => $arg );
+        }
+        elsif ( ref $arg eq 'HASH' ) {
+            return $self->clone( bson_codec => $self->bson_codec->clone(%$arg) );
+        }
+    }
+    elsif ( @args % 2 == 0 ) {
+        return $self->clone( bson_codec => $self->bson_codec->clone(@args) );
+    }
+
+    # fallthrough is argument error
+    MongoDB::UsageError->throw(
+        "argument to with_codec must be new codec, hashref or key/value pairs" );
+}
+
 =method insert_one
 
     $res = $coll->insert_one( $document );

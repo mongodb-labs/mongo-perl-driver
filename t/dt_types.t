@@ -44,9 +44,7 @@ my $now = DateTime->now;
 }
 
 {
-    my $coll = $base_coll->clone(
-        { bson_codec => $base_coll->bson_codec->clone( { dt_type => undef } ) }
-    );
+    my $coll = $base_coll->with_codec( dt_type => undef );
 
     $coll->insert_one( { date => $now } );
     my $date3 = $coll->find_one->{date};
@@ -57,9 +55,7 @@ my $now = DateTime->now;
 
 
 {
-    my $coll = $base_coll->clone(
-        { bson_codec => $base_coll->bson_codec->clone( { dt_type => "DateTime::Tiny" } ) }
-    );
+    my $coll = $base_coll->with_codec( dt_type => "DateTime::Tiny" );
 
     $coll->insert_one( { date => $now } );
     my $date2 = $coll->find_one->{date};
@@ -69,9 +65,7 @@ my $now = DateTime->now;
 }
 
 {
-    my $coll = $base_coll->clone(
-        { bson_codec => $base_coll->bson_codec->clone( { dt_type => "DateTime::Bad" } ) }
-    );
+    my $coll = $base_coll->with_codec( dt_type => "DateTime::Bad" );
 
     $coll->insert_one( { date => $now } );
     like( exception { 
@@ -100,9 +94,7 @@ my $now = DateTime->now;
 
 
 {
-    my $coll = $base_coll->clone(
-        { bson_codec => $base_coll->bson_codec->clone( { dt_type => "DateTime::Tiny" } ) }
-    );
+    my $coll = $base_coll->with_codec( dt_type => "DateTime::Tiny" );
 
     my $dtt_now = DateTime::Tiny->now;
     $coll->insert_one( { date => $dtt_now } );
