@@ -88,8 +88,14 @@ static SV * call_sv_va (SV *func, int num, ...);
  * Other functions are utility functions used during encoding.
  */
 
-static void hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack);
-static void ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack);
+static void _hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack, bool subdoc);
+static void _ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack, bool subdoc);
+
+#define hvdoc_to_bson(b,d,o,s) _hv_to_bson((b),(d),(o),(s),0)
+#define hv_to_bson(b,d,o,s) _hv_to_bson((b),(d),(o),(s),1)
+#define ixhashdoc_to_bson(b,d,o,s) _ixhash_to_bson((b),(d),(o),(s),0)
+#define ixhash_to_bson(b,d,o,s) _ixhash_to_bson((b),(d),(o),(s),1)
+
 static void avdoc_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack);
 
 static void sv_to_bson_elem (bson_t * bson, const char *key, SV *sv, HV *opts, stackette *stack);
@@ -313,11 +319,11 @@ perl_mongo_sv_to_bson (bson_t * bson, SV *sv, HV *opts) {
 
   switch (SvTYPE (SvRV (sv))) {
   case SVt_PVHV:
-    hv_to_bson (bson, sv, opts, EMPTY_STACK);
+    hvdoc_to_bson (bson, sv, opts, EMPTY_STACK);
     break;
   case SVt_PVAV: {
     if (sv_isa(sv, "Tie::IxHash")) {
-      ixhash_to_bson(bson, sv, opts, EMPTY_STACK);
+      ixhashdoc_to_bson(bson, sv, opts, EMPTY_STACK);
     }
     else {
       avdoc_to_bson(bson, sv, opts, EMPTY_STACK);
@@ -331,7 +337,7 @@ perl_mongo_sv_to_bson (bson_t * bson, SV *sv, HV *opts) {
 }
 
 static void
-hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
+_hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack, bool subdoc) {
   HE *he;
   HV *hv;
   const char *first_key;
@@ -341,7 +347,9 @@ hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
     croak("circular ref");
   }
 
-  first_key = maybe_append_first_key(bson, opts, stack);
+  if ( ! subdoc ) {
+    first_key = maybe_append_first_key(bson, opts, stack);
+  }
 
   (void)hv_iterinit (hv);
   while ((he = hv_iternext (hv))) {
@@ -422,7 +430,7 @@ avdoc_to_bson (bson_t * bson, SV *sv, HV *opts, stackette *stack) {
 }
 
 static void
-ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
+_ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack, bool subdoc) {
   int i;
   SV **keys_sv, **values_sv;
   AV *array, *keys, *values;
@@ -447,7 +455,9 @@ ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack) {
   values_sv = av_fetch(array, 2, 0);
   values = (AV*)SvRV(*values_sv);
 
-  first_key = maybe_append_first_key(bson, opts, stack);
+  if ( ! subdoc ) {
+    first_key = maybe_append_first_key(bson, opts, stack);
+  }
 
   for (i=0; i<=av_len(keys); i++) {
     SV **k, **v;
