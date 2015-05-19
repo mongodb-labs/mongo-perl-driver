@@ -244,10 +244,7 @@ my @encode_overrides =
 my $encode_one_args;
 
 sub encode_one {
-    $encode_one_args ||= compile( Object,
-        IxHash | HashRef | ArrayRef | InstanceOf ["MongoDB::BSON::Raw"],
-        Optional [HashRef]
-    );
+    $encode_one_args ||= compile( Object, Any, Optional [HashRef]);
     my ( $self, $document, $options ) = $encode_one_args->(@_);
 
     for my $k (@encode_overrides) {
