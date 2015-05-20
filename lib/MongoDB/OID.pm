@@ -25,10 +25,6 @@ use Moose;
 use MongoDB;
 use namespace::clean -except => 'meta';
 
-=head1 NAME
-
-MongoDB::OID - A Mongo ObjectId
-
 =head1 SYNOPSIS
 
 If no C<_id> field is provided when a document is inserted into the database, an 
@@ -53,10 +49,6 @@ constructor.  For example:
 Now C<$id1>, C<$id2>, C<$id3> and C<$id4> will have the same value.
 
 OID generation is thread safe.
-
-=head1 SEE ALSO
-
-Core documentation on object ids: L<http://dochub.mongodb.org/core/objectids>.
 
 =head1 ATTRIBUTES
 
@@ -160,6 +152,7 @@ __PACKAGE__->meta->make_immutable;
 
 1;
 
-=head1 AUTHOR
+=head1 SEE ALSO
 
-  Kristina Chodorow <kristina@mongodb.org>
+Core documentation on object ids: L<http://dochub.mongodb.org/core/objectids>.
+

@@ -28,10 +28,6 @@ use Digest::MD5;
 use Moose;
 use namespace::clean -except => 'meta';
 
-=head1 NAME
-
-MongoDB::GridFS - A file storage utility
-
 =head1 SYNOPSIS
 
     use MongoDB::GridFS;
@@ -45,10 +41,6 @@ There are two interfaces for GridFS: a file-system/collection-like interface
 (get, put, delete).  Their functionality is the almost identical (get, put and
 delete are always safe ops, insert, remove, and find_one are optionally safe),
 using one over the other is a matter of preference.
-
-=head1 SEE ALSO
-
-Core documentation on GridFS: L<http://dochub.mongodb.org/core/gridfs>.
 
 =head1 ATTRIBUTES
 
@@ -414,6 +406,7 @@ __PACKAGE__->meta->make_immutable;
 
 1;
 
-=head1 AUTHOR
+=head1 SEE ALSO
 
-  Kristina Chodorow <kristina@mongodb.org>
+Core documentation on GridFS: L<http://dochub.mongodb.org/core/gridfs>.
+

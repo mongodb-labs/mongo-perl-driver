@@ -30,10 +30,6 @@ use Tie::IxHash;
 use Try::Tiny;
 use namespace::clean -except => 'meta';
 
-=head1 NAME
-
-MongoDB::Cursor - A cursor/iterator for Mongo query results
-
 =head1 SYNOPSIS
 
     while (my $object = $cursor->next) {
@@ -47,10 +43,6 @@ MongoDB::Cursor - A cursor/iterator for Mongo query results
 Cursors are cloned in threads, but not reset.  Iterating the same cursor from
 multiple threads will give unpredictable results.  Only iterate from a single
 thread.
-
-=head1 SEE ALSO
-
-Core documentation on cursors: L<http://dochub.mongodb.org/core/cursors>.
 
 =cut
 
@@ -738,6 +730,7 @@ __PACKAGE__->meta->make_immutable (inline_destructor => 0);
 
 1;
 
-=head1 AUTHOR
+=head1 SEE ALSO
 
-  Kristina Chodorow <kristina@mongodb.org>
+Core documentation on cursors: L<http://dochub.mongodb.org/core/cursors>.
+

@@ -27,10 +27,6 @@ use IO::File;
 use Moose;
 use namespace::clean -except => 'meta';
 
-=head1 NAME
-
-MongoDB::GridFS::File - A Mongo GridFS file
-
 =head1 SYNOPSIS
 
     use MongoDB::GridFS::File;
@@ -163,6 +159,3 @@ __PACKAGE__->meta->make_immutable;
 
 1;
 
-=head1 AUTHOR
-
-  Kristina Chodorow <kristina@mongodb.org>
