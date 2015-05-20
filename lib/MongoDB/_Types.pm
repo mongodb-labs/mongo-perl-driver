@@ -180,7 +180,7 @@ coerce ReadPreference, from Str,
   via { require MongoDB::ReadPreference; MongoDB::ReadPreference->new( mode => $_ ) };
 
 coerce ReadPreference, from ArrayRef,
-  via { MongoDB::ReadPreference->new( mode => $_->[0], tag_sets => $_->[1] ) };
+  via { require MongoDB::ReadPreference; MongoDB::ReadPreference->new( mode => $_->[0], tag_sets => $_->[1] ) };
 
 coerce WriteConcern, from HashRef,
   via { require MongoDB::WriteConcern; MongoDB::WriteConcern->new($_) };
