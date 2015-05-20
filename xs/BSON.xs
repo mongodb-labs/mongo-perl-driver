@@ -36,6 +36,7 @@ _decode_bson(msg, options)
     PPCODE:
         data = SvPV_nolen(msg);
         length = SvCUR(msg);
+        opts = NULL;
 
         if ( options ) {
             if ( SvROK(options) && SvTYPE(SvRV(options)) == SVt_PVHV ) {
@@ -62,6 +63,7 @@ _encode_bson(doc, options)
         bson_t * bson;
         HV *opts;
     PPCODE:
+        opts = NULL;
         bson = bson_new();
         if ( options ) {
             if ( SvROK(options) && SvTYPE(SvRV(options)) == SVt_PVHV ) {

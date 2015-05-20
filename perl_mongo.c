@@ -356,7 +356,7 @@ static void
 _hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack, bool subdoc) {
   HE *he;
   HV *hv;
-  const char *first_key;
+  const char *first_key = NULL;
 
   hv = (HV*)SvRV(sv);
   if (!(stack = check_circular_ref(hv, stack))) {
@@ -413,7 +413,7 @@ _hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack, bool subdoc) {
 static void
 avdoc_to_bson (bson_t * bson, SV *sv, HV *opts, stackette *stack) {
     I32 i;
-    const char *first_key;
+    const char *first_key = NULL;
     AV *av = (AV *)SvRV (sv);
 
     if ((av_len (av) % 2) == 0) {
@@ -450,7 +450,7 @@ _ixhash_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack, bool subdoc) 
   int i;
   SV **keys_sv, **values_sv;
   AV *array, *keys, *values;
-  const char *first_key;
+  const char *first_key = NULL;
 
   /*
    * a Tie::IxHash is of the form:
