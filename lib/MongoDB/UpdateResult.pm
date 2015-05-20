@@ -53,12 +53,20 @@ The number of documents that were modified.  Note: this is only available
 from MongoDB version 2.6 or later.  It will return C<undef> from earlier
 servers.
 
+You can call C<has_modified_count> to find out if this attribute is
+defined or not.
+
 =cut
 
 has modified_count => (
     is      => 'ro',
     isa     => Maybe[Num],
 );
+
+sub has_modified_count {
+    my ($self) = @_;
+    return defined( $self->modified_count );
+}
 
 =attr upserted_id
 

@@ -242,6 +242,13 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             "result object correct"
         ) or diag explain $result;
 
+        if ( $server_does_bulk ) {
+            ok( $result->has_modified_count, "newer server has_modified_count" );
+        }
+        else {
+            ok( ! $result->has_modified_count, "older server has_modified_count" );
+        }
+
         # check expected values
         $_->{x} = 3 for @docs;
         cmp_deeply( [ $coll->find( {} )->all ], \@docs, "all documents updated" );

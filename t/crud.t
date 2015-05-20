@@ -209,6 +209,10 @@ subtest "replace_one" => sub {
         ( $server_version >= v2.6.0 ? 0 : undef ),
         "modified count correct based on server version"
     );
+
+    ok( $server_version >= 2.6.0 ? $res->has_modified_count : !$res->has_modified_count,
+        "has_modified_count correct" );
+
     isa_ok( $res->upserted_id, "MongoDB::OID", "got upserted id" );
     is( $coll->count( {} ), 1, "one doc in database" );
     my $got = $coll->find_one( { _id => $res->upserted_id } );

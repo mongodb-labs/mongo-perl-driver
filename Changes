@@ -2,6 +2,12 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - PERL-486 Added 'has_modified_count' method to MongoDB::UpdateResult and
+    MongoDB::BulkWriteResult to ease detection of when that attributes is
+    supported by a server or not.
+
   [Changes]
 
   - PERL-488 MongoDB::WriteConcern method 'is_safe' renamed to

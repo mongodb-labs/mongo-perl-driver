@@ -87,6 +87,11 @@ has modified_count => (
     default => undef,
 );
 
+sub has_modified_count {
+    my ($self) = @_;
+    return defined( $self->modified_count );
+}
+
 has op_count => (
     is      => 'ro',
     isa     => Num,
@@ -340,6 +345,9 @@ not actually modified as a result of the update.
 This field is not available from legacy servers before version 2.6.
 If results are seen from a legacy server (or from a mongos proxying
 for a legacy server) this attribute will be C<undef>.
+
+You can call C<has_modified_count> to find out if this attribute is
+defined or not.
 
 =attr upserted
 
