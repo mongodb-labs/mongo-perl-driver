@@ -348,10 +348,6 @@ constructs the L<MongoDB::BSON> codec.  It has been changed to a read-only
 attribute so that any code that relied on changing C<dt_type> after
 constructing a C<MongoDB::MongoClient> object will fail.
 
-=head3 Introduction of MongoDB::BSON::DateTime
-
-XXX talk about this
-
 =head1 DEPRECATIONS
 
 Deprecated options and methods may be removed in a future release.
