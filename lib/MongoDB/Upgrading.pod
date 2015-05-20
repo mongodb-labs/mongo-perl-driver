@@ -55,9 +55,8 @@ sometimes deemed necessary to achieve certain goals:
 * compatibility – some new features or changes in the MongoDB server, like
   the client authentication model, no longer fit the old driver design.
 * portability – the v0 driver had a large dependency tree and required a
-  compiler and various libraries; the v1 driver shrinks the dependency tree
-  substantially and uses widely-used CPAN modules in place of custom C code
-  when possible.
+  compiler and various libraries; the v1 driver removes some dependencies
+  and uses widely-used CPAN modules in place of custom C code when possible.
 * round-trippable data – the v0 BSON implementation could easily lead to
   data corruption when round-tripping documents; the v1 driver makes
   round-trippability a top priority, even if this means removing or
@@ -85,7 +84,7 @@ Attributes are changing to be immutable to prevent global behavior changes.
 (E.g. changing an attribute value in some part of the code changes it for
 all parts of the code.)
 
-As of Alpha 2, the following attributes are now immutable:
+As of Alpha 6, the following attributes are now immutable:
 
 =for :list
 * C<ssl>

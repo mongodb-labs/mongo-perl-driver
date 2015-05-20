@@ -101,7 +101,7 @@ read_documents
 
 =begin :prelude
 
-This is the Alpha 4 release for v1.0.0.0.
+This is the Alpha 6 release for v1.0.0.0.
 
 =head1 ALPHA RELEASE NOTICE AND ROADMAP
 
@@ -113,28 +113,34 @@ important and will be delivered to a great extent, it will not be guaranteed.
 Using the v0.999.998.x series means that you understand that your code may break
 due to changes in the driver between now and the v1.0.0.0 stable release.
 
-This Alpha 4 release includes these major changes:
+This Alpha 6 release includes these major changes:
 
 =over
 
 =item *
 
-L<MongoDB::Collection> now offers a new CRUD API.  All MongoDB drivers are
-converging on a common CRUD API, with similar names, signatures and options.
-The legacy methods are now deprecated.
+When inserting a document without an '_id' field, the _id will
+be added during BSON encoding, but the original document will not be
+changed.  (This was inconsistent between regular and bulk insertion in
+the v0.x series and during previous alpha releases.)
 
 =item *
 
-L<MongoDB::GridFS> now respect the default read preference and write concern of
-the L<MongoDB::Database> object (possibly inherited from
-L<MongoDB::MongoClient>).  This means that all GridFS operations now default to
-B<acknowledged> mode, just like collection operations have been doing since
-v0.502.0 in 2012.
+The L<MongoDB::MongoClient> class gained a C<bson_codec> attribute and
+L<MongoDB::BSON> has become a proper class.  All BSON encoding/decoding options
+are set on that object (possibly at C<MongoDB::MongoClient> construction time.
+It is passed down to L<MongoDB::Database> and L<MongoDB::Collection>.
 
 =item *
 
-All collection and database operations throw L<MongoDB::Error> exceptions if
-an error condition occurs.
+The $MongoDB::BSON global variable have been removed or deprecated.  The
+C<inflate_regexps> and C<inflate_dbrefs> options on L<MongoDB::MongoClient>
+have been removed.
+
+=item *
+
+Removed substantial amounts of unused C code and reorganized the remaining
+parts for clarity.  In doing so, several memory leaks were fixed.
 
 =back
 
@@ -178,8 +184,8 @@ Moose.  This will significantly reduce the size of the total dependency tree.
 
 =item *
 
-BSON encoding will be extracted to a separate module, with both pure-Perl and C
-variants available.
+BSON encoding will be extracted to a separate distribution, with both pure-Perl
+and C variants available.
 
 =item *
 
