@@ -17,6 +17,10 @@
 
   - PERL-524 updated legacy author emails in docs and metadata.
 
+  [Removals]
+
+  - PERL-467 Removed outdated MongoDB::Indexing document.
+
 v0.999.998.6 2015-05-20 14:28:18-04:00 America/New_York (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]
