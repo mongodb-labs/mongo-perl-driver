@@ -203,4 +203,12 @@ subtest "options" => sub {
     is( $client->_uri->uri, "mongodb://localhost:27017", "localhost:27017 handled correctly" );
 }
 
+# bson_codec
+
+{
+    my $client = build_client( bson_codec => { prefer_numeric => 1 } );
+    isa_ok( $client->bson_codec, 'MongoDB::BSON' );
+    ok( $client->bson_codec->prefer_numeric, "bson_client coerced from hashref" );
+}
+
 done_testing;

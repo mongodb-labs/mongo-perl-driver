@@ -151,6 +151,9 @@ class_type WriteConcern, { class => 'MongoDB::WriteConcern' };
 
 coerce ArrayOfHashRef, from HashRef, via { [$_] };
 
+coerce BSONCodec, from HashRef,
+  via { require MongoDB::BSON; MongoDB::BSON->new($_) };
+
 coerce Booleanpm, from Any, via { boolean($_) };
 
 coerce DBRefColl, from MongoDBCollection, via { $_->name };

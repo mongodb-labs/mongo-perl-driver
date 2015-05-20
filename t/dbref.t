@@ -119,7 +119,7 @@ my $testdb = get_test_db($conn);
 # test changing dbref_callback on bson_codec
 {
     my $coll =
-      $testdb->get_collection( 'test_coll', { bson_codec => MongoDB::BSON->new } );
+      $testdb->get_collection( 'test_coll', { bson_codec => {} } );
 
     my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
 

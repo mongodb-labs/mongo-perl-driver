@@ -475,17 +475,18 @@ has auth_mechanism_properties => (
 
 =attr bson_codec
 
-An object that provides the C<encode_one> and C<decode_one> methods, such
-as from L<MongoDB::BSON>.
+An object that provides the C<encode_one> and C<decode_one> methods, such as
+from L<MongoDB::BSON>.  It may be initialized with a hash reference that will
+be coerced into a new MongoDB::BSON object.
 
-If not provided, one will be generated from deprecated configuration
-options.
+If not provided, one will be generated from deprecated configuration options.
 
 =cut
 
 has bson_codec => (
     is      => 'ro',
     isa     => BSONCodec,
+    coerce  => 1,
     lazy    => 1,
     builder => '_build_bson_codec',
     writer  => '_set_bson_codec',

@@ -111,13 +111,16 @@ has write_concern => (
 =attr bson_codec
 
 An object that provides the C<encode_one> and C<decode_one> methods, such
-as from L<MongoDB::BSON>.
+as from L<MongoDB::BSON>.  It may be initialized with a hash reference that
+will be coerced into a new MongoDB::BSON object.  By default it will be
+inherited from a L<MongoDB::Database> object.
 
 =cut
 
 has bson_codec => (
     is       => 'ro',
     isa      => BSONCodec,
+    coerce   => 1,
     required => 1,
 );
 

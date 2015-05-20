@@ -51,6 +51,10 @@ subtest 'get_database' => sub {
     ok( $db = $conn->get_database( $db_name, { write_concern => { w => 3 } } ),
         "get_database(NAME, OPTIONS)" );
     is( $db->write_concern->w, 3, "DB-level write concern coerces" );
+
+    ok( $db = $conn->get_database( $db_name, { bson_codec => { op_char => '-' } } ),
+        "get_database(NAME, OPTIONS)" );
+    is( $db->bson_codec->op_char, '-', "DB-level bson_codec coerces" );
 };
 
 subtest 'run_command' => sub {
