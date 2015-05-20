@@ -238,10 +238,14 @@ sub with_codec {
 =method insert_one
 
     $res = $coll->insert_one( $document );
+    $id = $res->inserted_id;
 
 Inserts a single L<document|/Document> into the database and returns a
-L<MongoDB::InsertOneResult> object.If no C<_id> field is present, one
-will be added to the original document.
+L<MongoDB::InsertOneResult> object.
+
+If no C<_id> field is present, one will be added when a document is
+serialized for the database without modifying the original document.
+The generated C<_id> may be retrieved from the result object.
 
 =cut
 
@@ -270,8 +274,9 @@ Inserts each of the L<documents|/Documents> in an array reference into the
 database and returns a L<MongoDB::InsertManyResult>.  This is syntactic sugar
 for doing a L<MongoDB::BulkWrite> operation.
 
-If no C<_id> field is present in a document, one will be added to the original
-document.
+If no C<_id> field is present, one will be added when a document is
+serialized for the database without modifying the original document.
+The generated C<_id> may be retrieved from the result object.
 
 An optional hash reference of options may be provided.  The only valid option
 is C<ordered>, which defaults to true.  When true, the server will halt

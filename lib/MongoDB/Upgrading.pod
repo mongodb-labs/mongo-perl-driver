@@ -246,14 +246,10 @@ authentication options will only be allowed as constructor arguments.
 
 =head2 Bulk insertion
 
-Insertion via the bulk API will insert an C<_id> into the original
+Insertion via the bulk API will B<NOT> insert an C<_id> into the original
 document if one does not exist.  Previous documentation was not specific
-whether this was the case or if the C<_id> was added to a clone.
-
-As the regular insertion methods from L<MongoDB::Collection> modified the
-original, that was adopted for the Bulk API as well.
-
-All methods are now specifically documented as modifying the original.
+whether this was the case or if the C<_id> was added only during BSON
+encoding.
 
 =head2 Bulk write results
 
