@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Documentation]
+
+  - PERL-525 updated legacy author emails in docs and metadata
+
 v0.708.1.0 2015-04-29 16:51:52-04:00 America/New_York
 
   [Bug fixes]
