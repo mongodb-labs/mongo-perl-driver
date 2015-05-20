@@ -336,7 +336,7 @@ sub insert {
 
     my %copy = %{$metadata};
     # compare the md5 hashes
-    if ($files->write_concern->is_safe) {
+    if ($files->write_concern->is_acknowledged) {
         # get an md5 hash for the file. set the retry flag to 'true' incase the 
         # database, collection, or indexes are missing. That way we can recreate them 
         # retry the md5 calc.
@@ -413,7 +413,7 @@ sub _dynamic_write_concern {
         return $wc;
     }
     elsif ( $opts->{safe} ) {
-        return $wc->is_safe ? $wc : MongoDB::WriteConcern->new( w => 1 );
+        return $wc->is_acknowledged ? $wc : MongoDB::WriteConcern->new( w => 1 );
     }
     else {
         return MongoDB::WriteConcern->new( w => 0 );

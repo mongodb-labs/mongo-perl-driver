@@ -304,7 +304,7 @@ sub insert_many {
     $bulk->insert($_) for @$documents;
     my $res = $bulk->execute( $wc );
     return MongoDB::InsertManyResult->new(
-        acknowledged => $wc->is_safe,
+        acknowledged => $wc->is_acknowledged,
         inserted     => $res->inserted,
     );
 }
@@ -1026,7 +1026,7 @@ sub ensure_index {
 
     # always use safe write concern for index creation
     my $wc =
-        $self->write_concern->is_safe
+        $self->write_concern->is_acknowledged
       ? $self->write_concern
       : MongoDB::WriteConcern->new;
 

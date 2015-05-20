@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Changes]
+
+  - PERL-488 MongoDB::WriteConcern method 'is_safe' renamed to
+    'is_acknowledged'.
+
 v0.999.998.6 2015-05-20 14:28:18-04:00 America/New_York (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]

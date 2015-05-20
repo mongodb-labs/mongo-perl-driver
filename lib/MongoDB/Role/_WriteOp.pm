@@ -49,7 +49,7 @@ has write_concern => (
 sub _send_legacy_op_with_gle {
     my ( $self, $link, $op_bson, $op_doc, $result_class ) = @_;
 
-    if ( $self->write_concern->is_safe ) {
+    if ( $self->write_concern->is_acknowledged ) {
         my @write_concern = %{ $self->write_concern->as_struct };
         my $gle = $self->bson_codec->encode_one( [ getlasterror => 1, @write_concern ] );
         my ( $gle_bson, $request_id ) =
@@ -132,7 +132,7 @@ sub _send_write_command {
 
     my $res = $self->_send_command( $link, $cmd );
 
-    if ( $self->write_concern->is_safe ) {
+    if ( $self->write_concern->is_acknowledged ) {
         # errors in the command itself get handled as normal CommandResult
         if ( !$res->{ok} && ( $res->{errmsg} || $res->{'$err'} ) ) {
             return MongoDB::CommandResult->new(

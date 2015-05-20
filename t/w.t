@@ -29,19 +29,19 @@ plan tests => 6;
 
 
 $conn->w( -1 );
-ok( ! $conn->_write_concern->is_safe, "w:-1" );
+ok( ! $conn->_write_concern->is_acknowledged, "w:-1" );
 
 $conn->w( 0 );
-ok( ! $conn->_write_concern->is_safe, "w:0" );
+ok( ! $conn->_write_concern->is_acknowledged, "w:0" );
 
 $conn->w( 1 );
-ok( $conn->_write_concern->is_safe, "w:1" );
+ok( $conn->_write_concern->is_acknowledged, "w:1" );
 
 $conn->w( 'all' );
-ok( $conn->_write_concern->is_safe, "w:all" );
+ok( $conn->_write_concern->is_acknowledged, "w:all" );
 
 $conn->w( 'majority' );
-ok( $conn->_write_concern->is_safe, "w:majority" );
+ok( $conn->_write_concern->is_acknowledged, "w:majority" );
 
 $conn->w( 'anything' );
-ok( $conn->_write_concern->is_safe, "w:anything" );
+ok( $conn->_write_concern->is_acknowledged, "w:anything" );

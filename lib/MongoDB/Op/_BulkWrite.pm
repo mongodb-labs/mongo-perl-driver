@@ -280,7 +280,7 @@ sub _execute_legacy_batch {
     # if write concern is not safe, we have to proxy with a safe one so that
     # we can interrupt ordered bulks, even while ignoring the actual error
     my $wc  = $self->write_concern;
-    my $w_0 = !$wc->is_safe;
+    my $w_0 = !$wc->is_acknowledged;
     if ($w_0) {
         my $wcs = $wc->as_struct;
         $wcs->{w} = 1;

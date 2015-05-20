@@ -72,12 +72,12 @@ has j => (
     predicate => '_has_j',
 );
 
-has _is_safe => (
+has _is_acknowledged => (
     is      => 'ro',
     isa     => Bool,
     lazy    => 1,
-    reader  => 'is_safe',
-    builder => '_build_is_safe',
+    reader  => 'is_acknowledged',
+    builder => '_build_is_acknowledged',
 );
 
 has _as_struct => (
@@ -88,9 +88,9 @@ has _as_struct => (
     builder => '_build_as_struct',
 );
 
-sub _build_is_safe {
+sub _build_is_acknowledged {
     my ($self) = @_;
-    return !!( $self->j || $self->_w_is_safe );
+    return !!( $self->j || $self->_w_is_acknowledged );
 }
 
 sub _build_as_struct {
@@ -104,13 +104,13 @@ sub _build_as_struct {
 
 sub BUILD {
     my ($self) = @_;
-    if ( ! $self->_w_is_safe && $self->j ) {
+    if ( ! $self->_w_is_acknowledged && $self->j ) {
         MongoDB::UsageError->throw("can't use write concern w=0 with j=" . $self->j );
     }
     return;
 }
 
-sub _w_is_safe {
+sub _w_is_acknowledged {
     my ($self) = @_;
     return $self->_has_w
       && ( looks_like_number( $self->w ) ? $self->w > 0 : length $self->w );
