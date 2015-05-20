@@ -17,6 +17,9 @@ sub mongo {
     my $ccflags = $self->makemaker_args->{CCFLAGS} || $Config{ccflags};
     $ccflags = "" unless defined $ccflags;
 
+    $ccflags .= " -Wall -Wextra -Wuninitialized -Wdeclaration-after-statement"
+        if $ENV{AUTHOR_TESTING} || $ENV{AUTOMATED_TESTING};
+
     # openbsd needs threaded perl *or* single-threaded but with libpthread, so
     # we check specifically for that
     if ($^O eq 'openbsd') {
