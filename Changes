@@ -4,13 +4,19 @@
 
   [!!! Incompatible Changes !!!]
 
-  - The $MongoDB::BSON::use_binary global variable has been removed. Binary
-    data always decodes to MongoDB::BSON::Binary objects (which now overload
-    stringification).  This ensures that binary data will correctly round-trip.
+  - PERL-505 When inserting a document without an '_id' field, the _id will
+    be added during BSON encoding, but the original document will not be
+    changed.  (This was inconsistent between regular and bulk insertion in
+    the v0.x series and during previous alpha releases.)
 
-  - The $MongoDB::BSON::utf8_flag_on global varialbe has been removed. BSON
-    strings will always be decoded to Perl character strings.  This ensures
-    that string data will correctly round-trip.
+  - PERL-519 The $MongoDB::BSON::use_binary global variable has been
+    removed. Binary data always decodes to MongoDB::BSON::Binary objects
+    (which now overload stringification).  This ensures that binary data
+    will correctly round-trip.
+
+  - PERL-520 The $MongoDB::BSON::utf8_flag_on global varialbe has been
+    removed. BSON strings will always be decoded to Perl character strings.
+    This ensures that string data will correctly round-trip.
 
   - The $MongoDB::BSON::looks_like_number and $MongoDB::BSON::char global
     variables now ONLY have an effect at MongoDB::MongoClient construction.
@@ -18,9 +24,10 @@
     well and should not be used in new code.  Instead, the enhanced
     MongoDB::BSON codec class has attributes that encapsulate these behaviors.
 
-  - The 'inflate_regexps' MongoDB::MongoClient option has been removed.  BSON
-    regular expressions always decode to MongoDB::BSON::Regexp objects. This
-    ensure safety and consistency with other drivers. (PERL-221)
+  - PERL-221 The 'inflate_regexps' MongoDB::MongoClient option has been
+    removed.  BSON regular expressions always decode to
+    MongoDB::BSON::Regexp objects. This ensure safety and consistency with
+    other drivers.
 
   - The 'inflate_dbrefs' MongoDB::MongoClient option has been removed.
     By default, dbrefs are always inflated to MongoDB::DBRef objects.
@@ -30,11 +37,6 @@
     constructs a MongoDB::BSON codec object and is read-only so that any
     code that relied on changing it after client construction will fail
     rather that being silently ignored.
-
-  - When inserting a document without an '_id' field, the _id will
-    be added during BSON encoding, but the original document will not
-    be changed.  (This was inconsistent between regular and bulk insertion
-    in the v0.x series and during previous alpha releases.)
 
   [*** Deprecations ***]
 
@@ -49,12 +51,18 @@
 
   [Changes]
 
-  - The MongoDB::BSON package is now a full class, implementing
+  - PERL-331 The MongoDB::BSON package is now a full class, implementing
     a BSON encoder-decoder (codec).  It can be supplied as an attribute
     to MongoDB::MongoClient, MongoDB::Database and MongoDB::Collection
     objects.
 
   [Fixes]
+
+  - PERL-531 Bulk update/replace documents would not validate properly when
+    $MongoDB::BSON::char was not '$'.  While that functionality has moved
+    to the MongoDB::BSON codec instead of the global variable, all
+    update/replace documents (bulk and CRUD API) are now validated after
+    key munging.
 
   - Fixed a number of XS memory leaks from non-mortalized variables
     during BSON encoding.
@@ -63,10 +71,10 @@
 
   [~ Internal changes ~]
 
+  - PERL-325 Updated vendored ppport.h to version 3.31
+
   - Refactored and reorganized perl-mongo.h and perl_mongo.c.  Removed
     unused functions and macros.
-
-  - Updated vendored ppport.h to version 3.31
 
   - Removed unused vendored libyajl files.
 
@@ -1130,4 +1138,4 @@ v0.703.3  2014-04-01 10:32:49-04:00 America/New_York (TRIAL RELEASE)
 0.01  06 May 2009
   - Initial release.
 
-# vim: ts=2 sts=2 sw=2 et:
+# vim: set ts=2 sts=2 sw=2 et tw=75:
