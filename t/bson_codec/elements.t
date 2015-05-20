@@ -16,7 +16,7 @@
 use strict;
 use warnings;
 use Test::More 0.96;
-use Test::Deep;
+use Test::Deep 0.086; # num() function
 use Test::Fatal;
 
 use DateTime;
@@ -82,7 +82,7 @@ my @cases = (
         label  => "BSON double",
         input  => { a => 1.23 },
         bson   => _doc( BSON_DOUBLE . _ename("a") . _double(1.23) ),
-        output => { a => 1.23 },
+        output => { a => num(1.23,1e-6) },
     },
     {
         label  => "BSON string",

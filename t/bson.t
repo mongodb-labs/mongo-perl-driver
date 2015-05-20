@@ -76,7 +76,7 @@ subtest "types" => sub {
 
     is($obj->{'n'}, undef);
     is($obj->{'l'}, 234234124);
-    is($obj->{'d'}, 23.23451452);
+    ok( abs( $obj->{'d'} - 23.23451452) < 1e-6 );
     is($obj->{'b'}, true);
     is($obj->{'a'}->{'foo'}, 'bar');
     is($obj->{'a'}->{'n'}, undef);

@@ -69,6 +69,8 @@
 
   - Fixed t/gridfs to work around a bug in MongoDB 3.1.2.
 
+  - Fixed BSON double tests on Perls with long-doubles enabled
+
   [~ Internal changes ~]
 
   - PERL-325 Updated vendored ppport.h to version 3.31
