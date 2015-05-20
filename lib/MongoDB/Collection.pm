@@ -849,7 +849,7 @@ sub count {
     # string is OK so we check ref, not just exists
     __ixhash($options, 'hint') if ref $options->{hint};
 
-    my $res = $self->database->run_command(
+    my $res = $self->_run_command(
         Tie::IxHash->new( count => $self->name, query => $filter, %$options ),
         $self->read_preference );
 
@@ -980,6 +980,9 @@ sub rename {
 
     my ($db, @collection_bits) = split(/\./, $fullname);
     my $collection = join('.', @collection_bits);
+
+    # this does NOT use our private _run_command method as it needs to run
+    # against a totally different database
     my $obj = $database->run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
 
     return $conn->get_database( $db )->get_collection( $collectionname );
@@ -1101,7 +1104,7 @@ about the collection.
 sub validate {
     my ($self, $scan_data) = @_;
     $scan_data = 0 unless defined $scan_data;
-    my $obj = $self->database->run_command({ validate => $self->name });
+    my $obj = $self->_run_command({ validate => $self->name });
 }
 
 
@@ -1129,7 +1132,7 @@ Use C<MongoDB::Collection::get_indexes> to find the index name.
 
 sub drop_index {
     my ($self, $index_name) = @_;
-    return $self->database->run_command([
+    return $self->_run_command([
         dropIndexes => $self->name,
         index => $index_name,
     ]);
@@ -1185,7 +1188,7 @@ Deletes a collection as well as all of its indexes.
 sub drop {
     my ($self) = @_;
     try {
-        $self->database->run_command({ drop => $self->name });
+        $self->_run_command({ drop => $self->name });
     }
     catch {
         die $_ unless /ns not found/;
@@ -1411,12 +1414,33 @@ sub _find_one_and_update_or_replace {
     return $self->_try_find_and_modify( \@command );
 }
 
+# we have a private _run_command rather than using the 'database' attribute
+# so that we're using our BSON codec and not the source database one
+sub _run_command {
+    my ( $self, $command, $read_pref ) = @_;
+
+    if ( $read_pref && ref($read_pref) eq 'HASH' ) {
+        $read_pref = MongoDB::ReadPreference->new($read_pref);
+    }
+
+    my $op = MongoDB::Op::_Command->new(
+        db_name         => $self->database->name,
+        query           => $command,
+        bson_codec      => $self->bson_codec,
+        ( $read_pref ? ( read_preference => $read_pref ) : () ),
+    );
+
+    my $obj = $self->client->send_read_op($op);
+
+    return $obj->output;
+}
+
 sub _try_find_and_modify {
     my ($self, $command) = @_;
     my $result;
     # XXX this ought to use our codec
     try {
-        $result = $self->database->run_command( $command );
+        $result = $self->_run_command( $command );
     }
     catch {
         die $_ unless $_ eq 'No matching object found';
