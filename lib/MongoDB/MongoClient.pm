@@ -556,19 +556,6 @@ has find_master => (
     default => 0,
 );
 
-=attr inflate_regexps (DEPRECATED)
-
-Regular expressions are now always turned into
-L<MongoDB::BSON::Regexp> objects instead of native Perl Regexps.
-
-=cut
-
-has inflate_regexps => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 1,
-);
-
 =attr sasl (DEPRECATED)
 
 If true, the driver will set the authentication mechanism based on the
