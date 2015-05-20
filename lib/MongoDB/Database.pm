@@ -20,7 +20,7 @@ package MongoDB::Database;
 # ABSTRACT: A MongoDB Database
 
 use version;
-our $VERSION = 'v0.999.998.6';
+our $VERSION = 'v0.999.998.7'; # TRIAL
 
 use MongoDB::CommandResult;
 use MongoDB::Error;
