@@ -322,27 +322,34 @@ configuration of a default L<MongoDB::BSON> codec (if one is not
 provided).  Changing them later will B<NOT> change the behavior of the
 codec object.
 
-=head3 Regular expressions always decode to C<MongoDB::BSON::Regexp> objects
+=head3 C<MongoDB::MongoClient> option C<inflate_regexps> removed
 
 Previously, BSON regular expressions decoded to C<qr{}> references by
-default and the C<inflate_regexps> option was available to decode
-instead to L<MongoDB::BSON::Regexps>.
+default and the C<MongoDB::MongoClient> C<inflate_regexps> option was
+available to decode instead to L<MongoDB::BSON::Regexp>s.
 
 Going forward in the v1.0.0 driver, for safety and consistency with other
 drivers, BSON regular expressions B<always> decode to
 L<MongoDB::BSON::Regexp> objects.
 
-=head3 Some C<MongoDB::MongoClient> options moved to C<MongoDB::BSON>
+=head3 C<MongoDB::MongoClient> option C<inflate_dbrefs> removed
 
-The C<inflate_dbrefs> option has been deprecated and replaced with a
-C<dbref_callback> option in L<MongoDB::BSON>.  By default, the
-C<MongoDB::MongoClient> will create a L<MongoDB::BSON> codec that
-will construct L<MongoDB::DBRef> objects.
+The C<inflate_dbrefs> configuration option has been removed and replaced
+with a C<dbref_callback> option in L<MongoDB::BSON>.
 
-The C<dt_type> option now only takes effect if and when the C<MongoDB::MongoClient>
-constructs the L<MongoDB::BSON> codec.  It has been changed to a read-only
-attribute so that any code that relied on changing C<dt_type> after
-constructing a C<MongoDB::MongoClient> object will fail.
+By default, the C<MongoDB::MongoClient> will create a L<MongoDB::BSON>
+codec that will construct L<MongoDB::DBRef> objects.  This ensures that
+DBRefs properly round-trip.  (N.B. DBRefs in Perl are
+L<overly restrictive|https://jira.mongodb.org/browse/PERL-527>; this will
+be addressed after the v1.0.0 release).
+
+=head3 C<MongoDB::MongoClient> option C<dt_type> deprecated and changed to read-only
+
+The C<dt_type> option is now only takes effect if C<MongoDB::MongoClient>
+constructs a L<MongoDB::BSON> codec object.  It has been changed to a
+read-only attribute so that any code that relied on changing C<dt_type>
+after constructing a C<MongoDB::MongoClient> object will fail instead of
+being silently ignored.
 
 =head1 DEPRECATIONS
 

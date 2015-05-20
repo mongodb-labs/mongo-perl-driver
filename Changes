@@ -2,10 +2,73 @@
 
 {{ $NEXT }}
 
+  [!!! Incompatible Changes !!!]
+
+  - The $MongoDB::BSON::use_binary global variable has been removed. Binary
+    data always decodes to MongoDB::BSON::Binary objects (which now overload
+    stringification).  This ensures that binary data will correctly round-trip.
+
+  - The $MongoDB::BSON::utf8_flag_on global varialbe has been removed. BSON
+    strings will always be decoded to Perl character strings.  This ensures
+    that string data will correctly round-trip.
+
+  - The $MongoDB::BSON::looks_like_number and $MongoDB::BSON::char global
+    variables now ONLY have an effect at MongoDB::MongoClient construction.
+    Changing them later does not change BSON encoding.  Both are deprecated as
+    well and should not be used in new code.  Instead, the enhanced
+    MongoDB::BSON codec class has attributes that encapsulate these behaviors.
+
+  - The 'inflate_regexps' MongoDB::MongoClient option has been removed.  BSON
+    regular expressions always decode to MongoDB::BSON::Regexp objects. This
+    ensure safety and consistency with other drivers. (PERL-221)
+
+  - The 'inflate_dbrefs' MongoDB::MongoClient option has been removed.
+    By default, dbrefs are always inflated to MongoDB::DBRef objects.
+
+  - The 'dt_type' MongoDB::MongoClient option has been deprecated and
+    made read-only.  It now only takes effect if C<MongoDB::MongoClient>
+    constructs a MongoDB::BSON codec object and is read-only so that any
+    code that relied on changing it after client construction will fail
+    rather that being silently ignored.
+
+  - When inserting a document without an '_id' field, the _id will
+    be added during BSON encoding, but the original document will not
+    be changed.  (This was inconsistent between regular and bulk insertion
+    in the v0.x series and during previous alpha releases.)
+
+  [*** Deprecations ***]
+
+  - As mentioned above, 'dt_type', '$MongoDB::BSON::looks_like_number'
+    and '$MongoDB::BSON::char' have been deprecated in addition to their
+    other behavior changes.
+
+  [Additions]
+
+  - Added 'with_codec' method to MongoDB::Collection for easier localized
+    changes to codec attributes.
+
+  [Changes]
+
+  - The MongoDB::BSON package is now a full class, implementing
+    a BSON encoder-decoder (codec).  It can be supplied as an attribute
+    to MongoDB::MongoClient, MongoDB::Database and MongoDB::Collection
+    objects.
+
   [Fixes]
 
   - Fixed a number of XS memory leaks from non-mortalized variables
-    during BSON encoding
+    during BSON encoding.
+
+  - Fixed t/gridfs to work around a bug in MongoDB 3.1.2.
+
+  [~ Internal changes ~]
+
+  - Refactored and reorganized perl-mongo.h and perl_mongo.c.  Removed
+    unused functions and macros.
+
+  - Updated vendored ppport.h to version 3.31
+
+  - Removed unused vendored libyajl files.
 
 v0.999.998.5 2015-04-30 06:12:39-04:00 America/New_York
 
