@@ -138,6 +138,19 @@ sub list {
 
 =method create_one
 
+    $name = $indexes->create_one( [ x => 1, y => 1 ] );
+    $name = $indexes->create_one( [ z => 1 ], { unique => 1 } );
+
+This method takes an index specification document and an optional hash
+reference of index options and returns the name of the index created.  It
+will throw an exception on error.
+
+The index specification document is an ordered document (array reference or
+L<Tie::IxHash> object) with an index keys and index direction/type.
+
+See L</create_many> for important information about index specifications
+and options.
+
 =cut
 
 my $create_one_args;
@@ -145,6 +158,9 @@ my $create_one_args;
 sub create_one {
     $create_one_args ||= compile( Object, IxHash, Optional( [HashRef] ) );
     my ( $self, $keys, $opts ) = $create_one_args->(@_);
+    my ($name) =
+      $self->create_many( { keys => $keys, ( $opts ? ( options => $opts ) : () ) } );
+    return $name;
 }
 
 =method create_many
@@ -161,9 +177,9 @@ on error.
 Each index module is described by the following fields:
 
 =for :list
-* C<keys> (required) — an ordered document (array reference or
-  L<Tie::IxHash> object) with an ordered list of index keys and index
-  directions.  See below for more.
+* C<keys> (required) — an index specification as an ordered document (array
+  reference or L<Tie::IxHash> object) with index keys and index
+  directions/types.  See below for more.
 * C<options> — an optional hash reference of index options.
 
 The C<keys> document needs to be ordered.  While it can take a hash

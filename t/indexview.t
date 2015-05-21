@@ -74,6 +74,17 @@ subtest "list indexes" => sub {
     );
 };
 
+subtest "create_one" => sub {
+    $coll->drop;
+    my $name = $iv->create_one( [ x => 1 ] );
+    my $found = grep { $_->{name} eq 'x_1' } $iv->list->all;
+    ok( $found, "created one index on x" );
+
+    ok( $iv->create_one( [ y => -1 ], { unique => 1 } ), "created unique index on y" );
+    ($found) = grep { $_->{name} eq 'y_-1' } $iv->list->all;
+    ok( $found->{unique}, "saw unique property in index info for y" );
+};
+
 done_testing;
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:
