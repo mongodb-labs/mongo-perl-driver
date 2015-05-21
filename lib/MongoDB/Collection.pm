@@ -962,6 +962,16 @@ sub parallel_scan {
     return @cursors;
 }
 
+=method indexes
+
+=cut
+
+sub indexes {
+    my ($self) = @_;
+    require MongoDB::IndexView;
+    return MongoDB::IndexView->new( collection => $self );
+}
+
 =method rename
 
     $newcollection = $collection->rename("mynewcollection");
