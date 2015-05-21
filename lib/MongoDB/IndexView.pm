@@ -261,10 +261,26 @@ sub drop_one {
 
 =method drop_all
 
+    $output = $indexes->drop_all;
+
+This method drops all indexes (except the one on the C<_id> field).  It
+returns the output of the dropIndexes command (a hash reference) on success
+or throws a exception if the command fails.
+
 =cut
 
+my $drop_all_args;
+
 sub drop_all {
-    my ($self) = @_;
+    $drop_all_args ||= compile(Object);
+    my ($self) = $drop_all_args->(@_);
+
+    return $self->collection->_run_command(
+        [
+            dropIndexes => $self->_coll_name,
+            index       => '*',
+        ]
+    );
 }
 
 #--------------------------------------------------------------------------#

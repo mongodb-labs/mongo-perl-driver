@@ -100,6 +100,25 @@ subtest "drop_one" => sub {
     );
 };
 
+subtest "drop_all" => sub {
+    $coll->drop;
+    $iv->create_many( map { { keys => $_ } }[ x => 1 ], [ y => 1 ], [ z => 1 ] );
+    is_deeply(
+        [ sort map $_->{name}, $iv->list->all ],
+        [ sort qw/_id_ x_1 y_1 z_1/ ],
+        "created three indexes"
+    );
+
+    my $res = $iv->drop_all;
+    ok( $res->{ok}, "result of drop_all is a database result document" );
+    is_deeply(
+        [ sort map $_->{name}, $iv->list->all ],
+        [ qw/_id_/ ],
+        "dropped all but _id index"
+    );
+
+};
+
 done_testing;
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:
