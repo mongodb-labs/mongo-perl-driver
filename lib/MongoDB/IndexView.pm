@@ -50,6 +50,18 @@ has collection => (
 # private attributes
 #--------------------------------------------------------------------------#
 
+has _bson_codec => (
+    is      => 'ro',
+    isa     => BSONCodec,
+    lazy    => 1,
+    builder => '_build__bson_codec',
+);
+
+sub _build__bson_codec {
+    my ($self) = @_;
+    return $self->collection->bson_codec;
+}
+
 has _client => (
     is      => 'ro',
     isa     => InstanceOf( ['MongoDB::MongoClient'] ),
@@ -60,6 +72,30 @@ has _client => (
 sub _build__client {
     my ($self) = @_;
     return $self->collection->client;
+}
+
+has _coll_name => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    builder => '_build__coll_name',
+);
+
+sub _build__coll_name {
+    my ($self) = @_;
+    return $self->collection->name;
+}
+
+has _db_name => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    builder => '_build__db_name',
+);
+
+sub _build__db_name {
+    my ($self) = @_;
+    return $self->collection->database->name;
 }
 
 #--------------------------------------------------------------------------#
@@ -140,9 +176,9 @@ sub create_many {
 
     my $indexes = [ map __flatten_index_model($_), @$models ];
     my $op = MongoDB::Op::_CreateIndexes->new(
-        db_name       => $self->collection->database->name,
-        coll_name     => $self->collection->name,
-        bson_codec    => $self->collection->bson_codec,
+        db_name       => $self->_db_name,
+        coll_name     => $self->_coll_name,
+        bson_codec    => $self->_bson_codec,
         indexes       => $indexes,
         write_concern => MongoDB::WriteConcern->new,
     );
