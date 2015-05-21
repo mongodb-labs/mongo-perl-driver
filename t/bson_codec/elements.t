@@ -82,7 +82,7 @@ my @cases = (
         label  => "BSON double",
         input  => { a => 1.23 },
         bson   => _doc( BSON_DOUBLE . _ename("a") . _double(1.23) ),
-        output => { a => num(1.23,1e-6) },
+        output => { a => num( 1.23, 1e-6 ) },
     },
     {
         label  => "BSON string",
@@ -97,16 +97,16 @@ my @cases = (
         output => { _id => $oid },
     },
     {
-        label    => "BSON Regexp (qr to obj)",
-        input    => { re => qr/abcd/imsx },
-        bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'imsx' ) ),
-        output   => { re => $regexp },
+        label  => "BSON Regexp (qr to obj)",
+        input  => { re => qr/abcd/imsx },
+        bson   => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'imsx' ) ),
+        output => { re => $regexp },
     },
     {
-        label    => "BSON Regexp (obj to obj)",
-        input    => { re => $regexp },
-        bson     => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'imsx' ) ),
-        output   => { re => $regexp },
+        label  => "BSON Regexp (obj to obj)",
+        input  => { re => $regexp },
+        bson   => _doc( BSON_REGEXP . _ename("re") . _regexp( 'abcd', 'imsx' ) ),
+        output => { re => $regexp },
     },
     {
         label    => "BSON Datetime from DateTime to raw",
@@ -160,7 +160,7 @@ for my $c (@cases) {
 sub is_bin {
     my ( $got, $exp, $label ) = @_;
     $label ||= '';
-    s{([[:cntrl:]])}{sprintf("\\x{%02x}",ord($1))}ge for $got, $exp;
+    s{([^[:graph:]])}{sprintf("\\x{%02x}",ord($1))}ge for $got, $exp;
     local $Test::Builder::Level = $Test::Builder::Level + 1;
     is( $got, $exp, $label );
 }
