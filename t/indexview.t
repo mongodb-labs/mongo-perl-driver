@@ -48,14 +48,13 @@ subtest "create_many" => sub {
     ok( scalar @names, "got non-empty result" );
     is_deeply( [ sort @names ], [ sort qw/x_1 y_-1/ ], "returned list of names" );
 
-    # exception on index that exist
+    # exception on index creation
     like(
         exception {
-            $iv->create_many( { keys => [ x => 1 ] },
-                { keys => [ x => 1 ], options => { unique => 1 } } )
+            $iv->create_many( { keys => [ x => '4d' ] } );
         },
-        qr/MongoDB::DatabaseError/,
-        "exception on existing index",
+        qr/MongoDB::(?:Database|Write)Error/,
+        "exception creating impossible index",
     );
 };
 
@@ -83,6 +82,21 @@ subtest "create_one" => sub {
     ok( $iv->create_one( [ y => -1 ], { unique => 1 } ), "created unique index on y" );
     ($found) = grep { $_->{name} eq 'y_-1' } $iv->list->all;
     ok( $found->{unique}, "saw unique property in index info for y" );
+
+    like( exception { $iv->create_one( [ x => 1 ], { keys => [ y => 1 ] } ) },
+        qr/MongoDB::UsageError/, "exception putting 'keys' in options" );
+
+    like( exception { $iv->create_one( [ x => 1 ], { key => [ y => 1 ] } ) },
+        qr/MongoDB::UsageError/, "exception putting 'key' in options" );
+
+    # exception on index creation
+    like(
+        exception {
+            $iv->create_one( [ x => '4d' ] );
+        },
+        qr/MongoDB::(?:Database|Write)Error/,
+        "exception creating impossible index",
+    );
 };
 
 subtest "drop_one" => sub {
@@ -98,6 +112,15 @@ subtest "drop_one" => sub {
         qr/MongoDB::UsageError/,
         "exception calling drop_one on '*'"
     );
+
+    # exception on index drop
+    like(
+        exception {
+            $iv->drop_one('_id_');
+        },
+        qr/MongoDB::(?:Database|Write)Error/,
+        "exception dropping _id_",
+    );
 };
 
 subtest "drop_all" => sub {
@@ -111,11 +134,8 @@ subtest "drop_all" => sub {
 
     my $res = $iv->drop_all;
     ok( $res->{ok}, "result of drop_all is a database result document" );
-    is_deeply(
-        [ sort map $_->{name}, $iv->list->all ],
-        [ qw/_id_/ ],
-        "dropped all but _id index"
-    );
+    is_deeply( [ sort map $_->{name}, $iv->list->all ],
+        [qw/_id_/], "dropped all but _id index" );
 
 };
 
