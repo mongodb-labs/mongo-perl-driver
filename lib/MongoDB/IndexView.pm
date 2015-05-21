@@ -104,10 +104,36 @@ sub _build__db_name {
 
 =method list
 
+    $result = $indexes->list;
+
+    while ( my $index = $result->next ) {
+        ...
+    }
+
+    for my $index ( $result->all ) {
+        ...
+    }
+
+This method returns a L<MongoDB::QueryResult> which can be used to
+retrieve index information either one at a time (with C<next>) or
+all at once (with C<all>).
+
 =cut
 
+my $list_args;
+
 sub list {
-    my ($self) = @_;
+    $list_args ||= compile(Object);
+    my ($self) = $list_args->(@_);
+
+    my $op = MongoDB::Op::_ListIndexes->new(
+        client     => $self->_client,
+        db_name    => $self->_db_name,
+        coll_name  => $self->_coll_name,
+        bson_codec => $self->_bson_codec,
+    );
+
+    return $self->_client->send_read_op($op);
 }
 
 =method create_one

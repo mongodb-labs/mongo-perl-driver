@@ -59,6 +59,21 @@ subtest "create_many" => sub {
     );
 };
 
+subtest "list indexes" => sub {
+    $coll->drop;
+    $coll->insert( {} );
+    my $res = $iv->list();
+    isa_ok( $res, "MongoDB::QueryResult", "indexes->list" );
+    is_deeply( [ sort map { $_->{name} } $res->all ],
+        ['_id_'], "list only gives _id_ index" );
+    ok( $iv->create_many( { keys => { x => 1 } } ), "added index" );
+    is_deeply(
+        [ sort map { $_->{name} } $iv->list->all ],
+        [ sort qw/_id_ x_1/ ],
+        "list finds both indexes"
+    );
+};
+
 done_testing;
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:
