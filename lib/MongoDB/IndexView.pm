@@ -25,7 +25,9 @@ use Moose;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
 use MongoDB::_Types -types;
-use Types::Standard -types;
+use Types::Standard qw/-types slurpy/;
+use Type::Params qw/compile/;
+use boolean;
 use namespace::clean -except => 'meta';
 
 =attr collection
@@ -85,13 +87,70 @@ sub create_one {
 
 =method create_many
 
+    @names = $indexes->create_many(
+        { keys => [ x => 1, y => 1 ] },
+        { keys => [ z => 1 ], options => { unique => 1 } }
+    );
+
+This method takes a list of index models (given as hash references)
+and returns a list of index names created.  It will throw an exception
+on error.
+
+Each index module is described by the following fields:
+
+=for :list
+* C<keys> (required) — an ordered document (array reference or
+  L<Tie::IxHash> object) with an ordered list of index keys and index
+  directions.  See below for more.
+* C<options> — an optional hash reference of index options.
+
+The C<keys> document needs to be ordered.  While it can take a hash
+reference, because Perl randomizes the order of hash keys, you should
+B<ONLY> use a hash reference with a single-key index.  You are B<STRONGLY>
+encouraged to get in the habit of specifying index keys with an array
+reference.
+
+The form of the C<keys> document differs based on the type of index (e.g.
+single-key, multi-key, text, geospatial, etc.).  See
+L<Index Types|http://docs.mongodb.org/manual/core/index-types/> in the
+MongoDB Manual for specifics.
+
+The C<options> hash reference may have a mix of general-purpose and
+index-type-specific options.  See L<Index
+Options|http://docs.mongodb.org/manual/reference/method/db.collection.createIndex/#options>
+in the MongoDB Manual for specifics.  Some of the most frequently used keys
+include:
+
+=for :list
+* background — when true, index creation won't block but will run in the
+  background; this is strongly recommended to avoid blocking other
+  operations on the database.
+* unique — enforce uniqueness; inserting a duplicate document (or creating
+  one with update modifiers) will raise an error.
+* name — a name for the index; one will be generated if this is omitted.
+
 =cut
 
 my $create_many_args;
 
 sub create_many {
-    $create_many_args ||= compile( Object, ArrayOfHashRef );
+    $create_many_args ||= compile( Object,
+        slurpy ArrayRef [ Dict [ keys => Ref, options => Optional [HashRef] ] ] );
     my ( $self, $models ) = $create_many_args->(@_);
+
+    my $indexes = [ map __flatten_index_model($_), @$models ];
+    my $op = MongoDB::Op::_CreateIndexes->new(
+        db_name       => $self->collection->database->name,
+        coll_name     => $self->collection->name,
+        bson_codec    => $self->collection->bson_codec,
+        indexes       => $indexes,
+        write_concern => MongoDB::WriteConcern->new,
+    );
+
+    # succeed or die; we don't care about response document
+    $self->_client->send_write_op($op);
+
+    return map $_->{name}, @$indexes;
 }
 
 =method drop_one
@@ -111,6 +170,65 @@ sub drop_one {
 
 sub drop_all {
     my ($self) = @_;
+}
+
+#--------------------------------------------------------------------------#
+# private functions
+#--------------------------------------------------------------------------#
+
+sub __flatten_index_model {
+    my ($model) = @_;
+
+    my ( $keys, $orig ) = @{$model}{qw/keys options/};
+
+    # copy the original so we don't modify it
+    my $opts = { $orig ? %$orig : () };
+
+    for my $k (qw/keys key/) {
+        MongoDB::UsageError->throw("Can't specify '$k' in options to index creation")
+          if exists $opts->{$k};
+    }
+
+    # add name if not provided
+    $opts->{name} = __to_index_string($keys)
+      unless defined $opts->{name};
+
+    # convert some things to booleans
+    for my $k (qw/unique background sparse dropDups/) {
+        next unless exists $opts->{$k};
+        $opts->{$k} = boolean( $opts->{$k} );
+    }
+
+    # return is document ready for the createIndexes command
+    return { key => $keys, %$opts };
+}
+
+# utility function to generate an index name by concatenating key/value pairs
+sub __to_index_string {
+    my $keys = shift;
+
+    my @name;
+    if ( ref $keys eq 'ARRAY' ) {
+        @name = @$keys;
+    }
+    elsif ( ref $keys eq 'HASH' ) {
+        @name = %$keys;
+    }
+    elsif ( ref $keys eq 'Tie::IxHash' ) {
+        my @ks = $keys->Keys;
+        my @vs = $keys->Values;
+
+        for ( my $i = 0; $i < $keys->Length; $i++ ) {
+            push @name, $ks[$i];
+            push @name, $vs[$i];
+        }
+    }
+    else {
+        MongoDB::UsageError->throw(
+            "expected Tie::IxHash, hash, or array reference for keys");
+    }
+
+    return join( "_", @name );
 }
 
 __PACKAGE__->meta->make_immutable;
