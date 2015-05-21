@@ -23,6 +23,7 @@ use version;
 our $VERSION = 'v0.999.998.7'; # TRIAL
 
 use MongoDB::Error;
+use MongoDB::IndexView;
 use MongoDB::InsertManyResult;
 use MongoDB::QueryResult;
 use MongoDB::WriteConcern;
@@ -173,6 +174,31 @@ sub _build__full_name {
     my $name    = $self->name;
     my $db_name = $self->database->name;
     return "${db_name}.${name}";
+}
+
+=method indexes
+
+    $indexes = $collection->indexes;
+
+    $collection->indexes->create_one( [ x => 1 ], { unique => 1 } );
+    $collection->indexes->drop_all;
+
+Returns a L<MongoDB::IndexView> object for managing the indexes associated
+with the collection.
+
+=cut
+
+has _indexes => (
+    is      => 'ro',
+    isa     => InstanceOf['MongoDB::IndexView'],
+    lazy    => 1,
+    reader  => 'indexes',
+    builder => '_build__indexes',
+);
+
+sub _build__indexes {
+    my ($self) = @_;
+    return MongoDB::IndexView->new( collection => $self );
 }
 
 #--------------------------------------------------------------------------#
@@ -960,16 +986,6 @@ sub parallel_scan {
     }
 
     return @cursors;
-}
-
-=method indexes
-
-=cut
-
-sub indexes {
-    my ($self) = @_;
-    require MongoDB::IndexView;
-    return MongoDB::IndexView->new( collection => $self );
 }
 
 =method rename
