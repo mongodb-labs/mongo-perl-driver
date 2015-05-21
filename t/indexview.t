@@ -85,6 +85,21 @@ subtest "create_one" => sub {
     ok( $found->{unique}, "saw unique property in index info for y" );
 };
 
+subtest "drop_one" => sub {
+    $coll->drop;
+    ok( my $name = $iv->create_one( [ x => 1 ] ), "created index on x" );
+    my $res = $iv->drop_one($name);
+    ok( $res->{ok}, "result of drop_one is a database result document" );
+    my $found = grep { $_->{name} eq 'x_1' } $iv->list->all;
+    ok( !$found, "dropped index on x" );
+
+    like(
+        exception { $iv->drop_one("*") },
+        qr/MongoDB::UsageError/,
+        "exception calling drop_one on '*'"
+    );
+};
+
 done_testing;
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:

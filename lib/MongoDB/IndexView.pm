@@ -233,6 +233,12 @@ sub create_many {
 
 =method drop_one
 
+    $output = $indexes->drop_one( $name );
+
+This method takes the name of an index and drops it.  It returns the output
+of the dropIndexes command (a hash reference) on success or throws a
+exception if the command fails.
+
 =cut
 
 my $drop_one_args;
@@ -240,6 +246,17 @@ my $drop_one_args;
 sub drop_one {
     $drop_one_args ||= compile( Object, Str );
     my ( $self, $name ) = $drop_one_args->(@_);
+
+    if ( $name eq '*' ) {
+        MongoDB::UsageError->throw("Can't use '*' as an argument to drop_one");
+    }
+
+    return $self->collection->_run_command(
+        [
+            dropIndexes => $self->_coll_name,
+            index       => $name,
+        ]
+    );
 }
 
 =method drop_all
