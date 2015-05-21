@@ -191,7 +191,7 @@ is($id."", $id->value);
         my $ok = $coll->save({x => 9834590149023841902384137418571984503});
     };
 
-    ok($@ =~ m/BigInt is too large/);
+    like($@, qr/can't fit/, "big int too large error message");
 
     $coll->drop;
 }

@@ -10,6 +10,10 @@
 
   [Changes]
 
+  - PERL-127 integers that fit in 32-bits are now encoded as BSON Int32;
+    larger integers are encodeed as BSON Int64; Math::BigInt objects are
+    always encoded as BSON Int64.
+
   - PERL-488 MongoDB::WriteConcern method 'is_safe' renamed to
     'is_acknowledged'.
 

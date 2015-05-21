@@ -350,6 +350,14 @@ read-only attribute so that any code that relied on changing C<dt_type>
 after constructing a C<MongoDB::MongoClient> object will fail instead of
 being silently ignored.
 
+=head3 Int32 vs Int64 encoding changes
+
+On 64-bit Perls, integers that fit in 32-bits will be encoded as BSON
+Int32 (whereas previously there were always encoded as BSON Int64).
+
+Math::BigInt objects will always be encoded as BSON Int64, which allows
+users to force 64-bit encoding if desired.
+
 =head1 DEPRECATIONS
 
 Deprecated options and methods may be removed in a future release.

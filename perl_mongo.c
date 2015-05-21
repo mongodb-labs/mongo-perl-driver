@@ -19,9 +19,29 @@
 #include "perl.h"
 #include "XSUB.h"
 #include "regcomp.h"
+#include "string.h"
 
 /* load after other Perl headers */
 #include "ppport.h"
+
+/* adapted from perl.h and must come after it */
+#if !defined(Strtoll)
+#    ifdef __hpux
+#        define Strtoll __strtoll
+#    endif
+#    ifdef WIN64
+#        define Strtoll _strtoi64
+#    endif
+#    if !defined(Strtoll) && defined(HAS_STRTOLL)
+#        define Strtoll strtoll
+#    endif
+#    if !defined(Strtoll) && defined(HAS_STRTOQ)
+#        define Strtoll strtoq
+#    endif
+#    if !defined(Strtoll)
+#        error strtoll not available
+#    endif
+#endif
 
 /* whether to add an _id field */
 #define PREP 1
@@ -60,7 +80,6 @@ typedef struct _stackette {
     (((svp = hv_fetchs(h, k, FALSE)) && *svp) ? *svp : 0)
 
 #include "perl_mongo.h"
-#include "string.h"
 
 /* perl call helpers
  *
@@ -588,65 +607,24 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
       }
       /* 64-bit integers */
       else if (sv_isa(sv, "Math::BigInt")) {
-        int64_t big = 0, offset = 1;
-        int i = 0, length = 0, sign = 1;
-        SV **av_ref, **sign_ref;
-        AV *av;
+        SV *tempsv;
+        char *str;
+        char *end;
+        int64_t big;
 
-        /* get sign */
-        sign_ref = hv_fetchs((HV*)SvRV(sv), "sign", 0);
-        if (!sign_ref) {
-          croak( "couldn't get BigInt sign" );
-        }
-        else if ( SvPOK(*sign_ref) && strcmp(SvPV_nolen( *sign_ref ), "-") == 0 ) {
-          sign = -1;
-        }
+        tempsv = sv_2mortal(call_perl_reader(sv, "bstr"));
+        str = SvPV_nolen(tempsv);
+        big = Strtoll(str, &end, 10);
 
-        /* get value */
-        av_ref = hv_fetchs((HV*)SvRV(sv), "value", 0);
-        if (!av_ref) {
-          croak( "couldn't get BigInt value" );
+        /* check for conversion problems */
+        if ( errno == ERANGE && ( big == LLONG_MAX || big == LLONG_MIN ) ) {
+          croak( "Math::BigInt '%s' can't fit into a 64-bit integer", str );
+        }
+        else if ( errno != 0 && big == 0 ) {
+          croak( "couldn't convert Math::BigInt '%s' to 64-bit integer", str );
         }
 
-        av = (AV*)SvRV(*av_ref);
-
-        if ( av_len( av ) > 3 ) {
-          croak( "BigInt is too large" );
-        }
-
-        for (i = 0; i <= av_len( av ); i++) {
-          int j = 0;
-          SV **val;
-
-          if ( !(val = av_fetch (av, i, 0)) || !(SvPOK(*val) || SvIOK(*val)) ) {
-            sv_dump( sv );
-            croak ("failed to fetch BigInt element");
-          }
-
-          if ( SvIOK(*val) ) {
-            int64_t temp = SvIV(*val);
-
-            while (temp > 0) {
-              temp = temp / 10;
-              length++;
-            }
-
-            temp = (int64_t)(((int64_t)SvIV(*val)) * (int64_t)offset);
-            big = big + temp;
-          }
-          else {
-            STRLEN len = sv_len(*val);
-
-            length += len;
-            big += ((int64_t)atoi(SvPV_nolen(*val))) * offset;
-          }
-
-          for (j = 0; j < length; j++) {
-            offset *= 10;
-          }
-        }
-
-        bson_append_int64(bson, key, -1, big*sign);
+        bson_append_int64(bson, key, -1, big);
       }
       /* Tie::IxHash */
       else if (sv_isa(sv, "Tie::IxHash")) {
@@ -908,7 +886,13 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
       /* if it's publicly an int OR (privately an int AND not publicly a string) */
       if (aggressively_number || (!is_string && (SvIOK(sv) || (SvIOKp(sv) && !SvPOK(sv))))) {
 #if defined(MONGO_USE_64_BIT_INT)
-        bson_append_int64(bson, key, -1, (int64_t)SvIV(sv));
+        IV i = SvIV(sv);
+        if ( i >= INT32_MIN && i <= INT32_MAX) {
+          bson_append_int32(bson, key, -1, (int)i);
+        }
+        else {
+          bson_append_int64(bson, key, -1, (int64_t)i);
+        }
 #else
         bson_append_int32(bson, key, -1, (int)SvIV(sv));
 #endif
