@@ -43,6 +43,7 @@ subtest "collection API" => sub {
 };
 
 subtest "create_many" => sub {
+    $coll->drop;
     my @names = $iv->create_many( { keys => { x => 1 } }, { keys => { y => -1 } } );
     ok( scalar @names, "got non-empty result" );
     is_deeply( [ sort @names ], [ sort qw/x_1 y_-1/ ], "returned list of names" );
