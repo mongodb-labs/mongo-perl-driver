@@ -118,6 +118,8 @@ This method returns a L<MongoDB::QueryResult> which can be used to
 retrieve index information either one at a time (with C<next>) or
 all at once (with C<all>).
 
+If the list can't be retrieved, an exception will be thrown.
+
 =cut
 
 my $list_args;
@@ -138,15 +140,16 @@ sub list {
 
 =method create_one
 
+    $name = $indexes->create_one( [ x => 1 ] );
     $name = $indexes->create_one( [ x => 1, y => 1 ] );
     $name = $indexes->create_one( [ z => 1 ], { unique => 1 } );
 
-This method takes an index specification document and an optional hash
-reference of index options and returns the name of the index created.  It
-will throw an exception on error.
+This method takes an ordered index specification document and an optional
+hash reference of index options and returns the name of the index created.
+It will throw an exception on error.
 
 The index specification document is an ordered document (array reference or
-L<Tie::IxHash> object) with an index keys and index direction/type.
+L<Tie::IxHash> object) with index keys and direction/type.
 
 See L</create_many> for important information about index specifications
 and options.
@@ -178,8 +181,8 @@ Each index module is described by the following fields:
 
 =for :list
 * C<keys> (required) — an index specification as an ordered document (array
-  reference or L<Tie::IxHash> object) with index keys and index
-  directions/types.  See below for more.
+  reference or L<Tie::IxHash> object) with index keys and direction/type.
+  See below for more.
 * C<options> — an optional hash reference of index options.
 
 The C<keys> document needs to be ordered.  While it can take a hash
@@ -189,23 +192,31 @@ encouraged to get in the habit of specifying index keys with an array
 reference.
 
 The form of the C<keys> document differs based on the type of index (e.g.
-single-key, multi-key, text, geospatial, etc.).  See
-L<Index Types|http://docs.mongodb.org/manual/core/index-types/> in the
-MongoDB Manual for specifics.
+single-key, multi-key, text, geospatial, etc.).
+
+For single and multi-key indexes, the value is "1" for an ascending index
+and "-1" for a descending index.
+
+    [ name => 1, votes => -1 ] # ascending on name, descending on votes
+
+See L<Index Types|http://docs.mongodb.org/manual/core/index-types/> in the
+MongoDB Manual for instructions for other index types.
 
 The C<options> hash reference may have a mix of general-purpose and
 index-type-specific options.  See L<Index
 Options|http://docs.mongodb.org/manual/reference/method/db.collection.createIndex/#options>
-in the MongoDB Manual for specifics.  Some of the most frequently used keys
-include:
+in the MongoDB Manual for specifics.
+
+Some of the more commonly used options include:
 
 =for :list
-* background — when true, index creation won't block but will run in the
+* C<background> — when true, index creation won't block but will run in the
   background; this is strongly recommended to avoid blocking other
   operations on the database.
-* unique — enforce uniqueness; inserting a duplicate document (or creating
-  one with update modifiers) will raise an error.
-* name — a name for the index; one will be generated if this is omitted.
+* C<unique> — enforce uniqueness when true; inserting a duplicate document
+  (or creating one with update modifiers) will raise an error.
+* C<name> — a name (string) for the index; one will be generated if this is
+  omitted.
 
 =cut
 
@@ -343,6 +354,31 @@ __PACKAGE__->meta->make_immutable;
 =head1 SYNOPSIS
 
     my $indexes = $collection->indexes;
+
+    # listing indexes
+
+    @names = map { $_->{name} } $indexes->list->all;
+
+    my $result = $indexes->list;
+
+    while ( my $index_doc = $result->next ) {
+        # do stuff with each $index_doc
+    }
+
+    # creating indexes
+
+    $name = $indexes->create_one( [ x => 1, y => -1 ], { unique => 1 } );
+
+    @names = $indexes->create_many(
+        { keys => [ x => 1, y => -1 ], { unique => 1 } },
+        { keys => [ z => 1 ] },
+    );
+
+    # dropping indexes
+
+    $indexes->drop_one( "x_1_y_-1" );
+
+    $indexes->drop_all;
 
 =head1 DESCRIPTION
 
