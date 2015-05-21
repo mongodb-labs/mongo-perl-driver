@@ -44,15 +44,15 @@ subtest "collection API" => sub {
 
 subtest "create_many" => sub {
     $coll->drop;
-    my @names = $iv->create_many( { keys => { x => 1 } }, { keys => { y => -1 } } );
+    my @names = $iv->create_many( { keys => [ x => 1 ] }, { keys => [ y => -1 ] } );
     ok( scalar @names, "got non-empty result" );
     is_deeply( [ sort @names ], [ sort qw/x_1 y_-1/ ], "returned list of names" );
 
     # exception on index that exist
     like(
         exception {
-            $iv->create_many( { keys => { x => 1 } },
-                { keys => { x => 1 }, options => { unique => 1 } } )
+            $iv->create_many( { keys => [ x => 1 ] },
+                { keys => [ x => 1 ], options => { unique => 1 } } )
         },
         qr/MongoDB::DatabaseError/,
         "exception on existing index",
@@ -66,7 +66,7 @@ subtest "list indexes" => sub {
     isa_ok( $res, "MongoDB::QueryResult", "indexes->list" );
     is_deeply( [ sort map { $_->{name} } $res->all ],
         ['_id_'], "list only gives _id_ index" );
-    ok( $iv->create_many( { keys => { x => 1 } } ), "added index" );
+    ok( $iv->create_many( { keys => [ x => 1 ] } ), "added index" );
     is_deeply(
         [ sort map { $_->{name} } $iv->list->all ],
         [ sort qw/_id_ x_1/ ],

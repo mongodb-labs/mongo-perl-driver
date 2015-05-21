@@ -197,7 +197,7 @@ my $create_many_args;
 
 sub create_many {
     $create_many_args ||= compile( Object,
-        slurpy ArrayRef [ Dict [ keys => Ref, options => Optional [HashRef] ] ] );
+        slurpy ArrayRef [ Dict [ keys => IxHash, options => Optional [HashRef] ] ] );
     my ( $self, $models ) = $create_many_args->(@_);
 
     my $indexes = [ map __flatten_index_model($_), @$models ];
@@ -269,14 +269,8 @@ sub __flatten_index_model {
 sub __to_index_string {
     my $keys = shift;
 
-    my @name;
-    if ( ref $keys eq 'ARRAY' ) {
-        @name = @$keys;
-    }
-    elsif ( ref $keys eq 'HASH' ) {
-        @name = %$keys;
-    }
-    elsif ( ref $keys eq 'Tie::IxHash' ) {
+    if ( ref $keys eq 'Tie::IxHash' ) {
+        my @name;
         my @ks = $keys->Keys;
         my @vs = $keys->Values;
 
@@ -284,13 +278,13 @@ sub __to_index_string {
             push @name, $ks[$i];
             push @name, $vs[$i];
         }
+
+        return join( "_", @name );
     }
     else {
-        MongoDB::UsageError->throw(
-            "expected Tie::IxHash, hash, or array reference for keys");
+        MongoDB::InternalError->throw("expected Tie::IxHash for __to_index_string");
     }
 
-    return join( "_", @name );
 }
 
 __PACKAGE__->meta->make_immutable;
