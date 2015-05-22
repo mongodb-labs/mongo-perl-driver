@@ -169,6 +169,19 @@ subtest "options" => sub {
         is( $client->wtimeout, $wtimeout, "write acknowledgement timeout set" );
         is( $client->j, 1, "sync to journal" );
     };
+
+    subtest "unknown options should warn" => sub {
+        my $warning;
+        local $SIG{__WARN__} = sub { $warning = shift };
+
+        my $client =
+          MongoDB::MongoClient->new( { host => "mongodb://localhost/?notArealOption=42" } );
+        like(
+            $warning,
+            qr/Unsupported option 'notArealOption' in URI/,
+            "unknown option warns with original case"
+        );
+    };
 };
 
 

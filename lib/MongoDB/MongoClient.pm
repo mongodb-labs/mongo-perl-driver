@@ -1257,6 +1257,7 @@ The currently supported connection string options are:
 *journal
 *readPreference
 *readPreferenceTags
+*replicaSet
 *ssl
 *w
 *wtimeoutMS

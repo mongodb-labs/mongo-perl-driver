@@ -68,6 +68,30 @@ has hostpairs => (
     default => sub { [] },
 );
 
+has valid_options => (
+    is => 'ro',
+    isa => HashRef,
+    builder => '_build_valid_options',
+);
+
+sub _build_valid_options {
+    return {
+        map { lc($_) => 1 } qw(
+            authMechanism
+            authMechanism.SERVICE_NAME
+            connect
+            connectTimeoutMS
+            journal
+            readPreference
+            readPreferenceTags
+            replicaSet
+            ssl
+            w
+            wtimeoutMS
+        )
+    };
+}
+
 sub _unescape_all {
     my $str = shift;
     return '' unless defined $str;
@@ -112,6 +136,7 @@ sub BUILD {
         ];
 
         if ( defined $result{options} ) {
+            my $valid = $self->valid_options;
             my %parsed;
             for my $opt ( split '&', $result{options} ) {
                 my @kv = split '=', $opt;
@@ -119,13 +144,16 @@ sub BUILD {
                 MongoDB::UsageError->throw("expected key value pair") unless @kv == 2;
                 my ($k, $v) = map { _unescape_all($_) } @kv;
                 # connection string spec calls for case normalization
-                $k =~ tr[A-Z][a-z];
-                if ( $k eq 'readpreferencetags' ) {
-                    $parsed{$k} ||= [];
-                    push @{$parsed{$k}}, _parse_tag_set($v);
+                (my $lc_k = $k) =~ tr[A-Z][a-z];
+                if ( !$valid->{$lc_k} ) {
+                    warn "Unsupported option '$k' in URI $uri\n";
+                }
+                if ( $lc_k eq 'readpreferencetags' ) {
+                    $parsed{$lc_k} ||= [];
+                    push @{$parsed{$lc_k}}, _parse_tag_set($v);
                 }
                 else {
-                    $parsed{$k} = $v;
+                    $parsed{$lc_k} = $v;
                 }
             }
             $result{options} = \%parsed;
