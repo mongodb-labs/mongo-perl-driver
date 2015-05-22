@@ -143,11 +143,15 @@ subtest "percent encoded username and password" => sub {
 };
 
 subtest "case normalization" => sub {
+    my $uri;
 
-    my $uri = MongoDB::_URI->new( uri => 'mongodb://eXaMpLe1.cOm:27017,eXAMPLe2.com:27017');
+    $uri = MongoDB::_URI->new( uri => 'mongodb://eXaMpLe1.cOm:27017,eXAMPLe2.com:27017');
     my @hostpairs = ('example1.com:27017', 'example2.com:27017');
+    is_deeply($uri->hostpairs, \@hostpairs, "hostname normalized");
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    $uri = MongoDB::_URI->new( uri => 'mongodb://localhost/?ReAdPrEfErEnCe=Primary&wTimeoutMS=1000' );
+    is( $uri->options->{readpreference}, 'Primary', "readPreference key normalized" );
+    is( $uri->options->{wtimeoutms}, 1000, "wTimeoutMS key normalized" );
 };
 
 done_testing;

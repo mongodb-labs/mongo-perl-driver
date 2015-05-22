@@ -118,7 +118,9 @@ sub BUILD {
                 push @kv, '' if @kv == 1;
                 MongoDB::UsageError->throw("expected key value pair") unless @kv == 2;
                 my ($k, $v) = map { _unescape_all($_) } @kv;
-                if ( $k eq 'readPreferenceTags' ) {
+                # connection string spec calls for case normalization
+                $k =~ tr[A-Z][a-z];
+                if ( $k eq 'readpreferencetags' ) {
                     $parsed{$k} ||= [];
                     push @{$parsed{$k}}, _parse_tag_set($v);
                 }

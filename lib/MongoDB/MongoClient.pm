@@ -639,7 +639,7 @@ sub _build_auth_mechanism {
         # XXX support deprecated legacy experimental API
         return $self->sasl_mechanism;
     }
-    elsif ( my $mech = $self->_uri->options->{authMechanism} ) {
+    elsif ( my $mech = $self->_uri->options->{authmechanism} ) {
         return $mech;
     }
     elsif ( $self->username ) {
@@ -652,7 +652,7 @@ sub _build_auth_mechanism {
 
 sub _build_auth_mechanism_properties {
     my ($self) = @_;
-    my $service_name = $self->_uri->options->{'authMechanism.SERVICE_NAME'};
+    my $service_name = $self->_uri->options->{'authmechanism.service_name'};
     return {
         ( defined $service_name ? ( SERVICE_NAME => $service_name ) : () ),
     };
@@ -710,7 +710,7 @@ sub _build_connect_type {
 
 sub _build_db_name {
     my ($self) = @_;
-    return $self->_uri->options->{authSource} || $self->_uri->db_name;
+    return $self->_uri->options->{authsource} || $self->_uri->db_name;
 }
 
 sub _build_password {
@@ -763,17 +763,17 @@ sub BUILD {
 
     # Add options from URI
     $self->_set_ssl(_str_to_bool($options->{ssl}))  if exists $options->{ssl};
-    $self->timeout($options->{connectTimeoutMS})    if exists $options->{connectTimeoutMS};
+    $self->timeout($options->{connecttimeoutms})    if exists $options->{connecttimeoutms};
     $self->w($options->{w})                         if exists $options->{w};
-    $self->wtimeout($options->{wtimeoutMS})         if exists $options->{wtimeoutMS};
+    $self->wtimeout($options->{wtimeoutms})         if exists $options->{wtimeoutms};
     $self->j(_str_to_bool($options->{journal}))     if exists $options->{journal};
 
     $self->_update_write_concern;
 
-    if ( exists $options->{readPreference} ) {
-        my $ts = $options->{readPreferenceTags};
+    if ( exists $options->{readpreference} ) {
+        my $ts = $options->{readpreferencetags};
         my $rp = MongoDB::ReadPreference->new(
-            mode => $options->{readPreference},
+            mode => $options->{readpreference},
             ( $ts ? ( tag_sets => $ts ) : () ),
         );
         $self->_set_read_preference($rp);
