@@ -19,8 +19,10 @@ use Test::More 0.96;
 use Test::Deep 0.086; # num() function
 use Test::Fatal;
 
+use Config;
 use DateTime;
 use DateTime::Tiny;
+use Math::BigInt;
 use MongoDB;
 use MongoDB::OID;
 use MongoDB::DBRef;
@@ -57,7 +59,10 @@ my $dbref_cb = sub {
     return [ map { $_ => $hr->{$_} } sort keys %$hr ];
 };
 
-use constant PERL58 => $] lt '5.010';
+use constant {
+    PERL58   => $] lt '5.010',
+    HASINT64 => $Config{use64bitint}
+};
 
 use constant {
     P_INT32 => PERL58 ? "l" : "l<",
@@ -182,7 +187,15 @@ sub _string {
 
 sub _datetime {
     my $dt = shift;
-    return pack( P_INT64, 1000 * $dt->epoch + $dt->millisecond );
+    if (HASINT64) {
+        return pack( P_INT64, 1000 * $dt->epoch + $dt->millisecond );
+    }
+    else {
+        my $big = Math::BigInt->new( $dt->epoch );
+        $big->bmul(1000);
+        $big->badd( $dt->millisecond );
+        return _pack_bigint($big);
+    }
 }
 
 sub _regexp {
@@ -199,6 +212,17 @@ sub _dbref {
         . BSON_STRING . _ename('$db' ) . _string($dbref->db)
     );
     #>>>
+}
+
+# pack to int64_t
+sub _pack_bigint {
+    my $big    = shift;
+    my $as_hex = $big->as_hex; # big-endian hex
+    substr( $as_hex, 0, 2, '' ); # remove "0x"
+    my $len = length($as_hex);
+    substr( $as_hex, 0, 0, "0" x ( 16 - $len ) ) if $len < 16; # pad to quad length
+    my $packed = pack( "H*", $as_hex );                        # packed big-endian
+    return reverse($packed);                                   # reverse to little-endian
 }
 
 done_testing;
