@@ -1018,63 +1018,6 @@ sub rename {
 }
 
 
-=method ensure_index
-
-    $collection->ensure_index( $keys );
-    $collection->ensure_index( $keys, $options );
-    $collection->ensure_index(["foo" => 1, "bar" => -1], { unique => 1 });
-
-Makes sure the given C<$keys> of this collection are indexed. C<$keys> can be
-an array reference, hash reference, or C<Tie::IxHash>.  Array references or
-C<Tie::IxHash> is preferred for multi-key indexes, so that the keys are in the
-correct order.  1 creates an ascending index, -1 creates a descending index.
-
-If an optional C<$options> argument is provided, those options are passed
-through to the database to modify index creation.  Typical options include:
-
-=for :list
-* background – build the index in the background
-* name – a name for the index; one will be generated if not provided
-* unique – if true, inserting duplicates will fail
-
-See the MongoDB L<index documentation|http://docs.mongodb.org/manual/indexes/>
-for more information on indexing and index options.
-
-Returns true on success and throws an exception on failure.
-
-Note: index creation can take longer than the network timeout, resulting
-in an exception.  If this is a concern, consider setting the C<background>
-option.
-
-=cut
-
-sub ensure_index {
-    my ( $self, $keys, $opts ) = @_;
-    MongoDB::UsageError->throw("ensure_index options must be a hash reference")
-      if $opts && !ref($opts) eq 'HASH';
-
-    $keys = Tie::IxHash->new(@$keys) if ref $keys eq 'ARRAY';
-    $opts = $self->_clean_index_options( $opts, $keys );
-
-    # always use safe write concern for index creation
-    my $wc =
-        $self->write_concern->is_acknowledged
-      ? $self->write_concern
-      : MongoDB::WriteConcern->new;
-
-    my $op = MongoDB::Op::_CreateIndexes->new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        indexes       => [ { key => $keys, %$opts } ],
-        write_concern => $wc,
-    );
-
-    $self->client->send_write_op($op);
-
-    return 1;
-}
-
 =method save($doc, $options)
 
     $collection->save({"author" => "joe"});
@@ -1136,75 +1079,6 @@ sub validate {
     my $obj = $self->_run_command({ validate => $self->name });
 }
 
-
-=method drop_indexes
-
-    $collection->drop_indexes;
-
-Removes all indexes from this collection.
-
-=cut
-
-sub drop_indexes {
-    my ($self) = @_;
-    return $self->drop_index('*');
-}
-
-=method drop_index ($index_name)
-
-    $collection->drop_index('foo_1');
-
-Removes an index called C<$index_name> from this collection.
-Use C<MongoDB::Collection::get_indexes> to find the index name.
-
-=cut
-
-sub drop_index {
-    my ($self, $index_name) = @_;
-    return $self->_run_command([
-        dropIndexes => $self->name,
-        index => $index_name,
-    ]);
-}
-
-=method get_indexes
-
-    @indexes = $collection->get_indexes;
-
-Returns a list of all indexes of this collection.
-Each index contains C<ns>, C<name>, and C<key>
-fields of the form:
-
-    {
-        'ns' => 'db_name.collection_name',
-        'name' => 'index_name',
-        'key' => {
-            'key1' => dir1,
-            'key2' => dir2,
-            ...
-            'keyN' => dirN
-        }
-    }
-
-where C<dirX> is 1 or -1, depending on if the
-index is ascending or descending on that key.
-
-=cut
-
-sub get_indexes {
-    my ($self) = @_;
-
-    my $op = MongoDB::Op::_ListIndexes->new(
-        db_name    => $self->database->name,
-        coll_name  => $self->name,
-        client     => $self->client,
-        bson_codec => $self->bson_codec,
-    );
-
-    my $res = $self->client->send_read_op($op);
-
-    return $res->all;
-}
 
 =method drop
 
@@ -1479,40 +1353,6 @@ sub _try_find_and_modify {
     return;
 }
 
-# old API allowed some snake_case options; some options must
-# be turned into booleans
-sub _clean_index_options {
-    my ( $self, $orig, $keys ) = @_;
-
-    # copy the original so we don't modify it
-    my $opts = { $orig ? %$orig : () };
-
-    # add name if not provided
-    $opts->{name} = __to_index_string($keys)
-      unless defined $opts->{name};
-
-    # safe is no more
-    delete $opts->{safe} if exists $opts->{safe};
-
-    # convert snake case
-    if ( exists $opts->{drop_dups} ) {
-        $opts->{dropDups} = delete $opts->{drop_dups};
-    }
-
-    # convert snake case and turn into an integer
-    if ( exists $opts->{expire_after_seconds} ) {
-        $opts->{expireAfterSeconds} = int( delete $opts->{expire_after_seconds} );
-    }
-
-    # convert some things to booleans
-    for my $k (qw/unique background sparse dropDups/) {
-        next unless exists $opts->{$k};
-        $opts->{$k} = boolean( $opts->{$k} );
-    }
-
-    return $opts;
-}
-
 #--------------------------------------------------------------------------#
 # utility function
 #--------------------------------------------------------------------------#
@@ -1534,33 +1374,6 @@ sub __ixhash {
         MongoDB::UsageError->throw("Can't convert $type to a Tie::IxHash");
     }
     return;
-}
-
-# utility function to generate an index name by concatenating key/value pairs
-sub __to_index_string {
-    my $keys = shift;
-
-    my @name;
-    if (ref $keys eq 'ARRAY') {
-        @name = @$keys;
-    }
-    elsif (ref $keys eq 'HASH' ) {
-        @name = %$keys
-    }
-    elsif (ref $keys eq 'Tie::IxHash') {
-        my @ks = $keys->Keys;
-        my @vs = $keys->Values;
-
-        for (my $i=0; $i<$keys->Length; $i++) {
-            push @name, $ks[$i];
-            push @name, $vs[$i];
-        }
-    }
-    else {
-        MongoDB::UsageError->throw("expected Tie::IxHash, hash, or array reference for keys");
-    }
-
-    return join("_", @name);
 }
 
 #--------------------------------------------------------------------------#
@@ -1702,6 +1515,119 @@ sub get_collection {
     my $coll = shift @_;
 
     return $self->database->get_collection($self->name.'.'.$coll);
+}
+
+sub ensure_index {
+    my ( $self, $keys, $opts ) = @_;
+    MongoDB::UsageError->throw("ensure_index options must be a hash reference")
+      if $opts && !ref($opts) eq 'HASH';
+
+    $keys = Tie::IxHash->new(@$keys) if ref $keys eq 'ARRAY';
+    $opts = $self->_clean_index_options( $opts, $keys );
+
+    # always use safe write concern for index creation
+    my $wc =
+        $self->write_concern->is_acknowledged
+      ? $self->write_concern
+      : MongoDB::WriteConcern->new;
+
+    my $op = MongoDB::Op::_CreateIndexes->new(
+        db_name       => $self->database->name,
+        coll_name     => $self->name,
+        bson_codec    => $self->bson_codec,
+        indexes       => [ { key => $keys, %$opts } ],
+        write_concern => $wc,
+    );
+
+    $self->client->send_write_op($op);
+
+    return 1;
+}
+
+sub _clean_index_options {
+    my ( $self, $orig, $keys ) = @_;
+
+    # copy the original so we don't modify it
+    my $opts = { $orig ? %$orig : () };
+
+    # add name if not provided
+    $opts->{name} = __to_index_string($keys)
+      unless defined $opts->{name};
+
+    # safe is no more
+    delete $opts->{safe} if exists $opts->{safe};
+
+    # convert snake case
+    if ( exists $opts->{drop_dups} ) {
+        $opts->{dropDups} = delete $opts->{drop_dups};
+    }
+
+    # convert snake case and turn into an integer
+    if ( exists $opts->{expire_after_seconds} ) {
+        $opts->{expireAfterSeconds} = int( delete $opts->{expire_after_seconds} );
+    }
+
+    # convert some things to booleans
+    for my $k (qw/unique background sparse dropDups/) {
+        next unless exists $opts->{$k};
+        $opts->{$k} = boolean( $opts->{$k} );
+    }
+
+    return $opts;
+}
+
+sub __to_index_string {
+    my $keys = shift;
+
+    my @name;
+    if (ref $keys eq 'ARRAY') {
+        @name = @$keys;
+    }
+    elsif (ref $keys eq 'HASH' ) {
+        @name = %$keys
+    }
+    elsif (ref $keys eq 'Tie::IxHash') {
+        my @ks = $keys->Keys;
+        my @vs = $keys->Values;
+
+        for (my $i=0; $i<$keys->Length; $i++) {
+            push @name, $ks[$i];
+            push @name, $vs[$i];
+        }
+    }
+    else {
+        MongoDB::UsageError->throw("expected Tie::IxHash, hash, or array reference for keys");
+    }
+
+    return join("_", @name);
+}
+
+sub get_indexes {
+    my ($self) = @_;
+
+    my $op = MongoDB::Op::_ListIndexes->new(
+        db_name    => $self->database->name,
+        coll_name  => $self->name,
+        client     => $self->client,
+        bson_codec => $self->bson_codec,
+    );
+
+    my $res = $self->client->send_read_op($op);
+
+    return $res->all;
+}
+
+sub drop_indexes {
+    my ($self) = @_;
+    return $self->drop_index('*');
+}
+
+sub drop_index {
+    my ($self, $index_name) = @_;
+    return $self->_run_command([
+        dropIndexes => $self->name,
+        index => $index_name,
+    ]);
 }
 
 __PACKAGE__->meta->make_immutable;
