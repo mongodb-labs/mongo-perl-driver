@@ -608,7 +608,7 @@ subtest "find_one_and_update" => sub {
 
     # test duplicate key error
     $coll->drop;
-    $coll->ensure_index([x => 1], {unique => 1});
+    $coll->indexes->create_one([x => 1], {unique => 1});
     $coll->insert_many( [ map { { _id => $_, x => $_ } } 1 .. 3 ] );
     my $err = exception {
         $coll->find_one_and_update( { x => 0 }, { '$set' => { x => 1 } }, { upsert => 1 } );

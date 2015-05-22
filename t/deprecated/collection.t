@@ -169,20 +169,6 @@ subtest get_namespace => sub {
     is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
 }
 
-# get_indexes
-{
-    $coll->drop;
-    my $keys = tie(my %idx, 'Tie::IxHash');
-    %idx = ('sn' => 1, 'ts' => -1);
-
-    $coll->ensure_index($keys, {safe => 1});
-
-    my @tied = $coll->get_indexes;
-    is(scalar @tied, 2, 'num indexes');
-    is($tied[1]->{'ns'}, $testdb->name . '.test_collection', 'namespace');
-    is($tied[1]->{'name'}, 'sn_1_ts_-1', 'namespace');
-}
-
 {
     $coll->drop;
 

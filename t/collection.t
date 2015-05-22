@@ -233,20 +233,6 @@ subtest write_concern => sub {
     is($utfblah->{"\xe9"}, "hi", 'byte key');
 }
 
-# get_indexes
-{
-    $coll->drop;
-    my $keys = tie(my %idx, 'Tie::IxHash');
-    %idx = ('sn' => 1, 'ts' => -1);
-
-    $coll->ensure_index($keys, {safe => 1});
-
-    my @tied = $coll->get_indexes;
-    is(scalar @tied, 2, 'num indexes');
-    is($tied[1]->{'ns'}, $testdb->name . '.test_collection', 'namespace');
-    is($tied[1]->{'name'}, 'sn_1_ts_-1', 'namespace');
-}
-
 {
     $coll->drop;
 
@@ -490,79 +476,6 @@ SKIP: {
     $coll->drop;
 }
 
-# test index names with "."s
-{
-
-    $ok = $coll->ensure_index({"x.y" => 1}, {"name" => "foo"});
-    my ($index) = grep { $_->{name} eq 'foo' } $coll->get_indexes;
-    ok($index);
-    ok($index->{'key'});
-    ok($index->{'key'}->{'x.y'});
-    $coll->drop;
-}
-
-# sparse indexes
-{
-    for (1..10) {
-        $coll->insert_one({x => $_, y => $_});
-        $coll->insert_one({x => $_});
-    }
-    is($coll->count, 20);
-
-    eval { $coll->ensure_index({"y" => 1}, {"unique" => 1, "name" => "foo"}) };
-    my ($index) = grep { $_->{name} eq 'foo' } $coll->get_indexes;
-    ok(!$index);
-
-    $coll->ensure_index({"y" => 1}, {"unique" => 1, "sparse" => 1, "name" => "foo"});
-    ($index) = grep { $_->{name} eq 'foo' } $coll->get_indexes;
-    ok($index);
-
-    $coll->drop;
-}
-
-# text indices
-subtest 'text indices' => sub {
-    plan skip_all => "text indices won't work with db version $server_version"
-        unless $server_version >= v2.4.0;
-
-    my $res = $conn->get_database('admin')->run_command(['getParameter' => 1, 'textSearchEnabled' => 1]);
-    plan skip_all => "text search not enabled"
-        if !$res->{'textSearchEnabled'};
-
-    my $coll = $testdb->get_collection('test_text');
-    $coll->insert_one({language => 'english', w1 => 'hello', w2 => 'world'}) foreach (1..10);
-    is($coll->count, 10);
-
-    $res = $coll->ensure_index({'$**' => 'text'}, {
-        name => 'testTextIndex',
-        default_language => 'spanish',
-        language_override => 'language',
-        weights => { w1 => 5, w2 => 10 }
-    });
-
-    ok($res);
-
-    my ($text_index) = grep { $_->{name} eq 'testTextIndex' } $coll->get_indexes;
-    is($text_index->{'default_language'}, 'spanish', 'default_language option works');
-    is($text_index->{'language_override'}, 'language', 'language_override option works');
-    is($text_index->{'weights'}->{'w1'}, 5, 'weights option works 1');
-    is($text_index->{'weights'}->{'w2'}, 10, 'weights option works 2');
-
-    # 2.6 deprecated 'text' command and added '$text' operator; also the
-    # result format changed.
-    if ( $server_version >= v2.6.0 ) {
-        my $n_found =()= $coll->find( { '$text' => { '$search' => 'world' } } )->all;
-        is( $n_found, 10, "correct number of results found" );
-    }
-    else {
-        my $results =
-          $testdb->run_command( [ 'text' => 'test_text', 'search' => 'world' ] )->{results};
-        is( scalar(@$results), 10, "correct number of results found" );
-    }
-
-    $coll->drop;
-};
-
 # utf8 test, croak when null key is inserted
 {
     $ok = 0;
@@ -742,7 +655,7 @@ subtest "count w/ hint" => sub {
     $coll->insert_one( { i => 2 } );
     is ($coll->count(), 2, 'count = 2');
 
-    $coll->ensure_index( { i => 1 } );
+    $coll->indexes->create_one( { i => 1 } );
 
     is( $coll->count( { i => 1 }, { hint => '_id_' } ), 1, 'count w/ hint & spec');
     is( $coll->count( {}, { hint => '_id_' } ), 2, 'count w/ hint');
@@ -760,7 +673,7 @@ subtest "count w/ hint" => sub {
         is( $coll->count( { i => 1 } , { hint => 'BAD HINT' } ), 1, 'bad hint and spec');
     }
 
-    $coll->ensure_index( { x => 1 }, { sparse => 1 } );
+    $coll->indexes->create_one( { x => 1 }, { sparse => 1 } );
 
     if ($current_version > $version_2_6 ) {
 

@@ -97,8 +97,8 @@ subtest 'run_command' => sub {
     $testdb->run_command($cmd);
     my $cap = $testdb->get_collection("test_capped");
 
-    $coll->ensure_index([ name => 1]);
-    $cap->ensure_index([ name => 1]);
+    $coll->indexes->create_one([ name => 1]);
+    $cap->indexes->create_one([ name => 1]);
 
     ok($coll->insert_one({name => 'Alice'}), "create test collection");
     ok($cap->insert_one({name => 'Bob'}), "create capped collection");

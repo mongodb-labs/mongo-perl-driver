@@ -162,7 +162,7 @@ $testdb->drop;
 {
     $coll = $testdb->get_collection('test');
     $coll->drop;
-    $coll->ensure_index({'sn'=>1});
+    $coll->indexes->create_one({'sn'=>1});
 
     my $bulk = $coll->unordered_bulk;
     $bulk->insert({sn => $_}) for 0 .. 5000;
@@ -412,7 +412,7 @@ subtest "count w/ hint" => sub {
     $coll->insert_one( { i => 2 } );
     is ($coll->find()->count(), 2, 'count = 2');
 
-    $coll->ensure_index( { i => 1 } );
+    $coll->indexes->create_one( { i => 1 } );
 
     is( $coll->find( { i => 1 } )->hint( '_id_' )->count(), 1, 'count w/ hint & spec');
     is( $coll->find()->hint( '_id_' )->count(), 2, 'count w/ hint');
@@ -430,7 +430,7 @@ subtest "count w/ hint" => sub {
         is( $coll->find( { i => 1 } )->hint( 'BAD HINT' )->count(), 1, 'bad hint and spec');
     }
 
-    $coll->ensure_index( { x => 1 }, { sparse => 1 } );
+    $coll->indexes->create_one( { x => 1 }, { sparse => 1 } );
 
     if ($current_version > $version_2_6 ) {
 
