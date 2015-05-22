@@ -165,6 +165,43 @@ subtest "drop_all" => sub {
 
 };
 
+subtest 'handling duplicates' => sub {
+    $coll->drop;
+    my $doc = { foo => 1, bar => 1, baz => 1, boo => 1 };
+    $coll->insert_one($doc) for 1 .. 2;
+    is( $coll->count, 2, "two identical docs inserted" );
+    like( exception { $iv->create_one( [ foo => 1 ], { unique => 1 } ) },
+        qr/E11000/, "got expected error creating unique index with dups" );
+
+    # prior to 2.7.5, drop_dups was respected
+    if ( $server_version < v2.7.5 ) {
+        ok( $iv->create_one( [ foo => 1 ], { unique => 1, dropDups => 1 } ),
+            "create unique with dropDups" );
+        is( $coll->count, 1, "one doc dropped" );
+    }
+};
+
+subtest '2d index with options' => sub {
+    $coll->drop;
+    $iv->create_one( [ loc => '2d' ], { bits => 32, sparse => 1 } );
+    my ($index) = grep { $_->{name} eq 'loc_2d' } $iv->list->all;
+    ok( $index,           "created 2d index" );
+    ok( $index->{sparse}, "sparse option set on index" );
+    is( $index->{bits}, 32, "bits option set on index" );
+};
+
+subtest 'ensure index arbitrary options' => sub {
+    $coll->drop;
+    $iv->create_one( { wibble => 1 }, { notReallyAnOption => { foo => 1 } } );
+    my ($index) = grep { $_->{name} eq 'wibble_1' } $iv->list->all;
+    ok( $index, "created index" );
+    cmp_deeply(
+        $index->{notReallyAnOption},
+        { foo => 1 },
+        "arbitrary option set on index"
+    );
+};
+
 done_testing;
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:
