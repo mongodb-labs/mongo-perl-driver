@@ -26,6 +26,8 @@ use XSLoader;
 XSLoader::load("MongoDB", $VERSION);
 
 use Carp ();
+use Config;
+use if ! $Config{use64bitint}, "Math::BigInt";
 use MongoDB::Error;
 use Moose;
 use MongoDB::_Types -types;

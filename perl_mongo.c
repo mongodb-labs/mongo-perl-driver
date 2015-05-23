@@ -1296,10 +1296,11 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     value = newSViv(bson_iter_int64(iter));
 #else
     char buf[22];
-    SV *as_str = sv_2mortal(newSVpv(buf,0));
-    SV *big_int = sv_2mortal(newSVpvs("Math::BigInt"));
+    SV *as_str;
+    SV *big_int;
     sprintf(buf,"%" PRIi64,bson_iter_int64(iter));
-    load_module(0,big_int,NULL,NULL);
+    as_str = sv_2mortal(newSVpv(buf,0));
+    big_int = sv_2mortal(newSVpvs("Math::BigInt"));
     value = call_method_va(big_int, "new", 1, as_str);
 #endif
     break;
