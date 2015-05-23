@@ -21,6 +21,7 @@ package MongoDB::QueryResult;
 use version;
 our $VERSION = 'v0.999.998.7'; # TRIAL
 
+use Config;
 use Moose;
 use MongoDB::Error;
 use MongoDB::Op::_GetMore;
@@ -29,7 +30,10 @@ use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
-use constant { CURSOR_ZERO => "\0" x 8, };
+use constant {
+    CURSOR_ZERO => "\0" x 8,
+    HAS_INT64 => $Config{use64bitint},
+};
 
 with 'MongoDB::Role::_Cursor';
 
@@ -295,11 +299,17 @@ sub _pack_cursor_id {
         $cursor_id = pack( "H*", $as_hex );                        # packed big-endian
         $cursor_id = reverse($cursor_id);                          # reverse to little-endian
     }
-    else {
+    elsif (HAS_INT64) {
         # pack doesn't have endianness modifiers before perl 5.10.
         # We die during configuration on big-endian platforms on 5.8
         $cursor_id = pack( $] lt '5.010' ? "q" : "q<", $cursor_id );
     }
+    else {
+        # we on 32-bit perl *and* have a cursor ID that fits in 32 bits,
+        # so pack it as long and pad out to a quad
+        $cursor_id = pack( $] lt '5.010' ? "l" : "l<", $cursor_id ) . ( "\0" x 4 );
+    }
+
     return $cursor_id;
 }
 
