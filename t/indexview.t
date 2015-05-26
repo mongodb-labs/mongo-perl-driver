@@ -125,19 +125,27 @@ subtest "drop_one" => sub {
     my $found = grep { $_->{name} eq 'x_1' } $iv->list->all;
     ok( !$found, "dropped index on x" );
 
+    # exception on index drop
     like(
         exception { $iv->drop_one("*") },
         qr/MongoDB::UsageError/,
         "exception calling drop_one on '*'"
     );
 
-    # exception on index drop
     like(
         exception {
             $iv->drop_one('_id_');
         },
         qr/MongoDB::(?:Database|Write)Error/,
         "exception dropping _id_",
+    );
+
+    like(
+        exception {
+            $iv->drop_one( { keys => [ x => 1 ] } );
+        },
+        qr/did not pass type constraint/,
+        "exception dropping hashref"
     );
 };
 
