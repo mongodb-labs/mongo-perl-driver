@@ -148,8 +148,9 @@ This method takes an ordered index specification document and an optional
 hash reference of index options and returns the name of the index created.
 It will throw an exception on error.
 
-The index specification document is an ordered document (array reference or
-L<Tie::IxHash> object) with index keys and direction/type.
+The index specification document is an ordered document (array reference,
+L<Tie::IxHash> object, or single-key hash reference) with index keys and
+direction/type.
 
 See L</create_many> for important information about index specifications
 and options.
@@ -159,7 +160,7 @@ and options.
 my $create_one_args;
 
 sub create_one {
-    $create_one_args ||= compile( Object, IxHash, Optional( [HashRef] ) );
+    $create_one_args ||= compile( Object, OrderedDoc, Optional( [HashRef] ) );
     my ( $self, $keys, $opts ) = $create_one_args->(@_);
     my ($name) =
       $self->create_many( { keys => $keys, ( $opts ? ( options => $opts ) : () ) } );
@@ -181,15 +182,14 @@ Each index module is described by the following fields:
 
 =for :list
 * C<keys> (required) — an index specification as an ordered document (array
-  reference or L<Tie::IxHash> object) with index keys and direction/type.
-  See below for more.
+  reference, L<Tie::IxHash> object, or single-key hash reference)
+  with index keys and direction/type.  See below for more.
 * C<options> — an optional hash reference of index options.
 
-The C<keys> document needs to be ordered.  While it can take a hash
-reference, because Perl randomizes the order of hash keys, you should
-B<ONLY> use a hash reference with a single-key index.  You are B<STRONGLY>
-encouraged to get in the habit of specifying index keys with an array
-reference.
+The C<keys> document needs to be ordered.  You are B<STRONGLY> encouraged
+to get in the habit of specifying index keys with an array reference.
+Because Perl randomizes the order of hash keys, you may B<ONLY> use a hash
+reference if it contains a single key.
 
 The form of the C<keys> document differs based on the type of index (e.g.
 single-key, multi-key, text, geospatial, etc.).
@@ -224,7 +224,7 @@ my $create_many_args;
 
 sub create_many {
     $create_many_args ||= compile( Object,
-        slurpy ArrayRef [ Dict [ keys => IxHash, options => Optional [HashRef] ] ] );
+        slurpy ArrayRef [ Dict [ keys => OrderedDoc, options => Optional [HashRef] ] ] );
     my ( $self, $models ) = $create_many_args->(@_);
 
     my $indexes = [ map __flatten_index_model($_), @$models ];
@@ -302,6 +302,8 @@ sub __flatten_index_model {
     my ($model) = @_;
 
     my ( $keys, $orig ) = @{$model}{qw/keys options/};
+
+    $keys = IxHash->coerce($keys);
 
     # copy the original so we don't modify it
     my $opts = { $orig ? %$orig : () };

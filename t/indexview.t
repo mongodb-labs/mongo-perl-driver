@@ -56,6 +56,15 @@ subtest "create_many" => sub {
         qr/MongoDB::(?:Database|Write)Error/,
         "exception creating impossible index",
     );
+
+    like(
+        exception { $iv->create_many( { keys => { x => 1, y => 1 } } ) },
+        qr/did not pass type constraint/,
+        "exception giving unordered docs for keys"
+    );
+
+    is( exception { $iv->create_many( { keys => { y => 1 } } ) },
+        undef, "no exception on single-key hashref" );
 };
 
 subtest "list indexes" => sub {
@@ -88,6 +97,15 @@ subtest "create_one" => sub {
 
     like( exception { $iv->create_one( [ x => 1 ], { key => [ y => 1 ] } ) },
         qr/MongoDB::UsageError/, "exception putting 'key' in options" );
+
+    like(
+        exception { $iv->create_one( { x => 1, y => 1 } ) },
+        qr/did not pass type constraint/,
+        "exception giving unordered docs for keys"
+    );
+
+    is( exception { $iv->create_one( { y => 1 } ) },
+        undef, "no exception on single-key hashref" );
 
     # exception on index creation
     like(
