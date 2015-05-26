@@ -293,7 +293,28 @@ $grid->drop;
     is($file, undef);
 }
 
-# no chunks asserts
+subtest "empty file" => sub {
+    $grid->drop;
+    is( $grid->chunks->count, 0, "0 chunks exist" );
+
+    my $txt = "";
+
+    my $basicfh;
+    open( $basicfh, '<', \$txt );
+
+    my $fh = FileHandle->new;
+    $fh->fdopen( $basicfh, 'r' );
+    ok( $grid->insert( $fh, { filename => 'hello.txt' } ), "inserted" );
+
+    is( $grid->chunks->count, 0, "0 chunks still" );
+
+    $file = $grid->find_one;
+    is( $file->info->{filename}, 'hello.txt', "filename" );
+    is( $file->info->{length},   0,           "length" );
+    is( $file->slurp,            "",          "slurp" );
+};
+
+# no chunks for file with length asserts
 {
     $grid->drop;
 

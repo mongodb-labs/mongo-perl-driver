@@ -8,6 +8,11 @@
     MongoDB::BulkWriteResult to ease detection of when that attributes is
     supported by a server or not.
 
+  [Bug fixes]
+
+  - PERL-536 fix GridFS to stop throwing an error when a known empty file has
+    no chunks; errors will still be thrown if a non-empty file has no chunks.
+
   [Changes]
 
   - PERL-127 integers that fit in 32-bits are now encoded as BSON Int32;
