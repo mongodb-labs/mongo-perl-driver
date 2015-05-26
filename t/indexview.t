@@ -165,6 +165,124 @@ subtest "drop_all" => sub {
 
 };
 
+subtest 'handling duplicates' => sub {
+    $coll->drop;
+    my $doc = { foo => 1, bar => 1, baz => 1, boo => 1 };
+    $coll->insert_one($doc) for 1 .. 2;
+    is( $coll->count, 2, "two identical docs inserted" );
+    like( exception { $iv->create_one( [ foo => 1 ], { unique => 1 } ) },
+        qr/E11000/, "got expected error creating unique index with dups" );
+
+    # prior to 2.7.5, drop_dups was respected
+    if ( $server_version < v2.7.5 ) {
+        ok( $iv->create_one( [ foo => 1 ], { unique => 1, dropDups => 1 } ),
+            "create unique with dropDups" );
+        is( $coll->count, 1, "one doc dropped" );
+    }
+};
+
+subtest '2d index with options' => sub {
+    $coll->drop;
+    $iv->create_one( [ loc => '2d' ], { bits => 32, sparse => 1 } );
+    my ($index) = grep { $_->{name} eq 'loc_2d' } $iv->list->all;
+    ok( $index,           "created 2d index" );
+    ok( $index->{sparse}, "sparse option set on index" );
+    is( $index->{bits}, 32, "bits option set on index" );
+};
+
+subtest 'ensure index arbitrary options' => sub {
+    $coll->drop;
+    $iv->create_one( { wibble => 1 }, { notReallyAnOption => { foo => 1 } } );
+    my ($index) = grep { $_->{name} eq 'wibble_1' } $iv->list->all;
+    ok( $index, "created index" );
+    cmp_deeply(
+        $index->{notReallyAnOption},
+        { foo => 1 },
+        "arbitrary option set on index"
+    );
+};
+
+# test index names with "."s
+subtest "index with dots" => sub {
+    $coll->drop;
+    $iv->create_one( { "x.y" => 1 }, { name => "foo" } );
+    my ($index) = grep { $_->{name} eq 'foo' } $iv->list->all;
+    ok( $index,                 "got index" );
+    ok( $index->{key},          "has key field" );
+    ok( $index->{key}->{'x.y'}, "has dotted field in key" );
+    $coll->drop;
+};
+
+# sparse indexes
+subtest "sparse indexes" => sub {
+    $coll->drop;
+    for ( 1 .. 10 ) {
+        $coll->insert_one( { x => $_, y => $_ } );
+        $coll->insert_one( { x => $_ } );
+    }
+    is( $coll->count, 20, "inserted 20 docs" );
+
+    like(
+        exception { $iv->create_one( { y => 1 }, { unique => 1, name => "foo" } ) },
+        qr/MongoDB::DuplicateKeyError/,
+        "error creating non-sparse index"
+    );
+    my ($index) = grep { $_->{name} eq 'foo' } $iv->list->all;
+    ok( !$index, "index not found" );
+
+    $iv->create_one( { y => 1 }, { unique => 1, sparse => 1, name => "foo" } );
+    ($index) = grep { $_->{name} eq 'foo' } $iv->list->all;
+    ok( $index, "sparse index created" );
+};
+
+# text indices
+subtest 'text indices' => sub {
+    plan skip_all => "text indices won't work with db version $server_version"
+      unless $server_version >= v2.4.0;
+
+    my $res = $conn->get_database('admin')
+      ->run_command( [ 'getParameter' => 1, 'textSearchEnabled' => 1 ] );
+    plan skip_all => "text search not enabled"
+      if !$res->{'textSearchEnabled'};
+
+    my $coll2 = $testdb->get_collection('test_text');
+    $coll2->drop;
+    $coll2->insert_one( { language => 'english', w1 => 'hello', w2 => 'world' } )
+      foreach ( 1 .. 10 );
+    is( $coll2->count, 10, "inserted 10 documents" );
+
+    $res = $coll2->indexes->create_one(
+        { '$**' => 'text' },
+        {
+            name              => 'testTextIndex',
+            default_language  => 'spanish',
+            language_override => 'language',
+            weights           => { w1 => 5, w2 => 10 }
+        }
+    );
+
+    ok( $res, "created text index" );
+
+    my ($text_index) = grep { $_->{name} eq 'testTextIndex' } $coll2->get_indexes;
+    is( $text_index->{'default_language'}, 'spanish', 'default_language option works' );
+    is( $text_index->{'language_override'},
+        'language', 'language_override option works' );
+    is( $text_index->{'weights'}->{'w1'}, 5,  'weights option works 1' );
+    is( $text_index->{'weights'}->{'w2'}, 10, 'weights option works 2' );
+
+    # 2.6 deprecated 'text' command and added '$text' operator; also the
+    # result format changed.
+    if ( $server_version >= v2.6.0 ) {
+        my $n_found =()= $coll2->find( { '$text' => { '$search' => 'world' } } )->all;
+        is( $n_found, 10, "correct number of results found" );
+    }
+    else {
+        my $results =
+          $testdb->run_command( [ 'text' => 'test_text', 'search' => 'world' ] )->{results};
+        is( scalar(@$results), 10, "correct number of results found" );
+    }
+};
+
 done_testing;
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:

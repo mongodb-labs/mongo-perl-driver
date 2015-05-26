@@ -817,7 +817,7 @@ subtest "mixed operations, ordered" => sub {
 note("QA-477 UNORDERED BATCH WITH ERRORS");
 subtest "unordered batch with errors" => sub {
     $coll->drop;
-    $coll->ensure_index( [ a => 1 ], { unique => 1 } );
+    $coll->indexes->create_one( [ a => 1 ], { unique => 1 } );
 
     my $bulk = $coll->initialize_unordered_bulk_op;
     $bulk->insert( { b => 1, a => 1 } );
@@ -880,7 +880,7 @@ subtest "unordered batch with errors" => sub {
 note("QA-477 ORDERED BATCH WITH ERRORS");
 subtest "ordered batch with errors" => sub {
     $coll->drop;
-    $coll->ensure_index( [ a => 1 ], { unique => 1 } );
+    $coll->indexes->create_one( [ a => 1 ], { unique => 1 } );
 
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->insert( { b => 1, a => 1 } );
