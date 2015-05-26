@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-536 fix GridFS to stop throwing an error when a known empty file has
+    no chunks; errors will still be thrown if a non-empty file has no chunks.
+
   [Documentation]
 
   - PERL-525 updated legacy author emails in docs and metadata
