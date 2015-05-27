@@ -126,54 +126,6 @@ has connect_type => (
     lazy    => 1
 );
 
-=attr timeout
-
-Connection timeout in milliseconds. Defaults to C<20000>.
-
-=cut
-
-has timeout => (
-    is      => 'rw',
-    isa     => Int,
-    default => 20000,
-);
-
-
-=attr query_timeout
-
-    # set query timeout to 1 second
-    my $client = MongoDB::MongoClient->new(query_timeout => 1000);
-
-    # set query timeout to 6 seconds
-    $client->query_timeout(6000);
-
-This will cause all queries (including C<find_one>s and C<run_command>s) to die
-after this period if the database has not responded.
-
-This value is in milliseconds and defaults to the value of
-L<MongoDB::Cursor/timeout>.
-
-    $MongoDB::Cursor::timeout = 5000;
-    # query timeout for $conn will be 5 seconds
-    my $client = MongoDB::MongoClient->new;
-
-A value of -1 will cause the driver to wait forever for responses and 0 will
-cause it to die immediately.
-
-This value overrides L<MongoDB::Cursor/timeout>.
-
-    $MongoDB::Cursor::timeout = 1000;
-    my $client = MongoDB::MongoClient->new(query_timeout => 10);
-    # timeout for $conn is 10 milliseconds
-
-=cut
-
-has query_timeout => (
-    is      => 'rw',
-    isa     => Int,
-    default => sub { return $MongoDB::Cursor::timeout; },
-);
-
 =attr ssl
 
     ssl => 1
@@ -517,6 +469,25 @@ has dt_type => (
     default => 'DateTime'
 );
 
+=attr query_timeout (DEPRECATED AND READ-ONLY)
+
+    # set query timeout to 1 second
+    my $client = MongoDB::MongoClient->new(query_timeout => 1000);
+
+This option has been renamed as L</socket_timeout_ms>.  If this option is set
+and that one is not, this will be used.
+
+This value is in milliseconds and defaults to the value of
+C<$MongoDB::Cursor::timeout>.
+
+=cut
+
+has query_timeout => (
+    is      => 'ro',
+    isa     => Int,
+    default => sub { return $MongoDB::Cursor::timeout; },
+);
+
 =attr sasl (DEPRECATED)
 
 If true, the driver will set the authentication mechanism based on the
@@ -541,6 +512,21 @@ has sasl_mechanism => (
     is      => 'ro',
     isa     => AuthMechanism,
     default => 'GSSAPI',
+);
+
+=attr timeout (DEPRECATED AND READ-ONLY)
+
+This option has been renamed as L</connect_timeout_ms>.  If this option is set
+and that one is not, this will be used.
+
+Connection timeout is in milliseconds. Defaults to C<20000>.
+
+=cut
+
+has timeout => (
+    is      => 'ro',
+    isa     => Int,
+    default => 20000,
 );
 
 #--------------------------------------------------------------------------#
@@ -723,7 +709,7 @@ sub BUILD {
 
     # Add options from URI
     $self->_set_ssl(_str_to_bool($options->{ssl}))  if exists $options->{ssl};
-    $self->timeout($options->{connecttimeoutms})    if exists $options->{connecttimeoutms};
+##    $self->timeout($options->{connecttimeoutms})    if exists $options->{connecttimeoutms};
     $self->w($options->{w})                         if exists $options->{w};
     $self->wtimeout($options->{wtimeoutms})         if exists $options->{wtimeoutms};
     $self->j(_str_to_bool($options->{journal}))     if exists $options->{journal};

@@ -139,15 +139,15 @@ SKIP: {
 
 subtest "options" => sub {
 
-    subtest "connection" => sub {
-
-        my $ssl = "true";
-        my $timeout = 40000;
-        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl=$ssl&connectTimeoutMS=$timeout"});
-
-        is( $client->ssl, 1, "connect with ssl set" );
-        is( $client->timeout, $timeout, "connection timeout set" );
-    };
+##    subtest "connection" => sub {
+##
+##        my $ssl = "true";
+##        my $timeout = 40000;
+##        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl=$ssl&connectTimeoutMS=$timeout"});
+##
+##        is( $client->ssl, 1, "connect with ssl set" );
+##        is( $client->timeout, $timeout, "connection timeout set" );
+##    };
 
     subtest "invalid option value" => sub {
 
