@@ -49,13 +49,17 @@ subtest "create_many" => sub {
     is_deeply( [ sort @names ], [ sort qw/x_1 y_-1/ ], "returned list of names" );
 
     # exception on index creation
-    like(
-        exception {
-            $iv->create_many( { keys => [ x => '4d' ] } );
-        },
-        qr/MongoDB::(?:Database|Write)Error/,
-        "exception creating impossible index",
-    );
+    SKIP: {
+        skip "bad index type won't fail before 2.4", 1
+            if $server_version <= v2.4.0;
+        like(
+            exception {
+                $iv->create_many( { keys => [ x => '4d' ] } );
+            },
+            qr/MongoDB::(?:Database|Write)Error/,
+            "exception creating impossible index",
+        );
+    }
 
     like(
         exception { $iv->create_many( { keys => { x => 1, y => 1 } } ) },
@@ -108,13 +112,17 @@ subtest "create_one" => sub {
         undef, "no exception on single-key hashref" );
 
     # exception on index creation
-    like(
-        exception {
-            $iv->create_one( [ x => '4d' ] );
-        },
-        qr/MongoDB::(?:Database|Write)Error/,
-        "exception creating impossible index",
-    );
+    SKIP: {
+        skip "bad index type won't fail before 2.4", 1
+            if $server_version <= v2.4.0;
+        like(
+            exception {
+                $iv->create_one( [ x => '4d' ] );
+            },
+            qr/MongoDB::(?:Database|Write)Error/,
+            "exception creating impossible index",
+        );
+    }
 };
 
 subtest "drop_one" => sub {
