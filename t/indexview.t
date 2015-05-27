@@ -37,6 +37,10 @@ my $coll           = $testdb->get_collection('test_collection');
 
 my ($iv);
 
+# XXX work around SERVER-18062; create collection to initialize DB for
+# sharded collection so gridfs index creation doesn't fail
+$testdb->coll("testtesttest")->insert({});
+
 subtest "collection API" => sub {
     $iv = $coll->indexes;
     isa_ok( $iv, "MongoDB::IndexView", "coll->indexes" );
