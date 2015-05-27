@@ -496,33 +496,6 @@ has bson_codec => (
 # deprecated public attributes
 #--------------------------------------------------------------------------#
 
-=attr auto_connect (DEPRECATED)
-
-This attribute no longer has any effect.  Connections always connect on
-demand.
-
-=cut
-
-has auto_connect => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 1,
-);
-
-=attr auto_reconnect (DEPRECATED)
-
-This attribute no longer has any effect.  Connections always reconnect on
-demand.
-
-=cut
-
-has auto_reconnect => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 1,
-);
-
-
 =attr dt_type (DEPRECATED AND READ-ONLY)
 
 Sets the type of object which is returned for DateTime fields. The default is
@@ -542,19 +515,6 @@ object for a database or collection object.
 has dt_type => (
     is      => 'ro',
     default => 'DateTime'
-);
-
-=attr find_master (DEPRECATED)
-
-This attribute no longer has any effect.  The driver will always attempt
-to find an appropriate server for every operation.
-
-=cut
-
-has find_master => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 0,
 );
 
 =attr sasl (DEPRECATED)
