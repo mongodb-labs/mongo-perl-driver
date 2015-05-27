@@ -114,114 +114,21 @@ SKIP: {
 # TODO: won't work on master/slave until SERVER-2329 is fixed
 # ok(!(grep { $_ eq 'test_database' } $conn->database_names), 'database got dropped');
 
+subtest "wire protocol versions" => sub {
+    is $conn->MIN_WIRE_VERSION, 0, 'default min wire version';
+    is $conn->MAX_WIRE_VERSION, 3, 'default max wire version';
 
-# w
-{
-    is($conn->w, 1, "get w");
-    $conn->w(3);
-    is($conn->w, 3, "set w");
-
-    $conn->w("tag");
-    is($conn->w, "tag", "set w to string");
-
-    isnt(
-        exception { $conn->w({tag => 1});},
-        undef,
-        "Setting w to anything but a string or int dies."
-    );
-
-    is($conn->wtimeout, 1000, "get wtimeout");
-    $conn->wtimeout(100);
-    is($conn->wtimeout, 100, "set wtimeout");
-
-    $testdb->drop;
-}
-
-subtest "options" => sub {
-
-##    subtest "connection" => sub {
-##
-##        my $ssl = "true";
-##        my $timeout = 40000;
-##        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl=$ssl&connectTimeoutMS=$timeout"});
-##
-##        is( $client->ssl, 1, "connect with ssl set" );
-##        is( $client->timeout, $timeout, "connection timeout set" );
-##    };
-
-    subtest "invalid option value" => sub {
-
-        like(
-            exception { MongoDB::MongoClient->new({host => "mongodb://localhost/?ssl="}) },
-            qr/expected boolean/,
-            'key with invalid value'
-        );
-    };
-
-    subtest "write concern" => sub {
-
-        my $w = 2;
-        my $wtimeout = 200;
-        my $j = "true";
-        my $client = MongoDB::MongoClient->new({host => "mongodb://localhost/?w=$w&wtimeoutMS=$wtimeout&journal=$j"});
-
-        is( $client->w, $w, "write acknowledgement set" );
-        is( $client->wtimeout, $wtimeout, "write acknowledgement timeout set" );
-        is( $client->j, 1, "sync to journal" );
-    };
-
-    subtest "unknown options should warn" => sub {
-        my $warning;
-        local $SIG{__WARN__} = sub { $warning = shift };
-
-        my $client =
-          MongoDB::MongoClient->new( { host => "mongodb://localhost/?notArealOption=42" } );
-        like(
-            $warning,
-            qr/Unsupported option 'notArealOption' in URI/,
-            "unknown option warns with original case"
-        );
-    };
-};
-
-
-# query_timeout
-{
-    my $client = MongoDB::MongoClient->new();
-    is($client->query_timeout, $MongoDB::Cursor::timeout, 'default query timeout');
-
-    local $MongoDB::Cursor::timeout = 40;
-    $client = MongoDB::MongoClient->new();
-    is($client->query_timeout, 40, 'changed default query timeout');
-}
-
-# wire protocol versions
-
-{
-    is $conn->_min_wire_version, 0, 'default min wire version';
-    is $conn->_max_wire_version, 3, 'default max wire version';
+    # monkey patch wire versions
+    my $conn2 = build_client();
+    $conn2->_topology->{min_wire_version} = 100;
+    $conn2->_topology->{max_wire_version} = 101;
 
     like(
-        exception { MongoDBTest::build_client( _min_wire_version => 99, _max_wire_version => 100)->send_admin_command([is_master => 1]) },
+        exception { $conn2->send_admin_command([is_master => 1]) },
         qr/Incompatible wire protocol/i,
         'exception on wire protocol'
     );
 
-}
-
-# host/port
-
-{
-    my $client = build_client( host => "localhost:27017" );
-    is( $client->_uri->uri, "mongodb://localhost:27017", "localhost:27017 handled correctly" );
-}
-
-# bson_codec
-
-{
-    my $client = build_client( bson_codec => { prefer_numeric => 1 } );
-    isa_ok( $client->bson_codec, 'MongoDB::BSON' );
-    ok( $client->bson_codec->prefer_numeric, "bson_client coerced from hashref" );
-}
+};
 
 done_testing;

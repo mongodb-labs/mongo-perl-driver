@@ -57,6 +57,11 @@ use constant {
     NEAREST             => 'nearest',
 };
 
+use constant {
+    MAX_WIRE_VERSION => 3,
+    MIN_WIRE_VERSION => 0,
+};
+
 #--------------------------------------------------------------------------#
 # deprecated global variables
 #--------------------------------------------------------------------------#
@@ -68,10 +73,10 @@ $MongoDB::BSON::char = '$';
 #--------------------------------------------------------------------------#
 # public attributes
 #
-# XXX too many of these are mutable
+# Of these, only host, port and bson_codec are set without regard for
+# connection string options.  The rest are built lazily in BUILD so that
+# option precedence can be resolved.
 #--------------------------------------------------------------------------#
-
-# connection attributes
 
 =attr host
 
@@ -89,18 +94,144 @@ has host => (
     default => 'mongodb://localhost:27017', # XXX eventually, make this localhost
 );
 
-=attr port
+=attr auth_mechanism
 
-If a network port is not specified as part of the C<host> attribute, this
-attribute provides the port to use.  It defaults to 27107.
+This attribute determines how the client authenticates with the server.
+Valid values are:
+
+=for :list
+* NONE
+* DEFAULT
+* MONGODB-CR
+* MONGODB-X509
+* GSSAPI
+* PLAIN
+* SCRAM-SHA-1
+
+If not specified, then if no username is provided, it defaults to NONE.
+If a username is provided, it is set to DEFAULT, which chooses SCRAM-SHA-1 if
+available or MONGODB-CR otherwise.
+
+This may be set in a connection string with the C<authMechanism> option.
 
 =cut
 
-has port => (
+has auth_mechanism => (
     is      => 'ro',
-    isa     => Int,
-    default => 27017,
+    isa     => AuthMechanism,
+    lazy    => 1,
+    builder => '_build_auth_mechanism',
 );
+
+sub _build_auth_mechanism {
+    my ($self) = @_;
+
+    my $default =
+        $self->sasl     ? $self->sasl_mechanism
+      : $self->username ? 'DEFAULT'
+      :                   'NONE';
+
+    return $self->__uri_or_else(
+        u => 'authmechanism',
+        e => 'auth_mechanism',
+        d => $default,
+    );
+}
+
+=attr auth_mechanism_properties
+
+This is an optional hash reference of authentication mechanism specific properties.
+See L</AUTHENTICATION> for details.
+
+This may be set in a connection string with the C<authMechanismProperties>
+option.  If given, the value must be key/value pairs joined with a ":".
+Multiple pairs must be separated by a comma.  If ": or "," appear in a key or
+value, they must be URL encoded.
+
+=cut
+
+has auth_mechanism_properties => (
+    is      => 'ro',
+    isa     => HashRef,
+    lazy    => 1,
+    builder => '_build_auth_mechanism_properties',
+);
+
+sub _build_auth_mechanism_properties {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'authmechanismproperties',
+        e => 'auth_mechanism_properties',
+        d => {},
+    );
+}
+
+=attr bson_codec
+
+An object that provides the C<encode_one> and C<decode_one> methods, such as
+from L<MongoDB::BSON>.  It may be initialized with a hash reference that will
+be coerced into a new L<MongoDB::BSON> object.
+
+If not provided, one will be generated from deprecated configuration options.
+
+=cut
+
+has bson_codec => (
+    is      => 'ro',
+    isa     => BSONCodec,
+    coerce  => 1,
+    writer  => '_set_bson_codec',
+    lazy    => 1,
+    builder => '_build_bson_codec',
+);
+
+# skipping op_char unless $MongoDB::BSON::char is not '$' is an optimization
+sub _build_bson_codec {
+    my ($self) = @_;
+    return MongoDB::BSON->new(
+        dbref_callback => sub {
+            my $doc = shift;
+            return MongoDB::DBRef->new(
+                client => $self,
+                ref    => $doc->{'$ref'},
+                id     => $doc->{'$id'},
+                db     => $doc->{'$db'},
+            );
+        },
+        dt_type         => $self->dt_type,
+        prefer_numeric  => $MongoDB::BSON::looks_like_number || 0,
+        ( $MongoDB::BSON::char ne '$' ? ( op_char => $MongoDB::BSON::char ) : () ),
+    );
+}
+
+=attr connect_timeout_ms
+
+This attribute specifies the amount of time in milliseconds to wait for a
+new connection to a server.
+
+The default is 20,000 ms.
+
+This may be set in a connection string with the C<connectTimeoutMS> option.
+
+XXX what about 0? negative?
+
+=cut
+
+has connect_timeout_ms => (
+    is      => 'ro',
+    isa     => Num,
+    lazy    => 1,
+    builder => '_build_connect_timeout_ms',
+);
+
+sub _build_connect_timeout_ms {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'connecttimeoutms',
+        e => 'connect_timeout_ms',
+        d => $self->timeout, # deprecated legacy attribute as default
+    );
+}
 
 =attr connect_type
 
@@ -117,14 +248,404 @@ Valid values include:
 * none – discover the deployment topology by checking servers in the seed list
   and connect accordingly
 
+This may be set in a connection string with the C<connect> option.
+
 =cut
 
 has connect_type => (
     is      => 'ro',
     isa     => ConnectType,
+    lazy    => 1,
     builder => '_build_connect_type',
-    lazy    => 1
 );
+
+sub _build_connect_type {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'connect',
+        e => 'connect_type',
+        d => 'none',
+    );
+}
+
+=attr db_name
+
+Optional.  If an L</auth_mechanism> requires a database for authentication,
+this attribute will be used.  Otherwise, it will be ignored. Defaults to
+"admin".
+
+This may be provided in the L<connection string URI|/CONNECTION STRING URI> as
+a path between the authority and option parameter sections.  For example, to
+authenticate against the "admin" database (showing a configuration option only
+for illustration):
+
+    mongodb://localhost/admin?readPreference=primary
+
+=cut
+
+has db_name => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    builder => '_build_db_name',
+);
+
+sub _build_db_name {
+    my ($self) = @_;
+    return __string( $self->_uri->db_name, $self->_deferred->{db_name} );
+}
+
+=attr heartbeat_frequency_ms
+
+The time in milliseconds between scans of all servers to check if they
+are up and update their latency.  Defaults to 60,000 ms.
+
+This may be set in a connection string with the C<heartbeatFrequencyMS> option.
+
+=cut
+
+has heartbeat_frequency_ms => (
+    is      => 'ro',
+    isa     => Num,
+    lazy    => 1,
+    builder => '_build_heartbeat_frequency_ms',
+);
+
+sub _build_heartbeat_frequency_ms {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'heartbeatfrequencyms',
+        e => 'heartbeat_frequency_ms',
+        d => 60000,
+    );
+}
+
+=attr j
+
+If true, the client will block until write operations have been committed to the
+server's journal. Prior to MongoDB 2.6, this option was ignored if the server was
+running without journaling. Starting with MongoDB 2.6, write operations will fail
+if this option is used when the server is running without journaling.
+
+This may be set in a connection string with the C<journal> option as the
+strings 'true' or 'false'.
+
+=cut
+
+has j => (
+    is      => 'ro',
+    isa     => Bool,
+    lazy    => 1,
+    builder => '_build_j',
+);
+
+sub _build_j {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'journal',
+        e => 'j',
+        d => 0,
+    );
+}
+
+=attr local_threshold_ms
+
+The width of the 'latency window': when choosing between multiple suitable
+servers for an operation, the acceptable delta in milliseconds between shortest
+and longest average round-trip times.  Servers within the latency window are
+selected randomly.
+
+Set this to "0" to always select the server with the shortest average round
+trip time.  Set this to a very high value to always randomly choose any known
+server.
+
+Defaults to 15 ms.
+
+See L</SERVER SELECTION> for more details.
+
+This may be set in a connection string with the C<localThresholdMS> option.
+
+=cut
+
+has local_threshold_ms => (
+    is      => 'ro',
+    isa     => Num,
+    lazy    => 1,
+    builder => '_build_local_threshold_ms',
+);
+
+sub _build_local_threshold_ms {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'localthresholdms',
+        e => 'local_threshold_ms',
+        d => 15000,
+    );
+}
+
+=attr max_time_ms
+
+Specifies the maximum amount of time in milliseconds that the server should use
+for working on a query.  Defaults to 29,500, slightly shorter than the
+L</socket_timeout_ms>, as getting a definitive (albeit negative) response from
+the server is preferred over a getting a socket timeout.
+
+B<Note>: this will only be used for server versions 2.6 or greater, as that
+was when the C<$maxTimeMS> meta-operator was introduced.
+
+XXX ensure this is shorter than C<socket_timeout_ms>?
+
+This may be set in a connection string with the C<maxTimeMS> option.
+
+=cut
+
+has max_time_ms => (
+    is      => 'ro',
+    isa     => Num,
+    lazy    => 1,
+    builder => '_build_max_time_ms',
+);
+
+sub _build_max_time_ms {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'maxtimems',
+        e => 'max_time_ms',
+        d => 29500,
+    );
+}
+
+=attr password
+
+If an L</auth_mechanism> requires a password, this attribute will be
+used.  Otherwise, it will be ignored.
+
+This may be provided in the L<connection string URI|/CONNECTION STRING URI> as
+a C<username:password> pair in the leading portion of the authority section
+before a C<@> character.  For example, to authenticate as user "mulder" with
+password "trustno1":
+
+    mongodb://mulder:trustno1@localhost
+
+If the username or password have a ":" or "@" in it, they must be URL encoded.
+An empty password still requires a ":" character.
+
+=cut
+
+has password => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    builder => '_build_password',
+);
+
+sub _build_password {
+    my ($self) = @_;
+    return __string( $self->_uri->password, $self->_deferred->{password} );
+}
+
+=attr port
+
+If a network port is not specified as part of the C<host> attribute, this
+attribute provides the port to use.  It defaults to 27107.
+
+=cut
+
+has port => (
+    is      => 'ro',
+    isa     => Int,
+    default => 27017,
+);
+
+=attr read_pref_mode
+
+The read preference mode determines which server types are candidates
+for a read operation.  Valid values are:
+
+=for :list
+* primary
+* primaryPreferred
+* secondary
+* secondaryPreferred
+* nearest
+
+For core documentation on read preference see
+L<http://docs.mongodb.org/manual/core/read-preference/>.
+
+This may be set in a connection string with the C<readPreference> option.
+
+=cut
+
+has read_pref_mode => (
+    is      => 'ro',
+    isa     => ReadPrefMode,
+    coerce  => 1,
+    lazy    => 1,
+    builder => '_build_read_pref_mode',
+);
+
+sub _build_read_pref_mode {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'readpreference',
+        e => 'read_pref_mode',
+        d => 'primary',
+    );
+}
+
+=attr read_pref_tag_sets
+
+The C<read_pref_tag_sets> parameter is an ordered list of tag sets used to
+restrict the eligibility of servers, such as for data center awareness.  It
+must be an array reference of hash references.
+
+The application of C<read_pref_tag_sets> varies depending on the
+C<read_pref_mode> parameter.  If the C<read_pref_mode> is 'primary', then
+C<read_pref_tag_sets> must not be supplied.
+
+For core documentation on read preference see
+L<http://docs.mongodb.org/manual/core/read-preference/>.
+
+This may be set in a connection string with the C<readPreferenceTags> option.
+If given, the value must be key/value pairs joined with a ":".  Multiple pairs
+must be separated by a comma.  If ": or "," appear in a key or value, they must
+be URL encoded.  The C<readPreferenceTags> option may appear more than once, in
+which case each document will be added to the tag set list.
+
+=cut
+
+has read_pref_tag_sets => (
+    is      => 'ro',
+    isa     => ArrayOfHashRef,
+    coerce  => 1,
+    lazy    => 1,
+    builder => '_build_read_pref_tag_sets',
+);
+
+sub _build_read_pref_tag_sets {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'readpreferencetags',
+        e => 'read_pref_tag_sets',
+        d => [ {} ],
+    );
+}
+
+=attr replica_set_name
+
+Specifies the replica set name to connect to.  If this string is non-empty,
+then if the topology is a replica set or a direct connection to a single
+server, server replica set names must match this or they will be removed from
+the topology.
+
+This may be set in a connection string with the C<replicaSet> option.
+
+=cut
+
+has replica_set_name => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    builder => '_build_replica_set_name',
+);
+
+sub _build_replica_set_name {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'replicaset',
+        e => 'replica_set_name',
+        d => '',
+    );
+}
+
+=attr server_selection_timeout_ms
+
+This attribute specifies the amount of time in milliseconds to wait for a
+suitable server to be available for a read or write operation.  If no
+server is available within this time period, an exception will be thrown.
+
+The default is 30,000 ms.
+
+See L</SERVER SELECTION> for more details.
+
+This may be set in a connection string with the C<serverSelectionTimeoutMS>
+option.
+
+=cut
+
+has server_selection_timeout_ms => (
+    is      => 'ro',
+    isa     => Num,
+    lazy    => 1,
+    builder => '_build_server_selection_timeout_ms',
+);
+
+sub _build_server_selection_timeout_ms {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'serverselectiontimeoutms',
+        e => 'server_selection_timeout_ms',
+        d => 30000,
+    );
+}
+
+=attr socket_check_interval_ms
+
+If a socket to a server has not been used in this many milliseconds, an
+C<ismaster> command will be issued to check the status of the server before
+issuing any reads or writes.
+
+The default is 5,000 ms.
+
+This may be set in a connection string with the C<socketCheckIntervalMS>
+option.
+
+=cut
+
+has socket_check_interval_ms => (
+    is      => 'ro',
+    isa     => Num,
+    lazy    => 1,
+    builder => '_build_socket_check_interval_ms',
+);
+
+sub _build_socket_check_interval_ms {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'socketcheckintervalms',
+        e => 'socket_check_interval_ms',
+        d => 5000,
+    );
+}
+
+=attr socket_timeout_ms
+
+This attribute specifies the amount of time in milliseconds to wait for a
+reply from the server before issuing a network exception.
+
+The default is 30,000 ms.
+
+XXX what about 0? negative?
+
+This may be set in a connection string with the C<socketTimeoutMS> option.
+
+=cut
+
+has socket_timeout_ms => (
+    is      => 'ro',
+    isa     => Num,
+    lazy    => 1,
+    builder => '_build_socket_timeout_ms',
+);
+
+sub _build_socket_timeout_ms {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'sockettimeoutms',
+        e => 'socket_timeout_ms',
+        d => $self->query_timeout, # deprecated legacy timeout as default
+    );
+}
 
 =attr ssl
 
@@ -160,16 +681,58 @@ scheme 'none' to disable this check.
 B<Disabling certificate or hostname verification is a security risk and is not
 recommended>.
 
+This may be set to the string 'true' or 'false' in a connection string with the
+C<ssl> option, which will enable ssl with default configuration.  (A future
+version of the driver may support customizing ssl via the connection string.)
+
 =cut
 
 has ssl => (
     is      => 'ro',
     isa     => Bool|HashRef,
-    default => 0,
-    writer  => '_set_ssl',
+    lazy    => 1,
+    builder => '_build_ssl',
 );
 
-# write concern attributes
+sub _build_ssl {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'ssl',
+        e => 'ssl',
+        d => 0,
+    );
+}
+
+=attr username
+
+Optional username for this client connection.  If this field is set, the client
+will attempt to authenticate when connecting to servers.  Depending on the
+L</auth_mechanism>, the L</password> field or other attributes will need to be
+set for authentication to succeed.
+
+This may be provided in the L<connection string URI|/CONNECTION STRING URI> as
+a C<username:password> pair in the leading portion of the authority section
+before a C<@> character.  For example, to authenticate as user "mulder" with
+password "trustno1":
+
+    mongodb://mulder:trustno1@localhost
+
+If the username or password have a ":" or "@" in it, they must be URL encoded.
+An empty password still requires a ":" character.
+
+=cut
+
+has username => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    builder => '_build_username',
+);
+
+sub _build_username {
+    my ($self) = @_;
+    return __string( $self->_uri->username, $self->_deferred->{username} );
+}
 
 =attr w
 
@@ -203,14 +766,25 @@ rules on how your data is replicated. To used you getLastErrorMode, you pass in 
 name of the mode to the C<w> parameter. For more information see:
 http://www.mongodb.org/display/DOCS/Data+Center+Awareness
 
+This may be set in a connection string with the C<w> option.
+
 =cut
 
 has w => (
-    is      => 'rw',
+    is      => 'ro',
     isa     => Int|Str,
-    default => 1,
-    trigger => \&_update_write_concern,
+    lazy    => 1,
+    builder => '_build_w',
 );
+
+sub _build_w {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'w',
+        e => 'w',
+        d => 1,
+    );
+}
 
 =attr wtimeout
 
@@ -221,228 +795,25 @@ Defaults to 1000 (1 second).
 
 See C<w> above for more information.
 
+This may be set in a connection string with the C<wTimeoutMS> option.
+
 =cut
 
 has wtimeout => (
-    is      => 'rw',
+    is      => 'ro',
     isa     => Int,
-    default => 1000,
-    trigger => \&_update_write_concern,
+    lazy    => 1,
+    builder => '_build_wtimeout',
 );
 
-=attr j
-
-If true, the client will block until write operations have been committed to the
-server's journal. Prior to MongoDB 2.6, this option was ignored if the server was
-running without journaling. Starting with MongoDB 2.6, write operations will fail
-if this option is used when the server is running without journaling.
-
-=cut
-
-has j => (
-    is      => 'rw',
-    isa     => Bool,
-    default => 0,
-    trigger => \&_update_write_concern,
-);
-
-# server selection attributes
-
-=attr server_selection_timeout_ms
-
-This attribute specifies the amount of time in milliseconds to wait for a
-suitable server to be available for a read or write operation.  If no
-server is available within this time period, an exception will be thrown.
-
-The default is 30,000 ms.
-
-See L</SERVER SELECTION> for more details.
-
-=cut
-
-has server_selection_timeout_ms => (
-    is      => 'ro',
-    isa     => Num,
-    default => 30_000,
-);
-
-=attr local_threshold_ms
-
-The width of the 'latency window': when choosing between multiple suitable
-servers for an operation, the acceptable delta in milliseconds between shortest
-and longest average round-trip times.  Servers within the latency window are
-selected randomly.
-
-Set this to "0" to always select the server with the shortest average round
-trip time.  Set this to a very high value to always randomly choose any known
-server.
-
-Defaults to 15 ms.
-
-See L</SERVER SELECTION> for more details.
-
-=cut
-
-has local_threshold_ms => (
-    is      => 'ro',
-    isa     => Num,
-    default => 15,
-);
-
-=attr read_preference
-
-A L<MongoDB::ReadPreference> object, or a hash reference of attributes to
-construct such an object.  The default is mode 'primary'.
-
-For core documentation on read preference see
-L<http://docs.mongodb.org/manual/core/read-preference/>.
-
-B<The use of C<read_preference> as a mutator has been removed.>  Read
-preference is read-only.  If you need a different read preference for
-a database or collection, you can specify that in C<get_database> or
-C<get_collection>.
-
-=cut
-
-has read_preference => (
-    is        => 'ro',
-    isa       => ReadPreference,
-    writer    => '_set_read_preference',
-    coerce    => 1,
-    lazy      => 1,
-    builder => '_build__read_preference',
-);
-
-sub _build__read_preference {
+sub _build_wtimeout {
     my ($self) = @_;
-    return MongoDB::ReadPreference->new;
+    return $self->__uri_or_else(
+        u => 'wtimeoutms',
+        e => 'wtimeout',
+        d => 1000,
+    );
 }
-
-# server monitoring
-
-=attr heartbeat_frequency_ms
-
-The time in milliseconds between scans of all servers to check if they
-are up and update their latency.  Defaults to 60,000 ms.
-
-=cut
-
-has heartbeat_frequency_ms => (
-    is      => 'ro',
-    isa     => Num,
-    default => 60_000,
-);
-
-# authentication attributes
-
-=attr username
-
-Optional username for this client connection.  If this field is set, the client
-will attempt to authenticate when connecting to servers.  Depending on the
-L</auth_mechanism>, the L</password> field or other attributes will need to be
-set for authentication to succeed.
-
-=cut
-
-has username => (
-    is      => 'rw',
-    isa     => Str,
-    lazy    => 1,
-    builder => '_build_username',
-);
-
-=attr password
-
-If an L</auth_mechanism> requires a password, this attribute will be
-used.  Otherwise, it will be ignored.
-
-=cut
-
-has password => (
-    is      => 'rw',
-    isa     => Str,
-    lazy    => 1,
-    builder => '_build_password',
-);
-
-=attr db_name
-
-Optional.  If an L</auth_mechanism> requires a database for authentication,
-this attribute will be used.  Otherwise, it will be ignored. Defaults to
-"admin".
-
-=cut
-
-has db_name => (
-    is      => 'rw',
-    isa     => Str,
-    lazy    => 1,
-    builder => '_build_db_name',
-);
-
-=attr auth_mechanism
-
-This attribute determines how the client authenticates with the server.
-Valid values are:
-
-=for :list
-* NONE
-* DEFAULT
-* MONGODB-CR
-* MONGODB-X509
-* GSSAPI
-* PLAIN
-* SCRAM-SHA-1
-
-If not specified, then if no username is provided, it defaults to NONE.
-If a username is provided, it is set to DEFAULT, which chooses SCRAM-SHA-1 if
-available or MONGODB-CR otherwise.
-
-=cut
-
-has auth_mechanism => (
-    is      => 'ro',
-    isa     => AuthMechanism,
-    lazy    => 1,
-    builder => '_build_auth_mechanism',
-    writer  => '_set_auth_mechanism',
-);
-
-=attr auth_mechanism_properties
-
-This is an optional hash reference of authentication mechanism specific properties.
-See L</AUTHENTICATION> for details.
-
-=cut
-
-has auth_mechanism_properties => (
-    is      => 'ro',
-    isa     => HashRef,
-    lazy    => 1,
-    builder => '_build_auth_mechanism_properties',
-    writer  => '_set_auth_mechanism_properties',
-);
-
-# BSON codec
-
-=attr bson_codec
-
-An object that provides the C<encode_one> and C<decode_one> methods, such as
-from L<MongoDB::BSON>.  It may be initialized with a hash reference that will
-be coerced into a new MongoDB::BSON object.
-
-If not provided, one will be generated from deprecated configuration options.
-
-=cut
-
-has bson_codec => (
-    is      => 'ro',
-    isa     => BSONCodec,
-    coerce  => 1,
-    lazy    => 1,
-    builder => '_build_bson_codec',
-    writer  => '_set_bson_codec',
-);
 
 #--------------------------------------------------------------------------#
 # deprecated public attributes
@@ -524,104 +895,93 @@ Connection timeout is in milliseconds. Defaults to C<20000>.
 =cut
 
 has timeout => (
-    is      => 'ro',
-    isa     => Int,
-    default => 20000,
+    is        => 'ro',
+    isa       => Int,
+    default   => 20000,
 );
+
+#--------------------------------------------------------------------------#
+# computed attributes - these are private and can't be set in the
+# constructor, but have a public accessor
+#--------------------------------------------------------------------------#
+
+=method read_preference
+
+Returns a L<MongoDB::ReadPreference> object constructed from
+L</read_pref_mode> and L</read_pref_tag_sets>
+
+B<The use of C<read_preference> as a mutator has been removed.>  Read
+preference is read-only.  If you need a different read preference for
+a database or collection, you can specify that in C<get_database> or
+C<get_collection>.
+
+=cut
+
+has _read_preference => (
+    is       => 'ro',
+    isa      => ReadPreference,
+    reader   => 'read_preference',
+    init_arg => undef,
+    lazy     => 1,
+    builder  => '_build__read_preference',
+);
+
+sub _build__read_preference {
+    my ($self) = @_;
+    return MongoDB::ReadPreference->new(
+        ( $self->read_pref_mode     ? ( mode     => $self->read_pref_mode )     : () ),
+        ( $self->read_pref_tag_sets ? ( tag_sets => $self->read_pref_tag_sets ) : () ),
+    );
+}
+
+=method write_concern
+
+Returns a L<MongoDB::WriteConcern> object constructed from L</w>, L</write_concern>
+and L</j>.
+
+=cut
+
+has _write_concern => (
+    is     => 'ro',
+    isa    => InstanceOf['MongoDB::WriteConcern'],
+    reader   => 'write_concern',
+    init_arg => undef,
+    lazy     => 1,
+    builder  => '_build__write_concern',
+);
+
+sub _build__write_concern {
+    my ($self) = @_;
+    return MongoDB::WriteConcern->new(
+        ( $self->w        ? ( w        => $self->w )        : () ),
+        ( $self->wtimeout ? ( wtimeout => $self->wtimeout ) : () ),
+        ( $self->j        ? ( j        => $self->j )        : () ),
+    );
+}
 
 #--------------------------------------------------------------------------#
 # private attributes
 #--------------------------------------------------------------------------#
 
+# collects constructor options and defer them so precedence can be resolved
+# against the _uri options; unlike other private args, this needs a valid
+# init argument
+has _deferred => (
+    is       => 'ro',
+    isa      => HashRef,
+    init_arg => '_deferred',
+    default  => sub { {} },
+);
+
 has _topology => (
-    is         => 'ro',
-    isa        => InstanceOf['MongoDB::_Topology'],
-    lazy_build => 1,
-    handles    => { topology_type => 'type' },
-    clearer    => '_clear__topology',
+    is       => 'ro',
+    isa      => InstanceOf ['MongoDB::_Topology'],
+    init_arg => undef,
+    lazy     => 1,
+    builder  => '_build__topology',
+    handles  => { topology_type => 'type' },
+    clearer  => '_clear__topology',
 );
-
-has _credential => (
-    is         => 'ro',
-    isa        => InstanceOf['MongoDB::_Credential'],
-    builder    => '_build__credential',
-    lazy       => 1,
-    writer     => '_set__credential',
-);
-
-has _min_wire_version => (
-    is      => 'ro',
-    isa     => Int,
-    default => 0
-);
-
-has _max_wire_version => (
-    is      => 'ro',
-    isa     => Int,
-    default => 3
-);
-
-has _uri => (
-    is      => 'ro',
-    isa     => InstanceOf['MongoDB::_URI'],
-    lazy    => 1,
-    builder => '_build__uri',
-);
-
-has _write_concern => (
-    is     => 'ro',
-    isa    => InstanceOf['MongoDB::WriteConcern'],
-    writer => '_set_write_concern',
-);
-
-#--------------------------------------------------------------------------#
-# builders
-#--------------------------------------------------------------------------#
-
-sub _build_auth_mechanism {
-    my ($self) = @_;
-
-    if ( $self->sasl ) {
-        # XXX support deprecated legacy experimental API
-        return $self->sasl_mechanism;
-    }
-    elsif ( my $mech = $self->_uri->options->{authmechanism} ) {
-        return $mech;
-    }
-    elsif ( $self->username ) {
-        return 'DEFAULT';
-    }
-    else {
-        return 'NONE';
-    }
-}
-
-sub _build_auth_mechanism_properties {
-    my ($self) = @_;
-    my $service_name = $self->_uri->options->{'authmechanism.service_name'};
-    return {
-        ( defined $service_name ? ( SERVICE_NAME => $service_name ) : () ),
-    };
-}
-
-# skipping op_char unless $MongoDB::BSON::char is not '$' is an optimization
-sub _build_bson_codec {
-    my ($self) = @_;
-    return MongoDB::BSON->new(
-        dbref_callback => sub {
-            my $doc = shift;
-            return MongoDB::DBRef->new(
-                client => $self,
-                ref    => $doc->{'$ref'},
-                id     => $doc->{'$id'},
-                db     => $doc->{'$db'},
-            );
-        },
-        dt_type         => $self->dt_type,
-        prefer_numeric  => $MongoDB::BSON::looks_like_number || 0,
-        ( $MongoDB::BSON::char ne '$' ? ( op_char => $MongoDB::BSON::char ) : () ),
-    );
-}
 
 sub _build__topology {
     my ($self) = @_;
@@ -638,8 +998,8 @@ sub _build__topology {
         server_selection_timeout_ms => $self->server_selection_timeout_ms,
         local_threshold_ms          => $self->local_threshold_ms,
         heartbeat_frequency_ms      => $self->heartbeat_frequency_ms,
-        max_wire_version            => $self->_max_wire_version,
-        min_wire_version            => $self->_min_wire_version,
+        max_wire_version            => MAX_WIRE_VERSION,
+        min_wire_version            => MIN_WIRE_VERSION,
         credential                  => $self->_credential,
         link_options                => {
             with_ssl   => !!$self->ssl,
@@ -648,26 +1008,13 @@ sub _build__topology {
     );
 }
 
-sub _build_connect_type {
-    my ($self) = @_;
-    return
-      exists $self->_uri->options->{connect} ? $self->_uri->options->{connect} : 'none';
-}
-
-sub _build_db_name {
-    my ($self) = @_;
-    return $self->_uri->options->{authsource} || $self->_uri->db_name;
-}
-
-sub _build_password {
-    my ($self) = @_;
-    return $self->_uri->password;
-}
-
-sub _build_username {
-    my ($self) = @_;
-    return $self->_uri->username;
-}
+has _credential => (
+    is       => 'ro',
+    isa      => InstanceOf ['MongoDB::_Credential'],
+    init_arg => undef,
+    lazy     => 1,
+    builder  => '_build__credential',
+);
 
 sub _build__credential {
     my ($self) = @_;
@@ -682,6 +1029,14 @@ sub _build__credential {
     return $cred;
 }
 
+has _uri => (
+    is       => 'ro',
+    isa      => InstanceOf ['MongoDB::_URI'],
+    init_arg => undef,
+    lazy     => 1,
+    builder  => '_build__uri',
+);
+
 sub _build__uri {
     my ($self) = @_;
     if ( $self->host =~ m{^mongodb://} ) {
@@ -695,6 +1050,48 @@ sub _build__uri {
     }
 }
 
+#--------------------------------------------------------------------------#
+# Constructor customization
+#--------------------------------------------------------------------------#
+
+# these attributes are lazy, built from either _uri->options or from
+# _config_options captured in BUILDARGS
+my @deferred_options = qw(
+  auth_mechanism
+  auth_mechanism_properties
+  connect_type
+  connect_timeout_ms
+  db_name
+  heartbeat_frequency_ms
+  j
+  local_threshold_ms
+  max_time_ms
+  read_pref_mode
+  read_pref_tag_sets
+  replica_set_name
+  server_selection_timeout_ms
+  socket_check_interval_ms
+  socket_timeout_ms
+  ssl
+  username
+  password
+  w
+  wtimeout
+);
+
+around BUILDARGS => sub {
+    my $orig = shift;
+    my $class = shift;
+    my $hr = $class->$orig(@_);
+    my $deferred = {};
+    for my $k ( @deferred_options ) {
+        $deferred->{$k} = delete $hr->{$k}
+          if exists $hr->{$k};
+    }
+    $hr->{_deferred} = $deferred;
+    return $hr;
+};
+
 sub BUILD {
     my ($self, $opts) = @_;
 
@@ -705,25 +1102,12 @@ sub BUILD {
         MongoDB::UsageError->throw("Connect type 'direct' cannot be used with multiple addresses: @addresses");
     }
 
-    my $options = $uri->options;
+    # resolve and validate all deferred attributes
+    $self->$_ for @deferred_options;
 
-    # Add options from URI
-    $self->_set_ssl(_str_to_bool($options->{ssl}))  if exists $options->{ssl};
-##    $self->timeout($options->{connecttimeoutms})    if exists $options->{connecttimeoutms};
-    $self->w($options->{w})                         if exists $options->{w};
-    $self->wtimeout($options->{wtimeoutms})         if exists $options->{wtimeoutms};
-    $self->j(_str_to_bool($options->{journal}))     if exists $options->{journal};
-
-    $self->_update_write_concern;
-
-    if ( exists $options->{readpreference} ) {
-        my $ts = $options->{readpreferencetags};
-        my $rp = MongoDB::ReadPreference->new(
-            mode => $options->{readpreference},
-            ( $ts ? ( tag_sets => $ts ) : () ),
-        );
-        $self->_set_read_preference($rp);
-    }
+    # resolve and validate read pref and write concern
+    $self->read_preference;
+    $self->write_concern;
 
     # Add error handler to codec if user didn't provide their own
     unless ( $self->bson_codec->error_callback ) {
@@ -752,12 +1136,21 @@ sub BUILD {
 # helper functions
 #--------------------------------------------------------------------------#
 
-sub _str_to_bool {
-    my $str = shift;
-    MongoDB::UsageError->throw("cannot convert undef to bool") unless defined $str;
-    my $ret = $str eq "true" ? 1 : $str eq "false" ? 0 : undef;
-    return $ret unless !defined $ret;
-    MongoDB::UsageError->throw("expected boolean string 'true' or 'false' but instead received '$str'");
+sub __uri_or_else {
+    my ( $self, %spec ) = @_;
+    my $uri_options = $self->_uri->options;
+    my $deferred    = $self->_deferred;
+    my ( $u, $e, $default ) = @spec{qw/u e d/};
+    return
+        exists $uri_options->{$u} ? $uri_options->{$u}
+      : exists $deferred->{$e}    ? $deferred->{$e}
+      :                             $default;
+}
+
+sub __string {
+    local $_;
+    my ($first) = grep { defined && length } @_;
+    return $first || '';
 }
 
 #--------------------------------------------------------------------------#
@@ -862,20 +1255,6 @@ sub _try_op {
 }
 
 #--------------------------------------------------------------------------#
-# write concern methods
-#--------------------------------------------------------------------------#
-
-sub _update_write_concern {
-    my ($self) = @_;
-    my $wc = MongoDB::WriteConcern->new(
-        w        => $self->w,
-        wtimeout => $self->wtimeout,
-        ( $self->j ? ( j => $self->j ) : () ),
-    );
-    $self->_set_write_concern($wc);
-}
-
-#--------------------------------------------------------------------------#
 # database helper methods
 #--------------------------------------------------------------------------#
 
@@ -929,7 +1308,7 @@ sub get_database {
     my ( $self, $database_name, $options ) = @_;
     return MongoDB::Database->new(
         read_preference => $self->read_preference,
-        write_concern   => $self->_write_concern,
+        write_concern   => $self->write_concern,
         bson_codec      => $self->bson_codec,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options

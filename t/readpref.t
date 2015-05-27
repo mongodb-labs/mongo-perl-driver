@@ -54,7 +54,7 @@ subtest "read preference connection string" => sub {
 
 subtest "read preference propagation" => sub {
     for my $m (@modes) {
-        my $conn2 = build_client( read_preference => { mode => $m } );
+        my $conn2 = build_client( read_pref_mode => $m );
         my $db2   = $conn2->get_database( $testdb->name );
         my $coll2 = $db2->get_collection("test_coll");
         my $cur   = $coll2->find( {} );
@@ -83,11 +83,9 @@ subtest "error cases" => sub {
     like(
         exception {
             build_client(
-                read_preference => {
-                    mode     => 'primary',
-                    tag_sets => [ { use => 'production' } ],
-                }
-              )
+                read_pref_mode     => 'primary',
+                read_pref_tag_sets => [ { use => 'production' } ],
+            )
         },
         qr/A tag set list is not allowed with read preference mode 'primary'/,
         'primary cannot be combined with a tag set list'

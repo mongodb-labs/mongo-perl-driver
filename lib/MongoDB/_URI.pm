@@ -78,16 +78,22 @@ sub _build_valid_options {
     return {
         map { lc($_) => 1 } qw(
             authMechanism
-            authMechanism.SERVICE_NAME
-            connect
+            authMechanismProperties
             connectTimeoutMS
+            connect
+            heartbeatFrequencyMS
             journal
+            localThresholdMS
+            maxTimeMS
             readPreference
             readPreferenceTags
             replicaSet
+            serverSelectionTimeoutMS
+            socketCheckIntervalMS
+            socketTimeoutMS
             ssl
             w
-            wtimeoutMS
+            wTimeoutMS
         )
     };
 }
@@ -99,13 +105,13 @@ sub _unescape_all {
     return $str;
 }
 
-sub _parse_tag_set {
-    my ($string) = @_;
+sub _parse_doc {
+    my ($name, $string) = @_;
     my $set = {};
     for my $tag ( split /,/, $string ) {
         if ( $tag =~ /\S/ ) {
             my @kv = map { s{^\s*}{}; s{\s*$}{}; $_ } split /:/, $tag, 2;
-            MongoDB::UsageError->throw("readPreferenceTagSet '$tag' is not a key:value pair")
+            MongoDB::UsageError->throw("in option '$name', '$tag' is not a key:value pair")
               unless @kv == 2;
             $set->{$kv[0]} = $kv[1];
         }
@@ -147,10 +153,17 @@ sub BUILD {
                 (my $lc_k = $k) =~ tr[A-Z][a-z];
                 if ( !$valid->{$lc_k} ) {
                     warn "Unsupported option '$k' in URI $uri\n";
+                    next;
                 }
-                if ( $lc_k eq 'readpreferencetags' ) {
+                if ( $lc_k eq 'authmechanismproperties' ) {
+                    $parsed{$lc_k} = _parse_doc($k,$v);
+                }
+                elsif ( $lc_k eq 'readpreferencetags' ) {
                     $parsed{$lc_k} ||= [];
-                    push @{$parsed{$lc_k}}, _parse_tag_set($v);
+                    push @{$parsed{$lc_k}}, _parse_doc($k,$v);
+                }
+                elsif ( $lc_k eq 'ssl' || $lc_k eq 'journal' ) {
+                    $parsed{$lc_k} = __str_to_bool($k, $v);
                 }
                 else {
                     $parsed{$lc_k} = $v;
@@ -173,6 +186,16 @@ sub BUILD {
     }
 
     return;
+}
+
+sub __str_to_bool {
+    my ($k, $str) = @_;
+    MongoDB::UsageError->throw("cannot convert undef to bool for key '$k'")
+      unless defined $str;
+    # check for "true" and "false" (case-insensitively)
+    my $ret = $str eq "true" ? 1 : $str eq "false" ? 0 : undef;
+    return $ret if defined $ret;
+    MongoDB::UsageError->throw("expected boolean string 'true' or 'false' for key '$k' but instead received '$str'");
 }
 
 use overload
