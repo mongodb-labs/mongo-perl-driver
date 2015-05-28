@@ -59,12 +59,13 @@ sub new {
     MongoDB::UsageError->throw("new requires 'host:port' address argument")
       unless defined($host) && length($host) && defined($port) && length($port);
     my $self = bless {
-        host        => $host,
-        port        => $port,
-        address     => "$host:$port",
-        timeout     => 60,
-        with_ssl    => 0,
-        SSL_options => {},
+        host            => $host,
+        port            => $port,
+        address         => "$host:$port",
+        connect_timeout => 20,
+        socket_timeout  => 30,
+        with_ssl        => 0,
+        SSL_options     => {},
         ( $args ? (%$args) : () ),
     }, $class;
     return $self;
@@ -87,7 +88,7 @@ sub connect {
         $self->{local_address} ? ( LocalAddr => $self->{local_address} ) : (),
         Proto   => 'tcp',
         Type    => SOCK_STREAM,
-        Timeout => $self->{timeout},
+        Timeout => $self->{connect_timeout},
     ) or MongoDB::NetworkError->throw(qq/Could not connect to '$host:$port': $@\n/);
 
     binmode( $self->{fh} )
@@ -304,7 +305,7 @@ sub _read_bytes {
 
 sub _do_timeout {
     my ( $self, $type, $timeout ) = @_;
-    $timeout = $self->{timeout}
+    $timeout = $self->{socket_timeout}
       unless defined $timeout && $timeout >= 0;
 
     my $fd = fileno $self->{fh};
