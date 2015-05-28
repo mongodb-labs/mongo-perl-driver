@@ -35,16 +35,14 @@ has uri => (
 
 has username => (
     is => 'ro',
-    isa => Str,
+    isa => Any,
     writer => '_set_username',
-    default => '',
 );
 
 has password => (
     is => 'ro',
-    isa => Str,
+    isa => Any,
     writer => '_set_password',
-    default => '',
 );
 
 has db_name => (
@@ -172,7 +170,7 @@ sub BUILD {
             $result{options} = \%parsed;
         }
 
-        delete $result{username} unless defined $result{username} && length $result{username};
+        delete $result{username} unless defined $result{username};
         delete $result{password} unless defined $result{password}; # can be empty string
         delete $result{db_name} unless defined $result{db_name} && length $result{db_name};
     }

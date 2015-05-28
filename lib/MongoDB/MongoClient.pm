@@ -441,7 +441,10 @@ has password => (
 
 sub _build_password {
     my ($self) = @_;
-    return __string( $self->_uri->password, $self->_deferred->{password} );
+    return
+        defined( $self->_uri->password )        ? $self->_uri->password
+      : defined( $self->_deferred->{password} ) ? $self->_deferred->{password}
+      :                                           '';
 }
 
 =attr port
@@ -731,7 +734,11 @@ has username => (
 
 sub _build_username {
     my ($self) = @_;
-    return __string( $self->_uri->username, $self->_deferred->{username} );
+
+    return
+        defined( $self->_uri->username )        ? $self->_uri->username
+      : defined( $self->_deferred->{username} ) ? $self->_deferred->{username}
+      :                                           '';
 }
 
 =attr w

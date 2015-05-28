@@ -14,7 +14,6 @@
 #  limitations under the License.
 #
 
-
 use strict;
 use warnings;
 use Test::More;
@@ -28,91 +27,42 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db/;
 
-my $conn = build_client();
+my $conn   = build_client();
 my $testdb = get_test_db($conn);
 
 ok( $conn->connected, "client is connected" );
-ok( !build_client( host => "mongodb://localhost:9" )->connected,
-    "bogus client not connected" );
+isa_ok( $conn, 'MongoDB::MongoClient' );
 
-is(
-    exception { MongoDB::MongoClient->new(host => 'localhost', port => 1, ssl => $ENV{MONGO_SSL}); },
-    undef,
-    'no exception on connection failure during topology scan'
-);
-
-SKIP: {
-    skip "connecting to default host/port won't work with a remote db", 13 if exists $ENV{MONGOD};
+subtest "bad seedlist" => sub {
+    my $conn2;
 
     is(
-        exception { $conn = MongoDB::MongoClient->new(ssl => $ENV{MONGO_SSL}); },
+        exception {
+            $conn2 = build_client(
+                host                     => 'localhost',
+                port                     => 1,
+                connection_timeout_ms    => 1000,
+                server_selection_timeout => 1,
+            );
+        },
         undef,
-        'successful connection'
-    ) ;
-
-    isa_ok($conn, 'MongoDB::MongoClient');
-
-    is($conn->host, 'mongodb://localhost:27017', 'host default value');
-    is($conn->db_name, '', 'db_name default value');
-
-    # just make sure a couple timeouts work
-    my $to = MongoDB::MongoClient->new('timeout' => 1, ssl => $ENV{MONGO_SSL});
-    $to = MongoDB::MongoClient->new('timeout' => 123, ssl => $ENV{MONGO_SSL});
-    $to = MongoDB::MongoClient->new('timeout' => 2000000, ssl => $ENV{MONGO_SSL});
-
-    # test conn format
-    is(
-        exception { $conn = MongoDB::MongoClient->new("host" => "mongodb://localhost:27017", ssl => $ENV{MONGO_SSL}); },
-        undef,
-        'connected'
+        'no exception on construction for bad port'
     );
 
-    is(
-        exception { $conn = MongoDB::MongoClient->new("host" => "mongodb://localhost:27017,", ssl => $ENV{MONGO_SSL}); },
-        undef,
-        'extra comma'
-    );
+    ok( !$conn2->connected, "bad port reports not connected" );
+};
 
-    {
-        is(
-            exception {
-                my $ip = 27020;
-                while ((exists $ENV{DB_PORT} && $ip eq $ENV{DB_PORT}) ||
-                    (exists $ENV{DB_PORT2} && $ip eq $ENV{DB_PORT2})) {
-                    $ip++;
-                }
-                my $conn2 = MongoDB::MongoClient->new("host" => "mongodb://localhost:".$ip.",localhost:".($ip+1).",localhost", ssl => $ENV{MONGO_SSL});
-            },
-            undef,
-            'last in line'
-        );
-    }
+subtest "get_database and check names" => sub {
+    my $db = $conn->get_database( $testdb->name );
+    isa_ok( $db, 'MongoDB::Database', 'get_database' );
 
-    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/example_db')->db_name, 'example_db', 'connection uri database');
-    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost,/example_db')->db_name, 'example_db', 'connection uri database trailing comma');
-    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/example_db?')->db_name, 'example_db', 'connection uri database trailing question');
-    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost,localhost:27020,localhost:27021/example_db')->db_name, 'example_db', 'connection uri database, many hosts');
-    is(MongoDB::MongoClient->new('host' => 'mongodb://localhost/?')->db_name, '', 'connection uri no database');
-    is(MongoDB::MongoClient->new('host' => 'mongodb://:@localhost/?')->db_name, '', 'connection uri empty extras');
-}
+    $db->get_collection('test_collection')->insert_one( { foo => 42 } );
 
-# get_database and drop 
-{
-    my $db = $conn->get_database($testdb->name);
-    isa_ok($db, 'MongoDB::Database', 'get_database');
-
-    $db->get_collection('test_collection')->insert_one({ foo => 42 });
-
-    ok((grep { /testdb/ } $conn->database_names), 'database_names');
+    ok( ( grep { /testdb/ } $conn->database_names ), 'database_names' );
 
     my $result = $db->drop;
-    is(ref $result, 'HASH', $result);
-    is($result->{'ok'}, 1, 'db was dropped');
-}
-
-
-# TODO: won't work on master/slave until SERVER-2329 is fixed
-# ok(!(grep { $_ eq 'test_database' } $conn->database_names), 'database got dropped');
+    is( $result->{'ok'}, 1, 'db was dropped' );
+};
 
 subtest "wire protocol versions" => sub {
     is $conn->MIN_WIRE_VERSION, 0, 'default min wire version';
@@ -124,7 +74,7 @@ subtest "wire protocol versions" => sub {
     $conn2->_topology->{max_wire_version} = 101;
 
     like(
-        exception { $conn2->send_admin_command([is_master => 1]) },
+        exception { $conn2->send_admin_command( [ is_master => 1 ] ) },
         qr/Incompatible wire protocol/i,
         'exception on wire protocol'
     );

@@ -297,6 +297,14 @@ subtest "username and password" => sub {
     );
     is( $mc->username, "scully",  "username from URI" );
     is( $mc->password, "skeptic", "password from URI" );
+
+    $mc = _mc(
+        host     => 'mongodb://:@localhost/',
+        username => "mulder",
+        password => "trustno1"
+    );
+    is( $mc->username, "",  "username from URI" );
+    is( $mc->password, "", "password from URI" );
 };
 
 subtest w => sub {

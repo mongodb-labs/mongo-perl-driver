@@ -24,19 +24,32 @@ use Test::Warn;
 use MongoDB::_URI;
 
 subtest "localhost" => sub {
+    my @hostpairs = ('localhost:27017');
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://localhost');
-    my @hostpairs = ('localhost:27017');
-
     is_deeply($uri->hostpairs, \@hostpairs);
+
+    $uri = MongoDB::_URI->new( uri => 'mongodb://localhost,');
+    is_deeply($uri->hostpairs, \@hostpairs, "trailing comma");
 };
 
-subtest "localhost trailing comma" => sub {
+subtest "db_name" => sub {
 
-    my $uri = MongoDB::_URI->new( uri => 'mongodb://localhost,');
-    my @hostpairs = ('localhost:27017');
+    my $uri = MongoDB::_URI->new( uri => 'mongodb://localhost/example_db');
+    is($uri->db_name, "example_db", "parse db_name");
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    $uri = MongoDB::_URI->new( uri => 'mongodb://localhost,/example_db');
+    is($uri->db_name, "example_db", "parse db_name with trailing comma on host");
+
+    $uri = MongoDB::_URI->new( uri => 'mongodb://localhost/example_db?');
+    is($uri->db_name, "example_db", "parse db_name with trailing ?");
+
+    $uri = MongoDB::_URI->new( uri => 'mongodb://localhost,localhost:27020,localhost:27021/example_db');
+    is($uri->db_name, "example_db", "parse db_name, many hosts");
+
+    $uri = MongoDB::_URI->new( uri => 'mongodb://localhost/?');
+    is($uri->db_name, "", "no db_name with trailing ?");
+
 };
 
 subtest "localhost with username/password" => sub {
@@ -49,6 +62,7 @@ subtest "localhost with username/password" => sub {
     is($uri->password, 'foobar');
 };
 
+# XXX this should really be illegal, I think, but the regex allows it
 subtest "localhost with username only" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://fred@localhost');
@@ -56,7 +70,7 @@ subtest "localhost with username only" => sub {
 
     is_deeply($uri->hostpairs, \@hostpairs);
     is($uri->username, 'fred');
-    is($uri->password, '');
+    is($uri->password, undef);
 };
 
 subtest "localhost with username/password and db" => sub {
@@ -140,6 +154,13 @@ subtest "percent encoded username and password" => sub {
     is($uri->username, 'dog:dogston');
     is($uri->password, 'p@ssword');
     is_deeply($uri->hostpairs, \@hostpairs);
+};
+
+subtest "empty username and password" => sub {
+
+    my $uri = MongoDB::_URI->new( uri => 'mongodb://:@localhost');
+    is($uri->username, '', "empty username");
+    is($uri->password, '', "empty password");
 };
 
 subtest "case normalization" => sub {
