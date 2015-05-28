@@ -534,7 +534,8 @@ Valid options include:
 * C<limit> – the maximum number of documents to return.
 * C<maxTimeMS> – the maximum amount of time to allow the query to run. If
   C<$maxTimeMS> also exists in the modifiers document, the C<maxTimeMS> field
-  overwrites C<$maxTimeMS>.
+  overwrites C<$maxTimeMS>. (Note, this will be ignored for servers before
+  version 2.6.)
 * C<modifiers> – a hash reference of L<query
   modifiers|http://docs.mongodb.org/manual/reference/operator/query-modifier/>
   modifying the output or behavior of a query.
@@ -616,7 +617,7 @@ include:
 
 =for :list
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
-  command to run.
+  command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<sort> – an L<ordered document|/Ordered document> defining the order in which
   to return matching documents. If C<$orderby> also exists in the modifiers
   document, the sort field overwrites C<$orderby>.  See docs for
@@ -666,7 +667,7 @@ A hash reference of options may be provided. Valid keys include:
 
 =for :list
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
-  command to run.
+  command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<projection> - a hash reference defining fields to return. See "L<limit
   fields to
   return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
@@ -753,7 +754,7 @@ A hash reference of options may be provided. Valid keys include:
 
 =for :list
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
-  command to run.
+  command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<projection> - a hash reference defining fields to return. See "L<limit
   fields to
   return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
@@ -801,7 +802,7 @@ A hash reference of options may be provided. Valid keys include:
 * C<batchSize> – the number of documents to return per batch.
 * C<explain> – if true, return a single document with execution information.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
-  command to run.
+  command to run.  (Note, this will be ignored for servers before version 2.6.)
 
 B<Note> MongoDB 2.6+ added the '$out' pipeline operator.  If this operator is
 used to write aggregation results directly to a collection, an empty result
@@ -856,7 +857,7 @@ A hash reference of options may be provided. Valid keys include:
   must be a string, array reference, hash reference or L<Tie::IxHash> object.
 * C<limit> – the maximum number of documents to count.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
-  command to run.
+  command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<skip> – the number of documents to skip before counting documents.
 
 B<NOTE>: On a sharded cluster, C<count> can result in an inaccurate count if
@@ -885,7 +886,7 @@ sub count {
     return $res->{n};
 }
 
-=method distinct 
+=method distinct
 
     $result = $coll->count( $fieldname );
     $result = $coll->count( $fieldname, $filter );
@@ -901,7 +902,7 @@ A hash reference of options may be provided. Valid keys include:
 
 =for :list
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
-  command to run.
+  command to run.  (Note, this will be ignored for servers before version 2.6.)
 
 See documentation for the L<distinct
 command|http://docs.mongodb.org/manual/reference/command/distinct/> for

@@ -69,12 +69,17 @@ sub execute {
     my ( $self, $link, $topology ) = @_;
 
     my $options = $self->options;
+    my $is_2_6 = $link->accepts_wire_version(2);
+
+    # maxTimeMS isn't available until 2.6 and the aggregate command
+    # will reject it as unrecognized
+    delete $options->{maxTimeMS} unless $is_2_6;
 
     # If 'cursor' is explicitly false, we disable using cursors, even
     # for MongoDB 2.6+.  This allows users operating with a 2.6+ mongos
     # and pre-2.6 mongod in shards to avoid fatal errors.  This
     # workaround should be removed once MongoDB 2.4 is no longer supported.
-    my $use_cursor = $link->accepts_wire_version(2)
+    my $use_cursor = $is_2_6
       && ( !exists( $options->{cursor} ) || $options->{cursor} );
 
     # batchSize is not a command parameter itself like other options

@@ -23,13 +23,13 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db server_type server_version/;
 
-my $conn = build_client();
-my $testdb = get_test_db($conn);
-my $server_type = server_type($conn);
+my $conn           = build_client();
+my $testdb         = get_test_db($conn);
+my $server_type    = server_type($conn);
 my $server_version = server_version($conn);
 
-plan skip_all => "maxTimeMS not available before 2.6"
-  unless $server_version >= v2.6.0;
+##plan skip_all => "maxTimeMS not available before 2.6"
+##  unless $server_version >= v2.6.0;
 
 my $param = eval {
     $conn->get_database('admin')
@@ -60,20 +60,15 @@ subtest "expected behaviors" => sub {
     like( exception { $coll->find->max_time_ms(-1)->next },
         qr/non-negative/, "find->max_time_ms(-1) throws exception" );
 
-    is(
-        exception {
-            my $doc = $coll->find_one( { '$query' => { _id => 1 }, '$maxTimeMS' => 5000 } );
-        },
-        undef,
-        "find_one with \$query and \$maxTimeMS works"
-    );
+    is( exception { $coll->find( {}, { maxTimeMS => 5000 } ) },
+        undef, "find with maxTimeMS" );
 
     is(
         exception {
-            my $doc = $testdb->run_command( [ count => $coll->name, maxTimeMS => 5000 ] );
+            my $doc = $coll->find_one( { _id => 1 }, undef, { maxTimeMS => 5000 } );
         },
         undef,
-        "count command with maxTimeMS works"
+        "find_one with maxTimeMS works"
     );
 
     is(
@@ -87,9 +82,60 @@ subtest "expected behaviors" => sub {
         "aggregate helper with maxTimeMS works"
     );
 
+    is(
+        exception {
+            my $doc = $coll->count( {}, { maxTimeMS => 5000 } );
+        },
+        undef,
+        "count helper with maxTimeMS works"
+    );
+
+    is(
+        exception {
+            my $doc = $coll->distinct( 'a', {}, { maxTimeMS => 5000 } );
+        },
+        undef,
+        "distinct helper with maxTimeMS works"
+    );
+
+    is(
+        exception {
+            my $doc = $coll->find_one_and_replace(
+                { _id    => 22 },
+                { x      => 1 },
+                { upsert => 1, maxTimeMS => 5000 }
+            );
+        },
+        undef,
+        "find_one_and_replace helper with maxTimeMS works"
+    );
+
+    is(
+        exception {
+            my $doc = $coll->find_one_and_update(
+                { _id    => 23 },
+                { '$set' => { x => 1 } },
+                { upsert => 1, maxTimeMS => 5000 }
+            );
+        },
+        undef,
+        "find_one_and_update helper with maxTimeMS works"
+    );
+
+    is(
+        exception {
+            my $doc = $coll->find_one_and_delete( { _id => 23 }, { maxTimeMS => 5000 } );
+        },
+        undef,
+        "find_one_and_delete helper with maxTimeMS works"
+    );
+
 };
 
 subtest "force maxTimeMS failures" => sub {
+    plan skip_all => "maxTimeMS not available before 2.6"
+      unless $server_version >= v2.6.0;
+
     plan skip_all => "enableTestCommands is off"
       unless $param && $param->{enableTestCommands};
 
@@ -97,8 +143,8 @@ subtest "force maxTimeMS failures" => sub {
       if $server_type eq 'Mongos';
 
     # low batchSize to force multiple batches to get all docs
-    my $cursor = $coll->find( {}, { batchSize => 5, maxTimeMS => 5000} )->result;
-    $cursor->next;           # before turning on fail point
+    my $cursor = $coll->find( {}, { batchSize => 5, maxTimeMS => 5000 } )->result;
+    $cursor->next; # before turning on fail point
 
     is(
         exception {
@@ -123,8 +169,22 @@ subtest "force maxTimeMS failures" => sub {
     );
 
     like(
+        exception { $coll->find( {}, { maxTimeMS => 10 } )->next },
+        qr/exceeded time limit/,
+        , "find with maxTimeMS"
+    );
+
+    like(
         exception {
-            my $doc = $testdb->run_command( [ count => $coll->name, maxTimeMS => 10 ] );
+            my $doc = $coll->find_one( { _id => 1 }, undef, { maxTimeMS => 10 } );
+        },
+        qr/exceeded time limit/,
+        "find_one with maxTimeMS works"
+    );
+
+    like(
+        exception {
+            my $doc = $coll->count( {}, { maxTimeMS => 10 } );
         },
         qr/exceeded time limit/,
         "count command with maxTimeMS times out getting results"
@@ -139,6 +199,54 @@ subtest "force maxTimeMS failures" => sub {
         },
         qr/exceeded time limit/,
         "aggregate helper with maxTimeMS times out getting results"
+    );
+
+    like(
+        exception {
+            my $doc = $coll->count( {}, { maxTimeMS => 10 } );
+        },
+        qr/exceeded time limit/,
+        "count helper with maxTimeMS works"
+    );
+
+    like(
+        exception {
+            my $doc = $coll->distinct( 'a', {}, { maxTimeMS => 10 } );
+        },
+        qr/exceeded time limit/,
+        "distinct helper with maxTimeMS works"
+    );
+
+    like(
+        exception {
+            my $doc = $coll->find_one_and_replace(
+                { _id    => 22 },
+                { x      => 1 },
+                { upsert => 1, maxTimeMS => 10 }
+            );
+        },
+        qr/exceeded time limit/,
+        "find_one_and_replace helper with maxTimeMS works"
+    );
+
+    like(
+        exception {
+            my $doc = $coll->find_one_and_update(
+                { _id    => 23 },
+                { '$set' => { x => 1 } },
+                { upsert => 1, maxTimeMS => 10 }
+            );
+        },
+        qr/exceeded time limit/,
+        "find_one_and_update helper with maxTimeMS works"
+    );
+
+    like(
+        exception {
+            my $doc = $coll->find_one_and_delete( { _id => 23 }, { maxTimeMS => 10 } );
+        },
+        qr/exceeded time limit/,
+        "find_one_and_delete helper with maxTimeMS works"
     );
 
     is(
