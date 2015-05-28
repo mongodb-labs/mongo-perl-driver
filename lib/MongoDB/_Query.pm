@@ -160,11 +160,18 @@ sub as_query_op {
         $query->STORE( $k, $v );
     }
 
-    # if these exists, they overwrite any earlier modifers
-    for my $k (qw/maxTimeMS comment/) {
-        next unless my $v = $self->$k;
-        $query->STORE( "\$$k", $v );
+    # if comment exists, it overwrites any earlier modifers
+    if ( my $v = $self->comment ) {
+        $query->STORE( '$comment' => $v );
     }
+
+    # if maxTimeMS exists, it overwrites any earlier modifers
+    if ( my $v = $self->maxTimeMS ) {
+        # omit for $cmd* queries
+        $query->STORE( '$maxTimeMS' => $v )
+          unless $self->coll_name =~ /\A\$cmd/;
+    }
+
     $query->STORE( '$orderby', $self->sort ) if $self->sort->Keys;
 
     # if no modifers were added and there is no 'query' key in '$query'

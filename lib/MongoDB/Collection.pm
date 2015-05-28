@@ -109,6 +109,22 @@ has write_concern => (
     coerce   => 1,
 );
 
+=attr max_time_ms
+
+Specifies the default maximum amount of time in milliseconds that the
+server should use for working on a query.
+
+B<Note>: this will only be used for server versions 2.6 or greater, as that
+was when the C<$maxTimeMS> meta-operator was introduced.
+
+=cut
+
+has max_time_ms => (
+    is      => 'ro',
+    isa     => NonNegNum,
+    required => 1,
+);
+
 =attr bson_codec
 
 An object that provides the C<encode_one> and C<decode_one> methods, such
@@ -577,6 +593,11 @@ sub find {
     # backwards compatible sort option for deprecated 'query' alias
     $options->{sort} = delete $options->{sort_by} if $options->{sort_by};
 
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
+
     # coerce to IxHash
     __ixhash($options, 'sort');
 
@@ -636,6 +657,12 @@ sub find_one {
         Optional [MaybeHashRef],
     );
     my ( $self, $filter, $projection, $options ) = $find_one_args->(@_);
+    $options ||= {};
+
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
 
     # coerce to IxHash
     __ixhash($options, 'sort');
@@ -685,6 +712,11 @@ sub find_one_and_delete {
 
     # rename projection -> fields
     $options->{fields} = delete $options->{projection} if exists $options->{projection};
+
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
 
     # coerce to IxHash
     __ixhash($options, 'sort');
@@ -825,6 +857,11 @@ sub aggregate {
         $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
     }
 
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
+
     # read preferences are ignored if the last stage is $out
     my ($last_op) = keys %{ $pipeline->[-1] };
     my $read_pref = $last_op eq '$out' ? undef : $self->read_preference;
@@ -876,6 +913,11 @@ sub count {
     $filter  ||= {};
     $options ||= {};
 
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
+
     # string is OK so we check ref, not just exists
     __ixhash($options, 'hint') if ref $options->{hint};
 
@@ -917,6 +959,11 @@ sub distinct {
     my ( $self, $fieldname, $filter, $options ) = $distinct_args->(@_);
     $filter ||= {};
     $options ||= {};
+
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
 
     my $op = MongoDB::Op::_Distinct->new(
         db_name         => $self->database->name,
@@ -1297,6 +1344,11 @@ sub _find_one_and_update_or_replace {
 
     # rename projection -> fields
     $options->{fields} = delete $options->{projection} if exists $options->{projection};
+
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
 
     # coerce to IxHash
     __ixhash($options, 'sort');

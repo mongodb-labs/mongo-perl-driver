@@ -1,0 +1,5 @@
+---
+seq:
+    - seq: t/00-report-mongod.t
+    - seq: t/max_time_ms.t
+    - par: **

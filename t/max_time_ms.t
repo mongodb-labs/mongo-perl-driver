@@ -28,8 +28,12 @@ my $testdb         = get_test_db($conn);
 my $server_type    = server_type($conn);
 my $server_version = server_version($conn);
 
-##plan skip_all => "maxTimeMS not available before 2.6"
-##  unless $server_version >= v2.6.0;
+# Test::Harness 3.31 supports the t/testrules.yml file to ensure that
+# this test file won't be run in parallel other tests, since turning on
+# a fail point will interfere with other tests.
+if ( $ENV{HARNESS_VERSION} < 3.31 ) {
+    plan skip_all => "not safe to run fail points before Test::Harness 3.31";
+}
 
 my $param = eval {
     $conn->get_database('admin')
@@ -159,19 +163,19 @@ subtest "force maxTimeMS failures" => sub {
     like(
         exception { @foo = $cursor->all },
         qr/exceeded time limit/,
-        "existing cursor with max_time_ms times out getting results"
+        "existing cursor with max_time_ms times out"
     ) or diag explain \@foo;
 
     like(
         exception { $coll->find()->max_time_ms(10)->next },
         qr/exceeded time limit/,
-        "new cursor with max_time_ms times out getting results"
+        "new cursor with max_time_ms times out"
     );
 
     like(
         exception { $coll->find( {}, { maxTimeMS => 10 } )->next },
         qr/exceeded time limit/,
-        , "find with maxTimeMS"
+        , "find with maxTimeMS times out"
     );
 
     like(
@@ -179,7 +183,7 @@ subtest "force maxTimeMS failures" => sub {
             my $doc = $coll->find_one( { _id => 1 }, undef, { maxTimeMS => 10 } );
         },
         qr/exceeded time limit/,
-        "find_one with maxTimeMS works"
+        "find_one with maxTimeMS times out"
     );
 
     like(
@@ -187,7 +191,7 @@ subtest "force maxTimeMS failures" => sub {
             my $doc = $coll->count( {}, { maxTimeMS => 10 } );
         },
         qr/exceeded time limit/,
-        "count command with maxTimeMS times out getting results"
+        "count command with maxTimeMS times out"
     );
 
     like(
@@ -198,7 +202,7 @@ subtest "force maxTimeMS failures" => sub {
             );
         },
         qr/exceeded time limit/,
-        "aggregate helper with maxTimeMS times out getting results"
+        "aggregate helper with maxTimeMS times out"
     );
 
     like(
@@ -206,7 +210,7 @@ subtest "force maxTimeMS failures" => sub {
             my $doc = $coll->count( {}, { maxTimeMS => 10 } );
         },
         qr/exceeded time limit/,
-        "count helper with maxTimeMS works"
+        "count helper with maxTimeMS times out"
     );
 
     like(
@@ -214,7 +218,7 @@ subtest "force maxTimeMS failures" => sub {
             my $doc = $coll->distinct( 'a', {}, { maxTimeMS => 10 } );
         },
         qr/exceeded time limit/,
-        "distinct helper with maxTimeMS works"
+        "distinct helper with maxTimeMS times out"
     );
 
     like(
@@ -226,7 +230,7 @@ subtest "force maxTimeMS failures" => sub {
             );
         },
         qr/exceeded time limit/,
-        "find_one_and_replace helper with maxTimeMS works"
+        "find_one_and_replace helper with maxTimeMS times out"
     );
 
     like(
@@ -238,7 +242,7 @@ subtest "force maxTimeMS failures" => sub {
             );
         },
         qr/exceeded time limit/,
-        "find_one_and_update helper with maxTimeMS works"
+        "find_one_and_update helper with maxTimeMS times out"
     );
 
     like(
@@ -246,8 +250,102 @@ subtest "force maxTimeMS failures" => sub {
             my $doc = $coll->find_one_and_delete( { _id => 23 }, { maxTimeMS => 10 } );
         },
         qr/exceeded time limit/,
-        "find_one_and_delete helper with maxTimeMS works"
+        "find_one_and_delete helper with maxTimeMS times out"
     );
+
+    subtest "max_time_ms via constructor" => sub {
+        like(
+            exception {
+                my $doc = $coll->count( {} );
+            },
+            qr/exceeded time limit/,
+            "count helper with default client maxTimeMS works"
+        );
+
+        my $conn2   = build_client( max_time_ms => 0 );
+        my $testdb2 = get_test_db($conn2);
+        my $coll2   = $testdb2->get_collection("test_collection");
+
+        is(
+            exception { my $doc = $coll2->count( {} ) },
+            undef,
+            "count helper with maxTimeMS 0 from client works"
+        );
+    };
+
+    subtest "zero disables maxTimeMS" => sub {
+        is( exception { $coll->find->max_time_ms(0)->next }, undef, "find->max_time_ms(0)" );
+        is( exception { $coll->find( {}, { maxTimeMS => 5000 } ) },
+            undef, "find with MaxTimeMS zero works" );
+
+        is(
+            exception {
+                my $doc = $coll->find_one( { _id => 1 }, undef, { maxTimeMS => 0 } );
+            },
+            undef,
+            "find_one with MaxTimeMS zero works"
+        );
+
+        is(
+            exception {
+                my $doc = $coll->aggregate(
+                    [ { '$project' => { name => 1, count => 1 } } ],
+                    { maxTimeMS => 0 },
+                );
+            },
+            undef,
+            "aggregate helper with MaxTimeMS zero works"
+        );
+
+        is(
+            exception {
+                my $doc = $coll->count( {}, { maxTimeMS => 0 } );
+            },
+            undef,
+            "count helper with MaxTimeMS zero works"
+        );
+
+        is(
+            exception {
+                my $doc = $coll->distinct( 'a', {}, { maxTimeMS => 0 } );
+            },
+            undef,
+            "distinct helper with MaxTimeMS zero works"
+        );
+
+        is(
+            exception {
+                my $doc = $coll->find_one_and_replace(
+                    { _id    => 22 },
+                    { x      => 1 },
+                    { upsert => 1, maxTimeMS => 0 }
+                );
+            },
+            undef,
+            "find_one_and_replace helper with MaxTimeMS zero works"
+        );
+
+        is(
+            exception {
+                my $doc = $coll->find_one_and_update(
+                    { _id    => 23 },
+                    { '$set' => { x => 1 } },
+                    { upsert => 1, maxTimeMS => 0 }
+                );
+            },
+            undef,
+            "find_one_and_update helper with MaxTimeMS zero works"
+        );
+
+        is(
+            exception {
+                my $doc = $coll->find_one_and_delete( { _id => 23 }, { maxTimeMS => 0 } );
+            },
+            undef,
+            "find_one_and_delete helper with MaxTimeMS zero works"
+        );
+
+    };
 
     is(
         exception {

@@ -401,7 +401,7 @@ This may be set in a connection string with the C<maxTimeMS> option.
 
 has max_time_ms => (
     is      => 'ro',
-    isa     => Num,
+    isa     => NonNegNum,
     lazy    => 1,
     builder => '_build_max_time_ms',
 );
@@ -1310,6 +1310,7 @@ sub get_database {
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
         bson_codec      => $self->bson_codec,
+        max_time_ms     => $self->max_time_ms,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options
         _client       => $self,

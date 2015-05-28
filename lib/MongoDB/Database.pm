@@ -84,6 +84,22 @@ has write_concern => (
     coerce   => 1,
 );
 
+=attr max_time_ms
+
+Specifies the maximum amount of time in milliseconds that the server should use
+for working on a query.
+
+B<Note>: this will only be used for server versions 2.6 or greater, as that
+was when the C<$maxTimeMS> meta-operator was introduced.
+
+=cut
+
+has max_time_ms => (
+    is      => 'ro',
+    isa     => NonNegNum,
+    required => 1,
+);
+
 =attr bson_codec
 
 An object that provides the C<encode_one> and C<decode_one> methods, such as
@@ -148,6 +164,7 @@ sub get_collection {
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
         bson_codec      => $self->bson_codec,
+        max_time_ms     => $self->max_time_ms,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options
         database => $self,
@@ -181,6 +198,7 @@ sub get_gridfs {
     return MongoDB::GridFS->new(
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
+        max_time_ms     => $self->max_time_ms,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options
         _database => $self,
