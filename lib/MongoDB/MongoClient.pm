@@ -1013,57 +1013,6 @@ sub fsync_unlock {
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
 
-=method authenticate (DEPRECATED)
-
-    $client->authenticate($dbname, $username, $password, $is_digest);
-
-B<This legacy method is deprecated but kept for backwards compatibility.>
-
-Instead, authentication credentials should be provided as constructor arguments
-or as part of the connection URI.
-
-When C<authenticate> is called, it disconnects the client (if any connections
-had been made), sets client attributes as if the username and password had been
-used initially in the client constructor, and reconnects to the configured
-servers.  The authentication mechanism will be MONGO-CR for servers before
-version 3.0 and SCRAM-SHA-1 for 3.0 or later.
-
-Passwords are expected to be cleartext and will be automatically hashed before
-sending over the wire, unless C<$is_digest> is true, which will assume you
-already did the proper hashing yourself.
-
-See also the L</AUTHENTICATION> section.
-
-=cut
-
-sub authenticate {
-    my ( $self, $db_name, $username, $password, $is_digest ) = @_;
-
-    # set client properties
-    $self->_set_auth_mechanism('DEFAULT');
-    $self->_set_auth_mechanism_properties( {} );
-    $self->db_name($db_name);
-    $self->username($username);
-    $self->password($password);
-
-    my $cred = MongoDB::_Credential->new(
-        mechanism            => $self->auth_mechanism,
-        mechanism_properties => $self->auth_mechanism_properties,
-        username             => $self->username,
-        password             => $self->password,
-        source               => $self->db_name,
-        pw_is_digest         => $is_digest,
-    );
-    $self->_set__credential($cred);
-
-    # ensure that we've authenticated by clearing the topology and trying a
-    # command that opens a socket
-    $self->_clear__topology;
-    $self->send_admin_command( { ismaster => 1 } );
-
-    return 1;
-}
-
 __PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
 1;
