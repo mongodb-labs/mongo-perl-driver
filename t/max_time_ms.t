@@ -75,16 +75,21 @@ subtest "expected behaviors" => sub {
         "find_one with maxTimeMS works"
     );
 
-    is(
-        exception {
-            my $doc = $coll->aggregate(
-                [ { '$project' => { name => 1, count => 1 } } ],
-                { maxTimeMS => 5000 },
-            );
-        },
-        undef,
-        "aggregate helper with maxTimeMS works"
-    );
+    SKIP: {
+        skip "aggregate not available until MongoDB v2.2", 1
+            unless $server_version > v2.2.0;
+
+        is(
+            exception {
+                my $doc = $coll->aggregate(
+                    [ { '$project' => { name => 1, count => 1 } } ],
+                    { maxTimeMS => 5000 },
+                );
+            },
+            undef,
+            "aggregate helper with maxTimeMS works"
+        );
+    }
 
     is(
         exception {
@@ -194,16 +199,21 @@ subtest "force maxTimeMS failures" => sub {
         "count command with maxTimeMS times out"
     );
 
-    like(
-        exception {
-            my $doc = $coll->aggregate(
-                [ { '$project' => { name => 1, count => 1 } } ],
-                { maxTimeMS => 10 },
-            );
-        },
-        qr/exceeded time limit/,
-        "aggregate helper with maxTimeMS times out"
-    );
+    SKIP: {
+        skip "aggregate not available until MongoDB v2.2", 1
+            unless $server_version > v2.2.0;
+
+        like(
+            exception {
+                my $doc = $coll->aggregate(
+                    [ { '$project' => { name => 1, count => 1 } } ],
+                    { maxTimeMS => 10 },
+                );
+            },
+            qr/exceeded time limit/,
+            "aggregate helper with maxTimeMS times out"
+        );
+    }
 
     like(
         exception {
@@ -286,16 +296,20 @@ subtest "force maxTimeMS failures" => sub {
             "find_one with MaxTimeMS zero works"
         );
 
-        is(
-            exception {
-                my $doc = $coll->aggregate(
-                    [ { '$project' => { name => 1, count => 1 } } ],
-                    { maxTimeMS => 0 },
-                );
-            },
-            undef,
-            "aggregate helper with MaxTimeMS zero works"
-        );
+        SKIP: {
+            skip "aggregate not available until MongoDB v2.2", 1
+                unless $server_version > v2.2.0;
+            is(
+                exception {
+                    my $doc = $coll->aggregate(
+                        [ { '$project' => { name => 1, count => 1 } } ],
+                        { maxTimeMS => 0 },
+                    );
+                },
+                undef,
+                "aggregate helper with MaxTimeMS zero works"
+            );
+        }
 
         is(
             exception {
