@@ -1002,6 +1002,7 @@ sub _build__topology {
         uri                         => $self->_uri,
         bson_codec                  => $self->bson_codec,
         type                        => $type,
+        replica_set_name            => $self->replica_set_name,
         server_selection_timeout_ms => $self->server_selection_timeout_ms,
         local_threshold_ms          => $self->local_threshold_ms,
         heartbeat_frequency_ms      => $self->heartbeat_frequency_ms,

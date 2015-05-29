@@ -224,15 +224,18 @@ subtest "read_pref_mode and read_pref_tag_sets" => sub {
 subtest replica_set_name => sub {
     my $mc = _mc();
     is( $mc->replica_set_name, "", "default replica_set_name" );
+    is( $mc->_topology->replica_set_name, '', "topology object matches" );
 
     $mc = _mc( replica_set_name => "repl1" );
     is( $mc->replica_set_name, "repl1", "replica_set_name" );
+    is( $mc->_topology->replica_set_name, "repl1", "topology object matches" );
 
     $mc = _mc(
         host             => 'mongodb://localhost/?replicaSet=repl2',
         replica_set_name => "repl1",
     );
     is( $mc->replica_set_name, "repl2", "replicaSet" );
+    is( $mc->_topology->replica_set_name, "repl2", "topology object matches" );
 };
 
 subtest socket_timeout_ms => sub {

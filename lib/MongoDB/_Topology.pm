@@ -171,8 +171,7 @@ sub BUILD {
     my ($self) = @_;
     my $type = $self->type;
 
-    if ( my $set_name = $self->uri->options->{replicaset} ) {
-        $self->_set_replica_set_name($set_name);
+    if ( my $set_name = $self->replica_set_name ) {
         if ( $type eq 'Single' || $type eq 'ReplicaSetNoPrimary' ) {
             # these are valid, so nothing to do here
         }

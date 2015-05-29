@@ -50,6 +50,7 @@ sub create_mock_topology {
     return MongoDB::_Topology->new(
         uri => $uri,
         type => $type,
+        replica_set_name => $uri->options->{replicaset} || '',
         max_wire_version => 2,
         min_wire_version => 0,
         credential => MongoDB::_Credential->new( mechanism => 'NONE' ),
