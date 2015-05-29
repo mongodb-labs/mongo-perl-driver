@@ -41,7 +41,7 @@ subtest "bad seedlist" => sub {
             $conn2 = build_client(
                 host                     => 'localhost',
                 port                     => 1,
-                connection_timeout_ms    => 1000,
+                connect_timeout_ms       => 1000,
                 server_selection_timeout => 1,
             );
         },
