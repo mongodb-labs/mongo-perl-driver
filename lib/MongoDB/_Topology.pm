@@ -592,6 +592,10 @@ sub _update_topology_from_link {
             query      => [ ismaster => 1 ],
             bson_codec => $self->bson_codec,
         );
+        # just for this command, use connect timeout as socket timeout;
+        # this violates encapsulation, but requires less API modification
+        # to support this specific exception to the socket timeout
+        local $link->{socket_timeout} = $link->{connect_timeout};
         $op->execute( $link )->output;
     }
     catch {
