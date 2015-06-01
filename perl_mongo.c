@@ -1312,12 +1312,12 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
 
       value = new_object_from_pairs(
         dt_type,
-        "year",   newSViv( dt->tm_year + 1900 ),
-        "month",  newSViv( dt->tm_mon  +    1 ),
-        "day",    newSViv( dt->tm_mday ),
-        "hour",   newSViv( dt->tm_hour ),
-        "minute", newSViv( dt->tm_min ),
-        "second", newSViv( dt->tm_sec ),
+        "year",   sv_2mortal(newSViv( dt->tm_year + 1900 )),
+        "month",  sv_2mortal(newSViv( dt->tm_mon  +    1 )),
+        "day",    sv_2mortal(newSViv( dt->tm_mday )),
+        "hour",   sv_2mortal(newSViv( dt->tm_hour )),
+        "minute", sv_2mortal(newSViv( dt->tm_min )),
+        "second", sv_2mortal(newSViv( dt->tm_sec )),
         NULL
       );
     } else if ( strcmp( dt_type, "DateTime" ) == 0 ) {
