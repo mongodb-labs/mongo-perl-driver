@@ -634,6 +634,12 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
         ixhash_to_bson(&child, sv, opts, stack);
         bson_append_document_end(bson, &child);
       }
+      /* Time::Moment */
+      else if (sv_isa(sv, "Time::Moment")) {
+        SV *sec = sv_2mortal(call_perl_reader(sv, "epoch"));
+        SV *ms = sv_2mortal(call_perl_reader(sv, "millisecond"));
+        bson_append_date_time(bson, key, -1, (int64_t)SvIV(sec)*1000+SvIV(ms));
+      }
       /* DateTime */
       else if (sv_isa(sv, "DateTime")) {
         SV *sec, *ms, *tz, *tz_name;
@@ -1290,12 +1296,9 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     break;
   }
   case BSON_TYPE_DATE_TIME: {
-    double ms_i = bson_iter_date_time(iter);
-
+    const int64_t msec = bson_iter_date_time(iter);
     SV *tempsv;
     const char *dt_type = NULL;
-
-    ms_i /= 1000.0;
 
     if ( (tempsv = _hv_fetchs_sv(opts, "dt_type")) && SvOK(tempsv) ) {
       dt_type = SvPV_nolen(tempsv);
@@ -1303,11 +1306,16 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
 
     if ( dt_type == NULL ) { 
       /* raw epoch */
-      value = newSViv(ms_i);
+      value = newSViv(msec / 1000);
+    } else if ( strcmp( dt_type, "Time::Moment" ) == 0 ) {
+      SV *tm = sv_2mortal(newSVpvs("Time::Moment"));
+      SV *sec = sv_2mortal(newSViv(msec / 1000));
+      SV *nos = sv_2mortal(newSViv((msec % 1000) * 1000000));
+      value = call_method_va(tm, "from_epoch", 2, sec, nos);
     } else if ( strcmp( dt_type, "DateTime::Tiny" ) == 0 ) {
       time_t epoch;
       struct tm *dt;
-      epoch = bson_iter_time_t(iter);
+      epoch = msec / 1000;
       dt = gmtime( &epoch );
 
       value = new_object_from_pairs(
@@ -1321,7 +1329,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
         NULL
       );
     } else if ( strcmp( dt_type, "DateTime" ) == 0 ) {
-      SV *epoch = sv_2mortal(newSVnv(ms_i));
+      SV *epoch = sv_2mortal(newSVnv((NV)msec / 1000));
       value = call_method_with_pairs(
         sv_2mortal(newSVpv(dt_type,0)), "from_epoch", "epoch", epoch, NULL
       );
