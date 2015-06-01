@@ -829,8 +829,8 @@ sub _build_wtimeout {
 =attr dt_type (DEPRECATED AND READ-ONLY)
 
 Sets the type of object which is returned for DateTime fields. The default is
-L<DateTime>. Other acceptable values are L<DateTime::Tiny> and C<undef>. The
-latter will give you the raw epoch value rather than an object.
+L<DateTime>. Other acceptable values are L<DateTime::Tiny>, L<Time::Moment> and
+C<undef>. The latter will give you the raw epoch value rather than an object.
 
 This will be used to construct L</bson_codec> object if one is not provided.
 

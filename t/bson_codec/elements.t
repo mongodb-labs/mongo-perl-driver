@@ -27,6 +27,9 @@ use MongoDB;
 use MongoDB::OID;
 use MongoDB::DBRef;
 
+use lib 't/lib';
+use TestBSON;
+
 my $oid = MongoDB::OID->new("554ce5e4096df3be01323321");
 my $bin_oid = pack( "C*", map hex($_), unpack( "(a2)12", "$oid" ) );
 
@@ -57,27 +60,6 @@ my $dbref = MongoDB::DBRef->new( db => 'test', ref => 'test_coll', id => '123' )
 my $dbref_cb = sub {
     my $hr = shift;
     return [ map { $_ => $hr->{$_} } sort keys %$hr ];
-};
-
-use constant {
-    PERL58    => $] lt '5.010',
-    HAS_INT64 => $Config{use64bitint}
-};
-
-use constant {
-    P_INT32 => PERL58 ? "l" : "l<",
-    P_INT64 => PERL58 ? "q" : "q<",
-    MAX_LONG      => 2147483647,
-    MIN_LONG      => -2147483647 - 1,
-    BSON_DOUBLE   => "\x01",
-    BSON_STRING   => "\x02",
-    BSON_DOC      => "\x03",
-    BSON_OID      => "\x07",
-    BSON_DATETIME => "\x09",
-    BSON_NULL     => "\x0A",
-    BSON_REGEXP   => "\x0B",
-    BSON_INT32    => "\x10",
-    BSON_INT64    => "\x12",
 };
 
 my $class = "MongoDB::BSON";
@@ -249,76 +231,5 @@ subtest "bigint over/underflow" => sub {
 };
 
 done_testing;
-
-#--------------------------------------------------------------------------#
-# helper functions
-#--------------------------------------------------------------------------#
-
-sub is_bin {
-    my ( $got, $exp, $label ) = @_;
-    $label ||= '';
-    s{([^[:graph:]])}{sprintf("\\x{%02x}",ord($1))}ge for $got, $exp;
-    local $Test::Builder::Level = $Test::Builder::Level + 1;
-    is( $got, $exp, $label );
-}
-
-sub _doc {
-    my ($string) = shift;
-    return pack( P_INT32, 5 + length($string) ) . $string . "\x00";
-}
-
-sub _cstring { return $_[0] . "\x00" }
-BEGIN { *_ename = \&_cstring }
-
-sub _double { return pack( "d", shift ) }
-
-sub _int32 { return pack( P_INT32, shift ) }
-
-sub _int64 { return pack( P_INT64, shift ) }
-
-sub _string {
-    my ($string) = shift;
-    return pack( P_INT32, 1 + length($string) ) . $string . "\x00";
-}
-
-sub _datetime {
-    my $dt = shift;
-    if (HAS_INT64) {
-        return pack( P_INT64, 1000 * $dt->epoch + $dt->millisecond );
-    }
-    else {
-        my $big = Math::BigInt->new( $dt->epoch );
-        $big->bmul(1000);
-        $big->badd( $dt->millisecond );
-        return _pack_bigint($big);
-    }
-}
-
-sub _regexp {
-    my ( $pattern, $flags ) = @_;
-    return _cstring($pattern) . _cstring($flags);
-}
-
-sub _dbref {
-    my $dbref = shift;
-    #<<< No perltidy
-    return _doc(
-          BSON_STRING . _ename('$ref') . _string($dbref->ref)
-        . BSON_STRING . _ename('$id' ) . _string($dbref->id)
-        . BSON_STRING . _ename('$db' ) . _string($dbref->db)
-    );
-    #>>>
-}
-
-# pack to int64_t
-sub _pack_bigint {
-    my $big    = shift;
-    my $as_hex = $big->as_hex; # big-endian hex
-    substr( $as_hex, 0, 2, '' ); # remove "0x"
-    my $len = length($as_hex);
-    substr( $as_hex, 0, 0, "0" x ( 16 - $len ) ) if $len < 16; # pad to quad length
-    my $packed = pack( "H*", $as_hex );                        # packed big-endian
-    return reverse($packed);                                   # reverse to little-endian
-}
 
 # vim: ts=4 sts=4 sw=4 et:

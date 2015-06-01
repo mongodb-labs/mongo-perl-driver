@@ -61,8 +61,9 @@ has dbref_callback => (
 =attr dt_type
 
 Sets the type of object which is returned for BSON DateTime fields. The default
-is L<DateTime>. Other acceptable values are L<DateTime::Tiny> and C<undef>. The
-latter will give you the raw epoch value rather than an object.
+is L<DateTime>. Other acceptable values are L<Time::Moment>, L<DateTime::Tiny>
+and C<undef>. The latter will give you the raw epoch value rather than an
+object.
 
 # XXX add MongoDB::BSON::DateTime support and make it the default
 
@@ -322,7 +323,7 @@ sub decode_one {
 
 =method clone
 
-    $codec->clone( dt_type => 'DateTime::Tiny' );
+    $codec->clone( dt_type => 'Time::Moment' );
 
 Constructs a copy of the original codec, but allows changing
 attributes in the copy.

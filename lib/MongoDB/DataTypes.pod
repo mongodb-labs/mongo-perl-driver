@@ -206,12 +206,12 @@ references or L<Tie::IxHash>s.
 
 =head2 Dates
 
-The L<DateTime> or L<DateTime::Tiny> packages can be used to insert
-and query for dates. Dates stored in the database will be returned as
-instances of one of these classes, depending on the C<dt_type> setting
-of the L<MongoDB::BSON> codec object:
+The L<DateTime>, L<Time::Moment> or L<DateTime::Tiny> packages can be used
+to insert and query for dates. Dates stored in the database will be
+returned as instances of one of these classes, depending on the C<dt_type>
+setting of the L<MongoDB::BSON> codec object:
 
-    $codec = MongoDB::BSON->new( dt_type => 'DateTime::Tiny' );
+    $codec = MongoDB::BSON->new( dt_type => 'Time::Moment' );
     $client = MongoDB::MongoClient->new( bson_codec => $codec );
 
 An example of storing and retrieving a date:
@@ -231,22 +231,30 @@ An example of querying for a range of dates:
 
     my $cursor = $collection->query({event => {'$gt' => $start, '$lt' => $end}});
 
-B<Warning: creating Perl L<DateTime> objects is extremely slow.  Consider saving
-dates as numbers or C<DateTime::Tiny> objects and converting the numbers to L<DateTime>s only when needed.  A single
-L<DateTime> field can make deserialization up to 10 times slower.>
+B<Warning: creating Perl L<DateTime> objects is extremely slow.>  Consider
+saving dates as epoch seconds and converting the numbers to objects only when
+needed.  A single L<DateTime> field can make deserialization up to 10 times
+slower.
 
 For example, you could use the L<time> function to store seconds since the epoch:
 
     $collection->update($criteria, {'$set' => {"last modified" => time()}})
 
-This will be faster to deserialize.
+This will be B<MUCH> faster to deserialize.  Or, for more precision, consider
+using the L<Time::HiRes time/Time::HiRes#time> function to get epoch
+seconds as a floating-point value.
+
+The L<Time::Moment> module is substantially faster than L<DateTime> and
+might be a convenient alternative over using integers or floating point
+numbers and manually inflating to an object before use.  Consider
+benchmarking using C<dt_type> set to L<Time::Moment> against using numbers
+and inflating on demand.
 
 Note that (at least, as of C<DateTime::Tiny> version 1.04) there is no
 time-zone attribute for C<DateTime::Tiny> objects.  We therefore
 consider all such times to be in the C<UTC> time zone.  Likewise,
 C<DateTime::Tiny> has no notion of milliseconds (yet?), so the
 milliseconds portion of the datetime will be set to zero.
-
 
 =head2 Regular Expressions
 
