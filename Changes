@@ -8,6 +8,8 @@
     MongoDB::BulkWriteResult to ease detection of when that attributes is
     supported by a server or not.
 
+  - PERL-506 Added support for serializing/deserializing Time::Moment objects
+
   [Bug fixes]
 
   - PERL-536 fix GridFS to stop throwing an error when a known empty file has

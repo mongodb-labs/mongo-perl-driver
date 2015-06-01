@@ -480,6 +480,12 @@ Int32 (whereas previously these were always encoded as BSON Int64).
 Math::BigInt objects will always be encoded as BSON Int64, which allows
 users to force 64-bit encoding if desired.
 
+=head3 Added support for Time::Moment
+
+L<Time::Moment> is a much faster replacement for the venerable L<DateTime>
+module.  The BSON codec will serialize L<Time::Moment> objects correctly
+and can use that module as an argument for the C<dt_type> codec attribute.
+
 =head1 DEPRECATED METHODS
 
 Deprecated options and methods may be removed in a future release.  Their
