@@ -23,18 +23,11 @@ use Tie::IxHash;
 use MongoDB;
 use MongoDB::OID;
 
+use lib 't/lib';
+use TestBSON;
+
 my $oid = MongoDB::OID->new("554ce5e4096df3be01323321");
 my $bin_oid = pack( "C*", map hex($_), unpack( "(a2)12", "$oid" ) );
-
-use constant PERL58 => $] lt '5.010';
-
-use constant {
-    P_INT32 => PERL58 ? "l" : "l<",
-    BSON_DOUBLE => "\x01",
-    BSON_STRING => "\x02",
-    BSON_OID    => "\x07",
-    BSON_NULL   => "\x0A",
-};
 
 my $class = "MongoDB::BSON";
 
@@ -235,29 +228,6 @@ sub error_case {
             $error, "exception for Tie::IxHash" );
     };
 }
-
-sub is_bin {
-    my ( $got, $exp, $label ) = @_;
-    $label ||= '';
-    s{([[:cntrl:]])}{sprintf("\\x{%02x}",ord($1))}ge for $got, $exp;
-    local $Test::Builder::Level = $Test::Builder::Level + 1;
-    is( $got, $exp, $label );
-}
-
-sub _doc {
-    my ($string) = shift;
-    return pack( P_INT32, 5 + length($string) ) . $string . "\x00";
-}
-
-sub _cstring { return $_[0] . "\x00" }
-BEGIN { *_ename = \&_cstring }
-
-sub _string {
-    my ($string) = shift;
-    return pack( P_INT32, 1 + length($string) ) . $string . "\x00";
-}
-
-sub _double { return pack( "d", shift ) }
 
 done_testing;
 
