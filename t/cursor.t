@@ -32,15 +32,18 @@ my $testdb = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type = server_type($conn);
 
-my $coll;
+my $coll = $testdb->get_collection('test_collection');
+my $coll2 = $testdb->get_collection("cap_collection");
+
+# after dropping coll2, must run command below to make it capped
+my $create_capped_cmd = [ create => "cap_collection", capped => 1, size => 10000 ];
+
 my $cursor;
 my @values;
 
-$testdb->drop;
-
 # test setup
 {
-    $coll = $testdb->get_collection('test_collection');
+    $coll->drop;
 
     $coll->insert_one({ foo => 9,  bar => 3, shazbot => 1 });
     $coll->insert_one({ foo => 2,  bar => 5 });
@@ -93,12 +96,10 @@ $testdb->drop;
     is ($values[2]->{foo}, 9);
 }
 
-$testdb->drop;
+$coll->drop;
 
 # next and all
 {
-    $coll = $testdb->get_collection('test_collection');
-
     is($coll->query->next, undef, 'test undef');
     is_deeply([$coll->query->all], []);
 
@@ -136,6 +137,7 @@ $testdb->drop;
 }
 
 # snapshot
+# XXX tests don't fail if snapshot is turned off ?!?
 {
     my $cursor3 = $coll->query->snapshot(1);
     is($cursor3->has_next, 1, 'check has_next');
@@ -340,31 +342,28 @@ $testdb->drop;
         $coll->insert_one({x => $i});
     }
 
-    $cursor = $testdb->get_collection( 'test_collection' )->query({}, { limit => 10, skip => 0, sort_by => {created => 1 }});
+    $cursor = $coll->query({}, { limit => 10, skip => 0, sort_by => {created => 1 }});
     is($cursor->count(), 5);
 }
 
 # delayed tailable cursor
 subtest "delayed tailable cursor" => sub {
-    $coll = $testdb->get_collection( 'test_collection' );
-    $coll->drop;
+    $coll2->drop;
+    $testdb->run_command($create_capped_cmd);
 
-    my $cmd = [ create => "test_collection", capped => 1, size => 10000 ];
-    $testdb->run_command($cmd);
-
-    $coll->insert_one( { x => $_ } ) for 0 .. 9;
+    $coll2->insert_one( { x => $_ } ) for 0 .. 9;
 
     # Get last doc
-    my $cursor = $coll->find()->sort({x => -1})->limit(1);
+    my $cursor = $coll2->find()->sort({x => -1})->limit(1);
     my $last_doc = $cursor->next();
 
-    $cursor = $coll->find({_id => {'$gt' => $last_doc->{_id}}})->tailable(1);
+    $cursor = $coll2->find({_id => {'$gt' => $last_doc->{_id}}})->tailable(1);
 
     # We won't get anything yet
     $cursor->next();
 
     for (my $i=10; $i < 20; $i++) {
-        $coll->insert_one({x => $i});
+        $coll2->insert_one({x => $i});
     }
 
     # We should retrieve documents here since we are tailable.
@@ -375,20 +374,17 @@ subtest "delayed tailable cursor" => sub {
 
 # tailable_await
 subtest "await data" => sub {
-    $coll = $testdb->get_collection('test_collection');
-    $coll->drop;
+    $coll2->drop;
+    $testdb->run_command($create_capped_cmd);
 
-    my $cmd = [ create => "test_collection", capped => 1, size => 10000 ];
-    $testdb->run_command($cmd);
-
-    $coll->insert_one( { x => $_ } ) for 0 .. 9;
+    $coll2->insert_one( { x => $_ } ) for 0 .. 9;
 
     # Get last doc
-    my $cursor = $coll->find()->sort( { x => -1 } )->limit(1);
+    my $cursor = $coll2->find()->sort( { x => -1 } )->limit(1);
     my $last_doc = $cursor->next();
 
     my $start = time;
-    $cursor = $coll->find( { _id => { '$gt' => $last_doc->{_id} } } )->tailable_await(1);
+    $cursor = $coll2->find( { _id => { '$gt' => $last_doc->{_id} } } )->tailable_await(1);
 
     # We won't get anything yet
     $cursor->next();
