@@ -855,15 +855,14 @@ has dt_type => (
 This option has been renamed as L</socket_timeout_ms>.  If this option is set
 and that one is not, this will be used.
 
-This value is in milliseconds and defaults to the value of
-C<$MongoDB::Cursor::timeout>.
+This value is in milliseconds and defaults to 30000.
 
 =cut
 
 has query_timeout => (
     is      => 'ro',
     isa     => Int,
-    default => sub { return $MongoDB::Cursor::timeout; },
+    default => 30000,
 );
 
 =attr sasl (DEPRECATED)

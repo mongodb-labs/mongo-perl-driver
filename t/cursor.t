@@ -229,18 +229,6 @@ $testdb->drop;
         qr/MongoDB::DatabaseError/, "check error on hint with explain" );
 }
 
-# slave_okay
-{
-    # MongoDB::Cursor::slave_okay
-    $MongoDB::Cursor::slave_okay = 1;
-    $cursor = $coll->query->next;
-
-    $MongoDB::Cursor::slave_okay = 0;
-    $cursor = $coll->query->next;
-
-    $coll->drop;
-}
-
 # count
 {
     $coll->drop;

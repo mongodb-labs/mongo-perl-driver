@@ -269,6 +269,16 @@ to 'secondaryPreferred' or clears it to 'primary'.
 Parallel scan "cursors" are now L<QueryResult> objects, with the same
 iteration methods as in v0.
 
+The C<$MongoDB::Cursor::slave_ok> global variable has been removed as part
+of the revision to read preference handling.  See the L<read
+preferences/Read preference objects and the read_preference method> section
+below for more details.
+
+The C<$MongoDB::Cursor::timeout> global variable has also been removed.
+Timeouts are set during L<MongoDB::MongoClient> configuration and are
+immutable.  See the section on L<configuration changes/MongoClient
+configuration> for more.
+
 =head2 Aggregation API
 
 On MongoDB 2.6 or later, C<aggregate> always uses a cursor to execute
@@ -284,7 +294,7 @@ versions before 2.6, passing the deprecated 'cursor' option with a false
 value will disable the use of a cursor.  This workaround is provided for
 convenience and will be removed when 2.4 is no longer supported.
 
-=head2 Read preference objects and the C<read_preference> method
+=head2 Read preference objects and the read_preference method
 
 A new L<MongoDB::ReadPreference> class is used to encapsulate read
 preference attributes.  In the v1 driver, it is constructed from the

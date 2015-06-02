@@ -242,12 +242,6 @@ subtest socket_timeout_ms => sub {
     my $mc = _mc();
     is( $mc->socket_timeout_ms, 30000, "default socket_timeout_ms" );
 
-    {
-        local $MongoDB::Cursor::timeout = 90000;
-        $mc = _mc();
-        is( $mc->socket_timeout_ms, 90000, "legacy 'query_timeout' default from global" );
-    }
-
     $mc = _mc( query_timeout => 60000, );
     is( $mc->socket_timeout_ms, 60000, "explicit 'query_timeout' as fallback" );
 

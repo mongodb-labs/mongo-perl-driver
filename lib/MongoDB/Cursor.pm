@@ -35,40 +35,6 @@ use Tie::IxHash;
 use Try::Tiny;
 use namespace::clean -except => 'meta';
 
-use constant {
-    CURSOR_ZERO => "\0" x 8,
-    FLAG_ZERO => "\0" x 4,
-};
-
-$MongoDB::Cursor::_request_id = int(rand(1000000));
-
-=head1 GLOBAL VARIABLES
-
-=head2 slave_okay
-
-    $MongoDB::Cursor::slave_okay = 1;
-
-Whether it is okay to run queries on the slave.  Defaults to 0.
-
-=cut
-
-$MongoDB::Cursor::slave_okay = 0;
-
-=head2 timeout
-
-B<Deprecated, use MongoDB::MongoClient::query_timeout instead.>
-
-How many milliseconds to wait for a response from the server.  Set to 30000
-(30 seconds) by default.  -1 waits forever (or until TCP times out, which is
-usually a long time).
-
-This value is overridden by C<MongoDB::MongoClient::query_timeout> and never
-used.
-
-=cut
-
-$MongoDB::Cursor::timeout = 30000;
-
 =attr started_iterating
 
 If this cursor has queried the database yet. Methods
