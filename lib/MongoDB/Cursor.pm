@@ -284,7 +284,7 @@ sub skip {
 
 =head2 snapshot
 
-    $cursor->snapshot;
+    $cursor->snapshot(1);
 
 Uses snapshot mode for the query.  Snapshot mode assures no duplicates are
 returned due an intervening write relocating a document.  Note that if an
@@ -297,14 +297,16 @@ Returns this cursor for chaining operations.
 
 =cut
 
-# XXX this doesn't allow turning it off!  That's inconsistent
-# with the rest of the cursor API
 sub snapshot {
-    my ($self) = @_;
+    my ($self, $bool) = @_;
+
     MongoDB::UsageError->throw("cannot set snapshot after querying")
       if $self->started_iterating;
 
-    $self->query->modifiers->{'$snapshot'} = 1;
+    MongoDB::UsageError->throw("snapshot requires a defined, boolean argument")
+      unless defined $bool;
+
+    $self->query->modifiers->{'$snapshot'} = $bool;
     return $self;
 }
 

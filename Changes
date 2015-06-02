@@ -7,6 +7,9 @@
   - PERL-470 MongoDB::Cursor globals "slave_ok" and "timeout" no longer
     have any effect and have been removed.
 
+  - PERL-471 MongoDB::Cursor 'snapshot' method now requires a boolean
+    argument.
+
   [Additions]
 
   - PERL-486 Added 'has_modified_count' method to MongoDB::UpdateResult and

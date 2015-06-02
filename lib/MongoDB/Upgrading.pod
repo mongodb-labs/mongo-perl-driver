@@ -266,6 +266,10 @@ The C<explain> cursor method no longer resets the cursor.
 The C<slave_ok> cursor method now sets the C<read_preference>
 to 'secondaryPreferred' or clears it to 'primary'.
 
+The C<snapshot> cursor method now requires a boolean argument, allowing
+it to be turned on or off before executing the query.  Calling it without
+an argument (as it was in v0) is a fatal exception.
+
 Parallel scan "cursors" are now L<QueryResult> objects, with the same
 iteration methods as in v0.
 

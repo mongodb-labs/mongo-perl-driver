@@ -137,12 +137,18 @@ $testdb->drop;
 
 # snapshot
 {
-    my $cursor3 = $coll->query->snapshot;
+    my $cursor3 = $coll->query->snapshot(1);
     is($cursor3->has_next, 1, 'check has_next');
     my $r1 = $cursor3->next;
     is($cursor3->has_next, 1, 'if this failed, the database you\'re running is old and snapshot won\'t work');
     $cursor3->next;
     is(int $cursor3->has_next, 0, 'check has_next is false');
+
+    like(
+        exception { $coll->query->snapshot },
+        qr/requires a defined, boolean argument/,
+        "snapshot exception without argument"
+    );
 }
 
 # paging
