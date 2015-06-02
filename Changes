@@ -10,6 +10,10 @@
   - PERL-471 MongoDB::Cursor 'snapshot' method now requires a boolean
     argument.
 
+  [*** Deprecations ***]
+
+  - PERL-424 MongoDB::Cursor 'count' method has been deprecated.
+
   [Additions]
 
   - PERL-486 Added 'has_modified_count' method to MongoDB::UpdateResult and

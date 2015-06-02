@@ -532,4 +532,14 @@ new MongoDB driver API.
 =for :list
 * result — has been renamed to 'output' for clarity
 
+=head2 MongoDB::Cursor
+
+=for :list
+* slave_ok — this modifier method is superseded by the 'read_preference'
+  modifier method
+* count — this is superseded by the L<MongoDB::Collection
+  count/MongoDB::Collection#count> method.  Previously, this ignored
+  skip/limit unless a true argument was passed, which was a bizarre,
+  non-intuitive and inconsistent API.
+
 =cut

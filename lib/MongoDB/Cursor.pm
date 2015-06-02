@@ -402,38 +402,6 @@ sub read_preference {
     return $self;
 }
 
-=head2 slave_okay (DEPRECATED)
-
-    $cursor->slave_okay(1);
-
-If a query can be done on a slave database server.
-
-Boolean value, defaults to 0.
-
-Returns this cursor for chaining operations.
-
-=cut
-
-sub slave_okay {
-    my ($self, $value) = @_;
-    MongoDB::UsageError->throw("cannot set slave_ok after querying")
-      if $self->started_iterating;
-
-    if ( $value ) {
-        # if not 'primary', then slave_ok is already true, so leave alone
-        if ( $self->query->read_preference->mode eq 'primary' ) {
-            # secondaryPreferred is how mongos interpretes slave_ok
-            $self->query->read_preference('secondaryPreferred');
-        }
-    }
-    else {
-        $self->query->read_preference('primary');
-    }
-
-    # XXX returning self is an API change but more consistent with other cursor methods
-    return $self;
-}
-
 =head1 QUERY INTROSPECTION AND RESET
 
 These methods run introspection methods on the query conditions and modifiers
@@ -465,48 +433,6 @@ sub explain {
 
     return $new_query->execute->next;
 }
-
-=head2 count
-
-    my $num = $cursor->count;
-    my $num = $cursor->skip(20)->count(1);
-
-Returns the number of document this query will return.  Optionally takes a
-boolean parameter, indicating that the cursor's limit and skip fields should be
-used in calculating the count.
-
-=cut
-
-sub count {
-    my ($self, $limit_skip) = @_;
-    # XXX deprecate this unintuitive API?
-
-    my $cmd = new Tie::IxHash(count => $self->query->coll_name);
-
-    $cmd->Push(query => $self->query->filter);
-
-    if ($limit_skip) {
-        $cmd->Push(limit => $self->query->limit) if $self->query->limit;
-        $cmd->Push(skip => $self->query->skip) if $self->query->skip;
-    }
-
-    if (my $hint = $self->query->modifiers->{'$hint'}) {
-        $cmd->Push(hint => $hint);
-    }
-
-    my $result = try {
-        my $db = $self->query->client->get_database( $self->query->db_name );
-        $db->run_command( $cmd, $self->query->read_preference );
-    }
-    catch {
-        # if there was an error, check if it was the "ns missing" one that means the
-        # collection hasn't been created or a real error.
-        die $_ unless /^ns missing/;
-    };
-
-    return $result ? $result->{n} : 0;
-}
-
 
 =head1 QUERY ITERATION
 
@@ -609,6 +535,60 @@ sub info {
     else {
         return { num => 0 };
     }
+}
+
+#--------------------------------------------------------------------------#
+# Deprecated methods
+#--------------------------------------------------------------------------#
+
+sub count {
+    my ($self, $limit_skip) = @_;
+    # XXX deprecate this unintuitive API?
+
+    my $cmd = new Tie::IxHash(count => $self->query->coll_name);
+
+    $cmd->Push(query => $self->query->filter);
+
+    if ($limit_skip) {
+        $cmd->Push(limit => $self->query->limit) if $self->query->limit;
+        $cmd->Push(skip => $self->query->skip) if $self->query->skip;
+    }
+
+    if (my $hint = $self->query->modifiers->{'$hint'}) {
+        $cmd->Push(hint => $hint);
+    }
+
+    my $result = try {
+        my $db = $self->query->client->get_database( $self->query->db_name );
+        $db->run_command( $cmd, $self->query->read_preference );
+    }
+    catch {
+        # if there was an error, check if it was the "ns missing" one that means the
+        # collection hasn't been created or a real error.
+        die $_ unless /^ns missing/;
+    };
+
+    return $result ? $result->{n} : 0;
+}
+
+sub slave_okay {
+    my ($self, $value) = @_;
+    MongoDB::UsageError->throw("cannot set slave_ok after querying")
+      if $self->started_iterating;
+
+    if ( $value ) {
+        # if not 'primary', then slave_ok is already true, so leave alone
+        if ( $self->query->read_preference->mode eq 'primary' ) {
+            # secondaryPreferred is how mongos interpretes slave_ok
+            $self->query->read_preference('secondaryPreferred');
+        }
+    }
+    else {
+        $self->query->read_preference('primary');
+    }
+
+    # XXX returning self is an API change but more consistent with other cursor methods
+    return $self;
 }
 
 __PACKAGE__->meta->make_immutable;
