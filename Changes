@@ -14,6 +14,8 @@
 
   - PERL-424 MongoDB::Cursor 'count' method has been deprecated.
 
+  - PERL-511 Use new CRUD method names for Bulk API and deprecate old ones
+
   [Additions]
 
   - PERL-486 Added 'has_modified_count' method to MongoDB::UpdateResult and

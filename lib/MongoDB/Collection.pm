@@ -1278,7 +1278,7 @@ sub bulk_write {
 
         # handle inserts
         if ( $method eq 'insert_one' || $method eq 'insert_many' ) {
-            $bulk->insert($_) for @$args;
+            $bulk->insert_one($_) for @$args;
         }
         else {
             my ($filter, $doc, $options) = @$args;
@@ -1287,11 +1287,11 @@ sub bulk_write {
 
             # handle deletes
             if ( $method eq 'delete_one' ) {
-                $view->remove_one;
+                $view->delete_one;
                 next;
             }
             elsif ( $method eq 'delete_many' ) {
-                $view->remove;
+                $view->delete_many;
                 next;
             }
 
@@ -1306,7 +1306,7 @@ sub bulk_write {
                 $view->update_one($doc);
             }
             elsif ( $method eq 'update_many' ) {
-                $view->update($doc);
+                $view->update_many($doc);
             }
             else {
                 MongoDB::UsageError->throw("unknown bulk operation '$method'");

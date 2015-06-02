@@ -378,14 +378,21 @@ attribute|MongoDB::MongoClient/auth_mechanism>.
 
 The old C<authenticate> method in L<MongoDB::MongoClient> has been removed.
 
-=head2 Bulk insertion
+=head2 Bulk API
+
+=head3 Bulk method names changed to match CRUD API
+
+Method names match the new CRUD API, e.g. C<insert_one> instead of
+C<insert> and so one.  The legacy names are deprecated.
+
+=head3 Bulk insertion
 
 Insertion via the bulk API will B<NOT> insert an C<_id> into the original
 document if one does not exist.  Previous documentation was not specific
 whether this was the case or if the C<_id> was added only during BSON
 encoding.
 
-=head2 Bulk write results
+=head3 Bulk write results
 
 The bulk write results class has been renamed to
 L<MongoDB::BulkWriteResult>.  It keeps C<MongoDB::WriteResult> as an empty
@@ -541,5 +548,13 @@ new MongoDB driver API.
   count/MongoDB::Collection#count> method.  Previously, this ignored
   skip/limit unless a true argument was passed, which was a bizarre,
   non-intuitive and inconsistent API.
+
+=head2 MongoDB::BulkWrite and MongoDB::BulkWriteView
+
+=for :list
+* insert — renamed to 'insert_one' for consistency with CRUD API
+* update — renamed to 'update_many' for consistency with CRUD API
+* remove — renamed to 'delete_many' for consistency with CRUD API
+* remove_one — renamed to 'delete_one' for consistency with CRUD API
 
 =cut

@@ -173,7 +173,7 @@ $coll->drop;
     $coll->indexes->create_one({'sn'=>1});
 
     my $bulk = $coll->unordered_bulk;
-    $bulk->insert({sn => $_}) for 0 .. 5000;
+    $bulk->insert_one({sn => $_}) for 0 .. 5000;
     $bulk->execute;
 
     $cursor = $coll->query;

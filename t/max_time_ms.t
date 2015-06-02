@@ -50,7 +50,7 @@ can_ok( 'MongoDB::Cursor', 'max_time_ms' );
 $coll = $testdb->get_collection("test_collection");
 
 my $bulk = $coll->ordered_bulk;
-$bulk->insert( { _id => $_ } ) for 1 .. 20;
+$bulk->insert_one( { _id => $_ } ) for 1 .. 20;
 my $err = exception { $bulk->execute };
 is( $err, undef, "inserted 20 documents for testing" );
 

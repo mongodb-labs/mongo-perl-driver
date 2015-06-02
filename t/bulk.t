@@ -78,25 +78,25 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         for my $k ( sort keys %bad_args ) {
             like(
-                exception { $bulk->insert( @{ $bad_args{$k} } ) },
-                qr/argument to insert must be a single hashref, arrayref or Tie::IxHash/,
+                exception { $bulk->insert_one( @{ $bad_args{$k} } ) },
+                qr/argument to insert_one must be a single hashref, arrayref or Tie::IxHash/,
                 "insert( $k ) throws an error"
             );
         }
 
         like(
-            exception { $bulk->insert( ['foo'] ) },
-            qr{array reference to insert must have key/value pairs},
+            exception { $bulk->insert_one( ['foo'] ) },
+            qr{array reference to insert_one must have key/value pairs},
             "insert( ['foo'] ) throws an error",
         );
 
         like(
-            exception { $bulk->find( {} )->insert( {} ) },
-            qr/^Can't locate object method "insert"/,
-            "find({})->insert({}) throws an error",
+            exception { $bulk->find( {} )->insert_one( {} ) },
+            qr/^Can't locate object method "insert_one"/,
+            "find({})->insert_one({}) throws an error",
         );
 
-        is( exception { $bulk->insert( { '$key' => 1 } ) },
+        is( exception { $bulk->insert_one( { '$key' => 1 } ) },
             undef, "queuing insertion of document with \$key is allowed" );
 
         my $err = exception { $bulk->execute };
@@ -109,7 +109,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $coll->drop;
         my $bulk = $coll->$method;
         is( $coll->count, 0, "no docs in collection" );
-        $bulk->insert( { _id => 1 } );
+        $bulk->insert_one( { _id => 1 } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on insert" ) or diag explain $err;
@@ -137,7 +137,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my $bulk = $coll->$method;
         is( $coll->count, 0, "no docs in collection" );
         my $doc = {};
-        $bulk->insert( $doc );
+        $bulk->insert_one( $doc );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on insert" ) or diag explain $err;
@@ -184,7 +184,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             EMPTY  => [],     # not in QA test
         );
 
-        for my $update (qw/update update_one/) {
+        for my $update (qw/update_many update_one/) {
             $bulk = $coll->$method;
             for my $k ( sort keys %bad_args ) {
                 like(
@@ -226,7 +226,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $coll->insert_one($_) for map { { key => $_ } } 1, 2;
         my @docs = $coll->find( {} )->all;
 
-        $bulk->find( {} )->update( { '$set' => { x => 3 } } );
+        $bulk->find( {} )->update_many( { '$set' => { x => 3 } } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on update" ) or diag explain $err;
@@ -260,8 +260,8 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $coll->insert_one($_) for map { { key => $_ } } 1, 2;
         my @docs = $coll->find( {} )->all;
 
-        $bulk->find( { key => 1 } )->update( { '$set' => { x => 1 } } );
-        $bulk->find( { key => 2 } )->update( { '$set' => { x => 2 } } );
+        $bulk->find( { key => 1 } )->update_many( { '$set' => { x => 1 } } );
+        $bulk->find( { key => 2 } )->update_many( { '$set' => { x => 2 } } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on update" ) or diag explain $err;
@@ -403,8 +403,8 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $coll->drop;
         my $bulk = $coll->$method;
 
-        $bulk->find( { key => 1 } )->update( { '$set' => { x => 1 } } );
-        $bulk->find( { key => 2 } )->upsert->update( { '$set' => { x => 2 } } );
+        $bulk->find( { key => 1 } )->update_many( { '$set' => { x => 1 } } );
+        $bulk->find( { key => 2 } )->upsert->update_many( { '$set' => { x => 2 } } );
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
@@ -429,8 +429,8 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         );
 
         $bulk = $coll->$method;
-        $bulk->find( { key => 1 } )->update( { '$set' => { x => 1 } } );
-        $bulk->find( { key => 2 } )->upsert->update( { '$set' => { x => 2 } } );
+        $bulk->find( { key => 1 } )->update_many( { '$set' => { x => 1 } } );
+        $bulk->find( { key => 2 } )->upsert->update_many( { '$set' => { x => 2 } } );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on second upsert-update" ) or diag explain $err;
         cmp_deeply(
@@ -451,7 +451,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my @docs = $coll->find( {} )->all;
 
         my $bulk = $coll->$method;
-        $bulk->find( { key => 1 } )->upsert->update( { '$set' => { x => 1 } } );
+        $bulk->find( { key => 1 } )->upsert->update_many( { '$set' => { x => 1 } } );
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
@@ -485,7 +485,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my $big_string = "a" x ( 16 * 1024 * 1024 - $server_does_bulk ? 41 : 97 );
 
         my $bulk = $coll->$method;
-        $bulk->find( { key => "1" } )->upsert->update( { '$set' => { x => $big_string } } );
+        $bulk->find( { key => "1" } )->upsert->update_many( { '$set' => { x => $big_string } } );
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
@@ -640,28 +640,28 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     };
 }
 
-note("QA-477 REMOVE");
+note("QA-477 delete_many");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
-    subtest "remove errors with $method" => sub {
+    subtest "delete_many errors with $method" => sub {
         my $bulk = $coll->$method;
 
         like(
-            exception { $bulk->remove() },
-            qr/^Can't locate object method "remove"/,
-            "remove on bulk object (without find) throws an error",
+            exception { $bulk->delete_many() },
+            qr/^Can't locate object method "delete_many"/,
+            "delete_many on bulk object (without find) throws an error",
         );
     };
 
-    subtest "remove all with $method" => sub {
+    subtest "delete_many all with $method" => sub {
         $coll->drop;
         $coll->insert_one( { key => 1 } ) for 1 .. 2;
 
         my $bulk = $coll->$method;
-        $bulk->find( {} )->remove;
+        $bulk->find( {} )->delete_many;
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on remove" ) or diag explain $err;
+        is( $err, undef, "no error on delete_many" ) or diag explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -677,16 +677,16 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         is( $coll->count, 0, "all documents removed" );
     };
 
-    subtest "remove matching with $method" => sub {
+    subtest "delete_many matching with $method" => sub {
         $coll->drop;
         $coll->insert_one( { key => $_ } ) for 1 .. 2;
 
         my $bulk = $coll->$method;
-        $bulk->find( { key => 1 } )->remove;
+        $bulk->find( { key => 1 } )->delete_many;
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on remove" ) or diag explain $err;
+        is( $err, undef, "no error on delete_many" ) or diag explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -707,28 +707,28 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     };
 }
 
-note("QA-477 REMOVE_ONE");
+note("QA-477 delete_one");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
-    subtest "remove_one errors with $method" => sub {
+    subtest "delete_one errors with $method" => sub {
         my $bulk = $coll->$method;
 
         like(
-            exception { $bulk->remove_one() },
-            qr/^Can't locate object method "remove_one"/,
-            "remove_one on bulk object (without find) throws an error",
+            exception { $bulk->delete_one() },
+            qr/^Can't locate object method "delete_one"/,
+            "delete_one on bulk object (without find) throws an error",
         );
     };
 
-    subtest "remove_one with $method" => sub {
+    subtest "delete_one with $method" => sub {
         $coll->drop;
         $coll->insert_one( { key => 1 } ) for 1 .. 2;
 
         my $bulk = $coll->$method;
-        $bulk->find( {} )->remove_one;
+        $bulk->find( {} )->delete_one;
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on remove_one" ) or diag explain $err;
+        is( $err, undef, "no error on delete_one" ) or diag explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -751,9 +751,9 @@ subtest "mixed operations, unordered" => sub {
     $coll->insert_one( { a => $_ } ) for 1 .. 2;
 
     my $bulk = $coll->initialize_unordered_bulk_op;
-    $bulk->find( { a => 1 } )->update( { '$set' => { b => 1 } } );
-    $bulk->find( { a => 2 } )->remove;
-    $bulk->insert( { a => 3 } );
+    $bulk->find( { a => 1 } )->update_many( { '$set' => { b => 1 } } );
+    $bulk->find( { a => 2 } )->delete_many;
+    $bulk->insert_one( { a => 3 } );
     $bulk->find( { a => 4 } )->upsert->update_one( { '$set' => { b => 4 } } );
 
     my ( $result, $err );
@@ -784,11 +784,11 @@ subtest "mixed operations, ordered" => sub {
     $coll->drop;
 
     my $bulk = $coll->initialize_ordered_bulk_op;
-    $bulk->insert( { a => 1 } );
+    $bulk->insert_one( { a => 1 } );
     $bulk->find( { a => 1 } )->update_one( { '$set' => { b => 1 } } );
     $bulk->find( { a => 2 } )->upsert->update_one( { '$set' => { b => 2 } } );
-    $bulk->insert( { a => 3 } );
-    $bulk->find( { a => 3 } )->remove;
+    $bulk->insert_one( { a => 3 } );
+    $bulk->find( { a => 3 } )->delete_many;
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
@@ -820,12 +820,12 @@ subtest "unordered batch with errors" => sub {
     $coll->indexes->create_one( [ a => 1 ], { unique => 1 } );
 
     my $bulk = $coll->initialize_unordered_bulk_op;
-    $bulk->insert( { b => 1, a => 1 } );
+    $bulk->insert_one( { b => 1, a => 1 } );
     $bulk->find( { b => 2 } )->upsert->update_one( { '$set' => { a => 1 } } );
     $bulk->find( { b => 3 } )->upsert->update_one( { '$set' => { a => 2 } } );
     $bulk->find( { b => 2 } )->upsert->update_one( { '$set' => { a => 1 } } );
-    $bulk->insert( { b => 4, a => 3 } );
-    $bulk->insert( { b => 5, a => 1 } );
+    $bulk->insert_one( { b => 4, a => 3 } );
+    $bulk->insert_one( { b => 5, a => 1 } );
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
@@ -883,12 +883,12 @@ subtest "ordered batch with errors" => sub {
     $coll->indexes->create_one( [ a => 1 ], { unique => 1 } );
 
     my $bulk = $coll->initialize_ordered_bulk_op;
-    $bulk->insert( { b => 1, a => 1 } );
+    $bulk->insert_one( { b => 1, a => 1 } );
     $bulk->find( { b => 2 } )->upsert->update_one( { '$set' => { a => 1 } } );
     $bulk->find( { b => 3 } )->upsert->update_one( { '$set' => { a => 2 } } );
     $bulk->find( { b => 2 } )->upsert->update_one( { '$set' => { a => 1 } } ); # fail
-    $bulk->insert( { b => 4, a => 3 } );
-    $bulk->insert( { b => 5, a => 1 } );
+    $bulk->insert_one( { b => 4, a => 3 } );
+    $bulk->insert_one( { b => 5, a => 1 } );
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
@@ -934,9 +934,9 @@ subtest "ordered batch split on size" => sub {
 
     my $bulk = $coll->initialize_ordered_bulk_op;
     my $big_string = "a" x ( 4 * 1024 * 1024 );
-    $bulk->insert( { _id => $_, a => $big_string } ) for 0 .. 5;
-    $bulk->insert( { _id => 0 } );  # will fail
-    $bulk->insert( { _id => 100 } );
+    $bulk->insert_one( { _id => $_, a => $big_string } ) for 0 .. 5;
+    $bulk->insert_one( { _id => 0 } );  # will fail
+    $bulk->insert_one( { _id => 100 } );
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
@@ -964,9 +964,9 @@ subtest "unordered batch split on size" => sub {
 
     my $bulk = $coll->initialize_unordered_bulk_op;
     my $big_string = "a" x ( 4 * 1024 * 1024 );
-    $bulk->insert( { _id => $_, a => $big_string } ) for 0 .. 5;
-    $bulk->insert( { _id => 0 } );  # will fail
-    $bulk->insert( { _id => 100 } );
+    $bulk->insert_one( { _id => $_, a => $big_string } ) for 0 .. 5;
+    $bulk->insert_one( { _id => 0 } );  # will fail
+    $bulk->insert_one( { _id => 100 } );
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
@@ -988,9 +988,9 @@ subtest "ordered batch split on number of ops" => sub {
     $coll->drop;
 
     my $bulk = $coll->initialize_ordered_bulk_op;
-    $bulk->insert( { _id => $_ } ) for 0 .. 1999;
-    $bulk->insert( { _id => 0 } );    # will fail
-    $bulk->insert( { _id => 10000 } );
+    $bulk->insert_one( { _id => $_ } ) for 0 .. 1999;
+    $bulk->insert_one( { _id => 0 } );    # will fail
+    $bulk->insert_one( { _id => 10000 } );
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
@@ -1016,9 +1016,9 @@ subtest "unordered batch split on number of ops" => sub {
     $coll->drop;
 
     my $bulk = $coll->initialize_unordered_bulk_op;
-    $bulk->insert( { _id => $_ } ) for 0 .. 1999;
-    $bulk->insert( { _id => 0 } );    # will fail
-    $bulk->insert( { _id => 10000 } );
+    $bulk->insert_one( { _id => $_ } ) for 0 .. 1999;
+    $bulk->insert_one( { _id => 0 } );    # will fail
+    $bulk->insert_one( { _id => 10000 } );
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
@@ -1041,7 +1041,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $coll->drop;
 
         my $bulk = $coll->$method;
-        $bulk->insert( {} );
+        $bulk->insert_one( {} );
 
         my $err = exception { $bulk->execute };
         is( $err, undef, "first execute succeeds" );
@@ -1075,7 +1075,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         $coll->drop;
         my $bulk = $coll->$method;
-        $bulk->insert( {} );
+        $bulk->insert_one( {} );
         my $err = exception { $bulk->execute( { w => 2 } ) };
         isa_ok( $err, 'MongoDB::DatabaseError',
             "executing write concern w > 1 throws error" );
@@ -1089,7 +1089,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $coll->drop;
         my $coll2 = $coll->clone( write_concern => { w => 2 } );
         my $bulk = $coll2->$method;
-        $bulk->insert( {} );
+        $bulk->insert_one( {} );
         my $err = exception { $bulk->execute() };
         isa_ok( $err, 'MongoDB::DatabaseError',
             "executing write concern w > 1 throws error" );
@@ -1107,8 +1107,8 @@ subtest "initialize_unordered_bulk_op: wtimeout plus duplicate keys" => sub {
 
     $coll->drop;
     my $bulk = $coll->initialize_unordered_bulk_op;
-    $bulk->insert( { _id => 1 } );
-    $bulk->insert( { _id => 1 } );
+    $bulk->insert_one( { _id => 1 } );
+    $bulk->insert_one( { _id => 1 } );
     my $err = exception { $bulk->execute( { w => $W, wtimeout => 100 } ) };
     isa_ok( $err, 'MongoDB::DuplicateKeyError', "executing throws error" );
     my $details = $err->result;
@@ -1123,9 +1123,9 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $coll->drop;
         my $bulk = $coll->$method;
 
-        $bulk->insert( { _id => 1 } );
-        $bulk->insert( { _id => 1 } );
-        $bulk->insert( { _id => 2 } ); # ensure success after failure
+        $bulk->insert_one( { _id => 1 } );
+        $bulk->insert_one( { _id => 1 } );
+        $bulk->insert_one( { _id => 2 } ); # ensure success after failure
         my ( $result, $err );
         $err = exception { $result = $bulk->execute( { w => 0 } ) };
         is( $err, undef, "execute with w = 0 doesn't throw error" )
@@ -1149,10 +1149,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         $coll->drop;
         my $bulk = $coll->$method;
-        $bulk->insert( { _id => 1 } );
-        $bulk->insert( { _id => 2 } );
-        $bulk->find( { id => 3 } )->upsert->update( { '$set' => { x => 2 } } );
-        $bulk->insert( { _id => 4 } );
+        $bulk->insert_one( { _id => 1 } );
+        $bulk->insert_one( { _id => 2 } );
+        $bulk->find( { id => 3 } )->upsert->update_many( { '$set' => { x => 2 } } );
+        $bulk->insert_one( { _id => 4 } );
         my $err = exception { $bulk->execute( { w => $W, wtimeout => 100 } ) };
         isa_ok( $err, 'MongoDB::WriteConcernError', "executing throws error" );
         my $details = $err->result;
@@ -1166,15 +1166,15 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 # Not in QA-477 -- Many methods take hashrefs, arrayrefs or Tie::IxHash
 # objects.  The following tests check that arrayrefs and Tie::IxHash are legal
 # arguments to find, insert, update, update_one and replace_one.  The
-# remove and remove_one methods take no arguments and don't need tests
+# delete_many and delete_one methods take no arguments and don't need tests
 
 note("ARRAY REFS"); # Not in QA-477 -- this is perl driver specific
 subtest "insert (ARRAY)" => sub {
     $coll->drop;
     my $bulk = $coll->initialize_ordered_bulk_op;
     is( $coll->count, 0, "no docs in collection" );
-    $bulk->insert( [ _id => 1 ] );
-    $bulk->insert( [] );
+    $bulk->insert_one( [ _id => 1 ] );
+    $bulk->insert_one( [] );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on insert" ) or diag explain $err;
@@ -1185,7 +1185,7 @@ subtest "update (ARRAY)" => sub {
     $coll->drop;
     $coll->insert_one( { _id => 1 } );
     my $bulk = $coll->initialize_ordered_bulk_op;
-    $bulk->find( [] )->update( [ '$set' => { x => 2 } ] );
+    $bulk->find( [] )->update_many( [ '$set' => { x => 2 } ] );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on update" ) or diag explain $err;
@@ -1219,9 +1219,9 @@ subtest "insert (Tie::IxHash)" => sub {
     $coll->drop;
     my $bulk = $coll->initialize_ordered_bulk_op;
     is( $coll->count, 0, "no docs in collection" );
-    $bulk->insert( Tie::IxHash->new( _id => 1 ) );
+    $bulk->insert_one( Tie::IxHash->new( _id => 1 ) );
     my $doc = Tie::IxHash->new();
-    $bulk->insert( $doc  );
+    $bulk->insert_one( $doc  );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on insert" ) or diag explain $err;
@@ -1233,7 +1233,7 @@ subtest "update (Tie::IxHash)" => sub {
     $coll->insert_one( { _id => 1 } );
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->find( Tie::IxHash->new() )
-      ->update( Tie::IxHash->new( '$set' => { x => 2 } ) );
+      ->update_many( Tie::IxHash->new( '$set' => { x => 2 } ) );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on update" ) or diag explain $err;
@@ -1270,10 +1270,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $coll->drop;
         my $bulk = $coll->$method;
 
-        $bulk->insert( { _id => 1 } );
-        $bulk->insert( { _id => 2, big => "a" x ( 16 * 1024 * 1024 ) } );
-        $bulk->insert( { _id => 3, '$bad' => 1 } );
-        $bulk->insert( { _id => 4 } );
+        $bulk->insert_one( { _id => 1 } );
+        $bulk->insert_one( { _id => 2, big => "a" x ( 16 * 1024 * 1024 ) } );
+        $bulk->insert_one( { _id => 3, '$bad' => 1 } );
+        $bulk->insert_one( { _id => 4 } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute( { w => 0 } ) };
         is( $err, undef, "execute with w = 0 doesn't throw error" )
@@ -1323,7 +1323,7 @@ subtest "replace with custom op_char" => sub {
     my $coll2 = $coll->with_codec( op_char => '-' );
     my $bulk = $coll2->ordered_bulk;
 
-    $bulk->insert( { _id => 0 } );
+    $bulk->insert_one( { _id => 0 } );
     $bulk->find( { _id => 0 } )->replace_one( { '-set' => { key => 1} } );
     like(
         exception { $bulk->execute },

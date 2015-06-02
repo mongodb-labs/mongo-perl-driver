@@ -137,9 +137,9 @@ sub find {
     );
 }
 
-=method insert
+=method insert_one
 
-    $bulk->insert( $doc );
+    $bulk->insert_one( $doc );
 
 Queues a document for insertion when L</execute> is called.  The document may
 be a hash reference, an array reference (with balance key/value pairs) or a
@@ -150,16 +150,16 @@ The method has an empty return on success; an exception will be thrown on error.
 
 =cut
 
-sub insert {
+sub insert_one {
     my ( $self, $doc ) = @_;
 
     unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
-        MongoDB::UsageError->throw("argument to insert must be a single hashref, arrayref or Tie::IxHash");
+        MongoDB::UsageError->throw("argument to insert_one must be a single hashref, arrayref or Tie::IxHash");
     }
 
     # clone docs to add id and leave original unmodified
     if ( ref $doc eq 'ARRAY' ) {
-        MongoDB::UsageError->throw("array reference to insert must have key/value pairs")
+        MongoDB::UsageError->throw("array reference to insert_one must have key/value pairs")
           if @$doc % 2;
         $doc = Tie::IxHash->new(@$doc);
     }
@@ -253,6 +253,14 @@ sub execute {
     return $self->_client->send_write_op( $op );
 }
 
+#--------------------------------------------------------------------------#
+# Deprecated methods
+#--------------------------------------------------------------------------#
+
+BEGIN {
+    no warnings 'once';
+    *insert = \&insert_one;
+}
 
 __PACKAGE__->meta->make_immutable;
 
@@ -267,7 +275,7 @@ __END__
 
     my $bulk = $collection->initialize_ordered_bulk_op;
 
-    $bulk->insert( $doc );
+    $bulk->insert_one( $doc );
     $bulk->find( $query )->upsert->replace_one( $doc )
     $bulk->find( $query )->update( $modification )
 

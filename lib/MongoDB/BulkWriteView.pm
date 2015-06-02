@@ -60,8 +60,8 @@ sub upsert {
     return $self->new( %$self, _upsert => true );
 }
 
-sub update {
-    push @_, "update";
+sub update_many {
+    push @_, "update_many";
     goto &_update;
 }
 
@@ -95,7 +95,7 @@ sub _update {
     my $update = {
         q      => $self->_query,
         u      => $doc,
-        multi  => $method eq 'update' ? true : false,
+        multi  => $method eq 'update_many' ? true : false,
         upsert => boolean( $self->_upsert ),
         is_replace => $method eq 'replace_one',
     };
@@ -105,19 +105,30 @@ sub _update {
     return;
 }
 
-sub remove {
+sub delete_many {
     my ($self) = @_;
     $self->_enqueue_write( [ delete => { q => $self->_query, limit => 0 } ] );
     return;
 }
 
-sub remove_one {
+sub delete_one {
     my ($self) = @_;
     $self->_enqueue_write( [ delete => { q => $self->_query, limit => 1 } ] );
     return;
 }
 
 __PACKAGE__->meta->make_immutable;
+
+#--------------------------------------------------------------------------#
+# Deprecated methods
+#--------------------------------------------------------------------------#
+
+BEGIN {
+    no warnings 'once';
+    *update = \&update_many;
+    *remove = \&delete_many;
+    *remove_one = \&delete_one;
+}
 
 1;
 
@@ -131,10 +142,10 @@ __END__
     bulk->find( { a => 1 } )->update_one( { '$inc' => { x => 1 } } );
 
     # Update all documents matching the selector
-    bulk->find( { a => 2 } )->update( { '$inc' => { x => 2 } } );
+    bulk->find( { a => 2 } )->update_many( { '$inc' => { x => 2 } } );
 
     # Update all documents
-    bulk->find( {} )->update( { '$inc' => { x => 2 } } );
+    bulk->find( {} )->update_many( { '$inc' => { x => 2 } } );
 
     # Replace entire document (update with whole doc replace)
     bulk->find( { a => 3 } )->replace_one( { x => 3 } );
@@ -143,19 +154,19 @@ __END__
     bulk->find( { a => 1 } )->upsert()->update_one( { '$inc' => { x => 1 } } );
 
     # Update all documents matching the selector or upsert
-    bulk->find( { a => 2 } )->upsert()->update( { '$inc' => { x => 2 } } );
+    bulk->find( { a => 2 } )->upsert()->update_many( { '$inc' => { x => 2 } } );
 
     # Replaces a single document matching the selector or upsert
     bulk->find( { a => 3 } )->upsert()->replace_one( { x => 3 } );
 
     # Remove a single document matching the selector
-    bulk->find( { a => 4 } )->remove_one();
+    bulk->find( { a => 4 } )->delete_one();
 
     # Remove all documents matching the selector
-    bulk->find( { a => 5 } )->remove();
+    bulk->find( { a => 5 } )->delete_many();
 
     # Remove all documents
-    bulk->find( {} )->remove();
+    bulk->find( {} )->delete_many();
 
 =head1 DESCRIPTION
 
@@ -168,15 +179,15 @@ method from L<MongoDB::BulkWrite> or the L</upsert> method described below.
 Except for L</upsert>, all methods have an empty return on success; an
 exception will be thrown on error.
 
-=method remove
+=method delete_many
 
-    $bulk->remove;
+    $bulk->delete_many;
 
 Removes all documents matching the query document.
 
-=method remove_one
+=method delete_one
 
-    $bulk->remove_one;
+    $bulk->delete_one;
 
 Removes a single document matching the query document.
 
@@ -187,9 +198,9 @@ Removes a single document matching the query document.
 Replaces the document matching the query document.  The document
 to replace must not have any keys that begin with a dollar sign, C<$>.
 
-=method update
+=method update_many
 
-    $bulk->update( $modification );
+    $bulk->update_many( $modification );
 
 Updates all documents  matching the query document.  The modification
 document must have all its keys begin with a dollar sign, C<$>.
