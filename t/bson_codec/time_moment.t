@@ -26,7 +26,7 @@ use MongoDB;
 use lib "t/lib";
 use TestBSON;
 
-plan skip_all => "Requires Test::Moment"
+plan skip_all => "Requires Time::Moment"
   unless eval { require Time::Moment; 1 };
 
 my $dt = DateTime->new(
