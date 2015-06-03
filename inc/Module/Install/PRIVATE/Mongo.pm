@@ -9,11 +9,54 @@ use Config::AutoConf 0.22;
 use Path::Tiny 0.052;
 use File::Spec::Functions qw/catdir/;
 use Cwd; 
+use version;
 
 our @ISA = qw{Module::Install::Base};
 
+sub check_for_outdated_win_gcc {
+	return if $ENV{MONGODB_NO_WIN32_GCC_CHECK};
+	return if $^O ne "MSWin32";
+	return if $Config{cc} !~ /gcc/;
+
+	local $@;
+	my $gcc_ver = eval {
+		my ( $v ) = split / /, $Config{gccversion};
+		version->parse( $v );
+	};
+	die "Could not identify gcc version in '$Config{gccversion}' due to:\n$@" if !$gcc_ver or $@;
+	my $min_work_ver = version->parse( "4.6.3" );
+	return if $gcc_ver >= $min_work_ver;
+
+	die <<"END";
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Your gcc is version '$gcc_ver'.
+The highest known incompatible version of gcc is '4.4.7'.
+The lowest  known   compatible version of gcc is '$min_work_ver'.
+
+Your gcc version is highly unlikely to be able to compile BSON, since the
+libraries/headers that come with it is incompatible with our version of libbson.
+
+We're aborting here forcibly so you will see this message. You have the
+following options at this point:
+
+1. set MONGODB_NO_WIN32_GCC_CHECK to any value to ignore this message and retry
+
+2. if you know C, try and help us by upgrading our libbson, patches welcome!
+
+3. install a newer gcc, '$min_work_ver' or higher
+
+4. install Strawberry 5.16.3 or higher, their gcc versions are compatible
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+END
+}
+
 sub mongo {
     my ($self, @mongo_vars) = @_;
+
+    check_for_outdated_win_gcc;
+
     my $ccflags = $self->makemaker_args->{CCFLAGS} || $Config{ccflags};
     $ccflags = "" unless defined $ccflags;
 
