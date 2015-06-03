@@ -14,7 +14,6 @@ our @ISA = qw{Module::Install::Base};
 
 sub check_for_outdated_win_gcc {
 	return if $ENV{MONGODB_NO_WIN32_GCC_CHECK};
-	return if $^O ne "MSWin32";
 	return if $Config{cc} !~ /gcc/;
 
 	local $@;
@@ -57,10 +56,13 @@ END
 sub mongo {
     my ($self, @mongo_vars) = @_;
 
-    check_for_outdated_win_gcc;
-
     my $ccflags = $self->makemaker_args->{CCFLAGS} || $Config{ccflags};
     $ccflags = "" unless defined $ccflags;
+
+    # MSWin32 requires newer gcc (if using gcc)
+    if ( $^O eq 'MSWin32' ) {
+        check_for_outdated_win_gcc;
+    }
 
     # openbsd needs threaded perl *or* single-threaded but with libpthread, so
     # we check specifically for that
