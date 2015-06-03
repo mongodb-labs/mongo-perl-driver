@@ -9,7 +9,6 @@ use Config::AutoConf 0.22;
 use Path::Tiny 0.052;
 use File::Spec::Functions qw/catdir/;
 use Cwd; 
-use version;
 
 our @ISA = qw{Module::Install::Base};
 
@@ -21,11 +20,14 @@ sub check_for_outdated_win_gcc {
 	local $@;
 	my $gcc_ver = eval {
 		my ( $v ) = split / /, $Config{gccversion};
-		version->parse( $v );
+		"$v";
 	};
 	die "Could not identify gcc version in '$Config{gccversion}' due to:\n$@" if !$gcc_ver or $@;
-	my $min_work_ver = version->parse( "4.6.3" );
-	return if $gcc_ver >= $min_work_ver;
+        my $gcc_vstring = eval "v$gcc_ver";
+	die "Could not parse gcc version '$gcc_ver':\n$@" if !$gcc_vstring or $@;
+	my $min_work_ver = "4.6.3";
+	my $min_work_vstring = eval "v$min_work_ver";
+	return if $gcc_vstring ge $min_work_vstring;
 
 	die <<"END";
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
