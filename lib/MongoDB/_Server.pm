@@ -188,6 +188,20 @@ sub _build_is_available {
     return $self->type eq none(qw/Unknown PossiblePrimary/);
 }
 
+has is_readable => (
+    is      => 'ro',
+    isa     => Bool,
+    lazy    => 1,
+    builder => "_build_is_readable",
+);
+
+# any of these can take reads. Topologies will screen inappropriate
+# ones out. E.g. "Standalone" won't be found in a replica set topology.
+sub _build_is_readable {
+    my ($self) = @_;
+    return $self->type eq any(qw/Standalone RSPrimary RSSecondary Mongos/);
+}
+
 has is_writable => (
     is      => 'ro',
     isa     => Bool,

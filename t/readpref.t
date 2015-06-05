@@ -116,4 +116,23 @@ subtest 'commands' => sub {
 
 };
 
+subtest "direct connection" => sub {
+    my $N = 20;
+
+    $coll->drop;
+    $coll->insert({'a' => $_}) for 1..$N;
+
+    for my $s ( $conn->_topology->all_servers ) {
+        next unless $s->is_readable;
+        my $addr  = $s->address;
+        my $type  = $s->type;
+        my $conn2 = build_client( host => $addr, connect_type => 'direct' );
+        my $coll2 = $conn2->get_database( $testdb->name )->get_collection( $coll->name );
+        my $count;
+        is( exception { $count = $coll2->count }, undef, "count on $addr ($type) succeeds" )
+          or diag explain $s;
+        is( $count, $N, "count correct" );
+    }
+};
+
 done_testing;
