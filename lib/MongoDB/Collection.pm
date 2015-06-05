@@ -849,14 +849,17 @@ are:
 =over
 
 =item C<upsert>
+
 If no object matching C<$criteria> is found, C<$object> will be inserted.
 
 =item C<multiple>
+
 All of the documents that match C<$criteria> will be updated, not just
 the first document found. (Only available with database version 1.1.3 and
 newer.)
 
 =item C<safe>
+
 If the update fails and safe is set, the update will croak.
 
 =back
