@@ -437,6 +437,7 @@ sub legacy_remove {
     }
     else {
         $just_one = $options || 0;
+        $safe = $conn->_w_want_safe;
     }
 
     my $ns = $self->full_name;
