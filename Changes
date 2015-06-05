@@ -7,6 +7,8 @@
   - PERL-536 fix GridFS to stop throwing an error when a known empty file has
     no chunks; errors will still be thrown if a non-empty file has no chunks.
 
+  - PERL-541 fixed remove() to respect MongoClient write concern
+
   [Documentation]
 
   - PERL-525 updated legacy author emails in docs and metadata
