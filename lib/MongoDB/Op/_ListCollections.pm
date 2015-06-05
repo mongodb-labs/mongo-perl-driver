@@ -44,6 +44,19 @@ has client => (
     required => 1,
 );
 
+has filter => (
+    is      => 'ro',
+    isa     => IxHash,
+    coerce  => 1,
+    required => 1,
+);
+
+has options => (
+    is      => 'ro',
+    isa     => HashRef,
+    default => sub { {} },
+);
+
 with $_ for qw(
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
@@ -63,9 +76,27 @@ sub execute {
 sub _command_list_colls {
     my ( $self, $link, $topology ) = @_;
 
+    my $options = $self->options;
+
+    # batchSize is not a command parameter itself like other options
+    my $batchSize = delete $options->{batchSize};
+
+    if ( defined $batchSize ) {
+        $options->{cursor} = { batchSize => $batchSize };
+    }
+    else {
+        $options->{cursor} = {};
+    }
+
+    my $cmd = Tie::IxHash->new(
+        listCollections => 1,
+        filter => $self->filter,
+        %{$self->options},
+    );
+
     my $op = MongoDB::Op::_Command->new(
         db_name         => $self->db_name,
-        query           => Tie::IxHash->new( listCollections => 1, cursor => {} ),
+        query           => $cmd,
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
@@ -78,16 +109,17 @@ sub _command_list_colls {
 sub _legacy_list_colls {
     my ( $self, $link, $topology ) = @_;
 
-    my $db_name = $self->db_name;
-    my $op      = MongoDB::Op::_Query->new(
+    my $query = MongoDB::_Query->new(
+        %{$self->options},
         db_name         => $self->db_name,
         coll_name       => 'system.namespaces',
-        client          => $self->client,
         bson_codec      => $self->bson_codec,
-        query           => Tie::IxHash->new(),
+        client          => $self->client,
         read_preference => $self->read_preference,
-        post_filter     => \&__filter_legacy_names,
+        filter          => $self->filter,
     );
+
+    my $op = $query->as_query_op( { post_filter => \&__filter_legacy_names } );
 
     return $op->execute( $link, $topology );
 }

@@ -139,6 +139,14 @@ subtest "expected behaviors" => sub {
         "find_one_and_delete helper with maxTimeMS works"
     );
 
+    is(
+        exception {
+            my $cursor = $coll->database->list_collections( {}, { maxTimeMS => 5000 } );
+        },
+        undef,
+        "list_collections command with maxTimeMS works"
+    );
+
 };
 
 subtest "force maxTimeMS failures" => sub {
@@ -261,6 +269,14 @@ subtest "force maxTimeMS failures" => sub {
         },
         qr/exceeded time limit/,
         "find_one_and_delete helper with maxTimeMS times out"
+    );
+
+    like(
+        exception {
+            my $cursor = $coll->database->list_collections( {}, { maxTimeMS => 10 } );
+        },
+        qr/exceeded time limit/,
+        "list_collections command times out"
     );
 
     subtest "max_time_ms via constructor" => sub {

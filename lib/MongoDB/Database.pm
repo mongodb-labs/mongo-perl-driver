@@ -28,6 +28,7 @@ use MongoDB::GridFS;
 use MongoDB::Op::_ListCollections;
 use MongoDB::_Query;
 use MongoDB::_Types -types;
+use Type::Params qw/compile/;
 use Types::Standard -types;
 use Carp 'carp';
 use boolean;
@@ -120,11 +121,72 @@ has bson_codec => (
 # methods
 #--------------------------------------------------------------------------#
 
+=method list_collections
+
+    $result = $coll->list_collections( $filter );
+    $result = $coll->list_collections( $filter, $options );
+
+Returns a L<MongoDB::QueryResult> object to iterate over collection description
+documents.  These will contain C<name> and C<options> keys like so:
+
+    use boolean;
+
+    {
+        name => "my_capped_collection",
+        options => {
+            capped => true,
+            size => 10485760,
+        }
+    },
+
+An optional filter document may be provided, which cause only collection
+description documents matching a filter expression to be returned.  See the
+L<listCollections command
+documentation|http://docs.mongodb.org/manual/reference/command/listCollections/>
+for more details on filtering for specific collections.
+
+A hash reference of options may be provided. Valid keys include:
+
+=for :list
+* C<batchSize> – the number of documents to return per batch.
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.  (Note, this will be ignored for servers before version 2.6.)
+
+=cut
+
+my $list_collections_args;
+
+sub list_collections {
+    $list_collections_args ||= compile( Object, Optional [IxHash], Optional [HashRef] );
+    my ( $self, $filter, $options ) = $list_collections_args->(@_);
+    $filter  ||= {};
+    $options ||= {};
+
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
+
+    my $op = MongoDB::Op::_ListCollections->new(
+        db_name    => $self->name,
+        client     => $self->_client,
+        bson_codec => $self->bson_codec,
+        filter     => $filter,
+        options    => $options,
+    );
+
+    return $self->_client->send_read_op($op);
+}
+
 =method collection_names
 
     my @collections = $database->collection_names;
 
 Returns the list of collections in this database.
+
+B<Warning:> if the number of collections is very large, this will return
+a very large result.  Use L</list_collections> to iterate over collections
+instead.
 
 =cut
 
@@ -135,6 +197,7 @@ sub collection_names {
         db_name    => $self->name,
         client     => $self->_client,
         bson_codec => $self->bson_codec,
+        filter     => {},
     );
 
     my $res = $self->_client->send_read_op($op);

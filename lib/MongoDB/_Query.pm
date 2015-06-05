@@ -150,7 +150,7 @@ has sort => (
 );
 
 sub as_query_op {
-    my ($self) = @_;
+    my ( $self, $extra_params ) = @_;
 
     # construct query doc from filter, attributes and modifiers hash
     my $query = Tie::IxHash->new( '$query' => $self->filter );
@@ -202,6 +202,7 @@ sub as_query_op {
         limit       => $self->limit,
         skip        => $self->skip,
         query_flags => $query_flags,
+        ( $extra_params ? %$extra_params : () ),
     );
 }
 

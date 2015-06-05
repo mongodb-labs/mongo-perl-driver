@@ -19,8 +19,10 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Fatal;
+use Test::Deep;
 use Test::Warn;
 use Tie::IxHash;
+use boolean;
 
 use MongoDB::Timestamp; # needed if db is being run as master
 
@@ -88,8 +90,11 @@ subtest 'run_command' => sub {
 };
 
 # collection_names
-{
+subtest "collection names" => sub {
     is(scalar $testdb->collection_names, 0, 'no collections');
+
+    my $res = $testdb->list_collections;
+    cmp_deeply( [ $res->all ], [], "list_collections has empty cursor" );
 
     my $coll = $testdb->get_collection('test');
 
@@ -104,10 +109,12 @@ subtest 'run_command' => sub {
     ok($cap->insert_one({name => 'Bob'}), "create capped collection");
 
     my %names = map {; $_ => 1 } $testdb->collection_names;
+    my %got = map { $_->{name} => $_ } $testdb->list_collections( { name => qr/^test/ } )->all;
     for my $k ( qw/test test_capped/ ) {
         ok( exists $names{$k}, "collection_names included $k" );
+        ok( exists $got{$k}, "list_collections included $k" );
     }
-}
+};
 
 # getlasterror
 subtest 'getlasterror' => sub {
