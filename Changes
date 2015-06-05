@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.708.2.0 2015-06-05 16:39:00-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-536 fix GridFS to stop throwing an error when a known empty file has
