@@ -524,7 +524,7 @@ new MongoDB driver API.
 =head2 MongoDB::Collection
 
 =for :list
-* insert, batch_insert, remove, update, query and find_and_modify — A new
+* insert, batch_insert, remove, update, save, query and find_and_modify — A new
   common driver CRUD API replaces these legacy methods.
 * get_collection — This method implied that collections could be contained
   inside collection.  This doesn't actually happen so it's confusing to

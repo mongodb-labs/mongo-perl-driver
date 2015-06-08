@@ -165,7 +165,7 @@ is($id."", $id->value);
     $coll->drop;
 
     my $x = 2 ** 34;
-    $coll->save({x => $x});
+    $coll->insert_one({x => $x});
     my $result = $coll->find_one;
 
     is($result->{'x'}, 17179869184)
@@ -174,7 +174,7 @@ is($id."", $id->value);
     $coll->drop;
 
     $x = (2 ** 34) * -1;
-    $coll->save({x => $x});
+    $coll->insert_one({x => $x});
     $result = $coll->find_one;
 
     is($result->{'x'}, -17179869184)
@@ -182,13 +182,13 @@ is($id."", $id->value);
 
     $coll->drop;
 
-    $coll->save({x => 2712631400});
+    $coll->insert_one({x => 2712631400});
     $result = $coll->find_one;
     is($result->{'x'}, 2712631400)
         or diag explain $result;
 
     eval {
-        my $ok = $coll->save({x => 9834590149023841902384137418571984503});
+        $coll->insert_one({x => 9834590149023841902384137418571984503});
     };
 
     like($@, qr/can't fit/, "big int too large error message");

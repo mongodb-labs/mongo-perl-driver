@@ -523,6 +523,49 @@ sub update_many {
     return $self->client->send_write_op( $op );
 }
 
+=method save_one
+
+    $collection->save_one(
+        {"_id" => MongoDB::OID->new, "author" => "joe"}
+    );
+    $post = $collection->find_one( {author => "joe"} );
+
+    $post->{phone} = "555-5555";
+
+    $collection->save_one( $post );
+
+Saves one document into the database, either replacing an existing one or
+upserting a new one.  The document B<must> have an C<_id> field or an
+exception will be thrown.
+
+The method returns a L<MongoDB::UpdateResult> object.
+
+Unlike an C<insert>, this method is idempotent and will not throw a
+duplicate key exception from the C<_id> field.  (Other unique index
+constraints could still be violated, resulting in an error.)
+
+Note: this method is merely syntactic sugar for a replace_one with upsert:
+
+    $collection->save_one( $doc );  # same as following replace_one:
+    $collection->replace_one( { _id => $doc->{_id} }, $doc, { upsert => 1 } );
+
+=cut
+
+my $save_one_args;
+
+sub save_one {
+    $save_one_args ||= compile( Object, IxHash );
+    my ( $self, $document ) = $save_one_args->(@_);
+
+    if ( $document->EXISTS("_id") ) {
+        return $self->replace_one( { "_id" => $document->FETCH( "_id" ) },
+            $document, { upsert => true } );
+    }
+    else {
+        MongoDB::UsageError->throw("argument to save_one must have an '_id' field");
+    }
+}
+
 =method find
 
     $cursor = $coll->find( $filter );
@@ -1065,44 +1108,6 @@ sub rename {
     return $conn->get_database( $db )->get_collection( $collectionname );
 }
 
-
-=method save($doc, $options)
-
-    $collection->save({"author" => "joe"});
-    $post = $collection->find_one;
-
-    $post->{author} = {"name" => "joe", "id" => 123, "phone" => "555-5555"};
-
-    $collection->save( $post );
-    $collection->save( $post, { safe => 1 } )
-
-Inserts a document into the database if it does not have an _id field, upserts
-it if it does have an _id field.
-
-The return types for this function are a bit of a mess, as it will return the
-_id if a new document was inserted, 1 if an upsert occurred, and croak if the
-safe option was set and an error occurred.  You can also check if the save
-succeeded by doing an unsafe save, then calling
-L<MongoDB::Database/"last_error($options?)">.
-
-=cut
-
-my $legacy_save_args;
-sub save {
-    $legacy_save_args ||= compile( Object, IxHash, Optional[HashRef] );
-    my ($self, $doc, $options) = $legacy_save_args->(@_);
-
-    if ( $doc->EXISTS("_id") ) {
-        $options ||= {};
-        $options->{'upsert'} = boolean::true;
-        return $self->update( { "_id" => $doc->FETCH( ("_id") ) }, $doc, $options );
-    }
-    else {
-        return $self->insert( $doc, ( $options ? $options : () ) );
-    }
-}
-
-
 =method drop
 
     $collection->drop;
@@ -1518,6 +1523,21 @@ sub update {
     };
 }
 
+my $legacy_save_args;
+sub save {
+    $legacy_save_args ||= compile( Object, IxHash, Optional[HashRef] );
+    my ($self, $doc, $options) = $legacy_save_args->(@_);
+
+    if ( $doc->EXISTS("_id") ) {
+        $options ||= {};
+        $options->{'upsert'} = boolean::true;
+        return $self->update( { "_id" => $doc->FETCH( ("_id") ) }, $doc, $options );
+    }
+    else {
+        return $self->insert( $doc, ( $options ? $options : () ) );
+    }
+}
+
 my $legacy_fam_args;
 sub find_and_modify {
     $legacy_fam_args ||= compile( Object, HashRef );
@@ -1780,6 +1800,7 @@ have been deprecated:
 * query
 * remove
 * update
+* save
 
 The C<get_collection> method is deprecated; it implied a 'subcollection'
 relationship that is purely notional.

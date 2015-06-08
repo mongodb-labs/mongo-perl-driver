@@ -252,7 +252,7 @@ subtest "Person object" => sub {
     $c->drop;
 
     my $p = Person->new( name=>'jay', age=>22 );
-    $c->save($p);
+    $c->insert_one($p);
 
     my $person = $c->find_one;
     is($person->{'age'}, 22, "roundtrip number");
