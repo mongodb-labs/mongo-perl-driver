@@ -310,6 +310,28 @@ sub scan_all_servers {
     return;
 }
 
+sub status_struct {
+    my ($self) = @_;
+    my $status = { topology_type => $self->type, };
+    $status->{replica_set_name} = $self->replica_set_name if $self->replica_set_name;
+
+    # convert from [sec, microsec] array to floating point
+    my $lst = $self->last_scan_time;
+    $status->{last_scan_time} = $lst->[0] + $lst->[1] / 1e6;
+
+    my $rtt_hash = $self->rtt_ewma_ms;
+    my $ss = $status->{servers} = [];
+    for my $server ( $self->all_servers ) {
+        my $addr = $server->address;
+        my $server_struct = $server->status_struct;
+        if ( defined $rtt_hash->{$addr} ) {
+            $server_struct->{ewma_rtt_ms} = $rtt_hash->{$addr};
+        }
+        push @$ss, $server_struct;
+    }
+    return $status;
+}
+
 #--------------------------------------------------------------------------#
 # private methods
 #--------------------------------------------------------------------------#
