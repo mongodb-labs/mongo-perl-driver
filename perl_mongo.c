@@ -587,13 +587,13 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
     if (SvGMAGICAL(sv)) {
       mg_get(sv);
     }
-    else {
-      bson_append_null(bson, key, -1);
-      return;
-    }
   }
 
-  if (SvROK (sv)) {
+  if (!SvOK(sv)) {
+      bson_append_null(bson, key, -1);
+      return;
+  }
+  else if (SvROK (sv)) {
     if (sv_isobject (sv)) {
       /* OIDs */
       if (sv_derived_from (sv, "MongoDB::OID")) {
