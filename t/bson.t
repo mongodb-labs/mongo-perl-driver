@@ -429,5 +429,20 @@ subtest "PERL-489 ref to PVNV" => sub {
     );
 };
 
+subtest "PERL-543 IxHash undef" => sub {
+    $c->drop;
+    my %h;
+    tie(%h, 'Tie::IxHash', x => undef);
+    $c->insert(\%h);
+    my $doc = $c->find_one;
+    is( $doc->{x}, undef, "round-trip undef with IxHash" );
+
+    $c->drop;
+    my %doc = ( x => undef );
+    $c->insert(\%doc);
+    $doc = $c->find_one;
+    is( $doc->{x}, undef, "round-trip undef with regular hash" );
+};
+
 
 done_testing;

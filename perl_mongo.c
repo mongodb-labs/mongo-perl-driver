@@ -1114,14 +1114,14 @@ append_sv (bson_t * bson, const char * in_key, SV *sv, stackette *stack, int is_
     if (SvGMAGICAL(sv)) {
       mg_get(sv);
     }
-    else {
+  }
+
+  if (!SvOK(sv)) {
       bson_append_null(bson, key, -1);
       if (in_key != key) Safefree((char *)key);
       return;
-    }
   }
-
-  if (SvROK (sv)) {
+  else if (SvROK(sv)) {
     if (sv_isobject (sv)) {
       /* OIDs */
       if (sv_derived_from (sv, "MongoDB::OID")) {
