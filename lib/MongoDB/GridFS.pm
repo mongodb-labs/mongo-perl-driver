@@ -93,6 +93,22 @@ has max_time_ms => (
     required => 1,
 );
 
+=attr bson_codec
+
+An object that provides the C<encode_one> and C<decode_one> methods, such
+as from L<MongoDB::BSON>.  It may be initialized with a hash reference that
+will be coerced into a new MongoDB::BSON object.  By default it will be
+inherited from a L<MongoDB::Database> object.
+
+=cut
+
+has bson_codec => (
+    is       => 'ro',
+    isa      => BSONCodec,
+    coerce   => 1,
+    required => 1,
+);
+
 =attr prefix
 
 The prefix used for the collections.  Defaults to "fs".
@@ -119,6 +135,7 @@ sub _build_files {
             read_preference => $self->read_preference,
             write_concern   => $self->write_concern,
             max_time_ms     => $self->max_time_ms,
+            bson_codec      => $self->bson_codec,
         }
     );
     return $coll;

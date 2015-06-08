@@ -262,6 +262,7 @@ sub get_gridfs {
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
         max_time_ms     => $self->max_time_ms,
+        bson_codec      => $self->bson_codec,
         ( $options ? %$options : () ),
         # not allowed to be overridden by options
         _database => $self,
