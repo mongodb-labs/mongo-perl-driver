@@ -131,7 +131,6 @@ subtest "direct connection" => sub {
         my $count;
         is( exception { $count = $coll2->count }, undef, "count on $addr ($type) succeeds" )
           or diag explain $s;
-        is( $count, $N, "count correct" );
     }
 };
 
