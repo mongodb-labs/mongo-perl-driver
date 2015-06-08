@@ -1103,31 +1103,6 @@ sub save {
 }
 
 
-=method validate
-
-    $collection->validate;
-
-Asks the server to validate this collection.
-Returns a hash of the form:
-
-    {
-        'ok' => '1',
-        'ns' => 'foo.bar',
-        'result' => info
-    }
-
-where C<info> is a string of information
-about the collection.
-
-=cut
-
-sub validate {
-    my ($self, $scan_data) = @_;
-    $scan_data = 0 unless defined $scan_data;
-    my $obj = $self->_run_command({ validate => $self->name });
-}
-
-
 =method drop
 
     $collection->drop;
@@ -1683,6 +1658,12 @@ sub drop_index {
     ]);
 }
 
+sub validate {
+    my ($self, $scan_data) = @_;
+    $scan_data = 0 unless defined $scan_data;
+    my $obj = $self->_run_command({ validate => $self->name });
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
@@ -1802,6 +1783,9 @@ have been deprecated:
 
 The C<get_collection> method is deprecated; it implied a 'subcollection'
 relationship that is purely notional.
+
+The C<validate> method is deprecated as the return value was inconsistent
+over time. Users who need it should execute it via C<run_command> instead.
 
 The methods still exist, but are no longer documented.  In a future version
 they will warn when used, then will eventually be removed.

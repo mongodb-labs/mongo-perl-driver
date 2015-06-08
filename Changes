@@ -16,6 +16,8 @@
 
   - PERL-511 Use new CRUD method names for Bulk API and deprecate old ones
 
+  - PERL-534 Deprecated 'validate' method
+
   [Additions]
 
   - PERL-486 Added 'has_modified_count' method to MongoDB::UpdateResult and

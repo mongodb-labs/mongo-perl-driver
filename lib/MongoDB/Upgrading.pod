@@ -533,6 +533,9 @@ new MongoDB driver API.
 * ensure_index, drop_indexes, drop_index, get_index — A new
   L<MongoDB::IndexView> class is accessable through the C<indexes> method,
   offering greater consistency in behavior across drivers.
+* validate — The return values have changed over different server versions,
+  so this method is risky to use; it has more use as a one-off tool, which
+  can be accomplished via C<run_command>.
 
 =head2 MongoDB::CommandResult
 

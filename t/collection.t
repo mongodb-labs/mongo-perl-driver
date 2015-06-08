@@ -167,10 +167,8 @@ subtest write_concern => sub {
     is($obj->{just}, "an\xE4oth\0er");
 }
 
-# validate and remove
+# remove
 {
-    is( exception { $coll->validate }, undef, 'validate' );
-
     $coll->delete_one($obj);
     is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
 }
