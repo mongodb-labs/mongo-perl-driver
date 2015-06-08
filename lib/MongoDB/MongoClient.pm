@@ -979,6 +979,15 @@ has _deferred => (
     default  => sub { {} },
 );
 
+=method topology_type
+
+Returns an enumerated topology type.  The value will be either 'Unknown' (the
+default before any servers are scanned), 'Single', 'ReplicaSetWithPrimary',
+'ReplicaSetNoPrimary' (if the primary is down or not yet discovered), or
+'Sharded'.
+
+=cut
+
 has _topology => (
     is       => 'ro',
     isa      => InstanceOf ['MongoDB::_Topology'],
@@ -1195,6 +1204,47 @@ sub disconnect {
     my ($self) = @_;
     $self->_topology->close_all_links;
     return 1;
+}
+
+=method topology_status
+
+    $client->topology_status;
+    $client->topology_status( refresh => 1 );
+
+Returns a hash reference with server topology information like this:
+
+    {
+        'topology_type' => 'ReplicaSetWithPrimary'
+        'replica_set_name' => 'foo',
+        'last_scan_time'   => '1433766895.183241',
+        'servers'          => [
+            {
+                'address'     => 'localhost:50003',
+                'ewma_rtt_ms' => '0.223462326',
+                'type'        => 'RSSecondary'
+            },
+            {
+                'address'     => 'localhost:50437',
+                'ewma_rtt_ms' => '0.268435456',
+                'type'        => 'RSArbiter'
+            },
+            {
+                'address'     => 'localhost:50829',
+                'ewma_rtt_ms' => '0.737782272',
+                'type'        => 'RSPrimary'
+            }
+        },
+    }
+
+If the 'refresh' argument is true, then the topology will be scanned
+to update server data before returning the hash reference.
+
+=cut
+
+sub topology_status {
+    my ($self, %opts) = @_;
+    $self->_topology->scan_all_servers if $opts{refresh};
+    return $self->_topology->status_struct;
 }
 
 #--------------------------------------------------------------------------#
