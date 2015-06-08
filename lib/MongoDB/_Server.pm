@@ -248,6 +248,17 @@ sub status_string {
     }
 }
 
+sub status_struct {
+    my ($self) = @_;
+    my $info = {
+        address => $self->address,
+        type    => $self->type
+    };
+    $info->{error} = $self->error         if $self->error;
+    $info->{tags}  = { %{ $self->tags } } if %{ $self->tags };
+    return $info;
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;
