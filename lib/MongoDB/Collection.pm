@@ -1784,6 +1784,11 @@ have been deprecated:
 The C<get_collection> method is deprecated; it implied a 'subcollection'
 relationship that is purely notional.
 
+The C<ensure_index>, C<drop_indexes>, C<drop_index>, and C<get_index>
+methods are deprecated. The new L<MongoDB::IndexView> class is accessable
+through the C<indexes> method, and offer greater consistency in behavior
+across drivers.
+
 The C<validate> method is deprecated as the return value was inconsistent
 over time. Users who need it should execute it via C<run_command> instead.
 
