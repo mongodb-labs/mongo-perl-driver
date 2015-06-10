@@ -19,7 +19,7 @@ package MongoDB::ReadPreference;
 # ABSTRACT: Encapsulate and validate read preferences
 
 use version;
-our $VERSION = 'v0.999.998.7'; # TRIAL
+our $VERSION = 'v0.999.999.2'; # TRIAL
 
 use Moose;
 use MongoDB::Error;

@@ -19,7 +19,7 @@ package MongoDB::_Query;
 # Encapsulate query structure and modification
 
 use version;
-our $VERSION = 'v0.999.998.7'; # TRIAL
+our $VERSION = 'v0.999.999.2'; # TRIAL
 
 use Moose;
 use MongoDB::_Types -types;

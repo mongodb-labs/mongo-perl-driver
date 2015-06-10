@@ -19,7 +19,7 @@ package MongoDB::Op::_Aggregate;
 # Encapsulate aggregate operation; return MongoDB::QueryResult
 
 use version;
-our $VERSION = 'v0.999.998.7'; # TRIAL
+our $VERSION = 'v0.999.999.2'; # TRIAL
 
 use Moose;
 

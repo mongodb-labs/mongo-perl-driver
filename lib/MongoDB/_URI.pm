@@ -17,7 +17,7 @@
 package MongoDB::_URI;
 
 use version;
-our $VERSION = 'v0.999.998.7'; # TRIAL
+our $VERSION = 'v0.999.999.2'; # TRIAL
 
 use Moose;
 use MongoDB::Error;

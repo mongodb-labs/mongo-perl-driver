@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.999.999.1 2015-06-10 09:48:53-06:00 America/Denver (TRIAL RELEASE)
+
   [!!! Incompatible Changes !!!]
 
   - PERL-442 Connection string options revised to match MongoClient
