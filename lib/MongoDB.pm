@@ -101,46 +101,56 @@ read_documents
 
 =begin :prelude
 
-This is the Alpha 6 release for v1.0.0.0.
+This is the Beta 1 release for v1.0.0.0.
 
-=head1 ALPHA RELEASE NOTICE AND ROADMAP
+=head1 BETA RELEASE NOTICE AND ROADMAP
 
-The v0.999.998.x releases are B<alpha> releases towards v1.0.0.0.  While they
-are believed be as reliable as the stable release series, the implementation
-and API are still subject to change.  While preserving back-compatibility is
-important and will be delivered to a great extent, it will not be guaranteed.
+The v0.999.999.x releases are B<beta> releases towards v1.0.0.0.  While they
+are believed be as reliable as the stable release series, there will continue
+to be minor optimizations and bug fixes prior to the stable v1.0.0.0.
 
-Using the v0.999.998.x series means that you understand that your code may break
+At this point, we believe the API has stabilized, but reserve the right to
+make minor changes.
+
+Using the v0.999.999.x series means that you understand that your code may break
 due to changes in the driver between now and the v1.0.0.0 stable release.
 
-This Alpha 6 release includes these major changes:
+This Beta 1 release includes these major changes since the last Alpha:
 
 =over
 
 =item *
 
-When inserting a document without an '_id' field, the _id will
-be added during BSON encoding, but the original document will not be
-changed.  (This was inconsistent between regular and bulk insertion in
-the v0.x series and during previous alpha releases.)
+Added new L<MongoDB::IndexView> API for manipulating indexes.  Like the new
+CRUD API, this will be standard across MongoDB drivers.  Old legacy index
+helper methods were deprecated.
 
 =item *
 
-The L<MongoDB::MongoClient> class gained a C<bson_codec> attribute and
-L<MongoDB::BSON> has become a proper class.  All BSON encoding/decoding options
-are set on that object (possibly at C<MongoDB::MongoClient> construction time.
-It is passed down to L<MongoDB::Database> and L<MongoDB::Collection>.
+Finished overhauling MongoDB::MongoClient configuration.  Everything
+is immutable and globals are removed.  Connection string options have
+been revised to match MongoClient options and connection string options
+always take precedence.
 
 =item *
 
-The $MongoDB::BSON global variable have been removed or deprecated.  The
-C<inflate_regexps> and C<inflate_dbrefs> options on L<MongoDB::MongoClient>
-have been removed.
+Updated the Bulk API to use the new CRUD API method names and deprecated
+the old method names.
 
 =item *
 
-Removed substantial amounts of unused C code and reorganized the remaining
-parts for clarity.  In doing so, several memory leaks were fixed.
+Added support for serializing/deserializing Time::Moment objects.
+
+=item *
+
+Added 'save_one' method for idempotent replace-or-upsert and deprecated
+the legacy 'save' method.
+
+=item *
+
+Integers that fit in 32-bits are now encoded as BSON Int32; larger integers
+are encodeed as BSON Int64; Math::BigInt objects are always encoded as BSON
+Int64.
 
 =back
 
@@ -149,8 +159,8 @@ L<MongoDB::Upgrading>.
 
 =head2 Roadmap
 
-Subsequent alphas will be released periodically.  The v1.0.0.0 release
-is expected in the middle of 2015.
+The next Beta release is expected around the end of June 2015.
+The v1.0.0.0 release is expected around the end of July 2015.
 
 Some expected (but not guaranteed) changes in future releases include:
 
@@ -158,29 +168,24 @@ Some expected (but not guaranteed) changes in future releases include:
 
 =item *
 
-A new API for manipulating indexes.  Like the new CRUD API, this will
-be standard across MongoDB drivers.
+Profiling and optimization of common operations.
 
 =item *
 
-Some existing options and methods will be deprecated to improve consistency and
-clarity of what remains.
-
-=item *
-
-Documentation will be significantly revised.
+Documentation will continue to be revised.
 
 =back
 
-In order to avoid holding up v1.0.0.0, the following changes will be deferred
-until after the v1.0.0.0 release:
+In order to avoid holding up v1.0.0.0, the following changes will be
+B<deferred> until after the v1.0.0.0 release:
 
 =over
 
 =item *
 
-The driver will become pure-Perl capable, using the Moo framework instead of
-Moose.  This will significantly reduce the size of the total dependency tree.
+The driver will switch OO frameworks from Moose to Moo.  This will
+significantly reduce the size of the total dependency tree and paves the way
+for a pure-Perl version of the driver.
 
 =item *
 
