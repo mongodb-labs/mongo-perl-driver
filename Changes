@@ -4,6 +4,9 @@
 
   [!!! Incompatible Changes !!!]
 
+  - PERL-442 Connection string options revised to match MongoClient
+    options; connection string options always take precedence
+
   - PERL-470 MongoDB::Cursor globals "slave_ok" and "timeout" no longer
     have any effect and have been removed.
 
@@ -12,9 +15,14 @@
 
   [*** Deprecations ***]
 
+  - PERL-398 Old 'timeout' and 'query_timeout' options deprecated in favor
+    of new, more explicit 'connect_timeout_ms' and 'socket_timeout_ms'
+
   - PERL-424 MongoDB::Cursor 'count' method has been deprecated.
 
   - PERL-511 Use new CRUD method names for Bulk API and deprecate old ones
+
+  - PERL-516 Deprecated legacy index management API methods
 
   - PERL-533 Deprecated 'save' method
 
@@ -22,37 +30,60 @@
 
   [Additions]
 
+  - PERL-413 Added max_time_ms MongoDB::MongoClient configuration option to
+    set default for database and collection objects
+
   - PERL-486 Added 'has_modified_count' method to MongoDB::UpdateResult and
     MongoDB::BulkWriteResult to ease detection of when that attributes is
     supported by a server or not.
+
+  - PERL-490 Added 'list_collections' method on MongoDB::Database
 
   - PERL-500 Added 'topology_status' method to MongoDB::MongoClient
 
   - PERL-506 Added support for serializing/deserializing Time::Moment objects
 
+  - PERL-515 Added new MongoDB::IndexView API
+
   - PERL-533 Added 'save_one' method for idempotent replace-or-upsert
 
   [Bug fixes]
 
-  - PERL-536 fix GridFS to stop throwing an error when a known empty file has
+  - PERL-536 Fixed GridFS to stop throwing an error when a known empty file has
     no chunks; errors will still be thrown if a non-empty file has no chunks.
+
+  - PERL-540 Fixed memory leak in DateTime::Tiny inflation
+
+  - PERL-543 Fixed a bug serializing undef from Tie::IxHash objects
 
   [Changes]
 
-  - PERL-127 integers that fit in 32-bits are now encoded as BSON Int32;
+  - PERL-127 Integers that fit in 32-bits are now encoded as BSON Int32;
     larger integers are encodeed as BSON Int64; Math::BigInt objects are
     always encoded as BSON Int64.
 
   - PERL-488 MongoDB::WriteConcern method 'is_safe' renamed to
     'is_acknowledged'.
 
+  - PERL-529 Ignores connection string option key case
+
+  - PERL-530 Warns on unsupported connection options
+
   [Documentation]
 
   - PERL-524 updated legacy author emails in docs and metadata.
 
+  [Testing]
+
+  - PERL-513 Added maxTimeMS tests for CRUD API methods
+
   [Removals]
 
   - PERL-467 Removed outdated MongoDB::Indexing document.
+
+  [~ Internal changes ~]
+
+  - PERL-455 Now using connect timeout as socket timeout for topology scans
 
 v0.999.998.6 2015-05-20 14:28:18-04:00 America/New_York (TRIAL RELEASE)
 
