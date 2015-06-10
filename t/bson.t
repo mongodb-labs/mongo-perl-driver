@@ -431,7 +431,7 @@ subtest "PERL-543 IxHash undef" => sub {
     $c->drop;
     my %doc = ( x => undef );
     $c->insert_one(\%doc);
-    my $doc = $c->find_one;
+    $doc = $c->find_one;
     is( $doc->{x}, undef, "round-trip undef with regular hash" );
 };
 
