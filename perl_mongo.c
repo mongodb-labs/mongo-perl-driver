@@ -1066,7 +1066,11 @@ get_regex_flags(char * flags, SV *sv) {
          flags_tmp[i] == 'x' ||
          flags_tmp[i] == 's' ) {
       flags[f++] = flags_tmp[i];
-    } else {
+    }
+    else if ( flags_tmp[i] == 'u' ) {
+      /* do nothing as this is default */
+    }
+    else {
       warn( "stripped unsupported regex flag /%c from MongoDB regex\n", flags_tmp[i] );
     }
   }
