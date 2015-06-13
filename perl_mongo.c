@@ -893,7 +893,8 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
       if (aggressively_number || (!is_string && (SvIOK(sv) || (SvIOKp(sv) && !SvPOK(sv))))) {
 #if defined(MONGO_USE_64_BIT_INT)
         IV i = SvIV(sv);
-        if ( i >= INT32_MIN && i <= INT32_MAX) {
+        /* intentionally use -INT32_MAX to avoid the weird most negative number */
+        if ( i >= -INT32_MAX && i <= INT32_MAX) {
           bson_append_int32(bson, key, -1, (int)i);
         }
         else {

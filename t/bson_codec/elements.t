@@ -165,44 +165,54 @@ if (HAS_INT64) {
         output => { a => $big },
       },
     {
-        label  => "BSON Int 64 (small bigint)",
+        label  => "BSON Int64 (small bigint)",
         input  => { a => Math::BigInt->new(66) },
         bson   => _doc( BSON_INT64 . _ename("a") . _int64(66) ),
         output => { a => 66 },
     },
       {
-        label  => "BSON Int64 (64 bit bigint)",
+        label  => "BSON Int64 (64 bit pos igint)",
         input  => { a => Math::BigInt->new( MAX_LONG + 1 ) },
         bson   => _doc( BSON_INT64 . _ename("a") . _int64( MAX_LONG + 1 ) ),
         output => { a => MAX_LONG + 1 },
       },
       {
-        label  => "BSON Int64 (64 bit bigint)",
+        label  => "BSON Int64 (64 bit neg bigint)",
         input  => { a => Math::BigInt->new( MIN_LONG - 1 ) },
         bson   => _doc( BSON_INT64 . _ename("a") . _int64( MIN_LONG - 1 ) ),
         output => { a => MIN_LONG - 1 },
       };
 }
 else {
+    my $neg_sml = Math::BigInt->new( -66 );
+    my $pos_sml = Math::BigInt->new( 66 );
+    my $neg_big = Math::BigInt->new( MIN_LONG )->bsub ( 1 );
+    my $pos_big = Math::BigInt->new( MAX_LONG )->badd ( 1 );
     push @cases,
     {
-        label  => "BSON Int 64 (small bigint)",
-        input  => { a => Math::BigInt->new(66) },
+        label  => "BSON Int64 (small pos bigint)",
+        input  => { a => $pos_sml },
         bson   => _doc( BSON_INT64 . _ename("a") . _int64(66) ),
-        output => { a => Math::BigInt->new(66) },
+        output => { a => $pos_sml },
     },
-      {
-        label  => "BSON Int64 (64 bit bigint)",
-        input  => { a => Math::BigInt->new( MAX_LONG + 1 ) },
-        bson   => _doc( BSON_INT64 . _ename("a") . _int64( MAX_LONG + 1 ) ),
-        output => { a => Math::BigInt->new( MAX_LONG + 1 ) },
-      },
-      {
-        label  => "BSON Int64 (64 bit bigint)",
-        input  => { a => Math::BigInt->new( MIN_LONG - 1 ) },
-        bson   => _doc( BSON_INT64 . _ename("a") . _int64( MIN_LONG - 1 ) ),
-        output => { a => Math::BigInt->new( MIN_LONG - 1 ) },
-      };
+    {
+        label  => "BSON Int64 (small neg bigint)",
+        input  => { a => $neg_sml },
+        bson   => _doc( BSON_INT64 . _ename("a") . _int64(-66) ),
+        output => { a => $neg_sml },
+    },
+    {
+	label  => "BSON Int64 (64 bit pos bigint)",
+	input  => { a => $pos_big },
+	bson   => _doc( BSON_INT64 . _ename("a") . _int64( $pos_big ) ),
+	output => { a => $pos_big },
+    },
+    {
+	label  => "BSON Int64 (64 bit neg bigint)",
+	input  => { a => $neg_big },
+	bson   => _doc( BSON_INT64 . _ename("a") . _int64( $neg_big ) ),
+	output => { a => $neg_big },
+    };
 }
 
 for my $c (@cases) {

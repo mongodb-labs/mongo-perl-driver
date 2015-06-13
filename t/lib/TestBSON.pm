@@ -45,7 +45,7 @@ use constant {
     P_INT32 => PERL58 ? "l" : "l<",
     P_INT64 => PERL58 ? "q" : "q<",
     MAX_LONG      => 2147483647,
-    MIN_LONG      => -2147483647 - 1,
+    MIN_LONG      => -2147483647,
     BSON_DOUBLE   => "\x01",
     BSON_STRING   => "\x02",
     BSON_DOC      => "\x03",
@@ -84,7 +84,19 @@ sub _double { return pack( "d", shift ) }
 
 sub _int32 { return pack( P_INT32, shift ) }
 
-sub _int64 { return pack( P_INT64, shift ) }
+sub _int64 {
+    my $val = shift;
+    if ( ref($val) && eval { $val->isa("Math::BigInt") } ) {
+        return _pack_bigint($val);
+    }
+    elsif (HAS_INT64) {
+         return pack( P_INT64, $val );
+    }
+    else {
+        my $big = Math::BigInt->new( $val );
+        return _pack_bigint($big);
+    }
+}
 
 sub _string {
     my ($string) = shift;
@@ -122,13 +134,28 @@ sub _dbref {
 
 # pack to int64_t
 sub _pack_bigint {
-    my $big    = shift;
-    my $as_hex = $big->as_hex; # big-endian hex
-    substr( $as_hex, 0, 2, '' ); # remove "0x"
-    my $len = length($as_hex);
-    substr( $as_hex, 0, 0, "0" x ( 16 - $len ) ) if $len < 16; # pad to quad length
-    my $packed = pack( "H*", $as_hex );                        # packed big-endian
-    return reverse($packed);                                   # reverse to little-endian
+    my $bi = shift;
+    my $binary = $bi->as_bin;
+    $binary =~ s{^-?0b}{};
+    $binary = "0"x(64-length($binary)) . $binary if length($binary) < 64;
+
+    if ( $bi->sign eq '+' ) {
+        return pack("b*", scalar reverse $binary);
+    }
+    else {
+        my @lendian = split //, reverse $binary;
+        my $saw_first_one = 0;
+        for (@lendian) {
+            if ( ! $saw_first_one ) {
+                $saw_first_one = $_ == '1';
+                next;
+            }
+            else {
+                tr[01][10];
+            }
+        }
+        return pack("b*", join("", @lendian));
+    }
 }
 
 1;
