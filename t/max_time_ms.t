@@ -28,6 +28,13 @@ my $testdb         = get_test_db($conn);
 my $server_type    = server_type($conn);
 my $server_version = server_version($conn);
 
+# This test sets failpoints, which will make the tested server unusable
+# for ordinary purposes. As this is risky, the test requires the user
+# to opt-in
+unless ( $ENV{FAILPOINT_TESTING} ) {
+    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false";
+}
+
 # Test::Harness 3.31 supports the t/testrules.yml file to ensure that
 # this test file won't be run in parallel other tests, since turning on
 # a fail point will interfere with other tests.
