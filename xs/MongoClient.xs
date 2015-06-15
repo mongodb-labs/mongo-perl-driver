@@ -164,11 +164,20 @@ connect (self)
    PREINIT:
      mongo_link *link = (mongo_link*)perl_mongo_get_ptr_from_instance(self, &connection_vtbl);
      SV *username, *password, *sasl_flag;
+     int error;
    CODE:
-    perl_mongo_connect(self, link);
+     error = perl_mongo_connect(self, link);
 
      if (!link->master->connected) {
-       croak ("couldn't connect to server %s:%d", link->master->host, link->master->port);
+       if ( error > 0 ) {
+         croak ("couldn't connect to server %s:%d: %s", link->master->host, link->master->port, strerror(error));
+       }
+       else if ( error < 0 ) {
+         croak ("couldn't connect to server %s:%d: %s", link->master->host, link->master->port, hstrerror(-error));
+       }
+       else {
+         croak ("couldn't connect to server %s:%d: Timed out!", link->master->host, link->master->port);
+       }
      }
 
      // try legacy authentication if we have username and password but are not using SASL 

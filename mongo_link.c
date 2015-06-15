@@ -26,20 +26,18 @@ static int mongo_link_reader(mongo_link* link, void *dest, int len);
  */
 static int mongo_link_timeout(int socket, time_t timeout);
 
-static void set_timeout(int socket, time_t timeout) {
-#ifdef WIN32
-  const char *tv_ptr;
-  DWORD tv = (DWORD)timeout;
-  tv_ptr = (const char*)&tv;
-#else
-  const void *tv_ptr;
-  struct timeval tv;
-  tv.tv_sec = timeout / 1000;
-  tv.tv_usec = (timeout % 1000) * 1000;
-  tv_ptr = (void*)&tv;
-#endif
-  setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, tv_ptr, sizeof(tv));
-  setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, tv_ptr, sizeof(tv));
+static bool timeval_add(struct timeval *result, struct timeval *t2, struct timeval *t1) {
+    long int sum = (t2->tv_usec + 1000000 * t2->tv_sec) + (t1->tv_usec + 1000000 * t1->tv_sec);
+    result->tv_sec = sum / 1000000;
+    result->tv_usec = sum % 1000000;
+    return (sum<0);
+}
+
+static bool timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1) {
+    long int delta = (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec + 1000000 * t1->tv_sec);
+    result->tv_sec = delta / 1000000;
+    result->tv_usec = delta % 1000000;
+    return (delta<0);
 }
 
 #ifdef MONGO_SASL
@@ -136,8 +134,9 @@ static void sasl_authenticate( SV *client, mongo_link *link ) {
 }
 #endif  /* MONGO_SASL */
 
-void perl_mongo_connect(SV *client, mongo_link* link) {
+int perl_mongo_connect(SV *client, mongo_link* link) {
   SV* sasl_flag;
+  int error;
 
 #ifdef MONGO_SSL
   if(link->ssl){
@@ -148,7 +147,9 @@ void perl_mongo_connect(SV *client, mongo_link* link) {
   }
 #endif
 
-  non_ssl_connect(link);
+  if ( (error = non_ssl_connect(link)) ) {
+      return error;
+  };
   link->sender = non_ssl_send;
   link->receiver = non_ssl_recv;
 
@@ -164,22 +165,23 @@ void perl_mongo_connect(SV *client, mongo_link* link) {
   
   SvREFCNT_dec(sasl_flag);
   
+  return 0;
 }
 
 /*
- * Returns -1 on failure, the socket fh on success.
- *
- * Note: this cannot return 0 on failure, because reconnecting sometimes makes
- * the fh 0 (briefly).
+ * Returns 0 on successful connection or timeout, positive errno on network
+ * failure and negative h_errno on hostname resolution failure; callers should
+ * check the link 'connected' field to see if 0 means connection or timeout
  */
-void non_ssl_connect(mongo_link* link) {
+
+int non_ssl_connect(mongo_link* link) {
   int sock, status, connected = 0;
   struct sockaddr_in addr;
+  int error;
 
 #ifdef WIN32
   WORD version;
   WSADATA wsaData;
-  int error;
   u_long no = 0;
   const char yes = 1;
 
@@ -187,13 +189,13 @@ void non_ssl_connect(mongo_link* link) {
   error = WSAStartup(version, &wsaData);
 
   if (error != 0) {
-    return;
+    return error;
   }
 
   // create socket
   sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sock == INVALID_SOCKET) {
-    return;
+    return WSAGetLastError();
   }
 
 #else
@@ -201,24 +203,22 @@ void non_ssl_connect(mongo_link* link) {
 
   // create socket
   if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-    croak("couldn't create socket: %s\n", strerror(errno));
-    return;
+    return errno;
   }
 #endif
 
   // get addresses
-  if (!mongo_link_sockaddr(&addr, link->master->host, link->master->port)) {
+  if ((error = mongo_link_sockaddr(&addr, link->master->host, link->master->port))) {
 #ifdef WIN32
     closesocket(link->master->socket);
 #else
     close(sock);
 #endif
-    return;
+    return -error; // h_error
   }
 
   setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &yes, INT_32);
   setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &yes, INT_32);
-  set_timeout(sock, link->timeout);
 
 #ifdef WIN32
   ioctlsocket(sock, FIONBIO, (u_long*)&yes);
@@ -245,28 +245,38 @@ void non_ssl_connect(mongo_link* link) {
 #else
         close(sock);
 #endif
-      return;
+      return errno;
     }
 
-    if (!mongo_link_timeout(sock, link->timeout)) {
+    if ((error = mongo_link_timeout(sock, link->timeout))) {
 #ifdef WIN32
         closesocket(link->master->socket);
 #else
         close(sock);
 #endif
-      return;
+      if ( error == -1 ) {
+          return 0; // timeout
+      }
+      return error;
     }
 
     size = sizeof(addr);
 
+    /* if connection failed, getpeername will fail and we can get
+     * the original error via read. See http://cr.yp.to/docs/connect.html
+     */
+
     connected = getpeername(sock, (struct sockaddr*)&addr, &size);
     if (connected == -1){
+        char ch;
+        read(sock,&ch,1); /* retrieve error */
+        error = errno;
 #ifdef WIN32
         closesocket(link->master->socket);
 #else
         close(sock);
 #endif
-      return;
+        return error;
     }
   }
   else if (status == 0) {
@@ -282,7 +292,7 @@ void non_ssl_connect(mongo_link* link) {
   link->master->socket = sock;
   link->master->connected = 1;
 
-  return;
+  return 0;
 }
 
 #ifdef MONGO_SSL
@@ -343,32 +353,36 @@ int non_ssl_recv(void* link, const char* buffer, size_t len){
 }
 
 static int mongo_link_timeout(int sock, time_t to) {
-  struct timeval timeout, now, prev;
+  struct timeval timeout, start, end, now, *timeptr;
 
-  if (to <= 0) {
-    return 1;
+  if (to >= 0) {
+    timeout.tv_sec = (long)to / 1000;
+    timeout.tv_usec = (to % 1000) * 1000;
+    /* record max end time, in case we get interrupted and
+     * have to recalculate the remaining timeout;
+     * gettimeofday() isn't guaranteed monotonic, but it's
+     * portable and only matters for EINTR */
+    if (gettimeofday(&start, 0) == -1) {
+      croak("Error: %s", strerror(errno));
+    }
+    timeval_add(&end, &start, &timeout);
+    timeptr = &timeout;
   }
-
-  timeout.tv_sec = (long)to / 1000;
-  timeout.tv_usec = (to % 1000) * 1000;
-
-  // initialize prev, in case we get interrupted
-  if (gettimeofday(&prev, 0) == -1) {
-    return 0;
+  else {
+    /* block indefinitely */
+    timeptr = NULL;
   }
 
   while (1) {
-    fd_set rset, wset, eset;
+    fd_set rset, wset;
     int sock_status;
 
     FD_ZERO(&rset);
     FD_SET(sock, &rset);
     FD_ZERO(&wset);
     FD_SET(sock, &wset);
-    FD_ZERO(&eset);
-    FD_SET(sock, &eset);
 
-    sock_status = select(sock+1, &rset, &wset, &eset, &timeout);
+    sock_status = select(sock+1, &rset, &wset, NULL, timeptr);
 
     // error
     if (sock_status == -1) {
@@ -378,43 +392,28 @@ static int mongo_link_timeout(int sock, time_t to) {
 #endif
 
       if (errno == EINTR) {
-        if (gettimeofday(&now, 0) == -1) {
-          return 0;
+        if (to >= 0) {
+          if (gettimeofday(&now, 0) == -1) {
+            croak("Error: %s", strerror(errno));
+          }
+          // update timeout; but timeout expired if winds up negative
+          if ( timeval_subtract(&timeout, &end, &now) ) {
+            return -1;
+          }
         }
-
-        // update timeout
-        timeout.tv_sec -= (now.tv_sec - prev.tv_sec);
-        timeout.tv_usec -= (now.tv_usec - prev.tv_usec);
-
-        // update prev
-        prev.tv_sec = now.tv_sec;
-        prev.tv_usec = now.tv_usec;
       }
-
-      // check if we have an invalid timeout before continuing
-      if (timeout.tv_sec >= 0 || timeout.tv_usec >= 0) {
-        continue;
+      else {
+        // if this isn't a EINTR, it's a fatal error
+        return errno;
       }
-
-      // if this isn't a EINTR, it's a fatal error
-      return 0;
     }
-
-    // timeout
-    if (sock_status == 0 && !FD_ISSET(sock, &wset) && !FD_ISSET(sock, &rset)) {
-      return 0;
+    else if (sock_status == 0) {
+      return -1; // timeout expired
     }
-
-    if (FD_ISSET(sock, &eset)) {
+    else {
       return 0;
-    }
-
-    if (FD_ISSET(sock, &wset) || FD_ISSET(sock, &rset)) {
-      break;
     }
   }
-
-  return 1;
 }
 
 static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
@@ -425,7 +424,11 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
   hostinfo = (struct hostent*)gethostbyname(host);
 
   if (!hostinfo) {
-    return 0;
+#ifdef WIN32
+    return WSAGetLastError();
+#else
+    return h_errno;
+#endif
   }
 
 #ifdef WIN32
@@ -434,7 +437,7 @@ static int mongo_link_sockaddr(struct sockaddr_in *addr, char *host, int port) {
   addr->sin_addr = *((struct in_addr*)hostinfo->h_addr);
 #endif
 
-  return 1;
+  return 0;
 }
 
 

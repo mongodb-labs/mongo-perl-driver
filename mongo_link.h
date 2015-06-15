@@ -29,8 +29,8 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <fcntl.h>
-#include <netdb.h>
 #endif
+#include <netdb.h>
 #include <errno.h>
 
 #ifdef MONGO_SSL
@@ -182,8 +182,8 @@ int perl_mongo_master(SV *self, int auto_reconnect);
 void set_disconnected(SV *link_sv);
 
 //ssl
-void perl_mongo_connect( SV *client, mongo_link* link);
-void non_ssl_connect(mongo_link* link);
+int perl_mongo_connect( SV *client, mongo_link* link);
+int non_ssl_connect(mongo_link* link);
 
 #ifdef MONGO_SSL
 void tcp_setup(mongo_link* link);
