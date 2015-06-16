@@ -350,6 +350,8 @@ int non_ssl_recv(void* link, const char* buffer, size_t len){
   return recv(((mongo_link*)link)->master->socket, (void*)buffer, len, 0);
 }
 
+/* returns 0 if something is ready; returns >= on error; returns -1
+ * if timeout expired */
 static int mongo_link_timeout(int sock, time_t to, bool rw) {
   struct timeval timeout, start, end, now, *timeptr;
 
@@ -510,7 +512,7 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
  */
 int mongo_link_hear(SV *cursor_sv) {
   int sock;
-  int num_returned = 0, timeout = -1;
+  int num_returned = 0, timeout = -1, timeout_error;
   mongo_cursor *cursor;
   mongo_link *link;
   SV *link_sv, *request_id_sv, *timeout_sv;
@@ -527,22 +529,12 @@ int mongo_link_hear(SV *cursor_sv) {
 
   timeout = SvIV(timeout_sv);
 
-  // set a timeout
-  if (timeout >= 0) {
-    struct timeval t;
-    fd_set readfds;
-
-    t.tv_sec = timeout / 1000 ;
-    t.tv_usec = (timeout % 1000) * 1000;
-
-    FD_ZERO(&readfds);
-    FD_SET(sock, &readfds);
-
-    select(sock+1, &readfds, NULL, NULL, &t);
-
-    if (!FD_ISSET(sock, &readfds)) {
+  if ((timeout_error = mongo_link_timeout(sock,timeout,0))) {
+    if (timeout_error < 0) {
       croak("recv timed out (%d ms)", timeout);
-      return 0;
+    }
+    else {
+      croak("network error: %s", strerror(timeout_error));
     }
   }
 
