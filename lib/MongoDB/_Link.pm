@@ -89,7 +89,7 @@ sub connect {
         $self->{local_address} ? ( LocalAddr => $self->{local_address} ) : (),
         Proto   => 'tcp',
         Type    => SOCK_STREAM,
-        Timeout => $self->{connect_timeout},
+        Timeout => $self->{connect_timeout} >= 0 ? $self->{connect_timeout} : undef,
     ) or MongoDB::NetworkError->throw(qq/Could not connect to '$host:$port': $@\n/);
 
     binmode( $self->{fh} )
