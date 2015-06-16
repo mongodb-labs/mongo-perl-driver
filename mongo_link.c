@@ -512,7 +512,7 @@ static int get_header(int sock, SV *cursor_sv, SV *link_sv) {
  */
 int mongo_link_hear(SV *cursor_sv) {
   int sock;
-  int num_returned = 0, timeout = -1, timeout_error;
+  int num_returned = 0, timeout = -1, pending = 0, timeout_error;
   mongo_cursor *cursor;
   mongo_link *link;
   SV *link_sv, *request_id_sv, *timeout_sv;
@@ -529,7 +529,13 @@ int mongo_link_hear(SV *cursor_sv) {
 
   timeout = SvIV(timeout_sv);
 
-  if ((timeout_error = mongo_link_timeout(sock,timeout,0))) {
+#ifdef MONGO_SSL
+  if (link->ssl) {
+    pending = SSL_pending(link->ssl_handle);
+  }
+#endif
+
+  if (!pending && (timeout_error = mongo_link_timeout(sock,timeout,0))) {
     if (timeout_error < 0) {
       croak("recv timed out (%d ms)", timeout);
     }
