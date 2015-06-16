@@ -138,22 +138,22 @@ int perl_mongo_connect(SV *client, mongo_link* link) {
   SV* sasl_flag;
   int error;
 
-#ifdef MONGO_SSL
-  if(link->ssl){
-    ssl_connect(link);
-    link->sender = ssl_send;
-    link->receiver = ssl_recv;
-    return 0;
-  }
-#endif
-
   if ( (error = non_ssl_connect(link)) ) {
       return error;
   };
-  link->sender = non_ssl_send;
+
+  if ( ! link->master->connected ) {
+      return 0; /* indicates a connection timeout */
+  }
+
+  link->sender   = non_ssl_send;
   link->receiver = non_ssl_recv;
 
-  sasl_flag = perl_mongo_call_method( client, "sasl", 0, 0 );
+#ifdef MONGO_SSL
+  if(link->ssl){
+    ssl_upgrade(link); /* dies on error */
+  }
+#endif
 
   if ( link->master->connected && SvIV(sasl_flag) == 1 ) {
 #ifdef MONGO_SASL
@@ -297,8 +297,7 @@ int non_ssl_connect(mongo_link* link) {
 
 #ifdef MONGO_SSL
 // Establish a connection using an SSL layer
-void ssl_connect(mongo_link* link) {
-  tcp_setup(link);
+void ssl_upgrade(mongo_link* link) {
 
   if (link->master->socket){
     // Register the error strings for libcrypto & libssl
@@ -310,26 +309,31 @@ void ssl_connect(mongo_link* link) {
     // New context saying we are a client, and using SSL 2 or 3
     link->ssl_context = SSL_CTX_new(SSLv23_client_method());
     if(link->ssl_context == NULL){
-      ERR_print_errors_fp(stderr);
+      croak("SSL error: %s", ERR_error_string(ERR_get_error(), NULL));
     }
 
     // Create an SSL struct for the connection
     link->ssl_handle = SSL_new(link->ssl_context);
     if(link->ssl_handle == NULL){
-      ERR_print_errors_fp(stderr);
+      croak("SSL error: %s", ERR_error_string(ERR_get_error(), NULL));
     }
 
     // Connect the SSL struct to our connection
     if(!SSL_set_fd(link->ssl_handle, link->master->socket)){
-      ERR_print_errors_fp(stderr);
+      croak("SSL error: %s", ERR_error_string(ERR_get_error(), NULL));
     }
 
     // Initiate SSL handshake
     if(SSL_connect (link->ssl_handle) != 1){
-      ERR_print_errors_fp(stderr);
+      croak("SSL error: %s", ERR_error_string(ERR_get_error(), NULL));
     }
 
-    link->master->connected = 1;
+    // Change I/O functions to use SSL
+    link->sender   = ssl_send;
+    link->receiver = ssl_recv;
+  }
+  else {
+    croak("Tried to upgrade to SSL, but socket was NULL");
   }
 }
 
