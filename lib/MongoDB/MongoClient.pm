@@ -211,9 +211,15 @@ new connection to a server.
 
 The default is 20,000 ms.
 
-This may be set in a connection string with the C<connectTimeoutMS> option.
+If set to a negative value, connection operations will block indefinitely
+until the server replies or until the operating system TCP/IP stack gives
+up (e.g. if the name can't resolve or there is no process listening on the
+target host/port).
 
-XXX what about 0? negative?
+A zero value polls the socket during connection and is thus likely to fail
+except when talking to a local process (and perhaps even then).
+
+This may be set in a connection string with the C<connectTimeoutMS> option.
 
 =cut
 
@@ -297,8 +303,8 @@ sub _build_db_name {
 
 =attr heartbeat_frequency_ms
 
-The time in milliseconds between scans of all servers to check if they
-are up and update their latency.  Defaults to 60,000 ms.
+The time in milliseconds (non-negative) between scans of all servers to
+check if they are up and update their latency.  Defaults to 60,000 ms.
 
 This may be set in a connection string with the C<heartbeatFrequencyMS> option.
 
@@ -306,7 +312,7 @@ This may be set in a connection string with the C<heartbeatFrequencyMS> option.
 
 has heartbeat_frequency_ms => (
     is      => 'ro',
-    isa     => Num,
+    isa     => NonNegNum,
     lazy    => 1,
     builder => '_build_heartbeat_frequency_ms',
 );
@@ -351,9 +357,9 @@ sub _build_j {
 =attr local_threshold_ms
 
 The width of the 'latency window': when choosing between multiple suitable
-servers for an operation, the acceptable delta in milliseconds between shortest
-and longest average round-trip times.  Servers within the latency window are
-selected randomly.
+servers for an operation, the acceptable delta in milliseconds
+(non-negative) between shortest and longest average round-trip times.
+Servers within the latency window are selected randomly.
 
 Set this to "0" to always select the server with the shortest average round
 trip time.  Set this to a very high value to always randomly choose any known
@@ -369,7 +375,7 @@ This may be set in a connection string with the C<localThresholdMS> option.
 
 has local_threshold_ms => (
     is      => 'ro',
-    isa     => Num,
+    isa     => NonNegNum,
     lazy    => 1,
     builder => '_build_local_threshold_ms',
 );
@@ -385,15 +391,18 @@ sub _build_local_threshold_ms {
 
 =attr max_time_ms
 
-Specifies the maximum amount of time in milliseconds that the server should use
-for working on a query.  Defaults to 29,500, slightly shorter than the
-L</socket_timeout_ms>, as getting a definitive (albeit negative) response from
-the server is preferred over a getting a socket timeout.
+Specifies the maximum amount of time in (non-negative) milliseconds that the
+server should use for working on a query.  Defaults to 29,500, slightly shorter
+than the L</socket_timeout_ms>, as getting a definitive (albeit negative)
+response from the server is preferred over a getting a socket timeout.
+
+Make sure this value is shorter than C<socket_timeout_ms>.
 
 B<Note>: this will only be used for server versions 2.6 or greater, as that
 was when the C<$maxTimeMS> meta-operator was introduced.
 
-XXX ensure this is shorter than C<socket_timeout_ms>?
+B<Also Note>: Unlike other timeout values, when this is set to zero,
+C<$maxTimeMS> is disabled, not an immediate timeout.
 
 This may be set in a connection string with the C<maxTimeMS> option.
 
@@ -596,7 +605,7 @@ sub _build_server_selection_timeout_ms {
 
 If a socket to a server has not been used in this many milliseconds, an
 C<ismaster> command will be issued to check the status of the server before
-issuing any reads or writes.
+issuing any reads or writes. Must be non-negative.
 
 The default is 5,000 ms.
 
@@ -607,7 +616,7 @@ option.
 
 has socket_check_interval_ms => (
     is      => 'ro',
-    isa     => Num,
+    isa     => NonNegNum,
     lazy    => 1,
     builder => '_build_socket_check_interval_ms',
 );
@@ -628,7 +637,12 @@ reply from the server before issuing a network exception.
 
 The default is 30,000 ms.
 
-XXX what about 0? negative?
+If set to a negative value, socket operations will block indefinitely
+until the server replies or until the operating system TCP/IP stack
+gives up.
+
+A zero value polls the socket for available data and is thus likely to fail
+except when talking to a local process (and perhaps even then).
 
 This may be set in a connection string with the C<socketTimeoutMS> option.
 

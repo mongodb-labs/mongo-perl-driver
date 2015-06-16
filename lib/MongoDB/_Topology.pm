@@ -84,7 +84,7 @@ has replica_set_name => (
 
 has heartbeat_frequency_ms => (
     is      => 'ro',
-    isa     => Num,
+    isa     => NonNegNum,
     default => 60_000,
 );
 
