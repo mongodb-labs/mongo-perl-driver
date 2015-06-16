@@ -143,7 +143,7 @@ int perl_mongo_connect(SV *client, mongo_link* link) {
     ssl_connect(link);
     link->sender = ssl_send;
     link->receiver = ssl_recv;
-    return;
+    return 0;
   }
 #endif
 
