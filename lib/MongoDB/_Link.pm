@@ -31,10 +31,11 @@ use Config;
 use Errno qw[EINTR EPIPE];
 use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
-use Time::HiRes qw/gettimeofday tv_interval/;
+use Time::HiRes qw/time gettimeofday tv_interval/;
 use MongoDB::Error;
 
 use constant {
+    HAS_GETTIME          => Time::HiRes::d_clock_gettime(),
     HAS_THREADS          => $Config{usethreads},
     P_INT32              => $] lt '5.010' ? 'l' : 'l<',
     MAX_BSON_OBJECT_SIZE => 4_194_304,
@@ -312,7 +313,7 @@ sub _do_timeout {
     defined $fd && $fd >= 0
       or MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
 
-    my $initial = time;
+    my $initial = HAS_GETTIME ? Time::HiRes::clock_gettime(CLOCK_MONOTONIC) : time;
     my $pending = $timeout >= 0 ? $timeout : undef;
     my $nfound;
 
@@ -326,7 +327,9 @@ sub _do_timeout {
         if ( $nfound == -1 ) {
             $! == EINTR
               or MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
-            redo if !defined($pending) || ( $pending = $timeout - ( time - $initial ) ) > 0;
+            redo if !defined($pending);
+            my $now = HAS_GETTIME ? Time::HiRes::clock_gettime(CLOCK_MONOTONIC) : time;
+            redo if ( $pending = $timeout - ( $now - $initial ) ) > 0;
             $nfound = 0;
         }
         last;
