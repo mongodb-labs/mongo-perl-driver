@@ -306,14 +306,14 @@ sub _read_bytes {
 sub _do_timeout {
     my ( $self, $type, $timeout ) = @_;
     $timeout = $self->{socket_timeout}
-      unless defined $timeout && $timeout >= 0;
+      unless defined $timeout;
 
     my $fd = fileno $self->{fh};
     defined $fd && $fd >= 0
       or MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
 
     my $initial = time;
-    my $pending = $timeout;
+    my $pending = $timeout >= 0 ? $timeout : undef;
     my $nfound;
 
     vec( my $fdset = '', $fd, 1 ) = 1;
@@ -326,7 +326,7 @@ sub _do_timeout {
         if ( $nfound == -1 ) {
             $! == EINTR
               or MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
-            redo if !defined($timeout) || ( $pending = $timeout - ( time - $initial ) ) > 0;
+            redo if !defined($pending) || ( $pending = $timeout - ( time - $initial ) ) > 0;
             $nfound = 0;
         }
         last;
