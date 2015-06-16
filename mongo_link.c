@@ -329,8 +329,6 @@ void ssl_connect(mongo_link* link) {
       ERR_print_errors_fp(stderr);
     }
 
-    SSL_CTX_set_timeout(link->ssl_context, (long)link->timeout);
-
     link->master->connected = 1;
   }
 }
