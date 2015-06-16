@@ -210,7 +210,7 @@ int non_ssl_connect(mongo_link* link) {
   // get addresses
   if ((error = mongo_link_sockaddr(&addr, link->master->host, link->master->port))) {
 #ifdef WIN32
-    closesocket(link->master->socket);
+    closesocket(sock);
 #else
     close(sock);
 #endif
@@ -241,7 +241,7 @@ int non_ssl_connect(mongo_link* link) {
 #endif
     {
 #ifdef WIN32
-        closesocket(link->master->socket);
+        closesocket(sock);
 #else
         close(sock);
 #endif
@@ -250,7 +250,7 @@ int non_ssl_connect(mongo_link* link) {
 
     if ((error = mongo_link_timeout(sock, link->timeout))) {
 #ifdef WIN32
-        closesocket(link->master->socket);
+        closesocket(sock);
 #else
         close(sock);
 #endif
@@ -272,7 +272,7 @@ int non_ssl_connect(mongo_link* link) {
         read(sock,&ch,1); /* retrieve error */
         error = errno;
 #ifdef WIN32
-        closesocket(link->master->socket);
+        closesocket(sock);
 #else
         close(sock);
 #endif
