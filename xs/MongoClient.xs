@@ -17,6 +17,32 @@
 #include "perl_mongo.h"
 #include "mongo_link.h"
 
+#ifdef WIN32
+/* emulate hstrerror with FormatMessage */
+static char *hstrerror(int errnum) {
+    LPVOID msg;
+    char *errstr;
+
+    FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        errnum,
+        0,
+        (LPTSTR) &msg,
+        0,
+        NULL
+    );
+
+    errstr = savepv(msg);
+    save_freepv(errstr);
+    LocalFree(msg);
+
+    return errstr;
+}
+#endif
+
 static int
 connection_free (pTHX_ SV *sv, MAGIC *mg)
 {
