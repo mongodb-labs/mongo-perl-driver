@@ -516,18 +516,16 @@ int mongo_link_hear(SV *cursor_sv) {
   SV *link_sv, *request_id_sv, *timeout_sv;
 
   cursor = (mongo_cursor*)perl_mongo_get_ptr_from_instance(cursor_sv, &cursor_vtbl);
-  link_sv = perl_mongo_call_reader(cursor_sv, "_client");
+  link_sv = sv_2mortal(perl_mongo_call_reader(cursor_sv, "_client"));
   link = (mongo_link*)perl_mongo_get_ptr_from_instance(link_sv, &connection_vtbl);
-  timeout_sv = perl_mongo_call_reader(link_sv, "query_timeout");
+  timeout_sv = sv_2mortal(perl_mongo_call_reader(link_sv, "query_timeout"));
 
   if ((sock = perl_mongo_master(link_sv, 0)) == -1) {
     set_disconnected(link_sv);
-    SvREFCNT_dec(link_sv);
     croak("can't get db response, not connected (during receive)");
   }
 
   timeout = SvIV(timeout_sv);
-  SvREFCNT_dec(timeout_sv);
 
   // set a timeout
   if (timeout >= 0) {
@@ -543,33 +541,27 @@ int mongo_link_hear(SV *cursor_sv) {
     select(sock+1, &readfds, NULL, NULL, &t);
 
     if (!FD_ISSET(sock, &readfds)) {
-      SvREFCNT_dec(link_sv);
       croak("recv timed out (%d ms)", timeout);
       return 0;
     }
   }
 
   if (get_header(sock, cursor_sv, link_sv) == 0) {
-    SvREFCNT_dec(link_sv);
     croak("can't get db response, not connected (invalid response header)");
     return 0;
   }
 
-  request_id_sv = perl_mongo_call_reader(cursor_sv, "_request_id");
+  request_id_sv = sv_2mortal(perl_mongo_call_reader(cursor_sv, "_request_id"));
   while (SvIV(request_id_sv) != cursor->header.response_to) {
     char temp[4096];
     int len = cursor->header.length - 36;
 
     if (SvIV(request_id_sv) < cursor->header.response_to) {
-      SvREFCNT_dec(link_sv);
-      SvREFCNT_dec(request_id_sv);
       croak("missed the response we wanted, please try again");
       return 0;
     }
 
     if (link->receiver(link, (char*)temp, 20) == -1) {
-      SvREFCNT_dec(link_sv);
-      SvREFCNT_dec(request_id_sv);
       croak("couldn't get header response to throw out");
       return 0;
     }
@@ -579,31 +571,24 @@ int mongo_link_hear(SV *cursor_sv) {
       len -= temp_len;
 
       if (mongo_link_reader(link, (void*)temp, temp_len) == -1) {
-        SvREFCNT_dec(link_sv);
-        SvREFCNT_dec(request_id_sv);
         croak("couldn't get response to throw out");
         return 0;
       }
     } while (len > 0);
 
     if (get_header(sock, cursor_sv, link_sv) == 0) {
-      SvREFCNT_dec(link_sv);
-      SvREFCNT_dec(request_id_sv);
       croak("invalid header received");
       return 0;
     }
   }
-  SvREFCNT_dec(request_id_sv);
 
   if (link->receiver(link, (char*)&cursor->flag, INT_32)      == -1 ||
       link->receiver(link, (char*)&cursor->cursor_id, INT_64) == -1 ||
       link->receiver(link, (char*)&cursor->start, INT_32)     == -1 ||
       link->receiver(link, (char*)&num_returned, INT_32)      == -1) {
-    SvREFCNT_dec(link_sv);
     croak("%s", strerror(errno));
     return 0;
   }
-  SvREFCNT_dec(link_sv);
 
   cursor->flag = MONGO_32(cursor->flag);
   // if zero-th bit is set, cursor is invalid
