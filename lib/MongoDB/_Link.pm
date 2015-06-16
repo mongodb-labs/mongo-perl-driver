@@ -313,7 +313,7 @@ sub _do_timeout {
     defined $fd && $fd >= 0
       or MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
 
-    my $initial = HAS_GETTIME ? Time::HiRes::clock_gettime(CLOCK_MONOTONIC) : time;
+    my $initial = HAS_GETTIME ? Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) : time;
     my $pending = $timeout >= 0 ? $timeout : undef;
     my $nfound;
 
@@ -328,7 +328,7 @@ sub _do_timeout {
             $! == EINTR
               or MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
             redo if !defined($pending);
-            my $now = HAS_GETTIME ? Time::HiRes::clock_gettime(CLOCK_MONOTONIC) : time;
+            my $now = HAS_GETTIME ? Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) : time;
             redo if ( $pending = $timeout - ( $now - $initial ) ) > 0;
             $nfound = 0;
         }
