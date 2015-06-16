@@ -24,7 +24,7 @@ static int mongo_link_reader(mongo_link* link, void *dest, int len);
  * Waits "timeout" ms for the socket to be ready.  Returns 1 on success, 0 on
  * failure.
  */
-static int mongo_link_timeout(int socket, time_t timeout);
+static int mongo_link_timeout(int socket, time_t timeout, bool rw);
 
 static bool timeval_add(struct timeval *result, struct timeval *t2, struct timeval *t1) {
     long int sum = (t2->tv_usec + 1000000 * t2->tv_sec) + (t1->tv_usec + 1000000 * t1->tv_sec);
@@ -248,7 +248,7 @@ int non_ssl_connect(mongo_link* link) {
       return errno;
     }
 
-    if ((error = mongo_link_timeout(sock, link->timeout))) {
+    if ((error = mongo_link_timeout(sock, link->timeout, 1))) {
 #ifdef WIN32
         closesocket(sock);
 #else
@@ -350,7 +350,7 @@ int non_ssl_recv(void* link, const char* buffer, size_t len){
   return recv(((mongo_link*)link)->master->socket, (void*)buffer, len, 0);
 }
 
-static int mongo_link_timeout(int sock, time_t to) {
+static int mongo_link_timeout(int sock, time_t to, bool rw) {
   struct timeval timeout, start, end, now, *timeptr;
 
   if (to >= 0) {
@@ -372,15 +372,22 @@ static int mongo_link_timeout(int sock, time_t to) {
   }
 
   while (1) {
-    fd_set rset, wset;
+    fd_set rset, wset, *wsetp;
     int sock_status;
 
     FD_ZERO(&rset);
     FD_SET(sock, &rset);
-    FD_ZERO(&wset);
-    FD_SET(sock, &wset);
 
-    sock_status = select(sock+1, &rset, &wset, NULL, timeptr);
+    if ( rw ) {
+        FD_ZERO(&wset);
+        FD_SET(sock, &wset);
+        wsetp = &wset;
+    }
+    else {
+        wsetp = NULL;
+    }
+
+    sock_status = select(sock+1, &rset, wsetp, NULL, timeptr);
 
     // error
     if (sock_status == -1) {
