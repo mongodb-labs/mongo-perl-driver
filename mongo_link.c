@@ -540,7 +540,6 @@ int mongo_link_hear(SV *cursor_sv) {
 
   if (get_header(sock, cursor_sv, link_sv) == 0) {
     croak("can't get db response, not connected (invalid response header)");
-    return 0;
   }
 
   request_id_sv = sv_2mortal(perl_mongo_call_reader(cursor_sv, "_request_id"));
@@ -550,12 +549,10 @@ int mongo_link_hear(SV *cursor_sv) {
 
     if (SvIV(request_id_sv) < cursor->header.response_to) {
       croak("missed the response we wanted, please try again");
-      return 0;
     }
 
     if (link->receiver(link, (char*)temp, 20) == -1) {
       croak("couldn't get header response to throw out");
-      return 0;
     }
 
     do {
@@ -564,13 +561,11 @@ int mongo_link_hear(SV *cursor_sv) {
 
       if (mongo_link_reader(link, (void*)temp, temp_len) == -1) {
         croak("couldn't get response to throw out");
-        return 0;
       }
     } while (len > 0);
 
     if (get_header(sock, cursor_sv, link_sv) == 0) {
       croak("invalid header received");
-      return 0;
     }
   }
 
@@ -579,7 +574,6 @@ int mongo_link_hear(SV *cursor_sv) {
       link->receiver(link, (char*)&cursor->start, INT_32)     == -1 ||
       link->receiver(link, (char*)&num_returned, INT_32)      == -1) {
     croak("%s", strerror(errno));
-    return 0;
   }
 
   cursor->flag = MONGO_32(cursor->flag);
@@ -613,7 +607,6 @@ int mongo_link_hear(SV *cursor_sv) {
 #else
     croak("error getting database response: %s\n", strerror(errno));
 #endif
-    return 0;
   }
 
   cursor->num += num_returned;
