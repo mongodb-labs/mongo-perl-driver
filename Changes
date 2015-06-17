@@ -2,6 +2,26 @@
 
 {{ $NEXT }}
 
+  [Changes]
+
+  - Configuration options representing times have stricter validation such
+    that options that should be non-negative will raise exceptions when
+    given negative numbers.
+
+  [Bug fixes]
+
+  - Fixes failing BSON element tests on 32-bit perls.
+
+  - Uses monotonic clock for restarting interrupted select() calls,
+    if available via Time::HiRes.
+
+  - Restores v0 behavior of negative connect_timeout_ms and
+    socket_timeout_ms meaning "never timeout".
+
+  [Testing]
+
+  - Skips t/max_tims_ms.t unless $ENV{FAILPOINT_TESTING} is true.
+
 v0.999.999.1 2015-06-10 09:48:53-06:00 America/Denver (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]
