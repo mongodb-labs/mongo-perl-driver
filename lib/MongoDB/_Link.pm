@@ -31,6 +31,7 @@ use Config;
 use Errno qw[EINTR EPIPE];
 use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
+use Socket qw/SOL_SOCKET SO_KEEPALIVE IPPROTO_TCP TCP_NODELAY/;
 use Time::HiRes qw/time gettimeofday tv_interval/;
 use MongoDB::Error;
 
@@ -94,6 +95,12 @@ sub connect {
 
     binmode( $self->{fh} )
       or MongoDB::InternalError->throw(qq/Could not binmode() socket: '$!'\n/);
+
+    defined( $self->{fh}->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1) )
+      or MongoDB::InternalError->throw(qq/Could not set TCP_NODELAY on socket: '$!'\n/);
+
+    defined( $self->{fh}->setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1) )
+      or MongoDB::InternalError->throw(qq/Could not set SO_KEEPALIVE on socket: '$!'\n/);
 
     $self->start_ssl($host) if $self->{with_ssl};
 

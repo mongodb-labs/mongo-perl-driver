@@ -18,6 +18,9 @@
   - Restores v0 behavior of negative connect_timeout_ms and
     socket_timeout_ms meaning "never timeout".
 
+  - Restores v0 behavior of setting TCP_NODELAY and SO_KEEPALIVE
+    on sockets.
+
   [Testing]
 
   - Skips t/max_tims_ms.t unless $ENV{FAILPOINT_TESTING} is true.
