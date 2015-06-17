@@ -19,7 +19,7 @@ package MongoDB::Op::_KillCursors;
 # Encapsulate a cursor kill operation; returns true
 
 use version;
-our $VERSION = 'v0.999.999.2'; # TRIAL
+our $VERSION = 'v0.999.999.3'; # TRIAL
 
 use Moose;
 

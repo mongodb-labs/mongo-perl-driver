@@ -17,7 +17,7 @@
 package MongoDB::_Credential;
 
 use version;
-our $VERSION = 'v0.999.999.2'; # TRIAL
+our $VERSION = 'v0.999.999.3'; # TRIAL
 
 use Moose;
 use MongoDB::Error;

@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.999.999.2 2015-06-17 11:34:48-04:00 America/New_York (TRIAL RELEASE)
+
   [Changes]
 
   - Configuration options representing times have stricter validation such
