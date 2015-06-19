@@ -51,7 +51,8 @@ has db => (
 has client => (
     is        => 'rw',
     isa       => InstanceOf['MongoDB::MongoClient'],
-    required  => 0
+    required  => 0,
+    weak_ref  => 1,
 );
 
 has verify_db => (
@@ -74,7 +75,7 @@ sub fetch {
 
     my $client = $self->client;
 
-    croak "Can't fetch DBRef without a MongoClient. Specify a 'client' attribute."
+    croak "Can't fetch reference: DBRef MongoClient was not provided or went out of scope and was destroyed."
       unless $client;
 
     my $db     = $self->db;

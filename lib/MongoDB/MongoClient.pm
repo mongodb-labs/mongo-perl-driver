@@ -40,7 +40,7 @@ use Tie::IxHash;
 use Time::HiRes qw/usleep/;
 use Carp 'carp', 'croak';
 use Safe::Isa;
-use Scalar::Util 'reftype';
+use Scalar::Util qw/reftype weaken/;
 use Syntax::Keyword::Junction 'any';
 use boolean;
 use Encode;
@@ -188,6 +188,7 @@ has bson_codec => (
 # skipping op_char unless $MongoDB::BSON::char is not '$' is an optimization
 sub _build_bson_codec {
     my ($self) = @_;
+    weaken $self;
     return MongoDB::BSON->new(
         dbref_callback => sub {
             my $doc = shift;
