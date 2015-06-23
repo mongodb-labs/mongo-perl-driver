@@ -12,9 +12,13 @@ use Cwd;
 
 our @ISA = qw{Module::Install::Base};
 
+use constant {
+    HAS_GCC => $Config{ccname} =~ /gcc/ ? 1 : 0,
+};
+
 sub check_for_outdated_win_gcc {
 	return if $ENV{MONGODB_NO_WIN32_GCC_CHECK};
-	return if $Config{cc} !~ /gcc/;
+	return if ! HAS_GCC;
 
 	local $@;
 	my $gcc_ver = eval {
@@ -60,7 +64,7 @@ sub mongo {
     $ccflags = "" unless defined $ccflags;
 
     $ccflags .= " -Wall -Wextra -Wuninitialized -Wdeclaration-after-statement"
-        if $ENV{AUTHOR_TESTING} || $ENV{AUTOMATED_TESTING};
+        if HAS_GCC && ( $ENV{AUTHOR_TESTING} || $ENV{AUTOMATED_TESTING} );
 
     # MSWin32 requires newer gcc (if using gcc)
     if ( $^O eq 'MSWin32' ) {
