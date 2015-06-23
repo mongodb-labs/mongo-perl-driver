@@ -58,7 +58,7 @@ my $testdb = get_test_db($conn);
     my $ref = MongoDB::DBRef->new( db => 'fake_db_does_not_exist', 'ref', 'fake_coll_does_not_exist', id => 123 );
     like(
         exception { $ref->fetch },
-        qr/Can't fetch DBRef without a MongoClient/,
+        qr/Can't fetch reference/,
         "fetch without dbref throws exception"
     );
 
