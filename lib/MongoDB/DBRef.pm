@@ -27,11 +27,26 @@ use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
+=attr id
+
+Required. The C<_id> value of the referenced document. If the
+C<_id> is an ObjectID, then you must use a L<MongoDB::OID> object.
+
+=cut
+
 # no type constraint since an _id can be anything
 has id => (
     is        => 'ro',
     required  => 1
 );
+
+=attr ref
+
+Required. The collection in which the referenced document lives. Either a
+L<MongoDB::Collection> object or a string containing the collection name. The
+object will be coerced to string form.
+
+=cut
 
 has ref => (
     is        => 'ro',
@@ -39,6 +54,17 @@ has ref => (
     required  => 1,
     coerce    => 1,
 );
+
+=attr db
+
+Optional. The database in which the referenced document lives. Either a
+L<MongoDB::Database> object or a string containing the database name. The
+object will be coerced to string form.
+
+Not all other language drivers support the C<$db> field, so using this
+field is not recommended.
+
+=cut
 
 has db => (
     is        => 'ro',
@@ -60,7 +86,6 @@ __PACKAGE__->meta->make_immutable;
 
 1;
 
-
 __END__
 
 =head1 SYNOPSIS
@@ -80,23 +105,11 @@ another document in the database. DBRefs are not the same as foreign keys
 and do not provide any referential integrity or constraint checking. For example,
 a DBRef may point to a document that no longer exists (or never existed.)
 
-=head1 ATTRIBUTES
+Generally, these are not recommended and "manual references" are preferred.
 
-=head2 db
+See L<Database references/http://docs.mongodb.org/manual/reference/database-references/>
+en the MongoDB manual for more information.
 
-Required. The database in which the referenced document lives. Either a L<MongoDB::Database>
-object or a string containing the database name. The object will be coerced to string form.
+=cut
 
-=head2 ref
-
-Required. The collection in which the referenced document lives. Either a L<MongoDB::Collection>
-object or a string containing the collection name. The object will be coerced to string form.
-
-=head2 id
-
-Required. The C<_id> value of the referenced document. If the
-C<_id> is an ObjectID, then you must use a L<MongoDB::OID> object.
-
-=head1 METHODS
-
-
+# vim: set ts=4 sts=4 sw=4 et tw=75:
