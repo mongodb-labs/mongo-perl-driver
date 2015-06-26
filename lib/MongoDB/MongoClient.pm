@@ -188,12 +188,10 @@ has bson_codec => (
 # skipping op_char unless $MongoDB::BSON::char is not '$' is an optimization
 sub _build_bson_codec {
     my ($self) = @_;
-    weaken $self;
     return MongoDB::BSON->new(
         dbref_callback => sub {
             my $doc = shift;
             return MongoDB::DBRef->new(
-                client => $self,
                 ref    => $doc->{'$ref'},
                 id     => $doc->{'$id'},
                 db     => $doc->{'$db'},

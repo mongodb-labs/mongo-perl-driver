@@ -49,32 +49,8 @@ my $testdb = get_test_db($conn);
     is $ref->db, $testdb->name;
     is $ref->ref, 'test_collection';
     is $ref->id, 123;
-}
 
-# test fetch
-{
-    $testdb->get_collection( 'test_coll' )->insert_one( { _id => 123, foo => 'bar' } );
 
-    my $ref = MongoDB::DBRef->new( db => 'fake_db_does_not_exist', 'ref', 'fake_coll_does_not_exist', id => 123 );
-    like(
-        exception { $ref->fetch },
-        qr/Can't fetch reference/,
-        "fetch without dbref throws exception"
-    );
-
-    $ref->client( $conn );
-    like( exception { $ref->fetch }, qr/No such database fake_db_does_not_exist/, "db doesn't exist throws" );
-
-    $ref->db( $testdb->name );
-    like( exception { $ref->fetch }, qr/No such collection fake_coll_does_not_exist/, "collection doesn't exist throws" );
-
-    $ref->ref( 'test_coll' );
-
-    my $doc = $ref->fetch;
-    is $doc->{_id}, 123;
-    is $doc->{foo}, 'bar';
-
-    $testdb->get_collection( 'test_coll' )->drop;
 }
 
 # test roundtrip
@@ -95,25 +71,6 @@ my $testdb = get_test_db($conn);
     is $thing->db,  'some_db';
 
     $coll->drop;
-}
-
-# test fetch via find
-{
-    my $some_coll = $testdb->get_collection( 'some_coll' );
-    $some_coll->insert_one( { _id => 123, value => 'foobar' } );
-    my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
-
-    my $coll = $testdb->get_collection( 'test_coll' );
-    $coll->insert_one( { _id => 'wut wut wut', thing => $dbref } );
-
-    my $ref_doc = $coll->find_one( { _id => 'wut wut wut' } )->{thing}->fetch;
-
-    ok $ref_doc;
-    is $ref_doc->{_id}, 123;
-    is $ref_doc->{value}, 'foobar';
-
-    $coll->drop;
-    $some_coll->drop;
 }
 
 # test changing dbref_callback on bson_codec
