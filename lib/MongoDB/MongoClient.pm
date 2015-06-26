@@ -189,14 +189,7 @@ has bson_codec => (
 sub _build_bson_codec {
     my ($self) = @_;
     return MongoDB::BSON->new(
-        dbref_callback => sub {
-            my $doc = shift;
-            return MongoDB::DBRef->new(
-                ref => $doc->{'$ref'},
-                id  => $doc->{'$id'},
-                ( exists( $doc->{'$db'} ) ? ( db => $doc->{'$db'} ) : () ),
-            );
-        },
+        dbref_callback => sub { return MongoDB::DBRef->new(shift) },
         dt_type        => $self->dt_type,
         prefer_numeric => $MongoDB::BSON::looks_like_number || 0,
         ( $MongoDB::BSON::char ne '$' ? ( op_char => $MongoDB::BSON::char ) : () ),

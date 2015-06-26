@@ -112,6 +112,37 @@ my $testdb = get_test_db($conn);
     $coll->drop;
 }
 
+# test round-tripping extra fields
+subtest "round-trip fields" => sub {
+    my $coll = $testdb->get_collection( 'test_coll' );
+    $coll->drop;
+
+    my $ixhash = Tie::IxHash->new(
+        '$ref' => 'some_coll',
+        '$id'  => 456,
+        foo    => 'bar',
+        baz    => 'bam',
+        id     => '123', # should be OK, since $id is taken first
+    );
+
+    $coll->insert_one( { _id => 123, thing => $ixhash } );
+
+    my $doc = $coll->find_one( { _id => 123 } );
+    my $dbref = $doc->{thing};
+
+    isa_ok( $dbref, "MongoDB::DBRef" );
+
+    $coll->insert_one( { _id => 124, thing => $dbref } );
+    $doc = $coll->find_one( { _id => 124 } );
+    $dbref = $doc->{thing};
+
+    for my $k ( $ixhash->Keys ) {
+        next if $k =~ /^\$/;
+        is( $dbref->extra->{$k}, $ixhash->FETCH($k), "$k" );
+    }
+
+};
+
 done_testing;
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:
