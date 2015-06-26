@@ -481,9 +481,7 @@ with a C<dbref_callback> option in L<MongoDB::BSON>.
 
 By default, the C<MongoDB::MongoClient> will create a L<MongoDB::BSON>
 codec that will construct L<MongoDB::DBRef> objects.  This ensures that
-DBRefs properly round-trip.  (N.B. DBRefs in Perl are
-L<overly restrictive|https://jira.mongodb.org/browse/PERL-527>; this will
-be addressed after the v1.0.0 release).
+DBRefs properly round-trip.
 
 =head3 C<MongoDB::MongoClient> option C<dt_type> deprecated and changed to read-only
 
@@ -506,6 +504,25 @@ users to force 64-bit encoding if desired.
 L<Time::Moment> is a much faster replacement for the venerable L<DateTime>
 module.  The BSON codec will serialize L<Time::Moment> objects correctly
 and can use that module as an argument for the C<dt_type> codec attribute.
+
+=head2 DBRef objects
+
+The C<fetch> method and related attributes C<client>, C<verify_db>, and
+C<verify_coll> have been removed from L<MongoDB::DBRef>.
+
+Providing a C<fetch> method was inconsistent with other MongoDB drivers,
+which either never provided it, or have dropped it in the next-generation
+drivers.  It requires a C<client> attribute, which tightly couples BSON
+decoding to the client model, causing circular reference issues and
+triggering Perl memory bugs under threads.  Therefore, the v1.0.0 driver no
+longer support fetching directly from L<MongoDB::DBRef>; users will need to
+implement their own methods for dereferencing.
+
+Additonally, the C<db> attribute is now optional, consistent with the
+specification for DBRefs.
+
+Also, all attributes (C<ref>, C<id> and C<db>) are now read-only,
+consistent with the move toward immutable objects throughout the driver.
 
 =head1 DEPRECATED METHODS
 
