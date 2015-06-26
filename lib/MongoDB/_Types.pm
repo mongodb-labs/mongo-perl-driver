@@ -95,10 +95,6 @@ declare ConnectionStr, as Str,
 
 enum CursorType, [qw/non_tailable tailable tailable_await/];
 
-declare DBRefColl, as Str;
-
-declare DBRefDB, as Str;
-
 declare ErrorStr, as Str, where { $_ }; # needs a true value
 
 declare HashLike, as Ref, where { reftype($_) eq 'HASH' };
@@ -151,6 +147,10 @@ class_type WriteConcern, { class => 'MongoDB::WriteConcern' };
 
 # after SingleKeyHash and IxHash
 declare OrderedDoc, as ArrayRef|IxHash|SingleKeyHash;
+
+# after NonEmptyStr
+declare DBRefColl, as NonEmptyStr;
+declare DBRefDB, as NonEmptyStr|Undef;
 
 #--------------------------------------------------------------------------#
 # Coercions

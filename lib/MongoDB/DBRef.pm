@@ -29,28 +29,31 @@ use namespace::clean -except => 'meta';
 
 # no type constraint since an _id can be anything
 has id => (
-    is        => 'rw',
+    is        => 'ro',
     required  => 1
 );
 
 has ref => (
-    is        => 'rw',
+    is        => 'ro',
     isa       => DBRefColl,
     required  => 1,
     coerce    => 1,
 );
 
 has db => (
-    is        => 'rw',
-    isa       => DBRefDB,
-    required  => 1,
+    is        => 'ro',
+    isa       => Maybe[DBRefDB],
     coerce    => 1,
 );
 
 sub _ordered {
     my $self = shift;
 
-    return Tie::IxHash->new( '$ref' => $self->ref, '$id' => $self->id, '$db' => $self->db );
+    return Tie::IxHash->new(
+        '$ref' => $self->ref,
+        '$id'  => $self->id,
+        ( defined($self->db) ? ( '$db' => $self->db ) : () )
+    );
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -62,7 +65,11 @@ __END__
 
 =head1 SYNOPSIS
 
-    my $dbref = MongoDB::DBRef->new( db => 'my_db', ref => 'my_collection', id => 123 );
+    my $dbref = MongoDB::DBRef->new(
+        ref => 'my_collection',
+        id => 123
+    );
+
     $coll->insert( { foo => 'bar', other_doc => $dbref } );
 
 =head1 DESCRIPTION

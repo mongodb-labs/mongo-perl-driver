@@ -50,7 +50,11 @@ my $testdb = get_test_db($conn);
     is $ref->ref, 'test_collection';
     is $ref->id, 123;
 
+    $ref = MongoDB::DBRef->new( ref => $coll, id => 123 );
+    is( $ref->db, undef, "no db in new gives undef db" );
 
+    $ref = MongoDB::DBRef->new( ref => $coll, id => 123, db => undef );
+    is( $ref->db, undef, "explicit undef db in new gives undef db" );
 }
 
 # test roundtrip
@@ -81,13 +85,20 @@ my $testdb = get_test_db($conn);
     my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
 
     $coll->insert_one( { _id => 'wut wut wut', thing => $dbref } );
-
     my $doc = $coll->find_one( { _id => 'wut wut wut' } );
     ok( exists $doc->{thing}, "got inserted doc from db" );
     is( ref $doc->{thing}, 'HASH', "doc is hash, not object" );;
-    is( $doc->{thing}{'$db'}, $testdb->name, '$db' );
-    is( $doc->{thing}{'$ref'}, 'some_coll', '$ref' );
     is( $doc->{thing}{'$id'}, 123, '$id' );
+    is( $doc->{thing}{'$ref'}, 'some_coll', '$ref' );
+    is( $doc->{thing}{'$db'}, $testdb->name, '$db' );
+
+    $dbref = MongoDB::DBRef->new( ref => 'some_coll', id => 123 );
+    $coll->insert_one( { _id => 123, thing => $dbref } );
+    $doc = $coll->find_one( { _id => 123 } );
+    ok( exists $doc->{thing}, "got inserted doc from db" );
+    is( $doc->{thing}{'$id'}, 123, '$id' );
+    is( $doc->{thing}{'$ref'}, 'some_coll', '$ref' );
+    ok( !exists($doc->{thing}{'$db'}), '$db not inserted' );
 
     $coll->drop;
 }

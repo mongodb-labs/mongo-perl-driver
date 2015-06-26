@@ -192,13 +192,13 @@ sub _build_bson_codec {
         dbref_callback => sub {
             my $doc = shift;
             return MongoDB::DBRef->new(
-                ref    => $doc->{'$ref'},
-                id     => $doc->{'$id'},
-                db     => $doc->{'$db'},
+                ref => $doc->{'$ref'},
+                id  => $doc->{'$id'},
+                ( exists( $doc->{'$db'} ) ? ( db => $doc->{'$db'} ) : () ),
             );
         },
-        dt_type         => $self->dt_type,
-        prefer_numeric  => $MongoDB::BSON::looks_like_number || 0,
+        dt_type        => $self->dt_type,
+        prefer_numeric => $MongoDB::BSON::looks_like_number || 0,
         ( $MongoDB::BSON::char ne '$' ? ( op_char => $MongoDB::BSON::char ) : () ),
     );
 }
