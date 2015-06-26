@@ -1143,7 +1143,7 @@ bson_doc_to_hashref(bson_iter_t * iter, HV *opts) {
 
     key_num++;
     /* check if this is a DBref. We must see the keys
-       $ref, $id, and $db in that order, with no extra keys */
+       $ref, $id, and optionally $db in that order, with no extra keys */
     if ( key_num == 1 && strcmp( name, "$ref" ) ) is_dbref = 0;
     if ( key_num == 2 && is_dbref == 1 && strcmp( name, "$id" ) ) is_dbref = 0;
     if ( key_num == 3 && is_dbref == 1 && strcmp( name, "$db" ) ) is_dbref = 0;
@@ -1158,7 +1158,7 @@ bson_doc_to_hashref(bson_iter_t * iter, HV *opts) {
   ret = newRV_noinc ((SV *)hv);
 
   /* XXX shouldn't need to limit to size 3 */
-  if ( key_num == 3 && is_dbref == 1
+  if ( (key_num == 2 || key_num == 3 ) && is_dbref == 1
       && (cb = _hv_fetchs_sv(opts, "dbref_callback")) && SvOK(cb)
   ) {
     SV *dbref = call_sv_va(cb, 1, ret);

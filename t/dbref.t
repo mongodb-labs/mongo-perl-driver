@@ -74,6 +74,15 @@ my $testdb = get_test_db($conn);
     is $thing->id,  123;
     is $thing->db,  'some_db';
 
+    $dbref = MongoDB::DBRef->new( ref => 'some_coll', id => 123 );
+    $coll->insert_one( { _id => 123, thing => $dbref } );
+    $doc = $coll->find_one( { _id => 123 } );
+    $thing = $doc->{thing};
+    isa_ok( $thing, 'MongoDB::DBRef' );
+    is( $thing->ref, 'some_coll', '$ref' );
+    is( $thing->id,  123,         '$id' );
+    is( $thing->db,  undef,       '$db undefined' );
+
     $coll->drop;
 }
 
