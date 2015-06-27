@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 MongoDB, Inc.
+ * Copyright 2014 MongoDB, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,28 +15,25 @@
  */
 
 
-#ifndef BSON_CONTEXT_H
-#define BSON_CONTEXT_H
+#include "bson-version.h"
 
 
-#if !defined (BSON_INSIDE) && !defined (BSON_COMPILATION)
-# error "Only <bson.h> can be included directly."
-#endif
+int
+bson_get_major_version (void)
+{
+   return BSON_MAJOR_VERSION;
+}
 
 
-#include "bson-macros.h"
-#include "bson-types.h"
+int
+bson_get_minor_version (void)
+{
+   return BSON_MINOR_VERSION;
+}
 
 
-BSON_BEGIN_DECLS
-
-
-bson_context_t *bson_context_new         (bson_context_flags_t flags);
-void            bson_context_destroy     (bson_context_t *context);
-bson_context_t *bson_context_get_default (void) BSON_GNUC_CONST;
-
-
-BSON_END_DECLS
-
-
-#endif /* BSON_CONTEXT_H */
+int
+bson_get_micro_version (void)
+{
+   return BSON_MICRO_VERSION;
+}

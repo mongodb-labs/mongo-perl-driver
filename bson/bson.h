@@ -40,6 +40,7 @@
 #include "bson-string.h"
 #include "bson-types.h"
 #include "bson-utf8.h"
+#include "bson-value.h"
 #include "bson-version.h"
 #include "bson-writer.h"
 
@@ -97,6 +98,9 @@ BSON_BEGIN_DECLS
 #define BSON_APPEND_ARRAY(b,key,val) \
       bson_append_array (b, key, (int)strlen (key), val)
 
+#define BSON_APPEND_ARRAY_BEGIN(b,key,child) \
+      bson_append_array_begin (b, key, (int)strlen (key), child)
+
 #define BSON_APPEND_BINARY(b,key,subtype,val,len) \
       bson_append_binary (b, key, (int) strlen (key), subtype, val, len)
 
@@ -108,6 +112,12 @@ BSON_BEGIN_DECLS
 
 #define BSON_APPEND_CODE_WITH_SCOPE(b,key,val,scope) \
       bson_append_code_with_scope (b, key, (int) strlen (key), val, scope)
+
+#define BSON_APPEND_DBPOINTER(b,key,coll,oid) \
+      bson_append_dbpointer (b, key, (int) strlen (key), coll, oid)
+
+#define BSON_APPEND_DOCUMENT_BEGIN(b,key,child) \
+      bson_append_document_begin (b, key, (int)strlen (key), child)
 
 #define BSON_APPEND_DOUBLE(b,key,val) \
       bson_append_double (b, key, (int) strlen (key), val)
@@ -157,6 +167,9 @@ BSON_BEGIN_DECLS
 #define BSON_APPEND_UNDEFINED(b,key) \
       bson_append_undefined (b, key, (int) strlen (key))
 
+#define BSON_APPEND_VALUE(b,key,val) \
+      bson_append_value (b, key, (int) strlen (key), (val))
+
 
 /**
  * bson_new:
@@ -170,18 +183,6 @@ BSON_BEGIN_DECLS
 bson_t *
 bson_new (void);
 
-
-bson_t *
-bson_new_from_json (const uint8_t *data,
-                    size_t         len,
-                    bson_error_t  *error);
-
-
-bool
-bson_init_from_json (bson_t        *bson,
-                     const char    *data,
-                     ssize_t        len,
-                     bson_error_t  *error);
 
 
 /**
@@ -197,9 +198,9 @@ bson_init_from_json (bson_t        *bson,
  * Returns: true if initialized successfully; otherwise false.
  */
 bool
-bson_init_static (bson_t             *b,
+bson_init_static (bson_t        *b,
                   const uint8_t *data,
-                  uint32_t       length);
+                  size_t         length);
 
 
 /**
@@ -240,13 +241,33 @@ bson_reinit (bson_t *b);
  * Creates a new bson_t structure using the data provided. @data should contain
  * at least @length bytes that can be copied into the new bson_t structure.
  *
- * Returns: A newly allocate bson_t that should be freed with bson_destroy().
+ * Returns: A newly allocated bson_t that should be freed with bson_destroy().
  *   If the first four bytes (little-endian) of data do not match @length,
  *   then NULL will be returned.
  */
 bson_t *
 bson_new_from_data (const uint8_t *data,
-                    uint32_t       length);
+                    size_t         length);
+
+
+/**
+ * bson_new_from_buffer:
+ * @buf: A pointer to a buffer containing a serialized bson document.  Or null
+ * @buf_len: The length of the buffer in bytes.
+ * @realloc_fun: a realloc like function
+ * @realloc_fun_ctx: a context for the realloc function
+ *
+ * Creates a new bson_t structure using the data provided. @buf should contain
+ * a bson document, or null pointer should be passed for new allocations.
+ *
+ * Returns: A newly allocated bson_t that should be freed with bson_destroy().
+ *          The underlying buffer will be used and not be freed in destroy.
+ */
+bson_t *
+bson_new_from_buffer (uint8_t           **buf,
+                      size_t             *buf_len,
+                      bson_realloc_func   realloc_func,
+                      void               *realloc_func_ctx);
 
 
 /**
@@ -295,14 +316,30 @@ bson_copy_to (const bson_t *src,
  *
  * Copies @src into @dst excluding any field that is provided.
  * This is handy for situations when you need to remove one or
- * more fields in a bson_t.
+ * more fields in a bson_t. Note that bson_init() will be called
+ * on dst.
  */
 void
 bson_copy_to_excluding (const bson_t *src,
                         bson_t       *dst,
                         const char   *first_exclude,
-                        ...) BSON_GNUC_NULL_TERMINATED;
+                        ...) BSON_GNUC_NULL_TERMINATED BSON_GNUC_DEPRECATED_FOR(bson_copy_to_excluding_noinit);
 
+/**
+ * bson_copy_to_excluding_noinit:
+ * @src: A bson_t.
+ * @dst: A bson_t to initialize and copy into.
+ * @first_exclude: First field name to exclude.
+ *
+ * The same as bson_copy_to_excluding, but does not call bson_init()
+ * on the dst. This version should be preferred in new code, but the
+ * old function is left for backwards compatibility.
+ */
+void
+bson_copy_to_excluding_noinit (const bson_t *src,
+                               bson_t       *dst,
+                               const char   *first_exclude,
+                               ...) BSON_GNUC_NULL_TERMINATED;
 
 /**
  * bson_destroy:
@@ -312,6 +349,31 @@ bson_copy_to_excluding (const bson_t *src,
  */
 void
 bson_destroy (bson_t *bson);
+
+
+/**
+ * bson_destroy_with_steal:
+ * @bson: A #bson_t.
+ * @steal: If ownership of the data buffer should be transfered to caller.
+ * @length: (out): location for the length of the buffer.
+ *
+ * Destroys @bson similar to calling bson_destroy() except that the underlying
+ * buffer will be returned and ownership transfered to the caller if @steal
+ * is non-zero.
+ *
+ * If length is non-NULL, the length of @bson will be stored in @length.
+ *
+ * It is a programming error to call this function with any bson that has
+ * been initialized static, or is being used to create a subdocument with
+ * functions such as bson_append_document_begin() or bson_append_array_begin().
+ *
+ * Returns: a buffer owned by the caller if @steal is true. Otherwise NULL.
+ *    If there was an error, NULL is returned.
+ */
+uint8_t *
+bson_destroy_with_steal (bson_t   *bson,
+                         bool      steal,
+                         uint32_t *length);
 
 
 /**
@@ -396,23 +458,13 @@ bson_validate (const bson_t         *bson,
                size_t               *offset);
 
 
-/**
- * bson_as_json:
- * @bson: A bson_t.
- * @length: A location for the string length, or NULL.
- *
- * Creates a new string containing @bson in extended JSON format. The caller
- * is responsible for freeing the resulting string. If @length is non-NULL,
- * then the length of the resulting string will be placed in @length.
- *
- * See http://docs.mongodb.org/manual/reference/mongodb-extended-json/ for
- * more information on extended JSON.
- *
- * Returns: A newly allocated string that should be freed with bson_free().
- */
-char *
-bson_as_json (const bson_t *bson,
-              size_t       *length);
+
+
+bool
+bson_append_value (bson_t             *bson,
+                   const char         *key,
+                   int                 key_length,
+                   const bson_value_t *value);
 
 
 /**
@@ -447,12 +499,12 @@ bson_append_array (bson_t       *bson,
  * Returns: true if successful; false if append would overflow max size.
  */
 bool
-bson_append_binary (bson_t             *bson,
-                    const char         *key,
-                    int                 key_length,
-                    bson_subtype_t      subtype,
-                    const uint8_t *binary,
-                    uint32_t       length);
+bson_append_binary (bson_t         *bson,
+                    const char     *key,
+                    int             key_length,
+                    bson_subtype_t  subtype,
+                    const uint8_t  *binary,
+                    uint32_t        length);
 
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 MongoDB, Inc.
+ * Copyright 2014 MongoDB, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,10 @@
  */
 
 
-#ifndef BSON_ERROR_H
-#define BSON_ERROR_H
+#ifndef BSON_VALUE_H
+#define BSON_VALUE_H
 
 
-#include "bson-compat.h"
 #include "bson-macros.h"
 #include "bson-types.h"
 
@@ -27,23 +26,12 @@
 BSON_BEGIN_DECLS
 
 
-#define BSON_ERROR_JSON   1
-#define BSON_ERROR_READER 2
-
-#define BSON_ERROR_BUFFER_SIZE      64
-
-
-void  bson_set_error  (bson_error_t *error,
-                       uint32_t      domain,
-                       uint32_t      code,
-                       const char   *format,
-                       ...) BSON_GNUC_PRINTF (4, 5);
-char *bson_strerror_r (int           err_code,
-                       char         *buf,
-                       size_t        buflen);
+void bson_value_copy    (const bson_value_t *src,
+                         bson_value_t       *dst);
+void bson_value_destroy (bson_value_t       *value);
 
 
 BSON_END_DECLS
 
 
-#endif /* BSON_ERROR_H */
+#endif /* BSON_VALUE_H */

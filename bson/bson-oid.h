@@ -15,13 +15,13 @@
  */
 
 
+#ifndef BSON_OID_H
+#define BSON_OID_H
+
+
 #if !defined (BSON_INSIDE) && !defined (BSON_COMPILATION)
 # error "Only <bson.h> can be included directly."
 #endif
-
-
-#ifndef BSON_OID_H
-#define BSON_OID_H
 
 
 #include <time.h>
@@ -29,6 +29,7 @@
 #include "bson-context.h"
 #include "bson-macros.h"
 #include "bson-types.h"
+#include "bson-endian.h"
 
 
 BSON_BEGIN_DECLS
@@ -236,7 +237,7 @@ bson_oid_get_time_t_unsafe (const bson_oid_t *oid)
 {
    uint32_t t;
 
-   memcpy (&t, oid, 4);
+   memcpy (&t, oid, sizeof (t));
    return BSON_UINT32_FROM_BE (t);
 }
 

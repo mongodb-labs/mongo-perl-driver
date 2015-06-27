@@ -29,7 +29,7 @@
  *
  * BSON major version component (e.g. 1 if %BSON_VERSION is 1.2.3)
  */
-#define BSON_MAJOR_VERSION (0)
+#define BSON_MAJOR_VERSION (1)
 
 
 /**
@@ -37,7 +37,7 @@
  *
  * BSON minor version component (e.g. 2 if %BSON_VERSION is 1.2.3)
  */
-#define BSON_MINOR_VERSION (6)
+#define BSON_MINOR_VERSION (1)
 
 
 /**
@@ -45,7 +45,7 @@
  *
  * BSON micro version component (e.g. 3 if %BSON_VERSION is 1.2.3)
  */
-#define BSON_MICRO_VERSION (4)
+#define BSON_MICRO_VERSION (7)
 
 
 /**
@@ -53,7 +53,7 @@
  *
  * BSON version.
  */
-#define BSON_VERSION (0.6.4)
+#define BSON_VERSION (1.1.7)
 
 
 /**
@@ -62,7 +62,7 @@
  * BSON version, encoded as a string, useful for printing and
  * concatenation.
  */
-#define BSON_VERSION_S "0.6.4"
+#define BSON_VERSION_S "1.1.7"
 
 
 /**
@@ -90,6 +90,30 @@
          (BSON_MAJOR_VERSION == (major) && BSON_MINOR_VERSION > (minor)) || \
          (BSON_MAJOR_VERSION == (major) && BSON_MINOR_VERSION == (minor) && \
           BSON_MICRO_VERSION >= (micro)))
+
+
+/**
+ * bson_get_major_version:
+ *
+ * Helper function to return the runtime major version of the library.
+ */
+int bson_get_major_version (void);
+
+
+/**
+ * bson_get_minor_version:
+ *
+ * Helper function to return the runtime minor version of the library.
+ */
+int bson_get_minor_version (void);
+
+
+/**
+ * bson_get_micro_version:
+ *
+ * Helper function to return the runtime micro version of the library.
+ */
+int bson_get_micro_version (void);
 
 
 #endif /* BSON_VERSION_H */

@@ -18,6 +18,7 @@
 #include <stdio.h>
 
 #include "bson-keys.h"
+#include "bson-string.h"
 
 
 static const char * gUint32Strs[] = {
@@ -146,7 +147,7 @@ static const char * gUint32Strs[] = {
  *       @size: Size of @str.
  *
  * Returns:
- *       None.
+ *       The number of bytes in the resulting string.
  *
  * Side effects:
  *       None.
@@ -157,11 +158,9 @@ static const char * gUint32Strs[] = {
 size_t
 bson_uint32_to_string (uint32_t     value,  /* IN */
                        const char **strptr, /* OUT */
-                       char        *str,    /* IN */
+                       char        *str,    /* OUT */
                        size_t       size)   /* IN */
 {
-   size_t i;
-
    if (value < 1000) {
       *strptr = gUint32Strs[value];
 
@@ -172,18 +171,9 @@ bson_uint32_to_string (uint32_t     value,  /* IN */
       } else {
          return 3;
       }
-   } else {
-      i = size;
-      str[i] = '\0';
-
-      while (value) {
-         i--;
-         str[i] = (value % 10) + '0';
-         value /= 10;
-      }
-
-      *strptr = str + i;
-
-      return size - i;
    }
+
+   *strptr = str;
+
+   return bson_snprintf (str, size, "%u", value);
 }

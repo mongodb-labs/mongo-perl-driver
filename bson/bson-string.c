@@ -63,7 +63,7 @@ bson_string_new (const char *str) /* IN */
    ret->alloc = ret->len + 1;
 
    if (!bson_is_power_of_two (ret->alloc)) {
-      ret->alloc = bson_next_power_of_two (ret->alloc);
+      ret->alloc = (uint32_t)bson_next_power_of_two ((size_t)ret->alloc);
    }
 
    BSON_ASSERT (ret->alloc >= 1);
@@ -151,7 +151,7 @@ bson_string_append (bson_string_t *string, /* IN */
    if ((string->alloc - string->len - 1) < len) {
       string->alloc += len;
       if (!bson_is_power_of_two (string->alloc)) {
-         string->alloc = bson_next_power_of_two (string->alloc);
+         string->alloc = (uint32_t)bson_next_power_of_two ((size_t)string->alloc);
       }
       string->str = bson_realloc (string->str, string->alloc);
    }
@@ -306,7 +306,7 @@ bson_string_truncate (bson_string_t *string, /* IN */
    }
 
    if (!bson_is_power_of_two (alloc)) {
-      alloc = bson_next_power_of_two (alloc);
+      alloc = (uint32_t)bson_next_power_of_two ((size_t)alloc);
    }
 
    string->str = bson_realloc (string->str, alloc);
@@ -663,3 +663,109 @@ bson_snprintf (char       *str,    /* IN */
 
    return r;
 }
+
+
+int64_t
+bson_ascii_strtoll (const char  *s,
+                    char       **e,
+                    int          base)
+{
+    char *tok = (char *)s;
+    char c;
+    int64_t number = 0;
+    int64_t sign = 1;
+
+    if (!s) {
+       errno = EINVAL;
+       return 0;
+    }
+
+    c = *tok;
+
+    while (isspace (c)) {
+        c = *++tok;
+    }
+
+    if (!isdigit (c) && (c != '+') && (c != '-')) {
+        *e = tok - 1;
+        errno = EINVAL;
+        return 0;
+    }
+
+    if (c == '-') {
+        sign = -1;
+        c = *++tok;
+    }
+
+    if (c == '+') {
+        c = *++tok;
+    }
+
+    if (c == '0' && tok[1] != '\0') {
+        /* Hex, octal or binary -- maybe. */
+
+        c = *++tok;
+
+        if (c == 'x' || c == 'X') { /* Hex */
+            if (base != 16) {
+                *e = (char *)(s);
+                errno = EINVAL;
+                return 0;
+            }
+
+            c = *++tok;
+            if (!isxdigit (c)) {
+                *e = tok;
+                errno = EINVAL;
+                return 0;
+            }
+            do {
+                number = (number << 4) + (c - '0');
+                c = *(++tok);
+            } while (isxdigit (c));
+        }
+        else { /* Octal */
+            if (base != 8) {
+                *e = (char *)(s);
+                errno = EINVAL;
+                return 0;
+            }
+
+            if (c < '0' || c >= '8') {
+                *e = tok;
+                errno = EINVAL;
+                return 0;
+            }
+            do {
+                number = (number << 3) + (c - '0');
+                c = *(++tok);
+            } while (('0' <= c) && (c < '8'));
+        }
+
+        while (c == 'l' || c == 'L' || c == 'u' || c == 'U') {
+            c = *++tok;
+        }
+    }
+    else {
+        /* Decimal */
+        if (base != 10) {
+            *e = (char *)(s);
+            errno = EINVAL;
+            return 0;
+        }
+
+        do {
+            number = (number * 10) + (c - '0');
+            c = *(++tok);
+        } while (isdigit (c));
+
+        while (c == 'l' || c == 'L' || c == 'u' || c == 'U') {
+            c = *(++tok);
+        }
+    }
+
+    *e = tok;
+    errno = 0;
+    return (sign * number);
+}
+

@@ -29,7 +29,7 @@
 #    ifdef __hpux
 #        define Strtoll __strtoll
 #    endif
-#    ifdef WIN64
+#    ifdef WIN32
 #        define Strtoll _strtoi64
 #    endif
 #    if !defined(Strtoll) && defined(HAS_STRTOLL)

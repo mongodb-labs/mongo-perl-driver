@@ -32,6 +32,7 @@
 # include <sys/time.h>
 #endif
 
+#include "bson-clock.h"
 
 
 /*
@@ -45,14 +46,13 @@
  *       0 if successful.
  *
  * Side effects:
- *       @tv and @tz are set.
+ *       @tv is set.
  *
  *--------------------------------------------------------------------------
  */
 
 int
-bson_gettimeofday (struct timeval  *tv, /* OUT */
-                   struct timezone *tz) /* OUT */
+bson_gettimeofday (struct timeval *tv) /* OUT */
 {
 #if defined(_WIN32)
 # if defined(_MSC_VER)
@@ -91,11 +91,9 @@ bson_gettimeofday (struct timeval  *tv, /* OUT */
       tv->tv_usec = (long)(tmp % 1000000UL);
    }
 
-   BSON_ASSERT (NULL == tz);
-
    return 0;
 #else
-   return gettimeofday (tv, tz);
+   return gettimeofday (tv, NULL);
 #endif
 }
 
@@ -130,8 +128,10 @@ bson_get_monotonic_time (void)
    static double ratio = 0.0;
 
    if (!info.denom) {
+      // the value from mach_absolute_time () * info.numer / info.denom
+      // is in nano seconds. So we have to divid by 1000.0 to get micro seconds
       mach_timebase_info (&info);
-      ratio = info.numer / info.denom;
+      ratio = (double)info.numer / (double)info.denom / 1000.0;
    }
 
    return mach_absolute_time () * ratio;
@@ -143,7 +143,7 @@ bson_get_monotonic_time (void)
 # warning "Monotonic clock is not yet supported on your platform."
    struct timeval tv;
 
-   bson_gettimeofday (&tv, NULL);
+   bson_gettimeofday (&tv);
    return (tv.tv_sec * 1000000UL) + tv.tv_usec;
 #endif
 }

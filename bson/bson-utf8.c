@@ -119,6 +119,7 @@ bson_utf8_validate (const char *utf8,       /* IN */
                     size_t      utf8_len,   /* IN */
                     bool        allow_null) /* IN */
 {
+   bson_unichar_t c;
    uint8_t first_mask;
    uint8_t seq_length;
    unsigned i;
@@ -129,16 +130,44 @@ bson_utf8_validate (const char *utf8,       /* IN */
    for (i = 0; i < utf8_len; i += seq_length) {
       _bson_utf8_get_sequence (&utf8[i], &seq_length, &first_mask);
 
+      /*
+       * Ensure we have a valid multi-byte sequence length.
+       */
       if (!seq_length) {
          return false;
       }
 
+      /*
+       * Ensure we have enough bytes left.
+       */
+      if ((utf8_len - i) < seq_length) {
+         return false;
+      }
+
+      /*
+       * Also calculate the next char as a unichar so we can
+       * check code ranges for non-shortest form.
+       */
+      c = utf8 [i] & first_mask;
+
+      /*
+       * Check the high-bits for each additional sequence byte.
+       */
       for (j = i + 1; j < (i + seq_length); j++) {
+         c = (c << 6) | (utf8 [j] & 0x3F);
          if ((utf8[j] & 0xC0) != 0x80) {
             return false;
          }
       }
 
+      /*
+       * Check for NULL bytes afterwards.
+       *
+       * Hint: if you want to optimize this function, starting here to do
+       * this in the same pass as the data above would probably be a good
+       * idea. You would add a branch into the inner loop, but save possibly
+       * on cache-line bouncing on larger strings. Just a thought.
+       */
       if (!allow_null) {
          for (j = 0; j < seq_length; j++) {
             if (((i + j) > utf8_len) || !utf8[i + j]) {
@@ -146,94 +175,63 @@ bson_utf8_validate (const char *utf8,       /* IN */
             }
          }
       }
+
+      /*
+       * Code point wont fit in utf-16, not allowed.
+       */
+      if (c > 0x0010FFFF) {
+         return false;
+      }
+
+      /*
+       * Byte is in reserved range for UTF-16 high-marks
+       * for surrogate pairs.
+       */
+      if ((c & 0xFFFFF800) == 0xD800) {
+         return false;
+      }
+
+      /*
+       * Check non-shortest form unicode.
+       */
+      switch (seq_length) {
+      case 1:
+         if (c <= 0x007F) {
+            continue;
+         }
+         return false;
+
+      case 2:
+         if ((c >= 0x0080) && (c <= 0x07FF)) {
+            continue;
+         } else if (c == 0) {
+            /* Two-byte representation for NULL. */
+            continue;
+         }
+         return false;
+
+      case 3:
+         if (((c >= 0x0800) && (c <= 0x0FFF)) ||
+             ((c >= 0x1000) && (c <= 0xFFFF))) {
+            continue;
+         }
+         return false;
+
+      case 4:
+         if (((c >= 0x10000) && (c <= 0x3FFFF)) ||
+             ((c >= 0x40000) && (c <= 0xFFFFF)) ||
+             ((c >= 0x100000) && (c <= 0x10FFFF))) {
+            continue;
+         }
+         return false;
+
+      default:
+         return false;
+      }
    }
 
    return true;
 }
-
-
-/*
- *--------------------------------------------------------------------------
- *
- * bson_utf8_escape_for_json --
- *
- *       Allocates a new string matching @utf8 except that special
- *       characters in JSON will be escaped. The resulting string is also
- *       UTF-8 encoded.
- *
- *       Both " and \ characters will be escaped. Additionally, if a NUL
- *       byte is found before @utf8_len bytes, it will be converted to the
- *       two byte UTF-8 sequence.
- *
- * Parameters:
- *       @utf8: A UTF-8 encoded string.
- *       @utf8_len: The length of @utf8 in bytes or -1 if NUL terminated.
- *
- * Returns:
- *       A newly allocated string that should be freed with bson_free().
- *
- * Side effects:
- *       None.
- *
- *--------------------------------------------------------------------------
- */
-
-char *
-bson_utf8_escape_for_json (const char *utf8,     /* IN */
-                           ssize_t     utf8_len) /* IN */
-{
-   bson_unichar_t c;
-   bson_string_t *str;
-   const char *end;
-
-   bson_return_val_if_fail (utf8, NULL);
-
-   str = bson_string_new (NULL);
-
-   if (utf8_len < 0) {
-      utf8_len = strlen (utf8);
-   }
-
-   end = utf8 + utf8_len;
-
-   for (; utf8 < end; utf8 = bson_utf8_next_char (utf8)) {
-      c = bson_utf8_get_char (utf8);
-
-      switch (c) {
-      case '\\':
-      case '"':
-      case '/':
-         bson_string_append_c (str, '\\');
-         bson_string_append_unichar (str, c);
-         break;
-      case '\b':
-         bson_string_append (str, "\\b");
-         break;
-      case '\f':
-         bson_string_append (str, "\\f");
-         break;
-      case '\n':
-         bson_string_append (str, "\\n");
-         break;
-      case '\r':
-         bson_string_append (str, "\\r");
-         break;
-      case '\t':
-         bson_string_append (str, "\\t");
-         break;
-      default:
-         if (c < ' ') {
-            bson_string_append_printf (str, "\\u%04u", (unsigned)c);
-         } else {
-            bson_string_append_unichar (str, c);
-         }
-         break;
-      }
-   }
-
-   return bson_string_free (str, false);
-}
-
 
 /*
  *--------------------------------------------------------------------------

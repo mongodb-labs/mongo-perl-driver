@@ -15,13 +15,13 @@
  */
 
 
+#ifndef BSON_COMPAT_H
+#define BSON_COMPAT_H
+
+
 #if !defined (BSON_INSIDE) && !defined (BSON_COMPILATION)
 # error "Only <bson.h> can be included directly."
 #endif
-
-
-#ifndef BSON_COMPAT_H
-#define BSON_COMPAT_H
 
 
 #include "bson-config.h"
@@ -76,8 +76,22 @@ BSON_BEGIN_DECLS
 # ifndef __cplusplus
    /* benign redefinition of type */
 #  pragma warning (disable :4142)
+#  ifndef _SSIZE_T_DEFINED
+#   define _SSIZE_T_DEFINED
     typedef SSIZE_T ssize_t;
+#  endif
     typedef SIZE_T size_t;
+#  pragma warning (default :4142)
+# else
+    /*
+     * MSVC++ does not include ssize_t, just size_t.
+     * So we need to synthesize that as well.
+     */
+#  pragma warning (disable :4142)
+#  ifndef _SSIZE_T_DEFINED
+#   define _SSIZE_T_DEFINED
+    typedef SSIZE_T ssize_t;
+#  endif
 #  pragma warning (default :4142)
 # endif
 # define PRIi32 "d"
@@ -93,7 +107,7 @@ BSON_BEGIN_DECLS
 
 #if defined(__MINGW32__) && ! defined(INIT_ONCE_STATIC_INIT)
 # define INIT_ONCE_STATIC_INIT RTL_RUN_ONCE_INIT
-  typedef RTL_RUN_ONCE INIT_ONCE;
+typedef RTL_RUN_ONCE INIT_ONCE;
 #endif
 
 #ifdef BSON_HAVE_STDBOOL_H

@@ -15,13 +15,13 @@
  */
 
 
+#ifndef BSON_MACROS_H
+#define BSON_MACROS_H
+
+
 #if !defined (BSON_INSIDE) && !defined (BSON_COMPILATION)
 #  error "Only <bson.h> can be included directly."
 #endif
-
-
-#ifndef BSON_MACROS_H
-#define BSON_MACROS_H
 
 
 #include <assert.h>
@@ -51,6 +51,20 @@
 #  define BSON_END_DECLS
 #endif
 
+
+#define BSON_GNUC_CHECK_VERSION(major, minor) \
+    (defined(__GNUC__) && \
+     ((__GNUC__ > (major)) || \
+      ((__GNUC__ == (major)) && \
+       (__GNUC_MINOR__ >= (minor)))))
+
+
+#define BSON_GNUC_IS_VERSION(major, minor) \
+    (defined(__GNUC__) && \
+     (__GNUC__ == (major)) && \
+     (__GNUC_MINOR__ == (minor)))
+
+
 #ifdef _MSC_VER
 #  ifdef BSON_COMPILATION
 #    define BSON_API __declspec(dllexport)
@@ -62,44 +76,41 @@
 #endif
 
 
-#ifndef MIN
-#  ifdef __cplusplus
-#    define MIN(a, b) ( (std::min)(a, b) )
-#  elif defined(_MSC_VER)
-#    define MIN(a, b) ((a) < (b) ? (a) : (b))
-#  else
-#    define MIN(a, b) ({     \
-                          __typeof__ (a)_a = (a); \
-                          __typeof__ (b)_b = (b); \
-                          _a < _b ? _a : _b;   \
-                       })
-#  endif
+#ifdef MIN
+#  define BSON_MIN MIN
+#elif defined(__cplusplus)
+#  define BSON_MIN(a, b) ( (std::min)(a, b) )
+#elif defined(_MSC_VER)
+#  define BSON_MIN(a, b) ((a) < (b) ? (a) : (b))
+#else
+#  define BSON_MIN(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
 
-#ifndef MAX
-#  ifdef __cplusplus
-#    define MAX(a, b) ( (std::max)(a, b) )
-#  elif defined(_MSC_VER)
-#    define MAX(a, b) ((a) > (b) ? (a) : (b))
-#  else
-#    define MAX(a, b) ({     \
-                          __typeof__ (a)_a = (a); \
-                          __typeof__ (b)_b = (b); \
-                          _a > _b ? _a : _b;   \
-                       })
-#  endif
+#ifdef MAX
+#  define BSON_MAX MAX
+#elif defined(__cplusplus)
+#  define BSON_MAX(a, b) ( (std::max)(a, b) )
+#elif defined(_MSC_VER)
+#  define BSON_MAX(a, b) ((a) > (b) ? (a) : (b))
+#else
+#  define BSON_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
 
-#ifndef ABS
-#  define ABS(a) (((a) < 0) ? ((a) * -1) : (a))
+#ifdef ABS
+#  define BSON_ABS ABS
+#else
+#  define BSON_ABS(a) (((a) < 0) ? ((a) * -1) : (a))
 #endif
 
 
 #if defined(_MSC_VER)
 #  define BSON_ALIGNED_BEGIN(_N) __declspec (align (_N))
 #  define BSON_ALIGNED_END(_N)
+#elif defined(__SUNPRO_C)
+#  define BSON_ALIGNED_BEGIN(_N)
+#  define BSON_ALIGNED_END(_N) __attribute__((aligned (_N)))
 #else
 #  define BSON_ALIGNED_BEGIN(_N)
 #  define BSON_ALIGNED_END(_N) __attribute__((aligned (_N)))
@@ -134,7 +145,7 @@
 #endif
 
 
-#if defined(__GNUC__) && (__GNUC__ >= 4) && !defined(_WIN32)
+#if BSON_GNUC_CHECK_VERSION(4, 0) && !defined(_WIN32)
 #  define BSON_GNUC_NULL_TERMINATED __attribute__((sentinel))
 #  define BSON_GNUC_INTERNAL __attribute__((visibility ("hidden")))
 #else
@@ -153,19 +164,12 @@
 
 
 #if defined(__clang__)
-# define BSON_GNUC_PRINTF(f, v) __attribute__((format (printf, f, v)))
-#elif defined(__GNUC__)
-#  define GCC_VERSION (__GNUC__ * 10000 \
-                       + __GNUC_MINOR__ * 100 \
-                       + __GNUC_PATCHLEVEL__)
-#  if GCC_VERSION > 40400
-#    define BSON_GNUC_PRINTF(f, v) __attribute__((format (gnu_printf, f, v)))
-#  else
-#    define BSON_GNUC_PRINTF(f, v)
-#  endif /* GCC_VERSION > 40400 */
+#  define BSON_GNUC_PRINTF(f, v) __attribute__((format (printf, f, v)))
+#elif BSON_GNUC_CHECK_VERSION(4, 4)
+#  define BSON_GNUC_PRINTF(f, v) __attribute__((format (gnu_printf, f, v)))
 #else
 #  define BSON_GNUC_PRINTF(f, v)
-#endif /* __GNUC__ */
+#endif
 
 
 #if defined(__LP64__) || defined(_LP64)
@@ -211,11 +215,26 @@
 
 
 #ifdef _MSC_VER
-#define BSON_ENSURE_ARRAY_PARAM_SIZE(_n)
-#define BSON_TYPEOF decltype
+#  define BSON_ENSURE_ARRAY_PARAM_SIZE(_n)
+#  define BSON_TYPEOF decltype
 #else
-#define BSON_ENSURE_ARRAY_PARAM_SIZE(_n) static (_n)
-#define BSON_TYPEOF typeof
+#  define BSON_ENSURE_ARRAY_PARAM_SIZE(_n) static (_n)
+#  define BSON_TYPEOF typeof
 #endif
+
+
+#if BSON_GNUC_CHECK_VERSION(3, 1)
+# define BSON_GNUC_DEPRECATED __attribute__((__deprecated__))
+#else
+# define BSON_GNUC_DEPRECATED
+#endif
+
+
+#if BSON_GNUC_CHECK_VERSION(4, 5)
+# define BSON_GNUC_DEPRECATED_FOR(f) __attribute__((deprecated("Use " #f " instead")))
+#else
+# define BSON_GNUC_DEPRECATED_FOR(f) BSON_GNUC_DEPRECATED
+#endif
+
 
 #endif /* BSON_MACROS_H */

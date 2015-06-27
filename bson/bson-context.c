@@ -43,7 +43,7 @@
 /*
  * Globals.
  */
-static bson_context_t *gContextDefault;
+static bson_context_t gContextDefault;
 
 
 #if defined(__linux__)
@@ -252,14 +252,7 @@ static void
 _bson_context_get_oid_seq32_threadsafe (bson_context_t *context, /* IN */
                                         bson_oid_t     *oid)     /* OUT */
 {
-#if defined BSON_WITH_OID32_PT
-   uint32_t seq;
-   bson_mutex_lock (&context->_m32);
-   seq = context->seq32++;
-   bson_mutex_unlock (&context->_m32);
-#else
-   uint32_t seq = bson_atomic_int_add (&context->seq32, 1);
-#endif
+   int32_t seq = bson_atomic_int_add (&context->seq32, 1);
 
    seq = BSON_UINT32_TO_BE (seq);
    memcpy (&oid->bytes[9], ((uint8_t *)&seq) + 1, 3);
@@ -292,7 +285,7 @@ _bson_context_get_oid_seq64 (bson_context_t *context, /* IN */
    BSON_ASSERT (oid);
 
    seq = BSON_UINT64_TO_BE (context->seq64++);
-   memcpy (&oid->bytes[4], &seq, 8);
+   memcpy (&oid->bytes[4], &seq, sizeof (seq));
 }
 
 
@@ -316,29 +309,85 @@ static void
 _bson_context_get_oid_seq64_threadsafe (bson_context_t *context, /* IN */
                                         bson_oid_t     *oid)     /* OUT */
 {
-#if defined BSON_WITH_OID64_PT
-   uint64_t seq;
-   bson_mutex_lock (&context->_m64);
-   seq = context->seq64++;
-   bson_mutex_unlock (&context->_m64);
-#elif defined BSON_OS_WIN32
-   uint64_t seq = InterlockedIncrement64 ((int64_t *)&context->seq64);
-#else
-   uint64_t seq = __sync_fetch_and_add_8 (&context->seq64, 1);
-#endif
+   int64_t seq = bson_atomic_int64_add (&context->seq64, 1);
 
    seq = BSON_UINT64_TO_BE (seq);
-   memcpy (&oid->bytes[4], &seq, 8);
+   memcpy (&oid->bytes[4], &seq, sizeof (seq));
 }
 
 
-/**
- * bson_context_new:
- * @flags: A #bson_context_flags_t.
- *
- * Returns: (transfer full): A newly allocated bson_context_t that should be
- *   freed with bson_context_destroy().
- */
+static void
+_bson_context_init (bson_context_t *context,    /* IN */
+                    bson_context_flags_t flags) /* IN */
+{
+   struct timeval tv;
+   uint16_t pid;
+   unsigned int seed[3];
+   unsigned int real_seed;
+   bson_oid_t oid;
+
+   context->flags = flags;
+   context->oid_get_host = _bson_context_get_oid_host_cached;
+   context->oid_get_pid = _bson_context_get_oid_pid_cached;
+   context->oid_get_seq32 = _bson_context_get_oid_seq32;
+   context->oid_get_seq64 = _bson_context_get_oid_seq64;
+
+   /*
+    * Generate a seed for our the random starting position of our increment
+    * bytes. We mask off the last nibble so that the last digit of the OID will
+    * start at zero. Just to be nice.
+    *
+    * The seed itself is made up of the current time in seconds, milliseconds,
+    * and pid xored together. I welcome better solutions if at all necessary.
+    */
+   bson_gettimeofday (&tv);
+   seed[0] = (unsigned int)tv.tv_sec;
+   seed[1] = (unsigned int)tv.tv_usec;
+   seed[2] = _bson_getpid ();
+   real_seed = seed[0] ^ seed[1] ^ seed[2];
+
+#ifdef BSON_OS_WIN32
+   /* ms's runtime is multithreaded by default, so no rand_r */
+   srand(real_seed);
+   context->seq32 = rand() & 0x007FFFF0;
+#else
+   context->seq32 = rand_r (&real_seed) & 0x007FFFF0;
+#endif
+
+   if ((flags & BSON_CONTEXT_DISABLE_HOST_CACHE)) {
+      context->oid_get_host = _bson_context_get_oid_host;
+   } else {
+      _bson_context_get_oid_host (context, &oid);
+      context->md5[0] = oid.bytes[4];
+      context->md5[1] = oid.bytes[5];
+      context->md5[2] = oid.bytes[6];
+   }
+
+   if ((flags & BSON_CONTEXT_THREAD_SAFE)) {
+      context->oid_get_seq32 = _bson_context_get_oid_seq32_threadsafe;
+      context->oid_get_seq64 = _bson_context_get_oid_seq64_threadsafe;
+   }
+
+   if ((flags & BSON_CONTEXT_DISABLE_PID_CACHE)) {
+      context->oid_get_pid = _bson_context_get_oid_pid;
+   } else {
+      pid = BSON_UINT16_TO_BE (_bson_getpid());
+#if defined(__linux__)
+
+      if ((flags & BSON_CONTEXT_USE_TASK_ID)) {
+         int32_t tid;
+
+         if ((tid = gettid ())) {
+            pid = BSON_UINT16_TO_BE (tid);
+         }
+      }
+
+#endif
+      memcpy (&context->pidbe[0], &pid, 2);
+   }
+}
+
+
 /*
  *--------------------------------------------------------------------------
  *
@@ -376,82 +425,12 @@ _bson_context_get_oid_seq64_threadsafe (bson_context_t *context, /* IN */
  */
 
 bson_context_t *
-bson_context_new (bson_context_flags_t flags) /* IN */
+bson_context_new (bson_context_flags_t flags)
 {
    bson_context_t *context;
-   struct timeval tv;
-   uint16_t pid;
-   unsigned int seed[3];
-   unsigned int real_seed;
-   bson_oid_t oid;
 
    context = bson_malloc0 (sizeof *context);
-
-   context->flags = flags;
-   context->oid_get_host = _bson_context_get_oid_host_cached;
-   context->oid_get_pid = _bson_context_get_oid_pid_cached;
-   context->oid_get_seq32 = _bson_context_get_oid_seq32;
-   context->oid_get_seq64 = _bson_context_get_oid_seq64;
-
-   /*
-    * Generate a seed for our the random starting position of our increment
-    * bytes. We mask off the last nibble so that the last digit of the OID will
-    * start at zero. Just to be nice.
-    *
-    * The seed itself is made up of the current time in seconds, milliseconds,
-    * and pid xored together. I welcome better solutions if at all necessary.
-    */
-   bson_gettimeofday (&tv, NULL);
-   seed[0] = tv.tv_sec;
-   seed[1] = tv.tv_usec;
-   seed[2] = _bson_getpid ();
-   real_seed = seed[0] ^ seed[1] ^ seed[2];
-
-#ifdef BSON_OS_WIN32
-   /* ms's runtime is multithreaded by default, so no rand_r */
-   srand(real_seed);
-   context->seq32 = rand() & 0x007FFFF0;
-#else
-   context->seq32 = rand_r (&real_seed) & 0x007FFFF0;
-#endif
-
-   if ((flags & BSON_CONTEXT_DISABLE_HOST_CACHE)) {
-      context->oid_get_host = _bson_context_get_oid_host;
-   } else {
-      _bson_context_get_oid_host (context, &oid);
-      context->md5[0] = oid.bytes[4];
-      context->md5[1] = oid.bytes[5];
-      context->md5[2] = oid.bytes[6];
-   }
-
-   if ((flags & BSON_CONTEXT_THREAD_SAFE)) {
-#if defined BSON_WITH_OID32_PT
-      bson_mutex_init (&context->_m32);
-#endif
-#if defined BSON_WITH_OID64_PT
-      bson_mutex_init (&context->_m64);
-#endif
-      context->oid_get_seq32 = _bson_context_get_oid_seq32_threadsafe;
-      context->oid_get_seq64 = _bson_context_get_oid_seq64_threadsafe;
-   }
-
-   if ((flags & BSON_CONTEXT_DISABLE_PID_CACHE)) {
-      context->oid_get_pid = _bson_context_get_oid_pid;
-   } else {
-      pid = BSON_UINT16_TO_BE (_bson_getpid());
-#if defined(__linux__)
-
-      if ((flags & BSON_CONTEXT_USE_TASK_ID)) {
-         int32_t tid;
-
-         if ((tid = gettid ())) {
-            pid = BSON_UINT16_TO_BE (tid);
-         }
-      }
-
-#endif
-      memcpy (&context->pidbe[0], &pid, 2);
-   }
+   _bson_context_init (context, flags);
 
    return context;
 }
@@ -477,39 +456,9 @@ bson_context_new (bson_context_flags_t flags) /* IN */
 void
 bson_context_destroy (bson_context_t *context)  /* IN */
 {
-#if defined BSON_WITH_OID32_PT
-   bson_mutex_destroy (&context->_m32);
-#endif
-#if defined BSON_WITH_OID64_PT
-   bson_mutex_destroy (&context->_m64);
-#endif
-   memset (context, 0, sizeof *context);
-   bson_free (context);
-}
-
-
-/*
- *--------------------------------------------------------------------------
- *
- * _bson_context_destroy_default --
- *
- *       Cleanup the default context on exit.
- *
- * Returns:
- *       None.
- *
- * Side effects:
- *       None.
- *
- *--------------------------------------------------------------------------
- */
-
-static void
-_bson_context_destroy_default (void)
-{
-   if (gContextDefault) {
-      bson_context_destroy (gContextDefault);
-      gContextDefault = NULL;
+   if (context != &gContextDefault) {
+      memset (context, 0, sizeof *context);
+      bson_free (context);
    }
 }
 
@@ -517,9 +466,9 @@ _bson_context_destroy_default (void)
 static
 BSON_ONCE_FUN(_bson_context_init_default)
 {
-   gContextDefault = bson_context_new ((BSON_CONTEXT_THREAD_SAFE |
-                                        BSON_CONTEXT_DISABLE_PID_CACHE));
-   atexit (_bson_context_destroy_default);
+   _bson_context_init (&gContextDefault,
+                       (BSON_CONTEXT_THREAD_SAFE |
+                        BSON_CONTEXT_DISABLE_PID_CACHE));
    BSON_ONCE_RETURN;
 }
 
@@ -550,5 +499,5 @@ bson_context_get_default (void)
 
    bson_once (&once, _bson_context_init_default);
 
-   return gContextDefault;
+   return &gContextDefault;
 }

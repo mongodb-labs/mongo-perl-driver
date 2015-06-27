@@ -18,8 +18,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "bson-atomic.h"
 #include "bson-config.h"
 #include "bson-memory.h"
+
+
+static bson_mem_vtable_t gMemVtable = {
+   malloc,
+   calloc,
+#ifdef __APPLE__
+   reallocf,
+#else
+   realloc,
+#endif
+   free,
+};
 
 
 /*
@@ -51,7 +64,7 @@ bson_malloc (size_t num_bytes) /* IN */
 {
    void *mem;
 
-   if (!(mem = malloc (num_bytes))) {
+   if (!(mem = gMemVtable.malloc (num_bytes))) {
       abort ();
    }
 
@@ -87,7 +100,7 @@ bson_malloc0 (size_t num_bytes) /* IN */
    void *mem = NULL;
 
    if (BSON_LIKELY (num_bytes)) {
-      if (BSON_UNLIKELY (!(mem = calloc (1, num_bytes)))) {
+      if (BSON_UNLIKELY (!(mem = gMemVtable.calloc (1, num_bytes)))) {
          abort ();
       }
    }
@@ -122,17 +135,56 @@ void *
 bson_realloc (void   *mem,        /* IN */
               size_t  num_bytes)  /* IN */
 {
-   mem = realloc (mem, num_bytes);
+   /*
+    * Not all platforms are guaranteed to free() the memory if a call to
+    * realloc() with a size of zero occurs. Windows, Linux, and FreeBSD do,
+    * however, OS X does not.
+    */
+   if (BSON_UNLIKELY (num_bytes == 0)) {
+      gMemVtable.free (mem);
+      return NULL;
+   }
+
+   mem = gMemVtable.realloc (mem, num_bytes);
 
    if (BSON_UNLIKELY (!mem)) {
-      if (!num_bytes) {
-         return mem;
-      }
-
       abort ();
    }
 
    return mem;
+}
+
+
+/*
+ *--------------------------------------------------------------------------
+ *
+ * bson_realloc_ctx --
+ *
+ *       This wraps bson_realloc and provides a compatible api for similar
+ *       functions with a context
+ *
+ * Parameters:
+ *       @mem: The memory to realloc, or NULL.
+ *       @num_bytes: The size of the new allocation or 0 to free.
+ *       @ctx: Ignored
+ *
+ * Returns:
+ *       The new allocation if successful; otherwise abort() is called and
+ *       this function never returns.
+ *
+ * Side effects:
+ *       None.
+ *
+ *--------------------------------------------------------------------------
+ */
+
+
+void *
+bson_realloc_ctx (void   *mem,        /* IN */
+                  size_t  num_bytes,  /* IN */
+                  void   *ctx)        /* IN */
+{
+   return bson_realloc (mem, num_bytes);
 }
 
 
@@ -161,7 +213,7 @@ bson_realloc (void   *mem,        /* IN */
 void
 bson_free (void *mem) /* IN */
 {
-   free (mem);
+   gMemVtable.free (mem);
 }
 
 
@@ -193,6 +245,44 @@ bson_zero_free (void  *mem,  /* IN */
 {
    if (BSON_LIKELY (mem)) {
       memset (mem, 0, size);
-      bson_free (mem);
+      gMemVtable.free (mem);
    }
+}
+
+
+/*
+ *--------------------------------------------------------------------------
+ *
+ * bson_mem_set_vtable --
+ *
+ *       This function will change our allocationt vtable.
+ *
+ *       It is imperitive that this is called at the beginning of the
+ *       process before any memory has been allocated by the default
+ *       allocator.
+ *
+ * Returns:
+ *       None.
+ *
+ * Side effects:
+ *       None.
+ *
+ *--------------------------------------------------------------------------
+ */
+
+void
+bson_mem_set_vtable (const bson_mem_vtable_t *vtable)
+{
+   bson_return_if_fail (vtable);
+
+   if (!vtable->malloc ||
+       !vtable->calloc ||
+       !vtable->realloc ||
+       !vtable->free) {
+      fprintf (stderr, "Failure to install BSON vtable, "
+                       "missing functions.\n");
+      return;
+   }
+
+   gMemVtable = *vtable;
 }

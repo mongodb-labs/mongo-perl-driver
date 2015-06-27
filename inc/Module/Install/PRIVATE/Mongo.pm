@@ -167,8 +167,6 @@ sub configure_bson {
 
     my $conf = $self->probe_bson_config;
 
-    path("bson/bson-stdint.h")->spew("#include <$conf->{STDINT_SOURCE}>\n");
-
     my $config_guts = path("bson/bson-config.h.in")->slurp;
     for my $key ( %$conf ) {
         $config_guts =~ s/\@$key\@/$conf->{$key}/;
@@ -183,12 +181,6 @@ sub probe_bson_config {
     my $ca = Config::AutoConf->new;
     $ca->push_lang("C");
     my %conf;
-
-    # what should bson-stdint.h load?  If the system doesn't have stdint.h,
-    # we try a "portable" equilvalent.  libbson's autoconfig rules are smarter
-    # but this may do for now.  Generally, stdint.h should be available on most
-    # platforms: see http://hacks.owlfolio.org/header-survey/
-    $conf{STDINT_SOURCE} = $ca->check_header("stdint.h") ? "stdint.h" : "pstdint.h";
 
     ##/*
     ## * Define to 1234 for Little Endian, 4321 for Big Endian.
@@ -205,10 +197,6 @@ sub probe_bson_config {
     ## */
     $conf{BSON_OS} = $^O eq 'MSWin32' ? 2 : 1;
 
-    ##/*
-    ## * Define to 1 if your system requires {} around PTHREAD_ONCE_INIT.
-    ## * This is typically just Solaris 8-10.
-    ## */
 
     ##/*
     ## * Define to 1 if you have clock_gettime() available.
@@ -234,9 +222,14 @@ sub probe_bson_config {
     ## */
     $conf{BSON_HAVE_SNPRINTF} = $Config{d_snprintf} ? 1 : 0;
 
+    ##/*
+    ## * Define to 1 if your system requires {} around PTHREAD_ONCE_INIT.
+    ## * This is typically just Solaris 8-10.
+    ## */
+
     ## pthread-related configuration
     if ( $^O eq 'MSWin32' ) {
-        $conf{$_} = 0 for qw/BSON_PTHREAD_ONCE_INIT_NEEDS_BRACES BSON_WITH_OID64_PT BSON_WITH_OID32_PT/;
+        $conf{BSON_PTHREAD_ONCE_INIT_NEEDS_BRACES} = 0;
     }
     else {
 
@@ -251,36 +244,39 @@ return 0;
 }
 HERE
 
+    }
+
     ##/*
-    ## * Define to 1 if 32-bit atomics are not available and pthreads should be
-    ## * used to emulate them.
+    ## * Define to 1 if we have access to GCC 32-bit atomic builtins.
+    ## * While this requires GCC 4.1+ in most cases, it is also architecture
+    ## * dependent. For example, some PPC or ARM systems may not have it even
+    ## * if it is a recent GCC version.
     ## */
-    $conf{BSON_WITH_OID32_PT} = $ca->link_if_else(<<'HERE') ? 0 : 1;
+    $conf{BSON_HAVE_ATOMIC_32_ADD_AND_FETCH} = $ca->link_if_else(<<'HERE') ? 0 : 1;
 #include <stdint.h>
 int
 main ()
 {
-    uint32_t seq = __sync_fetch_and_add_4(&seq, 1);
+    uint32_t seq = __sync_fetch_and_add_4(&seq, (int_32t)1);
     return 0;
 }
 HERE
 
     ##/*
-    ## * Define to 1 if 64-bit atomics are not available and pthreads should be
-    ## * used to emulate them.
+    ## * Similarly, define to 1 if we have access to GCC 64-bit atomic builtins.
     ## */
-    $conf{BSON_WITH_OID64_PT} = $ca->link_if_else(<<'HERE') ? 0 : 1;
+    $conf{BSON_HAVE_ATOMIC_64_ADD_AND_FETCH} = $ca->link_if_else(<<'HERE') ? 0 : 1;
 #include <stdint.h>
 int
 main ()
 {
-    uint64_t seq = __sync_fetch_and_add_8(&seq, 1);
+    uint64_t seq = __sync_fetch_and_add_8(&seq, (int_64t)1);
     return 0;
 }
 HERE
-    }
 
     return \%conf;
 }
+
 1;
 
