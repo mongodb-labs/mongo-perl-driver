@@ -1344,8 +1344,9 @@ sub database_names {
             }
             return 1;
         } catch {
-            # can't open db in a read lock
-            return if $_->result->ouput->{code} == CANT_OPEN_DB_IN_READ_LOCK() || $try < $max_tries;
+            if ( $_->$_isa("MongoDB::DatabaseError" ) ) {
+                return if $_->result->output->{code} == CANT_OPEN_DB_IN_READ_LOCK() || $try < $max_tries;
+            }
             die $_;
         };
     }
