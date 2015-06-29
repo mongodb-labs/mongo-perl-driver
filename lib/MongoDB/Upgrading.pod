@@ -524,6 +524,11 @@ specification for DBRefs.
 Also, all attributes (C<ref>, C<id> and C<db>) are now read-only,
 consistent with the move toward immutable objects throughout the driver.
 
+To support round-tripping DBRefs with additional fields other than C<$ref>,
+C<$id> and C<$db>, the DBRef class now has an attribute called C<extra>.
+As not all drivers support this feature, using it for new DBRefs is not
+recommended.
+
 =head1 DEPRECATED METHODS
 
 Deprecated options and methods may be removed in a future release.  Their
