@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.999.999.3 2015-06-29 12:21:07-04:00 America/New_York (TRIAL RELEASE)
+
   [!!! Incompatible Changes !!!]
 
   - PERL-546 MongoDB::DBRef objects no longer have a 'fetch' method or
