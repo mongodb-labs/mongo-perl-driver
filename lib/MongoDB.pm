@@ -101,7 +101,7 @@ read_documents
 
 =begin :prelude
 
-This is the Beta 2 release for v1.0.0.
+This is the Beta 3 release for v1.0.0.
 
 =head1 BETA RELEASE NOTICE AND ROADMAP
 
@@ -118,10 +118,28 @@ due to changes in the driver between now and the v1.0.0 stable release.
 More details on changes and how to upgrade applications may be found in
 L<MongoDB::Upgrading>.
 
+=head2 Notable changes
+
+The Beta 3 driver includes significant changes to DBrefs, including a breaking
+change:
+
+=for :list
+* MongoDB::DBRef objects no longer have a 'fetch' method or 'client' attribute.
+  This is consistent with the design of the MongoDB drivers for other language.
+  For the Perl driver, specifically, it decouples the BSON model from the
+  MongoClient model, eliminates a circular reference, and avoid Perl memory
+  bugs using weak references under threads. (Breaking Change)
+* As mandated by the DBRef specification, the 'db' attribute to MongoDB::DBRef
+  is now optional and the drivers will now recognize DBref documents that omit
+  a C<$db> field.
+* Extra fields in a DBRef document beyond C<$ref>, C<$id> and C<$db> are
+  preserved and will round-trip.
+
 =head2 Roadmap
 
-The next Beta release is expected around the end of June 2015.
-The stable v1.0.0 release is expected around the end of July 2015.
+Beta releases will ship weekly or biweekly as necessary depending on the
+volume/severity of changes.  The stable v1.0.0 release is expected around the
+end of July 2015.
 
 Some expected changes in future releases include:
 
