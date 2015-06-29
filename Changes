@@ -2,6 +2,32 @@
 
 {{ $NEXT }}
 
+  [!!! Incompatible Changes !!!]
+
+  - PERL-546 MongoDB::DBRef objects no longer have a 'fetch' method or
+    'client' attribute.  This is consistent with the design of the MongoDB
+    drivers for other language.  For the Perl driver, specifically, it
+    decouples the BSON model from the MongoClient model, eliminates a
+    circular reference, and avoid Perl memory bugs using weak references
+    under threads.
+
+  [Changes]
+
+  - PERL-527 A database name is now optional for MongoDB::DBRef, which
+    is consistent with the DBRef specification.
+
+  - PERL-550 DBRefs allow extra fields (for compatibility); this is not
+    recommended for new DBRefs.
+
+  - BSON code derived from libbson has been updated to libbson 1.1.7
+
+  [Bug fixes]
+
+  - Use of -Wall compiler flag during smoke testing has been restricted
+    to gcc compilers, only.
+
+  - Fixed bug in MongoDB::MongoClient::database_names error handling
+
 v0.999.999.2 2015-06-17 11:34:48-04:00 America/New_York (TRIAL RELEASE)
 
   [Changes]
