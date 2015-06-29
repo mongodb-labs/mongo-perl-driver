@@ -123,17 +123,28 @@ L<MongoDB::Upgrading>.
 The Beta 3 driver includes significant changes to DBrefs, including a breaking
 change:
 
-=for :list
-* MongoDB::DBRef objects no longer have a 'fetch' method or 'client' attribute.
-  This is consistent with the design of the MongoDB drivers for other language.
-  For the Perl driver, specifically, it decouples the BSON model from the
-  MongoClient model, eliminates a circular reference, and avoid Perl memory
-  bugs using weak references under threads. (Breaking Change)
-* As mandated by the DBRef specification, the 'db' attribute to MongoDB::DBRef
-  is now optional and the drivers will now recognize DBref documents that omit
-  a C<$db> field.
-* Extra fields in a DBRef document beyond C<$ref>, C<$id> and C<$db> are
-  preserved and will round-trip.
+=over
+
+=item *
+
+MongoDB::DBRef objects no longer have a 'fetch' method or 'client' attribute.
+This is consistent with the design of the MongoDB drivers for other language.
+For the Perl driver, specifically, it decouples the BSON model from the
+MongoClient model, eliminates a circular reference, and avoid Perl memory
+bugs using weak references under threads. (Breaking Change)
+
+=item *
+
+As mandated by the DBRef specification, the 'db' attribute to MongoDB::DBRef
+is now optional and the drivers will now recognize DBref documents that omit
+a C<$db> field.
+
+=item *
+
+Extra fields in a DBRef document beyond C<$ref>, C<$id> and C<$db> are
+preserved and will round-trip.
+
+=back
 
 =head2 Roadmap
 
