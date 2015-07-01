@@ -153,6 +153,16 @@ subtest write_concern => sub {
     is($coll->count({ mongo => 'programmer' }), 0, 'count = 0');
     is($coll->count({ mongo => 'hacker'     }), 1, 'count = 1');
     is($coll->count({ 'with.a' => 'reference' }), 1, 'inner obj count');
+
+    # missing collection
+    my $coll2 = $testdb->coll("aadfkasfa");
+    my $count;
+    is(
+        exception { $count = $coll2->count({}) },
+        undef,
+        "count on missing collection lives"
+    );
+    is( $count, 0, "count is correct" );
 }
 
 # find_one
