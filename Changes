@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [~ Internal changes ~]
+
+  - To attempt to get C/XS linking on Windows XP, changed 'strerror_s'
+    (available after XP) to deprecate function 'strerror'
+
 v0.999.999.3 2015-06-29 12:21:07-04:00 America/New_York (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]
