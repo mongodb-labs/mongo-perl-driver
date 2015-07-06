@@ -177,7 +177,7 @@ sub authenticate {
     my $method = "_authenticate_$mech";
     $method =~ s/-/_/g;
 
-    return $self->$method($link);
+    return $self->$method($link, $bson_codec);
 }
 
 #--------------------------------------------------------------------------#
@@ -189,7 +189,7 @@ sub _authenticate_NONE () { 1 }
 sub _authenticate_MONGODB_CR {
     my ( $self, $link, $bson_codec ) = @_;
 
-    my $nonce = $self->_send_command( $link, 'admin', { getnonce => 1 } )->output->{nonce};
+    my $nonce = $self->_send_command( $link, $bson_codec, 'admin', { getnonce => 1 } )->output->{nonce};
     my $key =
       md5_hex( encode( "UTF-8", $nonce . $self->username . $self->_digested_password ) );
 
@@ -199,7 +199,7 @@ sub _authenticate_MONGODB_CR {
         nonce        => $nonce,
         key          => $key
     );
-    $self->_send_command( $link, $self->source, $command );
+    $self->_send_command( $link, $bson_codec, $self->source, $command );
 
     return 1;
 }
@@ -212,7 +212,7 @@ sub _authenticate_MONGODB_X509 {
         user         => $self->username,
         mechanism    => "MONGODB-X509",
     );
-    $self->_send_command( $link, $self->source, $command );
+    $self->_send_command( $link, $bson_codec, $self->source, $command );
 
     return 1;
 }
@@ -222,7 +222,7 @@ sub _authenticate_PLAIN {
 
     my $auth_bytes =
       encode( "UTF-8", "\x00" . $self->username . "\x00" . $self->password );
-    $self->_sasl_start( $link, $auth_bytes, "PLAIN" );
+    $self->_sasl_start( $link, $bson_codec, $auth_bytes, "PLAIN" );
 
     return 1;
 }
@@ -257,14 +257,14 @@ sub _authenticate_GSSAPI {
         my $step = $client->client_start;
         $self->_assert_gssapi( $client,
             "Could not start GSSAPI. Did you run kinit?  Error was: " );
-        my ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $step, 'GSSAPI' );
+        my ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $bson_codec, $step, 'GSSAPI' );
 
         # iterate, but with maximum number of exchanges to prevent endless loop
         for my $i ( 1 .. 10 ) {
             last if $done;
             $step = $client->client_step($sasl_resp);
             $self->_assert_gssapi( $client, "GSSAPI step error: " );
-            ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $step, $conv_id );
+            ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $bson_codec, $step, $conv_id );
         }
     }
     catch {
@@ -282,12 +282,12 @@ sub _authenticate_SCRAM_SHA_1 {
     my ( $msg, $sasl_resp, $conv_id, $done );
     try {
         $msg = $client->first_msg;
-        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $msg, 'SCRAM-SHA-1' );
+        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $bson_codec, $msg, 'SCRAM-SHA-1' );
         $msg = $client->final_msg($sasl_resp);
-        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $msg, $conv_id );
+        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $bson_codec, $msg, $conv_id );
         $client->validate($sasl_resp);
         # might require an empty payload to complete SASL conversation
-        $self->_sasl_continue( $link, "", $conv_id ) if !$done;
+        $self->_sasl_continue( $link, $bson_codec, "", $conv_id ) if !$done;
     }
     catch {
         MongoDB::AuthError->throw("SCRAM-SHA-1 error: $_");
@@ -332,7 +332,7 @@ sub _sasl_start {
         autoAuthorize => 1,
     );
 
-    return $self->_sasl_send( $link, $command );
+    return $self->_sasl_send( $link, $bson_codec, $command );
 }
 
 sub _sasl_continue {
@@ -344,7 +344,7 @@ sub _sasl_continue {
         payload        => $payload ? encode_base64( $payload, "" ) : "",
     );
 
-    return $self->_sasl_send( $link, $command );
+    return $self->_sasl_send( $link, $bson_codec, $command );
 }
 
 sub _sasl_send {
