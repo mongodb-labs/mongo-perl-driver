@@ -1,7 +1,7 @@
 ---
 type: single
 default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --setParameter authenticationMechanisms=SCRAM-SHA-1
-default_version: 3.0.0
+default_version: v3.0
 auth:
     user: root
     password: toor

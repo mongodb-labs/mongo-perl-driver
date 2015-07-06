@@ -38,7 +38,7 @@ use MongoDB::_URI;
 
 my $orc =
   MongoDBTest::Orchestrator->new(
-    config_file => "devel/config/mongod-2.7-scram.yml" );
+    config_file => "devel/config/mongod-3.0-scram.yml" );
 diag "starting server with auth enabled";
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
@@ -103,17 +103,6 @@ subtest "auth via connection string" => sub {
     my $coll   = $testdb->get_collection("test_collection");
 
     is( exception { $coll->count }, undef, "no exception reading from new client" );
-};
-
-subtest "legacy authentication" => sub {
-    my $conn   = build_client( host => $no_auth_string, dt_type => undef );
-    my $testdb = get_test_db($conn);
-    my $coll   = $testdb->get_collection("test_collection");
-
-    ok( $conn->authenticate( $uri->db_name || 'admin', $uri->username, $uri->password ),
-        "authenticate(...)" );
-
-    is( exception { $coll->count }, undef, "no exception reading after authentication" );
 };
 
 clear_testdbs;
