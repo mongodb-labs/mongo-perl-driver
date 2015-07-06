@@ -247,7 +247,7 @@ my @encode_overrides =
 my $encode_one_args;
 
 sub encode_one {
-    $encode_one_args ||= compile( Object, Any, Optional [HashRef]);
+    $encode_one_args ||= compile( Object, Any, Optional [HashRef|Undef]);
     my ( $self, $document, $options ) = $encode_one_args->(@_);
 
     for my $k (@encode_overrides) {
@@ -291,7 +291,7 @@ my @decode_overrides =
 my $decode_one_args;
 
 sub decode_one {
-    $decode_one_args ||= compile( Object, Str, Optional [HashRef] );
+    $decode_one_args ||= compile( Object, Str, Optional [HashRef|Undef] );
     my ( $self, $string, $options ) = $decode_one_args->(@_);
 
     for my $k ( @decode_overrides ) {

@@ -338,7 +338,7 @@ calls.
 
 my $insert_many_args;
 sub insert_many {
-    $insert_many_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef] );
+    $insert_many_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef|Undef] );
     my ($self, $documents, $opts) = $insert_many_args->(@_);
 
     # ordered defaults to true
@@ -429,7 +429,7 @@ document will be upserted if no matching document exists.
 
 my $replace_one_args;
 sub replace_one {
-    $replace_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
+    $replace_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
     my ($self, $filter, $replacement, $options) = $replace_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
@@ -467,7 +467,7 @@ operations to it prior to insertion.
 
 my $update_one_args;
 sub update_one {
-    $update_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
+    $update_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
     my ($self, $filter, $update, $options) = $update_one_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
@@ -505,7 +505,7 @@ operations to it prior to insertion.
 
 my $update_many_args;
 sub update_many {
-    $update_many_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
+    $update_many_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
     my ($self, $filter, $update, $options) = $update_many_args->(@_);
 
     my $op = MongoDB::Op::_Update->new(
@@ -629,7 +629,7 @@ a L<MongoDB::QueryResult> object:
 
 my $find_args;
 sub find {
-    $find_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
+    $find_args ||= compile( Object, Optional[IxHash], Optional[HashRef|Undef] );
     my ( $self, $filter, $options ) = $find_args->(@_);
     $options ||= {};
 
@@ -750,7 +750,7 @@ A hash reference of options may be provided. Valid keys include:
 
 my $foad_args;
 sub find_one_and_delete {
-    $foad_args ||= compile( Object, IxHash, Optional[HashRef] );
+    $foad_args ||= compile( Object, IxHash, Optional[HashRef|Undef] );
     my ( $self, $filter, $options ) = $foad_args->(@_);
 
     # rename projection -> fields
@@ -808,7 +808,7 @@ A hash reference of options may be provided. Valid keys include:
 
 my $foar_args;
 sub find_one_and_replace {
-    $foar_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
+    $foar_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
     my ( $self, $filter, $replacement, $options ) = $foar_args->(@_);
 
     return $self->_find_one_and_update_or_replace($filter, $replacement, $options);
@@ -847,7 +847,7 @@ A hash reference of options may be provided. Valid keys include:
 
 my $foau_args;
 sub find_one_and_update {
-    $foau_args ||= compile( Object, IxHash, IxHash, Optional[HashRef] );
+    $foau_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
     my ( $self, $filter, $update, $options ) = $foau_args->(@_);
 
     return $self->_find_one_and_update_or_replace($filter, $update, $options);
@@ -892,7 +892,7 @@ for more information on how to construct aggregation queries.
 
 my $aggregate_args;
 sub aggregate {
-    $aggregate_args ||= compile( Object, ArrayOfHashRef, Optional [HashRef] );
+    $aggregate_args ||= compile( Object, ArrayOfHashRef, Optional [HashRef|Undef] );
     my ( $self, $pipeline, $options ) = $aggregate_args->(@_);
 
     # boolify some options
@@ -951,7 +951,7 @@ for details and a work-around using L</aggregate>.
 my $count_args;
 
 sub count {
-    $count_args ||= compile( Object, Optional [IxHash], Optional [HashRef] );
+    $count_args ||= compile( Object, Optional [IxHash], Optional [HashRef|Undef] );
     my ( $self, $filter, $options ) = $count_args->(@_);
     $filter  ||= {};
     $options ||= {};
@@ -998,7 +998,7 @@ details.
 my $distinct_args;
 
 sub distinct {
-    $distinct_args ||= compile( Object, Str, Optional [IxHash], Optional [HashRef] );
+    $distinct_args ||= compile( Object, Str, Optional [IxHash], Optional [HashRef|Undef] );
     my ( $self, $fieldname, $filter, $options ) = $distinct_args->(@_);
     $filter ||= {};
     $options ||= {};
@@ -1415,7 +1415,7 @@ sub __ixhash {
 
 my $legacy_insert_args;
 sub insert {
-    $legacy_insert_args ||= compile( Object, IxHash, Optional[HashRef] );
+    $legacy_insert_args ||= compile( Object, IxHash, Optional[HashRef|Undef] );
     my ( $self, $document, $opts ) = $legacy_insert_args->(@_);
 
     my $op = MongoDB::Op::_InsertOne->new(
@@ -1434,7 +1434,7 @@ sub insert {
 my $legacy_batch_args;
 sub batch_insert {
     my ( $self, $documents, $opts ) = @_;
-    $legacy_batch_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef] );
+    $legacy_batch_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef|Undef] );
 
     my $op = MongoDB::Op::_BatchInsert->new(
         db_name       => $self->database->name,
@@ -1457,7 +1457,7 @@ sub batch_insert {
 
 my $legacy_remove_args;
 sub remove {
-    $legacy_remove_args ||= compile( Object, Optional[IxHash], Optional[HashRef] );
+    $legacy_remove_args ||= compile( Object, Optional[IxHash], Optional[HashRef|Undef] );
     my ($self, $query, $opts) = $legacy_remove_args->(@_);
     $opts ||= {};
 
@@ -1481,7 +1481,7 @@ sub remove {
 
 my $legacy_update_args;
 sub update {
-    $legacy_update_args ||= compile( Object, Optional[IxHash], Optional[IxHash], Optional[HashRef] );
+    $legacy_update_args ||= compile( Object, Optional[IxHash], Optional[IxHash], Optional[HashRef|Undef] );
     my ( $self, $query, $object, $opts ) = $legacy_update_args->(@_);
     $opts ||= {};
 
@@ -1525,7 +1525,7 @@ sub update {
 
 my $legacy_save_args;
 sub save {
-    $legacy_save_args ||= compile( Object, IxHash, Optional[HashRef] );
+    $legacy_save_args ||= compile( Object, IxHash, Optional[HashRef|Undef] );
     my ($self, $doc, $options) = $legacy_save_args->(@_);
 
     if ( $doc->EXISTS("_id") ) {
