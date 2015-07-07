@@ -973,9 +973,9 @@ sub count {
 
 =method distinct
 
-    $result = $coll->count( $fieldname );
-    $result = $coll->count( $fieldname, $filter );
-    $result = $coll->count( $fieldname, $filter, $options );
+    $result = $coll->distinct( $fieldname );
+    $result = $coll->distinct( $fieldname, $filter );
+    $result = $coll->distinct( $fieldname, $filter, $options );
 
 Returns a L<MongoDB::QueryResult> object that will provide distinct values for
 a specified field name.
