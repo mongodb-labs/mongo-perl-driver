@@ -110,4 +110,6 @@ sub _legacy_index_insert {
     return $op->execute($link);
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

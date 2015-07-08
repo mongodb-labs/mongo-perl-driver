@@ -367,5 +367,6 @@ sub _send_command {
     return $res;
 }
 
+__PACKAGE__->meta->make_immutable;
 
 1;

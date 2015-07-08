@@ -116,6 +116,8 @@ sub _w_is_acknowledged {
       && ( looks_like_number( $self->w ) ? $self->w > 0 : length $self->w );
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;
 
 __END__

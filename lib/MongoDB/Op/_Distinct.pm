@@ -100,4 +100,6 @@ sub execute {
     return $self->_build_result_from_cursor($res);
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

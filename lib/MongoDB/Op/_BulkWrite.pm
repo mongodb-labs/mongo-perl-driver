@@ -394,4 +394,6 @@ sub _check_no_dollar_keys {
     return;
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

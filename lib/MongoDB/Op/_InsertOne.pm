@@ -125,4 +125,6 @@ BEGIN {
     *_parse_gle = \&_parse_cmd;
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

@@ -117,8 +117,6 @@ sub delete_one {
     return;
 }
 
-__PACKAGE__->meta->make_immutable;
-
 #--------------------------------------------------------------------------#
 # Deprecated methods
 #--------------------------------------------------------------------------#
@@ -129,6 +127,8 @@ BEGIN {
     *remove = \&delete_many;
     *remove_one = \&delete_one;
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;
 

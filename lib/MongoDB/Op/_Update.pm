@@ -164,4 +164,6 @@ sub _parse_gle {
     );
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

@@ -106,4 +106,6 @@ sub _legacy_list_indexes {
     return $op->execute( $link, $topology );
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

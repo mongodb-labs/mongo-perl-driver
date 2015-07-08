@@ -92,6 +92,8 @@ around BUILDARGS => sub {
     return $class->$orig(@_);
 };
 
+__PACKAGE__->meta->make_immutable;
+
 #--------------------------------------------------------------------------#
 # Subclasses with attributes included inline below
 #--------------------------------------------------------------------------#
@@ -119,6 +121,8 @@ has code => (
 
 sub _build_code { return MongoDB::Error::UNKNOWN_ERROR() }
 
+__PACKAGE__->meta->make_immutable;
+
 package MongoDB::DocumentError;
 use Moose;
 use MongoDB::_Types -types;
@@ -131,6 +135,8 @@ has document => (
     isa      => Any,
     required => 1,
 );
+
+__PACKAGE__->meta->make_immutable;
 
 package MongoDB::UsageError;
 use Moose;
@@ -170,41 +176,60 @@ around BUILDARGS => sub {
     return $args;
 };
 
+__PACKAGE__->meta->make_immutable;
+
 #--------------------------------------------------------------------------#
 # Empty subclasses generated programatically; this keeps packages visible
 # to metadata inspectors, but is shorter than Moose/namespace::clean/extends
 #--------------------------------------------------------------------------#
 
 # Connection errors
+
 package MongoDB::ConnectionError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+__PACKAGE__->meta->make_immutable;
 
 package MongoDB::HandshakeError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::ConnectionError'] );
 
+__PACKAGE__->meta->make_immutable;
+
 package MongoDB::NetworkError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::ConnectionError'] );
 
+__PACKAGE__->meta->make_immutable;
+
 # Timeout errors
+
 package MongoDB::TimeoutError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+__PACKAGE__->meta->make_immutable;
 
 package MongoDB::ExecutionTimeout;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::TimeoutError'] );
 
+__PACKAGE__->meta->make_immutable;
+
 package MongoDB::NetworkTimeout;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::TimeoutError'] );
 
+__PACKAGE__->meta->make_immutable;
+
 # Database errors
+
 package MongoDB::DuplicateKeyError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::DatabaseError'] );
 
 sub _build_code { return MongoDB::Error::DUPLICATE_KEY() }
+
+__PACKAGE__->meta->make_immutable;
 
 package MongoDB::NotMasterError;
 Moose::Meta::Class->create( __PACKAGE__,
@@ -212,9 +237,13 @@ Moose::Meta::Class->create( __PACKAGE__,
 
 sub _build_code { return MongoDB::Error::NOT_MASTER() }
 
+__PACKAGE__->meta->make_immutable;
+
 package MongoDB::WriteError;
 Moose::Meta::Class->create( __PACKAGE__,
     superclasses => ['MongoDB::DatabaseError'] );
+
+__PACKAGE__->meta->make_immutable;
 
 package MongoDB::WriteConcernError;
 Moose::Meta::Class->create( __PACKAGE__,
@@ -222,27 +251,44 @@ Moose::Meta::Class->create( __PACKAGE__,
 
 sub _build_code { return MongoDB::Error::WRITE_CONCERN_ERROR() }
 
+__PACKAGE__->meta->make_immutable;
+
 # Other errors
+
 package MongoDB::AuthError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+__PACKAGE__->meta->make_immutable;
 
 package MongoDB::CursorNotFoundError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
+__PACKAGE__->meta->make_immutable;
+
 package MongoDB::DecodingError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+__PACKAGE__->meta->make_immutable;
 
 package MongoDB::GridFSError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
+__PACKAGE__->meta->make_immutable;
+
 package MongoDB::InternalError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+__PACKAGE__->meta->make_immutable;
 
 package MongoDB::ProtocolError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
 
+__PACKAGE__->meta->make_immutable;
+
 package MongoDB::SelectionError;
 Moose::Meta::Class->create( __PACKAGE__, superclasses => ['MongoDB::Error'] );
+
+__PACKAGE__->meta->make_immutable;
 
 #--------------------------------------------------------------------------#
 # Private error classes
@@ -259,6 +305,8 @@ has size => (
     isa      => Int,
     required => 1,
 );
+
+__PACKAGE__->meta->make_immutable;
 
 1;
 

@@ -228,4 +228,6 @@ sub clone {
     return ref($self)->new(%args);
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

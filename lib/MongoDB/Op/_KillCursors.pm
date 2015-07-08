@@ -42,4 +42,6 @@ sub execute {
     return 1;
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;

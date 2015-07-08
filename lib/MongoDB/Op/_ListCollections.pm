@@ -134,4 +134,6 @@ sub __filter_legacy_names {
     return !( index( $name, '$' ) >= 0 && index( $name, '.oplog.$' ) < 0 );
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;
