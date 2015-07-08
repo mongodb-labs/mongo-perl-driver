@@ -31,7 +31,6 @@ use MongoDB::OID;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use Tie::IxHash;
 use boolean;
 use namespace::clean -except => 'meta';
 
@@ -49,8 +48,7 @@ has coll_name => (
 
 has document => (
     is       => 'ro',
-    isa      => IxHash,
-    coerce   => 1,
+    isa      => Any,
     required => 1,
 );
 
@@ -65,15 +63,26 @@ with qw/MongoDB::Role::_WriteOp/;
 sub execute {
     my ( $self, $link ) = @_;
 
-    my $document = $self->document;
+    my $doc = $self->document;
+    my $type = ref($doc);
 
-    my $id = $self->_set_doc_id(
-        $document->EXISTS('_id') ? $document->FETCH('_id') : MongoDB::OID->new
+    $self->_set_doc_id(
+        my $id = (
+              $type eq 'HASH' ? $doc->{_id}
+            : $type eq 'ARRAY' ? do {
+                my $i;
+                for ( $i = 0; $i < @$doc; $i++ ) { last if $doc->[$i] eq '_id' }
+                $i < $#$doc ? $doc->[ $i + 1 ] : undef;
+              }
+            : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
+            : $doc->{_id} # hashlike?
+          )
+          || MongoDB::OID->new
     );
 
     # XXX until we have a proper BSON::Raw class, we bless on the fly
     my $bson_doc = $self->bson_codec->encode_one(
-        $document,
+        $doc,
         {
             invalid_chars => '.',
             max_length    => $link->max_bson_object_size,
@@ -96,11 +105,11 @@ sub execute {
 sub _command_insert {
     my ( $self, $link, $insert_doc ) = @_;
 
-    my $cmd = Tie::IxHash->new(
+    my $cmd = [
         insert       => $self->coll_name,
         documents    => [$insert_doc],
         writeConcern => $self->write_concern->as_struct,
-    );
+    ];
 
     return $self->_send_write_command( $link, $cmd, $self->document, "MongoDB::InsertOneResult" );
 }

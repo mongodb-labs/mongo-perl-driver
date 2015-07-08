@@ -33,6 +33,7 @@ use Type::Library
   CursorType
   DBRefColl
   DBRefDB
+  Document
   ErrorStr
   HashLike
   HostAddress
@@ -44,6 +45,7 @@ use Type::Library
   NonEmptyStr
   NonNegNum
   OrderedDoc
+  PairArrayRef
   ReadPrefMode
   ReadPreference
   ServerType
@@ -126,6 +128,9 @@ declare NonNegNum, as Num,
   where { defined($_) && $_ >= 0 },
   message { "value must be a non-negative number" };
 
+declare PairArrayRef, as ArrayRef,
+  where { @$_ % 2 == 0 };
+
 enum ReadPrefMode,
   [qw/primary primaryPreferred secondary secondaryPreferred nearest/];
 
@@ -145,8 +150,9 @@ enum TopologyType,
 
 class_type WriteConcern, { class => 'MongoDB::WriteConcern' };
 
-# after SingleKeyHash and IxHash
-declare OrderedDoc, as ArrayRef|IxHash|SingleKeyHash;
+# after SingleKeyHash, PairArrayRef and IxHash
+declare OrderedDoc, as PairArrayRef|IxHash|SingleKeyHash;
+declare Document, as HashRef|PairArrayRef|IxHash|HashLike;
 
 # after NonEmptyStr
 declare DBRefColl, as NonEmptyStr;

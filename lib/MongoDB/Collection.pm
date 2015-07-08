@@ -296,7 +296,7 @@ The generated C<_id> may be retrieved from the result object.
 
 my $insert_one_args;
 sub insert_one {
-    $insert_one_args ||= compile( Object, IxHash);
+    $insert_one_args ||= compile( Object, Document);
     my ( $self, $document ) = $insert_one_args->(@_);
 
     my $op = MongoDB::Op::_InsertOne->new(
@@ -338,7 +338,7 @@ calls.
 
 my $insert_many_args;
 sub insert_many {
-    $insert_many_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef|Undef] );
+    $insert_many_args ||= compile( Object, ArrayRef[Document], Optional[HashRef|Undef] );
     my ($self, $documents, $opts) = $insert_many_args->(@_);
 
     # ordered defaults to true
