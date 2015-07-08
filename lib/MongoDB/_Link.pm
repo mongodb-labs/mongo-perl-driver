@@ -36,7 +36,6 @@ use Time::HiRes qw/time gettimeofday tv_interval/;
 use MongoDB::Error;
 
 use constant {
-    HAS_GETTIME          => Time::HiRes::d_clock_gettime(),
     P_INT32              => $] lt '5.010' ? 'l' : 'l<',
     MAX_BSON_OBJECT_SIZE => 4_194_304,
     MAX_WRITE_BATCH_SIZE => 1000,
@@ -318,7 +317,6 @@ sub _do_timeout {
         MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
     }
 
-    my $initial = HAS_GETTIME ? Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) : time;
     my $pending = $timeout >= 0 ? $timeout : undef;
     my $nfound;
 
@@ -334,10 +332,11 @@ sub _do_timeout {
                 $self->_close;
                 MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
             }
-            redo if !defined($pending);
-            my $now = HAS_GETTIME ? Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) : time;
-            redo if ( $pending = $timeout - ( $now - $initial ) ) > 0;
-            $nfound = 0;
+            # to avoid overhead tracking monotonic clock times; assume
+            # interrupts occur on average halfway through the timeout period
+            # and restart with half the original time
+            $pending = int( $pending/2 );
+            redo;
         }
         last;
     }
