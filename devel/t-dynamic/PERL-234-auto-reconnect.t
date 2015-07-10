@@ -17,6 +17,7 @@
 use strict;
 use warnings;
 use Test::More 0.88;
+use Test::Fatal;
 
 use lib "t/lib";
 use lib "devel/lib";
@@ -27,6 +28,7 @@ use MongoDBTest::Orchestrator;
 my $orc = MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
+diag "$ENV{MONGOD}";
 
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
@@ -47,14 +49,27 @@ $server->start($orig_port);
 
 ok ($server->is_alive, "Server is alive");
 
-inserted_ok($coll, $coll->insert({post => 'reconnect'}));
+my $id;
+like(
+    exception { $id = $coll->insert({post => 'reconnect'}) },
+    qr/NetworkError/,
+    "first attempt to contact server fails",
+);
+
+is(
+    exception { $id = $coll->insert({post => 'reconnect'}) },
+    undef,
+    "second attempt to contact server succeeds",
+);
+
+
+inserted_ok($coll, $id );
 
 clear_testdbs;
 
 done_testing;
 
 sub inserted_ok {
-
     my ($coll, $id) = @_;
 
     ok($coll->find({_id => $id}), "$id inserted (find)");
