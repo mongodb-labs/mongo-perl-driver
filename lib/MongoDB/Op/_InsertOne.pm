@@ -63,22 +63,21 @@ with qw/MongoDB::Role::_WriteOp/;
 sub execute {
     my ( $self, $link ) = @_;
 
-    my $doc = $self->document;
+    my $doc  = $self->document;
     my $type = ref($doc);
 
-    $self->_set_doc_id(
-        my $id = (
-              $type eq 'HASH' ? $doc->{_id}
-            : $type eq 'ARRAY' ? do {
-                my $i;
-                for ( $i = 0; $i < @$doc; $i++ ) { last if $doc->[$i] eq '_id' }
-                $i < $#$doc ? $doc->[ $i + 1 ] : undef;
-              }
-            : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
-            : $doc->{_id} # hashlike?
-          )
-          || MongoDB::OID->new
+    my $id = (
+          $type eq 'HASH' ? $doc->{_id}
+        : $type eq 'ARRAY' ? do {
+            my $i;
+            for ( $i = 0; $i < @$doc; $i++ ) { last if $doc->[$i] eq '_id' }
+            $i < $#$doc ? $doc->[ $i + 1 ] : undef;
+          }
+        : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
+        : $doc->{_id} # hashlike?
     );
+    $id = MongoDB::OID->new() unless defined $id;
+    $self->_set_doc_id( $id );
 
     # XXX until we have a proper BSON::Raw class, we bless on the fly
     my $bson_doc = $self->bson_codec->encode_one(
