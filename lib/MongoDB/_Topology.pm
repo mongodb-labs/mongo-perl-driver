@@ -217,7 +217,8 @@ sub all_servers { return values %{ $_[0]->servers } }
 sub check_address {
     my ( $self, $address ) = @_;
 
-    if ( my $link = $self->links->{$address} ) {
+    my $link = $self->links->{$address};
+    if ( $link && $link->connected ) {
         $self->_update_topology_from_link($link);
     }
     else {
@@ -234,16 +235,10 @@ sub close_all_links {
     return;
 }
 
-sub has_forked {
-    my ($self) = @_;
-    my $pid_tid = $self->pid_tid;
-    return $pid_tid->[0] != $$ || $pid_tid->[1] != _get_tid();
-}
-
 sub get_readable_link {
     my ( $self, $read_pref ) = @_;
 
-    $self->close_all_links if $self->has_forked;
+    $self->_check_if_forked;
 
     my $mode = $read_pref ? lc $read_pref->mode : 'primary';
     my $method =
@@ -265,7 +260,7 @@ sub get_readable_link {
 sub get_specific_link {
     my ( $self, $address ) = @_;
 
-    $self->close_all_links if $self->has_forked;
+    $self->_check_if_forked;
 
     my $server = $self->servers->{$address};
     if ( $server && ( my $link = $self->_get_server_link($server) ) ) {
@@ -279,7 +274,7 @@ sub get_specific_link {
 sub get_writable_link {
     my ($self) = @_;
 
-    $self->close_all_links if $self->has_forked;
+    $self->_check_if_forked;
 
     my $method =
       $self->type eq any(qw/Single Sharded/) ? '_find_any_server' : "_find_primary_server";
@@ -371,6 +366,16 @@ sub _add_address_as_unknown {
         last_update_time => $last_update || EPOCH,
         error            => $error,
     );
+}
+
+sub _check_if_forked {
+    my ($self) = @_;
+    my $pid_tid = $self->pid_tid;
+    if ( $pid_tid->[0] != $$ || $pid_tid->[1] != _get_tid() ) {
+        $self->close_all_links;
+        $self->scan_all_servers;
+    }
+    return;
 }
 
 sub _check_oldest_server {
@@ -492,12 +497,12 @@ sub _get_server_link {
     my $link    = $self->links->{$address};
 
     # if no link, make a new connection or give up
-    $link = $self->_initialize_link($address) unless $link;
+    $link = $self->_initialize_link($address) unless $link && $link->connected;
     return unless $link;
 
     # for idle links, refresh the server and verify validity
     if ( $link->idle_time_ms > $self->socket_check_interval_ms ) {
-        $self->_update_topology_from_link($link);
+        $self->check_address($address);
 
         # topology might have dropped the server
         $server = $self->servers->{addresses}
@@ -646,7 +651,7 @@ sub _update_topology_from_link {
         $op->execute( $link )->output;
     }
     catch {
-        warn $_;
+        warn "During topology update: $_";
         $self->_reset_address_to_unknown( $link->address, $_ );
         # retry a network error if server was previously known to us
         if (    $_->$_isa("MongoDB::NetworkError")
