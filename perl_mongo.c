@@ -1033,6 +1033,12 @@ ixhash_to_bson(bson_t * bson, SV *sv, AV *ids, stackette *stack, int is_insert) 
 
     str = SvPVutf8(*k, len);
     containsNullChar(str,len);
+
+    /* if we've already added the oid field, continue */
+    if (ids && strcmp(str, "_id") == 0) {
+        continue;
+    }
+
     append_sv(bson, str, *v, stack, is_insert);
   }
 
@@ -1656,6 +1662,11 @@ perl_mongo_sv_to_bson (bson_t * bson, SV *sv, AV *ids) {
         }
 
         str = SvPVutf8(*key, len);
+
+        /* if we've already added the oid field, continue */
+        if (ids && strcmp(str, "_id") == 0) {
+            continue;
+        }
 
         append_sv (bson, str, *val, EMPTY_STACK, is_insert);
       }
