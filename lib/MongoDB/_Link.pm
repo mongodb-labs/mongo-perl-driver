@@ -88,14 +88,22 @@ sub connect {
         Timeout => $self->{connect_timeout} >= 0 ? $self->{connect_timeout} : undef,
     ) or MongoDB::NetworkError->throw(qq/Could not connect to '$host:$port': $@\n/);
 
-    binmode( $self->{fh} )
-      or MongoDB::InternalError->throw(qq/Could not binmode() socket: '$!'\n/);
+    unless ( binmode( $self->{fh} ) ) {
+        delete $self->{fh};
+        MongoDB::InternalError->throw(qq/Could not binmode() socket: '$!'\n/);
+    }
 
-    defined( $self->{fh}->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1) )
-      or MongoDB::InternalError->throw(qq/Could not set TCP_NODELAY on socket: '$!'\n/);
+    unless ( defined( $self->{fh}->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1) ) ) {
+        delete $self->{fh};
+        MongoDB::InternalError->throw(qq/Could not set TCP_NODELAY on socket: '$!'\n/);
+    }
 
-    defined( $self->{fh}->setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1) )
-      or MongoDB::InternalError->throw(qq/Could not set SO_KEEPALIVE on socket: '$!'\n/);
+    unless ( defined( $self->{fh}->setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1) ) ) {
+        delete $self->{fh};
+        MongoDB::InternalError->throw(qq/Could not set SO_KEEPALIVE on socket: '$!'\n/);
+    }
+
+    $self->{connected} = 1;
 
     $self->start_ssl($host) if $self->{with_ssl};
 
@@ -153,18 +161,34 @@ sub start_ssl {
 
     unless ( ref( $self->{fh} ) eq 'IO::Socket::SSL' ) {
         my $ssl_err = IO::Socket::SSL->errstr;
+        $self->_close;
         MongoDB::HandshakeError->throw(qq/SSL connection failed for $host: $ssl_err\n/);
     }
 }
 
 sub close {
-    @_ == 1 || MongoDB::UsageError->throw( q/Usage: $handle->close()/ . "\n" );
     my ($self) = @_;
-    if ( $self->connected ) {
-        CORE::close( $self->{fh} )
-          or MongoDB::NetworkError->throw(qq/Error closing socket: '$!'\n/);
+    $self->_close
+      or MongoDB::NetworkError->throw(qq/Error closing socket: '$!'\n/);
+}
+
+# this is a quiet close so preexisting network errors can be thrown
+sub _close {
+    my ($self) = @_;
+    $self->{connected} = 0;
+    delete $self->{fh};
+    $self->{connected} = 0;
+    my $ok = 1;
+    if ( $self->{fh} ) {
+        $ok = CORE::close( $self->{fh} );
         delete $self->{fh};
     }
+    return $ok;
+}
+
+sub connected {
+    my ($self) = @_;
+    return $self->{connected} && exists $self->{fh};
 }
 
 sub idle_time_ms {
@@ -194,9 +218,11 @@ sub write {
     local $SIG{PIPE} = 'IGNORE';
 
     while () {
-        $self->can_write
-          or MongoDB::NetworkTimeout->throw(
-            qq/Timed out while waiting for socket to become ready for writing\n/);
+        unless ( $self->can_write ) {
+            $self->_close;
+            MongoDB::NetworkTimeout->throw(
+                qq/Timed out while waiting for socket to become ready for writing\n/);
+        }
         my $r = syswrite( $self->{fh}, $buf, $len, $off );
         if ( defined $r ) {
             $len -= $r;
@@ -204,14 +230,17 @@ sub write {
             last unless $len > 0;
         }
         elsif ( $! == EPIPE ) {
+            $self->_close;
             MongoDB::NetworkError->throw(qq/Socket closed by remote server: $!\n/);
         }
         elsif ( $! != EINTR ) {
             if ( $self->{fh}->can('errstr') ) {
                 my $err = $self->{fh}->errstr();
+                $self->_close;
                 MongoDB::NetworkError->throw(qq/Could not write to SSL socket: '$err'\n /);
             }
             else {
+                $self->_close;
                 MongoDB::NetworkError->throw(qq/Could not write to socket: '$!'\n/);
             }
 
@@ -246,9 +275,11 @@ sub _read_bytes {
     my ( $self, $len, $bufref ) = @_;
 
     while ( $len > 0 ) {
-        $self->can_read
-          or MongoDB::NetworkTimeout->throw(
-            q/Timed out while waiting for socket to become ready for reading/ . "\n" );
+        unless ( $self->can_read ) {
+            $self->_close;
+            MongoDB::NetworkTimeout->throw(
+                q/Timed out while waiting for socket to become ready for reading/ . "\n" );
+        }
         my $r = sysread( $self->{fh}, $$bufref, $len, length $$bufref );
         if ( defined $r ) {
             last unless $r;
@@ -257,14 +288,17 @@ sub _read_bytes {
         elsif ( $! != EINTR ) {
             if ( $self->{fh}->can('errstr') ) {
                 my $err = $self->{fh}->errstr();
+                $self->_close;
                 MongoDB::NetworkError->throw(qq/Could not read from SSL socket: '$err'\n /);
             }
             else {
+                $self->_close;
                 MongoDB::NetworkError->throw(qq/Could not read from socket: '$!'\n/);
             }
         }
     }
     if ($len) {
+        $self->_close;
         MongoDB::NetworkError->throw(qq/Unexpected end of stream\n/);
     }
     return;
@@ -276,8 +310,10 @@ sub _do_timeout {
       unless defined $timeout;
 
     my $fd = fileno $self->{fh};
-    defined $fd && $fd >= 0
-      or MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
+    unless ( defined $fd && $fd >= 0 ) {
+        $self->_close;
+        MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
+    }
 
     my $initial = HAS_GETTIME ? Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) : time;
     my $pending = $timeout >= 0 ? $timeout : undef;
@@ -291,8 +327,10 @@ sub _do_timeout {
           ? select( $fdset, undef,  undef, $pending )
           : select( undef,  $fdset, undef, $pending );
         if ( $nfound == -1 ) {
-            $! == EINTR
-              or MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
+            unless ( $! == EINTR ) {
+                $self->_close;
+                MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
+            }
             redo if !defined($pending);
             my $now = HAS_GETTIME ? Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) : time;
             redo if ( $pending = $timeout - ( $now - $initial ) ) > 0;
