@@ -295,20 +295,6 @@ sub _execute_legacy_batch {
 
     for my $doc (@$docs) {
 
-        # legacy server doesn't check keys on insert; we fake an error if it
-        # happens
-
-        if ( $type eq 'insert' && ( my $r = $self->_check_no_dollar_keys($doc) ) ) {
-            if ($w_0) {
-                last if $ordered;
-            }
-            else {
-                $result->_merge_result($r);
-                $result->assert_no_write_error if $ordered;
-            }
-            next;
-        }
-
         my $op;
         if ( $type eq 'insert' ) {
             $op = MongoDB::Op::_InsertOne->new(
@@ -368,27 +354,6 @@ sub _execute_legacy_batch {
             $result->_merge_result($gle_result);
             $result->assert_no_write_error if $ordered;
         }
-    }
-
-    return;
-}
-
-sub _check_no_dollar_keys {
-    my ( $self, $doc ) = @_;
-
-    my @keys = ref $doc eq 'Tie::IxHash' ? $doc->Keys : keys %$doc;
-    if ( my @bad = grep { substr( $_, 0, 1 ) eq '$' } @keys ) {
-        my $errdoc = {
-            index  => 0,
-            errmsg => "Document can't have '\$' prefixed field names: @bad",
-            code   => UNKNOWN_ERROR
-        };
-
-        return MongoDB::BulkWriteResult->new(
-            op_count       => 1,
-            modified_count => undef,
-            write_errors   => [$errdoc]
-        );
     }
 
     return;

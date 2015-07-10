@@ -29,7 +29,9 @@ use MongoDB::BulkWriteView;
 use Syntax::Keyword::Junction qw/any/;
 
 use Moose;
+use MongoDB::_Types -types;
 use Types::Standard -types;
+use Type::Params qw/compile/;
 use namespace::clean -except => 'meta';
 
 =attr collection (required)
@@ -150,40 +152,12 @@ The method has an empty return on success; an exception will be thrown on error.
 
 =cut
 
+my $insert_one_args;
 sub insert_one {
-    my ( $self, $doc ) = @_;
+    $insert_one_args ||= compile( Object, Document);
+    my ( $self, $doc ) = $insert_one_args->(@_);
 
-    unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
-        MongoDB::UsageError->throw("argument to insert_one must be a single hashref, arrayref or Tie::IxHash");
-    }
-
-    # clone docs to add id and leave original unmodified
-    if ( ref $doc eq 'ARRAY' ) {
-        MongoDB::UsageError->throw("array reference to insert_one must have key/value pairs")
-          if @$doc % 2;
-        $doc = Tie::IxHash->new(@$doc);
-    }
-    elsif ( ref $doc eq 'HASH' ) {
-        $doc = Tie::IxHash->new(%$doc);
-    }
-
-    if ( $doc->Length && $doc->Keys(0) eq '_id' ) {
-        $self->_enqueue_write( [ insert => $doc ] );
-    }
-    else {
-        # XXX this encapsulation violation is ugly, but a lot faster than
-        # doing it element by element.
-        my $copy = bless [
-            { %{ $doc->[0] } },
-            [ @{ $doc->[1] } ],
-            [ @{ $doc->[2] } ],
-            0
-        ], "Tie::IxHash";
-        my $id = $copy->DELETE('_id');
-        $id = MongoDB::OID->new unless defined $id;
-        $copy->Unshift( _id => $id );
-        $self->_enqueue_write( [ insert => $copy ] );
-    }
+    $self->_enqueue_write( [ insert => $doc ] );
 
     return;
 }

@@ -71,7 +71,6 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my $bulk = $coll->$method;
         # raise errors on wrong arg types
         my %bad_args = (
-            SCALAR => ['foo'],
             LIST   => [ {}, {} ],
             EMPTY  => [],
         );
@@ -79,14 +78,20 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         for my $k ( sort keys %bad_args ) {
             like(
                 exception { $bulk->insert_one( @{ $bad_args{$k} } ) },
-                qr/argument to insert_one must be a single hashref, arrayref or Tie::IxHash/,
+                qr/Wrong number of parameters/,
                 "insert( $k ) throws an error"
             );
         }
 
         like(
+            exception { $bulk->insert_one( 'foo' ) },
+            qr/did not pass type constraint/,
+            "insert( 'foo' ) throws an error"
+        );
+
+        like(
             exception { $bulk->insert_one( ['foo'] ) },
-            qr{array reference to insert_one must have key/value pairs},
+            qr{did not pass type constraint},
             "insert( ['foo'] ) throws an error",
         );
 
@@ -101,8 +106,6 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my $err = exception { $bulk->execute };
         isa_ok( $err, 'MongoDB::WriteError', "executing insertion with \$key" );
-
-        like( $err->result->last_errmsg, qr/\$key/, "WriteError details mentions \$key" );
     };
 
     subtest "$method: successful insert" => sub {
