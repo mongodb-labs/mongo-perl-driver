@@ -27,6 +27,7 @@ use MongoDB::_Link;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use MongoDB::_Server;
+use Config;
 use List::Util qw/first/;
 use Safe::Isa;
 use Syntax::Keyword::Junction qw/any none/;
@@ -38,7 +39,12 @@ use namespace::clean -except => 'meta';
 use constant {
     EPOCH => [ 0, 0 ], # tv struct for the epoch
     MIN_HEARTBEAT_FREQUENCY_MS => 500_000, # 500ms, not configurable
+    HAS_THREADS => $Config{usethreads},
 };
+
+# fake thread-id for non-threaded perls
+use if HAS_THREADS, 'threads';
+*_get_tid = HAS_THREADS() ? \&threads::tid : sub () { 0 };
 
 #--------------------------------------------------------------------------#
 # attributes
@@ -138,6 +144,13 @@ has number_of_seeds => (
     builder => '_build_number_of_seeds',
 );
 
+has pid_tid => (
+    is       => 'ro',
+    isa      => ArrayRef,
+    default  => sub { [ $$, _get_tid() ] },
+    init_arg => undef,
+);
+
 # servers, links and rtt_ewma_ms are all hashes on server address
 
 has servers => (
@@ -221,8 +234,16 @@ sub close_all_links {
     return;
 }
 
+sub has_forked {
+    my ($self) = @_;
+    my $pid_tid = $self->pid_tid;
+    return $pid_tid->[0] != $$ || $pid_tid->[1] != _get_tid();
+}
+
 sub get_readable_link {
     my ( $self, $read_pref ) = @_;
+
+    $self->close_all_links if $self->has_forked;
 
     my $mode = $read_pref ? lc $read_pref->mode : 'primary';
     my $method =
@@ -243,6 +264,9 @@ sub get_readable_link {
 
 sub get_specific_link {
     my ( $self, $address ) = @_;
+
+    $self->close_all_links if $self->has_forked;
+
     my $server = $self->servers->{$address};
     if ( $server && ( my $link = $self->_get_server_link($server) ) ) {
         return $link;
@@ -254,6 +278,8 @@ sub get_specific_link {
 
 sub get_writable_link {
     my ($self) = @_;
+
+    $self->close_all_links if $self->has_forked;
 
     my $method =
       $self->type eq any(qw/Single Sharded/) ? '_find_any_server' : "_find_primary_server";
@@ -465,8 +491,8 @@ sub _get_server_link {
     my $address = $server->address;
     my $link    = $self->links->{$address};
 
-    # if no link or disconnected, make a new connection or give up
-    $link = $self->_initialize_link($address) unless $link && $link->remote_connected;
+    # if no link, make a new connection or give up
+    $link = $self->_initialize_link($address) unless $link;
     return unless $link;
 
     # for idle links, refresh the server and verify validity

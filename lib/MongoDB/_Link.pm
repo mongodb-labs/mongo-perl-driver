@@ -37,15 +37,10 @@ use MongoDB::Error;
 
 use constant {
     HAS_GETTIME          => Time::HiRes::d_clock_gettime(),
-    HAS_THREADS          => $Config{usethreads},
     P_INT32              => $] lt '5.010' ? 'l' : 'l<',
     MAX_BSON_OBJECT_SIZE => 4_194_304,
     MAX_WRITE_BATCH_SIZE => 1000,
 };
-
-# fake thread-id for non-threaded perls
-use if HAS_THREADS, 'threads';
-*_get_tid = HAS_THREADS() ? sub { threads->tid } : sub () { 0 };
 
 my $SOCKET_CLASS =
   eval { require IO::Socket::IP; IO::Socket::IP->VERSION(0.25) }
@@ -104,8 +99,6 @@ sub connect {
 
     $self->start_ssl($host) if $self->{with_ssl};
 
-    $self->{pid}       = $$;
-    $self->{tid}       = _get_tid();
     $self->{last_used} = [gettimeofday];
 
     return $self;
@@ -174,46 +167,14 @@ sub close {
     }
 }
 
-sub connection_valid {
-    my ($self) = @_;
-    return unless $self->{fh};
-
-    if (  !$self->{fh}->connected
-        || $self->{pid} != $$
-        || $self->{tid} != _get_tid() )
-    {
-        $self->{fh}->close;
-        delete $self->{fh};
-        return;
-    }
-
-    return 1;
-}
-
 sub idle_time_ms {
     my ($self) = @_;
     return 1000 * tv_interval( $self->{last_used} );
 }
 
-sub remote_connected {
-    my ($self) = @_;
-    return unless $self->connection_valid;
-    return if $self->can_read(0) && $self->{fh}->eof;
-    return 1;
-}
-
-sub assert_valid_connection {
-    my ($self) = @_;
-    MongoDB::NetworkError->throw( "connection lost to " . $self->address )
-      unless $self->connection_valid;
-    return 1;
-}
-
 sub write {
     @_ == 2 || MongoDB::UsageError->throw( q/Usage: $handle->write(buf)/ . "\n" );
     my ( $self, $buf ) = @_;
-
-    $self->assert_valid_connection;
 
     if ( $] ge '5.008' ) {
         utf8::downgrade( $buf, 1 )
@@ -266,8 +227,6 @@ sub read {
     @_ == 1 || MongoDB::UsageError->throw( q/Usage: $handle->read()/ . "\n" );
     my ($self) = @_;
     my $msg = '';
-
-    $self->assert_valid_connection;
 
     # read length
     $self->_read_bytes( 4, \$msg );
