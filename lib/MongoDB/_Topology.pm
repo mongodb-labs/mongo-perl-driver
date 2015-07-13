@@ -44,7 +44,6 @@ use constant {
 
 # fake thread-id for non-threaded perls
 use if HAS_THREADS, 'threads';
-*_get_tid = HAS_THREADS() ? \&threads::tid : sub () { 0 };
 
 #--------------------------------------------------------------------------#
 # attributes
@@ -147,7 +146,7 @@ has number_of_seeds => (
 has pid_tid => (
     is       => 'ro',
     isa      => ArrayRef,
-    default  => sub { [ $$, _get_tid() ] },
+    default  => sub { [ $$, HAS_THREADS ? threads->tid : 0 ] },
     init_arg => undef,
 );
 
@@ -371,7 +370,9 @@ sub _add_address_as_unknown {
 sub _check_if_forked {
     my ($self) = @_;
     my $pid_tid = $self->pid_tid;
-    if ( $pid_tid->[0] != $$ || $pid_tid->[1] != _get_tid() ) {
+    if (     $pid_tid->[0] != $$
+        || ( HAS_THREADS ? ( $pid_tid->[1] != threads->tid ) : 0 )
+    ) {
         $self->close_all_links;
         $self->scan_all_servers;
     }
