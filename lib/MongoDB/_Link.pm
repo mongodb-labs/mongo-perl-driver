@@ -31,7 +31,7 @@ use Config;
 use Errno qw[EINTR EPIPE];
 use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
-use Socket qw/SOL_SOCKET SO_KEEPALIVE IPPROTO_TCP TCP_NODELAY/;
+use Socket qw/SOL_SOCKET SO_KEEPALIVE SO_RCVBUF IPPROTO_TCP TCP_NODELAY/;
 use Time::HiRes qw/time gettimeofday tv_interval/;
 use MongoDB::Error;
 
@@ -108,6 +108,7 @@ sub connect {
     $self->start_ssl($host) if $self->{with_ssl};
 
     $self->{last_used} = [gettimeofday];
+    $self->{rcvbuf} = $self->{fh}->sockopt(SO_RCVBUF);
 
     return $self;
 }
@@ -257,13 +258,15 @@ sub read {
     my ($self) = @_;
     my $msg = '';
 
-    # read length
-    $self->_read_bytes( 4, \$msg );
-
-    my $len = unpack( P_INT32, $msg );
+    # read up to SO_RCVBUF if we can
+    $self->_read_bytes(\$msg, 4, $self->{rcvbuf});
+    my $bytes_read = length($msg);
+    my $len = unpack( P_INT32, substr($msg,0,4) );
 
     # read rest of the message
-    $self->_read_bytes( $len - 4, \$msg );
+    if ( $len > $bytes_read ) {
+        $self->_read_bytes( \$msg, $len - $bytes_read );
+    }
 
     $self->{last_used} = [gettimeofday];
 
@@ -271,19 +274,19 @@ sub read {
 }
 
 sub _read_bytes {
-    @_ == 3 || MongoDB::UsageError->throw( q/Usage: $handle->read(len, bufref)/ . "\n" );
-    my ( $self, $len, $bufref ) = @_;
+    my ( $self, $bufref, $min_len, $req_size ) = @_;
+    $req_size ||= $min_len;
 
-    while ( $len > 0 ) {
+    while ( $min_len > 0 ) {
         unless ( $self->can_read ) {
             $self->_close;
             MongoDB::NetworkTimeout->throw(
                 q/Timed out while waiting for socket to become ready for reading/ . "\n" );
         }
-        my $r = sysread( $self->{fh}, $$bufref, $len, length $$bufref );
+        my $r = sysread( $self->{fh}, $$bufref, $req_size, length $$bufref );
         if ( defined $r ) {
             last unless $r;
-            $len -= $r;
+            $min_len -= $r;
         }
         elsif ( $! != EINTR ) {
             if ( $self->{fh}->can('errstr') ) {
@@ -297,7 +300,7 @@ sub _read_bytes {
             }
         }
     }
-    if ($len) {
+    if ($min_len > 0) {
         $self->_close;
         MongoDB::NetworkError->throw(qq/Unexpected end of stream\n/);
     }
