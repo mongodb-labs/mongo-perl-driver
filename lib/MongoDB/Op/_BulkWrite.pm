@@ -72,7 +72,11 @@ has write_concern => (
 );
 
 # not _WriteOp because we construct our own result objects
-with $_ for qw/MongoDB::Role::_CommandOp MongoDB::Role::_UpdatePreEncoder/;
+with $_ for qw(
+    MongoDB::Role::_CommandOp
+    MongoDB::Role::_UpdatePreEncoder
+    MongoDB::Role::_InsertPreEncoder
+);
 
 sub execute {
     my ( $self, $link ) = @_;
@@ -133,8 +137,28 @@ sub _execute_write_command_batch {
     while (@left_to_send) {
         my $chunk = shift @left_to_send;
 
+        # for update/insert, pre-encode docs as they need custom BSON handling
+        # that can't be applied to an entire write command at once
         if ( $cmd eq 'update' ) {
-            $chunk = $self->_pre_encode_update_chunk($link, $chunk);
+            # take array of hash, validate and encode each update doc; since this
+            # might be called more than once if chunks are getting split, check if
+            # the update doc is already encoded; this also removes the 'is_replace'
+            # field that needs to not be in the command sent to the server
+            for ( my $i = 0; $i <= $#$chunk; $i++ ) {
+                next if ref( $chunk->[$i]{u} ) eq 'MongoDB::BSON::_EncodedDoc';
+                my $is_replace = delete $chunk->[$i]{is_replace};
+                $chunk->[$i]{u} = $self->_pre_encode_update( $link, $chunk->[$i]{u}, $is_replace );
+            }
+        }
+        elsif ( $cmd eq 'insert' ) {
+            # take array of docs, encode each one while saving original or generated _id
+            # field; since this might be called more than once if chunks are getting
+            # split, check if the doc is already encoded
+            for ( my $i = 0; $i <= $#$chunk; $i++ ) {
+                unless ( ref( $chunk->[$i] ) eq 'MongoDB::BSON::_EncodedDoc' ) {
+                    $chunk->[$i] = $self->_pre_encode_insert( $link, $chunk->[$i], '.' );
+                };
+            }
         }
 
         my $cmd_doc = [
@@ -192,20 +216,6 @@ sub _execute_write_command_batch {
     }
 
     return;
-}
-
-# take array of hash, validate and encode each update doc; since this
-# might be called more than once if chunks are getting split, check if
-# the update doc is already encoded; this also removes the 'is_replace'
-# field that needs to not be in the command sent to the server
-sub _pre_encode_update_chunk {
-    my ( $self, $link, $chunk ) = @_;
-    for ( my $i = 0; $i <= $#$chunk; $i++ ) {
-        next if ref( $chunk->[$i]{u} ) eq 'MongoDB::BSON::Raw';
-        my $is_replace = delete $chunk->[$i]{is_replace};
-        $chunk->[$i]{u} = $self->_pre_encode( $link, $chunk->[$i]{u}, $is_replace );
-    }
-    return $chunk;
 }
 
 sub _split_chunk {

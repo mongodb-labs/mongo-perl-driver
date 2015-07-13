@@ -73,74 +73,28 @@ has _doc_ids => (
     writer  => '_set_doc_ids',
 );
 
-with qw/MongoDB::Role::_WriteOp/;
-
-sub BUILD {
-    my ($self) = @_;
-
-    # coerce documents to IxHash or die trying
-    # XXX eventually, do this with a Types::Standard coercion?
-    for my $d ( @{ $self->documents } ) {
-        if ( $d->$_isa('Tie::IxHash') ) {
-            next;
-        }
-        elsif ( ref($d) eq 'ARRAY' ) {
-            $d = Tie::IxHash->new(@$d);
-        }
-        elsif ( ref($d) eq 'HASH' ) {
-            $d = Tie::IxHash->new(%$d);
-        }
-        elsif ( blessed($d) && reftype($d) eq 'HASH' ) {
-            $d = Tie::IxHash->new(%$d);
-        }
-        else {
-            MongoDB::DocumentError->throw(
-                message  => "Can't insert document of type " . ref($d),
-                document => $d,
-            );
-        }
-    }
-
-    return;
-}
+with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_InsertPreEncoder/;
 
 sub execute {
     my ( $self, $link ) = @_;
 
-    # XXX until we have a proper BSON::Raw class, we bless on the fly
-    my $max_size = $link->max_bson_object_size;
-    my $check_keys = $self->check_keys;
+    my $documents = $self->documents;
+    my $invalid_chars = $self->check_keys ? '.' : '';
 
-    my $opts = {
-        invalid_chars => $check_keys ? '.' : '',
-        max_length => $max_size,
-    };
+    my (@insert_docs, @ids);
 
-    my @ids;
-
-    my $insert_docs = [
-        map {
-            my $local_opts = { %$opts };
-            if ( $check_keys ) {
-                my $id = $_->FETCH('_id') || MongoDB::OID->new;
-                push @ids, $id;
-                $local_opts->{first_key} = '_id';
-                $local_opts->{first_value} = $id;
-            }
-            else {
-                push @ids, undef;
-            }
-            my $s = $self->bson_codec->encode_one( $_, $local_opts );
-            bless \$s, "MongoDB::BSON::Raw";
-        } @{ $self->documents }
-    ];
+    my $last_idx = $#$documents;
+    for ( my $i = 0; $i <= $last_idx; $i++ ) {
+        push @insert_docs, $self->_pre_encode_insert( $link, $documents->[$i], $invalid_chars );
+        push @ids, $insert_docs[-1]{metadata}{_id};
+    }
 
     $self->_set_doc_ids(\@ids);
 
     my $res =
         $link->accepts_wire_version(2)
-      ? $self->_command_insert( $link, $insert_docs )
-      : $self->_legacy_op_insert( $link, $insert_docs );
+      ? $self->_command_insert( $link, \@insert_docs )
+      : $self->_legacy_op_insert( $link, \@insert_docs );
 
     $res->assert;
     return $res;
@@ -167,7 +121,7 @@ sub _legacy_op_insert {
 
     my $ns = $self->db_name . "." . $self->coll_name;
     my $op_bson =
-      MongoDB::_Protocol::write_insert( $ns, join( "", map { $$_ } @$insert_docs ) );
+      MongoDB::_Protocol::write_insert( $ns, join( "", map { $_->{bson} } @$insert_docs ) );
 
     return $self->_send_legacy_op_with_gle( $link, $op_bson, undef,
         "MongoDB::InsertManyResult" );

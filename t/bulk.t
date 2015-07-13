@@ -43,6 +43,10 @@ my $is_standalone = $conn->topology_type eq 'Single' && ! exists $server_status-
 
 my $server_does_bulk = server_version($conn) >= v2.5.5;
 
+sub _truncate {
+    return( length($_[0]) > 1600 ? (substr($_[0],0,1600)."...") : $_[0] );
+}
+
 subtest "constructors" => sub {
     my @constructors = qw(
       initialize_ordered_bulk_op initialize_unordered_bulk_op
@@ -115,7 +119,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $bulk->insert_one( { _id => 1 } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on insert" ) or diag explain $err;
+        is( $err, undef, "no error on insert" ) or diag _truncate explain $err;
         is( $coll->count, 1, "one doc in collection" );
 
         # test empty superclass
@@ -132,7 +136,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 inserted => [ { index => 0, _id => 1 } ],
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
     };
 
     subtest "$method insert without _id" => sub {
@@ -143,7 +147,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $bulk->insert_one( $doc );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on insert" ) or diag explain $err;
+        is( $err, undef, "no error on insert" ) or diag _truncate explain $err;
         is( $coll->count, 1, "one doc in collection" );
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
@@ -232,7 +236,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $bulk->find( {} )->update_many( { '$set' => { x => 3 } } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on update" ) or diag explain $err;
+        is( $err, undef, "no error on update" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -243,7 +247,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => 1,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         if ( $server_does_bulk ) {
             ok( $result->has_modified_count, "newer server has_modified_count" );
@@ -267,7 +271,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $bulk->find( { key => 2 } )->update_many( { '$set' => { x => 2 } } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on update" ) or diag explain $err;
+        is( $err, undef, "no error on update" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
@@ -293,7 +297,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $bulk->find( {} )->update_one( { '$set' => { key => 3 } } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on update" ) or diag explain $err;
+        is( $err, undef, "no error on update" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
@@ -363,7 +367,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $bulk->find( {} )->replace_one( { key => 3 } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on update" ) or diag explain $err;
+        is( $err, undef, "no error on update" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
@@ -411,7 +415,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on upsert-update" ) or diag explain $err;
+        is( $err, undef, "no error on upsert-update" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -423,7 +427,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         cmp_deeply(
             [ $coll->find( {} )->all ],
@@ -435,7 +439,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         $bulk->find( { key => 1 } )->update_many( { '$set' => { x => 1 } } );
         $bulk->find( { key => 2 } )->upsert->update_many( { '$set' => { x => 2 } } );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on second upsert-update" ) or diag explain $err;
+        is( $err, undef, "no error on second upsert-update" ) or diag _truncate explain $err;
         cmp_deeply(
             $result,
             MongoDB::BulkWriteResult->new(
@@ -445,7 +449,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
     };
 
     subtest "upsert-update updates with $method" => sub {
@@ -458,7 +462,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on upsert-update" ) or diag explain $err;
+        is( $err, undef, "no error on upsert-update" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -469,7 +473,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => 1,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         $_->{x} = 1 for @docs;
         cmp_deeply( [ $coll->find( {} )->all ], \@docs, "all documents updated" );
@@ -492,7 +496,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on upsert-update" ) or diag explain $err;
+        is( $err, undef, "no error on upsert-update" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -504,7 +508,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => 1,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
     };
 
 }
@@ -520,7 +524,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on upsert-update_one" ) or diag explain $err;
+        is( $err, undef, "no error on upsert-update_one" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -532,7 +536,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         cmp_deeply(
             [ $coll->find( {} )->all ],
@@ -552,7 +556,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on upsert-update_one" ) or diag explain $err;
+        is( $err, undef, "no error on upsert-update_one" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -563,14 +567,14 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => 1,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         # add expected key to one document only
         $docs[0]{x} = 2;
         my @got = $coll->find( {} )->all;
 
         cmp_deeply( \@got, bag(@docs), "updated document correct" )
-          or diag explain \@got;
+          or diag _truncate explain \@got;
 
     };
 }
@@ -586,7 +590,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on upsert-replace_one" ) or diag explain $err;
+        is( $err, undef, "no error on upsert-replace_one" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -598,7 +602,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => $server_does_bulk ? 1 : 2,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         cmp_deeply(
             [ $coll->find( {} )->all ],
@@ -618,7 +622,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on upsert-replace_one" ) or diag explain $err;
+        is( $err, undef, "no error on upsert-replace_one" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -629,7 +633,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => 1,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         # change one expected doc only
         $docs[0]{x} = 2;
@@ -638,7 +642,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my @got = $coll->find( {} )->all;
 
         cmp_deeply( \@got, bag(@docs), "updated document correct" )
-          or diag explain \@got;
+          or diag _truncate explain \@got;
 
     };
 }
@@ -664,7 +668,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on delete_many" ) or diag explain $err;
+        is( $err, undef, "no error on delete_many" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -675,7 +679,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => 1,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         is( $coll->count, 0, "all documents removed" );
     };
@@ -689,7 +693,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on delete_many" ) or diag explain $err;
+        is( $err, undef, "no error on delete_many" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -700,7 +704,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => 1,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         cmp_deeply(
             [ $coll->find( {} )->all ],
@@ -731,7 +735,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
-        is( $err, undef, "no error on delete_one" ) or diag explain $err;
+        is( $err, undef, "no error on delete_one" ) or diag _truncate explain $err;
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -742,7 +746,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => 1,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
 
         is( $coll->count, 1, "only one doc removed" );
     };
@@ -761,7 +765,7 @@ subtest "mixed operations, unordered" => sub {
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on mixed operations" ) or diag explain $err;
+    is( $err, undef, "no error on mixed operations" ) or diag _truncate explain $err;
     cmp_deeply(
         $result,
         MongoDB::BulkWriteResult->new(
@@ -778,7 +782,7 @@ subtest "mixed operations, unordered" => sub {
             inserted     => [ { index => ignore(), _id => obj_isa("MongoDB::OID") } ],
         ),
         "result object correct"
-    ) or diag explain $result;
+    ) or diag _truncate explain $result;
 
 };
 
@@ -795,7 +799,7 @@ subtest "mixed operations, ordered" => sub {
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on mixed operations" ) or diag explain $err;
+    is( $err, undef, "no error on mixed operations" ) or diag _truncate explain $err;
     cmp_deeply(
         $result,
         MongoDB::BulkWriteResult->new(
@@ -813,7 +817,7 @@ subtest "mixed operations, ordered" => sub {
             ],
         ),
         "result object correct"
-    ) or diag explain $result;
+    ) or diag _truncate explain $result;
 
 };
 
@@ -833,7 +837,7 @@ subtest "unordered batch with errors" => sub {
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
-        or diag explain $err;
+        or diag _truncate explain $err;
     my $details = $err->result;
 
     # Check if all ops ran in two batches (unless we're on a legacy server)
@@ -852,7 +856,7 @@ subtest "unordered batch with errors" => sub {
         is( $details->matched_count,  0, "matched_count" );
         is( $details->modified_count, ( $server_does_bulk ? 0 : undef ), "modified_count" );
         is( $details->count_write_errors, 3, "writeError count" )
-          or diag explain $details;
+          or diag _truncate explain $details;
         cmp_deeply( $details->upserted, [ { index => 4, _id => obj_isa("MongoDB::OID") }, ],
             "upsert list" );
     }
@@ -864,7 +868,7 @@ subtest "unordered batch with errors" => sub {
         is( $details->matched_count,  1, "matched_count" );
         is( $details->modified_count, ( $server_does_bulk ? 0 : undef ), "modified_count" );
         is( $details->count_write_errors, 2, "writeError count" )
-          or diag explain $details;
+          or diag _truncate explain $details;
         cmp_deeply(
             $details->upserted,
             [
@@ -920,12 +924,12 @@ subtest "ordered batch with errors" => sub {
         $details->write_errors->[0]{op},
         {
             q => Tie::IxHash->new( b      => 2 ),
-            u => obj_isa( $server_does_bulk ? 'MongoDB::BSON::Raw' : 'Tie::IxHash' ),
+            u => obj_isa( $server_does_bulk ? 'MongoDB::BSON::_EncodedDoc' : 'Tie::IxHash' ),
             multi  => false,
             upsert => true,
         },
         "error op"
-    ) or diag explain $details->write_errors->[0]{op};
+    ) or diag _truncate explain $details->write_errors->[0]{op};
 
     is( $coll->count, 1, "subsequent inserts did not run" );
 };
@@ -954,7 +958,7 @@ subtest "ordered batch split on size" => sub {
         "inserted_ids correct"
     );
     is( $details->count_write_errors, 1,     "count_write_errors" );
-    is( $errdoc->{code},             11000, "error code" ) or diag explain $errdoc;
+    is( $errdoc->{code},             11000, "error code" ) or diag _truncate explain $errdoc;
     is( $errdoc->{index},            6,     "error index" );
     ok( length( $errdoc->{errmsg} ), "error message" );
 
@@ -979,7 +983,7 @@ subtest "unordered batch split on size" => sub {
     my $errdoc  = $details->write_errors->[0];
     is( $details->inserted_count,         7,     "inserted_count" );
     is( $details->count_write_errors, 1,     "count_write_errors" );
-    is( $errdoc->{code},             11000, "error code" ) or diag explain $errdoc;
+    is( $errdoc->{code},             11000, "error code" ) or diag _truncate explain $errdoc;
     is( $errdoc->{index},            6,     "error index" );
     ok( length( $errdoc->{errmsg} ), "error message" );
 
@@ -1053,7 +1057,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $err, 'MongoDB::Error', "re-running a bulk op throws exception" );
 
         like( $err->message, qr/bulk op execute called more than once/, "error message" )
-          or diag explain $err;
+          or diag _truncate explain $err;
     };
 }
 
@@ -1066,7 +1070,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $err, 'MongoDB::Error', "empty bulk op throws exception" );
 
         like( $err->message, qr/no bulk ops to execute/, "error message" )
-          or diag explain $err;
+          or diag _truncate explain $err;
     };
 }
 
@@ -1132,7 +1136,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute( { w => 0 } ) };
         is( $err, undef, "execute with w = 0 doesn't throw error" )
-          or diag explain $err;
+          or diag _truncate explain $err;
 
         my $expect = $method eq 'initialize_ordered_bulk_op' ? 1 : 2;
         is( $coll->count, $expect, "document count ($expect)" );
@@ -1180,7 +1184,7 @@ subtest "insert (ARRAY)" => sub {
     $bulk->insert_one( [] );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on insert" ) or diag explain $err;
+    is( $err, undef, "no error on insert" ) or diag _truncate explain $err;
     is( $coll->count, 2, "doc count" );
 };
 
@@ -1191,7 +1195,7 @@ subtest "update (ARRAY)" => sub {
     $bulk->find( [] )->update_many( [ '$set' => { x => 2 } ] );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on update" ) or diag explain $err;
+    is( $err, undef, "no error on update" ) or diag _truncate explain $err;
     is( $coll->find_one( {} )->{x}, 2, "document updated" );
 };
 
@@ -1202,7 +1206,7 @@ subtest "update_one (ARRAY)" => sub {
     $bulk->find( [] )->update_one( [ '$set' => { x => 2 } ] );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on update_one" ) or diag explain $err;
+    is( $err, undef, "no error on update_one" ) or diag _truncate explain $err;
     is( $coll->count( { x => 2 } ), 1, "only one doc updated" );
 };
 
@@ -1213,7 +1217,7 @@ subtest "replace_one (ARRAY)" => sub {
     $bulk->find( [] )->replace_one( [ key => 3 ] );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on replace" ) or diag explain $err;
+    is( $err, undef, "no error on replace" ) or diag _truncate explain $err;
     is( $coll->count( { key => 3 } ), 1, "only one doc replaced" );
 };
 
@@ -1227,7 +1231,7 @@ subtest "insert (Tie::IxHash)" => sub {
     $bulk->insert_one( $doc  );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on insert" ) or diag explain $err;
+    is( $err, undef, "no error on insert" ) or diag _truncate explain $err;
     is( $coll->count, 2, "doc count" );
 };
 
@@ -1239,7 +1243,7 @@ subtest "update (Tie::IxHash)" => sub {
       ->update_many( Tie::IxHash->new( '$set' => { x => 2 } ) );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on update" ) or diag explain $err;
+    is( $err, undef, "no error on update" ) or diag _truncate explain $err;
     is( $coll->find_one( {} )->{x}, 2, "document updated" );
 };
 
@@ -1251,7 +1255,7 @@ subtest "update_one (Tie::IxHash)" => sub {
       ->update_one( Tie::IxHash->new( '$set' => { x => 2 } ) );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on update" ) or diag explain $err;
+    is( $err, undef, "no error on update" ) or diag _truncate explain $err;
     is( $coll->count( { x => 2 } ), 1, "only one doc updated" );
 };
 
@@ -1262,7 +1266,7 @@ subtest "replace_one (Tie::IxHash)" => sub {
     $bulk->find( Tie::IxHash->new() )->replace_one( Tie::IxHash->new( key => 3 ) );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
-    is( $err, undef, "no error on replace" ) or diag explain $err;
+    is( $err, undef, "no error on replace" ) or diag _truncate explain $err;
     is( $coll->count( { key => 3 } ), 1, "only one doc replaced" );
 };
 
@@ -1274,13 +1278,12 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my $bulk = $coll->$method;
 
         $bulk->insert_one( { _id => 1 } );
-        $bulk->insert_one( { _id => 2, big => "a" x ( 16 * 1024 * 1024 ) } );
         $bulk->insert_one( { _id => 3, '$bad' => 1 } );
         $bulk->insert_one( { _id => 4 } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute( { w => 0 } ) };
         is( $err, undef, "execute with w = 0 doesn't throw error" )
-          or diag explain $err;
+          or diag _truncate explain $err;
 
         my $expect = $method eq 'initialize_ordered_bulk_op' ? 1 : 2;
         is( $coll->count, $expect, "document count ($expect)" );
@@ -1304,7 +1307,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "execute doesn't throw error" )
-          or diag explain $err;
+          or diag _truncate explain $err;
 
         cmp_deeply(
             $result,
@@ -1317,7 +1320,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 batch_count => $server_does_bulk ? 1 : 3,
             ),
             "result object correct"
-        ) or diag explain $result;
+        ) or diag _truncate explain $result;
     };
 }
 

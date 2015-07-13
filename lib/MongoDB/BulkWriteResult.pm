@@ -186,9 +186,7 @@ sub _parse_cmd_result {
         my @pairs;
         my $docs = {@$cmd_doc}->{documents};
         for my $i ( 0 .. $result->{n}-1 ) {
-            my $doc = $docs->[$i];
-            my $id = ref($doc) eq 'HASH' ? $doc->{_id} : $doc->FETCH('_id');
-            push @pairs, { index => $i, _id => $id };
+            push @pairs, { index => $i, _id => $docs->[$i]{metadata}{_id} };
         }
         $attrs->{inserted} = \@pairs;
     }

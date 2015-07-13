@@ -58,39 +58,13 @@ has _doc_id => (
     writer    => '_set_doc_id',
 );
 
-with qw/MongoDB::Role::_WriteOp/;
+with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_InsertPreEncoder/;
 
 sub execute {
     my ( $self, $link ) = @_;
 
-    my $doc  = $self->document;
-    my $type = ref($doc);
-
-    my $id = (
-          $type eq 'HASH' ? $doc->{_id}
-        : $type eq 'ARRAY' ? do {
-            my $i;
-            for ( $i = 0; $i < @$doc; $i++ ) { last if $doc->[$i] eq '_id' }
-            $i < $#$doc ? $doc->[ $i + 1 ] : undef;
-          }
-        : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
-        : $doc->{_id} # hashlike?
-    );
-    $id = MongoDB::OID->new() unless defined $id;
-    $self->_set_doc_id( $id );
-
-    # XXX until we have a proper BSON::Raw class, we bless on the fly
-    my $bson_doc = $self->bson_codec->encode_one(
-        $doc,
-        {
-            invalid_chars => '.',
-            max_length    => $link->max_bson_object_size,
-            first_key => '_id',
-            first_value => $id,
-        }
-    );
-
-    my $insert_doc = bless \$bson_doc, "MongoDB::BSON::Raw";
+    my ($insert_doc) = $self->_pre_encode_insert($link, $self->document, '.');
+    $self->_set_doc_id( $insert_doc->{metadata}{_id} );
 
     my $res =
         $link->accepts_wire_version(2)
@@ -117,7 +91,7 @@ sub _legacy_op_insert {
     my ( $self, $link, $insert_doc ) = @_;
 
     my $ns = $self->db_name . "." . $self->coll_name;
-    my $op_bson = MongoDB::_Protocol::write_insert( $ns, $$insert_doc );
+    my $op_bson = MongoDB::_Protocol::write_insert( $ns, $insert_doc->{bson} );
 
     return $self->_send_legacy_op_with_gle( $link, $op_bson, $self->document,
         "MongoDB::InsertOneResult" );

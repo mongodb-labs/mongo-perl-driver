@@ -920,7 +920,7 @@ subtest "ordered batch with errors" => sub {
         $details->write_errors->[0]{op},
         {
             q => Tie::IxHash->new( b      => 2 ),
-            u => obj_isa( $server_does_bulk ? 'MongoDB::BSON::Raw' : 'Tie::IxHash' ),
+            u => obj_isa( $server_does_bulk ? 'MongoDB::BSON::_EncodedDoc' : 'Tie::IxHash' ),
             multi  => false,
             upsert => true,
         },
@@ -1274,7 +1274,6 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         my $bulk = $coll->$method;
 
         $bulk->insert( { _id => 1 } );
-        $bulk->insert( { _id => 2, big => "a" x ( 16 * 1024 * 1024 ) } );
         $bulk->insert( { _id => 3, '$bad' => 1 } );
         $bulk->insert( { _id => 4 } );
         my ( $result, $err );

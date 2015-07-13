@@ -87,7 +87,7 @@ sub execute {
 
     my $orig_op = { %$update_op };
 
-    $update_op->{u} = $self->_pre_encode( $link, $update_op->{u}, $self->is_replace );
+    $update_op->{u} = $self->_pre_encode_update( $link, $update_op->{u}, $self->is_replace );
 
     my $res =
         $link->accepts_wire_version(2)
@@ -120,7 +120,7 @@ sub _legacy_op_update {
     my $query_bson  = $self->bson_codec->encode_one(
         $op_doc->{q}, { invalid_chars => '' }
     );
-    my $update_bson = ${ $op_doc->{u} };                            # already raw BSON
+    my $update_bson = $op_doc->{u}{bson}; # already raw BSON
     my $op_bson =
       MongoDB::_Protocol::write_update( $ns, $query_bson, $update_bson, $flags );
 

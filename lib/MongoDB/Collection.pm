@@ -1434,7 +1434,7 @@ sub insert {
 my $legacy_batch_args;
 sub batch_insert {
     my ( $self, $documents, $opts ) = @_;
-    $legacy_batch_args ||= compile( Object, ArrayRef[IxHash], Optional[HashRef|Undef] );
+    $legacy_batch_args ||= compile( Object, ArrayRef[Document], Optional[HashRef|Undef] );
 
     my $op = MongoDB::Op::_BatchInsert->new(
         db_name       => $self->database->name,

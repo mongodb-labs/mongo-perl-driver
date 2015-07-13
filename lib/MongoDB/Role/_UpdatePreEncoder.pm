@@ -34,7 +34,7 @@ use constant {
 
 requires qw/bson_codec/;
 
-sub _pre_encode {
+sub _pre_encode_update {
     my ( $self, $link, $doc, $is_replace ) = @_;
 
     my $bson_doc = $self->bson_codec->encode_one(
@@ -67,8 +67,9 @@ sub _pre_encode {
         ) if $err;
     }
 
-    # XXX until we have a proper BSON::Raw class, we bless on the fly
-    return bless \$bson_doc, "MongoDB::BSON::Raw";
+    return MongoDB::BSON::_EncodedDoc->new(
+        bson => $bson_doc,
+    );
 }
 
 1;
