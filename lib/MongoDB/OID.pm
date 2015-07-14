@@ -22,11 +22,11 @@ use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
 use MongoDB::BSON;
-use Moose;
+use Moo;
 use MongoDB;
 use MongoDB::_Constants;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 =head1 ATTRIBUTES
 
@@ -57,13 +57,13 @@ sub _build_value {
 around BUILDARGS => sub {
     my $orig = shift;
     my $class = shift;
-    if (@_ == 1) {
-        return $class->$orig(value => $_[0])
-            unless ref($_[0]);
-        return $class->$orig(value => $_[0]->value)
-            if blessed($_[0]) && $_[0]->isa($class);
+    if ( @_ == 0 ) {
+        return { value => MongoDB::BSON::generate_oid() };
     }
-    return $class->$orig(@_);
+    if ( @_ == 1 ) {
+        return { value => "$_[0]" };
+    }
+    return $orig->($class, @_);
 };
 
 =head1 METHODS
@@ -76,10 +76,7 @@ Gets the value of this OID as a 24-digit hexidecimal string.
 
 =cut
 
-sub to_string {
-    my ($self) = @_;
-    $self->value;
-}
+sub to_string { $_[0]->{value} }
 
 =head2 get_time
 
@@ -126,9 +123,6 @@ sub TO_JSON {
 use overload
     '""' => \&to_string,
     'fallback' => 1;
-
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 
