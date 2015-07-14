@@ -22,7 +22,7 @@ package MongoDB::Op::_BulkWrite;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::Error;
@@ -31,6 +31,7 @@ use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_Update;
 use MongoDB::Op::_Delete;
 use MongoDB::_Protocol;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Safe::Isa;
@@ -38,36 +39,35 @@ use Scalar::Util qw/blessed reftype/;
 use Tie::IxHash;
 use Try::Tiny;
 use boolean;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has queue => (
     is       => 'ro',
-    isa      => ArrayRef,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => ArrayRef ) : () ),
 );
 
 has ordered => (
     is      => 'ro',
-    isa     => Bool,
     default => 1,
+    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
 );
 
 has write_concern => (
     is       => 'ro',
-    isa      => WriteConcern,
-    coerce   => 1,
+    ( WITH_ASSERTS ? ( isa => WriteConcern ) : () ),
     required => 1,
 );
 
@@ -221,10 +221,8 @@ sub _execute_write_command_batch {
 sub _split_chunk {
     my ( $self, $link, $chunk, $size ) = @_;
 
-    my $max_wire_size = $self->MAX_BSON_WIRE_SIZE; # XXX blech
-
     my $avg_cmd_size       = $size / @$chunk;
-    my $new_cmds_per_chunk = int( $max_wire_size / $avg_cmd_size );
+    my $new_cmds_per_chunk = int( MAX_BSON_WIRE_SIZE / $avg_cmd_size );
 
     my @split_chunks;
     while (@$chunk) {
@@ -368,7 +366,5 @@ sub _execute_legacy_batch {
 
     return;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

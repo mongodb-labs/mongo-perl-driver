@@ -22,39 +22,39 @@ package MongoDB::Op::_ListCollections;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
 use MongoDB::QueryResult::Filtered;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Tie::IxHash;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has client => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
+    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::MongoClient'] ) : () ),
 );
 
 has filter => (
     is      => 'ro',
-    isa     => IxHash,
-    coerce  => 1,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Document ) : () ),
 );
 
 has options => (
     is      => 'ro',
-    isa     => HashRef,
     default => sub { {} },
+    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
 );
 
 with $_ for qw(
@@ -88,9 +88,14 @@ sub _command_list_colls {
         $options->{cursor} = {};
     }
 
+    my $filter =
+      ref( $self->filter ) eq 'ARRAY'
+      ? { @{ $self->filter } }
+      : $self->filter;
+
     my $cmd = Tie::IxHash->new(
         listCollections => 1,
-        filter => $self->filter,
+        filter => $filter,
         %{$self->options},
     );
 
@@ -133,7 +138,5 @@ sub __filter_legacy_names {
     my $name = $doc->{name};
     return !( index( $name, '$' ) >= 0 && index( $name, '.oplog.$' ) < 0 );
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

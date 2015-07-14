@@ -320,7 +320,8 @@ on database commands: L<http://dochub.mongodb.org/core/commands>.
 sub run_command {
     my ( $self, $command, $read_pref ) = @_;
 
-    if ( $read_pref && ref($read_pref) eq 'HASH' ) {
+    # XXX eventually, validate parameters and coerce there
+    if ( $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference' ) {
         $read_pref = MongoDB::ReadPreference->new($read_pref);
     }
 

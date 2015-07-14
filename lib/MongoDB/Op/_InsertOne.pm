@@ -22,39 +22,38 @@ package MongoDB::Op::_InsertOne;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::InsertOneResult;
 use MongoDB::OID;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use boolean;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has document => (
     is       => 'ro',
-    isa      => Any,
     required => 1,
 );
 
 has _doc_id => (
     is        => 'ro',
-    isa       => Any,
     writer    => '_set_doc_id',
 );
 
@@ -106,7 +105,5 @@ BEGIN {
     no warnings 'once';
     *_parse_gle = \&_parse_cmd;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

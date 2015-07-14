@@ -22,6 +22,7 @@ use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
 use Moose;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
@@ -29,16 +30,16 @@ use namespace::clean -except => 'meta';
 # An encoded document, i.e. a BSON string
 has bson => (
     is => 'ro',
-    isa => Str,
-    required => 1
+    required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 # A hash reference of optional meta data about the document, such as the "_id"
 has metadata => (
     is => 'ro',
-    isa => HashRef
     builder => '_build_meta',
     lazy => 1,
+    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
 );
 
 sub _build_meta { return {} }

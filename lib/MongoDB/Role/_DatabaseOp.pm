@@ -24,17 +24,18 @@ our $VERSION = 'v0.999.999.4'; # TRIAL
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::_Protocol;
-use Moose::Role;
+use Moo::Role;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 requires 'execute';
 
 has bson_codec => (
     is       => 'ro',
-    isa      => BSONCodec,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => BSONCodec ) : () ),
 );
 
 # Sends a BSON query string, then read, parse and validate the reply.

@@ -22,22 +22,22 @@ use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
 use MongoDB::Error;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use Moose::Role;
-use namespace::clean -except => 'meta';
+use Moo::Role;
+use namespace::clean;
 
 has acknowledged => (
     is      => 'ro',
-    isa     => Bool,
     default => 1,
+    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
 );
 
 has [qw/write_errors write_concern_errors/] => (
     is      => 'ro',
-    isa     => ArrayOfHashRef,
-    coerce  => 1,
     default => sub { [] },
+    ( WITH_ASSERTS ? ( isa => ArrayOfHashRef ) : () ),
 );
 
 with 'MongoDB::Role::_LastError';

@@ -1,5 +1,5 @@
 #
-#  Copyright 2014 MongoDB, Inc.
+#  Copyright 2015 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,29 +14,30 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_ReadOp;
+use 5.008;
+use strict;
+use warnings;
 
-# MongoDB role for read ops that provides read preference
+package MongoDB::_Constants;
+
+# Common MongoDB driver constants
 
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moo::Role;
+use Exporter 5.57 qw/import/;
 
-use MongoDB::ReadPreference;
-use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
-use namespace::clean;
+my $CONSTANTS;
 
-my $PRIMARY = MongoDB::ReadPreference->new;
+BEGIN {
+    $CONSTANTS = {
+        WITH_ASSERTS => $ENV{PERL_MONGO_ENABLE_ASSERTS},
+        MAX_BSON_WIRE_SIZE => 16_793_600, # 16MiB + 16KiB
+    };
+}
 
-with 'MongoDB::Role::_DatabaseOp';
+use constant $CONSTANTS;
 
-has read_preference => (
-    is      => 'ro',
-    default => sub { $PRIMARY },
-    ( WITH_ASSERTS ? ( isa => ReadPreference ) : () ),
-);
+our @EXPORT = keys %$CONSTANTS;
 
 1;

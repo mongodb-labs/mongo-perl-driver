@@ -13,6 +13,7 @@ all_from 'lib/MongoDB.pm';
 
 requires 'Authen::SCRAM::Client' => '0.003';
 requires 'Carp';
+requires 'Class::XSAccessor';
 requires 'DateTime' => '0.78';
 requires 'Digest::MD5';
 requires 'Encode';
@@ -20,6 +21,7 @@ requires 'IO::File';
 requires 'IO::Socket';
 requires 'MIME::Base64';
 requires 'Moose' => '2';
+requires 'Moo' => '2';
 requires 'Moose::Util::TypeConstraints' => '2';
 requires 'Safe::Isa';
 requires 'Scalar::Util';

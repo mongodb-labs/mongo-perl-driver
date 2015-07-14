@@ -21,56 +21,55 @@ package MongoDB::Op::_Update;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::UpdateResult;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Tie::IxHash;
 use boolean;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has filter => (
     is       => 'ro',
-    isa      => IxHash,
-    coerce   => 1,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Document ) : () ),
 );
 
 has update => (
     is       => 'ro',
-    isa      => Any,
     required => 1,
 );
 
 has is_replace => (
     is     => 'ro',
-    isa    => Bool,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
 );
 
 has multi => (
     is     => 'ro',
-    isa    => Bool,
+    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
 );
 
 has upsert => (
     is     => 'ro',
-    isa    => Bool,
+    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
 );
 
 with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_UpdatePreEncoder/;
@@ -78,8 +77,13 @@ with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_UpdatePreEncoder/;
 sub execute {
     my ( $self, $link ) = @_;
 
+    my $filter =
+      ref( $self->filter ) eq 'ARRAY'
+      ? { @{ $self->filter } }
+      : $self->filter;
+
     my $update_op = {
-        q      => $self->filter,
+        q      => $filter,
         u      => $self->update,
         multi  => boolean($self->multi),
         upsert => boolean($self->upsert),
@@ -163,7 +167,5 @@ sub _parse_gle {
         upserted_id    => $upserted,
     );
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

@@ -21,10 +21,11 @@ package MongoDB::InsertManyResult;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 with 'MongoDB::Role::_WriteResult';
 
@@ -43,8 +44,8 @@ The number of documents inserted.
 
 has inserted_count => (
     is      => 'ro',
-    isa     => Num,
     default => 0,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 =attr inserted
@@ -56,9 +57,8 @@ Documents are just as in C<upserted>.
 
 has inserted => (
     is      => 'ro',
-    isa     => ArrayOfHashRef,
-    coerce  => 1,
     default => sub { [] },
+    ( WITH_ASSERTS ? ( isa => ArrayOfHashRef ) : () ),
 );
 
 =attr inserted_ids
@@ -70,17 +70,15 @@ IDs.
 
 has inserted_ids => (
     is      => 'ro',
-    isa     => HashRef,
     lazy    => 1,
     builder => '_build_inserted_ids',
+    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
 );
 
 sub _build_inserted_ids {
     my ($self) = @_;
     return { map { $_->{index}, $_->{_id} } @{ $self->inserted } };
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 

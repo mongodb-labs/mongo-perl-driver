@@ -24,12 +24,13 @@ our $VERSION = 'v0.999.999.4'; # TRIAL
 use MongoDB::BSON;
 use MongoDB::CommandResult;
 use MongoDB::Error;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use Moose::Role;
+use Moo::Role;
 use Syntax::Keyword::Junction qw/any/;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 use constant {
     NO_JOURNAL_RE => qr/^journaling not enabled/,
@@ -42,8 +43,8 @@ requires qw/db_name _parse_cmd _parse_gle/;
 
 has write_concern => (
     is       => 'ro',
-    isa      => WriteConcern,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => WriteConcern ) : () ),
 );
 
 sub _send_legacy_op_with_gle {
@@ -112,13 +113,9 @@ sub _send_legacy_op_with_gle {
         }
 
         return $result_class->new(
-            ( $write_error ? ( write_errors => [$write_error] ) : () ),
-            (
-                $write_concern_error
-                ? ( write_concern_errors => [$write_concern_error] )
-                : ()
-            ),
-            $self->_parse_gle($res, $op_doc),
+            write_errors         => ( $write_error         ? [$write_error]         : [] ),
+            write_concern_errors => ( $write_concern_error ? [$write_concern_error] : [] ),
+            $self->_parse_gle( $res, $op_doc ),
         );
     }
     else {
@@ -149,12 +146,9 @@ sub _send_write_command {
         # otherwise, construct the desired result object, calling back
         # on class-specific parser to generate additional attributes
         return $result_class->new(
-            ( $res->{writeErrors} ? ( write_errors => $res->{writeErrors} ) : () ),
-            (
-                $res->{writeConcernError}
-                ? ( write_concern_errors => $res->{writeConcernError} )
-                : ()
-            ),
+            write_errors => ( $res->{writeErrors} ? $res->{writeErrors} : [] ),
+            write_concern_errors =>
+              ( $res->{writeConcernError} ? [ $res->{writeConcernError} ] : [] ),
             $self->_parse_cmd($res),
         );
     }

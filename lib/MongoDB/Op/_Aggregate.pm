@@ -21,43 +21,44 @@ package MongoDB::Op::_Aggregate;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::Error;
 use MongoDB::Op::_Command;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use boolean;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has client => (
     is       => 'ro',
-    isa      => InstanceOf ['MongoDB::MongoClient'],
     required => 1,
+    ( WITH_ASSERTS ? ( isa => InstanceOf ['MongoDB::MongoClient'] ) : () ),
 );
 
 has pipeline => (
     is       => 'ro',
-    isa      => ArrayOfHashRef,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => ArrayOfHashRef ) : () ),
 );
 
 has options => (
     is      => 'ro',
-    isa     => HashRef,
     default => sub { {} },
+    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
 );
 
 with $_ for qw(
@@ -148,7 +149,5 @@ sub execute {
 
     return $self->_build_result_from_cursor($res);
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

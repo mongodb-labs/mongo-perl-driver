@@ -24,6 +24,7 @@ our $VERSION = 'v0.999.999.4'; # TRIAL
 use MongoDB::BSON;
 use Moose;
 use MongoDB;
+use MongoDB::_Constants;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
@@ -40,9 +41,9 @@ Its string representation is the 24-character string.
 
 has value => (
     is      => 'ro',
-    isa     => Str,
     required => 1,
     builder => '_build_value',
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 # XXX need to set up typedef with str length

@@ -24,29 +24,32 @@ our $VERSION = 'v0.999.999.4'; # TRIAL
 # empty superclass for backcompatibility; add a variable to the
 # package namespace so Perl thinks it's a real package
 $MongoDB::WriteResult::VERSION = $VERSION;
-our @ISA = qw/MongoDB::WriteResult/;
 
-use Moose;
+use Moo;
 use MongoDB::Error;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Syntax::Keyword::Junction qw/any/;
-use namespace::clean -except => 'meta';
+use namespace::clean;
+
+# fake empty superclass for backcompat
+our @ISA;
+push @ISA, 'MongoDB::WriteResult';
 
 with 'MongoDB::Role::_WriteResult';
 
 has [qw/upserted inserted/] => (
     is      => 'ro',
-    isa     => ArrayOfHashRef,
-    coerce  => 1,
     default => sub { [] },
+    ( WITH_ASSERTS ? ( isa => ArrayOfHashRef ) : () ),
 );
 
 has inserted_ids => (
     is      => 'ro',
-    isa     => 'HashRef',
     lazy    => 1,
     builder => '_build_inserted_ids',
+    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
 );
 
 sub _build_inserted_ids {
@@ -56,9 +59,9 @@ sub _build_inserted_ids {
 
 has upserted_ids => (
     is      => 'ro',
-    isa     => 'HashRef',
     lazy    => 1,
     builder => '_build_upserted_ids',
+    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
 );
 
 sub _build_upserted_ids {
@@ -69,9 +72,9 @@ sub _build_upserted_ids {
 for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
     has $attr => (
         is      => 'ro',
-        isa     => Num,
         writer  => "_set_$attr",
         default => 0,
+        ( WITH_ASSERTS ? ( isa => Num ) : () ),
     );
 }
 
@@ -82,9 +85,9 @@ for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
 
 has modified_count => (
     is      => 'ro',
-    isa     => Maybe[Num],
     writer  => '_set_modified_count',
     default => undef,
+    ( WITH_ASSERTS ? ( isa =>  Maybe[Num] ) : () ),
 );
 
 sub has_modified_count {
@@ -94,16 +97,16 @@ sub has_modified_count {
 
 has op_count => (
     is      => 'ro',
-    isa     => Num,
     writer  => '_set_op_count',
     default => 0,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 has batch_count => (
     is      => 'ro',
-    isa     => Num,
     writer  => '_set_batch_count',
     default => 0,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 #--------------------------------------------------------------------------#
@@ -166,13 +169,12 @@ sub _parse_cmd_result {
         $op_count ? ( op_count => $op_count ) : ()
     };
 
-    $attrs->{write_errors} = $result->{writeErrors} if $result->{writeErrors};
+    $attrs->{write_errors} = $result->{writeErrors} ? $result->{writeErrors} : [];
 
-    # rename writeConcernError -> write_concern_errors; coercion will make it
-    # into an array later
+    # rename writeConcernError -> write_concern_errors; coerce it to arrayref
 
-    $attrs->{write_concern_errors} = $result->{writeConcernError}
-      if $result->{writeConcernError};
+    $attrs->{write_concern_errors} =
+      $result->{writeConcernError} ? [ $result->{writeConcernError} ] : [];
 
     # if we have upserts, change type to calculate differently
     if ( $result->{upserted} ) {
@@ -296,8 +298,6 @@ sub _merge_result {
 
     return 1;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 

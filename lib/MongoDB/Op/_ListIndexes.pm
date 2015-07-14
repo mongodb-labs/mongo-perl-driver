@@ -21,34 +21,35 @@ package MongoDB::Op::_ListIndexes;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Tie::IxHash;
 use Try::Tiny;
 use Safe::Isa;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has client => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
+    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::MongoClient'] ) : () ),
 );
 
 with $_ for qw(
@@ -105,7 +106,5 @@ sub _legacy_list_indexes {
 
     return $op->execute( $link, $topology );
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

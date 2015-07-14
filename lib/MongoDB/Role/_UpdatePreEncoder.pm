@@ -21,9 +21,9 @@ package MongoDB::Role::_UpdatePreEncoder;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose::Role;
+use Moo::Role;
 use MongoDB::Error;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 use constant PERL58 => $] lt '5.010';
 

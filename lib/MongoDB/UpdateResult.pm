@@ -21,10 +21,11 @@ package MongoDB::UpdateResult;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 with 'MongoDB::Role::_WriteResult';
 
@@ -43,8 +44,8 @@ The number of documents that matched the filter.
 
 has matched_count => (
     is      => 'ro',
-    isa     => Num,
     default => 0,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 =attr modified_count
@@ -60,7 +61,7 @@ defined or not.
 
 has modified_count => (
     is      => 'ro',
-    isa     => Maybe[Num],
+    ( WITH_ASSERTS ? ( isa => Maybe[Num] ) : () ),
 );
 
 sub has_modified_count {
@@ -77,10 +78,7 @@ no upsert took place, it returns C<undef>.
 
 has upserted_id => (
     is  => 'ro',
-    isa => Any,
 );
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 

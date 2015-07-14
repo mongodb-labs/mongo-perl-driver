@@ -21,11 +21,11 @@ package MongoDB::Role::_ReadPrefModifier;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose::Role;
+use Moo::Role;
 
 use MongoDB::Error;
 use Syntax::Keyword::Junction qw/any/;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 requires qw/query _set_query query_flags read_preference/;
 

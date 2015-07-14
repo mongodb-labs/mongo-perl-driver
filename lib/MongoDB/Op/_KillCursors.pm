@@ -21,17 +21,18 @@ package MongoDB::Op::_KillCursors;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use MongoDB::_Protocol;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has cursor_ids => (
     is       => 'ro',
-    isa      => ArrayRef[Str],
     required => 1,
+    ( WITH_ASSERTS ? ( isa => ArrayRef[Str] ) : () ),
 );
 
 sub execute {
@@ -41,7 +42,5 @@ sub execute {
 
     return 1;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

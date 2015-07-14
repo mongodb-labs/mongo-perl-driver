@@ -23,17 +23,14 @@ our $VERSION = 'v0.999.999.4'; # TRIAL
 
 use MongoDB::BSON;
 use MongoDB::Error;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
-use Moose::Role;
-use namespace::clean -except => 'meta';
+use Moo::Role;
+use namespace::clean;
 
 with 'MongoDB::Role::_DatabaseOp';
 
 requires qw/db_name/;
-
-use constant {
-    MAX_BSON_WIRE_SIZE => 16_793_600, # 16MiB + 16KiB
-};
 
 # XXX should pass in a read preference and modify doc accordingly
 

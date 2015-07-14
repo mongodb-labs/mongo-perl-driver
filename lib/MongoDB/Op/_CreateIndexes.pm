@@ -22,38 +22,39 @@ package MongoDB::Op::_CreateIndexes;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::CommandResult;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use MongoDB::Op::_BatchInsert;
 use MongoDB::_Types;
 use Tie::IxHash;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has indexes => (
     is       => 'ro',
-    isa      => ArrayRef[HashRef], # XXX ArrayRef[IndexModel]?
     required => 1,
+    ( WITH_ASSERTS ? ( isa => ArrayRef[HashRef] ) : () ), # XXX ArrayRef[IndexModel]?
 );
 
 has write_concern => (
     is       => 'ro',
-    isa      => WriteConcern,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => WriteConcern ) : () ),
 );
 
 with qw/MongoDB::Role::_CommandOp/;
@@ -109,7 +110,5 @@ sub _legacy_index_insert {
 
     return $op->execute($link);
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

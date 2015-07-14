@@ -200,8 +200,11 @@ to call C<execute> more than once on the same bulk object.
 
 =cut
 
+my $execute_args;
 sub execute {
-    my ( $self, $write_concern ) = @_;
+    $execute_args ||= compile( Object, Optional[WriteConcern]);
+    my ( $self, $write_concern  ) = $execute_args->(@_);
+
     if ( $self->_executed ) {
         MongoDB::UsageError->throw("bulk op execute called more than once");
     }

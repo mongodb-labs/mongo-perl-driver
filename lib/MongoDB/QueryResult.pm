@@ -22,13 +22,14 @@ use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
 use Config;
-use Moose;
+use Moo;
 use MongoDB::Error;
+use MongoDB::_Constants;
 use MongoDB::Op::_GetMore;
 use MongoDB::Op::_KillCursors;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 use constant {
     CURSOR_ZERO => "\0" x 8,
@@ -41,100 +42,95 @@ with 'MongoDB::Role::_Cursor';
 
 has _client => (
     is       => 'rw',
-    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
+    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::MongoClient'] ) : () ),
 );
 
 has address => (
     is       => 'ro',
-    isa      => HostAddress,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => HostAddress ) : () ),
 );
 
 has ns => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has bson_codec => (
     is       => 'ro',
-    isa      => BSONCodec,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => BSONCodec ) : () ),
 );
 
 has batch_size => (
     is      => 'ro',
-    isa     => Int,
     default => 0,
+    ( WITH_ASSERTS ? ( isa => Int ) : () ),
 );
 
 # attributes for tracking progress
 
 has cursor_at => (
     is      => 'ro',
-    isa     => Num,
-    traits  => ['Counter'],
     default => 0,
-    handles => {
-        _inc_cursor_at   => 'inc',
-        _clear_cursor_at => 'reset',
-    },
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
+
+sub _inc_cursor_at { $_[0]{cursor_at}++ }
 
 has limit => (
     is      => 'ro',
-    isa     => Num,
     default => 0,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 # attributes from actual results -- generally get this from BUILDARGS
 
 has cursor_id => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
     writer   => '_set_cursor_id',
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has cursor_start => (
     is      => 'ro',
-    isa     => Num,
     default => 0,
     writer  => '_set_cursor_start',
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 has cursor_flags => (
     is      => 'ro',
-    isa     => HashRef,
     default => sub { {} },
     writer  => '_set_cursor_flags',
+    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
 );
 
 has cursor_num => (
     is      => 'ro',
-    isa     => Num,
-    traits  => ['Counter'],
     default => 0,
-    handles => {
-        _inc_cursor_num   => 'inc',
-        _clear_cursor_num => 'reset',
-    },
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
+
+sub _inc_cursor_num { $_[0]{cursor_num}++ }
 
 has _docs => (
     is      => 'ro',
-    isa     => ArrayRef,
-    traits  => ['Array'],
     default => sub { [] },
-    handles => {
-        _drained    => 'is_empty',
-        _doc_count  => 'count',
-        _add_docs   => 'push',
-        _next_doc   => 'shift',
-        _clear_docs => 'clear',
-    },
+    ( WITH_ASSERTS ? ( isa => ArrayRef ) : () ),
 );
+
+sub _drained { ! @{$_[0]{_docs}} }
+sub _doc_count { scalar @{$_[0]{_docs}} }
+sub _add_docs {
+    my $self = shift;
+    push @{$self->{_docs}}, @_;
+}
+sub _next_doc { shift @{$_[0]{_docs}} }
+sub _clear_doc { @{$_[0]{_docs}} = () }
 
 # allows ->new( _client => $client, ns => $ns, reply => { } )
 # or     ->new( _client => $client, result => $command_result )
@@ -312,8 +308,6 @@ sub _pack_cursor_id {
 
     return $cursor_id;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 =for Pod::Coverage
 started_iterating

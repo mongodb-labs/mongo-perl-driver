@@ -21,64 +21,63 @@ package MongoDB::Op::_Query;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::QueryResult;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has client => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
+    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::MongoClient'] ) : () ),
 );
 
 has query => (
     is       => 'ro',
-    isa      => IxHash,
-    coerce   => 1,
     required => 1,
     writer   => '_set_query',
+    ( WITH_ASSERTS ? ( isa => Document ) : () ),
 );
 
 has projection => (
     is     => 'ro',
-    isa    => IxHash,
-    coerce => 1,
+    ( WITH_ASSERTS ? ( isa => Document ) : () ),
 );
 
 has [qw/batch_size limit skip/] => (
     is      => 'ro',
-    isa     => Num,
     default => 0,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 # XXX eventually make this a hash with restricted keys?
 has query_flags => (
     is      => 'ro',
-    isa     => HashRef,
     default => sub { {} },
+    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
 );
 
 has post_filter => (
     is        => 'ro',
-    isa       => Maybe[CodeRef],
     predicate => 'has_post_filter',
+    ( WITH_ASSERTS ? ( isa => Maybe[CodeRef] ) : () ),
 );
 
 with 'MongoDB::Role::_ReadOp';
@@ -117,7 +116,5 @@ sub execute {
         post_filter => $self->post_filter,
     );
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
