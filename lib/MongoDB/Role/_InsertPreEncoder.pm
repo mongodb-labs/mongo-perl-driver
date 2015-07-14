@@ -47,7 +47,7 @@ sub _pre_encode_insert {
         : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
         : $doc->{_id} # hashlike?
     );
-    $id = MongoDB::OID->new() unless defined $id;
+    $id = MongoDB::OID->_new_oid() unless defined $id;
 
     my $bson_doc = $self->bson_codec->encode_one(
         $doc,

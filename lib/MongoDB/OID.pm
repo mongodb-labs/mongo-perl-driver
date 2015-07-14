@@ -66,6 +66,13 @@ around BUILDARGS => sub {
     return $orig->($class, @_);
 };
 
+# This private constructor bypasses everything Moo does for us and just
+# jams an OID into a blessed hashref.  This is only for use in super-hot
+# code paths, like document insertion.
+sub _new_oid {
+    return bless { value => MongoDB::BSON::generate_oid() }, $_[0];
+}
+
 =head1 METHODS
 
 =head2 to_string
