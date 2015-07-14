@@ -626,11 +626,12 @@ sub _status_string {
 sub _selection_timeout {
     my ( $self, $method, $read_pref ) = @_;
 
-    if ( (time - $self->last_scan_time) > $self->heartbeat_frequency_sec ) {
-        $self->scan_all_servers;
-    }
-
     my $start_time = time;
+
+    if ( ($start_time - $self->last_scan_time) > $self->heartbeat_frequency_sec ) {
+        $self->scan_all_servers;
+        $start_time = time; # update after scan
+    }
 
     while (1) {
         unless ($self->is_compatible) {
