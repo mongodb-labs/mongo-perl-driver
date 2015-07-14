@@ -493,6 +493,17 @@ v0.999.998.1 2014-11-12 15:10:40-05:00 America/New_York (TRIAL RELEASE)
 
   - re-enabled threads tests
 
+v0.708.3.0 2015-07-14 15:42:16-04:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-543 fix serialization of undef in tied hashes
+
+  - PERL-553 fix duplicate _id bug with Tie::IxHash and array reference
+    documents with an existing _id
+
+  - Fix BSON tests on Perl with long doubled enabled
+
 v0.708.2.0 2015-06-05 16:39:00-04:00 America/New_York
 
   [Bug fixes]
