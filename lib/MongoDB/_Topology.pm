@@ -224,7 +224,7 @@ sub check_address {
     my ( $self, $address ) = @_;
 
     my $link = $self->links->{$address};
-    if ( $link && $link->connected ) {
+    if ( $link && $link->is_connected ) {
         $self->_update_topology_from_link($link);
     }
     else {
@@ -537,7 +537,7 @@ sub _initialize_link {
     my ( $self, $address ) = @_;
 
     my $link = try {
-        MongoDB::_Link->new( $address, $self->link_options )->connect;
+        MongoDB::_Link->new( %{$self->link_options}, address => $address )->connect;
     }
     catch {
         # if connection failed, update topology with Unknown description
@@ -652,7 +652,7 @@ sub _update_topology_from_link {
     my ( $self, $link ) = @_;
 
     my $start_time = [ gettimeofday() ];
-    my $is_master = try {
+    my $is_master = eval {
         my $op = MongoDB::Op::_Command->new(
             db_name    => 'admin',
             query      => [ ismaster => 1 ],
@@ -663,8 +663,9 @@ sub _update_topology_from_link {
         # to support this specific exception to the socket timeout
         local $link->{socket_timeout} = $link->{connect_timeout};
         $op->execute( $link )->output;
-    }
-    catch {
+    };
+    if ( $@ ) {
+        local $_ = $@;
         warn "During topology update: $_";
         $self->_reset_address_to_unknown( $link->address, $_ );
         # retry a network error if server was previously known to us

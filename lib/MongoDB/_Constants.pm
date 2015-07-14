@@ -31,8 +31,11 @@ my $CONSTANTS;
 
 BEGIN {
     $CONSTANTS = {
-        WITH_ASSERTS => $ENV{PERL_MONGO_ENABLE_ASSERTS},
-        MAX_BSON_WIRE_SIZE => 16_793_600, # 16MiB + 16KiB
+        MAX_BSON_OBJECT_SIZE => 4_194_304,
+        MAX_BSON_WIRE_SIZE   => 16_793_600,                     # 16MiB + 16KiB
+        MAX_WRITE_BATCH_SIZE => 1000,
+        P_INT32              => $] lt '5.010' ? 'l' : 'l<',
+        WITH_ASSERTS         => $ENV{PERL_MONGO_ENABLE_ASSERTS},
     };
 }
 

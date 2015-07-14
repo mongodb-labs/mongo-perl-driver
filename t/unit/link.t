@@ -10,7 +10,7 @@ my $class = "MongoDB::_Link";
 
 require_ok( $class );
 
-my $obj = new_ok( $class, ['localhost:27017'] );
+my $obj = new_ok( $class, [ address => 'localhost:27017'] );
 
 my $dummy_server = MongoDB::_Server->new(
     address => 'localhost:27017',
