@@ -484,6 +484,7 @@ sub _find_secondarypreferred_server {
 sub _get_server_in_latency_window {
     my ( $self, $servers ) = @_;
     return unless @$servers;
+    return $servers->[0] if @$servers == 1;
 
     # order servers by RTT EWMA
     my $rtt_hash = $self->rtt_ewma_ms;
