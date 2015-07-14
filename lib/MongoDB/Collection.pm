@@ -217,6 +217,25 @@ sub _build__indexes {
     return MongoDB::IndexView->new( collection => $self );
 }
 
+# these are constant, so we cache them
+has _op_args => (
+    is       => 'ro',
+    isa      => HashRef,
+    lazy     => 1,
+    init_arg => undef,
+    builder  => '_build__op_args',
+);
+
+sub _build__op_args {
+    my ($self) = @_;
+    return {
+        db_name       => $self->database->name,
+        bson_codec    => $self->bson_codec,
+        coll_name     => $self->name,
+        write_concern => $self->write_concern,
+    }
+}
+
 #--------------------------------------------------------------------------#
 # public methods
 #--------------------------------------------------------------------------#
@@ -300,11 +319,8 @@ sub insert_one {
     my ( $self, $document ) = $insert_one_args->(@_);
 
     my $op = MongoDB::Op::_InsertOne->new(
-        db_name       => $self->database->name,
-        bson_codec    => $self->bson_codec,
-        coll_name     => $self->name,
-        document      => $document,
-        write_concern => $self->write_concern,
+        document => $document,
+        %{ $self->_op_args },
     );
 
     return $self->client->send_write_op($op);
