@@ -19,7 +19,7 @@ package MongoDB::DBRef;
 # ABSTRACT: Native DBRef support
 
 use version;
-our $VERSION = 'v0.708.2.1';
+our $VERSION = 'v0.708.3.1';
 
 use Carp 'croak';
 use Tie::IxHash;

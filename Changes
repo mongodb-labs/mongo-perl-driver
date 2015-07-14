@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.708.3.0 2015-07-14 15:42:16-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-543 fix serialization of undef in tied hashes

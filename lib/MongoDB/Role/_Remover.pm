@@ -19,7 +19,7 @@ package MongoDB::Role::_Remover;
 # Role for remove operations
 
 use version;
-our $VERSION = 'v0.708.2.1';
+our $VERSION = 'v0.708.3.1';
 
 use Moose::Role;
 use namespace::clean -except => 'meta';
