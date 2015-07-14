@@ -342,7 +342,7 @@ sub _build_local_threshold_ms {
     return $self->__uri_or_else(
         u => 'localthresholdms',
         e => 'local_threshold_ms',
-        d => 15000,
+        d => 15,
     );
 }
 
