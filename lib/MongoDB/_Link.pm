@@ -32,7 +32,7 @@ use Errno qw[EINTR EPIPE];
 use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
 use Socket qw/SOL_SOCKET SO_KEEPALIVE SO_RCVBUF IPPROTO_TCP TCP_NODELAY/;
-use Time::HiRes qw/time gettimeofday tv_interval/;
+use Time::HiRes qw/time/;
 use MongoDB::Error;
 use MongoDB::_Constants;
 use MongoDB::_Types -types;
@@ -166,7 +166,7 @@ sub connect {
 
     $self->start_ssl($host) if $self->with_ssl;
 
-    $self->_set_last_used( [gettimeofday] );
+    $self->_set_last_used( time );
     $self->_set_rcvbuf( $fh->sockopt(SO_RCVBUF) );
 
     return $self;
@@ -239,9 +239,9 @@ sub is_connected {
     return $self->connected && $self->fh;
 }
 
-sub idle_time_ms {
+sub idle_time_sec {
     my ($self) = @_;
-    return 1000 * tv_interval( $self->last_used );
+    return( time - $self->last_used );
 }
 
 sub write {
@@ -288,7 +288,7 @@ sub write {
         }
     }
 
-    $self->_set_last_used( [gettimeofday] );
+    $self->_set_last_used( time );
 
     return $off;
 }
@@ -308,7 +308,7 @@ sub read {
         $self->_read_bytes( \$msg, $len - $bytes_read );
     }
 
-    $self->_set_last_used( [gettimeofday] );
+    $self->_set_last_used( time );
 
     return $msg;
 }

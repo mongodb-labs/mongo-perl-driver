@@ -32,14 +32,14 @@ use Config;
 use List::Util qw/first/;
 use Safe::Isa;
 use Syntax::Keyword::Junction qw/any none/;
-use Time::HiRes qw/gettimeofday tv_interval usleep/;
+use Time::HiRes qw/time usleep/;
 use Try::Tiny;
 
 use namespace::clean;
 
 use constant {
-    EPOCH => [ 0, 0 ], # tv struct for the epoch
-    MIN_HEARTBEAT_FREQUENCY_MS => 500_000, # 500ms, not configurable
+    EPOCH => 0,
+    MIN_HEARTBEAT_FREQUENCY_USEC => 500_000, # 500ms, not configurable
     HAS_THREADS => $Config{usethreads},
 };
 
@@ -88,34 +88,34 @@ has replica_set_name => (
     ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
-has heartbeat_frequency_ms => (
+has heartbeat_frequency_sec => (
     is      => 'ro',
-    default => 60_000,
+    default => 60,
     ( WITH_ASSERTS ? ( isa => NonNegNum ) : () ),
 );
 
 has last_scan_time => (
     is      => 'ro',
-    default => sub { EPOCH },
+    default => EPOCH,
     writer  => '_set_last_scan_time',
-    ( WITH_ASSERTS ? ( isa => ArrayRef ) : () ),              # [ Time::HighRes::gettimeofday() ]
-);
-
-has local_threshold_ms => (
-    is      => 'ro',
-    default => 15,
     ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
-has socket_check_interval_ms => (
+has local_threshold_sec => (
     is      => 'ro',
-    default => 5_000,
+    default => 0.015,
     ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
-has server_selection_timeout_ms => (
+has socket_check_interval_sec => (
     is      => 'ro',
-    default => 60_000,
+    default => 5,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+);
+
+has server_selection_timeout_sec => (
+    is      => 'ro',
+    default => 60,
     ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
@@ -158,7 +158,7 @@ has is_compatible => (
     ( WITH_ASSERTS ? ( isa => Bool ) : () ),
 );
 
-# servers, links and rtt_ewma_ms are all hashes on server address
+# servers, links and rtt_ewma_sec are all hashes on server address
 
 has servers => (
     is      => 'ro',
@@ -172,7 +172,7 @@ has links => (
     ( WITH_ASSERTS ? ( isa => HashRef[InstanceOf['MongoDB::_Link']] ) : () ),
 );
 
-has rtt_ewma_ms => (
+has rtt_ewma_sec => (
     is      => 'ro',
     default => sub { {} },
     ( WITH_ASSERTS ? ( isa => HashRef[Num] ) : () ),
@@ -313,7 +313,7 @@ sub scan_all_servers {
     my ($self) = @_;
 
     my ( $next, @ordinary, @to_check );
-    my $start_time = [ gettimeofday() ];
+    my $start_time = time;
 
     # anything not updated since scan start is eligible for a check; when all servers
     # are updated, the loop terminates
@@ -335,7 +335,7 @@ sub scan_all_servers {
         }
     }
 
-    $self->_set_last_scan_time( [ gettimeofday() ] );
+    $self->_set_last_scan_time( time );
     $self->_check_wire_versions;
     return;
 }
@@ -349,13 +349,13 @@ sub status_struct {
     my $lst = $self->last_scan_time;
     $status->{last_scan_time} = $lst->[0] + $lst->[1] / 1e6;
 
-    my $rtt_hash = $self->rtt_ewma_ms;
+    my $rtt_hash = $self->rtt_ewma_sec;
     my $ss = $status->{servers} = [];
     for my $server ( $self->all_servers ) {
         my $addr = $server->address;
         my $server_struct = $server->status_struct;
         if ( defined $rtt_hash->{$addr} ) {
-            $server_struct->{ewma_rtt_ms} = $rtt_hash->{$addr};
+            $server_struct->{ewma_rtt_sec} = $rtt_hash->{$addr};
         }
         push @$ss, $server_struct;
     }
@@ -396,7 +396,7 @@ sub _check_oldest_server {
     my @ordered =
       map { $_->[0] }
       sort { $a->[1] <=> $b->[1] || rand() <=> rand() } # random if equal
-      map { [ $_, $_->last_update_time->[0] ] }         # ignore partial secs
+      map { [ $_, $_->last_update_time ] }         # ignore partial secs
       @to_check;
 
     $self->check_address( $ordered[0]->address );
@@ -490,7 +490,7 @@ sub _get_server_in_latency_window {
     return $servers->[0] if @$servers == 1;
 
     # order servers by RTT EWMA
-    my $rtt_hash = $self->rtt_ewma_ms;
+    my $rtt_hash = $self->rtt_ewma_sec;
     my @sorted =
       sort { $a->{rtt} <=> $b->{rtt} }
       map { { server => $_, rtt => $rtt_hash->{ $_->address } } } @$servers;
@@ -499,7 +499,7 @@ sub _get_server_in_latency_window {
     my @in_window = shift @sorted;
 
     # add any other servers in window and return a random one
-    my $max_rtt = $in_window[0]->{rtt} + $self->local_threshold_ms;
+    my $max_rtt = $in_window[0]->{rtt} + $self->local_threshold_sec;
     push @in_window, grep { $_->{rtt} <= $max_rtt } @sorted;
     return $in_window[ int( rand(@in_window) ) ]->{server};
 }
@@ -514,7 +514,7 @@ sub _get_server_link {
     return unless $link;
 
     # for idle links, refresh the server and verify validity
-    if ( $link->idle_time_ms > $self->socket_check_interval_ms ) {
+    if ( $link->idle_time_sec > $self->socket_check_interval_sec ) {
         $self->check_address($address);
 
         # topology might have dropped the server
@@ -581,7 +581,7 @@ sub _primaries {
 
 sub _remove_address {
     my ( $self, $address ) = @_;
-    delete $self->$_->{$address} for qw/servers links rtt_ewma_ms/;
+    delete $self->$_->{$address} for qw/servers links rtt_ewma_sec/;
     return;
 }
 
@@ -593,7 +593,7 @@ sub _remove_server {
 
 sub _reset_address_to_unknown {
     my ( $self, $address, $error, $update_time ) = @_;
-    $update_time ||= [gettimeofday];
+    $update_time ||= time;
 
     $self->_remove_address($address);
     my $desc = $self->_add_address_as_unknown( $address, $update_time, $error );
@@ -626,11 +626,11 @@ sub _status_string {
 sub _selection_timeout {
     my ( $self, $method, $read_pref ) = @_;
 
-    if ( 1000 * tv_interval( $self->last_scan_time ) > $self->heartbeat_frequency_ms ) {
+    if ( (time - $self->last_scan_time) > $self->heartbeat_frequency_sec ) {
         $self->scan_all_servers;
     }
 
-    my $start_time = [ gettimeofday() ];
+    my $start_time = time;
 
     while (1) {
         unless ($self->is_compatible) {
@@ -641,10 +641,10 @@ sub _selection_timeout {
         if ( my $server = $self->$method($read_pref) ) {
             return $server;
         }
-        last if 1000 * tv_interval($start_time) > $self->server_selection_timeout_ms;
+        last if (time - $start_time) > $self->server_selection_timeout_sec;
     }
     continue {
-        usleep(MIN_HEARTBEAT_FREQUENCY_MS); # delay before rescanning
+        usleep(MIN_HEARTBEAT_FREQUENCY_USEC); # delay before rescanning
         $self->scan_all_servers;
     }
 
@@ -654,7 +654,7 @@ sub _selection_timeout {
 sub _update_topology_from_link {
     my ( $self, $link ) = @_;
 
-    my $start_time = [ gettimeofday() ];
+    my $start_time = time;
     my $is_master = eval {
         my $op = MongoDB::Op::_Command->new(
             db_name    => 'admin',
@@ -685,13 +685,13 @@ sub _update_topology_from_link {
 
     return unless $is_master;
 
-    my $end_time = [ gettimeofday() ];
-    my $rtt_ms = int( 1000 * tv_interval( $start_time, $end_time ) );
+    my $end_time = time;
+    my $rtt_sec = $end_time - $start_time;
 
     my $new_server = MongoDB::_Server->new(
         address          => $link->address,
         last_update_time => $end_time,
-        rtt_ms           => $rtt_ms,
+        rtt_sec           => $rtt_sec,
         is_master        => $is_master,
     );
 
@@ -727,14 +727,14 @@ sub _update_ewma {
     my ( $self, $address, $new_server ) = @_;
 
     if ( $new_server->type eq 'Unknown' ) {
-        delete $self->rtt_ewma_ms->{$address};
+        delete $self->rtt_ewma_sec->{$address};
     }
     else {
-        my $old_avg = $self->rtt_ewma_ms->{$address};
+        my $old_avg = $self->rtt_ewma_sec->{$address};
         my $alpha   = $self->ewma_alpha;
-        my $rtt_ms  = $new_server->rtt_ms;
-        $self->rtt_ewma_ms->{$address} =
-          defined($old_avg) ? ( $alpha * $rtt_ms + ( 1 - $alpha ) * $old_avg ) : $rtt_ms;
+        my $rtt_sec  = $new_server->rtt_sec;
+        $self->rtt_ewma_sec->{$address} =
+          defined($old_avg) ? ( $alpha * $rtt_sec + ( 1 - $alpha ) * $old_avg ) : $rtt_sec;
     }
 
     return;

@@ -4,7 +4,7 @@ use Test::More 0.88;
 use Test::Fatal;
 
 use MongoDB::_Server;
-use Time::HiRes qw/gettimeofday/;
+use Time::HiRes qw/time/;
 
 my $class = "MongoDB::_Link";
 
@@ -14,7 +14,7 @@ my $obj = new_ok( $class, [ address => 'localhost:27017'] );
 
 my $dummy_server = MongoDB::_Server->new(
     address => 'localhost:27017',
-    last_update_time => [ gettimeofday ],
+    last_update_time => time,
 );
 
 $obj->set_metadata( $dummy_server );

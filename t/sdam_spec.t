@@ -19,6 +19,7 @@ use warnings;
 use Test::More 0.96;
 use JSON::MaybeXS;
 use Path::Tiny;
+use Time::HiRes qw/time/;
 use Try::Tiny;
 
 use MongoDB;
@@ -79,7 +80,7 @@ sub run_test {
 
                     address => $addr,
                     is_master => $is_master,
-                    last_update_time => [ Time::HiRes::gettimeofday() ],
+                    last_update_time => time,
                 );
 
                 $topology->_update_topology_from_server_desc( @$response[0], $desc);

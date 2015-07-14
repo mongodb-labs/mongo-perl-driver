@@ -24,7 +24,7 @@ use MongoDB::_Types -types;
 use Types::Standard -types;
 use List::Util qw/first/;
 use Syntax::Keyword::Junction qw/any none/;
-use Time::HiRes qw/tv_interval/;
+use Time::HiRes qw/time/;
 use namespace::clean -except => 'meta';
 
 # address: the hostname or IP, and the port number, that the client connects
@@ -42,7 +42,7 @@ has address => (
 
 has last_update_time => (
     is       => 'ro',
-    isa      => ArrayRef, # [ Time::HighRes::gettimeofday() ]
+    isa      => Num, # floating point time
     required => 1,
 );
 
@@ -56,7 +56,7 @@ has error => (
 
 # roundTripTime: the duration of the ismaster call. Default null.
 
-has rtt_ms => (
+has rtt_sec => (
     is      => 'ro',
     isa     => NonNegNum,
     default => 0,
@@ -232,8 +232,8 @@ sub _build_is_writable {
 }
 
 sub updated_since {
-    my ( $self, $tv ) = @_;
-    return tv_interval( $tv, $self->last_update_time ) > 0;
+    my ( $self, $time ) = @_;
+    return( ($self->last_update_time - $time) > 0 );
 }
 
 # check if server matches a single tag set (NOT a tag set list)
