@@ -93,7 +93,7 @@ for my $f ( @is_master_fields ) {
 }
 
 my @connection_state_fields = qw(
-    fh connected rcvbuf last_used fh_vec
+    fh connected rcvbuf last_used fdset
 );
 
 for my $f ( @connection_state_fields ) {
@@ -155,6 +155,14 @@ sub connect {
 
     $self->_set_fh($fh);
     $self->_set_connected(1);
+
+    my $fd = fileno $fh;
+    unless ( defined $fd && $fd >= 0 ) {
+        $self->_close;
+        MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
+    }
+    vec( my $fdset = '', $fd, 1 ) = 1;
+    $self->_set_fdset( $fdset );
 
     $self->start_ssl($host) if $self->with_ssl;
 
@@ -349,22 +357,14 @@ sub _do_timeout {
     $timeout = $self->socket_timeout
       unless defined $timeout;
 
-    my $fd = fileno $self->fh;
-    unless ( defined $fd && $fd >= 0 ) {
-        $self->_close;
-        MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
-    }
-
     my $pending = $timeout >= 0 ? $timeout : undef;
     my $nfound;
-
-    vec( my $fdset = '', $fd, 1 ) = 1;
 
     while () {
         $nfound =
           ( $type eq 'read' )
-          ? select( $fdset, undef,  undef, $pending )
-          : select( undef,  $fdset, undef, $pending );
+          ? select( $self->fdset, undef,  undef, $pending )
+          : select( undef,  $self->fdset, undef, $pending );
         if ( $nfound == -1 ) {
             unless ( $! == EINTR ) {
                 $self->_close;
