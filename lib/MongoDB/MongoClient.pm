@@ -1267,19 +1267,20 @@ sub _try_op {
     # $type might be undef; not needed for writes
     my ($self, $op, $link, $type) = @_;
 
-    my $result = try {
-        $op->execute( $link, $type );
-    }
-    catch {
-        if ( $_->$_isa("MongoDB::ConnectionError") ) {
-            $self->_topology->mark_server_unknown( $link->server, $_ );
+    # using eval instead of try/catch for speed
+    # XXX see when we have to localize $@
+    my $result = eval { $op->execute( $link, $type ) };
+    if ( $@ || ! $result ) {
+        my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+        if ( $err->$_isa("MongoDB::ConnectionError") ) {
+            $self->_topology->mark_server_unknown( $link->server, $err );
         }
-        elsif ( $_->$_isa("MongoDB::NotMasterError") ) {
-            $self->_topology->mark_server_unknown( $link->server, $_ );
+        elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
+            $self->_topology->mark_server_unknown( $link->server, $err );
             $self->_topology->mark_stale;
         }
         # regardless of cleanup, rethrow the error
-        die $_;
+        die $err;
     };
 
     return $result;
