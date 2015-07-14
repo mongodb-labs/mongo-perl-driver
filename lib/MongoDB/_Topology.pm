@@ -19,10 +19,11 @@ package MongoDB::_Topology;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
+use MongoDB::_Constants;
 use MongoDB::_Link;
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -34,7 +35,7 @@ use Syntax::Keyword::Junction qw/any none/;
 use Time::HiRes qw/gettimeofday tv_interval usleep/;
 use Try::Tiny;
 
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 use constant {
     EPOCH => [ 0, 0 ], # tv struct for the epoch
@@ -51,130 +52,130 @@ use if HAS_THREADS, 'threads';
 
 has uri => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::_URI'],
     required => 1,
+    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::_URI'] ) : () ),
 );
 
 has max_wire_version => (
     is       => 'ro',
-    isa      => Num,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 has min_wire_version => (
     is       => 'ro',
-    isa      => Num,
     required => 1,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 has credential => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::_Credential'],
     required => 1,
+    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::_Credential'] ) : () ),
 );
 
 has type => (
     is      => 'ro',
-    isa     => TopologyType,
     writer  => '_set_type',
-    default => 'Unknown'
+    default => 'Unknown',
+    ( WITH_ASSERTS ? ( isa => TopologyType ) : () ),
 );
 
 has replica_set_name => (
     is      => 'ro',
-    isa     => Str,
     default => '',
     writer  => '_set_replica_set_name', # :-)
+    ( WITH_ASSERTS ? ( isa => Str ) : () ),
 );
 
 has heartbeat_frequency_ms => (
     is      => 'ro',
-    isa     => NonNegNum,
     default => 60_000,
+    ( WITH_ASSERTS ? ( isa => NonNegNum ) : () ),
 );
 
 has last_scan_time => (
     is      => 'ro',
-    isa     => ArrayRef,              # [ Time::HighRes::gettimeofday() ]
     default => sub { EPOCH },
     writer  => '_set_last_scan_time',
+    ( WITH_ASSERTS ? ( isa => ArrayRef ) : () ),              # [ Time::HighRes::gettimeofday() ]
 );
 
 has local_threshold_ms => (
     is      => 'ro',
-    isa     => Num,
     default => 15,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 has socket_check_interval_ms => (
     is      => 'ro',
-    isa     => Num,
     default => 5_000,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 has server_selection_timeout_ms => (
     is      => 'ro',
-    isa     => Num,
     default => 60_000,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 has ewma_alpha => (
     is      => 'ro',
-    isa     => Num,
     default => 0.2,
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 has link_options => (
     is      => 'ro',
-    isa     => HashRef,
     default => sub { {} },
+    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
 );
 
 has bson_codec => (
     is       => 'ro',
-    isa      => BSONCodec,
     default  => sub { MongoDB::BSON->new },
+    ( WITH_ASSERTS ? ( isa => BSONCodec ) : () ),
 );
 
 has number_of_seeds => (
     is      => 'ro',
-    isa     => Num,
     lazy    => 1,
     builder => '_build_number_of_seeds',
+    ( WITH_ASSERTS ? ( isa => Num ) : () ),
 );
 
 has pid_tid => (
     is       => 'ro',
-    isa      => ArrayRef,
     default  => sub { [ $$, HAS_THREADS ? threads->tid : 0 ] },
     init_arg => undef,
+    ( WITH_ASSERTS ? ( isa => ArrayRef ) : () ),
 );
 
 # compatible wire protocol
 has is_compatible => (
     is => 'ro',
-    isa => Bool,
     writer => '_set_is_compatible',
+    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
 );
 
 # servers, links and rtt_ewma_ms are all hashes on server address
 
 has servers => (
     is      => 'ro',
-    isa     => HashRef[InstanceOf['MongoDB::_Server']],
     default => sub { {} },
+    ( WITH_ASSERTS ? ( isa => HashRef[InstanceOf['MongoDB::_Server']] ) : () ),
 );
 
 has links => (
     is      => 'ro',
-    isa     => HashRef[InstanceOf['MongoDB::_Link']],
     default => sub { {} },
+    ( WITH_ASSERTS ? ( isa => HashRef[InstanceOf['MongoDB::_Link']] ) : () ),
 );
 
 has rtt_ewma_ms => (
     is      => 'ro',
-    isa     => HashRef[Num],
     default => sub { {} },
+    ( WITH_ASSERTS ? ( isa => HashRef[Num] ) : () ),
 );
 
 #--------------------------------------------------------------------------#
@@ -967,8 +968,6 @@ sub _update_Unknown {
 
     return;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 
