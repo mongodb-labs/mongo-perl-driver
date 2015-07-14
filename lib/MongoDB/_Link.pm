@@ -248,11 +248,6 @@ sub write {
     @_ == 2 || MongoDB::UsageError->throw( q/Usage: $handle->write(buf)/ . "\n" );
     my ( $self, $buf ) = @_;
 
-    if ( $] ge '5.008' ) {
-        utf8::downgrade( $buf, 1 )
-          or MongoDB::InternalError->throw(qq/Wide character in write()\n/);
-    }
-
     my $len = length $buf;
     my $off = 0;
 
