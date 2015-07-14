@@ -42,10 +42,22 @@ has [qw/write_errors write_concern_errors/] => (
 
 with 'MongoDB::Role::_LastError';
 
+# inline assert_no_write_error and assert_no_write_concern rather
+# than having to make to additional method calls
 sub assert {
     my ($self) = @_;
-    $self->assert_no_write_error;
-    $self->assert_no_write_concern_error;
+
+    $self->_throw_database_error("MongoDB::WriteError")
+      if $self->count_write_errors;
+
+    if ( $self->count_write_concern_errors ) {
+        MongoDB::WriteConcernError->throw(
+            message => $self->last_errmsg,
+            result  => $self,
+            code    => WRITE_CONCERN_ERROR,
+        );
+    }
+
     return 1;
 }
 
