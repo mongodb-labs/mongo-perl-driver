@@ -150,6 +150,13 @@ has pid_tid => (
     init_arg => undef,
 );
 
+# compatible wire protocol
+has is_compatible => (
+    is => 'ro',
+    isa => Bool,
+    writer => '_set_is_compatible',
+);
+
 # servers, links and rtt_ewma_ms are all hashes on server address
 
 has servers => (
@@ -326,6 +333,7 @@ sub scan_all_servers {
     }
 
     $self->_set_last_scan_time( [ gettimeofday() ] );
+    $self->_check_wire_versions;
     return;
 }
 
@@ -396,6 +404,7 @@ sub _check_oldest_server {
 sub _check_wire_versions {
     my ($self) = @_;
 
+    my $compat = 1;
     for my $server ( grep { $_->is_available } $self->all_servers ) {
         my ( $server_min_wire_version, $server_max_wire_version ) =
           @{ $server->is_master }{qw/minWireVersion maxWireVersion/};
@@ -403,11 +412,10 @@ sub _check_wire_versions {
         if (   ( $server_min_wire_version || 0 ) > $self->max_wire_version
             || ( $server_max_wire_version || 0 ) < $self->min_wire_version )
         {
-            MongoDB::ProtocolError->throw(
-                "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library."
-            );
+            $compat = 0;
         }
     }
+    $self->_set_is_compatible($compat);
 
     return;
 }
@@ -621,7 +629,11 @@ sub _selection_timeout {
     my $start_time = [ gettimeofday() ];
 
     while (1) {
-        $self->_check_wire_versions;
+        unless ($self->is_compatible) {
+            MongoDB::ProtocolError->throw(
+                "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library."
+            );
+        }
         if ( my $server = $self->$method($read_pref) ) {
             return $server;
         }
