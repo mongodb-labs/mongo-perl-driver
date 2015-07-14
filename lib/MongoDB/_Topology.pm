@@ -249,7 +249,7 @@ sub get_readable_link {
 
     my $mode = $read_pref ? lc $read_pref->mode : 'primary';
     my $method =
-      $self->type eq any(qw/Single Sharded/)
+      ( $self->type eq "Single" || $self->type eq "Sharded" )
       ? '_find_any_server'
       : "_find_${mode}_server";
 
@@ -284,7 +284,9 @@ sub get_writable_link {
     $self->_check_if_forked;
 
     my $method =
-      $self->type eq any(qw/Single Sharded/) ? '_find_any_server' : "_find_primary_server";
+      ( $self->type eq "Single" || $self->type eq "Sharded" )
+      ? '_find_any_server'
+      : "_find_primary_server";
 
     while ( my $server = $self->_selection_timeout($method) ) {
         my $link = $self->_get_server_link( $server, $method );
@@ -559,7 +561,7 @@ sub _initialize_link {
     # we have a link and the server is a valid member, so
     # try to authenticate; if authentication fails, all
     # servers are considered invalid and we throw an error
-    if ( $server->type eq any(qw/Standalone Mongos RSPrimary RSSecondary/) ) {
+    if ( first { $_ eq $server->type } qw/Standalone Mongos RSPrimary RSSecondary/ ) {
         try {
             $self->credential->authenticate($link, $self->bson_codec);
         }
