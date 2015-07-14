@@ -242,8 +242,6 @@ An optional hash reference of options may be provided.  Valid options include:
 =cut
 
 
-my @encode_overrides =
-  qw/error_callback invalid_chars max_length op_char prefer_numeric/;
 my $encode_one_args;
 
 sub encode_one {
@@ -284,8 +282,6 @@ An optional hash reference of options may be provided.  Valid options include:
 
 =cut
 
-my @decode_overrides =
-  qw/dbref_callback dt_type error_callback max_length/;
 my $decode_one_args;
 
 sub decode_one {
