@@ -69,6 +69,7 @@ sub _pre_encode_update {
 
     return MongoDB::BSON::_EncodedDoc->new(
         bson => $bson_doc,
+        metadata => {},
     );
 }
 
