@@ -158,6 +158,12 @@ has is_compatible => (
     ( WITH_ASSERTS ? ( isa => Bool ) : () ),
 );
 
+has current_primary => (
+    is => 'rwp',
+    clearer => '_clear_current_primary',
+    init_arg => undef,
+);
+
 # servers, links and rtt_ewma_sec are all hashes on server address
 
 has servers => (
@@ -288,9 +294,17 @@ sub get_writable_link {
       ? '_find_any_server'
       : "_find_primary_server";
 
+    return $self->_get_server_link( $self->current_primary, $method )
+      if $self->current_primary;
+
     while ( my $server = $self->_selection_timeout($method) ) {
         my $link = $self->_get_server_link( $server, $method );
-        return $link if $link;
+        if ($link) {
+            $self->_set_current_primary($server)
+              if $self->type eq "ReplicaSetWithPrimary"
+              || 1 == keys %{ $self->servers };
+            return $link;
+        }
     }
 
     MongoDB::SelectionError->throw(
@@ -390,6 +404,16 @@ sub _check_if_forked {
     return;
 }
 
+sub _check_for_primary {
+    my ($self) = @_;
+    if ( 0 == $self->_primaries ) {
+        $self->_set_type('ReplicaSetNoPrimary');
+        $self->_clear_current_primary;
+        return 0;
+    }
+    return 1;
+}
+
 sub _check_oldest_server {
     my ( $self, @to_check ) = @_;
 
@@ -461,6 +485,8 @@ sub _find_nearest_server {
 
 sub _find_primary_server {
     my ( $self, undef, @candidates ) = @_;
+    return $self->current_primary
+      if $self->current_primary;
     push @candidates, $self->all_servers unless @candidates;
     return first { $_->is_writable } @candidates;
 }
@@ -531,11 +557,6 @@ sub _get_server_link {
     return $link;
 }
 
-sub _has_no_primaries {
-    my ($self) = @_;
-    return 0 == $self->_primaries;
-}
-
 sub _initialize_link {
     my ( $self, $address ) = @_;
 
@@ -581,6 +602,9 @@ sub _primaries {
 
 sub _remove_address {
     my ( $self, $address ) = @_;
+    if ( $self->current_primary &&  $self->current_primary->address eq $address ) {
+        $self->_clear_current_primary;
+    }
     delete $self->$_->{$address} for qw/servers links rtt_ewma_sec/;
     return;
 }
@@ -765,14 +789,11 @@ sub _update_rs_with_primary_from_member {
     # require 'me' that matches expected address
     if ( $new_server->me ne $new_server->address ) {
         $self->_remove_server($new_server);
-        # topology changes might have removed all primaries
-        $self->_set_type('ReplicaSetNoPrimary')
-          if $self->_has_no_primaries;
+        $self->_check_for_primary;
         return;
     }
 
-    if ( $self->_has_no_primaries ) {
-        $self->_set_type('ReplicaSetNoPrimary');
+    if ( ! $self->_check_for_primary ) {
 
         # flag possible primary to amend scanning order
         my $primary = $new_server->primary;
@@ -875,8 +896,7 @@ sub _update_ReplicaSetNoPrimary {
         $self->_set_type('ReplicaSetWithPrimary');
         $self->_update_rs_with_primary_from_primary($new_server);
         # topology changes might have removed all primaries
-        $self->_set_type('ReplicaSetNoPrimary')
-          if $self->_has_no_primaries;
+        $self->_check_for_primary;
     }
     elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
         $self->_update_rs_without_primary($new_server);
@@ -911,8 +931,7 @@ sub _update_ReplicaSetWithPrimary {
     }
 
     # topology changes might have removed all primaries
-    $self->_set_type('ReplicaSetNoPrimary')
-      if $self->_has_no_primaries;
+    $self->_check_for_primary;
 
     return;
 }
@@ -958,8 +977,7 @@ sub _update_Unknown {
         $self->_set_type('ReplicaSetWithPrimary');
         $self->_update_rs_with_primary_from_primary($new_server);
         # topology changes might have removed all primaries
-        $self->_set_type('ReplicaSetNoPrimary')
-          if $self->_has_no_primaries;
+        $self->_check_for_primary;
     }
     elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
         $self->_set_type('ReplicaSetNoPrimary');
