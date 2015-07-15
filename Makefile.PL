@@ -31,7 +31,7 @@ requires 'Tie::IxHash';
 requires 'Time::HiRes';
 requires 'Try::Tiny';
 requires 'Type::Tiny' => '1';
-requires 'Type::Tiny::XS';
+requires 'Type::Tiny::XS' if $] ge '5.010001';
 requires 'boolean';
 requires 'namespace::clean';
 requires 'version';
