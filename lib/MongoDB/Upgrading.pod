@@ -92,7 +92,6 @@ adding more granular control of timings and timeout behaviors.
 * C<auth_mechanism_properties>
 * C<bson_codec>
 * C<connect_timeout_ms>
-* C<connect_type>
 * C<heartbeat_frequency_ms>
 * C<local_threshold_ms>
 * C<max_time_ms>
@@ -102,6 +101,21 @@ adding more granular control of timings and timeout behaviors.
 * C<server_selection_timeout_ms>
 * C<socket_check_interval_ms>
 * C<socket_timeout_ms>
+
+=head3 Replica set configuration
+
+Connecting to a replica set now requires a replica set name, given either
+with the C<replica_set_name> option for L<MongoDB::MongoClient> or with
+the C<replicaSet> option in a connection string.  For example:
+
+    $client = MongoDB::MongoClient->new(
+        host => "mongodb://rs1.example.com,rs2.example.com/",
+        replica_set_name => 'the_set',
+    );
+
+    $client = MongoDB::MongoClient->new(
+        host => "mongodb://rs1.example.com,rs2.example.com/?replicaSet=the_set"
+    );
 
 =head3 Configuration options changed to read-only
 
@@ -146,7 +160,6 @@ configuration options in the L<MongoDB::MongoClient>:
     ---------------------------     -----------------------------
     authMechanism                   auth_mechanism
     authMechanismProperties         auth_mechanism_properties
-    connect                         connect_type
     connectTimeoutMS                connect_timeout_ms
     heartbeatFrequencyMS            heartbeat_frequency_ms
     journal                         j

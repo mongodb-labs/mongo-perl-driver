@@ -132,20 +132,6 @@ subtest connect_timeout_ms => sub {
     is( $mc->connect_timeout_ms, 10000, "connectTimeoutMS" );
 };
 
-subtest connect_type => sub {
-    my $mc = _mc();
-    is( $mc->connect_type, "none", "default connect_type" );
-
-    $mc = _mc( connect_type => "replicaSet", );
-    is( $mc->connect_type, "replicaSet", "connect_type" );
-
-    $mc = _mc(
-        host         => 'mongodb://localhost/?connect=direct',
-        connect_type => "replicaSet",
-    );
-    is( $mc->connect_type, "direct", "connect" );
-};
-
 subtest db_name => sub {
     my $mc = _mc();
     is( $mc->db_name, "", "default db_name" );

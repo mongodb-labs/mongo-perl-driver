@@ -231,41 +231,6 @@ sub _build_connect_timeout_ms {
     );
 }
 
-=attr connect_type
-
-Specifies the expected topology type of servers in the seed list.  The default
-is 'none'.
-
-Valid values include:
-
-=for :list
-* replicaSet – the topology is a replica set (ignore non replica set members
-  during discovery)
-* direct – the topology is a single server (connect as if the server is a
-  standlone, even if it looks like a replica set member)
-* none – discover the deployment topology by checking servers in the seed list
-  and connect accordingly
-
-This may be set in a connection string with the C<connect> option.
-
-=cut
-
-has connect_type => (
-    is      => 'ro',
-    isa     => ConnectType,
-    lazy    => 1,
-    builder => '_build_connect_type',
-);
-
-sub _build_connect_type {
-    my ($self) = @_;
-    return $self->__uri_or_else(
-        u => 'connect',
-        e => 'connect_type',
-        d => 'none',
-    );
-}
-
 =attr db_name
 
 Optional.  If an L</auth_mechanism> requires a database for authentication,
@@ -538,9 +503,8 @@ sub _build_read_pref_tag_sets {
 =attr replica_set_name
 
 Specifies the replica set name to connect to.  If this string is non-empty,
-then if the topology is a replica set or a direct connection to a single
-server, server replica set names must match this or they will be removed from
-the topology.
+then the topology is treated as a replica set and all server replica set
+names must match this or they will be removed from the topology.
 
 This may be set in a connection string with the C<replicaSet> option.
 
@@ -987,10 +951,16 @@ has _deferred => (
 
 =method topology_type
 
-Returns an enumerated topology type.  The value will be either 'Unknown' (the
-default before any servers are scanned), 'Single', 'ReplicaSetWithPrimary',
-'ReplicaSetNoPrimary' (if the primary is down or not yet discovered), or
-'Sharded'.
+Returns an enumerated topology type.  If the L</replica_set_name> is
+set, the value will be either 'ReplicaSetWithPrimary' or 'ReplicaSetNoPrimary'
+(if the primary is down or not yet discovered).  Without L</replica_set_name>,
+the type will be 'Single' if there is only one server in the list of hosts, and
+'Sharded' if there are more than one.
+
+N.B. A single mongos will have a topology type of 'Single', as that mongos will
+be used for all reads and writes, just like a standalone mongod.  The 'Sharded'
+type indicates a sharded cluster with multiple mongos servers, and reads/writes
+will be distributed acc
 
 =cut
 
@@ -1008,9 +978,9 @@ sub _build__topology {
     my ($self) = @_;
 
     my $type =
-        $self->connect_type eq 'replicaSet' ? 'ReplicaSetNoPrimary'
-      : $self->connect_type eq 'direct'     ? 'Single'
-      :                                       'Unknown';
+        length( $self->replica_set_name ) ? 'ReplicaSetNoPrimary'
+      : @{ $self->_uri->hostpairs } > 1   ? 'Sharded'
+      :                                     'Single';
 
     MongoDB::_Topology->new(
         uri                         => $self->_uri,
@@ -1083,7 +1053,6 @@ sub _build__uri {
 my @deferred_options = qw(
   auth_mechanism
   auth_mechanism_properties
-  connect_type
   connect_timeout_ms
   db_name
   heartbeat_frequency_ms
@@ -1122,9 +1091,6 @@ sub BUILD {
     my $uri = $self->_uri;
 
     my @addresses = @{ $uri->hostpairs };
-    if ( $self->connect_type eq 'direct' && @addresses > 1 ) {
-        MongoDB::UsageError->throw("Connect type 'direct' cannot be used with multiple addresses: @addresses");
-    }
 
     # resolve and validate all deferred attributes
     $self->$_ for @deferred_options;
@@ -1487,6 +1453,12 @@ send_write_op
         host => "mongodb://mongo.example.com:27017"
     );
 
+    # connect to a replica set (set name *required*)
+    my $client = MongoDB::MongoClient->new(
+        host => "mongodb://mongo1.example.com,mongo2.example.com",
+        replica_set_name => 'myset',
+    );
+
     my $db = $client->get_database("test");
     my $coll = $db->get_collection("people");
 
@@ -1566,11 +1538,16 @@ If multiple hosts are given in the seed list or discovered by talking to
 servers in the seed list, they must all be replica set members or must all be
 mongos servers for a sharded cluster.
 
-If a single, non-replica-set server is found, or if the L</connect_type> (or
-C<connect> URI option) is 'direct', the deployment is treated as a single
-server deployment.  For a replica set member, forcing the connection type to be
-'direct' routes all operations to it alone; this is useful for carrying out
-administrative activities on that server.
+A replica set B<MUST> have the C<replicaSet> option set to the replica set
+name.
+
+If there is only single host in the seed list and C<replicaSet> is not
+provided, the deployment is treated as a single server deployment and all
+reads and writes will be sent to that host.
+
+Providing a replica set member as a single host without the set name is the
+way to get a "direct connection" for carrying out administrative activities
+on that server.
 
 The connection string may also have a username and password:
 
@@ -1593,7 +1570,6 @@ The currently supported connection string options are:
 =for :list
 *authMechanism
 *authMechanism.SERVICE_NAME
-*connect
 *connectTimeoutMS
 *journal
 *readPreference

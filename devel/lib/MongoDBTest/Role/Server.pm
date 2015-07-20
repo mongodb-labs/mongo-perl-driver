@@ -232,7 +232,7 @@ has client => (
 
 sub _build_client {
     my ($self) = @_;
-    return MongoDB::MongoClient->new( host => $self->as_direct_uri, dt_type => undef );
+    return MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef );
 }
 
 # Methods
@@ -258,8 +258,8 @@ sub start {
 
         # wait for the server to respond to ismaster
         retry {
-            $self->_logger->debug("Pinging " . $self->name . " with ismaster");
-            MongoDB::MongoClient->new(host => $self->as_direct_uri)->get_database("admin")->run_command([ismaster => 1]);
+            $self->_logger->debug(sprintf("Pinging %s (%s) with ismaster", $self->name, $self->as_uri));
+            MongoDB::MongoClient->new(host => $self->as_uri)->get_database("admin")->run_command([ismaster => 1]);
         }
         delay_exp { 13, 1e5 }
         on_retry {
@@ -329,11 +329,6 @@ sub as_host_port {
 sub as_uri {
     my ($self) = @_;
     return "mongodb://" . $self->as_host_port;
-}
-
-sub as_direct_uri {
-    my ($self) = @_;
-    return "mongodb://" . $self->as_host_port . "/?connect=direct";
 }
 
 sub _command_args {

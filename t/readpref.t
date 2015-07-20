@@ -126,7 +126,7 @@ subtest "direct connection" => sub {
         next unless $s->is_readable;
         my $addr  = $s->address;
         my $type  = $s->type;
-        my $conn2 = build_client( host => $addr, connect_type => 'direct' );
+        my $conn2 = build_client( host => $addr );
         my $coll2 = $conn2->get_database( $testdb->name )->get_collection( $coll->name );
         my $count;
         is( exception { $count = $coll2->count }, undef, "count on $addr ($type) succeeds" )

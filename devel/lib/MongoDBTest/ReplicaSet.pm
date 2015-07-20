@@ -80,8 +80,9 @@ sub rs_initiate {
 
     $self->_logger->debug("configuring replica set with: " . to_json($rs_config));
 
-    # not $self->client because this needs to be a direct connection
-    my $client = MongoDB::MongoClient->new( host => $first->as_direct_uri, dt_type => undef );
+    # not $self->client because this needs to be a direct connection, i.e. one
+    # seed and no replicaSet URI option
+    my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
     $client->get_database("admin")->run_command({replSetInitiate => $rs_config});
 
     $self->_logger->debug("waiting for primary");
@@ -95,7 +96,7 @@ sub wait_for_all_hosts {
     my ($self) = @_;
     my ($first) = $self->all_servers;
     retry {
-        my $client = MongoDB::MongoClient->new( host => $first->as_direct_uri, dt_type => undef );
+        my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
         my $admin = $client->get_database("admin");
         if ( my $status = eval { $admin->run_command({replSetGetStatus => 1}) } ) {
             my @member_states = map { $_->{state} } @{ $status->{members} };
@@ -124,5 +125,15 @@ sub stepdown_primary {
     };
     return;
 }
+
+around 'as_uri' => sub {
+    my $orig = shift;
+    my $self = shift;
+    my $uri = $self->$orig;
+    my $set = $self->set_name;
+    $uri =~ s{/?$}{/};
+    $uri .= "?replicaSet=$set";
+    return $uri;
+};
 
 1;
