@@ -32,20 +32,20 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has query => (
     is       => 'ro',
     required => 1,
     writer   => '_set_query',
-    ( WITH_ASSERTS ? ( isa => Document ) : () ),
+    isa => Document,
 );
 
 has query_flags => (
     is      => 'ro',
     default => sub { {} },
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 with $_ for qw(

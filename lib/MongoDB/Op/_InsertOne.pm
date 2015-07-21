@@ -38,13 +38,13 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has document => (

@@ -42,14 +42,14 @@ with 'MongoDB::Role::_WriteResult';
 has [qw/upserted inserted/] => (
     is      => 'ro',
     default => sub { [] },
-    ( WITH_ASSERTS ? ( isa => ArrayOfHashRef ) : () ),
+    isa => ArrayOfHashRef,
 );
 
 has inserted_ids => (
     is      => 'ro',
     lazy    => 1,
     builder => '_build_inserted_ids',
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 sub _build_inserted_ids {
@@ -61,7 +61,7 @@ has upserted_ids => (
     is      => 'ro',
     lazy    => 1,
     builder => '_build_upserted_ids',
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 sub _build_upserted_ids {
@@ -74,7 +74,7 @@ for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
         is      => 'ro',
         writer  => "_set_$attr",
         default => 0,
-        ( WITH_ASSERTS ? ( isa => Num ) : () ),
+        isa => Num,
     );
 }
 
@@ -87,7 +87,7 @@ has modified_count => (
     is      => 'ro',
     writer  => '_set_modified_count',
     default => undef,
-    ( WITH_ASSERTS ? ( isa =>  Maybe[Num] ) : () ),
+    isa =>  Maybe[Num],
 );
 
 sub has_modified_count {
@@ -99,14 +99,14 @@ has op_count => (
     is      => 'ro',
     writer  => '_set_op_count',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has batch_count => (
     is      => 'ro',
     writer  => '_set_batch_count',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 #--------------------------------------------------------------------------#

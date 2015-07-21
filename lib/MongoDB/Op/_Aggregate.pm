@@ -34,31 +34,31 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has client => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => InstanceOf ['MongoDB::MongoClient'] ) : () ),
+    isa => InstanceOf ['MongoDB::MongoClient'],
 );
 
 has pipeline => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => ArrayOfHashRef ) : () ),
+    isa => ArrayOfHashRef,
 );
 
 has options => (
     is      => 'ro',
     default => sub { {} },
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 with $_ for qw(

@@ -31,14 +31,14 @@ use namespace::clean;
 has bson => (
     is => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 # A hash reference of optional meta data about the document, such as the "_id"
 has metadata => (
     is => 'ro',
     required => 1, # for speed; lazy accessors don't get optimized
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 1;

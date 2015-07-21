@@ -53,109 +53,109 @@ use if HAS_THREADS, 'threads';
 has uri => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::_URI'] ) : () ),
+    isa => InstanceOf['MongoDB::_URI'],
 );
 
 has max_wire_version => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has min_wire_version => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has credential => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::_Credential'] ) : () ),
+    isa => InstanceOf['MongoDB::_Credential'],
 );
 
 has type => (
     is      => 'ro',
     writer  => '_set_type',
     default => 'Unknown',
-    ( WITH_ASSERTS ? ( isa => TopologyType ) : () ),
+    isa => TopologyType,
 );
 
 has replica_set_name => (
     is      => 'ro',
     default => '',
     writer  => '_set_replica_set_name', # :-)
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has heartbeat_frequency_sec => (
     is      => 'ro',
     default => 60,
-    ( WITH_ASSERTS ? ( isa => NonNegNum ) : () ),
+    isa => NonNegNum,
 );
 
 has last_scan_time => (
     is      => 'ro',
     default => EPOCH,
     writer  => '_set_last_scan_time',
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has local_threshold_sec => (
     is      => 'ro',
     default => 0.015,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has socket_check_interval_sec => (
     is      => 'ro',
     default => 5,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has server_selection_timeout_sec => (
     is      => 'ro',
     default => 60,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has ewma_alpha => (
     is      => 'ro',
     default => 0.2,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has link_options => (
     is      => 'ro',
     default => sub { {} },
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 has bson_codec => (
     is       => 'ro',
     default  => sub { MongoDB::BSON->new },
-    ( WITH_ASSERTS ? ( isa => BSONCodec ) : () ),
+    isa => BSONCodec,
 );
 
 has number_of_seeds => (
     is      => 'ro',
     lazy    => 1,
     builder => '_build_number_of_seeds',
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has pid_tid => (
     is       => 'ro',
     default  => sub { [ $$, HAS_THREADS ? threads->tid : 0 ] },
     init_arg => undef,
-    ( WITH_ASSERTS ? ( isa => ArrayRef ) : () ),
+    isa => ArrayRef,
 );
 
 # compatible wire protocol
 has is_compatible => (
     is => 'ro',
     writer => '_set_is_compatible',
-    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
+    isa => Bool,
 );
 
 has current_primary => (
@@ -169,19 +169,19 @@ has current_primary => (
 has servers => (
     is      => 'ro',
     default => sub { {} },
-    ( WITH_ASSERTS ? ( isa => HashRef[InstanceOf['MongoDB::_Server']] ) : () ),
+    isa => HashRef[InstanceOf['MongoDB::_Server']],
 );
 
 has links => (
     is      => 'ro',
     default => sub { {} },
-    ( WITH_ASSERTS ? ( isa => HashRef[InstanceOf['MongoDB::_Link']] ) : () ),
+    isa => HashRef[InstanceOf['MongoDB::_Link']],
 );
 
 has rtt_ewma_sec => (
     is      => 'ro',
     default => sub { {} },
-    ( WITH_ASSERTS ? ( isa => HashRef[Num] ) : () ),
+    isa => HashRef[Num],
 );
 
 #--------------------------------------------------------------------------#

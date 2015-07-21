@@ -35,7 +35,7 @@ BEGIN {
         MAX_BSON_WIRE_SIZE   => 16_793_600,                     # 16MiB + 16KiB
         MAX_WRITE_BATCH_SIZE => 1000,
         P_INT32              => $] lt '5.010' ? 'l' : 'l<',
-        WITH_ASSERTS         => $ENV{PERL_MONGO_ENABLE_ASSERTS},
+        WITH_ASSERTS         => $ENV{PERL_MONGO_WITH_ASSERTS},
     };
 }
 

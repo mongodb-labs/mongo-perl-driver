@@ -32,7 +32,7 @@ use namespace::clean;
 has cursor_ids => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => ArrayRef[Str] ) : () ),
+    isa => ArrayRef[Str],
 );
 
 sub execute {

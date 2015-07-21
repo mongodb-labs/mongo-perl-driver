@@ -35,7 +35,7 @@ requires 'execute';
 has bson_codec => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => BSONCodec ) : () ),
+    isa => BSONCodec,
 );
 
 # Sends a BSON query string, then read, parse and validate the reply.

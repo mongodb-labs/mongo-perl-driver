@@ -43,7 +43,7 @@ has value => (
     is      => 'ro',
     required => 1,
     builder => '_build_value',
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 # XXX need to set up typedef with str length

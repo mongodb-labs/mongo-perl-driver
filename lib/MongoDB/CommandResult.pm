@@ -39,7 +39,7 @@ Hash reference with the output document of a database command
 has output => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 =attr address
@@ -51,7 +51,7 @@ Address ("host:port") of server that ran the command
 has address => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => HostAddress ) : () ),
+    isa => HostAddress,
 );
 
 =method last_code

@@ -45,7 +45,7 @@ The number of documents that matched the filter.
 has deleted_count => (
     is      => 'ro',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 1;

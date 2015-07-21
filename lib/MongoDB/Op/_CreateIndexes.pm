@@ -36,25 +36,25 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has indexes => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => ArrayRef[HashRef] ) : () ), # XXX ArrayRef[IndexModel]?
+    isa => ArrayRef[HashRef],
 );
 
 has write_concern => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => WriteConcern ) : () ),
+    isa => WriteConcern,
 );
 
 with qw/MongoDB::Role::_CommandOp/;

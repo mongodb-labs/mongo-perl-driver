@@ -34,50 +34,50 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has client => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::MongoClient'] ) : () ),
+    isa => InstanceOf['MongoDB::MongoClient'],
 );
 
 has query => (
     is       => 'ro',
     required => 1,
     writer   => '_set_query',
-    ( WITH_ASSERTS ? ( isa => Document ) : () ),
+    isa => Document,
 );
 
 has projection => (
     is     => 'ro',
-    ( WITH_ASSERTS ? ( isa => Document ) : () ),
+    isa => Document,
 );
 
 has [qw/batch_size limit skip/] => (
     is      => 'ro',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 # XXX eventually make this a hash with restricted keys?
 has query_flags => (
     is      => 'ro',
     default => sub { {} },
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 has post_filter => (
     is        => 'ro',
     predicate => 'has_post_filter',
-    ( WITH_ASSERTS ? ( isa => Maybe[CodeRef] ) : () ),
+    isa => Maybe[CodeRef],
 );
 
 with 'MongoDB::Role::_ReadOp';

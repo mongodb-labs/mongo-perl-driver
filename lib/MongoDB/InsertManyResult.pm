@@ -45,7 +45,7 @@ The number of documents inserted.
 has inserted_count => (
     is      => 'ro',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 =attr inserted
@@ -58,7 +58,7 @@ Documents are just as in C<upserted>.
 has inserted => (
     is      => 'ro',
     default => sub { [] },
-    ( WITH_ASSERTS ? ( isa => ArrayOfHashRef ) : () ),
+    isa => ArrayOfHashRef,
 );
 
 =attr inserted_ids
@@ -72,7 +72,7 @@ has inserted_ids => (
     is      => 'ro',
     lazy    => 1,
     builder => '_build_inserted_ids',
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 sub _build_inserted_ids {

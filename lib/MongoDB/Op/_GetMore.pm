@@ -33,25 +33,25 @@ use namespace::clean;
 has ns => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has client => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::MongoClient'] ) : () ),
+    isa => InstanceOf['MongoDB::MongoClient'],
 );
 
 has cursor_id => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has batch_size => (
     is      => 'ro',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 with 'MongoDB::Role::_DatabaseOp';

@@ -47,36 +47,36 @@ my $SOCKET_CLASS =
 has address => (
     is => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => HostAddress ) : () ),
+    isa => HostAddress,
 );
 
 has connect_timeout => (
     is => 'ro',
     default => 20,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has socket_timeout => (
     is => 'ro',
     default => 30,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has with_ssl => (
     is => 'ro',
-    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
+    isa => Bool,
 );
 
 has SSL_options => (
     is => 'ro',
     default => sub { {} },
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 has server => (
     is => 'rwp',
     init_arg => undef,
-    ( WITH_ASSERTS ? ( isa => Maybe[ServerDesc] ) : () ),
+    isa => Maybe[ServerDesc],
 );
 
 my @is_master_fields= qw(
@@ -88,7 +88,7 @@ for my $f ( @is_master_fields ) {
     has $f => (
         is => 'rwp',
         init_arg => undef,
-        ( WITH_ASSERTS ? ( isa => Maybe[NonNegNum] ) : () ),
+        isa => Maybe[NonNegNum],
     );
 }
 

@@ -40,38 +40,38 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 # may or may not have _id; will be added if check_keys is true
 has documents => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => ArrayRef ) : () ),
+    isa => ArrayRef,
 );
 
 has ordered => (
     is      => 'ro',
     default => 1,
-    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
+    isa => Bool,
 );
 
 has check_keys => (
     is      => 'ro',
     default => 1,
-    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
+    isa => Bool,
 );
 
 has _doc_ids => (
     is      => 'ro',
     writer  => '_set_doc_ids',
-    ( WITH_ASSERTS ? ( isa => ArrayRef ) : () ),
+    isa => ArrayRef,
 );
 
 with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_InsertPreEncoder/;

@@ -36,25 +36,25 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has client => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::MongoClient'] ) : () ),
+    isa => InstanceOf['MongoDB::MongoClient'],
 );
 
 has filter => (
     is      => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Document ) : () ),
+    isa => Document,
 );
 
 has options => (
     is      => 'ro',
     default => sub { {} },
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 with $_ for qw(

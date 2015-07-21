@@ -45,7 +45,7 @@ The number of documents that matched the filter.
 has matched_count => (
     is      => 'ro',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 =attr modified_count
@@ -61,7 +61,7 @@ defined or not.
 
 has modified_count => (
     is      => 'ro',
-    ( WITH_ASSERTS ? ( isa => Maybe[Num] ) : () ),
+    isa => Maybe[Num],
 );
 
 sub has_modified_count {

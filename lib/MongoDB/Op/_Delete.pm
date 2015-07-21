@@ -35,25 +35,25 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has filter => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Document ) : () ),
+    isa => Document,
 );
 
 has just_one => (
     is      => 'ro',
     default => 1,
-    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
+    isa => Bool,
 );
 
 with qw/MongoDB::Role::_WriteOp/;

@@ -36,7 +36,7 @@ with 'MongoDB::Role::_DatabaseOp';
 has read_preference => (
     is      => 'ro',
     default => sub { $PRIMARY },
-    ( WITH_ASSERTS ? ( isa => ReadPreference ) : () ),
+    isa => ReadPreference,
 );
 
 1;

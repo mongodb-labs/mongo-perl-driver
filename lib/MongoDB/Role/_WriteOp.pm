@@ -44,7 +44,7 @@ requires qw/db_name _parse_cmd _parse_gle/;
 has write_concern => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => WriteConcern ) : () ),
+    isa => WriteConcern,
 );
 
 sub _send_legacy_op_with_gle {

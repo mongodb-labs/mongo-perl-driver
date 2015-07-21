@@ -36,19 +36,19 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has filter => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Document ) : () ),
+    isa => Document,
 );
 
 has update => (
@@ -59,17 +59,17 @@ has update => (
 has is_replace => (
     is     => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
+    isa => Bool,
 );
 
 has multi => (
     is     => 'ro',
-    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
+    isa => Bool,
 );
 
 has upsert => (
     is     => 'ro',
-    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
+    isa => Bool,
 );
 
 with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_UpdatePreEncoder/;

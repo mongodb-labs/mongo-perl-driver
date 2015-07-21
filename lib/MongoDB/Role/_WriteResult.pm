@@ -31,13 +31,13 @@ use namespace::clean;
 has acknowledged => (
     is      => 'ro',
     default => 1,
-    ( WITH_ASSERTS ? ( isa => Bool ) : () ),
+    isa => Bool,
 );
 
 has [qw/write_errors write_concern_errors/] => (
     is      => 'ro',
     default => sub { [] },
-    ( WITH_ASSERTS ? ( isa => ArrayOfHashRef ) : () ),
+    isa => ArrayOfHashRef,
 );
 
 with 'MongoDB::Role::_LastError';

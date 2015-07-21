@@ -43,31 +43,31 @@ with 'MongoDB::Role::_Cursor';
 has _client => (
     is       => 'rw',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => InstanceOf['MongoDB::MongoClient'] ) : () ),
+    isa => InstanceOf['MongoDB::MongoClient'],
 );
 
 has address => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => HostAddress ) : () ),
+    isa => HostAddress,
 );
 
 has ns => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has bson_codec => (
     is       => 'ro',
     required => 1,
-    ( WITH_ASSERTS ? ( isa => BSONCodec ) : () ),
+    isa => BSONCodec,
 );
 
 has batch_size => (
     is      => 'ro',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Int ) : () ),
+    isa => Int,
 );
 
 # attributes for tracking progress
@@ -75,7 +75,7 @@ has batch_size => (
 has cursor_at => (
     is      => 'ro',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 sub _inc_cursor_at { $_[0]{cursor_at}++ }
@@ -83,7 +83,7 @@ sub _inc_cursor_at { $_[0]{cursor_at}++ }
 has limit => (
     is      => 'ro',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 # attributes from actual results -- generally get this from BUILDARGS
@@ -92,27 +92,27 @@ has cursor_id => (
     is       => 'ro',
     required => 1,
     writer   => '_set_cursor_id',
-    ( WITH_ASSERTS ? ( isa => Str ) : () ),
+    isa => Str,
 );
 
 has cursor_start => (
     is      => 'ro',
     default => 0,
     writer  => '_set_cursor_start',
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 has cursor_flags => (
     is      => 'ro',
     default => sub { {} },
     writer  => '_set_cursor_flags',
-    ( WITH_ASSERTS ? ( isa => HashRef ) : () ),
+    isa => HashRef,
 );
 
 has cursor_num => (
     is      => 'ro',
     default => 0,
-    ( WITH_ASSERTS ? ( isa => Num ) : () ),
+    isa => Num,
 );
 
 sub _inc_cursor_num { $_[0]{cursor_num}++ }
@@ -120,7 +120,7 @@ sub _inc_cursor_num { $_[0]{cursor_num}++ }
 has _docs => (
     is      => 'ro',
     default => sub { [] },
-    ( WITH_ASSERTS ? ( isa => ArrayRef ) : () ),
+    isa => ArrayRef,
 );
 
 sub _drained { ! @{$_[0]{_docs}} }
