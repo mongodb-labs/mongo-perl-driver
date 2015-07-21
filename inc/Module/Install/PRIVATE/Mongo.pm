@@ -252,26 +252,28 @@ HERE
     ## * dependent. For example, some PPC or ARM systems may not have it even
     ## * if it is a recent GCC version.
     ## */
-    $conf{BSON_HAVE_ATOMIC_32_ADD_AND_FETCH} = $ca->link_if_else(<<'HERE') ? 0 : 1;
+    $conf{BSON_HAVE_ATOMIC_32_ADD_AND_FETCH} = $ca->link_if_else(<<'HERE') ? 1 : 0;
 #include <stdint.h>
 int
 main ()
 {
-    uint32_t seq = __sync_fetch_and_add_4(&seq, (int_32t)1);
-    return 0;
+    int32_t seq = 0;
+    __sync_fetch_and_add_4(&seq, (int32_t)1);
+    return seq;
 }
 HERE
 
     ##/*
     ## * Similarly, define to 1 if we have access to GCC 64-bit atomic builtins.
     ## */
-    $conf{BSON_HAVE_ATOMIC_64_ADD_AND_FETCH} = $ca->link_if_else(<<'HERE') ? 0 : 1;
+    $conf{BSON_HAVE_ATOMIC_64_ADD_AND_FETCH} = $ca->link_if_else(<<'HERE') ? 1 : 0;
 #include <stdint.h>
 int
 main ()
 {
-    uint64_t seq = __sync_fetch_and_add_8(&seq, (int_64t)1);
-    return 0;
+    int64_t seq = 0;
+    __sync_fetch_and_add_8(&seq, (int64_t)1);
+    return seq;
 }
 HERE
 
