@@ -24,6 +24,7 @@ use CPAN::Meta::Requirements;
 use Path::Tiny;
 use POSIX qw/SIGTERM SIGKILL/;
 use Proc::Guard;
+use File::Spec;
 use Sys::Hostname;
 use Try::Tiny::Retry 0.004 ":all";
 use Net::EmptyPort qw/empty_port wait_port/;
@@ -243,9 +244,9 @@ sub start {
         $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
         my $guard = proc_guard(
             sub {
-                close STDOUT unless $ENV{MONGOVERBOSE};
-                close STDERR unless $ENV{MONGOVERBOSE};
-                close STDIN;
+                open STDOUT, ">", File::Spec->devnull unless $ENV{MONGOVERBOSE};
+                open STDERR, ">", File::Spec->devnull unless $ENV{MONGOVERBOSE};
+                open STDIN, "<", File::Spec->devnull;
                 exec( $self->executable, $self->_command_args );
             }
         );
