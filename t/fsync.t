@@ -26,9 +26,10 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client/;
+use MongoDBTest qw/build_client server_type/;
 
 my $conn = build_client();
+my $server_type = server_type( $conn );
 
 my $ret;
 
@@ -56,7 +57,7 @@ subtest "async fsync" => sub {
 # Test fsync with lock.
 subtest "fsync with lock" => sub {
     plan skip_all => "lock not supported through mongos"
-        if $conn->topology_type eq 'Sharded';
+        if $server_type eq 'Mongos';
 
     # Lock
     $ret = $conn->fsync({lock => 1});

@@ -31,12 +31,13 @@ use MongoDB::Error;
 use MongoDB::WriteConcern;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db server_version/;
+use MongoDBTest qw/build_client get_test_db server_version server_type/;
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
 my $db_name = $testdb->name;
 my $server_version = server_version($conn);
+my $server_type = server_type($conn);;
 
 subtest 'get_database' => sub {
     isa_ok( $conn, 'MongoDB::MongoClient' );
@@ -68,7 +69,7 @@ subtest 'run_command' => sub {
     is( ref $testdb->run_command( Tie::IxHash->new( ismaster => 1 ) ),
         'HASH', "run_command(IxHash) gives HASH" );
 
-    if ( $conn->_topology->type eq 'ReplicaSetWithPrimary' ) {
+    if ( $server_type eq 'RSPrimary' ) {
         my $primary = $testdb->run_command( [ ismaster => 1 ] );
         my $secondary = $testdb->run_command( [ ismaster => 1 ], { mode => 'secondary' } );
         isnt( $primary->{me}, $secondary->{me}, "run_command respects explicit read preference" )
@@ -131,7 +132,7 @@ subtest 'getlasterror' => sub {
     is($result->{err}, undef, 'last_error: err');
 
     # mongos never returns 'n'
-    is($result->{n}, $conn->topology_type eq 'Sharded' ? undef : 0, 'last_error: n');
+    is($result->{n}, $server_type eq 'Mongos' ? undef : 0, 'last_error: n');
 };
 
 # reseterror 
