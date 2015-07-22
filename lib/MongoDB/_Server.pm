@@ -133,6 +133,21 @@ for my $s (qw/hosts passives arbiters/) {
     *{"_build_$s"} = sub { $_[0]->is_master->{$s} || [] };
 }
 
+
+# address configured as part of replica set: string or null. Default null.
+
+has me => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    builder => "_build_me",
+);
+
+sub _build_me {
+    my ($self) = @_;
+    return $self->is_master->{me} || '';
+}
+
 # setName: string or null. Default null.
 
 has set_name => (

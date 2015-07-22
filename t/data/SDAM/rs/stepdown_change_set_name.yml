@@ -1,9 +1,10 @@
-description: "Discover passives"
+description: "Primary becomes a secondary with wrong setName"
 
 uri: "mongodb://a/?replicaSet=rs"
 
 phases: [
 
+    # Primary is discovered normally.
     {
         responses: [
 
@@ -12,7 +13,6 @@ phases: [
                     ok: 1,
                     ismaster: true,
                     hosts: ["a:27017"],
-                    passives: ["b:27017"],
                     setName: "rs"
                 }]
         ],
@@ -25,12 +25,6 @@ phases: [
 
                     type: "RSPrimary",
                     setName: "rs"
-                },
-
-                "b:27017": {
-
-                    type: "Unknown",
-                    setName:
                 }
             },
 
@@ -38,39 +32,27 @@ phases: [
             setName: "rs"
         }
     },
+
+    # Primary changes its setName and becomes secondary.
+    # Remove it and change the topologyType.
     {
         responses: [
 
-                ["b:27017", {
+                ["a:27017", {
 
                     ok: 1,
                     ismaster: false,
                     secondary: true,
-                    passive: true,
                     hosts: ["a:27017"],
-                    passives: ["b:27017"],
-                    setName: "rs"
+                    setName: "wrong"
                 }]
         ],
 
         outcome: {
 
-            servers: {
+            servers: {},
 
-                "a:27017": {
-
-                    type: "RSPrimary",
-                    setName: "rs"
-                },
-
-                "b:27017": {
-
-                    type: "RSSecondary",
-                    setName: "rs"
-                }
-            },
-
-            topologyType: "ReplicaSetWithPrimary",
+            topologyType: "ReplicaSetNoPrimary",
             setName: "rs"
         }
     }

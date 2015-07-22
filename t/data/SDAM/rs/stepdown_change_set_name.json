@@ -1,5 +1,5 @@
 {
-    "description": "Primary changes setName", 
+    "description": "Primary becomes a secondary with wrong setName", 
     "phases": [
         {
             "outcome": {
@@ -39,8 +39,9 @@
                         "hosts": [
                             "a:27017"
                         ], 
-                        "ismaster": true, 
+                        "ismaster": false, 
                         "ok": 1, 
+                        "secondary": true, 
                         "setName": "wrong"
                     }
                 ]

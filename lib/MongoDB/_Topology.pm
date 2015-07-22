@@ -170,6 +170,7 @@ sub _build_number_of_seeds {
 sub BUILD {
     my ($self) = @_;
     my $type = $self->type;
+    my @addresses = @{ $self->uri->hostpairs };
 
     if ( my $set_name = $self->replica_set_name ) {
         if ( $type eq 'Single' || $type eq 'ReplicaSetNoPrimary' ) {
@@ -183,8 +184,6 @@ sub BUILD {
                 "deployment with set name '$set_name' may not be initialized as type '$type'");
         }
     }
-
-    my @addresses = @{ $self->uri->hostpairs };
 
     if ( $type eq 'Single' && @addresses > 1 ) {
         MongoDB::InternalError->throw(
@@ -713,6 +712,15 @@ sub _update_rs_with_primary_from_member {
         $self->_remove_server($new_server);
     }
 
+    # require 'me' that matches expected address
+    if ( $new_server->me ne $new_server->address ) {
+        $self->_remove_server($new_server);
+        # topology changes might have removed all primaries
+        $self->_set_type('ReplicaSetNoPrimary')
+          if $self->_has_no_primaries;
+        return;
+    }
+
     if ( $self->_has_no_primaries ) {
         $self->_set_type('ReplicaSetNoPrimary');
 
@@ -784,6 +792,12 @@ sub _update_rs_without_primary {
 
     $self->_add_address_as_unknown($_)
       for grep { !exists $self->servers->{$_} } keys %set_members;
+
+    # require 'me' that matches expected address
+    if ( $new_server->me ne $new_server->address ) {
+        $self->_remove_server($new_server);
+        return;
+    }
 
     # flag possible primary to amend scanning order
     my $primary = $new_server->primary;

@@ -37,16 +37,15 @@ while ( my $path = $iterator->() ) {
 }
 
 sub create_mock_topology {
+    my ($name, $string) = @_;
 
-    my $uri = MongoDB::_URI->new( uri => $_[0] );
-    my $type = 'Unknown';
-    if (exists $uri->options->{connect}) {
-        if ($uri->options->{connect} eq 'replicaSet') {
-            $type ='ReplicaSetNoPrimary';
-        } elsif ($uri->options->{connect} eq 'direct') {
-            $type = 'Single';
-        }
-    }
+    my $uri = MongoDB::_URI->new( uri => $string );
+    my $seed_count = scalar @{ $uri->hostpairs };
+
+    # XXX this is a hack because the direct tests are written to
+    # assume Single, even though this is not implied by the spec
+    my $type = ( $name =~ /^single/ && $seed_count == 1 ) ? 'Single' : "Unknown";
+
     return MongoDB::_Topology->new(
         uri => $uri,
         type => $type,
@@ -61,21 +60,25 @@ sub run_test {
 
     my ($name, $plan) = @_;
 
-    $name =~ s/\.ya?ml$//;
+    $name =~ s/\.json$//;
 
     subtest "$name" => sub {
 
-        my $topology = create_mock_topology( $plan->{'uri'} );
+        my $topology = create_mock_topology( $name, $plan->{'uri'} );
 
         for my $phase (@{$plan->{'phases'}}) {
 
             for my $response (@{$phase->{'responses'}}) {
 
+                my ($addr, $is_master) = @$response;
+                $is_master->{me} = $addr
+                    if $is_master->{setName} && ! exists $is_master->{me};
+
                 # Process response
                 my $desc = MongoDB::_Server->new(
 
-                    address => @$response[0],
-                    is_master => @$response[1],
+                    address => $addr,
+                    is_master => $is_master,
                     last_update_time => [ Time::HiRes::gettimeofday() ],
                 );
 
@@ -91,7 +94,7 @@ sub run_test {
 
 sub check_outcome {
 
-    my ($topology, $outcome) = @_;
+    my ($topology, $outcome, $start_type) = @_;
 
     my %expected_servers = %{$outcome->{'servers'}};
     my %actual_servers = %{$topology->servers};
