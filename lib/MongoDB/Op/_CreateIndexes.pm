@@ -66,7 +66,7 @@ sub execute {
     my ( $self, $link ) = @_;
 
     my $res =
-        $link->accepts_wire_version(2)
+        $link->does_write_commands
       ? $self->_command_create_indexes($link)
       : $self->_legacy_index_insert($link);
 

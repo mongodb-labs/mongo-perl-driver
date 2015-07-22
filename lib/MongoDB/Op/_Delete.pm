@@ -65,7 +65,7 @@ sub execute {
     my ( $self, $link ) = @_;
 
     my $res =
-        $link->accepts_wire_version(2)
+        $link->does_write_commands
       ? $self->_command_delete($link)
       : $self->_legacy_op_delete($link);
 

@@ -71,7 +71,7 @@ sub execute {
     my ( $self, $link, $topology ) = @_;
 
     my $options = $self->options;
-    my $is_2_6 = $link->accepts_wire_version(2);
+    my $is_2_6 = $link->does_write_commands;
 
     # maxTimeMS isn't available until 2.6 and the aggregate command
     # will reject it as unrecognized

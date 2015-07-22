@@ -84,7 +84,7 @@ sub execute {
 
     Carp::confess("NO LINK") unless $link;
 
-    my $use_write_cmd = $link->accepts_wire_version(2);
+    my $use_write_cmd = $link->does_write_commands;
 
     # If using legacy write ops, then there will never be a valid modified_count
     # result so we set that to undef in the constructor; otherwise, we set it

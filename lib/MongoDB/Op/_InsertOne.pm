@@ -72,7 +72,7 @@ sub execute {
     $self->_set_doc_id( $insert_doc->{metadata}{_id} );
 
     my $res =
-        $link->accepts_wire_version(2)
+        $link->does_write_commands
       ? $self->_command_insert( $link, $insert_doc )
       : $self->_legacy_op_insert( $link, $insert_doc );
 

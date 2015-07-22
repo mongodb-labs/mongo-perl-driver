@@ -92,6 +92,13 @@ for my $f ( @is_master_fields ) {
     );
 }
 
+# for caching wire version >= 2
+has does_write_commands => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
 my @connection_state_fields = qw(
     fh connected rcvbuf last_used fdset
 );
@@ -185,6 +192,8 @@ sub set_metadata {
     # Default is 2 * max BSON object size (DRIVERS-1)
     $self->_set_max_message_size_bytes( $server->is_master->{maxMessageSizeBytes}
           || 2 * $self->max_bson_object_size );
+
+    $self->_set_does_write_commands( $self->accepts_wire_version(2) );
 
     return;
 }

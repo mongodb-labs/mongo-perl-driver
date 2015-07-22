@@ -99,7 +99,7 @@ sub execute {
     $self->_set_doc_ids(\@ids);
 
     my $res =
-        $link->accepts_wire_version(2)
+        $link->does_write_commands
       ? $self->_command_insert( $link, \@insert_docs )
       : $self->_legacy_op_insert( $link, \@insert_docs );
 

@@ -100,7 +100,7 @@ sub execute {
     $update_op->{u} = $self->_pre_encode_update( $link, $update_op->{u}, $self->is_replace );
 
     my $res =
-        $link->accepts_wire_version(2)
+        $link->does_write_commands
       ? $self->_command_update( $link, $update_op, $orig_op )
       : $self->_legacy_op_update( $link, $update_op, $orig_op );
 
