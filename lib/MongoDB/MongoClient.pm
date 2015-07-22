@@ -1157,6 +1157,8 @@ automatically as needed.  It is kept for backwards compatibility.  Calling it
 will check all servers in the deployment which ensures a connection to any
 that are available.
 
+See L</reconnect> for a method that is useful when using forks or threads.
+
 =cut
 
 sub connect {
@@ -1176,6 +1178,23 @@ Drops all connections to servers.
 sub disconnect {
     my ($self) = @_;
     $self->_topology->close_all_links;
+    return 1;
+}
+
+=method reconnect
+
+    $client->reconnect;
+
+This method closes all connections to the server, as if L</disconnect> were
+called, and then immediately reconnects.  Use this after forking or spawning
+off a new thread.
+
+=cut
+
+sub reconnect {
+    my ($self) = @_;
+    $self->_topology->close_all_links;
+    $self->_topology->scan_all_servers;
     return 1;
 }
 
@@ -1798,8 +1817,8 @@ C<auth_mechanism_properties> attribute or in the connection string.
 
 =head1 THREAD-SAFETY AND FORK-SAFETY
 
-Existing connections to servers are closed after forking or spawning a thread.  They
-will reconnect on demand.
+You B<MUST> call the L</reconnect> method on any MongoDB::MongoClient objects
+after forking or spawning a thread.
 
 =cut
 

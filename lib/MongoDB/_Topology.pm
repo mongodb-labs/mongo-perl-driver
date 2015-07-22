@@ -41,11 +41,7 @@ use namespace::clean;
 use constant {
     EPOCH => 0,
     MIN_HEARTBEAT_FREQUENCY_USEC => 500_000, # 500ms, not configurable
-    HAS_THREADS => $Config{usethreads},
 };
-
-# fake thread-id for non-threaded perls
-use if HAS_THREADS, 'threads';
 
 #--------------------------------------------------------------------------#
 # attributes
@@ -143,13 +139,6 @@ has number_of_seeds => (
     lazy    => 1,
     builder => '_build_number_of_seeds',
     isa => Num,
-);
-
-has pid_tid => (
-    is       => 'ro',
-    default  => sub { [ $$, HAS_THREADS ? threads->tid : 0 ] },
-    init_arg => undef,
-    isa => ArrayRef,
 );
 
 # compatible wire protocol
@@ -252,8 +241,6 @@ sub close_all_links {
 sub get_readable_link {
     my ( $self, $read_pref ) = @_;
 
-    $self->_check_if_forked;
-
     my $mode = $read_pref ? lc $read_pref->mode : 'primary';
     my $method =
       ( $self->type eq "Single" || $self->type eq "Sharded" )
@@ -274,8 +261,6 @@ sub get_readable_link {
 sub get_specific_link {
     my ( $self, $address ) = @_;
 
-    $self->_check_if_forked;
-
     my $server = $self->servers->{$address};
     if ( $server && ( my $link = $self->_get_server_link($server) ) ) {
         return $link;
@@ -287,8 +272,6 @@ sub get_specific_link {
 
 sub get_writable_link {
     my ($self) = @_;
-
-    $self->_check_if_forked;
 
     my $method =
       ( $self->type eq "Single" || $self->type eq "Sharded" )
@@ -394,18 +377,6 @@ sub _add_address_as_unknown {
         last_update_time => $last_update || EPOCH,
         error            => $error,
     );
-}
-
-sub _check_if_forked {
-    my ($self) = @_;
-    my $pid_tid = $self->pid_tid;
-    if (     $pid_tid->[0] != $$
-        || ( HAS_THREADS ? ( $pid_tid->[1] != threads->tid ) : 0 )
-    ) {
-        $self->close_all_links;
-        $self->scan_all_servers;
-    }
-    return;
 }
 
 sub _check_for_primary {

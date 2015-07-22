@@ -47,6 +47,7 @@ $col->insert_one({ foo => 4,  bar => 9, shazbot => 1 });
     $cursor->next;
 
     my $ret = threads->create(sub {
+        $testdb->_client->reconnect;
         $cursor->next;
     })->join;
 
@@ -56,6 +57,7 @@ $col->insert_one({ foo => 4,  bar => 9, shazbot => 1 });
 
 {
     my $cursor = threads->create(sub {
+        $testdb->_client->reconnect;
         my $cursor = $col->query;
 
         # force start of retrieval before returning the cursor
@@ -82,6 +84,7 @@ $col->insert_one({ foo => 4,  bar => 9, shazbot => 1 });
 
     my @threads = map {
         threads->create(sub {
+            $testdb->_client->reconnect;
             $cursor->next;
         });
     } 0 .. 9;
@@ -95,6 +98,7 @@ $col->insert_one({ foo => 4,  bar => 9, shazbot => 1 });
 {
     my @threads = map {
         threads->create(sub {
+            $testdb->_client->reconnect;
             my $cursor = $col->query;
 
             # force start of retrieval before returning the cursor
