@@ -27,6 +27,7 @@ use MongoDB;
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::QueryResult;
+use MongoDB::ReadPreference;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -571,20 +572,23 @@ sub count {
     return $result ? $result->{n} : 0;
 }
 
+my $PRIMARY = MongoDB::ReadPreference->new;
+my $SEC_PREFERRED = MongoDB::ReadPreference->new( mode => 'secondaryPreferred' );
+
 sub slave_okay {
     my ($self, $value) = @_;
     MongoDB::UsageError->throw("cannot set slave_ok after querying")
       if $self->started_iterating;
 
-    if ( $value ) {
+    if ($value) {
         # if not 'primary', then slave_ok is already true, so leave alone
         if ( $self->query->read_preference->mode eq 'primary' ) {
             # secondaryPreferred is how mongos interpretes slave_ok
-            $self->query->read_preference('secondaryPreferred');
+            $self->query->read_preference( $SEC_PREFERRED );
         }
     }
     else {
-        $self->query->read_preference('primary');
+        $self->query->read_preference( $PRIMARY );
     }
 
     # XXX returning self is an API change but more consistent with other cursor methods

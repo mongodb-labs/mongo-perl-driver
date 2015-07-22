@@ -27,7 +27,11 @@ use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean;
 
-with 'MongoDB::Role::_WriteResult';
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteResult
+);
+
 
 =attr acknowledged
 
@@ -43,9 +47,9 @@ The number of documents that matched the filter.
 =cut
 
 has matched_count => (
-    is      => 'ro',
-    default => 0,
-    isa => Num,
+    is       => 'ro',
+    required => 1,
+    isa      => Num,
 );
 
 =attr modified_count
@@ -60,8 +64,9 @@ defined or not.
 =cut
 
 has modified_count => (
-    is      => 'ro',
-    isa => Maybe[Num],
+    is       => 'ro',
+    required => 1,
+    isa      => (Num|Undef),
 );
 
 sub has_modified_count {

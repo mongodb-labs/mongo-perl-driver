@@ -28,7 +28,10 @@ use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean;
 
-with 'MongoDB::Role::_LastError';
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_LastError
+);
 
 =attr output
 

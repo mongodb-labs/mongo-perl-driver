@@ -29,15 +29,15 @@ use Moo::Role;
 use namespace::clean;
 
 has acknowledged => (
-    is      => 'ro',
-    default => 1,
-    isa => Bool,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
 has [qw/write_errors write_concern_errors/] => (
-    is      => 'ro',
-    default => sub { [] },
-    isa => ArrayOfHashRef,
+    is       => 'ro',
+    required => 1,
+    isa      => ArrayOfHashRef,
 );
 
 with 'MongoDB::Role::_LastError';

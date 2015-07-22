@@ -67,7 +67,7 @@ sub _pre_encode_update {
         ) if $err;
     }
 
-    return MongoDB::BSON::_EncodedDoc->new(
+    return MongoDB::BSON::_EncodedDoc->_new(
         bson => $bson_doc,
         metadata => {},
     );

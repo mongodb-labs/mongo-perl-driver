@@ -40,41 +40,47 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 # may or may not have _id; will be added if check_keys is true
 has documents => (
     is       => 'ro',
     required => 1,
-    isa => ArrayRef,
+    isa      => ArrayRef,
 );
 
 has ordered => (
-    is      => 'ro',
-    default => 1,
-    isa => Bool,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
 has check_keys => (
-    is      => 'ro',
-    default => 1,
-    isa => Bool,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
+# starts empty and gets initialized during operations
 has _doc_ids => (
-    is      => 'ro',
-    writer  => '_set_doc_ids',
-    isa => ArrayRef,
+    is       => 'ro',
+    writer   => '_set_doc_ids',
+    init_arg => undef,
+    isa      => ArrayRef,
 );
 
-with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_InsertPreEncoder/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteOp
+  MongoDB::Role::_InsertPreEncoder
+);
 
 sub execute {
     my ( $self, $link ) = @_;

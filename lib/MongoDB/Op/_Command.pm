@@ -32,26 +32,27 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has query => (
     is       => 'ro',
     required => 1,
     writer   => '_set_query',
-    isa => Document,
+    isa      => Document,
 );
 
 has query_flags => (
-    is      => 'ro',
-    default => sub { {} },
-    isa => HashRef,
+    is       => 'ro',
+    required => 1,
+    isa      => HashRef,
 );
 
 with $_ for qw(
-    MongoDB::Role::_CommandOp
-    MongoDB::Role::_ReadOp
-    MongoDB::Role::_ReadPrefModifier
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CommandOp
+  MongoDB::Role::_ReadOp
+  MongoDB::Role::_ReadPrefModifier
 );
 
 sub execute {
@@ -60,7 +61,7 @@ sub execute {
 
     $self->_apply_read_prefs( $link, $topology_type );
 
-    my $res = MongoDB::CommandResult->new(
+    my $res = MongoDB::CommandResult->_new(
         output => $self->_send_command( $link, $self->query, $self->query_flags ),
         address => $link->address
     );

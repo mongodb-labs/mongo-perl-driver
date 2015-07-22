@@ -35,28 +35,31 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has filter => (
     is       => 'ro',
     required => 1,
-    isa => Document,
+    isa      => Document,
 );
 
 has just_one => (
-    is      => 'ro',
-    default => 1,
-    isa => Bool,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
-with qw/MongoDB::Role::_WriteOp/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteOp
+);
 
 sub execute {
     my ( $self, $link ) = @_;

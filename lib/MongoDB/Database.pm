@@ -26,6 +26,7 @@ use MongoDB::CommandResult;
 use MongoDB::Error;
 use MongoDB::GridFS;
 use MongoDB::Op::_ListCollections;
+use MongoDB::ReadPreference;
 use MongoDB::_Query;
 use MongoDB::_Types -types;
 use Type::Params qw/compile/;
@@ -167,7 +168,7 @@ sub list_collections {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $op = MongoDB::Op::_ListCollections->new(
+    my $op = MongoDB::Op::_ListCollections->_new(
         db_name    => $self->name,
         client     => $self->_client,
         bson_codec => $self->bson_codec,
@@ -193,11 +194,12 @@ instead.
 sub collection_names {
     my ($self) = @_;
 
-    my $op = MongoDB::Op::_ListCollections->new(
+    my $op = MongoDB::Op::_ListCollections->_new(
         db_name    => $self->name,
         client     => $self->_client,
         bson_codec => $self->bson_codec,
         filter     => {},
+        options    => {},
     );
 
     my $res = $self->_client->send_read_op($op);
@@ -320,16 +322,16 @@ on database commands: L<http://dochub.mongodb.org/core/commands>.
 sub run_command {
     my ( $self, $command, $read_pref ) = @_;
 
-    # XXX eventually, validate parameters and coerce there
-    if ( $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference' ) {
-        $read_pref = MongoDB::ReadPreference->new($read_pref);
-    }
+    $read_pref = MongoDB::ReadPreference->new(
+        ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
+      if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
 
-    my $op = MongoDB::Op::_Command->new(
-        db_name         => $self->name,
-        query           => $command,
-        bson_codec      => $self->bson_codec,
-        ( $read_pref ? ( read_preference => $read_pref ) : () ),
+    my $op = MongoDB::Op::_Command->_new(
+        db_name     => $self->name,
+        query       => $command,
+        query_flags => {},
+        bson_codec  => $self->bson_codec,
+        read_preference => $read_pref,
     );
 
     my $obj = $self->_client->send_read_op($op);

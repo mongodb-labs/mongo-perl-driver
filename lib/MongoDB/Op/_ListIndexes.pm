@@ -37,22 +37,23 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has client => (
     is       => 'ro',
     required => 1,
-    isa => InstanceOf['MongoDB::MongoClient'],
+    isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
 with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
@@ -71,9 +72,10 @@ sub execute {
 sub _command_list_indexes {
     my ( $self, $link, $topology ) = @_;
 
-    my $op = MongoDB::Op::_Command->new(
+    my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
         query           => Tie::IxHash->new( listIndexes => $self->coll_name, cursor => {} ),
+        query_flags => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
@@ -95,13 +97,17 @@ sub _legacy_list_indexes {
     my ( $self, $link, $topology ) = @_;
 
     my $ns = $self->db_name . "." . $self->coll_name;
-    my $op = MongoDB::Op::_Query->new(
+    my $op = MongoDB::Op::_Query->_new(
         db_name         => $self->db_name,
         coll_name       => 'system.indexes',
         client          => $self->client,
         bson_codec      => $self->bson_codec,
         query           => Tie::IxHash->new( ns => $ns ),
         read_preference => $self->read_preference,
+        batch_size => 0,
+        limit => 0,
+        skip => 0,
+        query_flags => {},
     );
 
     return $op->execute( $link, $topology );

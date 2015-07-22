@@ -38,13 +38,13 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has document => (
@@ -52,12 +52,18 @@ has document => (
     required => 1,
 );
 
+# this starts undef and gets initialized during processing
 has _doc_id => (
-    is        => 'ro',
-    writer    => '_set_doc_id',
+    is       => 'ro',
+    init_arg => undef,
+    writer   => '_set_doc_id',
 );
 
-with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_InsertPreEncoder/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteOp
+  MongoDB::Role::_InsertPreEncoder
+);
 
 sub execute {
     my ( $self, $link ) = @_;

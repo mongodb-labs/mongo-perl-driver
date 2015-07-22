@@ -34,34 +34,35 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has client => (
     is       => 'ro',
     required => 1,
-    isa => InstanceOf ['MongoDB::MongoClient'],
+    isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
 has pipeline => (
     is       => 'ro',
     required => 1,
-    isa => ArrayOfHashRef,
+    isa      => ArrayOfHashRef,
 );
 
 has options => (
-    is      => 'ro',
-    default => sub { {} },
-    isa => HashRef,
+    is       => 'ro',
+    required => 1,
+    isa      => HashRef,
 );
 
 with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
@@ -113,9 +114,10 @@ sub execute {
         %$options,
     );
 
-    my $op = MongoDB::Op::_Command->new(
+    my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
         query           => Tie::IxHash->new(@command),
+        query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
@@ -125,15 +127,19 @@ sub execute {
     # For explain, we give the whole response as fields have changed in
     # different server versions
     if ( $options->{explain} ) {
-        return MongoDB::QueryResult->new(
-            _client    => $self->client,
-            address    => $link->address,
-            bson_codec => $self->bson_codec,
-            cursor     => {
-                ns         => '',
-                id         => 0,
-                firstBatch => [ $res->output ],
-            },
+        return MongoDB::QueryResult->_new(
+            _client      => $self->client,
+            address      => $link->address,
+            ns           => '',
+            bson_codec   => $self->bson_codec,
+            batch_size   => 1,
+            cursor_at    => 0,
+            limit        => 0,
+            cursor_id    => MongoDB::QueryResult::_pack_cursor_id(0),
+            cursor_start => 0,
+            cursor_flags => {},
+            cursor_num   => 1,
+            _docs        => [ $res->output ],
         );
     }
 

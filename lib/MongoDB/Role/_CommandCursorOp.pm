@@ -32,32 +32,45 @@ requires qw/client bson_codec/;
 sub _build_result_from_cursor {
     my ( $self, $res ) = @_;
 
-    my $cursor = $res->output->{cursor}
+    my $c = $res->output->{cursor}
       or MongoDB::DatabaseError->throw(
         message => "no cursor found in command response",
         result  => $res,
       );
 
-    my $qr = MongoDB::QueryResult->new(
-        _client    => $self->client,
-        address    => $res->address,
-        cursor     => $cursor,
-        bson_codec => $self->bson_codec,
+    my $batch = $c->{firstBatch};
+    my $qr = MongoDB::QueryResult->_new(
+        _client      => $self->client,
+        address      => $res->address,
+        ns           => $c->{ns},
+        bson_codec   => $self->bson_codec,
+        batch_size   => scalar @$batch,
+        cursor_at    => 0,
+        limit        => 0,
+        cursor_id    => MongoDB::QueryResult::_pack_cursor_id( $c->{id} ),
+        cursor_start => 0,
+        cursor_flags => {},
+        cursor_num   => scalar @$batch,
+        _docs        => $batch,
     );
 }
 
 sub _empty_query_result {
     my ( $self, $link ) = @_;
 
-    my $qr = MongoDB::QueryResult->new(
-        _client => $self->client,
-        address => $link->address,
-        cursor  => {
-            ns         => '',
-            id         => 0,
-            firstBatch => [],
-        },
-        bson_codec => $self->bson_codec,
+    my $qr = MongoDB::QueryResult->_new(
+        _client      => $self->client,
+        address      => $link->address,
+        ns           => '',
+        bson_codec   => $self->bson_codec,
+        batch_size   => 1,
+        cursor_at    => 0,
+        limit        => 0,
+        cursor_id    => MongoDB::QueryResult::_pack_cursor_id(0),
+        cursor_start => 0,
+        cursor_flags => {},
+        cursor_num   => 0,
+        _docs        => [],
     );
 }
 

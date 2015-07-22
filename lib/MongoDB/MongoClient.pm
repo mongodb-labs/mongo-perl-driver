@@ -33,6 +33,7 @@ use MongoDB::Op::_Command;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
 use MongoDB::_Topology;
+use MongoDB::_Constants;
 use MongoDB::_Credential;
 use MongoDB::_URI;
 use Digest::MD5;
@@ -1232,13 +1233,18 @@ sub connected {
 }
 
 sub send_admin_command {
-    my ( $self, $command, $read_preference ) = @_;
+    my ( $self, $command, $read_pref ) = @_;
 
-    my $op = MongoDB::Op::_Command->new(
-        db_name    => 'admin',
-        query      => $command,
-        bson_codec => $self->bson_codec,
-        ( $read_preference ? ( read_preference => $read_preference ) : () ),
+    $read_pref = MongoDB::ReadPreference->new(
+        ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
+      if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
+
+    my $op = MongoDB::Op::_Command->_new(
+        db_name     => 'admin',
+        query       => $command,
+        query_flags => {},
+        bson_codec  => $self->bson_codec,
+        read_preference => $read_pref,
     );
 
     return $self->send_read_op( $op );
@@ -1280,7 +1286,7 @@ sub _try_op {
             $self->_topology->mark_stale;
         }
         # regardless of cleanup, rethrow the error
-        die $err;
+        WITH_ASSERTS ? ( confess $err ) : ( die $err );
     };
 
     return $result;

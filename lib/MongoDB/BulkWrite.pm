@@ -218,7 +218,7 @@ sub execute {
 
     $write_concern ||= $self->collection->write_concern;
 
-    my $op = MongoDB::Op::_BulkWrite->new(
+    my $op = MongoDB::Op::_BulkWrite->_new(
         db_name       => $self->_database->name,
         coll_name     => $self->collection->name,
         queue         => $self->_queue,

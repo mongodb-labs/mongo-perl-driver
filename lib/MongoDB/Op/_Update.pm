@@ -36,19 +36,19 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has filter => (
     is       => 'ro',
     required => 1,
-    isa => Document,
+    isa      => Document,
 );
 
 has update => (
@@ -57,22 +57,28 @@ has update => (
 );
 
 has is_replace => (
-    is     => 'ro',
+    is       => 'ro',
     required => 1,
-    isa => Bool,
+    isa      => Bool,
 );
 
 has multi => (
-    is     => 'ro',
-    isa => Bool,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
 has upsert => (
-    is     => 'ro',
-    isa => Bool,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
-with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_UpdatePreEncoder/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteOp
+  MongoDB::Role::_UpdatePreEncoder
+);
 
 sub execute {
     my ( $self, $link ) = @_;
@@ -135,7 +141,7 @@ sub _parse_cmd {
     my ( $self, $res ) = @_;
 
     return (
-        matched_count  => $res->{n} - @{ $res->{upserted} || [] },
+        matched_count  => ($res->{n} || 0)  - @{ $res->{upserted} || [] },
         modified_count => $res->{nModified},
         upserted_id    => $res->{upserted} ? $res->{upserted}[0]{_id} : undef,
     );
@@ -162,7 +168,7 @@ sub _parse_gle {
     }
 
     return (
-        matched_count  => ($upserted ? 0 : $res->{n}),
+        matched_count  => ($upserted ? 0 : $res->{n} || 0),
         modified_count => undef,
         upserted_id    => $upserted,
     );

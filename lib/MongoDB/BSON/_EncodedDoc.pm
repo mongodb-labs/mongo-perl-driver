@@ -41,6 +41,10 @@ has metadata => (
     isa => HashRef,
 );
 
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+);
+
 1;
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:

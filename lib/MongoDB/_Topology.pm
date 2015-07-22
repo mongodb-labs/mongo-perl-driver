@@ -23,6 +23,7 @@ use Moo;
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
+use MongoDB::ReadPreference;
 use MongoDB::_Constants;
 use MongoDB::_Link;
 use MongoDB::_Types -types;
@@ -294,8 +295,11 @@ sub get_writable_link {
       ? '_find_any_server'
       : "_find_primary_server";
 
-    return $self->_get_server_link( $self->current_primary, $method )
-      if $self->current_primary;
+
+    if ($self->current_primary) {
+        my $link = $self->_get_server_link( $self->current_primary, $method );
+        return $link if $link;
+    }
 
     while ( my $server = $self->_selection_timeout($method) ) {
         my $link = $self->_get_server_link( $server, $method );
@@ -551,7 +555,7 @@ sub _get_server_link {
         return $fresh_link if !$method;
 
         # verify selection criteria
-        return $self->method( $read_pref, $server ) ? $fresh_link : undef;
+        return $self->$method( $read_pref, $server ) ? $fresh_link : undef;
     }
 
     return $link;
@@ -676,15 +680,19 @@ sub _selection_timeout {
     return; # caller has to throw appropriate timeout error
 }
 
+my $PRIMARY = MongoDB::ReadPreference->new;
+
 sub _update_topology_from_link {
     my ( $self, $link ) = @_;
 
     my $start_time = time;
     my $is_master = eval {
-        my $op = MongoDB::Op::_Command->new(
-            db_name    => 'admin',
-            query      => [ ismaster => 1 ],
-            bson_codec => $self->bson_codec,
+        my $op = MongoDB::Op::_Command->_new(
+            db_name         => 'admin',
+            query           => [ ismaster => 1 ],
+            query_flags     => {},
+            bson_codec      => $self->bson_codec,
+            read_preference => $PRIMARY,
         );
         # just for this command, use connect timeout as socket timeout;
         # this violates encapsulation, but requires less API modification
@@ -951,7 +959,8 @@ sub _update_Sharded {
 
 sub _update_Single {
     my ( $self, $address, $new_server ) = @_;
-    return; # TopologyType Single never changes type or membership
+    # Per the spec, TopologyType Single never changes type or membership
+    return;
 }
 
 sub _update_Unknown {

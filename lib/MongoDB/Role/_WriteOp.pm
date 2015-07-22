@@ -65,7 +65,7 @@ sub _send_legacy_op_with_gle {
 
         # errors in the command itself get handled as normal CommandResult
         if ( !$res->{ok} && ( $res->{errmsg} || $res->{'$err'} ) ) {
-            return MongoDB::CommandResult->new(
+            return MongoDB::CommandResult->_new(
                 output  => $res,
                 address => $link->address,
             );
@@ -83,7 +83,7 @@ sub _send_legacy_op_with_gle {
         if ($got_error) {
             MongoDB::DatabaseError->throw(
                 message => $got_error,
-                result => MongoDB::CommandResult->new(
+                result => MongoDB::CommandResult->_new(
                     output => $res,
                     address => $link->address,
                 ),
@@ -112,15 +112,21 @@ sub _send_legacy_op_with_gle {
             };
         }
 
-        return $result_class->new(
-            write_errors         => ( $write_error         ? [$write_error]         : [] ),
+        return $result_class->_new(
+            acknowledged         => 1,
+            write_errors         => ( $write_error ? [$write_error] : [] ),
             write_concern_errors => ( $write_concern_error ? [$write_concern_error] : [] ),
             $self->_parse_gle( $res, $op_doc ),
         );
     }
     else {
         $link->write($op_bson);
-        return $result_class->new( acknowledged => 0 );
+        return $result_class->_new(
+            $self->_parse_gle( {}, $op_doc ),
+            acknowledged => 0,
+            write_errors => [],
+            write_concern_errors => [],
+        );
     }
 }
 
@@ -132,7 +138,7 @@ sub _send_write_command {
     if ( $self->write_concern->is_acknowledged ) {
         # errors in the command itself get handled as normal CommandResult
         if ( !$res->{ok} && ( $res->{errmsg} || $res->{'$err'} ) ) {
-            return MongoDB::CommandResult->new(
+            return MongoDB::CommandResult->_new(
                 output => $res,
                 address => $link->address,
             );
@@ -145,7 +151,8 @@ sub _send_write_command {
 
         # otherwise, construct the desired result object, calling back
         # on class-specific parser to generate additional attributes
-        return $result_class->new(
+        return $result_class->_new(
+            acknowledged => 1,
             write_errors => ( $res->{writeErrors} ? $res->{writeErrors} : [] ),
             write_concern_errors =>
               ( $res->{writeConcernError} ? [ $res->{writeConcernError} ] : [] ),
@@ -153,7 +160,12 @@ sub _send_write_command {
         );
     }
     else {
-        return $result_class->new( acknowledged => 0 );
+        return $result_class->_new(
+            $self->_parse_cmd({}),
+            acknowledged => 0,
+            write_errors => [],
+            write_concern_errors => [],
+        );
     }
 }
 

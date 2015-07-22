@@ -61,11 +61,12 @@ has filter => (
 
 has options => (
     is      => 'ro',
-    default => sub { {} },
+    required => 1,
     isa => HashRef,
 );
 
 with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
@@ -87,9 +88,10 @@ sub execute {
         %$options
     );
 
-    my $op = MongoDB::Op::_Command->new(
+    my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
         query           => Tie::IxHash->new(@command),
+        query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );

@@ -36,28 +36,31 @@ use namespace::clean;
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has indexes => (
     is       => 'ro',
     required => 1,
-    isa => ArrayRef[HashRef],
+    isa      => ArrayRef [HashRef],
 );
 
 has write_concern => (
     is       => 'ro',
     required => 1,
-    isa => WriteConcern,
+    isa      => WriteConcern,
 );
 
-with qw/MongoDB::Role::_CommandOp/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CommandOp
+);
 
 sub execute {
     my ( $self, $link ) = @_;
@@ -82,7 +85,7 @@ sub _command_create_indexes {
 
     my $res = $self->_send_command( $link, $cmd );
 
-    return MongoDB::CommandResult->new(
+    return MongoDB::CommandResult->_new(
         output => $self->write_concern->is_acknowledged ? $res : { ok => 1 },
         address => $link->address,
     );
@@ -99,13 +102,14 @@ sub _legacy_index_insert {
         } @{ $self->indexes }
     ];
 
-    my $op = MongoDB::Op::_BatchInsert->new(
+    my $op = MongoDB::Op::_BatchInsert->_new(
         db_name       => $self->db_name,
         coll_name     => "system.indexes",
         documents     => $indexes,
         write_concern => $self->write_concern,
         bson_codec    => $self->bson_codec,
         check_keys    => 0,
+        ordered       => 1,
     );
 
     return $op->execute($link);

@@ -33,28 +33,31 @@ use namespace::clean;
 has ns => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has client => (
     is       => 'ro',
     required => 1,
-    isa => InstanceOf['MongoDB::MongoClient'],
+    isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
 has cursor_id => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has batch_size => (
-    is      => 'ro',
-    default => 0,
-    isa => Num,
+    is       => 'ro',
+    required => 1,
+    isa      => Num,
 );
 
-with 'MongoDB::Role::_DatabaseOp';
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_DatabaseOp
+);
 
 sub execute {
     my ( $self, $link ) = @_;

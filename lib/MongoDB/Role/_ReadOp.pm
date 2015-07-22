@@ -29,14 +29,11 @@ use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean;
 
-my $PRIMARY = MongoDB::ReadPreference->new;
-
 with 'MongoDB::Role::_DatabaseOp';
 
 has read_preference => (
-    is      => 'ro',
-    default => sub { $PRIMARY },
-    isa => ReadPreference,
+    is  => 'ro',
+    isa => Maybe [ReadPreference],
 );
 
 1;

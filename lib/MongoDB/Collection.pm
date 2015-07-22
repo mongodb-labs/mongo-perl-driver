@@ -318,7 +318,7 @@ sub insert_one {
     $insert_one_args ||= compile( Object, Document);
     my ( $self, $document ) = $insert_one_args->(@_);
 
-    my $op = MongoDB::Op::_InsertOne->new(
+    my $op = MongoDB::Op::_InsertOne->_new(
         document => $document,
         %{ $self->_op_args },
     );
@@ -364,9 +364,11 @@ sub insert_many {
     my $bulk = $ordered ? $self->ordered_bulk : $self->unordered_bulk;
     $bulk->insert($_) for @$documents;
     my $res = $bulk->execute( $wc );
-    return MongoDB::InsertManyResult->new(
-        acknowledged => $wc->is_acknowledged,
-        inserted     => $res->inserted,
+    return MongoDB::InsertManyResult->_new(
+        acknowledged         => $wc->is_acknowledged,
+        inserted             => $res->inserted,
+        write_errors         => [],
+        write_concern_errors => [],
     );
 }
 
@@ -385,7 +387,7 @@ sub delete_one {
     $delete_one_args ||= compile( Object, IxHash );
     my ($self, $filter) = $delete_one_args->(@_);
 
-    my $op = MongoDB::Op::_Delete->new(
+    my $op = MongoDB::Op::_Delete->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
@@ -413,7 +415,7 @@ sub delete_many {
     $delete_many_args ||= compile( Object, IxHash );
     my ($self, $filter) = $delete_many_args->(@_);
 
-    my $op = MongoDB::Op::_Delete->new(
+    my $op = MongoDB::Op::_Delete->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
@@ -448,7 +450,7 @@ sub replace_one {
     $replace_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
     my ($self, $filter, $replacement, $options) = $replace_one_args->(@_);
 
-    my $op = MongoDB::Op::_Update->new(
+    my $op = MongoDB::Op::_Update->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
@@ -486,7 +488,7 @@ sub update_one {
     $update_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
     my ($self, $filter, $update, $options) = $update_one_args->(@_);
 
-    my $op = MongoDB::Op::_Update->new(
+    my $op = MongoDB::Op::_Update->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
@@ -524,7 +526,7 @@ sub update_many {
     $update_many_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
     my ($self, $filter, $update, $options) = $update_many_args->(@_);
 
-    my $op = MongoDB::Op::_Update->new(
+    my $op = MongoDB::Op::_Update->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
@@ -925,7 +927,7 @@ sub aggregate {
     my ($last_op) = keys %{ $pipeline->[-1] };
     my $read_pref = $last_op eq '$out' ? undef : $self->read_preference;
 
-    my $op = MongoDB::Op::_Aggregate->new(
+    my $op = MongoDB::Op::_Aggregate->_new(
         db_name    => $self->database->name,
         coll_name  => $self->name,
         client     => $self->client,
@@ -1024,7 +1026,7 @@ sub distinct {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $op = MongoDB::Op::_Distinct->new(
+    my $op = MongoDB::Op::_Distinct->_new(
         db_name         => $self->database->name,
         coll_name       => $self->name,
         client          => $self->client,
@@ -1068,9 +1070,10 @@ sub parallel_scan {
 
     my @command = ( parallelCollectionScan => $self->name, numCursors => $num_cursors );
 
-    my $op = MongoDB::Op::_Command->new(
+    my $op = MongoDB::Op::_Command->_new(
         db_name         => $db->name,
         query           => \@command,
+        query_flags     => {},
         bson_codec      => $self->bson_codec,
         read_preference => $self->read_preference,
     );
@@ -1083,11 +1086,20 @@ sub parallel_scan {
 
     my @cursors;
     for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
-        my $qr = MongoDB::QueryResult->new(
+        my $batch = $c->{firstBatch};
+        my $qr = MongoDB::QueryResult->_new(
             _client    => $self->client,
             address    => $result->address,
+            ns         => $c->{ns},
             bson_codec => $self->bson_codec,
-            cursor     => $c,
+            batch_size   => scalar @$batch,
+            cursor_at    => 0,
+            limit        => 0,
+            cursor_id    => MongoDB::QueryResult::_pack_cursor_id($c->{id}),
+            cursor_start => 0,
+            cursor_flags => {},
+            cursor_num   => scalar @$batch,
+            _docs        => $batch,
         );
         push @cursors, $qr;
     }
@@ -1375,10 +1387,11 @@ sub _run_command {
         $read_pref = MongoDB::ReadPreference->new($read_pref);
     }
 
-    my $op = MongoDB::Op::_Command->new(
-        db_name         => $self->database->name,
-        query           => $command,
-        bson_codec      => $self->bson_codec,
+    my $op = MongoDB::Op::_Command->_new(
+        db_name     => $self->database->name,
+        query       => $command,
+        query_flags => {},
+        bson_codec  => $self->bson_codec,
         ( $read_pref ? ( read_preference => $read_pref ) : () ),
     );
 
@@ -1434,7 +1447,7 @@ sub insert {
     $legacy_insert_args ||= compile( Object, IxHash, Optional[HashRef|Undef] );
     my ( $self, $document, $opts ) = $legacy_insert_args->(@_);
 
-    my $op = MongoDB::Op::_InsertOne->new(
+    my $op = MongoDB::Op::_InsertOne->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
@@ -1452,12 +1465,14 @@ sub batch_insert {
     my ( $self, $documents, $opts ) = @_;
     $legacy_batch_args ||= compile( Object, ArrayRef[Document], Optional[HashRef|Undef] );
 
-    my $op = MongoDB::Op::_BatchInsert->new(
+    my $op = MongoDB::Op::_BatchInsert->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
         documents     => $documents,
         write_concern => $self->_dynamic_write_concern($opts),
+        check_keys    => 0,
+        ordered       => 1, 
     );
 
     my $result = $self->client->send_write_op($op);
@@ -1477,7 +1492,7 @@ sub remove {
     my ($self, $query, $opts) = $legacy_remove_args->(@_);
     $opts ||= {};
 
-    my $op = MongoDB::Op::_Delete->new(
+    my $op = MongoDB::Op::_Delete->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
@@ -1517,7 +1532,7 @@ sub update {
         $is_replace = $fk ne '$' && $fk ne $op_char;
     }
 
-    my $op = MongoDB::Op::_Update->new(
+    my $op = MongoDB::Op::_Update->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
@@ -1595,7 +1610,7 @@ sub ensure_index {
       ? $self->write_concern
       : MongoDB::WriteConcern->new;
 
-    my $op = MongoDB::Op::_CreateIndexes->new(
+    my $op = MongoDB::Op::_CreateIndexes->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
         bson_codec    => $self->bson_codec,
@@ -1669,7 +1684,7 @@ sub __to_index_string {
 sub get_indexes {
     my ($self) = @_;
 
-    my $op = MongoDB::Op::_ListIndexes->new(
+    my $op = MongoDB::Op::_ListIndexes->_new(
         db_name    => $self->database->name,
         coll_name  => $self->name,
         client     => $self->client,

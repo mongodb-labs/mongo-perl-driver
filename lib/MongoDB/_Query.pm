@@ -58,10 +58,8 @@ has bson_codec => (
 );
 
 has read_preference => (
-    is       => 'rw',            # mutable for Cursor
-    isa      => ReadPreference,
-    required => 1,
-    coerce   => 1,
+    is => 'rw',                   # mutable for Cursor
+    isa => Maybe [ReadPreference],
 );
 
 #--------------------------------------------------------------------------#
@@ -191,7 +189,7 @@ sub as_query_op {
     };
 
     # finally, generate the query op
-    return MongoDB::Op::_Query->new(
+    return MongoDB::Op::_Query->_new(
         db_name     => $self->db_name,
         coll_name   => $self->coll_name,
         client      => $self->client,
