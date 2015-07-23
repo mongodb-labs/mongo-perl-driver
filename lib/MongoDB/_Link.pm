@@ -59,7 +59,7 @@ has connect_timeout => (
 has socket_timeout => (
     is => 'ro',
     default => 30,
-    isa => Num,
+    isa => Num|Undef,
 );
 
 has with_ssl => (
@@ -100,7 +100,7 @@ has does_write_commands => (
 );
 
 my @connection_state_fields = qw(
-    fh connected rcvbuf last_used fdset
+    fh connected rcvbuf last_used fdset is_ssl
 );
 
 for my $f ( @connection_state_fields ) {
@@ -267,12 +267,32 @@ sub write {
 
     local $SIG{PIPE} = 'IGNORE';
 
+    my ($pending, $nfound);
     while () {
-        unless ( $self->can_write ) {
+
+        # do timeout
+        ( $pending, $nfound ) = ( $self->socket_timeout, 0 );
+        TIMEOUT: while () {
+            if ( -1 == ( $nfound = select( undef, $self->fdset, undef, $pending ) ) ) {
+                unless ( $! == EINTR ) {
+                    $self->_close;
+                    MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
+                }
+                # to avoid overhead tracking monotonic clock times; assume
+                # interrupts occur on average halfway through the timeout period
+                # and restart with half the original time
+                $pending = int( $pending / 2 );
+                redo TIMEOUT;
+            }
+            last TIMEOUT;
+        }
+        unless ($nfound) {
             $self->_close;
             MongoDB::NetworkTimeout->throw(
                 qq/Timed out while waiting for socket to become ready for writing\n/);
         }
+
+        # do write
         my $r = syswrite( $self->fh, $buf, $len, $off );
         if ( defined $r ) {
             $len -= $r;
@@ -326,12 +346,38 @@ sub _read_bytes {
     my ( $self, $bufref, $min_len, $req_size ) = @_;
     $req_size ||= $min_len;
 
+    my ($pending, $nfound);
     while ( $min_len > 0 ) {
-        unless ( $self->can_read ) {
+
+        # do timeout
+        ( $pending, $nfound ) = ( $self->socket_timeout, 0 );
+        TIMEOUT: while () {
+            # no need to select if SSL and has pending data from a frame
+            if ( $self->with_ssl ) {
+                ( $nfound = 1 ), last TIMEOUT
+                  if $self->fh->pending;
+            }
+
+            if ( -1 == ( $nfound = select( $self->fdset, undef, undef, $pending ) ) ) {
+                unless ( $! == EINTR ) {
+                    $self->_close;
+                    MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
+                }
+                # to avoid overhead tracking monotonic clock times; assume
+                # interrupts occur on average halfway through the timeout period
+                # and restart with half the original time
+                $pending = int( $pending / 2 );
+                redo TIMEOUT;
+            }
+            last TIMEOUT;
+        }
+        unless ($nfound) {
             $self->_close;
             MongoDB::NetworkTimeout->throw(
                 q/Timed out while waiting for socket to become ready for reading/ . "\n" );
         }
+
+        # do read
         my $r = sysread( $self->fh, $$bufref, $req_size, length $$bufref );
         if ( defined $r ) {
             last unless $r;
@@ -356,52 +402,6 @@ sub _read_bytes {
     return;
 }
 
-sub _do_timeout {
-    my ( $self, $type, $timeout ) = @_;
-    $timeout = $self->socket_timeout
-      unless defined $timeout;
-
-    my $pending = $timeout >= 0 ? $timeout : undef;
-    my $nfound;
-
-    while () {
-        $nfound =
-          ( $type eq 'read' )
-          ? select( $self->fdset, undef,  undef, $pending )
-          : select( undef,  $self->fdset, undef, $pending );
-        if ( $nfound == -1 ) {
-            unless ( $! == EINTR ) {
-                $self->_close;
-                MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
-            }
-            # to avoid overhead tracking monotonic clock times; assume
-            # interrupts occur on average halfway through the timeout period
-            # and restart with half the original time
-            $pending = int( $pending/2 );
-            redo;
-        }
-        last;
-    }
-    $! = 0;
-    return $nfound;
-}
-
-sub can_read {
-    @_ == 1 || @_ == 2 || MongoDB::UsageError->throw( q/Usage: $handle->can_read([timeout])/ . "\n" );
-    my $self = shift;
-    if ( ref( $self->fh ) eq 'IO::Socket::SSL' ) {
-        return 1 if $self->fh->pending;
-    }
-    return $self->_do_timeout( 'read', @_ );
-}
-
-sub can_write {
-    @_ == 1
-      || @_ == 2
-      || MongoDB::UsageError->throw( q/Usage: $handle->can_write([timeout])/ . "\n" );
-    my $self = shift;
-    return $self->_do_timeout( 'write', @_ );
-}
 
 sub _assert_ssl {
     # Need IO::Socket::SSL 1.42 for SSL_create_ctx_callback

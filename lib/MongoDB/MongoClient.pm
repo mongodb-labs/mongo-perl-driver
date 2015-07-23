@@ -995,8 +995,8 @@ sub _build__topology {
         min_wire_version            => MIN_WIRE_VERSION,
         credential                  => $self->_credential,
         link_options                => {
-            connect_timeout => $self->connect_timeout_ms >= 0 ? $self->connect_timeout_ms / 1000 : -1,
-            socket_timeout  => $self->socket_timeout_ms  >= 0 ? $self->socket_timeout_ms  / 1000 : -1,
+            connect_timeout => $self->connect_timeout_ms >= 0 ? $self->connect_timeout_ms / 1000 : undef,
+            socket_timeout  => $self->socket_timeout_ms  >= 0 ? $self->socket_timeout_ms  / 1000 : undef,
             with_ssl   => !!$self->ssl,
             ( ref( $self->ssl ) eq 'HASH' ? ( SSL_options => $self->ssl ) : () ),
         },
