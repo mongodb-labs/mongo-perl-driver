@@ -176,6 +176,9 @@ sub connect {
     $self->_set_last_used( time );
     $self->_set_rcvbuf( $fh->sockopt(SO_RCVBUF) );
 
+    # Default max msg size is 2 * max BSON object size (DRIVERS-1)
+    $self->_set_max_message_size_bytes( 2 * MAX_BSON_OBJECT_SIZE );
+
     return $self;
 }
 
@@ -254,20 +257,16 @@ sub idle_time_sec {
 }
 
 sub write {
-    @_ == 2 || MongoDB::UsageError->throw( q/Usage: $handle->write(buf)/ . "\n" );
     my ( $self, $buf ) = @_;
 
-    my $len = length $buf;
-    my $off = 0;
+    my ( $len, $off, $pending, $nfound, $r ) = ( length($buf), 0 );
 
-    if ( $self->max_message_size_bytes && $len > $self->max_message_size_bytes ) {
-        MongoDB::ProtocolError->throw(
-            qq/Message of size $len exceeds maximum of / . $self->{max_message_size_bytes} );
-    }
+    MongoDB::ProtocolError->throw(
+        qq/Message of size $len exceeds maximum of / . $self->{max_message_size_bytes} )
+      if $len > $self->max_message_size_bytes;
 
     local $SIG{PIPE} = 'IGNORE';
 
-    my ($pending, $nfound);
     while () {
 
         # do timeout
@@ -293,10 +292,8 @@ sub write {
         }
 
         # do write
-        my $r = syswrite( $self->fh, $buf, $len, $off );
-        if ( defined $r ) {
-            $len -= $r;
-            $off += $r;
+        if ( defined( $r = syswrite( $self->fh, $buf, $len, $off ) ) ) {
+            ( $len -= $r ), ( $off += $r );
             last unless $len > 0;
         }
         elsif ( $! == EPIPE ) {
@@ -317,9 +314,9 @@ sub write {
         }
     }
 
-    $self->_set_last_used( time );
+    $self->_set_last_used(time);
 
-    return $off;
+    return;
 }
 
 sub read {
