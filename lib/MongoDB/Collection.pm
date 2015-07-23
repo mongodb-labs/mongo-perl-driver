@@ -313,17 +313,14 @@ The generated C<_id> may be retrieved from the result object.
 
 =cut
 
-my $insert_one_args;
 sub insert_one {
-    $insert_one_args ||= compile( Object, Document);
-    my ( $self, $document ) = $insert_one_args->(@_);
-
-    my $op = MongoDB::Op::_InsertOne->_new(
-        document => $document,
-        %{ $self->_op_args },
+    my ($self, $document) = @_;
+    return $self->client->send_write_op(
+        MongoDB::Op::_InsertOne->_new(
+            document => $document,
+            %{ $self->_op_args },
+        )
     );
-
-    return $self->client->send_write_op($op);
 }
 
 =method insert_many
