@@ -320,31 +320,12 @@ sub write {
 }
 
 sub read {
-    @_ == 1 || MongoDB::UsageError->throw( q/Usage: $handle->read()/ . "\n" );
     my ($self) = @_;
-    my $msg = '';
 
-    # read up to SO_RCVBUF if we can
-    $self->_read_bytes(\$msg, 4, $self->rcvbuf);
-    my $bytes_read = length($msg);
-    my $len = unpack( P_INT32, substr($msg,0,4) );
+    # len of undef triggers first pass through loop
+    my ( $msg, $len, $pending, $nfound, $r ) = ( '', undef );
 
-    # read rest of the message
-    if ( $len > $bytes_read ) {
-        $self->_read_bytes( \$msg, $len - $bytes_read );
-    }
-
-    $self->_set_last_used( time );
-
-    return $msg;
-}
-
-sub _read_bytes {
-    my ( $self, $bufref, $min_len, $req_size ) = @_;
-    $req_size ||= $min_len;
-
-    my ($pending, $nfound);
-    while ( $min_len > 0 ) {
+    while () {
 
         # do timeout
         ( $pending, $nfound ) = ( $self->socket_timeout, 0 );
@@ -374,11 +355,14 @@ sub _read_bytes {
                 q/Timed out while waiting for socket to become ready for reading/ . "\n" );
         }
 
-        # do read
-        my $r = sysread( $self->fh, $$bufref, $req_size, length $$bufref );
-        if ( defined $r ) {
-            last unless $r;
-            $min_len -= $r;
+        # read up to SO_RCVBUF if we can
+        if ( defined( $r = sysread( $self->fh, $msg, $self->rcvbuf, length $msg ) ) ) {
+            # because select said we're ready to read, if we read 0 then
+            # we got EOF before the full message
+            if ( !$r ) {
+                $self->_close;
+                MongoDB::NetworkError->throw(qq/Unexpected end of stream\n/);
+            }
         }
         elsif ( $! != EINTR ) {
             if ( $self->fh->can('errstr') ) {
@@ -391,14 +375,15 @@ sub _read_bytes {
                 MongoDB::NetworkError->throw(qq/Could not read from socket: '$!'\n/);
             }
         }
-    }
-    if ($min_len > 0) {
-        $self->_close;
-        MongoDB::NetworkError->throw(qq/Unexpected end of stream\n/);
-    }
-    return;
-}
 
+        $len ||= unpack( P_INT32, $msg );
+        last unless length($msg) < $len;
+    }
+
+    $self->_set_last_used(time);
+
+    return $msg;
+}
 
 sub _assert_ssl {
     # Need IO::Socket::SSL 1.42 for SSL_create_ctx_callback
