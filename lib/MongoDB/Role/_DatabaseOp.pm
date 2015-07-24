@@ -69,7 +69,7 @@ sub _query_and_receive {
     # inflate lazily
 
     while ( length($doc_bson) ) {
-        $len = unpack( P_INT32, substr( $doc_bson, 0, 4 ) );
+        $len = unpack( P_INT32, $doc_bson );
         MongoDB::ProtocolError->throw("document in response at index $i was truncated")
           if $len > length($doc_bson);
         $docs->[ $i++ ] = $bson_codec->decode_one( substr( $doc_bson, 0, $len, '' ) );
