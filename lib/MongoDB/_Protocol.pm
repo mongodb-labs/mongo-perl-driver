@@ -281,38 +281,47 @@ use constant {
 sub parse_reply {
     my ( $msg, $request_id ) = @_;
 
-    if ( length($msg) < MIN_REPLY_LENGTH ) {
-        MongoDB::ProtocolError->throw("response was truncated");
-    }
+    MongoDB::ProtocolError->throw("response was truncated")
+        if length($msg) < MIN_REPLY_LENGTH;
 
-    my ( $len, $msg_id, $response_to, $opcode, $bitflags, $cursor_id, $starting_from,
-        $number_returned )
-      = unpack( P_REPLY_HEADER, substr( $msg, 0, MIN_REPLY_LENGTH, '' ) );
+    my (
+        $len, $msg_id, $response_to, $opcode, $bitflags, $cursor_id, $starting_from,
+        $number_returned
+    ) = unpack( P_REPLY_HEADER, $msg );
 
-    if ( length($msg) + MIN_REPLY_LENGTH < $len ) {
-        MongoDB::ProtocolError->throw("response was truncated");
-    }
+    # pre-check all conditions using a modifier in one statement for speed;
+    # disambiguate afterwards only if an error exists
 
-    if ( $opcode != OP_REPLY ) {
-        MongoDB::ProtocolError->throw("response was not OP_REPLY");
-    }
+    do {
 
-    if ( $response_to != $request_id ) {
-        MongoDB::ProtocolError->throw("response ID ($response_to) did not match request ID ($request_id)");
-    }
+        if ( length($msg) < $len ) {
+            MongoDB::ProtocolError->throw("response was truncated");
+        }
 
-    my $flags = {
-        cursor_not_found => vec( $bitflags, R_CURSOR_NOT_FOUND, 1 ),
-        query_failure    => vec( $bitflags, R_QUERY_FAILURE,    1 ),
-    };
+        if ( $opcode != OP_REPLY ) {
+            MongoDB::ProtocolError->throw("response was not OP_REPLY");
+        }
 
-    return {
-        flags           => $flags,
+        if ( $response_to != $request_id ) {
+            MongoDB::ProtocolError->throw(
+                "response ID ($response_to) did not match request ID ($request_id)");
+        }
+        }
+        if ( length($msg) < $len )
+        || ( $opcode != OP_REPLY )
+        || ( $response_to != $request_id );
+
+    substr( $msg, 0, MIN_REPLY_LENGTH, '' ),
+        return {
+        flags => {
+            cursor_not_found => vec( $bitflags, R_CURSOR_NOT_FOUND, 1 ),
+            query_failure    => vec( $bitflags, R_QUERY_FAILURE,    1 ),
+        },
         cursor_id       => $cursor_id,
         starting_from   => $starting_from,
         number_returned => $number_returned,
         docs            => $msg,
-    };
+        };
 }
 
 1;
