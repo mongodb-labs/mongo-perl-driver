@@ -539,49 +539,6 @@ sub update_many {
     return $self->client->send_write_op( $op );
 }
 
-=method save_one
-
-    $collection->save_one(
-        {"_id" => MongoDB::OID->new, "author" => "joe"}
-    );
-    $post = $collection->find_one( {author => "joe"} );
-
-    $post->{phone} = "555-5555";
-
-    $collection->save_one( $post );
-
-Saves one document into the database, either replacing an existing one or
-upserting a new one.  The document B<must> have an C<_id> field or an
-exception will be thrown.
-
-The method returns a L<MongoDB::UpdateResult> object.
-
-Unlike an C<insert>, this method is idempotent and will not throw a
-duplicate key exception from the C<_id> field.  (Other unique index
-constraints could still be violated, resulting in an error.)
-
-Note: this method is merely syntactic sugar for a replace_one with upsert:
-
-    $collection->save_one( $doc );  # same as following replace_one:
-    $collection->replace_one( { _id => $doc->{_id} }, $doc, { upsert => 1 } );
-
-=cut
-
-my $save_one_args;
-
-sub save_one {
-    $save_one_args ||= compile( Object, IxHash );
-    my ( $self, $document ) = $save_one_args->(@_);
-
-    if ( $document->EXISTS("_id") ) {
-        return $self->replace_one( { "_id" => $document->FETCH( "_id" ) },
-            $document, { upsert => true } );
-    }
-    else {
-        MongoDB::UsageError->throw("argument to save_one must have an '_id' field");
-    }
-}
-
 =method find
 
     $cursor = $coll->find( $filter );

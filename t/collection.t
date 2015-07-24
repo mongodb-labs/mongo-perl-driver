@@ -430,29 +430,6 @@ SKIP: {
     like( $err->message, qr/duplicate key/, 'error was duplicate key exception')
 }
 
-# save_one
-{
-    $coll->drop;
-
-    my $x = { _id => 1, hello => "world"};
-    $coll->save_one($x);
-    is($coll->count, 1, 'save_one upserts');
-
-    my $y = $coll->find_one;
-    $y->{hello} = 3;
-    $coll->save_one($y);
-    is($coll->count, 1, "save_one replaces");
-
-    my $z = $coll->find_one;
-    is($z->{hello}, 3);
-
-    like(
-        exception { $coll->save_one( { hello => "larry" } ) },
-        qr/MongoDB::UsageError:.*'_id'/,
-        "save_one without _id is a UsageError"
-    );
-}
-
 # find
 {
     $coll->drop;
