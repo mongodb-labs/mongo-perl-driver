@@ -189,10 +189,11 @@ $coll->drop;
 
 # reset
 {
-    $cursor->reset;
-    my $r1 = $cursor->next;
-    $cursor->reset;
-    my $r2 = $cursor->next;
+    my ( $r1, $r2 );
+    ok( $cursor->reset, "first reset" );
+    ok( ( $r1 = $cursor->next ), "first doc after first reset" );
+    ok( $cursor->reset, "second reset" );
+    ok( ( $r2 = $cursor->next ), "first doc after second reset" );
 
     is($r1->{'sn'}, $r2->{'sn'}, 'reset');
 }
