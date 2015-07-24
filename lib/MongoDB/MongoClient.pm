@@ -1269,46 +1269,68 @@ sub send_admin_command {
     return $self->send_read_op( $op );
 }
 
+# op dispatcher written in highly optimized style
 sub send_direct_op {
     my ( $self, $op, $address ) = @_;
-    my $link = $self->_topology->get_specific_link($address);
-    return $self->_try_op( $op, $link );
+    my ( $link, $result );
+    ( $link = $self->_topology->get_specific_link($address) ), (
+        eval { ($result) = $op->execute($link); 1 } or do {
+            my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+            if ( $err->$_isa("MongoDB::ConnectionError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+            }
+            elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+                $self->_topology->mark_stale;
+            }
+            # regardless of cleanup, rethrow the error
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+          }
+      ),
+      return $result;
 }
 
+# op dispatcher written in highly optimized style
 sub send_write_op {
     my ( $self, $op ) = @_;
-    my $link = $self->_topology->get_writable_link;
-    return $self->_try_op( $op, $link );
+    my ( $link, $result );
+    ( $link = $self->_topology->get_writable_link ), (
+        eval { ($result) = $op->execute($link); 1 } or do {
+            my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+            if ( $err->$_isa("MongoDB::ConnectionError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+            }
+            elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+                $self->_topology->mark_stale;
+            }
+            # regardless of cleanup, rethrow the error
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+          }
+      ),
+      return $result;
 }
 
+# op dispatcher written in highly optimized style
 sub send_read_op {
     my ( $self, $op ) = @_;
-    my $link = $self->_topology->get_readable_link($op->read_preference);
-    my $type = $self->_topology->type;
-    return $self->_try_op( $op, $link, $type );
-}
-
-sub _try_op {
-    # $type might be undef; not needed for writes
-    my ($self, $op, $link, $type) = @_;
-
-    # using eval instead of try/catch for speed
-    # XXX see when we have to localize $@
-    my $result = eval { $op->execute( $link, $type ) };
-    if ( $@ || ! $result ) {
-        my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
-        if ( $err->$_isa("MongoDB::ConnectionError") ) {
-            $self->_topology->mark_server_unknown( $link->server, $err );
-        }
-        elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
-            $self->_topology->mark_server_unknown( $link->server, $err );
-            $self->_topology->mark_stale;
-        }
-        # regardless of cleanup, rethrow the error
-        WITH_ASSERTS ? ( confess $err ) : ( die $err );
-    };
-
-    return $result;
+    my ( $link, $type, $result );
+    ( $link = $self->_topology->get_readable_link( $op->read_preference ) ),
+      ( $type = $self->_topology->type ), (
+        eval { ($result) = $op->execute( $link, $type ); 1 } or do {
+            my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+            if ( $err->$_isa("MongoDB::ConnectionError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+            }
+            elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+                $self->_topology->mark_stale;
+            }
+            # regardless of cleanup, rethrow the error
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+          }
+      ),
+      return $result;
 }
 
 #--------------------------------------------------------------------------#
