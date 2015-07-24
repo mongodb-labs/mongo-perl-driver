@@ -72,8 +72,6 @@ sub run_test {
             for my $response (@{$phase->{'responses'}}) {
 
                 my ($addr, $is_master) = @$response;
-                $is_master->{me} = $addr
-                    if $is_master->{setName} && ! exists $is_master->{me};
 
                 # Process response
                 my $desc = MongoDB::_Server->new(

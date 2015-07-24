@@ -766,7 +766,7 @@ sub _update_rs_with_primary_from_member {
     }
 
     # require 'me' that matches expected address
-    if ( $new_server->me ne $new_server->address ) {
+    if ( $new_server->me && $new_server->me ne $new_server->address ) {
         $self->_remove_server($new_server);
         $self->_check_for_primary;
         return;
@@ -844,7 +844,7 @@ sub _update_rs_without_primary {
       for grep { !exists $self->servers->{$_} } keys %set_members;
 
     # require 'me' that matches expected address
-    if ( $new_server->me ne $new_server->address ) {
+    if ( $new_server->me && $new_server->me ne $new_server->address ) {
         $self->_remove_server($new_server);
         return;
     }
