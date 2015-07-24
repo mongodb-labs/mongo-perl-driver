@@ -47,6 +47,12 @@ has coll_name => (
     isa      => Str,
 );
 
+has full_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
 has document => (
     is       => 'ro',
     required => 1,
@@ -67,39 +73,31 @@ with $_ for qw(
 
 sub execute {
     my ( $self, $link ) = @_;
+    my ($orig_doc, $insert_doc, $res) = ( $self->document );
 
-    my ($insert_doc) = $self->_pre_encode_insert($link, $self->document, '.');
-    $self->_set_doc_id( $insert_doc->{metadata}{_id} );
+    ( $insert_doc = $self->_pre_encode_insert( $link, $orig_doc, '.' ) ),
+      ( $self->_set_doc_id( $insert_doc->{metadata}{_id} ) );
 
-    my $res =
-        $link->does_write_commands
-      ? $self->_command_insert( $link, $insert_doc )
-      : $self->_legacy_op_insert( $link, $insert_doc );
+    if ( $link->does_write_commands ) {
+        $res = $self->_send_write_command(
+            $link,
+            [
+                insert       => $self->coll_name,
+                documents    => [$insert_doc],
+                writeConcern => $self->write_concern->as_struct,
+            ],
+            $orig_doc,
+            "MongoDB::InsertOneResult",
+        );
+    }
+    else {
+        $res =
+          $self->_send_legacy_op_with_gle( $link,
+            MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
+            $orig_doc, "MongoDB::InsertOneResult" );
+    }
 
-    $res->assert;
-    return $res;
-}
-
-sub _command_insert {
-    my ( $self, $link, $insert_doc ) = @_;
-
-    my $cmd = [
-        insert       => $self->coll_name,
-        documents    => [$insert_doc],
-        writeConcern => $self->write_concern->as_struct,
-    ];
-
-    return $self->_send_write_command( $link, $cmd, $self->document, "MongoDB::InsertOneResult" );
-}
-
-sub _legacy_op_insert {
-    my ( $self, $link, $insert_doc ) = @_;
-
-    my $ns = $self->db_name . "." . $self->coll_name;
-    my $op_bson = MongoDB::_Protocol::write_insert( $ns, $insert_doc->{bson} );
-
-    return $self->_send_legacy_op_with_gle( $link, $op_bson, $self->document,
-        "MongoDB::InsertOneResult" );
+    $res->assert, return $res;
 }
 
 sub _parse_cmd {

@@ -324,6 +324,7 @@ sub _execute_legacy_batch {
             $op = MongoDB::Op::_InsertOne->_new(
                 db_name       => $self->db_name,
                 coll_name     => $self->coll_name,
+                full_name     => $self->db_name . "." . $self->coll_name,
                 document      => $doc,
                 write_concern => $wc,
                 bson_codec    => $self->bson_codec,

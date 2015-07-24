@@ -233,6 +233,7 @@ sub _build__op_args {
         bson_codec    => $self->bson_codec,
         coll_name     => $self->name,
         write_concern => $self->write_concern,
+        full_name     => join(".", $self->database->name, $self->name),
     }
 }
 
@@ -1445,10 +1446,8 @@ sub insert {
     my ( $self, $document, $opts ) = $legacy_insert_args->(@_);
 
     my $op = MongoDB::Op::_InsertOne->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        document      => $document,
+        document => $document,
+        %{ $self->_op_args },
         write_concern => $self->_dynamic_write_concern($opts),
     );
 
