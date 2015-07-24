@@ -33,6 +33,7 @@ use MongoDB::Op::_Command;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
 use MongoDB::_Topology;
+use MongoDB::_Constants;
 use MongoDB::_Credential;
 use MongoDB::_URI;
 use Digest::MD5;
@@ -342,7 +343,7 @@ sub _build_local_threshold_ms {
     return $self->__uri_or_else(
         u => 'localthresholdms',
         e => 'local_threshold_ms',
-        d => 15000,
+        d => 15,
     );
 }
 
@@ -987,15 +988,15 @@ sub _build__topology {
         bson_codec                  => $self->bson_codec,
         type                        => $type,
         replica_set_name            => $self->replica_set_name,
-        server_selection_timeout_ms => $self->server_selection_timeout_ms,
-        local_threshold_ms          => $self->local_threshold_ms,
-        heartbeat_frequency_ms      => $self->heartbeat_frequency_ms,
+        server_selection_timeout_sec => $self->server_selection_timeout_ms / 1000,
+        local_threshold_sec          => $self->local_threshold_ms / 1000,
+        heartbeat_frequency_sec      => $self->heartbeat_frequency_ms / 1000,
         max_wire_version            => MAX_WIRE_VERSION,
         min_wire_version            => MIN_WIRE_VERSION,
         credential                  => $self->_credential,
         link_options                => {
-            connect_timeout => $self->connect_timeout_ms >= 0 ? $self->connect_timeout_ms / 1000 : -1,
-            socket_timeout  => $self->socket_timeout_ms  >= 0 ? $self->socket_timeout_ms  / 1000 : -1,
+            connect_timeout => $self->connect_timeout_ms >= 0 ? $self->connect_timeout_ms / 1000 : undef,
+            socket_timeout  => $self->socket_timeout_ms  >= 0 ? $self->socket_timeout_ms  / 1000 : undef,
             with_ssl   => !!$self->ssl,
             ( ref( $self->ssl ) eq 'HASH' ? ( SSL_options => $self->ssl ) : () ),
         },
@@ -1156,6 +1157,8 @@ automatically as needed.  It is kept for backwards compatibility.  Calling it
 will check all servers in the deployment which ensures a connection to any
 that are available.
 
+See L</reconnect> for a method that is useful when using forks or threads.
+
 =cut
 
 sub connect {
@@ -1175,6 +1178,23 @@ Drops all connections to servers.
 sub disconnect {
     my ($self) = @_;
     $self->_topology->close_all_links;
+    return 1;
+}
+
+=method reconnect
+
+    $client->reconnect;
+
+This method closes all connections to the server, as if L</disconnect> were
+called, and then immediately reconnects.  Use this after forking or spawning
+off a new thread.
+
+=cut
+
+sub reconnect {
+    my ($self) = @_;
+    $self->_topology->close_all_links;
+    $self->_topology->scan_all_servers;
     return 1;
 }
 
@@ -1232,57 +1252,85 @@ sub connected {
 }
 
 sub send_admin_command {
-    my ( $self, $command, $read_preference ) = @_;
+    my ( $self, $command, $read_pref ) = @_;
 
-    my $op = MongoDB::Op::_Command->new(
-        db_name    => 'admin',
-        query      => $command,
-        bson_codec => $self->bson_codec,
-        ( $read_preference ? ( read_preference => $read_preference ) : () ),
+    $read_pref = MongoDB::ReadPreference->new(
+        ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
+      if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
+
+    my $op = MongoDB::Op::_Command->_new(
+        db_name     => 'admin',
+        query       => $command,
+        query_flags => {},
+        bson_codec  => $self->bson_codec,
+        read_preference => $read_pref,
     );
 
     return $self->send_read_op( $op );
 }
 
+# op dispatcher written in highly optimized style
 sub send_direct_op {
     my ( $self, $op, $address ) = @_;
-    my $link = $self->_topology->get_specific_link($address);
-    return $self->_try_op( $op, $link );
+    my ( $link, $result );
+    ( $link = $self->_topology->get_specific_link($address) ), (
+        eval { ($result) = $op->execute($link); 1 } or do {
+            my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+            if ( $err->$_isa("MongoDB::ConnectionError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+            }
+            elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+                $self->_topology->mark_stale;
+            }
+            # regardless of cleanup, rethrow the error
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+          }
+      ),
+      return $result;
 }
 
+# op dispatcher written in highly optimized style
 sub send_write_op {
     my ( $self, $op ) = @_;
-    my $link = $self->_topology->get_writable_link;
-    return $self->_try_op( $op, $link );
+    my ( $link, $result );
+    ( $link = $self->_topology->get_writable_link ), (
+        eval { ($result) = $op->execute($link); 1 } or do {
+            my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+            if ( $err->$_isa("MongoDB::ConnectionError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+            }
+            elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+                $self->_topology->mark_stale;
+            }
+            # regardless of cleanup, rethrow the error
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+          }
+      ),
+      return $result;
 }
 
+# op dispatcher written in highly optimized style
 sub send_read_op {
     my ( $self, $op ) = @_;
-    my $link = $self->_topology->get_readable_link($op->read_preference);
-    my $type = $self->_topology->type;
-    return $self->_try_op( $op, $link, $type );
-}
-
-sub _try_op {
-    # $type might be undef; not needed for writes
-    my ($self, $op, $link, $type) = @_;
-
-    my $result = try {
-        $op->execute( $link, $type );
-    }
-    catch {
-        if ( $_->$_isa("MongoDB::ConnectionError") ) {
-            $self->_topology->mark_server_unknown( $link->server, $_ );
-        }
-        elsif ( $_->$_isa("MongoDB::NotMasterError") ) {
-            $self->_topology->mark_server_unknown( $link->server, $_ );
-            $self->_topology->mark_stale;
-        }
-        # regardless of cleanup, rethrow the error
-        die $_;
-    };
-
-    return $result;
+    my ( $link, $type, $result );
+    ( $link = $self->_topology->get_readable_link( $op->read_preference ) ),
+      ( $type = $self->_topology->type ), (
+        eval { ($result) = $op->execute( $link, $type ); 1 } or do {
+            my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+            if ( $err->$_isa("MongoDB::ConnectionError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+            }
+            elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
+                $self->_topology->mark_server_unknown( $link->server, $err );
+                $self->_topology->mark_stale;
+            }
+            # regardless of cleanup, rethrow the error
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+          }
+      ),
+      return $result;
 }
 
 #--------------------------------------------------------------------------#
@@ -1791,8 +1839,8 @@ C<auth_mechanism_properties> attribute or in the connection string.
 
 =head1 THREAD-SAFETY AND FORK-SAFETY
 
-Existing connections to servers are closed after forking or spawning a thread.  They
-will reconnect on demand.
+You B<MUST> call the L</reconnect> method on any MongoDB::MongoClient objects
+after forking or spawning a thread.
 
 =cut
 

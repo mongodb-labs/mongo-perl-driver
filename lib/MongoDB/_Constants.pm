@@ -1,5 +1,5 @@
 #
-#  Copyright 2014 MongoDB, Inc.
+#  Copyright 2015 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,37 +14,33 @@
 #  limitations under the License.
 #
 
-package MongoDB::Op::_KillCursors;
+use 5.008;
+use strict;
+use warnings;
 
-# Encapsulate a cursor kill operation; returns true
+package MongoDB::_Constants;
+
+# Common MongoDB driver constants
 
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moo;
+use Exporter 5.57 qw/import/;
 
-use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
-use MongoDB::_Protocol;
-use namespace::clean;
+my $CONSTANTS;
 
-has cursor_ids => (
-    is       => 'ro',
-    required => 1,
-    isa      => ArrayRef [Str],
-);
-
-with $_ for qw(
-  MongoDB::Role::_PrivateConstructor
-);
-
-sub execute {
-    my ( $self, $link ) = @_;
-
-    $link->write( MongoDB::_Protocol::write_kill_cursors( @{ $self->cursor_ids } ) );
-
-    return 1;
+BEGIN {
+    $CONSTANTS = {
+        MAX_BSON_OBJECT_SIZE => 4_194_304,
+        MAX_BSON_WIRE_SIZE   => 16_793_600,                     # 16MiB + 16KiB
+        MAX_WRITE_BATCH_SIZE => 1000,
+        P_INT32              => $] lt '5.010' ? 'l' : 'l<',
+        WITH_ASSERTS         => $ENV{PERL_MONGO_WITH_ASSERTS},
+    };
 }
+
+use constant $CONSTANTS;
+
+our @EXPORT = keys %$CONSTANTS;
 
 1;

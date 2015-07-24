@@ -358,9 +358,10 @@ sub _sasl_send {
 sub _send_command {
     my ($self, $link, $bson_codec, $db_name, $command) = @_;
 
-    my $op = MongoDB::Op::_Command->new(
+    my $op = MongoDB::Op::_Command->_new(
         db_name => $db_name,
         query => $command,
+        query_flags => {},
         bson_codec => $bson_codec,
     );
     my $res = $op->execute( $link );

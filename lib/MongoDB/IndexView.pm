@@ -128,7 +128,7 @@ sub list {
     $list_args ||= compile(Object);
     my ($self) = $list_args->(@_);
 
-    my $op = MongoDB::Op::_ListIndexes->new(
+    my $op = MongoDB::Op::_ListIndexes->_new(
         client     => $self->_client,
         db_name    => $self->_db_name,
         coll_name  => $self->_coll_name,
@@ -228,7 +228,7 @@ sub create_many {
     my ( $self, $models ) = $create_many_args->(@_);
 
     my $indexes = [ map __flatten_index_model($_), @$models ];
-    my $op = MongoDB::Op::_CreateIndexes->new(
+    my $op = MongoDB::Op::_CreateIndexes->_new(
         db_name       => $self->_db_name,
         coll_name     => $self->_coll_name,
         bson_codec    => $self->_bson_codec,

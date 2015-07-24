@@ -27,121 +27,184 @@ package MongoDB::_Link;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Config;
+use Moo;
 use Errno qw[EINTR EPIPE];
 use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
-use Socket qw/SOL_SOCKET SO_KEEPALIVE IPPROTO_TCP TCP_NODELAY/;
-use Time::HiRes qw/time gettimeofday tv_interval/;
+use Socket qw/SOL_SOCKET SO_KEEPALIVE SO_RCVBUF IPPROTO_TCP TCP_NODELAY/;
+use Time::HiRes qw/time/;
 use MongoDB::Error;
-
-use constant {
-    HAS_GETTIME          => Time::HiRes::d_clock_gettime(),
-    HAS_THREADS          => $Config{usethreads},
-    P_INT32              => $] lt '5.010' ? 'l' : 'l<',
-    MAX_BSON_OBJECT_SIZE => 4_194_304,
-    MAX_WRITE_BATCH_SIZE => 1000,
-};
-
-# fake thread-id for non-threaded perls
-use if HAS_THREADS, 'threads';
-*_get_tid = HAS_THREADS() ? sub { threads->tid } : sub () { 0 };
+use MongoDB::_Constants;
+use MongoDB::_Types -types;
+use Types::Standard -types;
+use namespace::clean;
 
 my $SOCKET_CLASS =
   eval { require IO::Socket::IP; IO::Socket::IP->VERSION(0.25) }
   ? 'IO::Socket::IP'
   : 'IO::Socket::INET';
 
-sub new {
-    @_ == 2
-      || @_ == 3
-      || MongoDB::UsageError->throw( q/Usage: MongoDB::_Link->new(address, [arg hashref])/ . "\n" );
-    my ( $class, $address, $args ) = @_;
-    my ( $host, $port ) = split /:/, $address;
-    MongoDB::UsageError->throw("new requires 'host:port' address argument")
-      unless defined($host) && length($host) && defined($port) && length($port);
-    my $self = bless {
-        host            => $host,
-        port            => $port,
-        address         => "$host:$port",
-        connect_timeout => 20,
-        socket_timeout  => 30,
-        with_ssl        => 0,
-        SSL_options     => {},
-        ( $args ? (%$args) : () ),
-    }, $class;
-    return $self;
+has address => (
+    is => 'ro',
+    required => 1,
+    isa => HostAddress,
+);
+
+has connect_timeout => (
+    is => 'ro',
+    default => 20,
+    isa => Num,
+);
+
+has socket_timeout => (
+    is => 'ro',
+    default => 30,
+    isa => Num|Undef,
+);
+
+has with_ssl => (
+    is => 'ro',
+    isa => Bool,
+);
+
+has SSL_options => (
+    is => 'ro',
+    default => sub { {} },
+    isa => HashRef,
+);
+
+has server => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Maybe[ServerDesc],
+);
+
+my @is_master_fields= qw(
+  min_wire_version max_wire_version
+  max_message_size_bytes max_write_batch_size max_bson_object_size
+);
+
+for my $f ( @is_master_fields ) {
+    has $f => (
+        is => 'rwp',
+        init_arg => undef,
+        isa => Maybe[NonNegNum],
+    );
 }
+
+# for caching wire version >= 2
+has does_write_commands => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+my @connection_state_fields = qw(
+    fh connected rcvbuf last_used fdset is_ssl
+);
+
+for my $f ( @connection_state_fields ) {
+    has $f => (
+        is => 'rwp',
+        clearer => "_clear_$f",
+        init_arg => undef,
+    );
+}
+
+around BUILDARGS => sub {
+    my $orig = shift;
+    my $class = shift;
+    my $hr = $class->$orig(@_);
+
+    # shortcut on missing required field
+    return $hr unless exists $hr->{address};
+
+    ($hr->{host}, $hr->{port}) = split /:/, $hr->{address};
+
+    return $hr;
+};
 
 sub connect {
     @_ == 1 || MongoDB::UsageError->throw( q/Usage: $handle->connect()/ . "\n" );
     my ($self) = @_;
 
-    if ( $self->{with_ssl} ) {
+    if ( $self->with_ssl ) {
         $self->_assert_ssl;
         # XXX possibly make SOCKET_CLASS an instance variable and set it here to IO::Socket::SSL
     }
 
-    my ( $host, $port ) = @{$self}{qw/host port/};
+    my ($host, $port) = split /:/, $self->address;
 
-    $self->{fh} = $SOCKET_CLASS->new(
+    my $fh = $SOCKET_CLASS->new(
         PeerHost => $host,
         PeerPort => $port,
-        $self->{local_address} ? ( LocalAddr => $self->{local_address} ) : (),
-        Proto   => 'tcp',
-        Type    => SOCK_STREAM,
-        Timeout => $self->{connect_timeout} >= 0 ? $self->{connect_timeout} : undef,
-    ) or MongoDB::NetworkError->throw(qq/Could not connect to '$host:$port': $@\n/);
+        Proto    => 'tcp',
+        Type     => SOCK_STREAM,
+        Timeout  => $self->connect_timeout >= 0 ? $self->connect_timeout : undef,
+      )
+      or
+      MongoDB::NetworkError->throw(qq/Could not connect to '@{[$self->address]}': $@\n/);
 
-    binmode( $self->{fh} )
-      or MongoDB::InternalError->throw(qq/Could not binmode() socket: '$!'\n/);
+    unless ( binmode($fh) ) {
+        undef $fh;
+        MongoDB::InternalError->throw(qq/Could not binmode() socket: '$!'\n/);
+    }
 
-    defined( $self->{fh}->setsockopt(IPPROTO_TCP, TCP_NODELAY, 1) )
-      or MongoDB::InternalError->throw(qq/Could not set TCP_NODELAY on socket: '$!'\n/);
+    unless ( defined( $fh->setsockopt( IPPROTO_TCP, TCP_NODELAY, 1 ) ) ) {
+        undef $fh;
+        MongoDB::InternalError->throw(qq/Could not set TCP_NODELAY on socket: '$!'\n/);
+    }
 
-    defined( $self->{fh}->setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1) )
-      or MongoDB::InternalError->throw(qq/Could not set SO_KEEPALIVE on socket: '$!'\n/);
+    unless ( defined( $fh->setsockopt( SOL_SOCKET, SO_KEEPALIVE, 1 ) ) ) {
+        undef $fh;
+        MongoDB::InternalError->throw(qq/Could not set SO_KEEPALIVE on socket: '$!'\n/);
+    }
 
-    $self->start_ssl($host) if $self->{with_ssl};
+    $self->_set_fh($fh);
+    $self->_set_connected(1);
 
-    $self->{pid}       = $$;
-    $self->{tid}       = _get_tid();
-    $self->{last_used} = [gettimeofday];
+    my $fd = fileno $fh;
+    unless ( defined $fd && $fd >= 0 ) {
+        $self->_close;
+        MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
+    }
+    vec( my $fdset = '', $fd, 1 ) = 1;
+    $self->_set_fdset( $fdset );
+
+    $self->start_ssl($host) if $self->with_ssl;
+
+    $self->_set_last_used( time );
+    $self->_set_rcvbuf( $fh->sockopt(SO_RCVBUF) );
+
+    # Default max msg size is 2 * max BSON object size (DRIVERS-1)
+    $self->_set_max_message_size_bytes( 2 * MAX_BSON_OBJECT_SIZE );
 
     return $self;
 }
 
-my @accessors = qw(
-  address server min_wire_version max_wire_version
-  max_message_size_bytes max_write_batch_size max_bson_object_size
-);
-
-for my $attr (@accessors) {
-    no strict 'refs';
-    *{$attr} = eval "sub { \$_[0]->{$attr} }";
-}
-
 sub set_metadata {
     my ( $self, $server ) = @_;
-    $self->{server}           = $server;
-    $self->{min_wire_version} = $server->is_master->{minWireVersion} || "0";
-    $self->{max_wire_version} = $server->is_master->{maxWireVersion} || "0";
-    $self->{max_bson_object_size} =
-      $server->is_master->{maxBsonObjectSize} || MAX_BSON_OBJECT_SIZE;
-    $self->{max_write_batch_size} =
-      $server->is_master->{maxWriteBatchSize} || MAX_WRITE_BATCH_SIZE;
+    $self->_set_server($server);
+    $self->_set_min_wire_version( $server->is_master->{minWireVersion} || "0" );
+    $self->_set_max_wire_version( $server->is_master->{maxWireVersion} || "0" );
+    $self->_set_max_bson_object_size( $server->is_master->{maxBsonObjectSize}
+          || MAX_BSON_OBJECT_SIZE );
+    $self->_set_max_write_batch_size( $server->is_master->{maxWriteBatchSize}
+          || MAX_WRITE_BATCH_SIZE );
 
     # Default is 2 * max BSON object size (DRIVERS-1)
-    $self->{max_message_size_bytes} =
-      $server->is_master->{maxMessageSizeBytes} || 2 * $self->{max_bson_object_size};
+    $self->_set_max_message_size_bytes( $server->is_master->{maxMessageSizeBytes}
+          || 2 * $self->max_bson_object_size );
+
+    $self->_set_does_write_commands( $self->accepts_wire_version(2) );
 
     return;
 }
 
 sub accepts_wire_version {
     my ( $self, $version ) = @_;
-    my $min = $self->{min_wire_version} || 0;
-    my $max = $self->{max_wire_version} || 0;
+    my $min = $self->min_wire_version || 0;
+    my $max = $self->max_wire_version || 0;
     return $version >= $min && $version <= $max;
 }
 
@@ -150,7 +213,7 @@ sub start_ssl {
 
     my $ssl_args = $self->_ssl_args($host);
     IO::Socket::SSL->start_SSL(
-        $self->{fh},
+        $self->fh,
         %$ssl_args,
         SSL_create_ctx_callback => sub {
             my $ctx = shift;
@@ -158,208 +221,168 @@ sub start_ssl {
         },
     );
 
-    unless ( ref( $self->{fh} ) eq 'IO::Socket::SSL' ) {
+    unless ( ref( $self->fh ) eq 'IO::Socket::SSL' ) {
         my $ssl_err = IO::Socket::SSL->errstr;
+        $self->_close;
         MongoDB::HandshakeError->throw(qq/SSL connection failed for $host: $ssl_err\n/);
     }
 }
 
 sub close {
-    @_ == 1 || MongoDB::UsageError->throw( q/Usage: $handle->close()/ . "\n" );
     my ($self) = @_;
-    if ( $self->connected ) {
-        CORE::close( $self->{fh} )
-          or MongoDB::NetworkError->throw(qq/Error closing socket: '$!'\n/);
-        delete $self->{fh};
+    $self->_close
+      or MongoDB::NetworkError->throw(qq/Error closing socket: '$!'\n/);
+}
+
+# this is a quiet close so preexisting network errors can be thrown
+sub _close {
+    my ($self) = @_;
+    $self->_clear_connected;
+    my $ok = 1;
+    if ( $self->fh ) {
+        $ok = CORE::close( $self->fh );
+        $self->_clear_fh;
     }
+    return $ok;
 }
 
-sub connection_valid {
+sub is_connected {
     my ($self) = @_;
-    return unless $self->{fh};
-
-    if (  !$self->{fh}->connected
-        || $self->{pid} != $$
-        || $self->{tid} != _get_tid() )
-    {
-        $self->{fh}->close;
-        delete $self->{fh};
-        return;
-    }
-
-    return 1;
+    return $self->connected && $self->fh;
 }
 
-sub idle_time_ms {
+sub idle_time_sec {
     my ($self) = @_;
-    return 1000 * tv_interval( $self->{last_used} );
-}
-
-sub remote_connected {
-    my ($self) = @_;
-    return unless $self->connection_valid;
-    return if $self->can_read(0) && $self->{fh}->eof;
-    return 1;
-}
-
-sub assert_valid_connection {
-    my ($self) = @_;
-    MongoDB::NetworkError->throw( "connection lost to " . $self->address )
-      unless $self->connection_valid;
-    return 1;
+    return( time - $self->last_used );
 }
 
 sub write {
-    @_ == 2 || MongoDB::UsageError->throw( q/Usage: $handle->write(buf)/ . "\n" );
     my ( $self, $buf ) = @_;
 
-    $self->assert_valid_connection;
+    my ( $len, $off, $pending, $nfound, $r ) = ( length($buf), 0 );
 
-    if ( $] ge '5.008' ) {
-        utf8::downgrade( $buf, 1 )
-          or MongoDB::InternalError->throw(qq/Wide character in write()\n/);
-    }
-
-    my $len = length $buf;
-    my $off = 0;
-
-    if ( exists $self->{max_message_size_bytes}
-        && $len > $self->{max_message_size_bytes} )
-    {
-        MongoDB::ProtocolError->throw(
-            qq/Message of size $len exceeds maximum of / . $self->{max_message_size_bytes} );
-    }
+    MongoDB::ProtocolError->throw(
+        qq/Message of size $len exceeds maximum of / . $self->{max_message_size_bytes} )
+      if $len > $self->max_message_size_bytes;
 
     local $SIG{PIPE} = 'IGNORE';
 
     while () {
-        $self->can_write
-          or MongoDB::NetworkTimeout->throw(
-            qq/Timed out while waiting for socket to become ready for writing\n/);
-        my $r = syswrite( $self->{fh}, $buf, $len, $off );
-        if ( defined $r ) {
-            $len -= $r;
-            $off += $r;
+
+        # do timeout
+        ( $pending, $nfound ) = ( $self->socket_timeout, 0 );
+        TIMEOUT: while () {
+            if ( -1 == ( $nfound = select( undef, $self->fdset, undef, $pending ) ) ) {
+                unless ( $! == EINTR ) {
+                    $self->_close;
+                    MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
+                }
+                # to avoid overhead tracking monotonic clock times; assume
+                # interrupts occur on average halfway through the timeout period
+                # and restart with half the original time
+                $pending = int( $pending / 2 );
+                redo TIMEOUT;
+            }
+            last TIMEOUT;
+        }
+        unless ($nfound) {
+            $self->_close;
+            MongoDB::NetworkTimeout->throw(
+                qq/Timed out while waiting for socket to become ready for writing\n/);
+        }
+
+        # do write
+        if ( defined( $r = syswrite( $self->fh, $buf, $len, $off ) ) ) {
+            ( $len -= $r ), ( $off += $r );
             last unless $len > 0;
         }
         elsif ( $! == EPIPE ) {
+            $self->_close;
             MongoDB::NetworkError->throw(qq/Socket closed by remote server: $!\n/);
         }
         elsif ( $! != EINTR ) {
-            if ( $self->{fh}->can('errstr') ) {
-                my $err = $self->{fh}->errstr();
+            if ( $self->fh->can('errstr') ) {
+                my $err = $self->fh->errstr();
+                $self->_close;
                 MongoDB::NetworkError->throw(qq/Could not write to SSL socket: '$err'\n /);
             }
             else {
+                $self->_close;
                 MongoDB::NetworkError->throw(qq/Could not write to socket: '$!'\n/);
             }
 
         }
     }
 
-    $self->{last_used} = [gettimeofday];
+    $self->_set_last_used(time);
 
-    return $off;
-}
-
-sub read {
-    @_ == 1 || MongoDB::UsageError->throw( q/Usage: $handle->read()/ . "\n" );
-    my ($self) = @_;
-    my $msg = '';
-
-    $self->assert_valid_connection;
-
-    # read length
-    $self->_read_bytes( 4, \$msg );
-
-    my $len = unpack( P_INT32, $msg );
-
-    # read rest of the message
-    $self->_read_bytes( $len - 4, \$msg );
-
-    $self->{last_used} = [gettimeofday];
-
-    return $msg;
-}
-
-sub _read_bytes {
-    @_ == 3 || MongoDB::UsageError->throw( q/Usage: $handle->read(len, bufref)/ . "\n" );
-    my ( $self, $len, $bufref ) = @_;
-
-    while ( $len > 0 ) {
-        $self->can_read
-          or MongoDB::NetworkTimeout->throw(
-            q/Timed out while waiting for socket to become ready for reading/ . "\n" );
-        my $r = sysread( $self->{fh}, $$bufref, $len, length $$bufref );
-        if ( defined $r ) {
-            last unless $r;
-            $len -= $r;
-        }
-        elsif ( $! != EINTR ) {
-            if ( $self->{fh}->can('errstr') ) {
-                my $err = $self->{fh}->errstr();
-                MongoDB::NetworkError->throw(qq/Could not read from SSL socket: '$err'\n /);
-            }
-            else {
-                MongoDB::NetworkError->throw(qq/Could not read from socket: '$!'\n/);
-            }
-        }
-    }
-    if ($len) {
-        MongoDB::NetworkError->throw(qq/Unexpected end of stream\n/);
-    }
     return;
 }
 
-sub _do_timeout {
-    my ( $self, $type, $timeout ) = @_;
-    $timeout = $self->{socket_timeout}
-      unless defined $timeout;
+sub read {
+    my ($self) = @_;
 
-    my $fd = fileno $self->{fh};
-    defined $fd && $fd >= 0
-      or MongoDB::InternalError->throw(qq/select(2): 'Bad file descriptor'\n/);
-
-    my $initial = HAS_GETTIME ? Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) : time;
-    my $pending = $timeout >= 0 ? $timeout : undef;
-    my $nfound;
-
-    vec( my $fdset = '', $fd, 1 ) = 1;
+    # len of undef triggers first pass through loop
+    my ( $msg, $len, $pending, $nfound, $r ) = ( '', undef );
 
     while () {
-        $nfound =
-          ( $type eq 'read' )
-          ? select( $fdset, undef,  undef, $pending )
-          : select( undef,  $fdset, undef, $pending );
-        if ( $nfound == -1 ) {
-            $! == EINTR
-              or MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
-            redo if !defined($pending);
-            my $now = HAS_GETTIME ? Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) : time;
-            redo if ( $pending = $timeout - ( $now - $initial ) ) > 0;
-            $nfound = 0;
+
+        # do timeout
+        ( $pending, $nfound ) = ( $self->socket_timeout, 0 );
+        TIMEOUT: while () {
+            # no need to select if SSL and has pending data from a frame
+            if ( $self->with_ssl ) {
+                ( $nfound = 1 ), last TIMEOUT
+                  if $self->fh->pending;
+            }
+
+            if ( -1 == ( $nfound = select( $self->fdset, undef, undef, $pending ) ) ) {
+                unless ( $! == EINTR ) {
+                    $self->_close;
+                    MongoDB::NetworkError->throw(qq/select(2): '$!'\n/);
+                }
+                # to avoid overhead tracking monotonic clock times; assume
+                # interrupts occur on average halfway through the timeout period
+                # and restart with half the original time
+                $pending = int( $pending / 2 );
+                redo TIMEOUT;
+            }
+            last TIMEOUT;
         }
-        last;
-    }
-    $! = 0;
-    return $nfound;
-}
+        unless ($nfound) {
+            $self->_close;
+            MongoDB::NetworkTimeout->throw(
+                q/Timed out while waiting for socket to become ready for reading/ . "\n" );
+        }
 
-sub can_read {
-    @_ == 1 || @_ == 2 || MongoDB::UsageError->throw( q/Usage: $handle->can_read([timeout])/ . "\n" );
-    my $self = shift;
-    if ( ref( $self->{fh} ) eq 'IO::Socket::SSL' ) {
-        return 1 if $self->{fh}->pending;
-    }
-    return $self->_do_timeout( 'read', @_ );
-}
+        # read up to SO_RCVBUF if we can
+        if ( defined( $r = sysread( $self->fh, $msg, $self->rcvbuf, length $msg ) ) ) {
+            # because select said we're ready to read, if we read 0 then
+            # we got EOF before the full message
+            if ( !$r ) {
+                $self->_close;
+                MongoDB::NetworkError->throw(qq/Unexpected end of stream\n/);
+            }
+        }
+        elsif ( $! != EINTR ) {
+            if ( $self->fh->can('errstr') ) {
+                my $err = $self->fh->errstr();
+                $self->_close;
+                MongoDB::NetworkError->throw(qq/Could not read from SSL socket: '$err'\n /);
+            }
+            else {
+                $self->_close;
+                MongoDB::NetworkError->throw(qq/Could not read from socket: '$!'\n/);
+            }
+        }
 
-sub can_write {
-    @_ == 1
-      || @_ == 2
-      || MongoDB::UsageError->throw( q/Usage: $handle->can_write([timeout])/ . "\n" );
-    my $self = shift;
-    return $self->_do_timeout( 'write', @_ );
+        $len ||= unpack( P_INT32, $msg );
+        last unless length($msg) < $len;
+    }
+
+    $self->_set_last_used(time);
+
+    return $msg;
 }
 
 sub _assert_ssl {
@@ -376,8 +399,8 @@ sub _assert_ssl {
 sub _find_CA_file {
     my $self = shift();
 
-    return $self->{SSL_options}->{SSL_ca_file}
-      if $self->{SSL_options}->{SSL_ca_file} and -e $self->{SSL_options}->{SSL_ca_file};
+    return $self->SSL_options->{SSL_ca_file}
+      if $self->SSL_options->{SSL_ca_file} and -e $self->SSL_options->{SSL_ca_file};
 
     return Mozilla::CA::SSL_ca_file()
       if eval { require Mozilla::CA };
@@ -418,8 +441,8 @@ sub _ssl_args {
     $ssl_args{SSL_ca_file}         = $self->_find_CA_file;
 
     # user options override default settings
-    for my $k ( keys %{ $self->{SSL_options} } ) {
-        $ssl_args{$k} = $self->{SSL_options}{$k} if $k =~ m/^SSL_/;
+    for my $k ( keys %{ $self->SSL_options } ) {
+        $ssl_args{$k} = $self->SSL_options->{$k} if $k =~ m/^SSL_/;
     }
 
     return \%ssl_args;

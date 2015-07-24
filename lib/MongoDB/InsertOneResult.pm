@@ -21,12 +21,16 @@ package MongoDB::InsertOneResult;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
-with 'MongoDB::Role::_WriteResult';
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteResult
+);
 
 =attr acknowledged
 
@@ -43,10 +47,8 @@ The identifier of the inserted document.
 
 has inserted_id => (
     is  => 'ro',
-    isa => Any,
+    required => 1,
 );
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 

@@ -22,47 +22,51 @@ package MongoDB::Op::_CreateIndexes;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::CommandResult;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use MongoDB::Op::_BatchInsert;
 use MongoDB::_Types;
 use Tie::IxHash;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has indexes => (
     is       => 'ro',
-    isa      => ArrayRef[HashRef], # XXX ArrayRef[IndexModel]?
     required => 1,
+    isa      => ArrayRef [HashRef],
 );
 
 has write_concern => (
     is       => 'ro',
-    isa      => WriteConcern,
     required => 1,
+    isa      => WriteConcern,
 );
 
-with qw/MongoDB::Role::_CommandOp/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CommandOp
+);
 
 sub execute {
     my ( $self, $link ) = @_;
 
     my $res =
-        $link->accepts_wire_version(2)
+        $link->does_write_commands
       ? $self->_command_create_indexes($link)
       : $self->_legacy_index_insert($link);
 
@@ -81,7 +85,7 @@ sub _command_create_indexes {
 
     my $res = $self->_send_command( $link, $cmd );
 
-    return MongoDB::CommandResult->new(
+    return MongoDB::CommandResult->_new(
         output => $self->write_concern->is_acknowledged ? $res : { ok => 1 },
         address => $link->address,
     );
@@ -98,18 +102,17 @@ sub _legacy_index_insert {
         } @{ $self->indexes }
     ];
 
-    my $op = MongoDB::Op::_BatchInsert->new(
+    my $op = MongoDB::Op::_BatchInsert->_new(
         db_name       => $self->db_name,
         coll_name     => "system.indexes",
         documents     => $indexes,
         write_concern => $self->write_concern,
         bson_codec    => $self->bson_codec,
         check_keys    => 0,
+        ordered       => 1,
     );
 
     return $op->execute($link);
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

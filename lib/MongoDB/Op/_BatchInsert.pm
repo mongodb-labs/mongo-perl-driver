@@ -22,58 +22,65 @@ package MongoDB::Op::_BatchInsert;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::InsertManyResult;
 use MongoDB::OID;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Safe::Isa;
 use Scalar::Util qw/blessed reftype/;
 use Tie::IxHash;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 # may or may not have _id; will be added if check_keys is true
 has documents => (
     is       => 'ro',
-    isa      => ArrayRef,
     required => 1,
+    isa      => ArrayRef,
 );
 
 has ordered => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 1,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
 has check_keys => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 1,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
+# starts empty and gets initialized during operations
 has _doc_ids => (
-    is      => 'ro',
-    isa     => ArrayRef,
-    writer  => '_set_doc_ids',
+    is       => 'ro',
+    writer   => '_set_doc_ids',
+    init_arg => undef,
+    isa      => ArrayRef,
 );
 
-with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_InsertPreEncoder/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteOp
+  MongoDB::Role::_InsertPreEncoder
+);
 
 sub execute {
     my ( $self, $link ) = @_;
@@ -92,7 +99,7 @@ sub execute {
     $self->_set_doc_ids(\@ids);
 
     my $res =
-        $link->accepts_wire_version(2)
+        $link->does_write_commands
       ? $self->_command_insert( $link, \@insert_docs )
       : $self->_legacy_op_insert( $link, \@insert_docs );
 
@@ -139,7 +146,5 @@ BEGIN {
     no warnings 'once';
     *_parse_gle = \&_parse_cmd;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

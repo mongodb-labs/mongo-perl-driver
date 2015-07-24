@@ -85,10 +85,6 @@ subtest "insert_one" => sub {
         "insert without _id: Tie::IxHash doc inserted"
     );
 
-    # insert bad type
-    my $err = exception { $coll->insert_one( sub { die } ) };
-    like( $err, qr/did not pass type constraint/, "exception inserting bad type" );
-
 };
 
 subtest "insert_many" => sub {

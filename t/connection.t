@@ -81,4 +81,12 @@ subtest "wire protocol versions" => sub {
 
 };
 
+subtest "reconnect" => sub {
+    ok( $testdb->_client->reconnect, "ran reconnect" );
+    my $db = $conn->get_database( $testdb->name );
+    ok( $db->get_collection('test_collection')->insert_one( { foo => 42 } ),
+        "inserted a doc after reconnection"
+    );
+};
+
 done_testing;

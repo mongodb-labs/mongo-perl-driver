@@ -22,7 +22,7 @@ package MongoDB::Op::_BulkWrite;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::Error;
@@ -31,6 +31,7 @@ use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_Update;
 use MongoDB::Op::_Delete;
 use MongoDB::_Protocol;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Safe::Isa;
@@ -38,57 +39,71 @@ use Scalar::Util qw/blessed reftype/;
 use Tie::IxHash;
 use Try::Tiny;
 use boolean;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has queue => (
     is       => 'ro',
-    isa      => ArrayRef,
     required => 1,
+    isa      => ArrayRef,
 );
 
 has ordered => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 1,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
 has write_concern => (
     is       => 'ro',
-    isa      => WriteConcern,
-    coerce   => 1,
     required => 1,
+    isa      => WriteConcern,
 );
 
 # not _WriteOp because we construct our own result objects
 with $_ for qw(
-    MongoDB::Role::_CommandOp
-    MongoDB::Role::_UpdatePreEncoder
-    MongoDB::Role::_InsertPreEncoder
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CommandOp
+  MongoDB::Role::_UpdatePreEncoder
+  MongoDB::Role::_InsertPreEncoder
 );
 
 sub execute {
     my ( $self, $link ) = @_;
 
-    my $use_write_cmd = $link->accepts_wire_version(2);
+    Carp::confess("NO LINK") unless $link;
+
+    my $use_write_cmd = $link->does_write_commands;
 
     # If using legacy write ops, then there will never be a valid modified_count
     # result so we set that to undef in the constructor; otherwise, we set it
     # to 0 so that results accumulate normally. If a mongos on a mixed topology
     # later fails to set it, results merging will handle it in that case.
-    my $result =
-      MongoDB::BulkWriteResult->new( modified_count => $use_write_cmd ? 0 : undef );
+    my $result = MongoDB::BulkWriteResult->_new(
+        acknowledged         => $self->write_concern->is_acknowledged,
+        modified_count       => ( $use_write_cmd ? 0 : undef ),
+        write_errors         => [],
+        write_concern_errors => [],
+        op_count             => 0,
+        batch_count          => 0,
+        inserted_count       => 0,
+        upserted_count       => 0,
+        matched_count        => 0,
+        deleted_count        => 0,
+        upserted             => [],
+        inserted             => [],
+    );
 
     my @batches =
         $self->ordered
@@ -168,10 +183,11 @@ sub _execute_write_command_batch {
             writeConcern => $wc->as_struct,
         ];
 
-        my $op = MongoDB::Op::_Command->new(
-            db_name    => $db_name,
-            query      => $cmd_doc,
-            bson_codec => $self->bson_codec,
+        my $op = MongoDB::Op::_Command->_new(
+            db_name     => $db_name,
+            query       => $cmd_doc,
+            query_flags => {},
+            bson_codec  => $self->bson_codec,
         );
 
         my $cmd_result = try {
@@ -221,10 +237,8 @@ sub _execute_write_command_batch {
 sub _split_chunk {
     my ( $self, $link, $chunk, $size ) = @_;
 
-    my $max_wire_size = $self->MAX_BSON_WIRE_SIZE; # XXX blech
-
     my $avg_cmd_size       = $size / @$chunk;
-    my $new_cmds_per_chunk = int( $max_wire_size / $avg_cmd_size );
+    my $new_cmds_per_chunk = int( MAX_BSON_WIRE_SIZE / $avg_cmd_size );
 
     my @split_chunks;
     while (@$chunk) {
@@ -307,16 +321,17 @@ sub _execute_legacy_batch {
 
         my $op;
         if ( $type eq 'insert' ) {
-            $op = MongoDB::Op::_InsertOne->new(
+            $op = MongoDB::Op::_InsertOne->_new(
                 db_name       => $self->db_name,
                 coll_name     => $self->coll_name,
+                full_name     => $self->db_name . "." . $self->coll_name,
                 document      => $doc,
                 write_concern => $wc,
                 bson_codec    => $self->bson_codec,
             );
         }
         elsif ( $type eq 'update' ) {
-            $op = MongoDB::Op::_Update->new(
+            $op = MongoDB::Op::_Update->_new(
                 db_name       => $self->db_name,
                 coll_name     => $self->coll_name,
                 filter        => $doc->{q},
@@ -329,7 +344,7 @@ sub _execute_legacy_batch {
             );
         }
         elsif ( $type eq 'delete' ) {
-            $op = MongoDB::Op::_Delete->new(
+            $op = MongoDB::Op::_Delete->_new(
                 db_name       => $self->db_name,
                 coll_name     => $self->coll_name,
                 filter        => $doc->{q},
@@ -368,7 +383,5 @@ sub _execute_legacy_batch {
 
     return;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

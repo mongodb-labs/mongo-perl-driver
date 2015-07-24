@@ -22,38 +22,42 @@ package MongoDB::Op::_GetMore;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use MongoDB::_Protocol;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has ns => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has client => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
+    isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
 has cursor_id => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has batch_size => (
-    is      => 'ro',
-    isa     => Num,
-    default => 0,
+    is       => 'ro',
+    required => 1,
+    isa      => Num,
 );
 
-with 'MongoDB::Role::_DatabaseOp';
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_DatabaseOp
+);
 
 sub execute {
     my ( $self, $link ) = @_;
@@ -68,7 +72,5 @@ sub execute {
 
     return $result;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

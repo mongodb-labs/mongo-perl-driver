@@ -21,37 +21,39 @@ package MongoDB::Op::_ListIndexes;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Tie::IxHash;
 use Try::Tiny;
 use Safe::Isa;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has client => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
+    isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
 with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
@@ -70,9 +72,10 @@ sub execute {
 sub _command_list_indexes {
     my ( $self, $link, $topology ) = @_;
 
-    my $op = MongoDB::Op::_Command->new(
+    my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
         query           => Tie::IxHash->new( listIndexes => $self->coll_name, cursor => {} ),
+        query_flags => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
@@ -94,18 +97,20 @@ sub _legacy_list_indexes {
     my ( $self, $link, $topology ) = @_;
 
     my $ns = $self->db_name . "." . $self->coll_name;
-    my $op = MongoDB::Op::_Query->new(
+    my $op = MongoDB::Op::_Query->_new(
         db_name         => $self->db_name,
         coll_name       => 'system.indexes',
         client          => $self->client,
         bson_codec      => $self->bson_codec,
         query           => Tie::IxHash->new( ns => $ns ),
         read_preference => $self->read_preference,
+        batch_size => 0,
+        limit => 0,
+        skip => 0,
+        query_flags => {},
     );
 
     return $op->execute( $link, $topology );
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

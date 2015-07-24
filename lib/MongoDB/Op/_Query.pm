@@ -21,67 +21,69 @@ package MongoDB::Op::_Query;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::QueryResult;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has client => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
+    isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
 has query => (
     is       => 'ro',
-    isa      => IxHash,
-    coerce   => 1,
     required => 1,
     writer   => '_set_query',
+    isa      => Document,
 );
 
 has projection => (
-    is     => 'ro',
-    isa    => IxHash,
-    coerce => 1,
+    is       => 'ro',
+    isa      => Maybe [Document],
 );
 
 has [qw/batch_size limit skip/] => (
-    is      => 'ro',
-    isa     => Num,
-    default => 0,
+    is       => 'ro',
+    required => 1,
+    isa      => Num,
 );
 
 # XXX eventually make this a hash with restricted keys?
 has query_flags => (
-    is      => 'ro',
-    isa     => HashRef,
-    default => sub { {} },
+    is       => 'ro',
+    required => 1,
+    isa      => HashRef,
 );
 
 has post_filter => (
     is        => 'ro',
-    isa       => Maybe[CodeRef],
     predicate => 'has_post_filter',
+    isa       => Maybe [CodeRef],
 );
 
-with 'MongoDB::Role::_ReadOp';
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_ReadOp
+);
 with 'MongoDB::Role::_ReadPrefModifier';
 
 sub execute {
@@ -107,17 +109,20 @@ sub execute {
       $self->has_post_filter ? "MongoDB::QueryResult::Filtered" : "MongoDB::QueryResult";
 
     return $class->new(
-        _client     => $self->client,
-        bson_codec  => $self->bson_codec,
-        address     => $link->address,
-        ns          => $ns,
-        limit       => $self->limit,
-        batch_size  => $batch_size,
-        reply       => $result,
-        post_filter => $self->post_filter,
+        _client      => $self->client,
+        address      => $link->address,
+        ns           => $ns,
+        bson_codec   => $self->bson_codec,
+        batch_size   => $batch_size,
+        cursor_at    => 0,
+        limit        => $self->limit,
+        cursor_id    => $result->{cursor_id},
+        cursor_start => $result->{starting_from},
+        cursor_flags => $result->{flags} || {},
+        cursor_num   => $result->{number_returned},
+        _docs        => $result->{docs},
+        post_filter  => $self->post_filter,
     );
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

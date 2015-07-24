@@ -1,5 +1,5 @@
 #
-#  Copyright 2014 MongoDB, Inc.
+#  Copyright 2015 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,37 +14,24 @@
 #  limitations under the License.
 #
 
-package MongoDB::Op::_KillCursors;
+package MongoDB::Role::_PrivateConstructor;
 
-# Encapsulate a cursor kill operation; returns true
+# MongoDB interface for a private constructor
 
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moo;
-
+use Moo::Role;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
-use MongoDB::_Protocol;
 use namespace::clean;
 
-has cursor_ids => (
-    is       => 'ro',
-    required => 1,
-    isa      => ArrayRef [Str],
-);
-
-with $_ for qw(
-  MongoDB::Role::_PrivateConstructor
-);
-
-sub execute {
-    my ( $self, $link ) = @_;
-
-    $link->write( MongoDB::_Protocol::write_kill_cursors( @{ $self->cursor_ids } ) );
-
-    return 1;
+# When assertions are enabled, the private constructor delegates to the
+# public one, which checks required/isa assertions.  When disabled,
+# the private constructor blesses args directly to the class for speed.
+BEGIN {
+  WITH_ASSERTS
+  ? eval 'sub _new { my $class = shift; $class->new(@_) }'
+  : eval 'sub _new { my $class = shift; return bless {@_}, $class }';
 }
 
 1;

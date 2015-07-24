@@ -22,79 +22,82 @@ package MongoDB::Op::_InsertOne;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::InsertOneResult;
 use MongoDB::OID;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use boolean;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
+);
+
+has full_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
 );
 
 has document => (
     is       => 'ro',
-    isa      => Any,
     required => 1,
 );
 
+# this starts undef and gets initialized during processing
 has _doc_id => (
-    is        => 'ro',
-    isa       => Any,
-    writer    => '_set_doc_id',
+    is       => 'ro',
+    init_arg => undef,
+    writer   => '_set_doc_id',
 );
 
-with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_InsertPreEncoder/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteOp
+  MongoDB::Role::_InsertPreEncoder
+);
 
 sub execute {
     my ( $self, $link ) = @_;
+    my ($orig_doc, $insert_doc, $res) = ( $self->document );
 
-    my ($insert_doc) = $self->_pre_encode_insert($link, $self->document, '.');
-    $self->_set_doc_id( $insert_doc->{metadata}{_id} );
+    ( $insert_doc = $self->_pre_encode_insert( $link, $orig_doc, '.' ) ),
+      ( $self->_set_doc_id( $insert_doc->{metadata}{_id} ) );
 
-    my $res =
-        $link->accepts_wire_version(2)
-      ? $self->_command_insert( $link, $insert_doc )
-      : $self->_legacy_op_insert( $link, $insert_doc );
+    if ( $link->does_write_commands ) {
+        $res = $self->_send_write_command(
+            $link,
+            [
+                insert       => $self->coll_name,
+                documents    => [$insert_doc],
+                writeConcern => $self->write_concern->as_struct,
+            ],
+            $orig_doc,
+            "MongoDB::InsertOneResult",
+        );
+    }
+    else {
+        $res =
+          $self->_send_legacy_op_with_gle( $link,
+            MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
+            $orig_doc, "MongoDB::InsertOneResult" );
+    }
 
-    $res->assert;
-    return $res;
-}
-
-sub _command_insert {
-    my ( $self, $link, $insert_doc ) = @_;
-
-    my $cmd = [
-        insert       => $self->coll_name,
-        documents    => [$insert_doc],
-        writeConcern => $self->write_concern->as_struct,
-    ];
-
-    return $self->_send_write_command( $link, $cmd, $self->document, "MongoDB::InsertOneResult" );
-}
-
-sub _legacy_op_insert {
-    my ( $self, $link, $insert_doc ) = @_;
-
-    my $ns = $self->db_name . "." . $self->coll_name;
-    my $op_bson = MongoDB::_Protocol::write_insert( $ns, $insert_doc->{bson} );
-
-    return $self->_send_legacy_op_with_gle( $link, $op_bson, $self->document,
-        "MongoDB::InsertOneResult" );
+    $res->assert, return $res;
 }
 
 sub _parse_cmd {
@@ -106,7 +109,5 @@ BEGIN {
     no warnings 'once';
     *_parse_gle = \&_parse_cmd;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

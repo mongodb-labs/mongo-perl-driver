@@ -21,51 +21,52 @@ package MongoDB::Op::_Distinct;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::Op::_Command;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa => Str,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa => Str,
 );
 
 has client => (
     is       => 'ro',
-    isa      => InstanceOf ['MongoDB::MongoClient'],
     required => 1,
+    isa => InstanceOf ['MongoDB::MongoClient'],
 );
 
 has fieldname=> (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa => Str,
 );
 
 has filter => (
     is      => 'ro',
-    isa     => IxHash,
-    coerce  => 1,
     required => 1,
+    isa => Document,
 );
 
 has options => (
     is      => 'ro',
-    isa     => HashRef,
-    default => sub { {} },
+    required => 1,
+    isa => HashRef,
 );
 
 with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
@@ -75,16 +76,22 @@ sub execute {
 
     my $options = $self->options;
 
+    my $filter =
+      ref( $self->filter ) eq 'ARRAY'
+      ? { @{ $self->filter } }
+      : $self->filter;
+
     my @command = (
         distinct => $self->coll_name,
         key      => $self->fieldname,
-        query    => $self->filter,
+        query    => $filter,
         %$options
     );
 
-    my $op = MongoDB::Op::_Command->new(
+    my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
         query           => Tie::IxHash->new(@command),
+        query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
@@ -99,7 +106,5 @@ sub execute {
 
     return $self->_build_result_from_cursor($res);
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

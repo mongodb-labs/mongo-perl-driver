@@ -17,7 +17,21 @@ while (@isa_checks) {
     isa_ok( exception { $error->throw }, $isa );
 }
 
-my $result = MongoDB::BulkWriteResult->new( nModified => 0 );
+my $result = MongoDB::BulkWriteResult->new(
+    acknowledged         => 1,
+    write_errors         => [],
+    write_concern_errors => [],
+    modified_count       => 0,
+    inserted_count       => 0,
+    upserted_count       => 0,
+    matched_count        => 0,
+    deleted_count        => 0,
+    upserted             => [],
+    inserted             => [],
+    batch_count          => 0,
+    op_count             => 0,
+);
+
 my $error = exception {
     MongoDB::WriteError->throw(
         message => "whoops",

@@ -21,48 +21,51 @@ package MongoDB::Op::_Delete;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::DeleteResult;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Tie::IxHash;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has filter => (
     is       => 'ro',
-    isa      => IxHash,
-    coerce   => 1,
     required => 1,
+    isa      => Document,
 );
 
 has just_one => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 1,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
-with qw/MongoDB::Role::_WriteOp/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteOp
+);
 
 sub execute {
     my ( $self, $link ) = @_;
 
     my $res =
-        $link->accepts_wire_version(2)
+        $link->does_write_commands
       ? $self->_command_delete($link)
       : $self->_legacy_op_delete($link);
 
@@ -73,7 +76,12 @@ sub execute {
 sub _command_delete {
     my ( $self, $link, ) = @_;
 
-    my $op_doc = { q => $self->filter, limit => $self->just_one ? 1 : 0 };
+    my $filter =
+      ref( $self->filter ) eq 'ARRAY'
+      ? { @{ $self->filter } }
+      : $self->filter;
+
+    my $op_doc = { q => $filter, limit => $self->just_one ? 1 : 0 };
 
     my $cmd = Tie::IxHash->new(
         delete       => $self->coll_name,
@@ -106,7 +114,5 @@ BEGIN {
     no warnings 'once';
     *_parse_gle = \&_parse_cmd;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

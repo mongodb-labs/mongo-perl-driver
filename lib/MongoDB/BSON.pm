@@ -241,24 +241,16 @@ An optional hash reference of options may be provided.  Valid options include:
 
 =cut
 
-
-my @encode_overrides =
-  qw/error_callback invalid_chars max_length op_char prefer_numeric/;
-my $encode_one_args;
-
 sub encode_one {
-    $encode_one_args ||= compile( Object, Any, Optional [HashRef|Undef]);
-    my ( $self, $document, $options ) = $encode_one_args->(@_);
+    my ( $self, $document, $options ) = @_;
 
-    for my $k (@encode_overrides) {
-        $options->{$k} = $self->$k unless exists $options->{$k};
-    }
+    my $merged_opts = { %$self, ( $options ? %$options : () ) };
 
-    my $bson = eval { MongoDB::BSON::_encode_bson( $document, $options ) };
-    if ( $@ or ( $options->{max_length} && length($bson) > $options->{max_length} ) ) {
-        my $msg = $@ || "Document exceeds maximum size $options->{max_length}";
-        if ( $options->{error_callback} ) {
-            $options->{error_callback}->( $msg, $document, 'encode_one' );
+    my $bson = eval { MongoDB::BSON::_encode_bson( $document, $merged_opts ) };
+    if ( $@ or ( $merged_opts->{max_length} && length($bson) > $merged_opts->{max_length} ) ) {
+        my $msg = $@ || "Document exceeds maximum size $merged_opts->{max_length}";
+        if ( $merged_opts->{error_callback} ) {
+            $merged_opts->{error_callback}->( $msg, $document, 'encode_one' );
         }
         else {
             Carp::croak("During encode_one, $msg");
@@ -286,32 +278,25 @@ An optional hash reference of options may be provided.  Valid options include:
 
 =cut
 
-my @decode_overrides =
-  qw/dbref_callback dt_type error_callback max_length/;
-my $decode_one_args;
-
 sub decode_one {
-    $decode_one_args ||= compile( Object, Str, Optional [HashRef|Undef] );
-    my ( $self, $string, $options ) = $decode_one_args->(@_);
+    my ( $self, $string, $options ) = @_;
 
-    for my $k ( @decode_overrides ) {
-        $options->{$k} = $self->$k unless exists $options->{$k};
-    }
+    my $merged_opts = { %$self, ( $options ? %$options : () ) };
 
-    if ( $options->{max_length} && length($string) > $options->{max_length} ) {
-        my $msg = "Document exceeds maximum size $options->{max_length}";
-        if ( $options->{error_callback} ) {
-            $options->{error_callback}->( $msg, \$string, 'decode_one' );
+    if ( $merged_opts->{max_length} && length($string) > $merged_opts->{max_length} ) {
+        my $msg = "Document exceeds maximum size $merged_opts->{max_length}";
+        if ( $merged_opts->{error_callback} ) {
+            $merged_opts->{error_callback}->( $msg, \$string, 'decode_one' );
         }
         else {
             Carp::croak("During decode_one, $msg");
         }
     }
 
-    my $document = eval { MongoDB::BSON::_decode_bson( $string, $options ) };
+    my $document = eval { MongoDB::BSON::_decode_bson( $string, $merged_opts ) };
     if ( $@ ) {
-        if ( $options->{error_callback} ) {
-            $options->{error_callback}->( $@, \$string, 'decode_one' );
+        if ( $merged_opts->{error_callback} ) {
+            $merged_opts->{error_callback}->( $@, \$string, 'decode_one' );
         }
         else {
             Carp::croak("During decode_one, $@");

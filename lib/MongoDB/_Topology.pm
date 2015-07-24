@@ -19,25 +19,28 @@ package MongoDB::_Topology;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
+use MongoDB::ReadPreference;
+use MongoDB::_Constants;
 use MongoDB::_Link;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use MongoDB::_Server;
+use Config;
 use List::Util qw/first/;
 use Safe::Isa;
 use Syntax::Keyword::Junction qw/any none/;
-use Time::HiRes qw/gettimeofday tv_interval usleep/;
+use Time::HiRes qw/time usleep/;
 use Try::Tiny;
 
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 use constant {
-    EPOCH => [ 0, 0 ], # tv struct for the epoch
-    MIN_HEARTBEAT_FREQUENCY_MS => 500_000, # 500ms, not configurable
+    EPOCH => 0,
+    MIN_HEARTBEAT_FREQUENCY_USEC => 500_000, # 500ms, not configurable
 };
 
 #--------------------------------------------------------------------------#
@@ -46,116 +49,129 @@ use constant {
 
 has uri => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::_URI'],
     required => 1,
+    isa => InstanceOf['MongoDB::_URI'],
 );
 
 has max_wire_version => (
     is       => 'ro',
-    isa      => Num,
     required => 1,
+    isa => Num,
 );
 
 has min_wire_version => (
     is       => 'ro',
-    isa      => Num,
     required => 1,
+    isa => Num,
 );
 
 has credential => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::_Credential'],
     required => 1,
+    isa => InstanceOf['MongoDB::_Credential'],
 );
 
 has type => (
     is      => 'ro',
-    isa     => TopologyType,
     writer  => '_set_type',
-    default => 'Unknown'
+    default => 'Unknown',
+    isa => TopologyType,
 );
 
 has replica_set_name => (
     is      => 'ro',
-    isa     => Str,
     default => '',
     writer  => '_set_replica_set_name', # :-)
+    isa => Str,
 );
 
-has heartbeat_frequency_ms => (
+has heartbeat_frequency_sec => (
     is      => 'ro',
-    isa     => NonNegNum,
-    default => 60_000,
+    default => 60,
+    isa => NonNegNum,
 );
 
 has last_scan_time => (
     is      => 'ro',
-    isa     => ArrayRef,              # [ Time::HighRes::gettimeofday() ]
-    default => sub { EPOCH },
+    default => EPOCH,
     writer  => '_set_last_scan_time',
+    isa => Num,
 );
 
-has local_threshold_ms => (
+has local_threshold_sec => (
     is      => 'ro',
-    isa     => Num,
-    default => 15,
+    default => 0.015,
+    isa => Num,
 );
 
-has socket_check_interval_ms => (
+has socket_check_interval_sec => (
     is      => 'ro',
-    isa     => Num,
-    default => 5_000,
+    default => 5,
+    isa => Num,
 );
 
-has server_selection_timeout_ms => (
+has server_selection_timeout_sec => (
     is      => 'ro',
-    isa     => Num,
-    default => 60_000,
+    default => 60,
+    isa => Num,
 );
 
 has ewma_alpha => (
     is      => 'ro',
-    isa     => Num,
     default => 0.2,
+    isa => Num,
 );
 
 has link_options => (
     is      => 'ro',
-    isa     => HashRef,
     default => sub { {} },
+    isa => HashRef,
 );
 
 has bson_codec => (
     is       => 'ro',
-    isa      => BSONCodec,
     default  => sub { MongoDB::BSON->new },
+    isa => BSONCodec,
 );
 
 has number_of_seeds => (
     is      => 'ro',
-    isa     => Num,
     lazy    => 1,
     builder => '_build_number_of_seeds',
+    isa => Num,
 );
 
-# servers, links and rtt_ewma_ms are all hashes on server address
+# compatible wire protocol
+has is_compatible => (
+    is => 'ro',
+    writer => '_set_is_compatible',
+    isa => Bool,
+);
+
+has current_primary => (
+    is => 'rwp',
+    clearer => '_clear_current_primary',
+    init_arg => undef,
+);
+
+# servers, links and rtt_ewma_sec are all hashes on server address
 
 has servers => (
     is      => 'ro',
-    isa     => HashRef[InstanceOf['MongoDB::_Server']],
     default => sub { {} },
+    isa => HashRef[InstanceOf['MongoDB::_Server']],
 );
 
 has links => (
     is      => 'ro',
-    isa     => HashRef[InstanceOf['MongoDB::_Link']],
     default => sub { {} },
+    isa => HashRef[InstanceOf['MongoDB::_Link']],
 );
 
-has rtt_ewma_ms => (
+has rtt_ewma_sec => (
     is      => 'ro',
-    isa     => HashRef[Num],
     default => sub { {} },
+    isa => HashRef[Num],
 );
 
 #--------------------------------------------------------------------------#
@@ -204,7 +220,8 @@ sub all_servers { return values %{ $_[0]->servers } }
 sub check_address {
     my ( $self, $address ) = @_;
 
-    if ( my $link = $self->links->{$address} ) {
+    my $link = $self->links->{$address};
+    if ( $link && $link->is_connected ) {
         $self->_update_topology_from_link($link);
     }
     else {
@@ -226,7 +243,7 @@ sub get_readable_link {
 
     my $mode = $read_pref ? lc $read_pref->mode : 'primary';
     my $method =
-      $self->type eq any(qw/Single Sharded/)
+      ( $self->type eq "Single" || $self->type eq "Sharded" )
       ? '_find_any_server'
       : "_find_${mode}_server";
 
@@ -243,6 +260,7 @@ sub get_readable_link {
 
 sub get_specific_link {
     my ( $self, $address ) = @_;
+
     my $server = $self->servers->{$address};
     if ( $server && ( my $link = $self->_get_server_link($server) ) ) {
         return $link;
@@ -256,11 +274,24 @@ sub get_writable_link {
     my ($self) = @_;
 
     my $method =
-      $self->type eq any(qw/Single Sharded/) ? '_find_any_server' : "_find_primary_server";
+      ( $self->type eq "Single" || $self->type eq "Sharded" )
+      ? '_find_any_server'
+      : "_find_primary_server";
+
+
+    if ($self->current_primary) {
+        my $link = $self->_get_server_link( $self->current_primary, $method );
+        return $link if $link;
+    }
 
     while ( my $server = $self->_selection_timeout($method) ) {
         my $link = $self->_get_server_link( $server, $method );
-        return $link if $link;
+        if ($link) {
+            $self->_set_current_primary($server)
+              if $self->type eq "ReplicaSetWithPrimary"
+              || 1 == keys %{ $self->servers };
+            return $link;
+        }
     }
 
     MongoDB::SelectionError->throw(
@@ -283,7 +314,7 @@ sub scan_all_servers {
     my ($self) = @_;
 
     my ( $next, @ordinary, @to_check );
-    my $start_time = [ gettimeofday() ];
+    my $start_time = time;
 
     # anything not updated since scan start is eligible for a check; when all servers
     # are updated, the loop terminates
@@ -305,7 +336,8 @@ sub scan_all_servers {
         }
     }
 
-    $self->_set_last_scan_time( [ gettimeofday() ] );
+    $self->_set_last_scan_time( time );
+    $self->_check_wire_versions;
     return;
 }
 
@@ -318,13 +350,13 @@ sub status_struct {
     my $lst = $self->last_scan_time;
     $status->{last_scan_time} = $lst->[0] + $lst->[1] / 1e6;
 
-    my $rtt_hash = $self->rtt_ewma_ms;
+    my $rtt_hash = $self->rtt_ewma_sec;
     my $ss = $status->{servers} = [];
     for my $server ( $self->all_servers ) {
         my $addr = $server->address;
         my $server_struct = $server->status_struct;
         if ( defined $rtt_hash->{$addr} ) {
-            $server_struct->{ewma_rtt_ms} = $rtt_hash->{$addr};
+            $server_struct->{ewma_rtt_sec} = $rtt_hash->{$addr};
         }
         push @$ss, $server_struct;
     }
@@ -347,13 +379,23 @@ sub _add_address_as_unknown {
     );
 }
 
+sub _check_for_primary {
+    my ($self) = @_;
+    if ( 0 == $self->_primaries ) {
+        $self->_set_type('ReplicaSetNoPrimary');
+        $self->_clear_current_primary;
+        return 0;
+    }
+    return 1;
+}
+
 sub _check_oldest_server {
     my ( $self, @to_check ) = @_;
 
     my @ordered =
       map { $_->[0] }
       sort { $a->[1] <=> $b->[1] || rand() <=> rand() } # random if equal
-      map { [ $_, $_->last_update_time->[0] ] }         # ignore partial secs
+      map { [ $_, $_->last_update_time ] }         # ignore partial secs
       @to_check;
 
     $self->check_address( $ordered[0]->address );
@@ -364,6 +406,7 @@ sub _check_oldest_server {
 sub _check_wire_versions {
     my ($self) = @_;
 
+    my $compat = 1;
     for my $server ( grep { $_->is_available } $self->all_servers ) {
         my ( $server_min_wire_version, $server_max_wire_version ) =
           @{ $server->is_master }{qw/minWireVersion maxWireVersion/};
@@ -371,11 +414,10 @@ sub _check_wire_versions {
         if (   ( $server_min_wire_version || 0 ) > $self->max_wire_version
             || ( $server_max_wire_version || 0 ) < $self->min_wire_version )
         {
-            MongoDB::ProtocolError->throw(
-                "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library."
-            );
+            $compat = 0;
         }
     }
+    $self->_set_is_compatible($compat);
 
     return;
 }
@@ -418,6 +460,8 @@ sub _find_nearest_server {
 
 sub _find_primary_server {
     my ( $self, undef, @candidates ) = @_;
+    return $self->current_primary
+      if $self->current_primary;
     push @candidates, $self->all_servers unless @candidates;
     return first { $_->is_writable } @candidates;
 }
@@ -444,9 +488,10 @@ sub _find_secondarypreferred_server {
 sub _get_server_in_latency_window {
     my ( $self, $servers ) = @_;
     return unless @$servers;
+    return $servers->[0] if @$servers == 1;
 
     # order servers by RTT EWMA
-    my $rtt_hash = $self->rtt_ewma_ms;
+    my $rtt_hash = $self->rtt_ewma_sec;
     my @sorted =
       sort { $a->{rtt} <=> $b->{rtt} }
       map { { server => $_, rtt => $rtt_hash->{ $_->address } } } @$servers;
@@ -455,7 +500,7 @@ sub _get_server_in_latency_window {
     my @in_window = shift @sorted;
 
     # add any other servers in window and return a random one
-    my $max_rtt = $in_window[0]->{rtt} + $self->local_threshold_ms;
+    my $max_rtt = $in_window[0]->{rtt} + $self->local_threshold_sec;
     push @in_window, grep { $_->{rtt} <= $max_rtt } @sorted;
     return $in_window[ int( rand(@in_window) ) ]->{server};
 }
@@ -465,13 +510,13 @@ sub _get_server_link {
     my $address = $server->address;
     my $link    = $self->links->{$address};
 
-    # if no link or disconnected, make a new connection or give up
-    $link = $self->_initialize_link($address) unless $link && $link->remote_connected;
+    # if no link, make a new connection or give up
+    $link = $self->_initialize_link($address) unless $link && $link->connected;
     return unless $link;
 
     # for idle links, refresh the server and verify validity
-    if ( $link->idle_time_ms > $self->socket_check_interval_ms ) {
-        $self->_update_topology_from_link($link);
+    if ( $link->idle_time_sec > $self->socket_check_interval_sec ) {
+        $self->check_address($address);
 
         # topology might have dropped the server
         $server = $self->servers->{addresses}
@@ -481,22 +526,17 @@ sub _get_server_link {
         return $fresh_link if !$method;
 
         # verify selection criteria
-        return $self->method( $read_pref, $server ) ? $fresh_link : undef;
+        return $self->$method( $read_pref, $server ) ? $fresh_link : undef;
     }
 
     return $link;
-}
-
-sub _has_no_primaries {
-    my ($self) = @_;
-    return 0 == $self->_primaries;
 }
 
 sub _initialize_link {
     my ( $self, $address ) = @_;
 
     my $link = try {
-        MongoDB::_Link->new( $address, $self->link_options )->connect;
+        MongoDB::_Link->new( %{$self->link_options}, address => $address )->connect;
     }
     catch {
         # if connection failed, update topology with Unknown description
@@ -517,7 +557,7 @@ sub _initialize_link {
     # we have a link and the server is a valid member, so
     # try to authenticate; if authentication fails, all
     # servers are considered invalid and we throw an error
-    if ( $server->type eq any(qw/Standalone Mongos RSPrimary RSSecondary/) ) {
+    if ( first { $_ eq $server->type } qw/Standalone Mongos RSPrimary RSSecondary/ ) {
         try {
             $self->credential->authenticate($link, $self->bson_codec);
         }
@@ -537,7 +577,10 @@ sub _primaries {
 
 sub _remove_address {
     my ( $self, $address ) = @_;
-    delete $self->$_->{$address} for qw/servers links rtt_ewma_ms/;
+    if ( $self->current_primary &&  $self->current_primary->address eq $address ) {
+        $self->_clear_current_primary;
+    }
+    delete $self->$_->{$address} for qw/servers links rtt_ewma_sec/;
     return;
 }
 
@@ -549,7 +592,7 @@ sub _remove_server {
 
 sub _reset_address_to_unknown {
     my ( $self, $address, $error, $update_time ) = @_;
-    $update_time ||= [gettimeofday];
+    $update_time ||= time;
 
     $self->_remove_address($address);
     my $desc = $self->_add_address_as_unknown( $address, $update_time, $error );
@@ -582,45 +625,55 @@ sub _status_string {
 sub _selection_timeout {
     my ( $self, $method, $read_pref ) = @_;
 
-    if ( 1000 * tv_interval( $self->last_scan_time ) > $self->heartbeat_frequency_ms ) {
+    my $start_time = time;
+
+    if ( ($start_time - $self->last_scan_time) > $self->heartbeat_frequency_sec ) {
         $self->scan_all_servers;
+        $start_time = time; # update after scan
     }
 
-    my $start_time = [ gettimeofday() ];
-
     while (1) {
-        $self->_check_wire_versions;
+        unless ($self->is_compatible) {
+            MongoDB::ProtocolError->throw(
+                "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library."
+            );
+        }
         if ( my $server = $self->$method($read_pref) ) {
             return $server;
         }
-        last if 1000 * tv_interval($start_time) > $self->server_selection_timeout_ms;
+        last if (time - $start_time) > $self->server_selection_timeout_sec;
     }
     continue {
-        usleep(MIN_HEARTBEAT_FREQUENCY_MS); # delay before rescanning
+        usleep(MIN_HEARTBEAT_FREQUENCY_USEC); # delay before rescanning
         $self->scan_all_servers;
     }
 
     return; # caller has to throw appropriate timeout error
 }
 
+my $PRIMARY = MongoDB::ReadPreference->new;
+
 sub _update_topology_from_link {
     my ( $self, $link ) = @_;
 
-    my $start_time = [ gettimeofday() ];
-    my $is_master = try {
-        my $op = MongoDB::Op::_Command->new(
-            db_name    => 'admin',
-            query      => [ ismaster => 1 ],
-            bson_codec => $self->bson_codec,
+    my $start_time = time;
+    my $is_master = eval {
+        my $op = MongoDB::Op::_Command->_new(
+            db_name         => 'admin',
+            query           => [ ismaster => 1 ],
+            query_flags     => {},
+            bson_codec      => $self->bson_codec,
+            read_preference => $PRIMARY,
         );
         # just for this command, use connect timeout as socket timeout;
         # this violates encapsulation, but requires less API modification
         # to support this specific exception to the socket timeout
         local $link->{socket_timeout} = $link->{connect_timeout};
         $op->execute( $link )->output;
-    }
-    catch {
-        warn $_;
+    };
+    if ( $@ ) {
+        local $_ = $@;
+        warn "During topology update: $_";
         $self->_reset_address_to_unknown( $link->address, $_ );
         # retry a network error if server was previously known to us
         if (    $_->$_isa("MongoDB::NetworkError")
@@ -636,13 +689,13 @@ sub _update_topology_from_link {
 
     return unless $is_master;
 
-    my $end_time = [ gettimeofday() ];
-    my $rtt_ms = int( 1000 * tv_interval( $start_time, $end_time ) );
+    my $end_time = time;
+    my $rtt_sec = $end_time - $start_time;
 
     my $new_server = MongoDB::_Server->new(
         address          => $link->address,
         last_update_time => $end_time,
-        rtt_ms           => $rtt_ms,
+        rtt_sec           => $rtt_sec,
         is_master        => $is_master,
     );
 
@@ -678,14 +731,14 @@ sub _update_ewma {
     my ( $self, $address, $new_server ) = @_;
 
     if ( $new_server->type eq 'Unknown' ) {
-        delete $self->rtt_ewma_ms->{$address};
+        delete $self->rtt_ewma_sec->{$address};
     }
     else {
-        my $old_avg = $self->rtt_ewma_ms->{$address};
+        my $old_avg = $self->rtt_ewma_sec->{$address};
         my $alpha   = $self->ewma_alpha;
-        my $rtt_ms  = $new_server->rtt_ms;
-        $self->rtt_ewma_ms->{$address} =
-          defined($old_avg) ? ( $alpha * $rtt_ms + ( 1 - $alpha ) * $old_avg ) : $rtt_ms;
+        my $rtt_sec  = $new_server->rtt_sec;
+        $self->rtt_ewma_sec->{$address} =
+          defined($old_avg) ? ( $alpha * $rtt_sec + ( 1 - $alpha ) * $old_avg ) : $rtt_sec;
     }
 
     return;
@@ -715,14 +768,11 @@ sub _update_rs_with_primary_from_member {
     # require 'me' that matches expected address
     if ( $new_server->me ne $new_server->address ) {
         $self->_remove_server($new_server);
-        # topology changes might have removed all primaries
-        $self->_set_type('ReplicaSetNoPrimary')
-          if $self->_has_no_primaries;
+        $self->_check_for_primary;
         return;
     }
 
-    if ( $self->_has_no_primaries ) {
-        $self->_set_type('ReplicaSetNoPrimary');
+    if ( ! $self->_check_for_primary ) {
 
         # flag possible primary to amend scanning order
         my $primary = $new_server->primary;
@@ -825,8 +875,7 @@ sub _update_ReplicaSetNoPrimary {
         $self->_set_type('ReplicaSetWithPrimary');
         $self->_update_rs_with_primary_from_primary($new_server);
         # topology changes might have removed all primaries
-        $self->_set_type('ReplicaSetNoPrimary')
-          if $self->_has_no_primaries;
+        $self->_check_for_primary;
     }
     elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
         $self->_update_rs_without_primary($new_server);
@@ -861,8 +910,7 @@ sub _update_ReplicaSetWithPrimary {
     }
 
     # topology changes might have removed all primaries
-    $self->_set_type('ReplicaSetNoPrimary')
-      if $self->_has_no_primaries;
+    $self->_check_for_primary;
 
     return;
 }
@@ -882,7 +930,8 @@ sub _update_Sharded {
 
 sub _update_Single {
     my ( $self, $address, $new_server ) = @_;
-    return; # TopologyType Single never changes type or membership
+    # Per the spec, TopologyType Single never changes type or membership
+    return;
 }
 
 sub _update_Unknown {
@@ -908,8 +957,7 @@ sub _update_Unknown {
         $self->_set_type('ReplicaSetWithPrimary');
         $self->_update_rs_with_primary_from_primary($new_server);
         # topology changes might have removed all primaries
-        $self->_set_type('ReplicaSetNoPrimary')
-          if $self->_has_no_primaries;
+        $self->_check_for_primary;
     }
     elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
         $self->_set_type('ReplicaSetNoPrimary');
@@ -921,8 +969,6 @@ sub _update_Unknown {
 
     return;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 

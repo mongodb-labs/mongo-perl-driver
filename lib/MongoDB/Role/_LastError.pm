@@ -22,10 +22,10 @@ package MongoDB::Role::_LastError;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose::Role;
+use Moo::Role;
 use MongoDB::Error;
 use Syntax::Keyword::Junction qw/any/;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 # XXX should we add 'assert' to this API list?
 requires qw/last_errmsg last_code last_wtimeout/;

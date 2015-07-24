@@ -48,6 +48,7 @@ use Type::Library
   PairArrayRef
   ReadPrefMode
   ReadPreference
+  ServerDesc
   ServerType
   SingleChar
   SingleKeyHash
@@ -135,6 +136,8 @@ enum ReadPrefMode,
   [qw/primary primaryPreferred secondary secondaryPreferred nearest/];
 
 class_type ReadPreference, { class => 'MongoDB::ReadPreference' };
+
+class_type ServerDesc, { class => 'MongoDB::_Server' };
 
 enum ServerType,
   [

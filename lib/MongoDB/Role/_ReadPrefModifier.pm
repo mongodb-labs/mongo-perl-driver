@@ -21,11 +21,11 @@ package MongoDB::Role::_ReadPrefModifier;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose::Role;
+use Moo::Role;
 
 use MongoDB::Error;
 use Syntax::Keyword::Junction qw/any/;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 requires qw/query _set_query query_flags read_preference/;
 
@@ -44,7 +44,7 @@ sub _apply_read_prefs {
         }
     }
     elsif ( $topology_type eq any(qw/ReplicaSetNoPrimary ReplicaSetWithPrimary/) ) {
-        if ( $read_pref->mode eq 'primary' ) {
+        if ( !$read_pref || $read_pref->mode eq 'primary' ) {
             $self->query_flags->{slave_ok} = 0;
         }
         else {
@@ -63,7 +63,7 @@ sub _apply_read_prefs {
 
 sub _apply_mongos_read_prefs {
     my ( $self, $read_pref ) = @_;
-    my $mode = $read_pref->mode;
+    my $mode = $read_pref ? $read_pref->mode : 'primary';
     my $need_read_pref;
 
     if ( $mode eq 'primary' ) {

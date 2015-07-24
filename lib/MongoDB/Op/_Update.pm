@@ -21,65 +21,75 @@ package MongoDB::Op::_Update;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
 use MongoDB::BSON;
 use MongoDB::UpdateResult;
+use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Tie::IxHash;
 use boolean;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has filter => (
     is       => 'ro',
-    isa      => IxHash,
-    coerce   => 1,
     required => 1,
+    isa      => Document,
 );
 
 has update => (
     is       => 'ro',
-    isa      => Any,
     required => 1,
 );
 
 has is_replace => (
-    is     => 'ro',
-    isa    => Bool,
+    is       => 'ro',
     required => 1,
+    isa      => Bool,
 );
 
 has multi => (
-    is     => 'ro',
-    isa    => Bool,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
 has upsert => (
-    is     => 'ro',
-    isa    => Bool,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
-with $_ for qw/MongoDB::Role::_WriteOp MongoDB::Role::_UpdatePreEncoder/;
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteOp
+  MongoDB::Role::_UpdatePreEncoder
+);
 
 sub execute {
     my ( $self, $link ) = @_;
 
+    my $filter =
+      ref( $self->filter ) eq 'ARRAY'
+      ? { @{ $self->filter } }
+      : $self->filter;
+
     my $update_op = {
-        q      => $self->filter,
+        q      => $filter,
         u      => $self->update,
         multi  => boolean($self->multi),
         upsert => boolean($self->upsert),
@@ -90,7 +100,7 @@ sub execute {
     $update_op->{u} = $self->_pre_encode_update( $link, $update_op->{u}, $self->is_replace );
 
     my $res =
-        $link->accepts_wire_version(2)
+        $link->does_write_commands
       ? $self->_command_update( $link, $update_op, $orig_op )
       : $self->_legacy_op_update( $link, $update_op, $orig_op );
 
@@ -131,7 +141,7 @@ sub _parse_cmd {
     my ( $self, $res ) = @_;
 
     return (
-        matched_count  => $res->{n} - @{ $res->{upserted} || [] },
+        matched_count  => ($res->{n} || 0)  - @{ $res->{upserted} || [] },
         modified_count => $res->{nModified},
         upserted_id    => $res->{upserted} ? $res->{upserted}[0]{_id} : undef,
     );
@@ -158,12 +168,10 @@ sub _parse_gle {
     }
 
     return (
-        matched_count  => ($upserted ? 0 : $res->{n}),
+        matched_count  => ($upserted ? 0 : $res->{n} || 0),
         modified_count => undef,
         upserted_id    => $upserted,
     );
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

@@ -21,22 +21,19 @@ package MongoDB::Role::_ReadOp;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose::Role;
+use Moo::Role;
 
 use MongoDB::ReadPreference;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
-
-my $PRIMARY = MongoDB::ReadPreference->new;
+use namespace::clean;
 
 with 'MongoDB::Role::_DatabaseOp';
 
 has read_preference => (
-    is      => 'ro',
-    isa     => ReadPreference,
-    coerce  => 1,
-    default => sub { $PRIMARY },
+    is  => 'ro',
+    isa => Maybe [ReadPreference],
 );
 
 1;

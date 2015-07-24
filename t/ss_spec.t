@@ -109,7 +109,7 @@ sub create_mock_topology {
         max_wire_version       => 3,
         min_wire_version       => 0,
         heartbeat_frequency_ms => 3600000,
-        last_scan_time => [ time + 60, 0 ],
+        last_scan_time => time + 60,
         credential => MongoDB::_Credential->new( mechanism => 'NONE' ),
     );
 }
@@ -118,8 +118,8 @@ sub create_mock_server {
     my ( $address, $rtt, @args ) = @_;
     return MongoDB::_Server->new(
         address          => $address,
-        last_update_time => [ 0, 0 ],
-        rtt_ms           => $rtt,
+        last_update_time => 0,
+        rtt_sec          => $rtt,
         is_master        => { ismaster => 1, ok => 1 },
         @args,
     );
@@ -131,14 +131,14 @@ sub run_rtt_test {
     my $topo = create_mock_topology("mongodb://localhost");
 
     if ( $plan->{avg_rtt_ms} ne 'NULL' ) {
-        $topo->rtt_ewma_ms->{"localhost:27017"} = $plan->{avg_rtt_ms};
+        $topo->rtt_ewma_sec->{"localhost:27017"} = $plan->{avg_rtt_ms}/1000;
     }
 
-    my $server = create_mock_server( "localhost:2707", $plan->{new_rtt_ms} );
+    my $server = create_mock_server( "localhost:2707", $plan->{new_rtt_ms}/1000 );
 
     $topo->_update_topology_from_server_desc( 'localhost:27017', $server );
 
-    is( $topo->rtt_ewma_ms->{"localhost:27017"}, $plan->{new_avg_rtt}, $name );
+    is( $topo->rtt_ewma_sec->{"localhost:27017"}, $plan->{new_avg_rtt}/1000, $name );
 }
 
 sub run_ss_test {
@@ -154,7 +154,7 @@ sub run_ss_test {
         my %tags    = map { %$_ } @{ $s->{tags} };
         my $server  = create_mock_server(
             $address,
-            $s->{avg_rtt_ms},
+            $s->{avg_rtt_ms}/1000,
             type => $s->{type},
             tags => \%tags,
         );

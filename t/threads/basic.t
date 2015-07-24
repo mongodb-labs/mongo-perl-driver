@@ -39,6 +39,7 @@ $col->drop;
 
     my $ret = try {
         threads->create(sub {
+            $conn->reconnect;
             $col->insert_one({ foo => 42 })->inserted_id;
         })->join->value;
     }
@@ -57,6 +58,7 @@ $col->drop;
     note "inserting $n_inserts items each in $n_threads threads";
     my @threads = map {
         threads->create(sub {
+            $conn->reconnect;
             my $col = $conn->get_database($testdb->name)->get_collection('kooh');
             map { $col->insert_one({ foo => threads->self->tid })->inserted_id } 1 .. $n_inserts;
         })

@@ -22,153 +22,118 @@ use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
 use Config;
-use Moose;
+use Moo;
 use MongoDB::Error;
+use MongoDB::_Constants;
 use MongoDB::Op::_GetMore;
 use MongoDB::Op::_KillCursors;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 use constant {
     CURSOR_ZERO => "\0" x 8,
     HAS_INT64 => $Config{use64bitint},
 };
 
-with 'MongoDB::Role::_Cursor';
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_Cursor
+);
 
 # attributes needed for get more
 
 has _client => (
     is       => 'rw',
-    isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
+    isa => InstanceOf['MongoDB::MongoClient'],
 );
 
 has address => (
     is       => 'ro',
-    isa      => HostAddress,
     required => 1,
+    isa => HostAddress,
 );
 
 has ns => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa => Str,
 );
 
 has bson_codec => (
     is       => 'ro',
-    isa      => BSONCodec,
     required => 1,
+    isa => BSONCodec,
 );
 
 has batch_size => (
-    is      => 'ro',
-    isa     => Int,
-    default => 0,
+    is       => 'ro',
+    required => 1,
+    isa      => Int,
 );
 
 # attributes for tracking progress
 
 has cursor_at => (
-    is      => 'ro',
-    isa     => Num,
-    traits  => ['Counter'],
-    default => 0,
-    handles => {
-        _inc_cursor_at   => 'inc',
-        _clear_cursor_at => 'reset',
-    },
+    is       => 'ro',
+    required => 1,
+    isa      => Num,
 );
 
+sub _inc_cursor_at { $_[0]{cursor_at}++ }
+
 has limit => (
-    is      => 'ro',
-    isa     => Num,
-    default => 0,
+    is       => 'ro',
+    required => 1,
+    isa      => Num,
 );
 
 # attributes from actual results -- generally get this from BUILDARGS
 
 has cursor_id => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
     writer   => '_set_cursor_id',
+    isa => Str,
 );
 
 has cursor_start => (
-    is      => 'ro',
-    isa     => Num,
-    default => 0,
-    writer  => '_set_cursor_start',
+    is       => 'ro',
+    required => 1,
+    writer   => '_set_cursor_start',
+    isa      => Num,
 );
 
 has cursor_flags => (
-    is      => 'ro',
-    isa     => HashRef,
-    default => sub { {} },
-    writer  => '_set_cursor_flags',
+    is       => 'ro',
+    required => 1,
+    writer   => '_set_cursor_flags',
+    isa      => HashRef,
 );
 
 has cursor_num => (
-    is      => 'ro',
-    isa     => Num,
-    traits  => ['Counter'],
-    default => 0,
-    handles => {
-        _inc_cursor_num   => 'inc',
-        _clear_cursor_num => 'reset',
-    },
+    is       => 'ro',
+    required => 1,
+    isa      => Num,
 );
+
+sub _inc_cursor_num { $_[0]{cursor_num}++ }
 
 has _docs => (
-    is      => 'ro',
-    isa     => ArrayRef,
-    traits  => ['Array'],
-    default => sub { [] },
-    handles => {
-        _drained    => 'is_empty',
-        _doc_count  => 'count',
-        _add_docs   => 'push',
-        _next_doc   => 'shift',
-        _clear_docs => 'clear',
-    },
+    is       => 'ro',
+    required => 1,
+    isa      => ArrayRef,
 );
 
-# allows ->new( _client => $client, ns => $ns, reply => { } )
-# or     ->new( _client => $client, result => $command_result )
-sub BUILDARGS {
+sub _drained { ! @{$_[0]{_docs}} }
+sub _doc_count { scalar @{$_[0]{_docs}} }
+sub _add_docs {
     my $self = shift;
-    my $args = $self->SUPER::BUILDARGS(@_);
-
-    if ( my $reply = delete $args->{reply} ) {
-        # extract attributes from results hash
-        return {
-            %$args,
-            cursor_id    => $reply->{cursor_id},
-            cursor_flags => $reply->{flags},
-            cursor_start => $reply->{starting_from},
-            cursor_num   => $reply->{number_returned},
-            _docs        => $reply->{docs},
-        };
-    }
-    elsif ( my $cursor = delete $args->{cursor} ) {
-        my $first_batch_size = scalar @{ $cursor->{firstBatch} };
-        return {
-            %$args,
-            ns         => $cursor->{ns},
-            batch_size => $first_batch_size,
-            cursor_id  => _pack_cursor_id( $cursor->{id} ),
-            cursor_num => $first_batch_size,
-            _docs      => $cursor->{firstBatch},
-        };
-    }
-    else {
-        return $args;
-    }
-
+    push @{$self->{_docs}}, @_;
 }
+sub _next_doc { shift @{$_[0]{_docs}} }
+sub _clear_doc { @{$_[0]{_docs}} = () }
 
 # for backward compatibility
 sub started_iterating() { 1 }
@@ -231,7 +196,7 @@ sub _get_more {
     my $limit = $self->limit;
     my $want = $limit > 0 ? ( $limit - $self->cursor_at ) : $self->batch_size;
 
-    my $op = MongoDB::Op::_GetMore->new(
+    my $op = MongoDB::Op::_GetMore->_new(
         ns         => $self->ns,
         client     => $self->_client,
         bson_codec => $self->bson_codec,
@@ -271,7 +236,7 @@ sub all {
 sub _kill_cursor {
     my ($self) = @_;
     return if !defined $self->cursor_id || $self->cursor_id eq CURSOR_ZERO;
-    my $op = MongoDB::Op::_KillCursors->new( cursor_ids => [ $self->cursor_id ], );
+    my $op = MongoDB::Op::_KillCursors->_new( cursor_ids => [ $self->cursor_id ], );
     $self->_client->send_direct_op( $op, $self->address );
     $self->_set_cursor_id(CURSOR_ZERO);
 }
@@ -312,8 +277,6 @@ sub _pack_cursor_id {
 
     return $cursor_id;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 =for Pod::Coverage
 started_iterating

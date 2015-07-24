@@ -21,10 +21,10 @@ package MongoDB::Role::_InsertPreEncoder;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose::Role;
+use Moo::Role;
 use MongoDB::Error;
 use MongoDB::BSON::_EncodedDoc;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 use constant PERL58 => $] lt '5.010';
 
@@ -47,7 +47,7 @@ sub _pre_encode_insert {
         : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
         : $doc->{_id} # hashlike?
     );
-    $id = MongoDB::OID->new() unless defined $id;
+    $id = MongoDB::OID->_new_oid() unless defined $id;
 
     my $bson_doc = $self->bson_codec->encode_one(
         $doc,
@@ -59,7 +59,7 @@ sub _pre_encode_insert {
         }
     );
 
-    return MongoDB::BSON::_EncodedDoc->new(
+    return MongoDB::BSON::_EncodedDoc->_new(
         bson => $bson_doc,
         metadata => { _id => $id },
     );

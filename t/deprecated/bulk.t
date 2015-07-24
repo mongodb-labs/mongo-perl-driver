@@ -43,6 +43,24 @@ my $is_standalone = $conn->topology_type eq 'Single' && ! exists $server_status-
 
 my $server_does_bulk = server_version($conn) >= v2.5.5;
 
+sub _bulk_write_result {
+    return MongoDB::BulkWriteResult->new(
+        acknowledged         => 1,
+        write_errors         => [],
+        write_concern_errors => [],
+        modified_count       => 0,
+        inserted_count       => 0,
+        upserted_count       => 0,
+        matched_count        => 0,
+        deleted_count        => 0,
+        upserted             => [],
+        inserted             => [],
+        batch_count          => 0,
+        op_count             => 0,
+        @_,
+    );
+}
+
 subtest "constructors" => sub {
     my @constructors = qw(
       initialize_ordered_bulk_op initialize_unordered_bulk_op
@@ -124,7 +142,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 inserted_count   => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -148,7 +166,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 inserted_count   => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -236,7 +254,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 matched_count    => 2,
                 modified_count   => ( $server_does_bulk ? 2 : undef ),
                 op_count    => 1,
@@ -271,7 +289,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 matched_count    => 2,
                 modified_count   => ( $server_does_bulk ? 2 : undef ),
                 op_count    => 2,
@@ -297,7 +315,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 matched_count    => 1,
                 modified_count   => ( $server_does_bulk ? 1 : undef ),
                 op_count    => 1,
@@ -367,7 +385,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         is_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 matched_count    => 1,
                 modified_count   => ( $server_does_bulk ? 1 : undef ),
                 op_count    => 1,
@@ -415,7 +433,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 upserted_count => 1,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
                 upserted       => [ { index => 1, _id => ignore() } ],
@@ -438,7 +456,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         is( $err, undef, "no error on second upsert-update" ) or diag explain $err;
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 matched_count    => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 2,
@@ -462,7 +480,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 matched_count    => 2,
                 modified_count   => ( $server_does_bulk ? 2 : undef ),
                 op_count    => 1,
@@ -496,7 +514,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 upserted_count   => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 upserted        => [ { index => 0, _id => ignore() } ],
@@ -524,7 +542,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 upserted_count => 1,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
                 upserted      => [ { index => 1, _id => ignore() } ],
@@ -556,7 +574,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 matched_count    => 1,
                 modified_count   => ( $server_does_bulk ? 1 : undef ),
                 op_count    => 1,
@@ -590,7 +608,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 upserted_count => 1,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
                 upserted      => [ { index => 1, _id => ignore() } ],
@@ -622,7 +640,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 matched_count    => 1,
                 modified_count   => ( $server_does_bulk ? 1 : undef ),
                 op_count    => 1,
@@ -668,7 +686,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 deleted_count    => 2,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -693,7 +711,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 deleted_count    => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -735,7 +753,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 deleted_count    => 1,
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
@@ -764,7 +782,7 @@ subtest "mixed operations, unordered" => sub {
     is( $err, undef, "no error on mixed operations" ) or diag explain $err;
     cmp_deeply(
         $result,
-        MongoDB::BulkWriteResult->new(
+        _bulk_write_result(
             inserted_count   => 1,
             matched_count    => 1,
             modified_count   => ( $server_does_bulk ? 1 : undef ),
@@ -798,7 +816,7 @@ subtest "mixed operations, ordered" => sub {
     is( $err, undef, "no error on mixed operations" ) or diag explain $err;
     cmp_deeply(
         $result,
-        MongoDB::BulkWriteResult->new(
+        _bulk_write_result(
             inserted_count   => 2,
             upserted_count   => 1,
             matched_count    => 1,
@@ -1307,7 +1325,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         cmp_deeply(
             $result,
-            MongoDB::BulkWriteResult->new(
+            _bulk_write_result(
                 upserted_count => 3,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
                 upserted     =>

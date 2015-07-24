@@ -21,13 +21,17 @@ package MongoDB::CommandResult;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 use MongoDB::Error;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
-with 'MongoDB::Role::_LastError';
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_LastError
+);
 
 =attr output
 
@@ -37,8 +41,8 @@ Hash reference with the output document of a database command
 
 has output => (
     is       => 'ro',
-    isa      => HashRef,
     required => 1,
+    isa => HashRef,
 );
 
 =attr address
@@ -49,8 +53,8 @@ Address ("host:port") of server that ran the command
 
 has address => (
     is       => 'ro',
-    isa      => HostAddress,
     required => 1,
+    isa => HostAddress,
 );
 
 =method last_code
@@ -115,8 +119,6 @@ sub assert {
 
 # deprecated
 sub result { shift->output }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 

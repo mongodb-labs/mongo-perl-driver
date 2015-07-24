@@ -22,30 +22,42 @@ use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
 use MongoDB::Error;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use Moose::Role;
-use namespace::clean -except => 'meta';
+use Moo::Role;
+use namespace::clean;
 
 has acknowledged => (
-    is      => 'ro',
-    isa     => Bool,
-    default => 1,
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
 );
 
 has [qw/write_errors write_concern_errors/] => (
-    is      => 'ro',
-    isa     => ArrayOfHashRef,
-    coerce  => 1,
-    default => sub { [] },
+    is       => 'ro',
+    required => 1,
+    isa      => ArrayOfHashRef,
 );
 
 with 'MongoDB::Role::_LastError';
 
+# inline assert_no_write_error and assert_no_write_concern rather
+# than having to make to additional method calls
 sub assert {
     my ($self) = @_;
-    $self->assert_no_write_error;
-    $self->assert_no_write_concern_error;
+
+    $self->_throw_database_error("MongoDB::WriteError")
+      if $self->count_write_errors;
+
+    if ( $self->count_write_concern_errors ) {
+        MongoDB::WriteConcernError->throw(
+            message => $self->last_errmsg,
+            result  => $self,
+            code    => WRITE_CONCERN_ERROR,
+        );
+    }
+
     return 1;
 }
 

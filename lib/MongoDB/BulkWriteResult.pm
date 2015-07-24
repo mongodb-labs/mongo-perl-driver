@@ -24,29 +24,36 @@ our $VERSION = 'v0.999.999.4'; # TRIAL
 # empty superclass for backcompatibility; add a variable to the
 # package namespace so Perl thinks it's a real package
 $MongoDB::WriteResult::VERSION = $VERSION;
-our @ISA = qw/MongoDB::WriteResult/;
 
-use Moose;
+use Moo;
 use MongoDB::Error;
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Syntax::Keyword::Junction qw/any/;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
-with 'MongoDB::Role::_WriteResult';
+# fake empty superclass for backcompat
+our @ISA;
+push @ISA, 'MongoDB::WriteResult';
+
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_WriteResult
+);
 
 has [qw/upserted inserted/] => (
-    is      => 'ro',
-    isa     => ArrayOfHashRef,
-    coerce  => 1,
-    default => sub { [] },
+    is         => 'ro',
+      required => 1,
+      isa      => ArrayOfHashRef,
 );
 
 has inserted_ids => (
-    is      => 'ro',
-    isa     => 'HashRef',
-    lazy    => 1,
-    builder => '_build_inserted_ids',
+    is         => 'ro',
+      lazy     => 1,
+      builder  => '_build_inserted_ids',
+      init_arg => undef,
+      isa      => HashRef,
 );
 
 sub _build_inserted_ids {
@@ -55,10 +62,11 @@ sub _build_inserted_ids {
 }
 
 has upserted_ids => (
-    is      => 'ro',
-    isa     => 'HashRef',
-    lazy    => 1,
-    builder => '_build_upserted_ids',
+    is         => 'ro',
+      lazy     => 1,
+      builder  => '_build_upserted_ids',
+      init_arg => undef,
+      isa      => HashRef,
 );
 
 sub _build_upserted_ids {
@@ -68,10 +76,10 @@ sub _build_upserted_ids {
 
 for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
     has $attr => (
-        is      => 'ro',
-        isa     => Num,
-        writer  => "_set_$attr",
-        default => 0,
+        is       => 'ro',
+        writer   => "_set_$attr",
+        required => 1,
+        isa      => Num,
     );
 }
 
@@ -81,10 +89,10 @@ for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
 # default is undef, which will be sticky and ensure this field stays undef.
 
 has modified_count => (
-    is      => 'ro',
-    isa     => Maybe[Num],
-    writer  => '_set_modified_count',
-    default => undef,
+    is       => 'ro',
+    writer   => '_set_modified_count',
+    required => 1,
+    isa      => (Num|Undef),
 );
 
 sub has_modified_count {
@@ -93,17 +101,17 @@ sub has_modified_count {
 }
 
 has op_count => (
-    is      => 'ro',
-    isa     => Num,
-    writer  => '_set_op_count',
-    default => 0,
+    is       => 'ro',
+    writer   => '_set_op_count',
+    required => 1,
+    isa      => Num,
 );
 
 has batch_count => (
-    is      => 'ro',
-    isa     => Num,
-    writer  => '_set_batch_count',
-    default => 0,
+    is       => 'ro',
+    writer   => '_set_batch_count',
+    required => 1,
+    isa      => Num,
 );
 
 #--------------------------------------------------------------------------#
@@ -161,24 +169,30 @@ sub _parse_cmd_result {
     MongoDB::UsageError->throw("results argument to parse must be a hash reference")
       unless ref $result eq 'HASH';
 
-    my $attrs = {
+    my %attrs = (
+        acknowledged => 1,               # dummy value; later merge will have right value
         batch_count => $batch_count || 1,
-        $op_count ? ( op_count => $op_count ) : ()
-    };
+        $op_count ? ( op_count => $op_count ) : (),
+        inserted_count => 0,
+        upserted_count => 0,
+        matched_count  => 0,
+        deleted_count  => 0,
+        upserted       => [],
+        inserted       => [],
+    );
 
-    $attrs->{write_errors} = $result->{writeErrors} if $result->{writeErrors};
+    $attrs{write_errors} = $result->{writeErrors} ? $result->{writeErrors} : [];
 
-    # rename writeConcernError -> write_concern_errors; coercion will make it
-    # into an array later
+    # rename writeConcernError -> write_concern_errors; coerce it to arrayref
 
-    $attrs->{write_concern_errors} = $result->{writeConcernError}
-      if $result->{writeConcernError};
+    $attrs{write_concern_errors} =
+      $result->{writeConcernError} ? [ $result->{writeConcernError} ] : [];
 
     # if we have upserts, change type to calculate differently
     if ( $result->{upserted} ) {
         $op                      = 'upsert';
-        $attrs->{upserted}       = $result->{upserted};
-        $attrs->{upserted_count} = @{ $result->{upserted} };
+        $attrs{upserted}       = $result->{upserted};
+        $attrs{upserted_count} = @{ $result->{upserted} };
     }
 
     # recover _ids from documents
@@ -188,23 +202,23 @@ sub _parse_cmd_result {
         for my $i ( 0 .. $result->{n}-1 ) {
             push @pairs, { index => $i, _id => $docs->[$i]{metadata}{_id} };
         }
-        $attrs->{inserted} = \@pairs;
+        $attrs{inserted} = \@pairs;
     }
 
     # change 'n' into an op-specific count
     if ( exists $result->{n} ) {
         my ( $key, $builder ) = @{ $op_map{$op} };
-        $attrs->{$key} = $builder->($result);
+        $attrs{$key} = $builder->($result);
     }
 
     # for an update/upsert we want the exact response whether numeric or undef
     # so that new undef responses become sticky; for all other updates, we
     # consider it 0 and let it get sorted out in the merging
 
-    $attrs->{modified_count} = ( $op eq 'update' || $op eq 'upsert' ) ?
+    $attrs{modified_count} = ( $op eq 'update' || $op eq 'upsert' ) ?
     $result->{nModified} : 0;
 
-    return $class->new($attrs);
+    return $class->_new(%attrs);
 }
 
 # these are for single results only
@@ -212,50 +226,58 @@ sub _parse_write_op {
     my $class = shift;
     my $op    = shift;
 
-    my $attrs = {
-        batch_count          => 1,
-        op_count             => 1,
-        write_errors         => $op->write_errors,
+    my %attrs = (
+        acknowledged => 1,                # dummy value; later merge will have right value
+        batch_count  => 1,
+        op_count     => 1,
+        write_errors => $op->write_errors,
         write_concern_errors => $op->write_concern_errors,
-    };
+        inserted_count       => 0,
+        upserted_count       => 0,
+        matched_count        => 0,
+        modified_count       => undef,
+        deleted_count        => 0,
+        upserted             => [],
+        inserted             => [],
+    );
 
-    my $has_write_error = @{ $attrs->{write_errors} };
+    my $has_write_error = @{ $attrs{write_errors} };
 
     # parse by type
     my $type = ref($op);
     if ( $type eq 'MongoDB::InsertOneResult' ) {
         if ( $has_write_error ) {
-            $attrs->{inserted_count} = 0;
-            $attrs->{inserted} = [];
+            $attrs{inserted_count} = 0;
+            $attrs{inserted} = [];
         }
         else {
-            $attrs->{inserted_count} = 1;
-            $attrs->{inserted} = [ { index => 0, _id => $op->inserted_id } ];
+            $attrs{inserted_count} = 1;
+            $attrs{inserted} = [ { index => 0, _id => $op->inserted_id } ];
         }
     }
     elsif ( $type eq 'MongoDB::DeleteResult' ) {
-        $attrs->{deleted_count} = $op->deleted_count;
+        $attrs{deleted_count} = $op->deleted_count;
     }
     elsif ( $type eq 'MongoDB::UpdateResult' ) {
         if ( defined $op->upserted_id ) {
             my $upsert = { index => 0, _id => $op->upserted_id };
-            $attrs->{upserted}       = [$upsert];
-            $attrs->{upserted_count} = 1;
+            $attrs{upserted}       = [$upsert];
+            $attrs{upserted_count} = 1;
             # modified_count *must* always be defined for 2.6+ servers
             # matched_count is here for clarity and consistency
-            $attrs->{matched_count}  = 0;
-            $attrs->{modified_count} = 0;
+            $attrs{matched_count}  = 0;
+            $attrs{modified_count} = 0;
         }
         else {
-            $attrs->{matched_count}  = $op->matched_count;
-            $attrs->{modified_count} = $op->modified_count;
+            $attrs{matched_count}  = $op->matched_count;
+            $attrs{modified_count} = $op->modified_count;
         }
     }
     else {
         MongoDB::InternalError->throw("can't parse unknown result class $op");
     }
 
-    return $class->new($attrs);
+    return $class->_new(%attrs);
 }
 
 sub _merge_result {
@@ -296,8 +318,6 @@ sub _merge_result {
 
     return 1;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 

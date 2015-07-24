@@ -21,36 +21,39 @@ package MongoDB::Op::_Command;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 
+use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Tie::IxHash;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has db_name => (
     is       => 'ro',
-    isa      => Str,
     required => 1,
+    isa      => Str,
 );
 
 has query => (
     is       => 'ro',
-    isa      => IxHash,
-    coerce   => 1,
     required => 1,
     writer   => '_set_query',
+    isa      => Document,
 );
 
 has query_flags => (
-    is      => 'ro',
-    isa     => HashRef,
-    default => sub { {} },
+    is       => 'ro',
+    required => 1,
+    isa      => HashRef,
 );
 
-with 'MongoDB::Role::_CommandOp';
-with 'MongoDB::Role::_ReadOp';
-with 'MongoDB::Role::_ReadPrefModifier';
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CommandOp
+  MongoDB::Role::_ReadOp
+  MongoDB::Role::_ReadPrefModifier
+);
 
 sub execute {
     my ( $self, $link, $topology_type ) = @_;
@@ -58,7 +61,7 @@ sub execute {
 
     $self->_apply_read_prefs( $link, $topology_type );
 
-    my $res = MongoDB::CommandResult->new(
+    my $res = MongoDB::CommandResult->_new(
         output => $self->_send_command( $link, $self->query, $self->query_flags ),
         address => $link->address
     );
@@ -67,7 +70,5 @@ sub execute {
 
     return $res;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
