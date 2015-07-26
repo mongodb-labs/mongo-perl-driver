@@ -29,6 +29,7 @@ use version;
 
 our @EXPORT_OK = qw(
   build_client get_test_db server_version server_type clear_testdbs get_capped
+  skip_unless_mongod
 );
 
 my @testdbs;
@@ -47,7 +48,7 @@ sub build_client {
         {
             ssl                         => $ENV{MONGO_SSL},
             query_timeout               => 60000,
-            server_selection_timeout_ms => 1000,
+            server_selection_timeout_ms => 2000,
             %args,
         }
     );
@@ -70,28 +71,26 @@ sub get_capped {
     return $db->get_collection($name);
 }
 
-# XXX eventually, should move away from this and towards a fixture object instead
-##BEGIN {
-##{
-##    eval {
-##        my $conn = build_client( server_selection_timeout_ms => 1000 );
-##        $conn->_topology->scan_all_servers;
-##        $conn->_topology->_dump;
-##        eval { $conn->_topology->get_writable_link }
-##            or die "couldn't connect";
-##        $conn->get_database("admin")->run_command({ serverStatus => 1 })
-##            or die "Database has auth enabled\n";
-##    };
-##
-##    if ( $@ ) {
-##        (my $err = $@) =~ s/\n//g;
-##        if ( $err =~ /couldn't connect|connection refused/i ) {
-##            $err = "no mongod on " . ($ENV{MONGOD} || "localhost:27017");
-##            $err .= ' and $ENV{MONGOD} not set' unless $ENV{MONGOD};
-##        }
-##        plan skip_all => "$err";
-##    }
-##};
+sub skip_unless_mongod {
+    eval {
+        my $conn = build_client( server_selection_timeout_ms => 1000 );
+        $conn->_topology->scan_all_servers;
+        $conn->_topology->_dump;
+        eval { $conn->_topology->get_writable_link }
+            or die "couldn't connect";
+        $conn->get_database("admin")->run_command({ serverStatus => 1 })
+            or die "Database has auth enabled\n";
+    };
+
+    if ( $@ ) {
+        (my $err = $@) =~ s/\n//g;
+        if ( $err =~ /couldn't connect|connection refused/i ) {
+            $err = "no mongod on " . ($ENV{MONGOD} || "localhost:27017");
+            $err .= ' and $ENV{MONGOD} not set' unless $ENV{MONGOD};
+        }
+        plan skip_all => "$err";
+    }
+}
 
 sub server_version {
 

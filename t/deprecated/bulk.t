@@ -28,7 +28,9 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db server_version/;
+use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
+
+skip_unless_mongod();
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);

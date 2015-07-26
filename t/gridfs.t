@@ -30,7 +30,9 @@ use DateTime;
 use FileHandle;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
+
+skip_unless_mongod();
 
 my $testdb = get_test_db(build_client());
 my $txtfile = "t/data/gridfs/input.txt";

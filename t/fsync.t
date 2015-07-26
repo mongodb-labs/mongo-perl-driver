@@ -26,7 +26,9 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client server_type/;
+use MongoDBTest qw/skip_unless_mongod build_client server_type/;
+
+skip_unless_mongod();
 
 my $conn = build_client();
 my $server_type = server_type( $conn );

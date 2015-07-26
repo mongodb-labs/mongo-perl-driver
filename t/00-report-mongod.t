@@ -20,7 +20,9 @@ use utf8;
 use Test::More 0.88;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client server_version server_type/;
+use MongoDBTest qw/skip_unless_mongod build_client server_version server_type/;
+
+skip_unless_mongod();
 
 my $conn = build_client();
 my $server_version = server_version($conn);

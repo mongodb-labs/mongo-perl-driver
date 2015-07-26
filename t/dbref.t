@@ -25,7 +25,9 @@ use MongoDB::BSON;
 use Scalar::Util 'blessed', 'reftype';
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
+
+skip_unless_mongod();
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
