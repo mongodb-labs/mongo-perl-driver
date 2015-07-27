@@ -362,7 +362,7 @@ sub insert {
     while ((my $len = $fh->read(my $data, $MongoDB::GridFS::chunk_size)) != 0) {
         $chunks->insert_one({"files_id" => $id,
                                "n"        => $n,
-                               "data"     => bless(\$data)});
+                               "data"     => \$data});
         $n++;
         $length += $len;
     }

@@ -66,7 +66,7 @@ $grid->drop;
     $dumb_str = "abc\n\nzyw\n";
     my $text_doc = new IO::File("$txtfile", "r") or die $!;
     my $ts = DateTime->now;
-    my $id = $grid->put($text_doc); # safe mode so we can check MD5
+    ok( my $id = $grid->put($text_doc), "put" ); # safe mode so we can check MD5
     $text_doc->close;
 
     my $chunk = $grid->chunks->find_one();
