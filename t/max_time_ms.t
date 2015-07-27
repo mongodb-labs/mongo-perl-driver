@@ -311,7 +311,7 @@ subtest "force maxTimeMS failures" => sub {
     subtest "zero disables maxTimeMS" => sub {
         is( exception { $coll->find->max_time_ms(0)->next }, undef, "find->max_time_ms(0)" );
         is( exception { $coll->find( {}, { maxTimeMS => 5000 } ) },
-            undef, "find with MaxTimeMS zero works" );
+            undef, "find with MaxTimeMS 5000 works" );
 
         is(
             exception {

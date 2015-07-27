@@ -116,7 +116,19 @@ sub _command_list_colls {
 sub _legacy_list_colls {
     my ( $self, $link, $topology ) = @_;
 
-    my $query = MongoDB::_Query->new(
+    my $query = MongoDB::_Query->_new(
+        modifiers           => {},
+        allowPartialResults => 0,
+        batchSize           => 0,
+        comment             => '',
+        cursorType          => 'non_tailable',
+        limit               => 0,
+        maxTimeMS           => 0,
+        noCursorTimeout     => 0,
+        oplogReplay         => 0,
+        projection          => undef,
+        skip                => 0,
+        sort                => undef,
         %{$self->options},
         db_name         => $self->db_name,
         coll_name       => 'system.namespaces',

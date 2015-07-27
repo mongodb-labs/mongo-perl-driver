@@ -229,12 +229,14 @@ has _op_args => (
 sub _build__op_args {
     my ($self) = @_;
     return {
-        db_name       => $self->database->name,
-        bson_codec    => $self->bson_codec,
-        coll_name     => $self->name,
-        write_concern => $self->write_concern,
-        full_name     => join(".", $self->database->name, $self->name),
-    }
+        client          => $self->client,
+        db_name         => $self->database->name,
+        bson_codec      => $self->bson_codec,
+        coll_name       => $self->name,
+        write_concern   => $self->write_concern,
+        read_preference => $self->read_preference,
+        full_name       => join( ".", $self->database->name, $self->name ),
+    };
 }
 
 #--------------------------------------------------------------------------#
@@ -617,14 +619,22 @@ sub find {
     # coerce to IxHash
     __ixhash($options, 'sort');
 
-    my $query = MongoDB::_Query->new(
+    my $query = MongoDB::_Query->_new(
+        modifiers           => {},
+        allowPartialResults => 0,
+        batchSize           => 0,
+        comment             => '',
+        cursorType          => 'non_tailable',
+        limit               => 0,
+        maxTimeMS           => 0,
+        noCursorTimeout     => 0,
+        oplogReplay         => 0,
+        projection          => undef,
+        skip                => 0,
+        sort                => undef,
         %$options,
-        db_name         => $self->database->name,
-        coll_name       => $self->name,
-        bson_codec      => $self->bson_codec,
-        client          => $self->client,
-        read_preference => $self->read_preference,
-        filter          => $filter || {},
+        filter => $filter || {},
+        %{ $self->_op_args },
     );
 
     return MongoDB::Cursor->new( query => $query );
@@ -683,16 +693,23 @@ sub find_one {
     # coerce to IxHash
     __ixhash($options, 'sort');
 
-    my $query = MongoDB::_Query->new(
+    my $query = MongoDB::_Query->_new(
+        modifiers           => {},
+        allowPartialResults => 0,
+        batchSize           => 0,
+        comment             => '',
+        cursorType          => 'non_tailable',
+        limit               => 0,
+        maxTimeMS           => 0,
+        noCursorTimeout     => 0,
+        oplogReplay         => 0,
+        skip                => 0,
+        sort                => undef,
         %$options,
-        db_name         => $self->database->name,
-        coll_name       => $self->name,
-        bson_codec      => $self->bson_codec,
-        client          => $self->client,
-        read_preference => $self->read_preference,
-        filter          => $filter || {},
-        projection      => $projection || {},
-        limit           => -1,
+        filter     => $filter     || {},
+        projection => $projection || {},
+        limit      => -1,
+        %{ $self->_op_args },
     );
 
     return $query->execute->next;

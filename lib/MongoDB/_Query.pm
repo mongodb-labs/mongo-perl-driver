@@ -21,13 +21,12 @@ package MongoDB::_Query;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use MongoDB::Op::_Query;
-use Syntax::Keyword::Junction qw/any/;
 use Tie::IxHash;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 #--------------------------------------------------------------------------#
 # attributes for constructing/conducting the op
@@ -47,7 +46,7 @@ has coll_name => (
 
 has client => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::MongoClient'],
+    isa      => InstanceOf ['MongoDB::MongoClient'],
     required => 1,
 );
 
@@ -59,7 +58,7 @@ has bson_codec => (
 
 has read_preference => (
     is => 'rw',                   # mutable for Cursor
-    isa => Maybe [ReadPreference],
+    isa => Maybe( [ReadPreference] ),
 );
 
 #--------------------------------------------------------------------------#
@@ -71,124 +70,116 @@ has read_preference => (
 
 has filter => (
     is       => 'ro',
-    isa      => IxHash,
+    isa      => Document,
     required => 1,
-    coerce   => 1,
 );
 
+# various things want to write here, so it must exist
 has modifiers => (
-    is      => 'ro',
-    isa     => HashRef,
-    default => sub { {} },
+    is  => 'ro',
+    isa => HashRef,
+    required => 1,
 );
 
 has allowPartialResults => (
-    is  => 'rw',
-    isa => Bool,
+    is       => 'rw',
+    isa      => Bool,
+    required => 1,
 );
 
 has batchSize => (
-    is      => 'rw',
-    isa     => Num,
-    default => 0,
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
 );
 
 has comment => (
-    is      => 'rw',
-    isa     => Str,
-    default => '',
+    is       => 'rw',
+    isa      => Str,
+    required => 1,
 );
 
 has cursorType => (
-    is      => 'rw',
-    isa     => CursorType,
-    default => 'non_tailable',
+    is       => 'rw',
+    isa      => CursorType,
+    required => 1,
 );
 
 has limit => (
-    is      => 'rw',
-    isa     => Num,
-    default => 0,
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
 );
 
 has maxTimeMS => (
-    is      => 'rw',
-    isa     => Num,
-    default => 0,
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
 );
 
 has noCursorTimeout => (
-    is  => 'rw',
-    isa => Bool,
+    is       => 'rw',
+    isa      => Bool,
+    required => 1,
 );
 
 has oplogReplay => (
-    is  => 'rw',
-    isa => Bool,
+    is       => 'rw',
+    isa      => Bool,
+    required => 1,
 );
 
 has projection => (
-    is      => 'rw',
-    isa     => IxHash,
-    coerce  => 1,
-    default => sub { Tie::IxHash->new },
+    is  => 'rw',
+    isa => Maybe( [Document] ),
 );
 
 has skip => (
-    is      => 'rw',
-    isa     => Num,
-    default => 0,
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
 );
 
 has sort => (
-    is      => 'rw',
-    isa     => IxHash,
-    coerce  => 1,
-    default => sub { Tie::IxHash->new },
+    is  => 'rw',
+    isa => Maybe( [IxHash] ),
+);
+
+with $_ for qw(
+  MongoDB::Role::_PrivateConstructor
 );
 
 sub as_query_op {
     my ( $self, $extra_params ) = @_;
 
-    # construct query doc from filter, attributes and modifiers hash
-    my $query = Tie::IxHash->new( '$query' => $self->filter );
-
-    # modifiers go first
-    while ( my ( $k, $v ) = each %{ $self->modifiers } ) {
-        $query->STORE( $k, $v );
-    }
-
-    # if comment exists, it overwrites any earlier modifers
-    if ( my $v = $self->comment ) {
-        $query->STORE( '$comment' => $v );
-    }
-
-    # if maxTimeMS exists, it overwrites any earlier modifers
-    if ( my $v = $self->maxTimeMS ) {
-        # omit for $cmd* queries
-        $query->STORE( '$maxTimeMS' => $v )
-          unless $self->coll_name =~ /\A\$cmd/;
-    }
-
-    $query->STORE( '$orderby', $self->sort ) if $self->sort->Keys;
-
-    # if no modifers were added and there is no 'query' key in '$query'
-    # we don't need the extra layer
-    if ( $query->Keys == 1 && !$query->FETCH('$query')->EXISTS('query') ) {
-        $query = $query->FETCH('$query');
-    }
-
-    # construct query flags from attributes
-    # XXX eventually flag names should get changed here and in _Protocol
-    # to better match documentation or the CRUD API names
-    my $query_flags = {
-        tailable   => ($self->cursorType =~ /^tailable/ ? 1 : 0),
-        await_data => $self->cursorType eq 'tailable_await',
-        immortal   => $self->noCursorTimeout,
-        partial    => $self->allowPartialResults,
+    # build starting query document; modifiers come first as other parameters
+    # take precedence.
+    my $query = {
+        ( $self->modifiers ? %{ $self->modifiers } : () ),
+        ( $self->comment ? ( '$comment' => $self->comment ) : () ),
+        ( $self->sort    ? ( '$orderby' => $self->sort )    : () ),
+        (
+              ( $self->maxTimeMS && $self->coll_name !~ /\A\$cmd/ )
+            ? ( '$maxTimeMS' => $self->maxTimeMS )
+            : ()
+        ),
+        '$query' => ($self->filter || {}),
     };
 
+    # if no modifers were added and there is no 'query' key in '$query'
+    # we remove the extra layer; this is necessary as some special
+    # command queries will choke on '$query'
+    # (see https://jira.mongodb.org/browse/SERVER-14294)
+    $query = $query->{'$query'}
+      if keys %$query == 1 && !(
+        ( ref( $query->{'$query'} ) eq 'Tie::IxHash' )
+        ? $query->{'$query'}->EXISTS('query')
+        : exists $query->{'$query'}{query}
+      );
+
     # finally, generate the query op
+    # XXX eventually flag names should get changed here and in _Protocol
+    # to better match documentation or the CRUD API names
     return MongoDB::Op::_Query->_new(
         db_name     => $self->db_name,
         coll_name   => $self->coll_name,
@@ -199,7 +190,12 @@ sub as_query_op {
         batch_size  => $self->batchSize,
         limit       => $self->limit,
         skip        => $self->skip,
-        query_flags => $query_flags,
+        query_flags => {
+            tailable => ( $self->cursorType =~ /^tailable/ ? 1 : 0 ),
+            await_data => $self->cursorType eq 'tailable_await',
+            immortal   => $self->noCursorTimeout,
+            partial    => $self->allowPartialResults,
+        },
         ( $extra_params ? %$extra_params : () ),
     );
 }
@@ -215,17 +211,22 @@ sub clone {
     # shallow copy everything;
     my %args = %$self;
 
-    # deep copy IxHashes and modifiers
-    for my $k (qw/filter projection sort/) {
-        my $orig = $args{$k};
-        my $copy = Tie::IxHash->new( map { $_ => $orig->FETCH($_) } $orig->Keys );
-        $args{$k} = $copy;
+    # deep copy any documents
+    for my $k (qw/filter modifiers projection sort/) {
+        my ($orig ) = $args{$k};
+        next unless $orig;
+        if ( ref($orig) eq 'Tie::IxHash' ) {
+          $args{$k}= Tie::IxHash->new( map { $_ => $orig->FETCH($_) } $orig->Keys );
+        }
+        elsif ( ref($orig) eq 'ARRAY' ) {
+         $args{$k}= [@$orig];
+        }
+        else {
+         $args{$k} = { %$orig };
+        }
     }
-    $args{modifiers} = { %{ $args{modifiers} } };
 
-    return ref($self)->new(%args);
+    return ref($self)->_new(%args);
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
