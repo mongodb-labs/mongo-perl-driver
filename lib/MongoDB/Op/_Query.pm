@@ -108,7 +108,7 @@ sub execute {
     my $class =
       $self->has_post_filter ? "MongoDB::QueryResult::Filtered" : "MongoDB::QueryResult";
 
-    return $class->new(
+    return $class->_new(
         _client      => $self->client,
         address      => $link->address,
         ns           => $ns,
