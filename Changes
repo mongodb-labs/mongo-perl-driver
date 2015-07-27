@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - Adds support for correctly encoding boolean objects from JSON::XS,
+    Cpanel::JSON::XS, JSON::PP, JSON::Tiny and Mojo::JSON.
+
   [~ Internal changes ~]
 
   - To attempt to get C/XS linking on Windows XP, changed 'strerror_s'

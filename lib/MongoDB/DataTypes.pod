@@ -310,6 +310,16 @@ C<true> and C<false>, such as for specifying fields to return, but some
 commands require L<boolean> objects and the database will return an error
 if integers 1 or 0 are used.
 
+Boolean objects from the following JSON libraries will also be encoded
+correctly in the database:
+
+=for :list
+* JSON::XS
+* JSON::PP
+* Cpanel::JSON::XS
+* Mojo::JSON
+* JSON::Tiny
+
 =head2 MongoDB::OID
 
 "OID" stands for "Object ID", and is a unique id to identify documents.

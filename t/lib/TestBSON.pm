@@ -16,6 +16,7 @@ our @EXPORT = qw(
     BSON_INT64
     BSON_NULL
     BSON_OID
+    BSON_BOOL
     BSON_REGEXP
     BSON_STRING
     HAS_INT64
@@ -50,6 +51,7 @@ use constant {
     BSON_STRING   => "\x02",
     BSON_DOC      => "\x03",
     BSON_OID      => "\x07",
+    BSON_BOOL     => "\x08",
     BSON_DATETIME => "\x09",
     BSON_NULL     => "\x0A",
     BSON_REGEXP   => "\x0B",
