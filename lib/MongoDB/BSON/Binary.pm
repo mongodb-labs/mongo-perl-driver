@@ -20,9 +20,9 @@ package MongoDB::BSON::Binary;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 use Types::Standard -types;
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 use constant {
     SUBTYPE_GENERIC            => 0,
@@ -63,8 +63,6 @@ has subtype => (
     required => 0,
     default => MongoDB::BSON::Binary->SUBTYPE_GENERIC
 );
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 
