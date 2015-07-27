@@ -240,6 +240,25 @@ subtest "bigint over/underflow" => sub {
     }
 };
 
+subtest "unhandled types" => sub {
+
+    my $hashtypeobj = bless { b => 'c' }, "HashTypeObject";
+    my $scalarobj = bless \(my $n=1), "ScalarTypeObject";
+
+    like(
+        exception { $codec->encode_one( { a => $scalarobj } ) },
+        qr/type \(ScalarTypeObject\) unhandled/,
+        "scalar ref class"
+    );
+
+    like(
+        exception { $codec->encode_one( { a => $hashtypeobj } ) },
+        qr/type \(HashTypeObject\) unhandled/,
+        "hash ref class (as element)"
+    );
+
+};
+
 done_testing;
 
 # vim: ts=4 sts=4 sw=4 et:

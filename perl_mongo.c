@@ -777,36 +777,21 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
 
         append_binary(bson, key, SvIV(subtype), data);
       }
-#if PERL_REVISION==5 && PERL_VERSION>=12
-      /* Perl 5.12 regexes */
       else if (sv_isa(sv, "Regexp")) {
+#if PERL_REVISION==5 && PERL_VERSION>=12
         REGEXP * re = SvRX(sv);
+#else
+        REGEXP * re = (REGEXP *) mg_find((SV*)SvRV(sv), PERL_MAGIC_qr)->mg_obj;
+#endif
 
         append_regex(bson, key, re, sv);
-      }
-#endif
-      else if (SvTYPE(SvRV(sv)) == SVt_PVMG) {
-
-        MAGIC *remg;
-
-        /* regular expression */
-        if ((remg = mg_find((SV*)SvRV(sv), PERL_MAGIC_qr)) != 0) {
-          REGEXP *re = (REGEXP *) remg->mg_obj;
-
-          append_regex(bson, key, re, sv);
-        }
-        else {
-          /* binary */
-
-          append_binary(bson, key, BSON_SUBTYPE_BINARY, SvRV(sv));
-        }
       }
       else if (sv_isa(sv, "MongoDB::BSON::Regexp") ) { 
         /* Abstract regexp object */
         SV *pattern, *flags;
         pattern = sv_2mortal(call_perl_reader( sv, "pattern" ));
         flags   = sv_2mortal(call_perl_reader( sv, "flags" ));
-        
+
         append_decomposed_regex( bson, key, SvPV_nolen( pattern ), SvPV_nolen( flags ) );
       }
       else {
