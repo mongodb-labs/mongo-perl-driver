@@ -93,6 +93,7 @@ static SV * call_method_with_pairs(SV *self, const char *method, ...);
 static SV * new_object_from_pairs(const char *klass, ...);
 static SV * _call_method_with_pairs (SV *self, const char *method, va_list args);
 static SV * call_sv_va (SV *func, int num, ...);
+static SV * call_pv_va (char *func, int num, ...);
 
 #define call_perl_reader(s,m) call_method_va(s,m,0)
 
@@ -314,6 +315,40 @@ call_sv_va (SV *func, int num, ...) {
   SPAGAIN;
   if (count != 1) {
     croak ("method didn't return a value");
+  }
+  ret = POPs;
+  SvREFCNT_inc (ret);
+
+  PUTBACK;
+  FREETMPS;
+  LEAVE;
+
+  return ret;
+}
+
+static SV *
+call_pv_va (char *func, int num, ...) {
+  dSP;
+  SV *ret;
+  I32 count;
+  va_list args;
+
+  ENTER;
+  SAVETMPS;
+  PUSHMARK (SP);
+
+  va_start (args, num);
+  for( ; num > 0; num-- ) {
+    XPUSHs (va_arg( args, SV* ));
+  }
+  va_end(args);
+
+  PUTBACK;
+  count = call_pv(func, G_SCALAR);
+
+  SPAGAIN;
+  if (count != 1) {
+    croak ("function %s didn't return a value", func);
   }
   ret = POPs;
   SvREFCNT_inc (ret);
@@ -1250,30 +1285,9 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
     break;
   }
   case BSON_TYPE_BOOL: {
-    dSP;
-    bool d = bson_iter_bool(iter);
-    int count;
-
-    SAVETMPS;
-
-    PUSHMARK(SP);
-    PUTBACK;
-    if (d) {
-      count = call_pv("boolean::true", G_SCALAR);
-    }
-    else {
-      count = call_pv("boolean::false", G_SCALAR);
-    }
-    SPAGAIN;
-    if (count == 1)
-      value = newSVsv(POPs);
-
-    if (count != 1 || !SvOK(value)) {
-      value = newSViv(d);
-    }
-
-    PUTBACK;
-    FREETMPS;
+    value = bson_iter_bool(iter)
+      ? SvREFCNT_inc(get_sv("MongoDB::BSON::_boolean_true", GV_ADD))
+      : SvREFCNT_inc(get_sv("MongoDB::BSON::_boolean_false", GV_ADD));
     break;
   }
   case BSON_TYPE_UNDEFINED:
