@@ -24,9 +24,8 @@ our $VERSION = 'v0.999.999.4'; # TRIAL
 use Moose;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
-use MongoDB::_Types -types;
-use Types::Standard qw/-types slurpy/;
-use Type::Params qw/compile/;
+use MongoDB::_Types -types, qw/is_OrderedDoc is_IndexModelList/;
+use Types::Standard qw/-types is_Str/;
 use boolean;
 use namespace::clean -except => 'meta';
 
@@ -125,8 +124,7 @@ If the list can't be retrieved, an exception will be thrown.
 my $list_args;
 
 sub list {
-    $list_args ||= compile(Object);
-    my ($self) = $list_args->(@_);
+    my ($self) = @_;
 
     my $op = MongoDB::Op::_ListIndexes->_new(
         client     => $self->_client,
@@ -160,8 +158,11 @@ and options.
 my $create_one_args;
 
 sub create_one {
-    $create_one_args ||= compile( Object, OrderedDoc, Optional( [HashRef] ) );
-    my ( $self, $keys, $opts ) = $create_one_args->(@_);
+    my ( $self, $keys, $opts ) = @_;
+
+    MongoDB::UsageError->throw("Argument to create_one must be an ordered document")
+      unless is_OrderedDoc($keys);
+
     my ($name) =
       $self->create_many( { keys => $keys, ( $opts ? ( options => $opts ) : () ) } );
     return $name;
@@ -223,11 +224,12 @@ Some of the more commonly used options include:
 my $create_many_args;
 
 sub create_many {
-    $create_many_args ||= compile( Object,
-        slurpy ArrayRef [ Dict [ keys => OrderedDoc, options => Optional [HashRef] ] ] );
-    my ( $self, $models ) = $create_many_args->(@_);
+    my ( $self, @models ) = @_;
 
-    my $indexes = [ map __flatten_index_model($_), @$models ];
+    MongoDB::UsageError->throw("Argument to create_many must be a list of index models")
+      unless is_IndexModelList(\@models);
+
+    my $indexes = [ map __flatten_index_model($_), @models ];
     my $op = MongoDB::Op::_CreateIndexes->_new(
         db_name       => $self->_db_name,
         coll_name     => $self->_coll_name,
@@ -255,8 +257,10 @@ exception if the command fails.
 my $drop_one_args;
 
 sub drop_one {
-    $drop_one_args ||= compile( Object, Str );
-    my ( $self, $name ) = $drop_one_args->(@_);
+    my ( $self, $name ) = @_;
+
+    MongoDB::UsageError->throw("Argument to drop_one must be a string")
+      unless is_Str($name);
 
     if ( $name eq '*' ) {
         MongoDB::UsageError->throw("Can't use '*' as an argument to drop_one");
@@ -283,8 +287,7 @@ or throws a exception if the command fails.
 my $drop_all_args;
 
 sub drop_all {
-    $drop_all_args ||= compile(Object);
-    my ($self) = $drop_all_args->(@_);
+    my ($self) = @_;
 
     return $self->collection->_run_command(
         [

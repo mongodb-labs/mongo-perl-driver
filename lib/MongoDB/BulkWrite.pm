@@ -29,9 +29,8 @@ use MongoDB::BulkWriteView;
 use Syntax::Keyword::Junction qw/any/;
 
 use Moose;
-use MongoDB::_Types -types;
+use MongoDB::_Types -types, 'to_WriteConcern';
 use Types::Standard -types;
-use Type::Params qw/compile/;
 use namespace::clean -except => 'meta';
 
 =attr collection (required)
@@ -144,7 +143,7 @@ sub find {
     $bulk->insert_one( $doc );
 
 Queues a document for insertion when L</execute> is called.  The document may
-be a hash reference, an array reference (with balance key/value pairs) or a
+be a hash reference, an array reference (with balanced key/value pairs) or a
 L<Tie::IxHash> object.  If the document does not have an C<_id> field, one will
 be added to the original.
 
@@ -152,10 +151,17 @@ The method has an empty return on success; an exception will be thrown on error.
 
 =cut
 
-my $insert_one_args;
 sub insert_one {
-    $insert_one_args ||= compile( Object, Document);
-    my ( $self, $doc ) = $insert_one_args->(@_);
+    MongoDB::UsageError->throw("insert_one requires a single document reference as an argument")
+      unless @_ == 2 && ref( $_[1] );
+
+    my ( $self, $doc ) = @_;
+
+    if ( ref $doc eq 'ARRAY' ) {
+        MongoDB::UsageError->throw("array reference to find must have key/value pairs")
+          if @$doc % 2;
+        $doc = {@$doc};
+    }
 
     $self->_enqueue_write( [ insert => $doc ] );
 
@@ -200,10 +206,10 @@ to call C<execute> more than once on the same bulk object.
 
 =cut
 
-my $execute_args;
 sub execute {
-    $execute_args ||= compile( Object, Optional[WriteConcern]);
-    my ( $self, $write_concern  ) = $execute_args->(@_);
+    my ( $self, $write_concern  ) = @_;
+    $write_concern = to_WriteConcern($write_concern)
+        if defined($write_concern) && ref($write_concern) ne 'MongoDB::WriteConcern';
 
     if ( $self->_executed ) {
         MongoDB::UsageError->throw("bulk op execute called more than once");

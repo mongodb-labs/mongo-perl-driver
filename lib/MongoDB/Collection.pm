@@ -39,7 +39,6 @@ use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_Update;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use Type::Params qw/compile/;
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;
@@ -319,7 +318,7 @@ The generated C<_id> may be retrieved from the result object.
 
 # args not unpacked for efficiency; args are self, document
 sub insert_one {
-    Carp::croak("document argument must be a reference")
+    MongoDB::UsageError->throw("document argument must be a reference")
       unless ref( $_[1] );
 
     return $_[0]->client->send_write_op(
@@ -358,7 +357,7 @@ calls.
 
 # args not unpacked for efficiency; args are self, document, options
 sub insert_many {
-    Carp::croak("documents argument must be an array reference")
+    MongoDB::UsageError->throw("documents argument must be an array reference")
       unless ref( $_[1] ) eq 'ARRAY';
 
     # ordered defaults to true
@@ -388,7 +387,7 @@ L<MongoDB::DeleteResult> object.
 
 # args not unpacked for efficiency; args are self, filter
 sub delete_one {
-    Carp::croak("filter argument must be a reference")
+    MongoDB::UsageError->throw("filter argument must be a reference")
       unless ref( $_[1] );
 
     return $_[0]->client->send_write_op(
@@ -412,7 +411,7 @@ L<MongoDB::DeleteResult> object.
 
 # args not unpacked for efficiency; args are self, filter
 sub delete_many {
-    Carp::croak("filter argument must be a reference")
+    MongoDB::UsageError->throw("filter argument must be a reference")
       unless ref( $_[1] );
 
     return $_[0]->client->send_write_op(
@@ -443,7 +442,7 @@ document will be upserted if no matching document exists.
 
 # args not unpacked for efficiency; args are self, filter, update, options
 sub replace_one {
-    Carp::croak("filter and replace arguments must be references")
+    MongoDB::UsageError->throw("filter and replace arguments must be references")
       unless ref( $_[1] ) && ref( $_[2] );
 
     return $_[0]->client->send_write_op(
@@ -478,7 +477,7 @@ operations to it prior to insertion.
 
 # args not unpacked for efficiency; args are self, filter, update, options
 sub update_one {
-    Carp::croak("filter and update arguments must be references")
+    MongoDB::UsageError->throw("filter and update arguments must be references")
       unless ref( $_[1] ) && ref( $_[2] );
 
     return $_[0]->client->send_write_op(
@@ -513,7 +512,7 @@ operations to it prior to insertion.
 
 # args not unpacked for efficiency; args are self, filter, update, options
 sub update_many {
-    Carp::croak("filter and update arguments must be references")
+    MongoDB::UsageError->throw("filter and update arguments must be references")
       unless ref( $_[1] ) && ref( $_[2] );
 
     return $_[0]->client->send_write_op(
@@ -715,10 +714,11 @@ A hash reference of options may be provided. Valid keys include:
 
 =cut
 
-my $foad_args;
 sub find_one_and_delete {
-    $foad_args ||= compile( Object, IxHash, Optional[HashRef|Undef] );
-    my ( $self, $filter, $options ) = $foad_args->(@_);
+    MongoDB::UsageError->throw("filter argument must be a reference")
+      unless ref( $_[1] );
+
+    my ( $self, $filter, $options ) = @_;
 
     # rename projection -> fields
     $options->{fields} = delete $options->{projection} if exists $options->{projection};
@@ -773,10 +773,11 @@ A hash reference of options may be provided. Valid keys include:
 
 =cut
 
-my $foar_args;
 sub find_one_and_replace {
-    $foar_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
-    my ( $self, $filter, $replacement, $options ) = $foar_args->(@_);
+    MongoDB::UsageError->throw("filter and replace arguments must be references")
+      unless ref( $_[1] ) && ref( $_[2] );
+
+    my ( $self, $filter, $replacement, $options ) = @_;
 
     return $self->_find_one_and_update_or_replace($filter, $replacement, $options);
 }
@@ -814,8 +815,10 @@ A hash reference of options may be provided. Valid keys include:
 
 my $foau_args;
 sub find_one_and_update {
-    $foau_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
-    my ( $self, $filter, $update, $options ) = $foau_args->(@_);
+    MongoDB::UsageError->throw("filter and update arguments must be references")
+      unless ref( $_[1] ) && ref( $_[2] );
+
+    my ( $self, $filter, $update, $options ) = @_;
 
     return $self->_find_one_and_update_or_replace($filter, $update, $options);
 }
@@ -859,8 +862,11 @@ for more information on how to construct aggregation queries.
 
 my $aggregate_args;
 sub aggregate {
-    $aggregate_args ||= compile( Object, ArrayOfHashRef, Optional [HashRef|Undef] );
-    my ( $self, $pipeline, $options ) = $aggregate_args->(@_);
+    MongoDB::UsageError->throw("pipeline argument must be an array reference")
+      unless ref( $_[1] ) eq 'ARRAY';
+
+    my ( $self, $pipeline, $options ) = @_;
+    $options ||= {};
 
     # boolify some options
     for my $k (qw/allowDiskUse explain/) {
@@ -915,11 +921,8 @@ for details and a work-around using L</aggregate>.
 
 =cut
 
-my $count_args;
-
 sub count {
-    $count_args ||= compile( Object, Optional [IxHash], Optional [HashRef|Undef] );
-    my ( $self, $filter, $options ) = $count_args->(@_);
+    my ( $self, $filter, $options ) = @_;
     $filter  ||= {};
     $options ||= {};
 
@@ -965,8 +968,10 @@ details.
 my $distinct_args;
 
 sub distinct {
-    $distinct_args ||= compile( Object, Str, Optional [IxHash], Optional [HashRef|Undef] );
-    my ( $self, $fieldname, $filter, $options ) = $distinct_args->(@_);
+    MongoDB::UsageError->throw("fieldname argument is required")
+      unless defined( $_[1] );
+
+    my ( $self, $fieldname, $filter, $options ) = @_;
     $filter ||= {};
     $options ||= {};
 
@@ -1011,7 +1016,7 @@ sub parallel_scan {
     unless (defined $num_cursors && $num_cursors == int($num_cursors)
         && $num_cursors > 0 && $num_cursors <= 10000
     ) {
-        Carp::croak( "first argument to parallel_scan must be a positive integer between 1 and 10000" )
+        MongoDB::UsageError->throw( "first argument to parallel_scan must be a positive integer between 1 and 10000" )
     }
     $opts = ref $opts eq 'HASH' ? $opts : { };
 
@@ -1030,7 +1035,7 @@ sub parallel_scan {
     my $result = $self->client->send_read_op( $op );
     my $response = $result->output;
 
-    Carp::croak("No cursors returned")
+    MongoDB::UsageError->throw("No cursors returned")
         unless $response->{cursors} && ref $response->{cursors} eq 'ARRAY';
 
     my @cursors;
@@ -1298,6 +1303,7 @@ sub _dynamic_write_concern {
 
 sub _find_one_and_update_or_replace {
     my ($self, $filter, $modifier, $options) = @_;
+    $options ||= {};
 
     # rename projection -> fields
     $options->{fields} = delete $options->{projection} if exists $options->{projection};
@@ -1393,8 +1399,10 @@ sub __ixhash {
 
 my $legacy_insert_args;
 sub insert {
-    $legacy_insert_args ||= compile( Object, IxHash, Optional[HashRef|Undef] );
-    my ( $self, $document, $opts ) = $legacy_insert_args->(@_);
+    MongoDB::UsageError->throw("document argument must be a reference")
+      unless ref( $_[1] );
+
+    my ( $self, $document, $opts ) = @_;
 
     my $op = MongoDB::Op::_InsertOne->_new(
         document => $document,
@@ -1407,10 +1415,11 @@ sub insert {
     return $result->inserted_id;
 }
 
-my $legacy_batch_args;
 sub batch_insert {
+    MongoDB::UsageError->throw("documents argument must be an array reference")
+      unless ref( $_[1] ) eq 'ARRAY';
+
     my ( $self, $documents, $opts ) = @_;
-    $legacy_batch_args ||= compile( Object, ArrayRef[Document], Optional[HashRef|Undef] );
 
     my $op = MongoDB::Op::_BatchInsert->_new(
         db_name       => $self->database->name,
@@ -1433,10 +1442,8 @@ sub batch_insert {
     return @ids;
 }
 
-my $legacy_remove_args;
 sub remove {
-    $legacy_remove_args ||= compile( Object, Optional[IxHash], Optional[HashRef|Undef] );
-    my ($self, $query, $opts) = $legacy_remove_args->(@_);
+    my ($self, $query, $opts) = @_;
     $opts ||= {};
 
     my $op = MongoDB::Op::_Delete->_new(
@@ -1456,8 +1463,7 @@ sub remove {
 
 my $legacy_update_args;
 sub update {
-    $legacy_update_args ||= compile( Object, Optional[IxHash], Optional[IxHash], Optional[HashRef|Undef] );
-    my ( $self, $query, $object, $opts ) = $legacy_update_args->(@_);
+    my ( $self, $query, $object, $opts ) = @_;
     $opts ||= {};
 
     if ( exists $opts->{multiple} ) {
@@ -1469,12 +1475,17 @@ sub update {
     }
 
     # figure out if first key based on op_char or '$'
-    my $is_replace;
-    if ( $object && $object->Length ) {
-        my $fk = substr($object->FIRSTKEY, 0, 1);
-        my $op_char = eval { $self->bson_codec->op_char } || '';
-        $is_replace = $fk ne '$' && $fk ne $op_char;
-    }
+    my $type = ref($object);
+    my $fk = (
+          $type eq 'HASH' ? each(%$object)
+        : $type eq 'ARRAY' ? $object->[0]
+        : $type eq 'Tie::IxHash' ? $object->FIRSTKEY
+        : each (%$object)
+    );
+    $fk = defined($fk) ? substr($fk,0,1) : '';
+
+    my $op_char = eval { $self->bson_codec->op_char } || '';
+    my $is_replace = $fk ne '$' && $fk ne $op_char;
 
     my $op = MongoDB::Op::_Update->_new(
         filter => $query  || {},
@@ -1496,25 +1507,36 @@ sub update {
     };
 }
 
-my $legacy_save_args;
 sub save {
-    $legacy_save_args ||= compile( Object, IxHash, Optional[HashRef|Undef] );
-    my ($self, $doc, $options) = $legacy_save_args->(@_);
+    MongoDB::UsageError->throw("document argument must be a reference")
+      unless ref( $_[1] );
 
-    if ( $doc->EXISTS("_id") ) {
+    my ($self, $doc, $options) = @_;
+
+    my $type = ref($doc);
+    my $id = (
+          $type eq 'HASH' ? $doc->{_id}
+        : $type eq 'ARRAY' ? do {
+            my $i;
+            for ( $i = 0; $i < @$doc; $i++ ) { last if $doc->[$i] eq '_id' }
+            $i < $#$doc ? $doc->[ $i + 1 ] : undef;
+          }
+        : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
+        : $doc->{_id} # hashlike?
+    );
+
+    if ( defined($id) ) {
         $options ||= {};
         $options->{'upsert'} = boolean::true;
-        return $self->update( { "_id" => $doc->FETCH( ("_id") ) }, $doc, $options );
+        return $self->update( { _id => $id }, $doc, $options );
     }
     else {
         return $self->insert( $doc, ( $options ? $options : () ) );
     }
 }
 
-my $legacy_fam_args;
 sub find_and_modify {
-    $legacy_fam_args ||= compile( Object, HashRef );
-    my ( $self, $opts ) = $legacy_fam_args->(@_);
+    my ( $self, $opts ) = @_;
 
     my $conn = $self->client;
     my $db   = $self->database;

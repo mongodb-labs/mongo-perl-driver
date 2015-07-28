@@ -102,20 +102,20 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         for my $k ( sort keys %bad_args ) {
             like(
                 exception { $bulk->insert_one( @{ $bad_args{$k} } ) },
-                qr/Wrong number of parameters/,
+                qr/reference/,
                 "insert( $k ) throws an error"
             );
         }
 
         like(
             exception { $bulk->insert_one( 'foo' ) },
-            qr/did not pass type constraint/,
+            qr/reference/,
             "insert( 'foo' ) throws an error"
         );
 
         like(
             exception { $bulk->insert_one( ['foo'] ) },
-            qr{did not pass type constraint},
+            qr{must have key/value pairs},
             "insert( ['foo'] ) throws an error",
         );
 

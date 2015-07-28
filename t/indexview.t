@@ -69,7 +69,7 @@ subtest "create_many" => sub {
 
     like(
         exception { $iv->create_many( { keys => { x => 1, y => 1 } } ) },
-        qr/did not pass type constraint/,
+        qr/index models/,
         "exception giving unordered docs for keys"
     );
 
@@ -110,7 +110,7 @@ subtest "create_one" => sub {
 
     like(
         exception { $iv->create_one( { x => 1, y => 1 } ) },
-        qr/did not pass type constraint/,
+        qr/ordered document/,
         "exception giving unordered docs for keys"
     );
 
@@ -158,7 +158,7 @@ subtest "drop_one" => sub {
         exception {
             $iv->drop_one( { keys => [ x => 1 ] } );
         },
-        qr/did not pass type constraint/,
+        qr/must be a string/,
         "exception dropping hashref"
     );
 };

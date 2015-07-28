@@ -33,7 +33,6 @@ use MongoDB::Error;
 use Moose;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use Type::Params qw/compile/;
 use boolean;
 use namespace::clean -except => 'meta';
 

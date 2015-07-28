@@ -29,7 +29,6 @@ use MongoDB::Op::_ListCollections;
 use MongoDB::ReadPreference;
 use MongoDB::_Query;
 use MongoDB::_Types -types;
-use Type::Params qw/compile/;
 use Types::Standard -types;
 use Carp 'carp';
 use boolean;
@@ -158,8 +157,7 @@ A hash reference of options may be provided. Valid keys include:
 my $list_collections_args;
 
 sub list_collections {
-    $list_collections_args ||= compile( Object, Optional [IxHash], Optional [HashRef|Undef] );
-    my ( $self, $filter, $options ) = $list_collections_args->(@_);
+    my ( $self, $filter, $options ) = @_;
     $filter  ||= {};
     $options ||= {};
 

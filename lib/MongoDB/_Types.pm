@@ -38,6 +38,8 @@ use Type::Library
   HashLike
   HostAddress
   HostAddressList
+  IndexModel
+  IndexModelList
   IxHash
   MongoDBCollection
   MongoDBDatabase
@@ -160,6 +162,10 @@ declare Document, as HashRef|PairArrayRef|IxHash|HashLike;
 # after NonEmptyStr
 declare DBRefColl, as NonEmptyStr;
 declare DBRefDB, as NonEmptyStr|Undef;
+
+# after OrderedDoc
+declare IndexModel, as Dict [ keys => OrderedDoc, options => Optional [HashRef] ];
+declare IndexModelList, as ArrayRef [IndexModel];
 
 #--------------------------------------------------------------------------#
 # Coercions
