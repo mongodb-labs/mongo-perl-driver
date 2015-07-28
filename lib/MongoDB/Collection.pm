@@ -445,24 +445,18 @@ document will be upserted if no matching document exists.
 
 =cut
 
-my $replace_one_args;
+# args not unpacked for efficiency; args are self, filter, update, options
 sub replace_one {
-    $replace_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
-    my ($self, $filter, $replacement, $options) = $replace_one_args->(@_);
-
-    my $op = MongoDB::Op::_Update->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        filter        => $filter,
-        update        => $replacement,
-        multi         => false,
-        upsert        => $options->{upsert} ? true : false,
-        is_replace    => 1,
-        write_concern => $self->write_concern,
+    return $_[0]->client->send_write_op(
+        MongoDB::Op::_Update->_new(
+            filter     => $_[1],
+            update     => $_[2],
+            multi      => false,
+            upsert     => $_[3] && $_[3]->{upsert} ? true : false,
+            is_replace => 1,
+            %{ $_[0]->_op_args },
+        )
     );
-
-    return $self->client->send_write_op( $op );
 }
 
 =method update_one
