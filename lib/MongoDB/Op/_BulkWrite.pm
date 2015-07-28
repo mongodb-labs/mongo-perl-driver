@@ -348,6 +348,7 @@ sub _execute_legacy_batch {
             $op = MongoDB::Op::_Delete->_new(
                 db_name       => $self->db_name,
                 coll_name     => $self->coll_name,
+                full_name     => $self->db_name . "." . $self->coll_name,
                 filter        => $doc->{q},
                 just_one      => !!$doc->{limit},
                 write_concern => $wc,

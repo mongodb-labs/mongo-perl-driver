@@ -383,22 +383,15 @@ L<MongoDB::DeleteResult> object.
 
 =cut
 
-my $delete_one_args;
+# args not unpacked for efficiency; args are self, filter
 sub delete_one {
-    $delete_one_args ||= compile( Object, IxHash );
-    my ($self, $filter) = $delete_one_args->(@_);
-
-    my $op = MongoDB::Op::_Delete->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        filter        => $filter,
-        just_one      => 1,
-        write_concern => $self->write_concern,
+    return $_[0]->client->send_write_op(
+        MongoDB::Op::_Delete->_new(
+            filter   => $_[1],
+            just_one => 1,
+            %{ $_[0]->_op_args },
+        )
     );
-
-    return $self->client->send_write_op( $op );
-
 }
 
 =method delete_many
@@ -411,22 +404,15 @@ L<MongoDB::DeleteResult> object.
 
 =cut
 
-my $delete_many_args;
+# args not unpacked for efficiency; args are self, filter
 sub delete_many {
-    $delete_many_args ||= compile( Object, IxHash );
-    my ($self, $filter) = $delete_many_args->(@_);
-
-    my $op = MongoDB::Op::_Delete->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        filter        => $filter,
-        just_one      => 0,
-        write_concern => $self->write_concern,
+    return $_[0]->client->send_write_op(
+        MongoDB::Op::_Delete->_new(
+            filter   => $_[1],
+            just_one => 0,
+            %{ $_[0]->_op_args },
+        )
     );
-
-    return $self->client->send_write_op( $op );
-
 }
 
 =method replace_one
@@ -1436,12 +1422,9 @@ sub remove {
     $opts ||= {};
 
     my $op = MongoDB::Op::_Delete->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
         filter        => $query || {},
         just_one      => !! $opts->{just_one},
-        write_concern => $self->_dynamic_write_concern($opts),
+        %{ $self->_op_args },
     );
 
     my $result = $self->client->send_write_op( $op );
