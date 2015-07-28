@@ -17,6 +17,7 @@ use strict;
 use warnings;
 use Test::More;
 use MongoDB;
+use boolean;
 
 use lib "t/lib";
 use MongoDBTest qw/build_client get_test_db/;
@@ -28,7 +29,7 @@ my $client = build_client();
 my $testdb = get_test_db($client);
 my $coll = $testdb->coll("testtesttest");
 
-$coll->insert_one({}) for 1 .. 100;
+$coll->insert_one({ a => false }) for 1 .. 100;
 my @docs = $coll->find({})->all;
 
 Test::Memory::Cycle::memory_cycle_ok( $client );

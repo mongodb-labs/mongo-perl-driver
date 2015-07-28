@@ -21,12 +21,12 @@ package MongoDB::QueryResult::Filtered;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
-use Moose;
+use Moo;
 use Types::Standard -types;
 
 extends 'MongoDB::QueryResult';
 
-use namespace::clean -except => 'meta';
+use namespace::clean;
 
 has post_filter => (
     is       => 'ro',
@@ -56,8 +56,6 @@ sub has_next {
     # ran out of docs, so nothing left
     return 0;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;
 

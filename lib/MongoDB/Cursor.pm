@@ -29,7 +29,7 @@ use MongoDB::Error;
 use MongoDB::QueryResult;
 use MongoDB::ReadPreference;
 use MongoDB::_Protocol;
-use MongoDB::_Types -types;
+use MongoDB::_Types -types, 'to_IxHash';
 use Types::Standard -types;
 use boolean;
 use Tie::IxHash;
@@ -161,7 +161,7 @@ sub sort {
     MongoDB::UsageError->throw("cannot set sort after querying")
       if $self->started_iterating;
 
-    $self->query->sort($order);
+    $self->query->sort( to_IxHash($order) );
     return $self;
 }
 

@@ -247,9 +247,20 @@ sub get_readable_link {
       ? '_find_any_server'
       : "_find_${mode}_server";
 
+    if ($mode eq 'primary' && $self->current_primary) {
+        my $link = $self->_get_server_link( $self->current_primary, $method );
+        return $link if $link;
+    }
+
     while ( my $server = $self->_selection_timeout( $method, $read_pref ) ) {
         my $link = $self->_get_server_link( $server, $method, $read_pref );
-        return $link if $link;
+        if ($link) {
+            $self->_set_current_primary($server)
+              if $mode eq 'primary'
+              && ( $self->type eq "ReplicaSetWithPrimary"
+                || 1 == keys %{ $self->servers } );
+            return $link;
+        }
     }
 
     my $rp = $read_pref->as_string;

@@ -22,6 +22,7 @@ package MongoDB::BSON;
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
 
+
 use XSLoader;
 XSLoader::load("MongoDB", $VERSION);
 
@@ -33,7 +34,12 @@ use Moose;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Type::Params qw/compile/;
+use boolean;
 use namespace::clean -except => 'meta';
+
+# cached for efficiency during decoding
+our $_boolean_true = true;
+our $_boolean_false = false;
 
 =attr dbref_callback
 
@@ -324,7 +330,6 @@ sub clone {
 
     return $class->new( %$self, @args );
 }
-
 
 __PACKAGE__->meta->make_immutable;
 

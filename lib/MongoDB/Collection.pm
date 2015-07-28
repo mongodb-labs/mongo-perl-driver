@@ -229,12 +229,14 @@ has _op_args => (
 sub _build__op_args {
     my ($self) = @_;
     return {
-        db_name       => $self->database->name,
-        bson_codec    => $self->bson_codec,
-        coll_name     => $self->name,
-        write_concern => $self->write_concern,
-        full_name     => join(".", $self->database->name, $self->name),
-    }
+        client          => $self->client,
+        db_name         => $self->database->name,
+        bson_codec      => $self->bson_codec,
+        coll_name       => $self->name,
+        write_concern   => $self->write_concern,
+        read_preference => $self->read_preference,
+        full_name       => join( ".", $self->database->name, $self->name ),
+    };
 }
 
 #--------------------------------------------------------------------------#
@@ -600,34 +602,40 @@ a L<MongoDB::QueryResult> object:
 
 =cut
 
-my $find_args;
 sub find {
-    $find_args ||= compile( Object, Optional[IxHash], Optional[HashRef|Undef] );
-    my ( $self, $filter, $options ) = $find_args->(@_);
+    my ( $self, $filter, $options ) = @_;
     $options ||= {};
 
     # backwards compatible sort option for deprecated 'query' alias
     $options->{sort} = delete $options->{sort_by} if $options->{sort_by};
 
     # possibly fallback to default maxTimeMS
-    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+    if ( !exists $options->{maxTimeMS} && $self->max_time_ms ) {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
     # coerce to IxHash
-    __ixhash($options, 'sort');
+    __ixhash( $options, 'sort' );
 
-    my $query = MongoDB::_Query->new(
-        %$options,
-        db_name         => $self->database->name,
-        coll_name       => $self->name,
-        bson_codec      => $self->bson_codec,
-        client          => $self->client,
-        read_preference => $self->read_preference,
-        filter          => $filter || {},
+    return MongoDB::Cursor->new(
+        query => MongoDB::_Query->_new(
+            modifiers           => {},
+            allowPartialResults => 0,
+            batchSize           => 0,
+            comment             => '',
+            cursorType          => 'non_tailable',
+            limit               => 0,
+            maxTimeMS           => 0,
+            noCursorTimeout     => 0,
+            oplogReplay         => 0,
+            projection          => undef,
+            skip                => 0,
+            sort                => undef,
+            %$options,
+            filter => $filter || {},
+            %{ $self->_op_args },
+        )
     );
-
-    return MongoDB::Cursor->new( query => $query );
 }
 
 =method find_one
@@ -665,37 +673,36 @@ L<http://docs.mongodb.org/manual/core/read/>.
 
 =cut
 
-my $find_one_args;
 sub find_one {
-    $find_one_args ||= compile( Object,
-        Optional [IxHash],
-        Optional [MaybeHashRef],
-        Optional [MaybeHashRef],
-    );
-    my ( $self, $filter, $projection, $options ) = $find_one_args->(@_);
+    my ( $self, $filter, $projection, $options ) = @_;
     $options ||= {};
 
     # possibly fallback to default maxTimeMS
-    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+    if ( !exists $options->{maxTimeMS} && $self->max_time_ms ) {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
     # coerce to IxHash
-    __ixhash($options, 'sort');
+    __ixhash( $options, 'sort' );
 
-    my $query = MongoDB::_Query->new(
+    return MongoDB::_Query->_new(
+        modifiers           => {},
+        allowPartialResults => 0,
+        batchSize           => 0,
+        comment             => '',
+        cursorType          => 'non_tailable',
+        limit               => 0,
+        maxTimeMS           => 0,
+        noCursorTimeout     => 0,
+        oplogReplay         => 0,
+        skip                => 0,
+        sort                => undef,
         %$options,
-        db_name         => $self->database->name,
-        coll_name       => $self->name,
-        bson_codec      => $self->bson_codec,
-        client          => $self->client,
-        read_preference => $self->read_preference,
-        filter          => $filter || {},
-        projection      => $projection || {},
-        limit           => -1,
-    );
-
-    return $query->execute->next;
+        filter     => $filter     || {},
+        projection => $projection || {},
+        limit      => -1,
+        %{ $self->_op_args },
+    )->execute->next;
 }
 
 =method find_one_and_delete
