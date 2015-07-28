@@ -86,6 +86,9 @@ with $_ for qw(
   MongoDB::Role::_UpdatePreEncoder
 );
 
+# cached
+my ($true, $false) = (true, false);
+
 sub execute {
     my ( $self, $link ) = @_;
 
@@ -96,8 +99,8 @@ sub execute {
             : $self->filter
         ),
         u      => $self->update,
-        multi  => boolean( $self->multi ),
-        upsert => boolean( $self->upsert ),
+        multi  => $self->multi ? $true : $false,
+        upsert => $self->upsert ? $true : $false,
     };
 
     return $link->does_write_commands
