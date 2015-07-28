@@ -477,6 +477,7 @@ _hv_to_bson(bson_t * bson, SV *sv, HV *opts, stackette *stack, bool subdoc) {
 static void
 avdoc_to_bson (bson_t * bson, SV *sv, HV *opts, stackette *stack) {
     I32 i;
+    HV* seen;
     const char *first_key = NULL;
     AV *av = (AV *)SvRV (sv);
 
@@ -489,6 +490,8 @@ avdoc_to_bson (bson_t * bson, SV *sv, HV *opts, stackette *stack) {
     /* XXX handle first key here
      */
 
+    seen = (HV *) sv_2mortal((SV *) newHV());
+
     for (i = 0; i <= av_len (av); i += 2) {
         SV **key, **val;
         STRLEN len;
@@ -496,6 +499,13 @@ avdoc_to_bson (bson_t * bson, SV *sv, HV *opts, stackette *stack) {
 
         if ( !((key = av_fetch (av, i, 0)) && (val = av_fetch (av, i + 1, 0))) ) {
             croak ("failed to fetch array element");
+        }
+
+        if ( hv_exists_ent(seen, *key, 0) ) {
+            croak ("duplicate key '%s' in array document", SvPV_nolen(*key));
+        }
+        else {
+            hv_store_ent(seen, *key, newSV(0), 0);
         }
 
         str = SvPVutf8(*key, len);
@@ -507,6 +517,7 @@ avdoc_to_bson (bson_t * bson, SV *sv, HV *opts, stackette *stack) {
 
         sv_to_bson_elem (bson, str, *val, opts, EMPTY_STACK);
     }
+
 }
 
 static void

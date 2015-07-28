@@ -177,6 +177,15 @@ for my $c (@cases) {
     );
 }
 
+# array documents can't have duplicate keys
+{
+    like(
+        exception { $codec->encode_one( [ x => 1, y => 2, z => 3, y => 4 ] ) },
+        qr/duplicate key 'y'/,
+        "duplicate key in array document is fatal"
+    );
+}
+
 #--------------------------------------------------------------------------#
 # support functions
 #--------------------------------------------------------------------------#
