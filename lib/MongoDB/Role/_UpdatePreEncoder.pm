@@ -66,6 +66,13 @@ sub _pre_encode_update {
             document => $doc,
         ) if $err;
     }
+    elsif ( ! $is_replace ) {
+        MongoDB::DocumentError->throw(
+            message  => "Update document was empty!",
+            document => $doc,
+        );
+    }
+
 
     return MongoDB::BSON::_EncodedDoc->_new(
         bson => $bson_doc,
