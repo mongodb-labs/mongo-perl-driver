@@ -72,14 +72,15 @@ with $_ for qw(
 );
 
 sub execute {
-    my ( $self, $link ) = @_;
-    my ($orig_doc, $insert_doc, $res) = ( $self->document );
+    my ( $self,     $link )       = @_;
+    my ( $orig_doc, $insert_doc ) = ( $self->document );
 
     ( $insert_doc = $self->_pre_encode_insert( $link, $orig_doc, '.' ) ),
       ( $self->_set_doc_id( $insert_doc->{metadata}{_id} ) );
 
-    if ( $link->does_write_commands ) {
-        $res = $self->_send_write_command(
+    return $link->does_write_commands
+      ? (
+        $self->_send_write_command(
             $link,
             [
                 insert       => $self->coll_name,
@@ -88,16 +89,13 @@ sub execute {
             ],
             $orig_doc,
             "MongoDB::InsertOneResult",
-        );
-    }
-    else {
-        $res =
-          $self->_send_legacy_op_with_gle( $link,
+        )->assert
+      )
+      : (
+        $self->_send_legacy_op_with_gle( $link,
             MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
-            $orig_doc, "MongoDB::InsertOneResult" );
-    }
-
-    $res->assert, return $res;
+            $orig_doc, "MongoDB::InsertOneResult" )->assert
+      );
 }
 
 sub _parse_cmd {

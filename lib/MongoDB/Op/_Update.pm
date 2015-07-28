@@ -45,6 +45,12 @@ has coll_name => (
     isa      => Str,
 );
 
+has full_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
 has filter => (
     is       => 'ro',
     required => 1,
@@ -83,58 +89,50 @@ with $_ for qw(
 sub execute {
     my ( $self, $link ) = @_;
 
-    my $filter =
-      ref( $self->filter ) eq 'ARRAY'
-      ? { @{ $self->filter } }
-      : $self->filter;
-
-    my $update_op = {
-        q      => $filter,
+    my $orig_op = {
+        q => (
+            ref( $self->filter ) eq 'ARRAY'
+            ? { @{ $self->filter } }
+            : $self->filter
+        ),
         u      => $self->update,
-        multi  => boolean($self->multi),
-        upsert => boolean($self->upsert),
+        multi  => boolean( $self->multi ),
+        upsert => boolean( $self->upsert ),
     };
 
-    my $orig_op = { %$update_op };
-
-    $update_op->{u} = $self->_pre_encode_update( $link, $update_op->{u}, $self->is_replace );
-
-    my $res =
-        $link->does_write_commands
-      ? $self->_command_update( $link, $update_op, $orig_op )
-      : $self->_legacy_op_update( $link, $update_op, $orig_op );
-
-    $res->assert;
-    return $res;
-}
-
-sub _command_update {
-    my ( $self, $link, $op_doc, $orig_doc ) = @_;
-
-    my $cmd = Tie::IxHash->new(
-        update       => $self->coll_name,
-        updates      => [$op_doc],
-        writeConcern => $self->write_concern->as_struct,
-    );
-
-    return $self->_send_write_command( $link, $cmd, $orig_doc, "MongoDB::UpdateResult" );
-}
-
-sub _legacy_op_update {
-    my ( $self, $link, $op_doc, $orig_doc ) = @_;
-
-    my $flags = {};
-    @{$flags}{qw/upsert multi/} = @{$op_doc}{qw/upsert multi/};
-
-    my $ns          = $self->db_name . "." . $self->coll_name;
-    my $query_bson  = $self->bson_codec->encode_one(
-        $op_doc->{q}, { invalid_chars => '' }
-    );
-    my $update_bson = $op_doc->{u}{bson}; # already raw BSON
-    my $op_bson =
-      MongoDB::_Protocol::write_update( $ns, $query_bson, $update_bson, $flags );
-
-    return $self->_send_legacy_op_with_gle( $link, $op_bson, $orig_doc, "MongoDB::UpdateResult" );
+    return $link->does_write_commands
+      ? (
+        $self->_send_write_command(
+            $link,
+            [
+                update  => $self->coll_name,
+                updates => [
+                    {
+                        %$orig_op, u => $self->_pre_encode_update( $link, $orig_op->{u}, $self->is_replace ),
+                    }
+                ],
+                writeConcern => $self->write_concern->as_struct,
+            ],
+            $orig_op,
+            "MongoDB::UpdateResult"
+        )->assert
+      )
+      : (
+        $self->_send_legacy_op_with_gle(
+            $link,
+            MongoDB::_Protocol::write_update(
+                $self->full_name,
+                $self->bson_codec->encode_one( $orig_op->{q}, { invalid_chars => '' } ),
+                $self->_pre_encode_update( $link, $orig_op->{u}, $self->is_replace )->{bson},
+                {
+                    upsert => $orig_op->{upsert},
+                    multi  => $orig_op->{multi},
+                },
+            ),
+            $orig_op,
+            "MongoDB::UpdateResult"
+        )->assert
+      );
 }
 
 sub _parse_cmd {
@@ -161,16 +159,29 @@ sub _parse_gle {
         && !$res->{updatedExisting}
         && $res->{n} == 1 )
     {
-        $upserted =
-            $orig_doc->{u}->EXISTS("_id")
-          ? $orig_doc->{u}->FETCH("_id")
-          : $orig_doc->{q}->FETCH("_id");
+        $upserted = _find_id( $orig_doc->{u} );
+        $upserted = _find_id( $orig_doc->{q} ) unless defined $upserted;
     }
 
     return (
         matched_count  => ($upserted ? 0 : $res->{n} || 0),
         modified_count => undef,
         upserted_id    => $upserted,
+    );
+}
+
+sub _find_id {
+    my ($doc) = @_;
+    my $type = ref($doc);
+    return (
+          $type eq 'HASH' ? $doc->{_id}
+        : $type eq 'ARRAY' ? do {
+            my $i;
+            for ( $i = 0; $i < @$doc; $i++ ) { last if $doc->[$i] eq '_id' }
+            $i < $#$doc ? $doc->[ $i + 1 ] : undef;
+          }
+        : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
+        : $doc->{_id} # hashlike?
     );
 }
 

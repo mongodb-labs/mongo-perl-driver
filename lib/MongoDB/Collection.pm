@@ -445,24 +445,18 @@ document will be upserted if no matching document exists.
 
 =cut
 
-my $replace_one_args;
+# args not unpacked for efficiency; args are self, filter, update, options
 sub replace_one {
-    $replace_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
-    my ($self, $filter, $replacement, $options) = $replace_one_args->(@_);
-
-    my $op = MongoDB::Op::_Update->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        filter        => $filter,
-        update        => $replacement,
-        multi         => false,
-        upsert        => $options->{upsert} ? true : false,
-        is_replace    => 1,
-        write_concern => $self->write_concern,
+    return $_[0]->client->send_write_op(
+        MongoDB::Op::_Update->_new(
+            filter     => $_[1],
+            update     => $_[2],
+            multi      => false,
+            upsert     => $_[3] && $_[3]->{upsert} ? true : false,
+            is_replace => 1,
+            %{ $_[0]->_op_args },
+        )
     );
-
-    return $self->client->send_write_op( $op );
 }
 
 =method update_one
@@ -483,24 +477,18 @@ operations to it prior to insertion.
 
 =cut
 
-my $update_one_args;
+# args not unpacked for efficiency; args are self, filter, update, options
 sub update_one {
-    $update_one_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
-    my ($self, $filter, $update, $options) = $update_one_args->(@_);
-
-    my $op = MongoDB::Op::_Update->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        filter        => $filter,
-        update        => $update,
-        multi         => false,
-        upsert        => $options->{upsert} ? true : false,
-        is_replace    => 0,
-        write_concern => $self->write_concern,
+    return $_[0]->client->send_write_op(
+        MongoDB::Op::_Update->_new(
+            filter     => $_[1],
+            update     => $_[2],
+            multi      => false,
+            upsert     => $_[3] && $_[3]->{upsert} ? true : false,
+            is_replace => 0,
+            %{ $_[0]->_op_args },
+        )
     );
-
-    return $self->client->send_write_op( $op );
 }
 
 =method update_many
@@ -521,24 +509,18 @@ operations to it prior to insertion.
 
 =cut
 
-my $update_many_args;
+# args not unpacked for efficiency; args are self, filter, update, options
 sub update_many {
-    $update_many_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
-    my ($self, $filter, $update, $options) = $update_many_args->(@_);
-
-    my $op = MongoDB::Op::_Update->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        filter        => $filter,
-        update        => $update,
-        multi         => true,
-        upsert        => $options->{upsert} ? true : false,
-        is_replace    => 0,
-        write_concern => $self->write_concern,
+    return $_[0]->client->send_write_op(
+        MongoDB::Op::_Update->_new(
+            filter     => $_[1],
+            update     => $_[2],
+            multi      => true,
+            upsert     => $_[3] && $_[3]->{upsert} ? true : false,
+            is_replace => 0,
+            %{ $_[0]->_op_args },
+        )
     );
-
-    return $self->client->send_write_op( $op );
 }
 
 =method find
@@ -1493,14 +1475,12 @@ sub update {
     }
 
     my $op = MongoDB::Op::_Update->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        filter        => $query || {},
-        update        => $object || {},
-        multi         => $opts->{multi},
-        upsert        => $opts->{upsert},
-        is_replace    => $is_replace,
+        filter => $query  || {},
+        update => $object || {},
+        multi  => $opts->{multi},
+        upsert => $opts->{upsert},
+        is_replace => $is_replace,
+        %{ $_[0]->_op_args },
         write_concern => $self->_dynamic_write_concern($opts),
     );
 
