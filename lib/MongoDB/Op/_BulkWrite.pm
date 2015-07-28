@@ -334,6 +334,7 @@ sub _execute_legacy_batch {
             $op = MongoDB::Op::_Update->_new(
                 db_name       => $self->db_name,
                 coll_name     => $self->coll_name,
+                full_name     => $self->db_name . "." . $self->coll_name,
                 filter        => $doc->{q},
                 update        => $doc->{u},
                 multi         => $doc->{multi},
