@@ -30,6 +30,7 @@ use MongoDB::WriteConcern;
 use MongoDB::_Query;
 use MongoDB::Op::_Aggregate;
 use MongoDB::Op::_BatchInsert;
+use MongoDB::Op::_BulkWrite;
 use MongoDB::Op::_CreateIndexes;
 use MongoDB::Op::_Delete;
 use MongoDB::Op::_Distinct;
@@ -358,16 +359,15 @@ sub insert_many {
       unless ref( $_[1] ) eq 'ARRAY';
 
     # ordered defaults to true
-    my $bulk =
-      ( ( defined $_[2] && exists $_[2]->{ordered} ) ? $_[2]->{ordered} : 1 )
-      ? $_[0]->ordered_bulk
-      : $_[0]->unordered_bulk;
-
-    $bulk->insert($_) for @{ $_[1] };
-
     return MongoDB::InsertManyResult->_new(
-        acknowledged         => $_[0]->write_concern->is_acknowledged,
-        inserted             => $bulk->execute( $_[0]->write_concern )->inserted,
+        acknowledged => $_[0]->write_concern->is_acknowledged,
+        inserted     => $_[0]->client->send_write_op(
+            MongoDB::Op::_BulkWrite->_new(
+                queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
+                ordered => ( ( defined $_[2] && exists $_[2]->{ordered} ) ? $_[2]->{ordered} : 1 ),
+                %{ $_[0]->_op_args },
+            )
+          )->inserted,
         write_errors         => [],
         write_concern_errors => [],
     );
