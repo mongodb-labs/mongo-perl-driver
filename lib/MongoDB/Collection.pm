@@ -515,24 +515,18 @@ operations to it prior to insertion.
 
 =cut
 
-my $update_many_args;
+# args not unpacked for efficiency; args are self, filter, update, options
 sub update_many {
-    $update_many_args ||= compile( Object, IxHash, IxHash, Optional[HashRef|Undef] );
-    my ($self, $filter, $update, $options) = $update_many_args->(@_);
-
-    my $op = MongoDB::Op::_Update->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
-        filter        => $filter,
-        update        => $update,
-        multi         => true,
-        upsert        => $options->{upsert} ? true : false,
-        is_replace    => 0,
-        write_concern => $self->write_concern,
+    return $_[0]->client->send_write_op(
+        MongoDB::Op::_Update->_new(
+            filter     => $_[1],
+            update     => $_[2],
+            multi      => true,
+            upsert     => $_[3] && $_[3]->{upsert} ? true : false,
+            is_replace => 0,
+            %{ $_[0]->_op_args },
+        )
     );
-
-    return $self->client->send_write_op( $op );
 }
 
 =method find
