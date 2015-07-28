@@ -159,6 +159,7 @@ has _client => (
     isa     => InstanceOf['MongoDB::MongoClient'],
     lazy    => 1,
     reader  => 'client',
+    init_arg => undef,
     builder => '_build__client',
 );
 
@@ -182,6 +183,7 @@ has _full_name => (
     isa     => Str,
     lazy    => 1,
     reader  => 'full_name',
+    init_arg => undef,
     builder => '_build__full_name',
 );
 
@@ -209,6 +211,7 @@ has _indexes => (
     isa     => InstanceOf['MongoDB::IndexView'],
     lazy    => 1,
     reader  => 'indexes',
+    init_arg => undef,
     builder => '_build__indexes',
 );
 
