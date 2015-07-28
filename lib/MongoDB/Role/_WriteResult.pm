@@ -48,37 +48,36 @@ sub assert {
     my ($self) = @_;
 
     $self->_throw_database_error("MongoDB::WriteError")
-      if $self->count_write_errors;
+      if scalar @{ $self->write_errors };
 
-    if ( $self->count_write_concern_errors ) {
-        MongoDB::WriteConcernError->throw(
-            message => $self->last_errmsg,
-            result  => $self,
-            code    => WRITE_CONCERN_ERROR,
-        );
-    }
+    MongoDB::WriteConcernError->throw(
+        message => $self->last_errmsg,
+        result  => $self,
+        code    => WRITE_CONCERN_ERROR,
+    ) if scalar @{ $self->write_concern_errors };
 
-    return 1;
+    return $self;
 }
 
 sub assert_no_write_error {
     my ($self) = @_;
 
     $self->_throw_database_error("MongoDB::WriteError")
-      if $self->count_write_errors;
-    return 1;
+      if scalar @{ $self->write_errors };
+
+    return $self;
 }
 
 sub assert_no_write_concern_error {
     my ($self) = @_;
-    if ( $self->count_write_concern_errors ) {
-        MongoDB::WriteConcernError->throw(
-            message => $self->last_errmsg,
-            result  => $self,
-            code    => WRITE_CONCERN_ERROR,
-        );
-    }
-    return 1;
+
+    MongoDB::WriteConcernError->throw(
+        message => $self->last_errmsg,
+        result  => $self,
+        code    => WRITE_CONCERN_ERROR,
+    ) if scalar @{ $self->write_concern_errors };
+
+    return $self;
 }
 
 sub count_write_errors {
