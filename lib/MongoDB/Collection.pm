@@ -319,6 +319,9 @@ The generated C<_id> may be retrieved from the result object.
 
 # args not unpacked for efficiency; args are self, document
 sub insert_one {
+    Carp::croak("document argument must be a reference")
+      unless ref( $_[1] );
+
     return $_[0]->client->send_write_op(
         MongoDB::Op::_InsertOne->_new(
             document => $_[1],
@@ -385,6 +388,9 @@ L<MongoDB::DeleteResult> object.
 
 # args not unpacked for efficiency; args are self, filter
 sub delete_one {
+    Carp::croak("filter argument must be a reference")
+      unless ref( $_[1] );
+
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Delete->_new(
             filter   => $_[1],
@@ -406,6 +412,9 @@ L<MongoDB::DeleteResult> object.
 
 # args not unpacked for efficiency; args are self, filter
 sub delete_many {
+    Carp::croak("filter argument must be a reference")
+      unless ref( $_[1] );
+
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Delete->_new(
             filter   => $_[1],
@@ -434,6 +443,9 @@ document will be upserted if no matching document exists.
 
 # args not unpacked for efficiency; args are self, filter, update, options
 sub replace_one {
+    Carp::croak("filter and replace arguments must be references")
+      unless ref( $_[1] ) && ref( $_[2] );
+
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
             filter     => $_[1],
@@ -466,6 +478,9 @@ operations to it prior to insertion.
 
 # args not unpacked for efficiency; args are self, filter, update, options
 sub update_one {
+    Carp::croak("filter and update arguments must be references")
+      unless ref( $_[1] ) && ref( $_[2] );
+
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
             filter     => $_[1],
@@ -498,6 +513,9 @@ operations to it prior to insertion.
 
 # args not unpacked for efficiency; args are self, filter, update, options
 sub update_many {
+    Carp::croak("filter and update arguments must be references")
+      unless ref( $_[1] ) && ref( $_[2] );
+
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
             filter     => $_[1],
