@@ -316,12 +316,12 @@ The generated C<_id> may be retrieved from the result object.
 
 =cut
 
+# args not unpacked for efficiency; args are self, document
 sub insert_one {
-    my ($self, $document) = @_;
-    return $self->client->send_write_op(
+    return $_[0]->client->send_write_op(
         MongoDB::Op::_InsertOne->_new(
-            document => $document,
-            %{ $self->_op_args },
+            document => $_[1],
+            %{ $_[0]->_op_args },
         )
     );
 }
@@ -352,21 +352,22 @@ calls.
 
 =cut
 
-my $insert_many_args;
+# args not unpacked for efficiency; args are self, document, options
 sub insert_many {
-    $insert_many_args ||= compile( Object, ArrayRef[Document], Optional[HashRef|Undef] );
-    my ($self, $documents, $opts) = $insert_many_args->(@_);
+    Carp::croak("documents argument must be an array reference")
+      unless ref( $_[1] ) eq 'ARRAY';
 
     # ordered defaults to true
-    my $ordered = ( defined $opts && exists $opts->{ordered} ) ? $opts->{ordered} : 1;
+    my $bulk =
+      ( ( defined $_[2] && exists $_[2]->{ordered} ) ? $_[2]->{ordered} : 1 )
+      ? $_[0]->ordered_bulk
+      : $_[0]->unordered_bulk;
 
-    my $wc = $self->write_concern;
-    my $bulk = $ordered ? $self->ordered_bulk : $self->unordered_bulk;
-    $bulk->insert($_) for @$documents;
-    my $res = $bulk->execute( $wc );
+    $bulk->insert($_) for @{ $_[1] };
+
     return MongoDB::InsertManyResult->_new(
-        acknowledged         => $wc->is_acknowledged,
-        inserted             => $res->inserted,
+        acknowledged         => $_[0]->write_concern->is_acknowledged,
+        inserted             => $bulk->execute( $_[0]->write_concern )->inserted,
         write_errors         => [],
         write_concern_errors => [],
     );

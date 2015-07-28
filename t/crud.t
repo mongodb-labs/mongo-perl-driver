@@ -142,7 +142,7 @@ subtest "insert_many" => sub {
 
     # insert bad type
     $err = exception { $coll->insert_many( { x => 1 } ) };
-    like( $err, qr/did not pass type constraint/, "exception inserting bad type" );
+    like( $err, qr/must be an array reference/, "exception inserting bad type" );
 };
 
 subtest "delete_one" => sub {
