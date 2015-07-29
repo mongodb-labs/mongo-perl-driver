@@ -433,7 +433,7 @@ sub legacy_remove {
     my ($just_one, $safe);
     if (defined $options && ref $options eq 'HASH') {
         $just_one = exists $options->{just_one} ? $options->{just_one} : 0;
-        $safe = $options->{safe} or $conn->_w_want_safe;
+        $safe = $options->{safe} || $conn->_w_want_safe;
     }
     else {
         $just_one = $options || 0;
