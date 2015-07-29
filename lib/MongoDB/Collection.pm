@@ -861,6 +861,12 @@ and read preference is ignored.
 See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
 for more information on how to construct aggregation queries.
 
+B<Note> The use of aggregation cursors is automatic based on your server
+version.  However, if migrating a sharded cluster from MongoDB 2.4 to 2.6
+or later, you must upgrade your mongod servers first before your mongos
+routers or aggregation queries will fail.  As a workaround, you may
+pass C<< cursor => undef >> as an option.
+
 =cut
 
 my $aggregate_args;

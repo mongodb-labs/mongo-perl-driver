@@ -56,25 +56,33 @@ subtest "2.6 Mongos + 2.4, 2.6 shards" => sub {
                            { wanted => 1, score => 33 },
                            { wanted => 0, score => 1000 } ] );
 
+    pass( "data inserted" );
     # put DB on shard1, which is the 2.4 one, which should fail with cursor
     eval {
         my $admin = $conn->get_database("admin");
         $admin->run_command([movePrimary => $testdb->name, to => 'sh1']);
         $admin->run_command([flushRouterConfig => 1]);
     };
-
-    my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
-                                  { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
-
-    is( ref( $res ), ref [ ] );
-    ok $res->[0]{avgScore} < 59;
-    ok $res->[0]{avgScore} > 57;
+    pass( "migrated data to alternate shard" );
 
     like(
-        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
+        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ] ) },
         qr/unrecognized field.*cursor/,
-        "asking for cursor when unsupported throws error"
+        "2.6+2.4: default aggregation fails"
     );
+
+    my $res = $coll->aggregate(
+        [
+            { '$match' => { wanted => 1 } },
+            { '$group' => { _id    => 1, 'avgScore' => { '$avg' => '$score' } } }
+        ],
+        { cursor => undef }
+    );
+
+    is( ref( $res ), 'MongoDB::QueryResult',  "2.6+2.4: manually disabling cursor works" );
+    $res = $res->next;
+    ok $res->{avgScore} < 59;
+    ok $res->{avgScore} > 57;
 
     # put DB on shard2, which is the 2.6 one, which should succeed
     eval {
@@ -86,14 +94,15 @@ subtest "2.6 Mongos + 2.4, 2.6 shards" => sub {
     $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
                                   { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
 
-    is( ref( $res ), ref [ ] );
-    ok $res->[0]{avgScore} < 59;
-    ok $res->[0]{avgScore} > 57;
+    is( ref( $res ), 'MongoDB::QueryResult',  "2.6+2.6: default aggregation works" );
+    $res = $res->next;
+    ok $res->{avgScore} < 59;
+    ok $res->{avgScore} > 57;
 
     is(
-        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
+        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => undef } ) },
         undef,
-        "asking for cursor when supported is fine"
+        "2.6+2.6: disabling cursor when supported is also fine"
     );
 
 };
@@ -130,14 +139,15 @@ subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
     my $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
                                   { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
 
-    is( ref( $res ), ref [ ] );
-    ok $res->[0]{avgScore} < 59;
-    ok $res->[0]{avgScore} > 57;
+    is( ref( $res ), 'MongoDB::QueryResult',  "2.4+2.4: default aggregation works" );
+    $res = $res->next;
+    ok $res->{avgScore} < 59;
+    ok $res->{avgScore} > 57;
 
-    like(
-        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
-        qr/unrecognized field.*cursor/,
-        "asking for cursor when unsupported throws error"
+    is(
+        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => {} } ) },
+        undef,
+        "2.4+2.4: asking for cursor when unsupported is ignored"
     );
 
     # put DB on shard2, which is the 2.6 one, which should still fail 
@@ -150,14 +160,15 @@ subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
     $res = $coll->aggregate( [ { '$match'   => { wanted => 1 } },
                                   { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
 
-    is( ref( $res ), ref [ ] );
-    ok $res->[0]{avgScore} < 59;
-    ok $res->[0]{avgScore} > 57;
+    is( ref( $res ), 'MongoDB::QueryResult',  "2.4+2.6: default aggregation works" );
+    $res = $res->next;
+    ok $res->{avgScore} < 59;
+    ok $res->{avgScore} > 57;
 
-    like(
-        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => 1 } ) },
-        qr/unrecognized field.*cursor/,
-        "asking for cursor when unsupported throws error"
+    is(
+        exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => {} } ) },
+        undef,
+        "2.4+2.6: asking for cursor when unsupported is ignored"
     );
 
 };
