@@ -11,9 +11,9 @@ die "Usage: $0 <program> [args...]\n"
 die "$ARGV[0] not found or not executable\n"
   unless IPC::Cmd::can_run( $ARGV[0] );
 
-my @versions = qw(2.0 2.2 2.4 2.6 any);
+my @versions = qw(2.4 2.6 3.0 any);
 
-my @types = qw(mongod master replicaset sharded);
+my @types = qw(mongod replicaset sharded);
 
 for my $t ( @types ) {
     for my $v ( @versions ) {
