@@ -61,6 +61,8 @@ subtest "mixed version stepdown" => sub {
     $orc->deployment->server_set->stepdown_primary(5);
     note "stepped down primary";
 
+    $conn->topology_status( refresh => 1 );
+
     my $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->insert( { _id => 1 } );
 
@@ -74,6 +76,8 @@ subtest "mixed version stepdown" => sub {
     # stepdown primary again to switch back
     $orc->deployment->server_set->stepdown_primary(5);
     note "stepped down primary again";
+
+    $conn->topology_status( refresh => 1 );
 
     $bulk = $coll->initialize_ordered_bulk_op;
     $bulk->insert( { _id => 2 } );
