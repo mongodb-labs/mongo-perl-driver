@@ -289,22 +289,22 @@ subtest "force maxTimeMS failures" => sub {
     );
 
     subtest "max_time_ms via constructor" => sub {
-        like(
-            exception {
-                my $doc = $coll->count( {} );
-            },
-            qr/exceeded time limit/,
-            "count helper with default client maxTimeMS works"
+        is(
+            exception { my $doc = $coll->count( {} ) },
+            undef,
+            "count helper with default maxTimeMS 0 from client works"
         );
 
-        my $conn2   = build_client( max_time_ms => 0 );
+        my $conn2   = build_client( max_time_ms => 10 );
         my $testdb2 = get_test_db($conn2);
         my $coll2   = $testdb2->get_collection("test_collection");
 
-        is(
-            exception { my $doc = $coll2->count( {} ) },
-            undef,
-            "count helper with maxTimeMS 0 from client works"
+        like(
+            exception {
+                my $doc = $coll2->count( {} );
+            },
+            qr/exceeded time limit/,
+            "count helper with configured maxTimeMS times out"
         );
     };
 

@@ -350,17 +350,15 @@ sub _build_local_threshold_ms {
 =attr max_time_ms
 
 Specifies the maximum amount of time in (non-negative) milliseconds that the
-server should use for working on a query.  Defaults to 29,500, slightly shorter
-than the L</socket_timeout_ms>, as getting a definitive (albeit negative)
-response from the server is preferred over a getting a socket timeout.
-
-Make sure this value is shorter than C<socket_timeout_ms>.
+server should use for working on a database command.  Defaults to 0, which disables
+this feature.  Make sure this value is shorter than C<socket_timeout_ms>.
 
 B<Note>: this will only be used for server versions 2.6 or greater, as that
 was when the C<$maxTimeMS> meta-operator was introduced.
 
-B<Also Note>: Unlike other timeout values, when this is set to zero,
-C<$maxTimeMS> is disabled, not an immediate timeout.
+You are B<strongly> encouraged to set this variable if you know your
+environment has MongoDB 2.6 or later, as getting a definitive error response
+from the server is vastly preferred over a getting a network socket timeout.
 
 This may be set in a connection string with the C<maxTimeMS> option.
 
@@ -378,7 +376,7 @@ sub _build_max_time_ms {
     return $self->__uri_or_else(
         u => 'maxtimems',
         e => 'max_time_ms',
-        d => 29500,
+        d => 0,
     );
 }
 

@@ -149,7 +149,7 @@ subtest db_name => sub {
 my %simple_time_options = (
     heartbeat_frequency_ms      => 60000,
     local_threshold_ms          => 15,
-    max_time_ms                 => 29500,
+    max_time_ms                 => 0,
     server_selection_timeout_ms => 30000,
     socket_check_interval_ms    => 5000,
 );
