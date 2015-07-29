@@ -56,7 +56,8 @@ for my $deployment ( sort keys %config_map ) {
 
         my $logfile =  $orc->get_server( $config_map{$deployment} )->logfile;
 
-        my $res = $coll->ensure_index( [ count => 1 ] );
+        my $res = $coll->indexes->create_one( [ count => 1 ] );
+        is( $res, "count_1", "index created successfully on $deployment collection" );
 
         ok( (grep { /command: createIndexes/i } $logfile->lines ), "createIndexes found in log" );
 
@@ -91,10 +92,9 @@ subtest "2.6 mongos with mixed-version mongod" => sub {
     $bulk->insert( { number => $_, rand => int(rand(2**16)) } ) for 1 .. 1000;
     $bulk->execute;
 
-    my $res = $coll->ensure_index( [ rand => 1 ] );
+    my $res = $coll->indexes->create_one( [ rand => 1 ] );
 
-    is( $res->{ok}, 1, "index created successfully on sharded collection" )
-        or diag explain $res;
+    is( $res, "rand_1", "index created successfully on sharded collection" );
 
 };
 
