@@ -28,6 +28,8 @@ use MongoDB::Error;
 use lib "t/lib";
 use lib "devel/lib";
 
+use if $ENV{VERBOSE}, qw/Log::Any::Adapter Stderr/;
+
 use MongoDBTest::Orchestrator;
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 

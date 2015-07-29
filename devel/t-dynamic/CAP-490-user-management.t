@@ -30,7 +30,7 @@ use MongoDB::Error;
 use lib "t/lib";
 use lib "devel/lib";
 
-use Log::Any::Adapter qw/Stderr/;
+use if $ENV{VERBOSE}, qw/Log::Any::Adapter Stderr/;
 
 use MongoDBTest::Orchestrator;
 

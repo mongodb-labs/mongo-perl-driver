@@ -23,6 +23,9 @@ use Test::Deep qw/!blessed/;
 use boolean;
 
 use lib 'devel/lib';
+
+use if $ENV{VERBOSE}, qw/Log::Any::Adapter Stderr/;
+
 use MongoDB;
 use MongoDBTest::Orchestrator;
 use IO::Socket::SSL; # initialize early to allow for debugging mode

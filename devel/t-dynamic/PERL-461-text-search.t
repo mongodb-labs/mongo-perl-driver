@@ -31,7 +31,7 @@ use lib "devel/lib";
 use MongoDBTest::Orchestrator;
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
-use Log::Any::Adapter qw/Stderr/;
+use if $ENV{VERBOSE}, qw/Log::Any::Adapter Stderr/;
 
 my $orc =
     MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );

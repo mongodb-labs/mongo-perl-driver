@@ -22,8 +22,9 @@ use Test::Fatal;
 use lib "t/lib";
 use lib "devel/lib";
 
+use if $ENV{VERBOSE}, qw/Log::Any::Adapter Stderr/;
+
 use MongoDBTest::Orchestrator;
-# use Log::Any::Adapter qw/Stderr/;
 
 my $orc = MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
 $orc->start;
