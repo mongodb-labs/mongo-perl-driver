@@ -62,6 +62,7 @@ subtest "bad authentication" => sub {
                 dt_type => undef,
                 server_selection_timeout_ms => 1000,
             );
+            $conn->connect;
         },
         qr/Authentication.*failed/,
         "auth fails with useful error"
