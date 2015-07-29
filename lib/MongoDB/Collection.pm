@@ -311,7 +311,7 @@ sub with_codec {
     $id = $res->inserted_id;
 
 Inserts a single L<document|/Document> into the database and returns a
-L<MongoDB::InsertOneResult> object.
+L<MongoDB::InsertOneResult> or L<MongoDB::UnacknowledgedResult> object.
 
 If no C<_id> field is present, one will be added when a document is
 serialized for the database without modifying the original document.
@@ -338,8 +338,9 @@ sub insert_one {
     $res = $coll->insert_many( [ @documents ], { ordered => 0 } );
 
 Inserts each of the L<documents|/Documents> in an array reference into the
-database and returns a L<MongoDB::InsertManyResult>.  This is syntactic sugar
-for doing a L<MongoDB::BulkWrite> operation.
+database and returns a L<MongoDB::InsertManyResult> or
+L<MongoDB::UnacknowledgedResult>.  This is syntactic sugar for doing a
+L<MongoDB::BulkWrite> operation.
 
 If no C<_id> field is present, one will be added when a document is
 serialized for the database without modifying the original document.
@@ -384,7 +385,7 @@ sub insert_many {
     $res = $coll->delete_one( { _id => $id } );
 
 Deletes a single document that matches a L<filter expression|/Filter expression> and returns a
-L<MongoDB::DeleteResult> object.
+L<MongoDB::DeleteResult> or L<MongoDB::UnacknowledgedResult> object.
 
 =cut
 
@@ -407,8 +408,9 @@ sub delete_one {
     $res = $coll->delete_many( $filter );
     $res = $coll->delete_many( { name => "Larry" } );
 
-Deletes all documents that match a L<filter expression|/Filter expression> and returns a
-L<MongoDB::DeleteResult> object.
+Deletes all documents that match a L<filter expression|/Filter expression>
+and returns a L<MongoDB::DeleteResult> or L<MongoDB::UnacknowledgedResult>
+object.
 
 =cut
 
@@ -431,8 +433,9 @@ sub delete_many {
     $res = $coll->replace_one( $filter, $replacement );
     $res = $coll->replace_one( $filter, $replacement, { upsert => 1 } );
 
-Replaces one document that matches a L<filter expression|/Filter expression>
-and returns a L<MongoDB::UpdateResult> object.
+Replaces one document that matches a L<filter expression|/Filter
+expression> and returns a L<MongoDB::UpdateResult> or
+L<MongoDB::UnacknowledgedResult> object.
 
 The replacement document must not have any field-update operators in it (e.g.
 C<$set>).
@@ -465,8 +468,9 @@ sub replace_one {
     $res = $coll->update_one( $filter, $update );
     $res = $coll->update_one( $filter, $update, { upsert => 1 } );
 
-Updates one document that matches a L<filter expression|/Filter expression> and
-returns a L<MongoDB::UpdateResult> object.
+Updates one document that matches a L<filter expression|/Filter expression>
+and returns a L<MongoDB::UpdateResult> or L<MongoDB::UnacknowledgedResult>
+object.
 
 The update document must have only field-update operators in it (e.g.
 C<$set>).
@@ -501,7 +505,8 @@ sub update_one {
     $res = $coll->update_many( $filter, $update, { upsert => 1 } );
 
 Updates one or more documents that match a L<filter expression|/Filter
-expression> and returns a L<MongoDB::UpdateResult> object.
+expression> and returns a L<MongoDB::UpdateResult> or
+L<MongoDB::UnacknowledgedResult> object.
 
 The update document must have only field-update operators in it (e.g.
 C<$set>).
@@ -1459,6 +1464,7 @@ sub remove {
         filter        => $query || {},
         just_one      => !! $opts->{just_one},
         %{ $self->_op_args },
+        write_concern => $self->_dynamic_write_concern($opts),
     );
 
     my $result = $self->client->send_write_op( $op );
@@ -1508,12 +1514,17 @@ sub update {
 
     my $result = $self->client->send_write_op( $op );
 
-    # emulate key fields of legacy GLE result
-    return {
-        ok => 1,
-        n => $result->matched_count,
-        ( $result->upserted_id ? ( upserted => $result->upserted_id ) : () ),
-    };
+    if ( $result->acknowledged ) {
+        # emulate key fields of legacy GLE result
+        return {
+            ok => 1,
+            n => $result->matched_count,
+            ( $result->upserted_id ? ( upserted => $result->upserted_id ) : () ),
+        };
+    }
+    else {
+        return { ok => 1 };
+    }
 }
 
 sub save {

@@ -24,6 +24,7 @@ our $VERSION = 'v0.999.999.4'; # TRIAL
 use MongoDB::BSON;
 use MongoDB::CommandResult;
 use MongoDB::Error;
+use MongoDB::UnacknowledgedResult;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types;
@@ -152,7 +153,6 @@ sub _send_write_command {
         # otherwise, construct the desired result object, calling back
         # on class-specific parser to generate additional attributes
         return $result_class->_new(
-            acknowledged => 1,
             write_errors => ( $res->{writeErrors} ? $res->{writeErrors} : [] ),
             write_concern_errors =>
               ( $res->{writeConcernError} ? [ $res->{writeConcernError} ] : [] ),
@@ -160,9 +160,7 @@ sub _send_write_command {
         );
     }
     else {
-        return $result_class->_new(
-            $self->_parse_cmd({}),
-            acknowledged => 0,
+        return MongoDB::UnacknowledgedResult->_new(
             write_errors => [],
             write_concern_errors => [],
         );

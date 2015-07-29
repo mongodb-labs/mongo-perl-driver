@@ -28,12 +28,6 @@ use Types::Standard -types;
 use Moo::Role;
 use namespace::clean;
 
-has acknowledged => (
-    is       => 'ro',
-    required => 1,
-    isa      => Bool,
-);
-
 has [qw/write_errors write_concern_errors/] => (
     is       => 'ro',
     required => 1,
@@ -41,6 +35,8 @@ has [qw/write_errors write_concern_errors/] => (
 );
 
 with 'MongoDB::Role::_LastError';
+
+sub acknowledged() { 1 }; # override to 0 for MongoDB::UnacknowledgedResult
 
 # inline assert_no_write_error and assert_no_write_concern rather
 # than having to make to additional method calls

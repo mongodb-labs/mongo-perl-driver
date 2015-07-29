@@ -32,13 +32,6 @@ with $_ for qw(
   MongoDB::Role::_WriteResult
 );
 
-=attr acknowledged
-
-Indicates whether this write result was ackowledged. If not, then all other
-members of this result will be zero or undefined.
-
-=cut
-
 =attr inserted_id
 
 The identifier of the inserted document.
@@ -52,28 +45,36 @@ has inserted_id => (
 
 1;
 
+__END__
+
+=method acknowledged
+
+Indicates whether this write result was acknowledged.  Always
+true for this class.
+
+=cut
+
 =method assert
 
 Throws an error if write errors or write concern errors occurred.
+Otherwise, returns the invocant.
 
 =cut
 
 =method assert_no_write_error
 
-Throws a MongoDB::WriteError if C<count_write_errors> is non-zero; otherwise
-returns 1.
+Throws a MongoDB::WriteError if write errors occurred.
+Otherwise, returns the invocant.
 
 =cut
 
 =method assert_no_write_concern_error
 
-Throws a MongoDB::WriteConcernError if C<count_write_concern_errors> is non-zero; otherwise
-returns 1.
+Throws a MongoDB::WriteConcernError if write concern errors occurred.
+Otherwise, returns the invocant.
 
 =cut
 
-
-__END__
 
 =head1 SYNOPSIS
 

@@ -1,5 +1,5 @@
 #
-#  Copyright 2014 MongoDB, Inc.
+#  Copyright 2015 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,9 +14,9 @@
 #  limitations under the License.
 #
 
-package MongoDB::DeleteResult;
+package MongoDB::UnacknowledgedResult;
 
-# ABSTRACT: MongoDB deletion result object
+# ABSTRACT: MongoDB unacknowledged result object
 
 use version;
 our $VERSION = 'v0.999.999.4'; # TRIAL
@@ -32,53 +32,20 @@ with $_ for qw(
   MongoDB::Role::_WriteResult
 );
 
-=attr deleted_count
+=method acknowledged
 
-The number of documents that matched the filter.
+Indicates whether this write result was acknowledged.  Always false for
+this class.
 
 =cut
 
-has deleted_count => (
-    is      => 'ro',
-    default => 0,
-    isa => Num,
-);
+sub acknowledged() { 0 };
 
 1;
 
 __END__
 
-=method acknowledged
-
-Indicates whether this write result was acknowledged.  Always
-true for this class.
-
-=cut
-
-=method assert
-
-Throws an error if write errors or write concern errors occurred.
-Otherwise, returns the invocant.
-
-=cut
-
-=method assert_no_write_error
-
-Throws a MongoDB::WriteError if write errors occurred.
-Otherwise, returns the invocant.
-
-=cut
-
-=method assert_no_write_concern_error
-
-Throws a MongoDB::WriteConcernError if write concern errors occurred.
-Otherwise, returns the invocant.
-
-=cut
-
 =head1 SYNOPSIS
-
-    my $result = $coll->delete( { _id => $oid } );
 
     if ( $result->acknowledged ) {
         ...
@@ -86,6 +53,8 @@ Otherwise, returns the invocant.
 
 =head1 DESCRIPTION
 
-This class encapsulates the results from a deletion operation.
+This class represents an unacknowledged result, i.e. with write concern
+of C<< w => 0 >>.  No additional information is available and no other
+methods should be called on it.
 
 =cut

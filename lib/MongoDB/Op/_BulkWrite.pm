@@ -27,6 +27,7 @@ use Moo;
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::BulkWriteResult;
+use MongoDB::UnacknowledgedResult;
 use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_Update;
 use MongoDB::Op::_Delete;
@@ -90,8 +91,9 @@ sub execute {
     # result so we set that to undef in the constructor; otherwise, we set it
     # to 0 so that results accumulate normally. If a mongos on a mixed topology
     # later fails to set it, results merging will handle it in that case.
+    # If unacknowledged, we have to accumulate a result to get bulk semantics
+    # right and just throw it away later.
     my $result = MongoDB::BulkWriteResult->_new(
-        acknowledged         => $self->write_concern->is_acknowledged,
         modified_count       => ( $use_write_cmd ? 0 : undef ),
         write_errors         => [],
         write_concern_errors => [],
@@ -118,6 +120,11 @@ sub execute {
             $self->_execute_legacy_batch( $link, $batch, $result );
         }
     }
+
+    return MongoDB::UnacknowledgedResult->_new(
+        write_errors         => [],
+        write_concern_errors => [],
+    ) if !$self->write_concern->is_acknowledged;
 
     # only reach here with an error for unordered bulk ops
     $result->assert_no_write_error;

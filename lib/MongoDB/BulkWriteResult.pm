@@ -170,7 +170,6 @@ sub _parse_cmd_result {
       unless ref $result eq 'HASH';
 
     my %attrs = (
-        acknowledged => 1,               # dummy value; later merge will have right value
         batch_count => $batch_count || 1,
         $op_count ? ( op_count => $op_count ) : (),
         inserted_count => 0,
@@ -227,7 +226,6 @@ sub _parse_write_op {
     my $op    = shift;
 
     my %attrs = (
-        acknowledged => 1,                # dummy value; later merge will have right value
         batch_count  => 1,
         op_count     => 1,
         write_errors => $op->write_errors,
@@ -330,6 +328,10 @@ __END__
 
     # from a WriteError or WriteConcernError
     my $result = $error->result;
+
+    if ( $result->acknowledged ) {
+        ...
+    }
 
 =head1 DESCRIPTION
 

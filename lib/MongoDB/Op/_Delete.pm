@@ -108,7 +108,7 @@ sub execute {
 
 sub _parse_cmd {
     my ( $self, $res ) = @_;
-    return ( deleted_count => $res->{n} );
+    return ( deleted_count => $res->{n} || 0 );
 }
 
 BEGIN {
