@@ -58,34 +58,38 @@ my $alice_coll = $alice_db->get_collection("foo");
 my $eve = build_client( host => $no_auth_string, dt_type => undef ); # unauthorized
 my $eve_db = get_test_db($eve);
 my $eve_coll = $eve_db->get_collection("foo");
+my $unsafe_eve_coll = $eve_coll->clone( write_concern => { w => 0 } );
 
 subtest "safe and unsafe remove" => sub {
     $alice_coll->drop;
-    $alice_coll->insert( {} ) for 1 .. 10;
+    $alice_coll->insert_one( {} ) for 1 .. 10;
 
-    my $err = exception { $eve_coll->remove( {}, {safe => 0} ) };
-    is( $err, undef, "failed remove with safe => 0 does not throw an error" );
+    my $err = exception { $unsafe_eve_coll->delete_one( {} ) };
+    is( $err, undef, "failed remove with w => 0 does not throw an error" );
 
-    for my $h ( undef, { safe => 1 } ) {
-        $err = exception { $eve_coll->remove( {}, $h ) };
-        my $case = $h ? "explicit" : "default";
-        like($err->message, qr/not authorized/, "failed remove with $case safe throws exception" );
-    }
+    $err = exception { $eve_coll->delete_one( {} ) };
+    like($err->message, qr/not authorized/, "failed remove with default w throws exception" );
 };
 
-subtest "safe and unsafe save" => sub {
+subtest "safe and unsafe insert" => sub {
     $alice_coll->drop;
 
-    my $err = exception { $eve_coll->save( { _id => 'foo' }, {safe => 0} ) };
-    is( $err, undef, "failed save with safe => 0 does not throw an error" );
+    my $err = exception { $unsafe_eve_coll->insert_one( { _id => 'foo' } ) };
+    is( $err, undef, "failed insert with w => 0 does not throw an error" );
 
-    for my $h ( undef, { safe => 1 } ) {
-        $err = exception { $eve_coll->save( { _id => 'foo' }, $h ) };
-        my $case = $h ? "explicit" : "default";
-        like($err->message, qr/not authorized/, "failed save with $case safe throws exception" );
-    }
+    $err = exception { $eve_coll->insert_one( { _id => 'foo' } ) };
+    like($err->message, qr/not authorized/, "failed insert with default w throws exception" );
 };
 
+subtest "safe and unsafe update" => sub {
+    $alice_coll->drop;
+
+    my $err = exception { $unsafe_eve_coll->update_one( { _id => 'foo' }, { '$inc' => { count => 1 } }, { upsert => 1 } ) };
+    is( $err, undef, "failed update with w => 0 does not throw an error" );
+
+    $err = exception { $eve_coll->insert_one( { _id => 'foo' } ) };
+    like($err->message, qr/not authorized/, "failed insert with default w throws exception" );
+};
 
 clear_testdbs;
 
