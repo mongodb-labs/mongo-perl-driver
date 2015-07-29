@@ -358,8 +358,7 @@ sub status_struct {
     $status->{replica_set_name} = $self->replica_set_name if $self->replica_set_name;
 
     # convert from [sec, microsec] array to floating point
-    my $lst = $self->last_scan_time;
-    $status->{last_scan_time} = $lst->[0] + $lst->[1] / 1e6;
+    $status->{last_scan_time} = $self->last_scan_time;
 
     my $rtt_hash = $self->rtt_ewma_sec;
     my $ss = $status->{servers} = [];

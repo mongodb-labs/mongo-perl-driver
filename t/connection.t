@@ -91,4 +91,13 @@ subtest "reconnect" => sub {
     );
 };
 
+subtest "topology status" => sub {
+    my $res = $conn->topology_status( );
+    is( ref($res), 'HASH', "topology_status returns a hash reference" );
+    my $last = $res->{last_scan_time};
+    sleep 1;
+    $res = $conn->topology_status( refresh => 1 );
+    ok( $res->{last_scan_time} > $last, "scan time refreshed" );
+};
+
 done_testing;
