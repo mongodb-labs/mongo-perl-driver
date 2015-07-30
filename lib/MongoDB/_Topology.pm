@@ -263,7 +263,7 @@ sub get_readable_link {
         }
     }
 
-    my $rp = $read_pref->as_string;
+    my $rp = $read_pref ? $read_pref->as_string : 'primary';
     MongoDB::SelectionError->throw(
         "No readable server available for matching read preference $rp. MongoDB server status:\n"
           . $self->_status_string );
