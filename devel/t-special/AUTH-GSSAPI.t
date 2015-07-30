@@ -22,6 +22,10 @@ use Test::Fatal;
 use Test::Deep qw/!blessed/;
 use boolean;
 
+# uncomment one of these to force a particular back-end
+# use Authen::SASL 'XS';
+# use Authen::SASL 'Perl';
+
 use MongoDB;
 
 # REQUIRES DRIVER WITH SASL SUPPORT: Authen::SASL and either
@@ -50,18 +54,13 @@ subtest "no auth" => sub {
 };
 
 subtest "auth fails" => sub {
-    like(
-        exception {
-            my $mc = MongoDB::MongoClient->new(
-                host                        => 'mongodb://rhel64.mongotest.com/',
-                username                    => 'bogus@MONGOTEST.COM',
-                auth_mechanism              => 'GSSAPI',
-                server_selection_timeout_ms => 1000,
-            );
-        },
-        qr/Authentication.*failed/,
-        "authentication fails",
+    my $mc = MongoDB::MongoClient->new(
+        host                        => 'mongodb://rhel64.mongotest.com/',
+        username                    => 'bogus@MONGOTEST.COM',
+        auth_mechanism              => 'GSSAPI',
+        server_selection_timeout_ms => 1000,
     );
+    like( exception { $mc->connect; }, qr/MongoDB::AuthError/, "authentication fails", );
 
 };
 
@@ -91,18 +90,12 @@ subtest "auth OK via connect string" => sub {
 };
 
 subtest "auth fails via connect string to wrong realm" => sub {
-    like(
-        exception {
-            my $mc = MongoDB::MongoClient->new(
-                host =>
-                'mongodb://gssapitest%40MONGOTEST.COM@rhel64.mongotest.com/?authMechanism=GSSAPI&authMechanism.SERVICE_NAME=mongo',
-                server_selection_timeout_ms => 1000,
-            );
-        },
-        qr/Authentication.*failed/,
-        "authentication fails",
+    my $mc = MongoDB::MongoClient->new(
+        host =>
+          'mongodb://gssapitest%40MONGOTEST.COM@rhel64.mongotest.com/?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:mongo',
+        server_selection_timeout_ms => 1000,
     );
-
+    like( exception { $mc->connect; }, qr/MongoDB::AuthError/, "authentication fails", );
 };
 
 done_testing;
