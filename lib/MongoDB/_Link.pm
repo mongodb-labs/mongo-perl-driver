@@ -79,6 +79,18 @@ has server => (
     isa => Maybe[ServerDesc],
 );
 
+has host => (
+    is => 'lazy',
+    init_arg => undef,
+    isa => Str,
+);
+
+sub _build_host {
+    my ($self) = @_;
+    my ($host, $port) = split /:/, $self->address;
+    return $host;
+}
+
 my @is_master_fields= qw(
   min_wire_version max_wire_version
   max_message_size_bytes max_write_batch_size max_bson_object_size

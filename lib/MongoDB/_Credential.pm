@@ -244,7 +244,7 @@ sub _authenticate_GSSAPI {
             },
         );
         $client =
-          $sasl->client_new( $self->mechanism_properties->{SERVICE_NAME}, $link->{host} );
+          $sasl->client_new( $self->mechanism_properties->{SERVICE_NAME}, $link->host );
     }
     catch {
         MongoDB::AuthError->throw(
