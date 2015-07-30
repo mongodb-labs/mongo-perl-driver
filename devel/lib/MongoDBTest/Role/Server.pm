@@ -293,7 +293,7 @@ sub start {
         retry {
             $self->_logger->debug(sprintf("Pinging %s (%s) with ismaster", $self->name, $self->as_uri));
             $self->clear_client;
-            $self->client->send_admin_command( [ ismaster => 1 ] );
+            $self->client->get_database("admin")->run_command( [ ismaster => 1 ] );
         }
         delay_exp { 13, 1e5 }
         on_retry {
@@ -342,6 +342,7 @@ sub _local_restart {
     # must be localhost for shutdown command
     my @args = (
         host    => "mongodb://localhost:$port",
+        connect_type => 'direct',
         dt_type => undef,
     );
     if ( my $ssl = $self->ssl_config ) {
@@ -354,7 +355,7 @@ sub _local_restart {
         push @args, ssl => $ssl_arg;
     }
     eval {
-        MongoDB::MongoClient->new( @args )->send_admin_command( [ shutdown => 1 ] );
+        MongoDB::MongoClient->new( @args )->get_database("admin")->run_command( [ shutdown => 1 ] );
     };
     $self->_logger->debug("Error on shutdown for localhost:$port: $@") if $@;
     $self->stop;
