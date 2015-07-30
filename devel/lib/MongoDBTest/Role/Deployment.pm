@@ -75,6 +75,16 @@ sub _build_auth_config {
     return $self->config->{auth};
 }
 
+has ssl_config => (
+    is => 'lazy',
+    isa => Maybe[HashRef],
+);
+
+sub _build_ssl_config {
+    my ($self) = @_;
+    return $self->config->{ssl_config};
+}
+
 has type => (
     is => 'lazy',
     isa => Enum[qw/single replica sharded/],

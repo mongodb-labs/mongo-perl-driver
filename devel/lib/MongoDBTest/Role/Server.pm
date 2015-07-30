@@ -200,11 +200,21 @@ sub _build_logfile {
 }
 
 has auth_config => (
-    is => 'lazy',
+    is => 'ro',
     isa => Maybe[HashRef],
 );
 
 has did_auth_setup => (
+    is => 'rwp',
+    isa => Bool,
+);
+
+has ssl_config => (
+    is => 'ro',
+    isa => Maybe[HashRef],
+);
+
+has did_ssl_auth_setup => (
     is => 'rwp',
     isa => Bool,
 );
@@ -232,7 +242,30 @@ has client => (
 
 sub _build_client {
     my ($self) = @_;
-    return MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef );
+    my @args = (
+        host    => $self->as_uri,
+        dt_type => undef,
+    );
+    if ( my $ssl = $self->ssl_config ) {
+        my $ssl_arg = {};
+        $ssl_arg->{SSL_verifycn_scheme} = 'none';
+        $ssl_arg->{SSL_ca_file} = $ssl->{certs}{ca}
+          if $ssl->{certs}{ca};
+        $ssl_arg->{SSL_verifycn_name} = $ssl->{servercn}
+          if $ssl->{servercn};
+        $ssl_arg->{SSL_hostname} = $ssl->{servercn}
+          if $ssl->{servercn};
+        if ( $self->did_ssl_auth_setup ) {
+            push @args,
+              (
+                username       => $ssl->{username},
+                auth_mechanism => 'MONGODB-X509',
+              );
+            $ssl_arg->{SSL_cert_file} = $ssl->{certs}{client};
+        }
+        push @args, ssl => $ssl_arg;
+    }
+    return MongoDB::MongoClient->new( @args );
 }
 
 # Methods
@@ -259,7 +292,8 @@ sub start {
         # wait for the server to respond to ismaster
         retry {
             $self->_logger->debug(sprintf("Pinging %s (%s) with ismaster", $self->name, $self->as_uri));
-            MongoDB::MongoClient->new(host => $self->as_uri)->get_database("admin")->run_command([ismaster => 1]);
+            $self->clear_client;
+            $self->client->send_admin_command( [ ismaster => 1 ] );
         }
         delay_exp { 13, 1e5 }
         on_retry {
@@ -281,17 +315,51 @@ sub start {
     }
     catch { chomp; s/at \S+ line \d+//; die "Caught error:$_. Giving up!\n" };
 
-    if ( $self->auth_config && ! $self->did_auth_setup ) {
-        my ($user, $password) = @{ $self->auth_config }{qw/user password/};
-        $self->add_user($user, $password, [ 'root' ]);
+    if ( $self->auth_config && !$self->did_auth_setup ) {
+        my ( $user, $password ) = @{ $self->auth_config }{qw/user password/};
+        $self->add_user( "admin", $user, $password, ['root'] );
         $self->_set_did_auth_setup(1);
-        # must be localhost for shutdown command
-        eval { MongoDB::MongoClient->new(host => "mongodb://localhost:" . $self->port, connect_type => 'direct')->get_database("admin")->run_command([shutdown => 1]) };
         $self->_logger->debug("Restarting original server with --auth");
-        $self->stop;
-        $self->start;
+        $self->_local_restart;
+    }
+
+    if (   $self->ssl_config
+        && $self->ssl_config->{username}
+        && !$self->did_ssl_auth_setup )
+    {
+        $self->add_user( '$external', $self->ssl_config->{username},
+            '', [ { role => 'readWrite', db => $self->{ssl_config}{db} || 'x509' } ] );
+        $self->_set_did_ssl_auth_setup(1);
+        $self->_logger->debug("Restarting original server with SSL");
+        $self->_local_restart;
     }
     return 1;
+}
+
+sub _local_restart {
+    my ($self) = @_;
+    my $port = $self->port;
+    # must be localhost for shutdown command
+    my @args = (
+        host    => "mongodb://localhost:$port",
+        dt_type => undef,
+    );
+    if ( my $ssl = $self->ssl_config ) {
+        my $ssl_arg = {};
+        $ssl_arg->{SSL_verifycn_scheme} = 'none';
+        $ssl_arg->{SSL_ca_file} = $ssl->{certs}{ca}
+          if $ssl->{certs}{ca};
+        $ssl_arg->{SSL_verifycn_name} = $ssl->{servercn}
+          if $ssl->{servercn};
+        push @args, ssl => $ssl_arg;
+    }
+    eval {
+        MongoDB::MongoClient->new( @args )->send_admin_command( [ shutdown => 1 ] );
+    };
+    $self->_logger->debug("Error on shutdown for localhost:$port: $@") if $@;
+    $self->stop;
+    $self->clear_client;
+    $self->start;
 }
 
 sub stop {
@@ -336,9 +404,24 @@ sub _command_args {
     my @args = split ' ', $self->default_args;
     push @args, split ' ', $self->config->{args} if exists $self->config->{args};
     push @args, split ' ', $self->command_args;
-    push @args, '--port', $self->port, '--logpath', $self->logfile;
+    push @args, '--port', $self->port, '--logpath', $self->logfile, '--logappend';
     if ($self->did_auth_setup) {
         push @args, '--auth';
+    }
+    if (my $ssl = $self->ssl_config) {
+        push @args, '--sslMode', $ssl->{mode} || 'allowSSL'
+            if $self->server_version >= v3.0.0;
+        push @args, '--sslPEMKeyFile', $ssl->{certs}{server};
+        push @args, '--sslCAFile', $ssl->{certs}{ca};
+        push @args, '--sslCRLFile', $ssl->{certs}{crl}
+            if $ssl->{certs}{crl};
+        if (! $self->did_ssl_auth_setup) {
+            push @args,
+                $self->server_version >= v3.0.0
+                ? '--sslAllowConnectionsWithoutCertificates'
+                : '--sslWeakCertificateValidation';
+            push @args, '--sslAllowInvalidCertificates';
+        }
     }
     if ( $self->server_version >= v2.4.0 ) {
         push @args, qw/--setParameter enableTestCommands=1/;
@@ -350,19 +433,20 @@ sub _command_args {
 }
 
 sub add_user {
-    my ($self, $user, $password, $roles) = @_;
-    $self->_logger->debug("Adding root user");
+    my ($self, $db, $user, $password, $roles) = @_;
+    return unless $user;
+    $self->_logger->debug("Adding authorized user");
     my $doc = Tie::IxHash->new(
-        pwd => $password,
+        ( $password ? ( pwd => $password ) : () ),
         roles => $roles,
     );
     if ( $self->server_version >= v2.6.0 ) {
         $doc->Unshift(createUser => $user);
-        $self->client->get_database("admin")->run_command( $doc );
+        $self->client->get_database($db)->run_command( $doc );
     }
     else {
         $doc->Unshift(user => $user);
-        $self->client->get_database("admin")->get_collection("system.users")->save( $doc );
+        $self->client->get_database($db)->get_collection("system.users")->save( $doc );
     }
     return;
 }

@@ -53,6 +53,11 @@ has auth_config => (
     isa => Maybe[HashRef],
 );
 
+has ssl_config => (
+    is => 'ro',
+    isa => Maybe[HashRef],
+);
+
 has server_config_list => (
     is => 'ro',
     isa => ArrayRef[HashRef],
@@ -84,6 +89,7 @@ sub _build__servers {
             default_args => $self->default_args,
             default_version => $self->default_version,
             auth_config => $self->auth_config,
+            ssl_config => $self->ssl_config,
             ( $self->timeout ? ( timeout => $self->timeout ) : () ),
         );
     }

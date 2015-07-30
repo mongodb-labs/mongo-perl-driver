@@ -42,6 +42,7 @@ sub _build_server_set {
         default_version => $self->default_version,
         timeout => $self->timeout,
         auth_config => $self->auth_config,
+        ssl_config => $self->ssl_config,
         server_config_list => $self->config->{mongod},
         $self->is_replica ? ( set_name => $self->config->{setName} // "rs" . $anon_rs_number++ ) : (),
     );
