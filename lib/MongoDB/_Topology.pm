@@ -683,7 +683,8 @@ sub _update_topology_from_link {
     };
     if ( $@ ) {
         local $_ = $@;
-        warn "During MongoDB topology update for @{[$link->address]}: $_";
+        warn "During MongoDB topology update for @{[$link->address]}: $_"
+            if WITH_ASSERTS;
         $self->_reset_address_to_unknown( $link->address, $_ );
         # retry a network error if server was previously known to us
         if (    $_->$_isa("MongoDB::NetworkError")
