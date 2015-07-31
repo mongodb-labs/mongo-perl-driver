@@ -206,7 +206,7 @@ references or L<Tie::IxHash>es.
 
 =head2 Dates
 
-The L<DateTime>, L<Time::Moment> or L<DateTime::Tiny> packages can be used
+The L<DateTime>, L<Time::Moment> or L<DateTime::Tiny> package can be used
 to insert and query for dates. Dates stored in the database will be
 returned as instances of one of these classes, depending on the C<dt_type>
 setting of the L<MongoDB::BSON> codec object:
