@@ -241,7 +241,7 @@ constants.
 
 =head1 SEMANTIC VERSIONING SCHEME
 
-Starting with MongoDB C<v1.0.0>, the driver reverts to the more-familiar
+Starting with MongoDB C<v1.0.0>, the driver will revert to the more-familiar
 three-part, version-tuple numbering scheme used by both Perl and MongoDB:
 C<vX.Y.Z>
 
