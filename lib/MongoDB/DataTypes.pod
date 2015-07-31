@@ -121,7 +121,7 @@ serialized as a string.
     # stored as the int 4
     $collection->insert({myVar => $var});
 
-Because of this, users often find that they end up with more strings than they
+Because of this, users often end up with more strings than they
 wanted in their database.
 
 One technique to eliminate the string representation and store a numeric
