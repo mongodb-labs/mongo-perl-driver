@@ -207,7 +207,7 @@ Here are some resources for learning more about MongoDB:
 * L<MongoDB CRUD Introduction|http://docs.mongodb.org/manual/core/crud-introduction/>
 * L<MongoDB Data Modeling Introductions|http://docs.mongodb.org/manual/core/data-modeling-introduction/>
 
-For getting started with the Perl driver, see these pages:
+To get started with the Perl driver, see these pages:
 
 =for :list
 * L<MongoDB Perl Driver Tutorial|MongoDB::Tutorial>
