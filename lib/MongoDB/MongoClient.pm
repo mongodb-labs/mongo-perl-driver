@@ -1658,7 +1658,7 @@ L</server_selection_timeout_ms> milliseconds waiting for a suitable server to
 become available.  If no server is available at the end of that time, an
 exception is thrown.
 
-=head1 SERVER MONITORING
+=head1 SERVER MONITORING AND FAILOVER
 
 When the client first needs to find a server for a database operation, all
 servers from the L</host> attribute are scanned to determine which servers to
@@ -1667,19 +1667,24 @@ discovered in this process.  Invalid hosts are dropped.
 
 After the initial scan, whenever the servers have not been checked in
 L</heartbeat_frequency_ms> milliseconds, the scan will be repeated.  This
-amortizes monitoring time over many of operations.
+amortizes monitoring time over many of operations.  Additionally, if a
+socket has been idle for a while, it will be checked before being used for
+an operation.
 
-Additionally, if a socket has been idle for a while, it will be checked
-before being used for an operation.
+If a server operation fails because of a "not master" or "node is
+recovering" error, or if there is a network error or timeout, then the
+server is flagged as unavailable and exception will be thrown.  See
+L<MongoDB::Errors> for exception types.
 
-If an server operation fails because of a "not master" or "node is recovering"
-error, the server is flagged as unavailable.  Assuming the error is caught and
-handled, the next operation will rescan all servers immediately to find a new
-primary.
-
-Whenever a server is found to be unavailable, the driver records this fact, but
-can continue to function as long as other servers are suitable per L</SERVER
+If the error is caught and handled, the next operation will rescan all
+servers immediately to update its view of the topology.  The driver can
+continue to function as long as servers are suitable per L</SERVER
 SELECTION>.
+
+When catching an exception, users must determine whether or not their
+application should retry an operation based on the specific operation
+attempted and other use-case-specific considerations.  For automating
+retries despite exceptions, consider using the L<Try::Tiny::Retry> module.
 
 =head1 AUTHENTICATION
 
