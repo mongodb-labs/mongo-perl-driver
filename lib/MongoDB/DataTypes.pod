@@ -246,8 +246,8 @@ seconds as a floating-point value.
 
 The L<Time::Moment> module is substantially faster than L<DateTime> and
 might be a convenient alternative to using integers or floating point
-numbers and manually inflating to an object before use.  Consider
-benchmarking using C<dt_type> set to L<Time::Moment> against using numbers
+numbers and manually inflating to an object before use.  Consider comparing
+benchmarks using C<dt_type> set to L<Time::Moment> against those using numbers
 and inflating on demand.
 
 Note that (at least, as of C<DateTime::Tiny> version 1.04) there is no
