@@ -195,7 +195,7 @@ the modified document.  It can be useful for implementing queues or locks.
 For example, suppose we had a list of things to do, and we wanted to remove the
 highest-priority item for processing.  We could do a L<MongoDB::Collection/find>
 and then a L<MongoDB::Collection/remove>, but that wouldn't be atomic (a write
-could occur between the query and the remove).  Instead, we can use find and
+could occur between the query and the remove).  Instead, we could use find and
 modify.
 
     my $next_task = $db->run_command({
