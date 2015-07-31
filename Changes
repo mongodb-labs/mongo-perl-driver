@@ -7,10 +7,77 @@
   - Adds support for correctly encoding boolean objects from JSON::XS,
     Cpanel::JSON::XS, JSON::PP, JSON::Tiny and Mojo::JSON.
 
+  - Adds 'reconnect' method to MongoClient to handle reconnection after
+    a fork or thread spawn.
+
+  [Bug fixes]
+
+  - Fixes broken authentication due to the BSON encoder not being
+    initialized or passed correctly.
+
+  - Fixes incorrect configuration test for GCC atomic operations.
+
+  - Fixes incorrect default value for local_threshold_ms (was 15,000,
+    is now 15).
+
+  - Correctly closes sockets on any network error, avoiding undefined
+    behavior that could result from re-use.
+
+  - Stops encoding scalar-ref objects as BSON BINARY type. (Throws
+    an error instead about an unhandled type.)
+
+  - Raises an error if an array-reference document contains duplicate keys.
+
+  [Changes]
+
+  - PERL-523 Requires a replica set name explicitly to connect to a replica
+    set.  Connecting to a single host is always in a 'direct' mode otherwise.
+
+  - Changes 'max_time_ms' MongoClient attribute default to zero for better
+    backwards server compatibility.
+
+  - Returns MongoDB::UnacknowledgedResult from unacknowledged writes
+    (i.e. { w => 0 } write concern) instead of the corresponding
+    result object (i.e. MongoDB::InsertResult for inserts).
+
+  [Removals]
+
+  - Removes the 'connect_type' attribute on MongoClient.
+
+  - Removes automatic fork/thread-spawn detection for speed.  Use of
+    'reconnect" is recommended instead.
+
+  - Removes network error warnings during server topology scanning.
+
+  [Prerequisites]
+
+  - Adds Class::XSAccessor, Moo and Type::Tiny::XS.
+
+  - Moves DateTime::Tiny from test_requires to test_recommends.
+
+  - Updates Authen::SCRAM::Client prereq to 0.003.
+
+  - Requires IO::Socket 1.31 on Windows
+
+  - Removes unused Test::Warn.
+
   [~ Internal changes ~]
 
-  - To attempt to get C/XS linking on Windows XP, changed 'strerror_s'
-    (available after XP) to deprecate function 'strerror'
+  - Changes all Moose classes to be immutable.
+
+  - Optimizes networking code paths substantially.
+
+  - Changes argument handling for CRUD API methods to stop coercing inputs
+    to Tie::IxHash.  This makes them significantly faster.
+
+  - Changes most private/internal classes to the Moo framework for greater
+    speed.
+
+  - Changes use of 'strerror_s' to 'streeror' to attempt to get C/XS
+    linking on Windows XP.
+
+  - Disables many internal class type constraints and runtime assertions
+    unless the PERL_MONGO_WITH_ASSERTS environment variable is true.
 
 v0.999.999.3 2015-06-29 12:21:07-04:00 America/New_York (TRIAL RELEASE)
 
