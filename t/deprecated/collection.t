@@ -20,7 +20,6 @@ use strict;
 use warnings;
 use Test::More 0.96;
 use Test::Fatal;
-use Test::Warn;
 use Test::Deep qw/!blessed/;
 
 use utf8;

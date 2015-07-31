@@ -61,7 +61,6 @@ test_requires 'Path::Tiny' => '0.054';
 test_requires 'Test::Deep' => '0.111';
 test_requires 'Test::Fatal';
 test_requires 'Test::More' => '0.96';
-test_requires 'Test::Warn';
 test_requires 'bigint';
 test_requires 'lib';
 test_requires 'utf8';

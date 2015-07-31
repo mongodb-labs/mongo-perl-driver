@@ -20,7 +20,6 @@ use warnings;
 use Test::More;
 use Test::Fatal;
 use Test::Deep;
-use Test::Warn;
 use Tie::IxHash;
 use boolean;
 

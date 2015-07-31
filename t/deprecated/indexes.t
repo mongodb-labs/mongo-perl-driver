@@ -19,7 +19,6 @@ use warnings;
 use Test::More 0.96;
 use Test::Deep qw/!blessed/;
 use Test::Fatal;
-use Test::Warn;
 
 use utf8;
 use JSON::MaybeXS;

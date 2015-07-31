@@ -19,7 +19,6 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Fatal;
-use Test::Warn;
 
 use MongoDB::_URI;
 
