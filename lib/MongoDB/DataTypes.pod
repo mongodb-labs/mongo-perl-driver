@@ -201,7 +201,7 @@ Arrays must be saved as array references (C<\@foo>, not C<@foo>).
 
 =head2 Embedded Documents
 
-Embedded documents are of the same form as top-level documents: either hash
+Embedded documents take the same form as top-level documents: either hash
 references or L<Tie::IxHash>s.
 
 =head2 Dates
