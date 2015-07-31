@@ -158,7 +158,7 @@ Some expected changes in future releases include:
 
 =item *
 
-Bug fixes, as necesary.
+Bug fixes, as necessary.
 
 =item *
 
