@@ -225,7 +225,7 @@ As a user, you first create and configure a L<MongoDB::MongoClient> object to
 connect to a MongoDB deployment.  From that client object, you can get
 a L<MongoDB::Database> object for interacting with a specific database.
 
-From a database object you can get a L<MongoDB::Collection> object for CRUD
+From a database object, you can get a L<MongoDB::Collection> object for CRUD
 operations on that specific collection, or a L<MongoDB::GridFS> object for
 working with an abstract file system hosted on the database.  Each of those
 classes may return other objects for specific features or functions.
