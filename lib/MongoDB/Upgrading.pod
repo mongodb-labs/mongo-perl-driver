@@ -19,11 +19,6 @@
 
 =pod
 
-=head1 WORK-IN-PROGRESS
-
-This document is a work in progress during the v1 development cycle.
-It offers a best-efforts snapshot of changes at a point in time.
-
 =head1 DESCRIPTION
 
 The v1 driver represents a substantial step forward in functionality and
@@ -238,7 +233,7 @@ will scan all servers in the seed list and begin regular monitoring.
 Connections that drop will be re-established when needed.
 
 See L<SERVER SELECTION|MongoDB::MongoClient/SERVER SELECTION> and L<SERVER
-MONITORING|MongoDB::MongoClient/SERVER MONITORING> in
+MONITORING AND FAILOVER|MongoDB::MongoClient/SERVER MONITORING AND FAILOVER> in
 L<MongoDB::MongoClient> for details.
 
 =head2 Exceptions are the preferred error handling approach
@@ -402,8 +397,8 @@ C<insert> and so one.  The legacy names are deprecated.
 
 Insertion via the bulk API will B<NOT> insert an C<_id> into the original
 document if one does not exist.  Previous documentation was not specific
-whether this was the case or if the C<_id> was added only during BSON
-encoding.
+whether this was the case or if the C<_id> was added to the document
+sent to the server.
 
 =head3 Bulk write results
 
@@ -440,7 +435,7 @@ removed.
 =head2 BSON encoding changes
 
 In the v1 driver, BSON encoding and decoding have been encapsulated into a
-L<MongoDB::BSON> codec object.  This can be provided at any level, from 
+L<MongoDB::BSON> codec object.  This can be provided at any level, from
 L<MongoDB::MongoClient> to L<MongoDB::Collection>.  If not provided, a
 default will be created that behaves similarly to the v0 encoding/decoding
 functions, except for the following changes.
@@ -517,6 +512,19 @@ users to force 64-bit encoding if desired.
 L<Time::Moment> is a much faster replacement for the venerable L<DateTime>
 module.  The BSON codec will serialize L<Time::Moment> objects correctly
 and can use that module as an argument for the C<dt_type> codec attribute.
+
+=head3 Added support for encoding common JSON boolean classes
+
+Most JSON libraries on CPAN implement their own boolean classes.  The
+following libraries boolean types will now encode correctly as BSON
+booleans:
+
+=for :list
+* JSON::XS
+* Cpanel::JSON::XS
+* JSON::PP
+* JSON::Tiny
+* Mojo::JSON
 
 =head2 DBRef objects
 
