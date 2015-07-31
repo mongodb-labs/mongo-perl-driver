@@ -362,7 +362,7 @@ preserve the I<subtype> of your data.  Binary data in MongoDB stores a "type"
 field, which can be any integer between 0 and 255.  Identical data will only
 match if the subtype is the same.
 
-Perl uses the default subtype of C<SUBTYPE_GENERIC>.
+Perl uses the default subtype C<SUBTYPE_GENERIC>.
 
 The driver returns binary fields as instances of L<MongoDB::BSON::Binary>
 to ensure that binary data can successfullly roundtrip.
