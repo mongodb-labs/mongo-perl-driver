@@ -323,7 +323,7 @@ correctly in the database:
 =head2 MongoDB::OID
 
 "OID" stands for "Object ID", and is a unique id for identifying documents.
-OIDs are 12 bytes which are guaranteed to be unique.  Their string form is
+OIDs are 12 bytes, which are guaranteed to be unique.  Their string form is
 a 24-character string of hexidecimal digits.
 
 To create a unique id:
