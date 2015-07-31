@@ -136,8 +136,8 @@ the L<prefer_numeric|MongoDB::BSON/prefer_numeric> option set.
     $coll2 = $collection->with_codec( prefer_numeric => 1 );
     $coll2->insert( {myVar => "1.23"} ); # stored as double 1.23
 
-On the other hand, sometimes there is data that looks like a number but
-should be saved as a string.  For example, suppose we were storing zip
+On the other hand, some data looks like a number but should be saved as a
+string.  For example, suppose we were storing zip
 codes.  If we wanted to be sure it is saved as a string, bless the string
 as a C<MongoDB::BSON::String> type:
 
