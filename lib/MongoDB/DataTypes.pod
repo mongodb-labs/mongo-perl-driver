@@ -366,7 +366,7 @@ Perl uses the default subtype C<SUBTYPE_GENERIC>.
 
 The driver returns binary fields as instances of L<MongoDB::BSON::Binary>
 to ensure that binary data can successfullly roundtrip.
-L<MongoDB::BSON::Binary> object stringify to the underlying data to make it
+L<MongoDB::BSON::Binary> objects stringify to the underlying data to make it
 easier to work with.
 
 =head2 MongoDB::Code
