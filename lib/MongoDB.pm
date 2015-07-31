@@ -101,74 +101,25 @@ read_documents
 
 =begin :prelude
 
-This is the Beta 3 release for v1.0.0.
+This is Release Candidate 1 (RC1) for v1.0.0.
 
-=head1 BETA RELEASE NOTICE AND ROADMAP
+=head1 RELEASE CANDIDATE NOTICE
 
-The v0.999.999.x releases are B<beta> releases towards v1.0.0.  While they
-are believed be as reliable as the stable release series, there will continue
-to be minor optimizations and bug fixes prior to the stable v1.0.0.
+The v0.999.999.4 driver is the first release candidate for v1.0.0.
+We expect no API changes between now and the final stable release.
 
-At this point, we believe the API has stabilized, but reserve the right to
-make minor changes.
+It is released for the community to begin testing in preparation for
+migration to v1.0.0.
 
-Using the v0.999.999.x series means that you understand that your code may break
-due to changes in the driver between now and the v1.0.0 stable release.
-
-More details on changes and how to upgrade applications may be found in
-L<MongoDB::Upgrading>.
+Users are B<strongly> encourgaed to read L<MongoDB::Upgrading> for
+details on changes and how to upgrade applications.
 
 =head2 Notable changes
 
-The Beta 3 driver includes significant changes to DBrefs, including a breaking
-change:
+The Release Candidate 1 driver is significantly faster than the Beta 3
+driver.
 
-=over
-
-=item *
-
-MongoDB::DBRef objects no longer have a 'fetch' method or 'client' attribute.
-This is consistent with the design of the MongoDB drivers for other language.
-For the Perl driver, specifically, it decouples the BSON model from the
-MongoClient model, eliminates a circular reference, and avoid Perl memory
-bugs using weak references under threads. (Breaking Change)
-
-=item *
-
-As mandated by the DBRef specification, the 'db' attribute to MongoDB::DBRef
-is now optional and the drivers will now recognize DBref documents that omit
-a C<$db> field.
-
-=item *
-
-Extra fields in a DBRef document beyond C<$ref>, C<$id> and C<$db> are
-preserved and will round-trip.
-
-=back
-
-=head2 Roadmap
-
-Beta releases will ship weekly or biweekly as necessary depending on the
-volume/severity of changes.  The stable v1.0.0 release is expected around the
-end of July 2015.
-
-Some expected changes in future releases include:
-
-=over
-
-=item *
-
-Bug fixes, as necesary.
-
-=item *
-
-Profiling and optimization of common operations.
-
-=item *
-
-Documentation revisions.
-
-=back
+Other changes from Beta 3 are minor.
 
 =end :prelude
 
@@ -189,13 +140,13 @@ Documentation revisions.
 
 =head1 DESCRIPTION
 
-This is the official Perl driver for MongoDB.  MongoDB is an open-source
-document database that provides high performance, high availability, and easy
-scalability.
+This is the official Perl driver for L<MongoDB|http://www.mongodb.com>.
+MongoDB is an open-source document database that provides high performance,
+high availability, and easy scalability.
 
 A MongoDB server (or multi-server deployment) hosts a number of databases. A
 database holds a set of collections. A collection holds a set of documents. A
-document is a set of key-value pairs. Documents have dynamic schema. Dynamic
+document is a set of key-value pairs. Documents have dynamic schema. Using dynamic
 schema means that documents in the same collection do not need to have the same
 set of fields or structure, and common fields in a collection's documents may
 hold different types of data.
@@ -207,7 +158,7 @@ Here are some resources for learning more about MongoDB:
 * L<MongoDB CRUD Introduction|http://docs.mongodb.org/manual/core/crud-introduction/>
 * L<MongoDB Data Modeling Introductions|http://docs.mongodb.org/manual/core/data-modeling-introduction/>
 
-For getting started with the Perl driver, see these pages:
+To get started with the Perl driver, see these pages:
 
 =for :list
 * L<MongoDB Perl Driver Tutorial|MongoDB::Tutorial>
@@ -225,7 +176,7 @@ As a user, you first create and configure a L<MongoDB::MongoClient> object to
 connect to a MongoDB deployment.  From that client object, you can get
 a L<MongoDB::Database> object for interacting with a specific database.
 
-From a database object you can get a L<MongoDB::Collection> object for CRUD
+From a database object, you can get a L<MongoDB::Collection> object for CRUD
 operations on that specific collection, or a L<MongoDB::GridFS> object for
 working with an abstract file system hosted on the database.  Each of those
 classes may return other objects for specific features or functions.
@@ -241,8 +192,8 @@ constants.
 
 =head1 SEMANTIC VERSIONING SCHEME
 
-Starting with MongoDB C<v1.0.0>, the driver reverts to the more-familiar
-three-part, version-tuple numbering scheme used by both Perl and MongoDB:
+Starting with MongoDB C<v1.0.0>, the driver will revert to the more familiar
+three-part version-tuple numbering scheme used by both Perl and MongoDB:
 C<vX.Y.Z>
 
 =for :list

@@ -26,7 +26,7 @@ For developers familiar with SQL, the following chart should help you see how
 many common SQL queries could be expressed in MongoDB.
 
 These are Perl-specific examples of translating SQL queries to MongoDB's query
-language.  To see the JavaScript (or other languages') mappings, see
+language.  To see the mappings for JavaScript (or another language), see
 L<http://dochub.mongodb.org/core/sqlToMongo>.
 
 In the following examples, C<$db> is a L<MongoDB::Database> object which was
@@ -94,7 +94,7 @@ retrieved by using C<get_database>. See L<MongoDB::MongoClient> for more.
 
     $db->get_collection( 'users' )->ensure_index( Tie::IxHash->new( name => 1, ts => -1 ) );
 
-In this example, we must use L<Tie::IxHash> to preserve the ordering of the arguments to 
+In this example, we must use L<Tie::IxHash> to preserve the ordering of the arguments to
 C<ensureIndex>.
 
 =item C<SELECT * FROM users WHERE a=1 and b='q'>
@@ -182,7 +182,7 @@ run:
         return res;
     }
 
-Thus, we can translate the important parts into Perl:
+Next, we can translate the important parts into Perl:
 
     $db->run_command( { validate => "foo" } );
 
@@ -195,7 +195,7 @@ the modified document.  It can be useful for implementing queues or locks.
 For example, suppose we had a list of things to do, and we wanted to remove the
 highest-priority item for processing.  We could do a L<MongoDB::Collection/find>
 and then a L<MongoDB::Collection/remove>, but that wouldn't be atomic (a write
-could occur between the query and the remove).  Instead, we can use find and
+could occur between the query and the remove).  Instead, we could use find and
 modify.
 
     my $next_task = $db->run_command({

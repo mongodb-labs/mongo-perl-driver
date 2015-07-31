@@ -61,7 +61,7 @@ By default, numbers with a decimal point will be saved as doubles (64-bit).
 =head3 32-bit Platforms
 
 Numbers without decimal points will be saved as 32-bit integers.  To save a
-number as a 64-bit integer, use bigint (aka L<Math::BigInt>):
+number as a 64-bit integer, use bigint (i.e. L<Math::BigInt>):
 
     use bigint;
 
@@ -105,11 +105,11 @@ a 64-bit integer may not be exact.
 
 =head3 Dealing with numbers and strings in Perl
 
-Perl is very flexible about whether something is number or a string: it
+Perl is very flexible about whether something is number or a string; it
 generally infers the type from context.  Unfortunately, the driver doesn't have
 any context when it has to choose how to serialize a variable.  Therefore, the
 default behavior is to introspect the internal state of the variable.  Any
-variable that has every been used in a string context (e.g. printed,
+variable that has ever been used in a string context (e.g. printed,
 compared with 'eq', matched with a regular expression, etc.) will be
 serialized as a string.
 
@@ -121,10 +121,10 @@ serialized as a string.
     # stored as the int 4
     $collection->insert({myVar => $var});
 
-Because of this, users often find that they end up with more strings than they
-wanted in their database.
+Because of this, users often end up with more strings than they
+wanted in their databases.
 
-One technique to eliminate the string representation and store a numeric
+One technique for eliminating the string representation and store a numeric
 interpretation is to add 0 to the variable:
 
     $collection->insert({myVar => 0 + $var});
@@ -136,10 +136,10 @@ the L<prefer_numeric|MongoDB::BSON/prefer_numeric> option set.
     $coll2 = $collection->with_codec( prefer_numeric => 1 );
     $coll2->insert( {myVar => "1.23"} ); # stored as double 1.23
 
-On the other hand, sometimes there is data that looks like a number but
-should be saved as a string.  For example, suppose we were storing zip
-codes.  If we wanted to be sure it is saved as a string, bless the string
-as a C<MongoDB::BSON::String> type:
+On the other hand, some data looks like a number but should be saved as a
+string.  For example, suppose we are storing zip codes.  To ensure a zip
+code is saved as a string, bless the string as a C<MongoDB::BSON::String>
+type:
 
     my $z = "04101";
     my $zip = bless(\$z, "MongoDB::BSON::String");
@@ -149,8 +149,8 @@ as a C<MongoDB::BSON::String> type:
         zip => bless(\$zip, "MongoDB::BSON::String")});
 
 Additionally, there are two utility functions, C<force_int> and
-c<force_double>, to explicitly set Perl's internal type flags to
-Integer (C<IV>) and Double (C<NV>) respectively, thus triggering
+C<force_double>, that explicitly set Perl's internal type flags to
+Integer (C<IV>) and Double (C<NV>) respectively. These flags trigger
 MongoDB's recognition of the values as Int32/Int64 (depending on the
 platform) or Double:
 
@@ -201,12 +201,12 @@ Arrays must be saved as array references (C<\@foo>, not C<@foo>).
 
 =head2 Embedded Documents
 
-Embedded documents are of the same form as top-level documents: either hash
-references or L<Tie::IxHash>s.
+Embedded documents take the same form as top-level documents: either hash
+references or L<Tie::IxHash>es.
 
 =head2 Dates
 
-The L<DateTime>, L<Time::Moment> or L<DateTime::Tiny> packages can be used
+The L<DateTime>, L<Time::Moment> or L<DateTime::Tiny> package can be used
 to insert and query for dates. Dates stored in the database will be
 returned as instances of one of these classes, depending on the C<dt_type>
 setting of the L<MongoDB::BSON> codec object:
@@ -245,9 +245,9 @@ using the L<Time::HiRes time/Time::HiRes#time> function to get epoch
 seconds as a floating-point value.
 
 The L<Time::Moment> module is substantially faster than L<DateTime> and
-might be a convenient alternative over using integers or floating point
-numbers and manually inflating to an object before use.  Consider
-benchmarking using C<dt_type> set to L<Time::Moment> against using numbers
+might be a convenient alternative to using integers or floating point
+numbers and manually inflating to an object before use.  Consider comparing
+benchmarks using C<dt_type> set to L<Time::Moment> against those using numbers
 and inflating on demand.
 
 Note that (at least, as of C<DateTime::Tiny> version 1.04) there is no
@@ -274,7 +274,7 @@ regular expressions will be retrieved as L<MongoDB::BSON::Regexp>
 objects for safety (these will round-trip correctly).
 
 From that object, you can attempt to compile a reference to a C<qr{}> using
-the C<try_compile> method, though due to PCRE differences, this could fail
+the C<try_compile> method. However, due to PCRE differences, this could fail
 to compile or could have different match behavior than intended.
 
     $collection->insert({"regex" => qr/foo/i});
@@ -300,7 +300,7 @@ An example of inserting boolean values:
 
     $collection->insert({"okay" => true, "name" => "fred"});
 
-An example using boolean values for query operators (only returns documents
+An example of using boolean values for query operators (only returns documents
 where the name field exists):
 
     my $cursor = $collection->query({"name" => {'$exists' => boolean::true}});
@@ -322,22 +322,22 @@ correctly in the database:
 
 =head2 MongoDB::OID
 
-"OID" stands for "Object ID", and is a unique id to identify documents.
-They are 12 bytes which are guaranteed to be unique.  Their string form is
+"OID" stands for "Object ID", and is a unique id for identifying documents.
+OIDs are 12 bytes, which are guaranteed to be unique.  Their string form is
 a 24-character string of hexidecimal digits.
 
 To create a unique id:
 
     my $oid = MongoDB::OID->new;
 
-To create a MongoDB::OID from an existing 24-character hexidecimal string:
+To create a MongoDB::OID from an existing 24-character hexadecimal string:
 
     my $oid = MongoDB::OID->new("value" => "123456789012345678901234");
 
 =head2 Binary Data
 
-By default, all database strings are UTF8.  To save images, binaries, and other
-non-UTF8 data, you need to store it as binary data.  There are two ways to do this.
+By default, all database strings are UTF8.  You need to store images, binaries,
+and other non-UTF8 data as binary data.  There are two ways to do this.
 
 =head3 String Refs
 
@@ -362,11 +362,11 @@ preserve the I<subtype> of your data.  Binary data in MongoDB stores a "type"
 field, which can be any integer between 0 and 255.  Identical data will only
 match if the subtype is the same.
 
-Perl uses the default subtype of C<SUBTYPE_GENERIC>.
+Perl uses the default subtype C<SUBTYPE_GENERIC>.
 
 The driver returns binary fields as instances of L<MongoDB::BSON::Binary>
 to ensure that binary data can successfullly roundtrip.
-L<MongoDB::BSON::Binary> object stringify to the underlying data to make it
+L<MongoDB::BSON::Binary> objects stringify to the underlying data to make it
 easier to work with.
 
 =head2 MongoDB::Code
