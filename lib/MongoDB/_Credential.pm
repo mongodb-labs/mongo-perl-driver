@@ -24,7 +24,7 @@ use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Types -types;
 
-use Authen::SCRAM::Client '0.003';
+use Authen::SCRAM::Client 0.003;
 use Digest::MD5 qw/md5_hex/;
 use Encode qw/encode/;
 use MIME::Base64 qw/encode_base64 decode_base64/;
