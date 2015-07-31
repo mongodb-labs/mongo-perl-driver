@@ -1801,7 +1801,7 @@ preferred, but not yet available as an OS package.  L<Authen::SASL::Cyrus>
 is available on Debian as C<libauthen-sasl-cyrus-perl> and on RHEL as
 C<perl-Authen-SASL-Cyrus>.
 
-Installing L<Authen::SASL::XS> or L<Authen::SASL::Cyrus> from CPAM requires
+Installing L<Authen::SASL::XS> or L<Authen::SASL::Cyrus> from CPAN requires
 C<libsasl>.  On Debian systems, it is available from C<libsasl2-dev>; on
 RHEL, it is available in C<cyrus-sasl-devel>.
 

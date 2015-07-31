@@ -4,13 +4,18 @@
 
 The driver requires Perl v5.8.4 or later for most Unix-like platforms.
 
-The driver may not build successfully on the following platforms:
+It is known to build successfully on the following operating systems:
 
-* Windows
-* OpenBSD (single-threaded perls without libpthread compiled in)
-* Solaris
+* Linux
+* FreeBSD, OpenBSD, NetBSD
+* Mac OSX
+* Windows 7+ with Strawberry Perl 5.14 or later
 
-We expect to provide support for these platforms in a future release.
+Please see the [CPAN Testers Matrix](http://matrix.cpantesters.org/?dist=MongoDB)
+for more details on platform/perl compatibility.
+
+The driver has not been tested on big-endian platforms.  Big-endian
+platforms will require Perl 5.10 or later.
 
 ## Compiler tool requirements
 
@@ -24,6 +29,9 @@ Users of Red Hat based distributions (RHEL, CentOS, Amazon Linux, Oracle
 Linux, Fedora, etc.) should issue the following command:
 
     $ sudo yum install make gcc
+
+On Windows, [StrawberryPerl](http://strawberryperl.com/) ships with a
+GCC compiler.
 
 ## Configuration requirements
 
@@ -64,7 +72,7 @@ package:
 To install a development release, specify it by author and tarball path.
 For example:
 
-    $ cpan MONGODB/MongoDB-v0.703.4-TRIAL.tar.gz
+    $ cpan MONGODB/MongoDB-v0.999.999.4-TRIAL.tar.gz
 
 ## Installing from a tarball downloaded from CPAN
 
@@ -91,52 +99,28 @@ If you have checked out the git repository (or downloaded a tarball from
 Github), you will need to install configuration requirements and follow the
 manual procedure described above.
 
-## Building with SSL or SASL support
+## SSL and/or SASL support
 
-SSL support requires the libssl-dev package or equivalent.  SASL support
-requires libgsasl-dev or equivalent (available from EPEL for Red Hat based
-distributions).
+SSL support requires installing the
+[IO::Socket::SSL](http://p3rl.org/IO::Socket::SSL) module.   You will need
+to have the libssl-dev package or equivalent installed for that to build
+successfully.
 
-To enable SSL, set the `PERL_MONGODB_WITH_SSL` environment variable before
-installing.  For example:
+SASL support requires [Authen::SASL](http://p3rl.org/Authen::SASL) and
+possibly a Kerberos-capable backend.
 
-    $ PERL_MONGODB_WITH_SSL=1 cpan MongoDB
+The [Authen::SASL::Perl](http://p3rl.org/Authen::SASL::Perl) backend comes
+with Authen::SASL and requires the [GSSAPI](http://p3rl.org/GSSAPI) CPAN
+module for GSSAPI support.
 
-To enable SASL, set the `PERL_MONGODB_WITH_SASL` environment variable before
-installing.  For example:
+Installing the GSSAPI module from CPAN rather than an OS package requires
+libkrb5 and the krb5-config utility (available for Debian/RHEL systems in
+the C<libkrb5-dev> or equivalent package).
 
-    $ PERL_MONGODB_WITH_SASL=1 cpan MongoDB
-
-If you are installing manually, these only need to be set when running
-`Makefile.PL`.  For example:
-
-    $ PERL_MONGODB_WITH_SASL=1 perl Makefile.PL
-
-Or you can pass the flags `--sasl` or `--ssl` to `Makefile.PL`.
-
-## Non-standard library paths
-
-If your libssl or libgsasl libraries are in a non-standard location, you
-will need to pass custom arguments to the `Makefile.PL` using the `LIBS`
-parameter.
-
-Due to a quirk in ExtUtils::MakeMaker, this will override any
-libraries set by Makefile.PL and you will need to specify them all on the
-command line.  You should first run `Makefile.PL` without any arguments and
-look in the generated `Makefile` for the `LIBS` parameter in the commented
-section at the top.
-
-Then, add your library path and library flags to that and pass it on the
-command line.  Be sure your include path is available to your compiler.
-
-For example, assuming libgsasl is installed in /opt/local:
-
-    $ export C_INCLUDE_PATH=/opt/local/include
-    $ perl Makefile.PL --sasl LIBS="-L/opt/local/lib -lgsasl -lrt"
-
-The specific list of libraries may be different by platform.
-
-Note: even though you specify the libraries and paths with `LIBS` you will
-still need to pass "--ssl" or "--sasl" (or set the corresponding
-environment variables) for compiler definitions to be set properly.
+Alternatively, the [Authen::SASL::XS](http://p3rl.org/Authen::SASL::XS)
+or [Authen::SASL::Cyrus](http://p3rl.org/Authen::SASL::Cyrus) modules
+may be used.  Both rely on Cyrus libsasl. Authen::SASL::XS is
+preferred.  Installing Authen::SASL::XS or Authen::SASL::Cyrus from CPAN
+requires libsasl.  On Debian systems, it is available from libsasl2-dev; on
+RHEL, it is available in cyrus-sasl-devel.
 
