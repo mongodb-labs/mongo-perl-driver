@@ -23,6 +23,8 @@ use MongoDB;
 use MongoDB::MongoClient;
 use MongoDB::BSON;
 
+use constant HAS_DATETIME_TINY => eval { require DateTime::Tiny; 1 };
+
 sub _mc {
     return MongoDB::MongoClient->new(@_);
 }
@@ -107,9 +109,11 @@ subtest bson_codec => sub {
     isa_ok( $mc->bson_codec, 'MongoDB::BSON' );
     ok( $mc->bson_codec->prefer_numeric, "bson_codec coerced from hashref" );
 
-    $mc = _mc( dt_type => 'DateTime::Tiny' );
-    isa_ok( $mc->bson_codec, 'MongoDB::BSON' );
-    ok( $mc->bson_codec->dt_type, "legacy dt_type influences default codec" );
+    if ( HAS_DATETIME_TINY ) {
+        $mc = _mc( dt_type => 'DateTime::Tiny' );
+        isa_ok( $mc->bson_codec, 'MongoDB::BSON' );
+        ok( $mc->bson_codec->dt_type, "legacy dt_type influences default codec" );
+    }
 };
 
 subtest connect_timeout_ms => sub {

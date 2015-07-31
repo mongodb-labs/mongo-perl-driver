@@ -21,7 +21,6 @@ use Test::Fatal;
 
 use Config;
 use DateTime;
-use DateTime::Tiny;
 use Math::BigInt;
 use MongoDB;
 use MongoDB::OID;
@@ -29,6 +28,8 @@ use MongoDB::DBRef;
 
 use lib 't/lib';
 use TestBSON;
+
+use constant HAS_DATETIME_TINY => eval { require DateTime::Tiny; 1 };
 
 my $oid = MongoDB::OID->new("554ce5e4096df3be01323321");
 my $bin_oid = pack( "C*", map hex($_), unpack( "(a2)12", "$oid" ) );
@@ -47,14 +48,15 @@ my $dt = DateTime->new(
 );
 my $dt_epoch_fraction = $dt->epoch + $dt->nanosecond / 1e9;
 
-my $dtt = DateTime::Tiny->new(
+my $dtt;
+$dtt = DateTime::Tiny->new(
     year   => 1984,
     month  => 10,
     day    => 16,
     hour   => 16,
     minute => 12,
     second => 47,
-);
+) if HAS_DATETIME_TINY;
 
 my $dbref = MongoDB::DBRef->new( db => 'test', ref => 'test_coll', id => '123' );
 my $dbref_cb = sub {
@@ -107,13 +109,6 @@ my @cases = (
         output   => { a => $dt->epoch },
     },
     {
-        label    => "BSON Datetime from DateTime::Tiny to DateTime::Tiny",
-        input    => { a => $dtt },
-        bson     => _doc( BSON_DATETIME . _ename("a") . _datetime( $dtt->DateTime ) ),
-        dec_opts => { dt_type => "DateTime::Tiny" },
-        output   => { a => $dtt },
-    },
-    {
         label    => "BSON Datetime from DateTime to DateTime",
         input    => { a => $dt },
         bson     => _doc( BSON_DATETIME . _ename("a") . _datetime($dt) ),
@@ -154,6 +149,17 @@ my @cases = (
         output => { a => MIN_LONG },
     },
 );
+
+if (HAS_DATETIME_TINY) {
+    push @cases,
+      {
+        label    => "BSON Datetime from DateTime::Tiny to DateTime::Tiny",
+        input    => { a => $dtt },
+        bson     => _doc( BSON_DATETIME . _ename("a") . _datetime( $dtt->DateTime ) ),
+        dec_opts => { dt_type => "DateTime::Tiny" },
+        output   => { a => $dtt },
+      };
+}
 
 if (HAS_INT64) {
     my $big = 20 << 40;

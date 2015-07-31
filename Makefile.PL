@@ -50,7 +50,6 @@ requires 'version';
 requires 'warnings';
 
 test_requires 'Data::Dumper';
-test_requires 'DateTime::Tiny';
 test_requires 'Devel::Peek';
 test_requires 'ExtUtils::MakeMaker';
 test_requires 'File::Spec';

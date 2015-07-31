@@ -24,7 +24,8 @@ use Test::Warn;
 use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 use DateTime;
-use DateTime::Tiny;
+
+use constant HAS_DATETIME_TINY => eval { require DateTime::Tiny; 1 };
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
@@ -55,8 +56,7 @@ my $now = DateTime->now;
     $coll->drop;
 }
 
-
-{
+if ( HAS_DATETIME_TINY ) {
     my $coll = $base_coll->with_codec( dt_type => "DateTime::Tiny" );
 
     $coll->insert_one( { date => $now } );
@@ -95,7 +95,7 @@ my $now = DateTime->now;
 }
 
 
-{
+if ( HAS_DATETIME_TINY ) {
     my $coll = $base_coll->with_codec( dt_type => "DateTime::Tiny" );
 
     my $dtt_now = DateTime::Tiny->now;
