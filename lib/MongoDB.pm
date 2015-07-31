@@ -195,7 +195,7 @@ scalability.
 
 A MongoDB server (or multi-server deployment) hosts a number of databases. A
 database holds a set of collections. A collection holds a set of documents. A
-document is a set of key-value pairs. Documents have dynamic schema. Dynamic
+document is a set of key-value pairs. Documents have dynamic schema. Using dynamic
 schema means that documents in the same collection do not need to have the same
 set of fields or structure, and common fields in a collection's documents may
 hold different types of data.
