@@ -122,7 +122,7 @@ serialized as a string.
     $collection->insert({myVar => $var});
 
 Because of this, users often end up with more strings than they
-wanted in their database.
+wanted in their databases.
 
 One technique to eliminate the string representation and store a numeric
 interpretation is to add 0 to the variable:
