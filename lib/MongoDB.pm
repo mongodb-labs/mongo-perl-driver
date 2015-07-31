@@ -158,7 +158,7 @@ Some expected changes in future releases include:
 
 =item *
 
-Bug fixes, as necesary.
+Bug fixes, as necessary.
 
 =item *
 
@@ -195,7 +195,7 @@ scalability.
 
 A MongoDB server (or multi-server deployment) hosts a number of databases. A
 database holds a set of collections. A collection holds a set of documents. A
-document is a set of key-value pairs. Documents have dynamic schema. Dynamic
+document is a set of key-value pairs. Documents have dynamic schema. Using dynamic
 schema means that documents in the same collection do not need to have the same
 set of fields or structure, and common fields in a collection's documents may
 hold different types of data.
@@ -207,7 +207,7 @@ Here are some resources for learning more about MongoDB:
 * L<MongoDB CRUD Introduction|http://docs.mongodb.org/manual/core/crud-introduction/>
 * L<MongoDB Data Modeling Introductions|http://docs.mongodb.org/manual/core/data-modeling-introduction/>
 
-For getting started with the Perl driver, see these pages:
+To get started with the Perl driver, see these pages:
 
 =for :list
 * L<MongoDB Perl Driver Tutorial|MongoDB::Tutorial>
@@ -225,7 +225,7 @@ As a user, you first create and configure a L<MongoDB::MongoClient> object to
 connect to a MongoDB deployment.  From that client object, you can get
 a L<MongoDB::Database> object for interacting with a specific database.
 
-From a database object you can get a L<MongoDB::Collection> object for CRUD
+From a database object, you can get a L<MongoDB::Collection> object for CRUD
 operations on that specific collection, or a L<MongoDB::GridFS> object for
 working with an abstract file system hosted on the database.  Each of those
 classes may return other objects for specific features or functions.
@@ -241,8 +241,8 @@ constants.
 
 =head1 SEMANTIC VERSIONING SCHEME
 
-Starting with MongoDB C<v1.0.0>, the driver reverts to the more-familiar
-three-part, version-tuple numbering scheme used by both Perl and MongoDB:
+Starting with MongoDB C<v1.0.0>, the driver will revert to the more familiar
+three-part version-tuple numbering scheme used by both Perl and MongoDB:
 C<vX.Y.Z>
 
 =for :list
