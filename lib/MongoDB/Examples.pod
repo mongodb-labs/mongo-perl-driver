@@ -94,7 +94,7 @@ retrieved by using C<get_database>. See L<MongoDB::MongoClient> for more.
 
     $db->get_collection( 'users' )->ensure_index( Tie::IxHash->new( name => 1, ts => -1 ) );
 
-In this example, we must use L<Tie::IxHash> to preserve the ordering of the arguments to 
+In this example, we must use L<Tie::IxHash> to preserve the ordering of the arguments to
 C<ensureIndex>.
 
 =item C<SELECT * FROM users WHERE a=1 and b='q'>
