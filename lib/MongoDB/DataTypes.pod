@@ -149,7 +149,7 @@ type:
         zip => bless(\$zip, "MongoDB::BSON::String")});
 
 Additionally, there are two utility functions, C<force_int> and
-C<force_double>, to explicitly set Perl's internal type flags to
+C<force_double>, that explicitly set Perl's internal type flags to
 Integer (C<IV>) and Double (C<NV>) respectively, thus triggering
 MongoDB's recognition of the values as Int32/Int64 (depending on the
 platform) or Double:
