@@ -330,7 +330,7 @@ To create a unique id:
 
     my $oid = MongoDB::OID->new;
 
-To create a MongoDB::OID from an existing 24-character hexidecimal string:
+To create a MongoDB::OID from an existing 24-character hexadecimal string:
 
     my $oid = MongoDB::OID->new("value" => "123456789012345678901234");
 
