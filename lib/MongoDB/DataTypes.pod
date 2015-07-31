@@ -61,7 +61,7 @@ By default, numbers with a decimal point will be saved as doubles (64-bit).
 =head3 32-bit Platforms
 
 Numbers without decimal points will be saved as 32-bit integers.  To save a
-number as a 64-bit integer, use bigint (aka L<Math::BigInt>):
+number as a 64-bit integer, use bigint (i.e. L<Math::BigInt>):
 
     use bigint;
 
