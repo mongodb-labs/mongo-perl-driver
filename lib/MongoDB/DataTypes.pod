@@ -124,7 +124,7 @@ serialized as a string.
 Because of this, users often end up with more strings than they
 wanted in their databases.
 
-One technique to eliminate the string representation and store a numeric
+One technique for eliminating the string representation and store a numeric
 interpretation is to add 0 to the variable:
 
     $collection->insert({myVar => 0 + $var});
