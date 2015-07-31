@@ -300,7 +300,7 @@ An example of inserting boolean values:
 
     $collection->insert({"okay" => true, "name" => "fred"});
 
-An example using boolean values for query operators (only returns documents
+An example of using boolean values for query operators (only returns documents
 where the name field exists):
 
     my $cursor = $collection->query({"name" => {'$exists' => boolean::true}});
