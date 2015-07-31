@@ -336,8 +336,8 @@ To create a MongoDB::OID from an existing 24-character hexadecimal string:
 
 =head2 Binary Data
 
-By default, all database strings are UTF8.  To save images, binaries, and other
-non-UTF8 data, you need to store it as binary data.  There are two ways to do this.
+By default, all database strings are UTF8.  You need to store images, binaries,
+and other non-UTF8 data as binary data.  There are two ways to do this.
 
 =head3 String Refs
 
