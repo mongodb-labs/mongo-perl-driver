@@ -19,7 +19,7 @@ requires 'Digest::MD5';
 requires 'Encode';
 requires 'Exporter' => '5.57';
 requires 'IO::File';
-requires 'IO::Socket';
+requires 'IO::Socket' => ( $^O eq 'MSWin32' ? '1.31' : '0' );
 requires 'List::Util';
 requires 'MIME::Base64';
 requires 'Moo' => '2';
