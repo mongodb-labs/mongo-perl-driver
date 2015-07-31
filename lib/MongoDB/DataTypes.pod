@@ -245,7 +245,7 @@ using the L<Time::HiRes time/Time::HiRes#time> function to get epoch
 seconds as a floating-point value.
 
 The L<Time::Moment> module is substantially faster than L<DateTime> and
-might be a convenient alternative over using integers or floating point
+might be a convenient alternative to using integers or floating point
 numbers and manually inflating to an object before use.  Consider
 benchmarking using C<dt_type> set to L<Time::Moment> against using numbers
 and inflating on demand.
