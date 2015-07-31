@@ -17,7 +17,7 @@
 package MongoDB::_Topology;
 
 use version;
-our $VERSION = 'v0.999.999.4'; # TRIAL
+our $VERSION = 'v0.999.999.5';
 
 use Moo;
 use MongoDB::BSON;

@@ -19,7 +19,7 @@ package MongoDB::QueryResult;
 # ABSTRACT: An iterator for Mongo query results
 
 use version;
-our $VERSION = 'v0.999.999.4'; # TRIAL
+our $VERSION = 'v0.999.999.5';
 
 use Config;
 use Moo;

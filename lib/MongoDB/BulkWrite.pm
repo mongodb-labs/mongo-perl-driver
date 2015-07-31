@@ -19,7 +19,7 @@ package MongoDB::BulkWrite;
 # ABSTRACT: MongoDB bulk write interface
 
 use version;
-our $VERSION = 'v0.999.999.4'; # TRIAL
+our $VERSION = 'v0.999.999.5';
 
 use MongoDB::Error;
 use MongoDB::OID;

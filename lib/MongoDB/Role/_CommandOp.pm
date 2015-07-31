@@ -19,7 +19,7 @@ package MongoDB::Role::_CommandOp;
 # MongoDB interface for database command operations
 
 use version;
-our $VERSION = 'v0.999.999.4'; # TRIAL
+our $VERSION = 'v0.999.999.5';
 
 use MongoDB::BSON;
 use MongoDB::Error;
