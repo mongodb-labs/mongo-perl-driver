@@ -105,7 +105,7 @@ a 64-bit integer may not be exact.
 
 =head3 Dealing with numbers and strings in Perl
 
-Perl is very flexible about whether something is number or a string: it
+Perl is very flexible about whether something is number or a string; it
 generally infers the type from context.  Unfortunately, the driver doesn't have
 any context when it has to choose how to serialize a variable.  Therefore, the
 default behavior is to introspect the internal state of the variable.  Any
