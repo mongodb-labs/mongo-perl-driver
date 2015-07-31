@@ -26,7 +26,7 @@ For developers familiar with SQL, the following chart should help you see how
 many common SQL queries could be expressed in MongoDB.
 
 These are Perl-specific examples of translating SQL queries to MongoDB's query
-language.  To see the JavaScript (or other languages') mappings, see
+language.  To see the mappings for JavaScript (or another language), see
 L<http://dochub.mongodb.org/core/sqlToMongo>.
 
 In the following examples, C<$db> is a L<MongoDB::Database> object which was
