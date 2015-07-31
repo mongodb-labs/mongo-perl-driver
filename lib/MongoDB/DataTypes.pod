@@ -109,7 +109,7 @@ Perl is very flexible about whether something is number or a string; it
 generally infers the type from context.  Unfortunately, the driver doesn't have
 any context when it has to choose how to serialize a variable.  Therefore, the
 default behavior is to introspect the internal state of the variable.  Any
-variable that has every been used in a string context (e.g. printed,
+variable that has ever been used in a string context (e.g. printed,
 compared with 'eq', matched with a regular expression, etc.) will be
 serialized as a string.
 
