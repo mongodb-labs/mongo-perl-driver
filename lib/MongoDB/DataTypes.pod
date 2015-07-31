@@ -274,7 +274,7 @@ regular expressions will be retrieved as L<MongoDB::BSON::Regexp>
 objects for safety (these will round-trip correctly).
 
 From that object, you can attempt to compile a reference to a C<qr{}> using
-the C<try_compile> method, though due to PCRE differences, this could fail
+the C<try_compile> method. However, due to PCRE differences, this could fail
 to compile or could have different match behavior than intended.
 
     $collection->insert({"regex" => qr/foo/i});
