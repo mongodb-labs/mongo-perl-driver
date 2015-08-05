@@ -1,5 +1,14 @@
 use strict;
 use warnings;
+
+BEGIN {
+    if ( $^O eq "MSWin32" ) {
+        my (undef, $major, undef, undef, $id ) = Win32::GetOSVersion();
+        die "OS unsupported.  Windows Vista or later is required.\n"
+            unless $id > 2 || $major > 5;
+    }
+}
+
 use inc::Module::Install;
 
 name 'MongoDB';
