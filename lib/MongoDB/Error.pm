@@ -21,6 +21,8 @@ package MongoDB::Error;
 
 # ABSTRACT: MongoDB Driver Error classes
 
+# Portions adapted from Throwable.pm by Ricardo Signes
+
 use version;
 
 our $VERSION = 'v0.999.999.5';
@@ -29,6 +31,8 @@ use Moo;
 use Carp;
 use MongoDB::_Types -types;
 use Types::Standard -types;
+use Scalar::Util ();
+use Sub::Quote ();
 use Exporter 5.57 qw/import/;
 use namespace::clean -except => ['import'];
 
@@ -59,6 +63,8 @@ use constant $ERROR_CODES;
 # probably sufficiently helpful to justify it
 our @EXPORT = keys %$ERROR_CODES;
 
+our %_HORRIBLE_HACK;
+
 use overload (
     q{""} => sub {
         my $self = shift;
@@ -73,22 +79,33 @@ has message => (
     default => 'unspecified error',
 );
 
-=method throw
-    MongoDB::Error->throw( "message" );
-    MongoDB::Error->throw( message => "message" );
-    MongoDB::Error->throw( $error_object );
-=cut
-
-with 'Throwable';
-
-around BUILDARGS => sub {
-    my $orig  = shift;
-    my $class = shift;
-    if ( @_ == 1 && !ref $_[0] ) {
-        return $class->$orig( message => $_[0] );
+has 'previous_exception' => (
+  is       => 'ro',
+  default  => Sub::Quote::quote_sub(q<
+    if (defined $MongoDB::Error::_HORRIBLE_HACK{ERROR}) {
+      $MongoDB::Error::_HORRIBLE_HACK{ERROR}
+    } elsif (defined $@ and (ref $@ or length $@)) {
+      $@;
+    } else {
+      undef;
     }
-    return $class->$orig(@_);
-};
+  >),
+);
+
+sub throw {
+  my ($inv) = shift;
+
+  if (Scalar::Util::blessed($inv)) {
+    Carp::confess "throw called on MongoDB::Error object with arguments" if @_;
+    die $inv;
+  }
+
+  local $_HORRIBLE_HACK{ERROR} = $@;
+
+  my $throwable = @_ == 1 ? $inv->new( message => $_[0] ) : $inv->new(@_);
+
+  die $throwable;
+}
 
 #--------------------------------------------------------------------------#
 # Subclasses with attributes included inline below
@@ -161,7 +178,7 @@ around BUILDARGS => sub {
     my $i = 0;
     while ( my @caller = caller($i) ) {
         $i++;
-        last if $caller[0] eq "Throwable";
+        last if $caller[0] eq "MongoDB::Error";
     }
     local $Carp::CarpLevel = caller( $i + 1 ) ? $i + 1 : $i;
     $args->{trace} = Carp::longmess('');
