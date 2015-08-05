@@ -16,7 +16,7 @@
 
 package MongoDB::_Types;
 
-# MongoDB Moose type definitions
+# MongoDB type definitions
 
 use version;
 our $VERSION = 'v0.999.999.5';

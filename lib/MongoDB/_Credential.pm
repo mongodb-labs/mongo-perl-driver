@@ -19,7 +19,7 @@ package MongoDB::_Credential;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Types -types;
@@ -47,9 +47,8 @@ has username => (
 );
 
 has source => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => NonEmptyStr,
-    lazy    => 1,
     builder => '_build_source',
 );
 
@@ -71,16 +70,14 @@ has mechanism_properties => (
 );
 
 has _digested_password => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     builder => '_build__digested_password',
 );
 
 has _scram_client => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => InstanceOf['Authen::SCRAM::Client'],
-    lazy    => 1,
     builder => '_build__scram_client',
 );
 
@@ -368,6 +365,5 @@ sub _send_command {
     return $res;
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;

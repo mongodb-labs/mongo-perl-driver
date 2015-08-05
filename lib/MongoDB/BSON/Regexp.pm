@@ -4,7 +4,7 @@ package MongoDB::BSON::Regexp;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use MongoDB::Error;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
@@ -70,7 +70,6 @@ sub try_compile {
     return $re;
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

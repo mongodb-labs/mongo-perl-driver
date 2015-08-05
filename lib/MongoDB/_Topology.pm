@@ -135,8 +135,7 @@ has bson_codec => (
 );
 
 has number_of_seeds => (
-    is      => 'ro',
-    lazy    => 1,
+    is      => 'lazy',
     builder => '_build_number_of_seeds',
     isa => Num,
 );

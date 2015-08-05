@@ -21,7 +21,7 @@ package MongoDB::ReadPreference;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use MongoDB::Error;
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -114,7 +114,6 @@ sub as_string {
     return $string;
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

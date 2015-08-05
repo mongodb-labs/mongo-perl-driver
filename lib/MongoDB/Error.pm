@@ -99,7 +99,7 @@ __PACKAGE__->meta->make_immutable;
 #--------------------------------------------------------------------------#
 
 package MongoDB::DatabaseError;
-use Moose;
+use Moo;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");
@@ -124,7 +124,7 @@ sub _build_code { return MongoDB::Error::UNKNOWN_ERROR() }
 __PACKAGE__->meta->make_immutable;
 
 package MongoDB::DocumentError;
-use Moose;
+use Moo;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
@@ -139,7 +139,7 @@ has document => (
 __PACKAGE__->meta->make_immutable;
 
 package MongoDB::UsageError;
-use Moose;
+use Moo;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
@@ -295,7 +295,7 @@ __PACKAGE__->meta->make_immutable;
 #--------------------------------------------------------------------------#
 
 package MongoDB::_CommandSizeError;
-use Moose;
+use Moo;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 extends("MongoDB::Error");

@@ -22,7 +22,7 @@ package MongoDB::Cursor;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use MongoDB;
 use MongoDB::BSON;
 use MongoDB::Error;
@@ -55,9 +55,8 @@ has query => (
 
 # lazy result attribute
 has result => (
-    is        => 'ro',
+    is        => 'lazy',
     isa       => InstanceOf['MongoDB::QueryResult'],
-    lazy      => 1,
     builder   => '_build_result',
     predicate => 'started_iterating',
     clearer   => '_clear_result',
@@ -595,7 +594,6 @@ sub slave_okay {
     return $self;
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

@@ -24,7 +24,7 @@ our $VERSION = 'v0.999.999.5';
 
 use MongoDB::Error;
 use IO::File;
-use Moose;
+use Moo;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
@@ -145,7 +145,6 @@ sub slurp {
     return $bytes;
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

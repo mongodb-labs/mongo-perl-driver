@@ -32,7 +32,7 @@ use MongoDB::_Types -types;
 use Types::Standard -types;
 use Carp 'carp';
 use boolean;
-use Moose;
+use Moo;
 use Try::Tiny;
 use namespace::clean -except => 'meta';
 
@@ -384,7 +384,6 @@ sub last_error {
     return $self->run_command( [ getlasterror => 1, ( $opt ? %$opt : () ) ] );
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

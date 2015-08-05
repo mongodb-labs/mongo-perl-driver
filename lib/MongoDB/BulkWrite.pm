@@ -28,7 +28,7 @@ use MongoDB::BulkWriteResult;
 use MongoDB::BulkWriteView;
 use Syntax::Keyword::Junction qw/any/;
 
-use Moose;
+use Moo;
 use MongoDB::_Types -types, 'to_WriteConcern';
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
@@ -70,19 +70,22 @@ has '_queue' => (
     isa      => ArrayRef[ArrayRef],
     init_arg => undef,
     default  => sub { [] },
-    traits   => ['Array'],
-    handles  => {
-        _enqueue_write => 'push',
-        _all_writes    => 'elements',
-        _count_writes  => 'count',
-        _clear_writes  => 'clear',
-    }
 );
 
+sub _enqueue_write {
+    my $self = shift;
+    push @{$self->{_queue}}, @_;
+}
+
+sub _all_writes { return @{$_[0]->{_queue}} }
+
+sub _count_writes { return scalar @{$_[0]->{_queue}} }
+
+sub _clear_writes { @{$_[0]->{_queue}} = (); return; }
+
 has '_database' => (
-    is         => 'ro',
+    is         => 'lazy',
     isa        => InstanceOf['MongoDB::Database'],
-    lazy_build => 1,
 );
 
 sub _build__database {
@@ -91,9 +94,8 @@ sub _build__database {
 }
 
 has '_client' => (
-    is         => 'ro',
+    is         => 'lazy',
     isa        => InstanceOf['MongoDB::MongoClient'],
-    lazy_build => 1,
 );
 
 sub _build__client {
@@ -245,7 +247,6 @@ BEGIN {
     *insert = \&insert_one;
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

@@ -25,7 +25,7 @@ our $VERSION = 'v0.999.999.5';
 use MongoDB::GridFS::File;
 use DateTime 0.78; # drops dependency on bug-prone Math::Round
 use Digest::MD5;
-use Moose;
+use Moo;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
 use MongoDB::_Types -types;
@@ -122,9 +122,8 @@ has prefix => (
 );
 
 has files => (
-    is => 'ro',
+    is => 'lazy',
     isa => InstanceOf['MongoDB::Collection'],
-    lazy_build => 1
 );
 
 sub _build_files {
@@ -142,9 +141,8 @@ sub _build_files {
 }
 
 has chunks => (
-    is => 'ro',
+    is => 'lazy',
     isa => InstanceOf['MongoDB::Collection'],
-    lazy_build => 1
 );
 
 sub _build_chunks {
@@ -455,7 +453,6 @@ sub _dynamic_write_concern {
     }
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

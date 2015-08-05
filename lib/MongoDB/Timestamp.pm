@@ -20,7 +20,7 @@ package MongoDB::Timestamp;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
@@ -48,7 +48,6 @@ has inc => (
     required => 1,
 );
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

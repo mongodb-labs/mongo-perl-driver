@@ -19,7 +19,7 @@ package MongoDB::_URI;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use MongoDB::Error;
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -200,7 +200,6 @@ use overload
     '""' => sub { $_[0]->uri },
     'fallback' => 1;
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

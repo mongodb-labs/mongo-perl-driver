@@ -19,7 +19,7 @@ package MongoDB::_Server;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use List::Util qw/first/;
@@ -84,9 +84,8 @@ has is_master => (
 # - PossiblePrimary	Not yet checked, but another member thinks it is the primary.
 
 has type => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => ServerType,
-    lazy    => 1,
     builder => '_build_type',
     writer  => '_set_type',
 );
@@ -122,9 +121,8 @@ sub _build_type {
 
 for my $s (qw/hosts passives arbiters/) {
     has $s => (
-        is      => 'ro',
+        is      => 'lazy',
         isa     => HostAddressList,
-        lazy    => 1,
         builder => "_build_$s",
         coerce  => 1,
     );
@@ -137,9 +135,8 @@ for my $s (qw/hosts passives arbiters/) {
 # address configured as part of replica set: string or null. Default null.
 
 has me => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     builder => "_build_me",
 );
 
@@ -151,9 +148,8 @@ sub _build_me {
 # setName: string or null. Default null.
 
 has set_name => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     builder => "_build_set_name",
 );
 
@@ -166,9 +162,8 @@ sub _build_set_name {
 # null.
 
 has primary => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,           # not HostAddress -- might be empty string
-    lazy    => 1,
     builder => "_build_primary",
 );
 
@@ -180,9 +175,8 @@ sub _build_primary {
 # tags: (a tag set) map from string to string. Default empty.
 
 has tags => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => HashRef,
-    lazy    => 1,
     builder => "_build_tags",
 );
 
@@ -192,9 +186,8 @@ sub _build_tags {
 }
 
 has is_available => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Bool,
-    lazy    => 1,
     builder => "_build_is_available",
 );
 
@@ -204,9 +197,8 @@ sub _build_is_available {
 }
 
 has is_readable => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Bool,
-    lazy    => 1,
     builder => "_build_is_readable",
 );
 
@@ -218,9 +210,8 @@ sub _build_is_readable {
 }
 
 has is_writable => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Bool,
-    lazy    => 1,
     builder => "_build_is_writable",
 );
 
@@ -274,7 +265,6 @@ sub status_struct {
     return $info;
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

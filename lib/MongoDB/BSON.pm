@@ -30,7 +30,7 @@ use Carp ();
 use Config;
 use if ! $Config{use64bitint}, "Math::BigInt";
 use MongoDB::Error;
-use Moose;
+use Moo;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use boolean;
@@ -330,7 +330,6 @@ sub clone {
     return $class->new( %$self, @args );
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 
