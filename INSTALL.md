@@ -9,7 +9,7 @@ It is known to build successfully on the following operating systems:
 * Linux
 * FreeBSD, OpenBSD, NetBSD
 * Mac OSX
-* Windows 7+ with Strawberry Perl 5.14 or later
+* Windows Vista/2008+ with Strawberry Perl 5.14 or later
 
 Please see the [CPAN Testers Matrix](http://matrix.cpantesters.org/?dist=MongoDB)
 for more details on platform/perl compatibility.
