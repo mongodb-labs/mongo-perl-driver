@@ -21,7 +21,7 @@ package MongoDB::IndexView;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
 use MongoDB::_Types -types, qw/is_OrderedDoc is_IndexModelList/;
@@ -50,9 +50,8 @@ has collection => (
 #--------------------------------------------------------------------------#
 
 has _bson_codec => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => BSONCodec,
-    lazy    => 1,
     builder => '_build__bson_codec',
 );
 
@@ -62,9 +61,8 @@ sub _build__bson_codec {
 }
 
 has _client => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => InstanceOf( ['MongoDB::MongoClient'] ),
-    lazy    => 1,
     builder => '_build__client',
 );
 
@@ -74,9 +72,8 @@ sub _build__client {
 }
 
 has _coll_name => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     builder => '_build__coll_name',
 );
 
@@ -86,9 +83,8 @@ sub _build__coll_name {
 }
 
 has _db_name => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     builder => '_build__db_name',
 );
 
@@ -352,7 +348,6 @@ sub __to_index_string {
 
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

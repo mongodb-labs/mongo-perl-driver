@@ -65,8 +65,7 @@ IDs.
 =cut
 
 has inserted_ids => (
-    is      => 'ro',
-    lazy    => 1,
+    is      => 'lazy',
     builder => '_build_inserted_ids',
     isa => HashRef,
 );

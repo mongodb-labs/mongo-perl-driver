@@ -46,7 +46,7 @@ use Safe::Isa;
 use Scalar::Util qw/blessed reftype/;
 use Syntax::Keyword::Junction qw/any/;
 use Try::Tiny;
-use Moose;
+use Moo;
 use namespace::clean -except => 'meta';
 
 #--------------------------------------------------------------------------#
@@ -155,9 +155,8 @@ object.
 =cut
 
 has _client => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => InstanceOf['MongoDB::MongoClient'],
-    lazy    => 1,
     reader  => 'client',
     init_arg => undef,
     builder => '_build__client',
@@ -179,9 +178,8 @@ database "test" would result in a C<full_name> of "test.foo".
 =cut
 
 has _full_name => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     reader  => 'full_name',
     init_arg => undef,
     builder => '_build__full_name',
@@ -207,9 +205,8 @@ with the collection.
 =cut
 
 has _indexes => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => InstanceOf['MongoDB::IndexView'],
-    lazy    => 1,
     reader  => 'indexes',
     init_arg => undef,
     builder => '_build__indexes',
@@ -222,9 +219,8 @@ sub _build__indexes {
 
 # these are constant, so we cache them
 has _op_args => (
-    is       => 'ro',
+    is       => 'lazy',
     isa      => HashRef,
-    lazy     => 1,
     init_arg => undef,
     builder  => '_build__op_args',
 );
@@ -1699,7 +1695,6 @@ sub validate {
     my $obj = $self->_run_command({ validate => $self->name });
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

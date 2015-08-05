@@ -21,7 +21,7 @@ package MongoDB::BulkWriteView;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 
 use Syntax::Keyword::Junction qw/any/;
 use MongoDB::Error;
@@ -128,7 +128,6 @@ BEGIN {
     *remove_one = \&delete_one;
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

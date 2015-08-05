@@ -43,17 +43,16 @@ with $_ for qw(
 );
 
 has [qw/upserted inserted/] => (
-    is         => 'ro',
-      required => 1,
-      isa      => ArrayOfHashRef,
+    is       => 'ro',
+    required => 1,
+    isa      => ArrayOfHashRef,
 );
 
 has inserted_ids => (
-    is         => 'ro',
-      lazy     => 1,
-      builder  => '_build_inserted_ids',
-      init_arg => undef,
-      isa      => HashRef,
+    is       => 'lazy',
+    builder  => '_build_inserted_ids',
+    init_arg => undef,
+    isa      => HashRef,
 );
 
 sub _build_inserted_ids {
@@ -62,11 +61,10 @@ sub _build_inserted_ids {
 }
 
 has upserted_ids => (
-    is         => 'ro',
-      lazy     => 1,
-      builder  => '_build_upserted_ids',
-      init_arg => undef,
-      isa      => HashRef,
+    is       => 'lazy',
+    builder  => '_build_upserted_ids',
+    init_arg => undef,
+    isa      => HashRef,
 );
 
 sub _build_upserted_ids {

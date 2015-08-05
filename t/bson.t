@@ -243,10 +243,10 @@ subtest "empty key name" => sub {
 
 # moose numbers
 package Person;
-use Moose;
-has 'name' => ( is=>'rw', isa=>'Str' );
-has 'age'  => ( is=>'rw', isa=>'Int' );
-has 'size' => ( is=>'rw', isa=>'Num' );
+use Moo;
+has 'name' => ( is=>'rw' );
+has 'age'  => ( is=>'rw' );
+has 'size' => ( is=>'rw' );
 
 package main;
 

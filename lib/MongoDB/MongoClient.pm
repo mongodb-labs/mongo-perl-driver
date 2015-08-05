@@ -21,7 +21,7 @@ package MongoDB::MongoClient;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use MongoDB;
 use MongoDB::BSON;
 use MongoDB::BSON::Binary;
@@ -39,7 +39,7 @@ use MongoDB::_URI;
 use Digest::MD5;
 use Tie::IxHash;
 use Time::HiRes qw/usleep/;
-use Carp 'carp', 'croak';
+use Carp 'carp', 'croak', 'confess';
 use Safe::Isa;
 use Scalar::Util qw/reftype weaken/;
 use Syntax::Keyword::Junction 'any';
@@ -118,9 +118,8 @@ This may be set in a connection string with the C<authMechanism> option.
 =cut
 
 has auth_mechanism => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => AuthMechanism,
-    lazy    => 1,
     builder => '_build_auth_mechanism',
 );
 
@@ -152,9 +151,8 @@ value, they must be URL encoded.
 =cut
 
 has auth_mechanism_properties => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => HashRef,
-    lazy    => 1,
     builder => '_build_auth_mechanism_properties',
 );
 
@@ -178,11 +176,10 @@ If not provided, one will be generated from deprecated configuration options.
 =cut
 
 has bson_codec => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => BSONCodec,
     coerce  => 1,
     writer  => '_set_bson_codec',
-    lazy    => 1,
     builder => '_build_bson_codec',
 );
 
@@ -217,9 +214,8 @@ This may be set in a connection string with the C<connectTimeoutMS> option.
 =cut
 
 has connect_timeout_ms => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Num,
-    lazy    => 1,
     builder => '_build_connect_timeout_ms',
 );
 
@@ -248,9 +244,8 @@ for illustration):
 =cut
 
 has db_name => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     builder => '_build_db_name',
 );
 
@@ -269,9 +264,8 @@ This may be set in a connection string with the C<heartbeatFrequencyMS> option.
 =cut
 
 has heartbeat_frequency_ms => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => NonNegNum,
-    lazy    => 1,
     builder => '_build_heartbeat_frequency_ms',
 );
 
@@ -297,9 +291,8 @@ strings 'true' or 'false'.
 =cut
 
 has j => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Bool,
-    lazy    => 1,
     builder => '_build_j',
 );
 
@@ -332,9 +325,8 @@ This may be set in a connection string with the C<localThresholdMS> option.
 =cut
 
 has local_threshold_ms => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => NonNegNum,
-    lazy    => 1,
     builder => '_build_local_threshold_ms',
 );
 
@@ -365,9 +357,8 @@ This may be set in a connection string with the C<maxTimeMS> option.
 =cut
 
 has max_time_ms => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => NonNegNum,
-    lazy    => 1,
     builder => '_build_max_time_ms',
 );
 
@@ -398,9 +389,8 @@ An empty password still requires a ":" character.
 =cut
 
 has password => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     builder => '_build_password',
 );
 
@@ -445,10 +435,9 @@ This may be set in a connection string with the C<readPreference> option.
 =cut
 
 has read_pref_mode => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => ReadPrefMode,
     coerce  => 1,
-    lazy    => 1,
     builder => '_build_read_pref_mode',
 );
 
@@ -483,10 +472,9 @@ which case each document will be added to the tag set list.
 =cut
 
 has read_pref_tag_sets => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => ArrayOfHashRef,
     coerce  => 1,
-    lazy    => 1,
     builder => '_build_read_pref_tag_sets',
 );
 
@@ -510,9 +498,8 @@ This may be set in a connection string with the C<replicaSet> option.
 =cut
 
 has replica_set_name => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     builder => '_build_replica_set_name',
 );
 
@@ -541,9 +528,8 @@ option.
 =cut
 
 has server_selection_timeout_ms => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Num,
-    lazy    => 1,
     builder => '_build_server_selection_timeout_ms',
 );
 
@@ -570,9 +556,8 @@ option.
 =cut
 
 has socket_check_interval_ms => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => NonNegNum,
-    lazy    => 1,
     builder => '_build_socket_check_interval_ms',
 );
 
@@ -604,9 +589,8 @@ This may be set in a connection string with the C<socketTimeoutMS> option.
 =cut
 
 has socket_timeout_ms => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Num,
-    lazy    => 1,
     builder => '_build_socket_timeout_ms',
 );
 
@@ -660,9 +644,8 @@ version of the driver may support customizing ssl via the connection string.)
 =cut
 
 has ssl => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Bool|HashRef,
-    lazy    => 1,
     builder => '_build_ssl',
 );
 
@@ -695,9 +678,8 @@ An empty password still requires a ":" character.
 =cut
 
 has username => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Str,
-    lazy    => 1,
     builder => '_build_username',
 );
 
@@ -747,9 +729,8 @@ This may be set in a connection string with the C<w> option.
 =cut
 
 has w => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Int|Str,
-    lazy    => 1,
     builder => '_build_w',
 );
 
@@ -776,9 +757,8 @@ This may be set in a connection string with the C<wTimeoutMS> option.
 =cut
 
 has wtimeout => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Int,
-    lazy    => 1,
     builder => '_build_wtimeout',
 );
 
@@ -893,11 +873,10 @@ C<get_collection>.
 =cut
 
 has _read_preference => (
-    is       => 'ro',
+    is       => 'lazy',
     isa      => ReadPreference,
     reader   => 'read_preference',
     init_arg => undef,
-    lazy     => 1,
     builder  => '_build__read_preference',
 );
 
@@ -917,11 +896,10 @@ and L</j>.
 =cut
 
 has _write_concern => (
-    is     => 'ro',
+    is     => 'lazy',
     isa    => InstanceOf['MongoDB::WriteConcern'],
     reader   => 'write_concern',
     init_arg => undef,
-    lazy     => 1,
     builder  => '_build__write_concern',
 );
 
@@ -964,10 +942,9 @@ will be distributed acc
 =cut
 
 has _topology => (
-    is       => 'ro',
+    is       => 'lazy',
     isa      => InstanceOf ['MongoDB::_Topology'],
     init_arg => undef,
-    lazy     => 1,
     builder  => '_build__topology',
     handles  => { topology_type => 'type' },
     clearer  => '_clear__topology',
@@ -1002,10 +979,9 @@ sub _build__topology {
 }
 
 has _credential => (
-    is       => 'ro',
+    is       => 'lazy',
     isa      => InstanceOf ['MongoDB::_Credential'],
     init_arg => undef,
-    lazy     => 1,
     builder  => '_build__credential',
 );
 
@@ -1023,10 +999,9 @@ sub _build__credential {
 }
 
 has _uri => (
-    is       => 'ro',
+    is       => 'lazy',
     isa      => InstanceOf ['MongoDB::_URI'],
     init_arg => undef,
-    lazy     => 1,
     builder  => '_build__uri',
 );
 
@@ -1471,7 +1446,6 @@ sub fsync_unlock {
     return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
 }
 
-__PACKAGE__->meta->make_immutable( inline_destructor => 0 );
 
 1;
 

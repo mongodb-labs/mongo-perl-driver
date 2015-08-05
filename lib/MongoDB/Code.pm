@@ -28,7 +28,7 @@ MongoDB::Code - JavaScript code
 
 =cut
 
-use Moose;
+use Moo;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
@@ -58,6 +58,5 @@ has scope => (
     required => 0,
 );
 
-__PACKAGE__->meta->make_immutable;
 
 1;

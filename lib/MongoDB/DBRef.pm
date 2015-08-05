@@ -22,7 +22,7 @@ use version;
 our $VERSION = 'v0.999.999.5';
 
 use Tie::IxHash;
-use Moose;
+use Moo;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
@@ -130,7 +130,6 @@ sub _ordered {
     );
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 

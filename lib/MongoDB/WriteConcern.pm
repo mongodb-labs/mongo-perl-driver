@@ -21,7 +21,7 @@ package MongoDB::WriteConcern;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Moose;
+use Moo;
 use MongoDB::Error;
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -73,17 +73,15 @@ has j => (
 );
 
 has _is_acknowledged => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => Bool,
-    lazy    => 1,
     reader  => 'is_acknowledged',
     builder => '_build_is_acknowledged',
 );
 
 has _as_struct => (
-    is      => 'ro',
+    is      => 'lazy',
     isa     => HashRef,
-    lazy    => 1,
     reader  => 'as_struct',
     builder => '_build_as_struct',
 );
@@ -116,7 +114,6 @@ sub _w_is_acknowledged {
       && ( looks_like_number( $self->w ) ? $self->w > 0 : length $self->w );
 }
 
-__PACKAGE__->meta->make_immutable;
 
 1;
 
