@@ -33,7 +33,6 @@ requires 'List::Util';
 requires 'MIME::Base64';
 requires 'Moo' => '2';
 requires 'Moo::Role';
-requires 'Moose' => '2';
 requires 'Safe::Isa';
 requires 'Scalar::Util';
 requires 'Socket';

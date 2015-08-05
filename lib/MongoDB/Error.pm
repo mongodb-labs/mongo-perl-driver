@@ -46,7 +46,7 @@ BEGIN {
     };
 }
 use constant $ERROR_CODES;
-# Export error codes for use by end-users; this is unusual for Moose, but
+# Export error codes for use by end-users; this is unusual for Moo, but
 # probably sufficiently helpful to justify it
 our @EXPORT = keys %$ERROR_CODES;
 use overload (
@@ -146,10 +146,6 @@ around BUILDARGS => sub {
     return $args;
 };
 
-#--------------------------------------------------------------------------#
-# Empty subclasses generated programatically; this keeps packages visible
-# to metadata inspectors, but is shorter than Moose/namespace::clean/extends
-#--------------------------------------------------------------------------#
 # Connection errors
 package MongoDB::ConnectionError;
 use Moo;
@@ -404,8 +400,8 @@ C<connect_timeout_ms> or C<socket_timeout_ms>.
 =head2 MongoDB::UsageError
 Indicates invalid arguments or configuration options.  Not all usage errors
 will throw this — only ones originating directly from the MongoDB::* library
-files.  Some type and usage errors will originate from the L<Moose> object
-system if the objects are used incorrectly.
+files.  Some type and usage errors will originate from the L<Type::Tiny>
+library if the objects are used incorrectly.
 =head1 ERROR CODES
 The following error code constants are automatically exported by this module.
         BAD_VALUE                 => 2,
