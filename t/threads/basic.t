@@ -56,7 +56,7 @@ $col->drop;
 }
 
 {
-    my ($n_threads, $n_inserts) = $ENV{AUTOMATED_TESTING} ? (100,1000) : (10, 100);
+    my ($n_threads, $n_inserts) = $ENV{AUTOMATED_TESTING} ? (10,1000) : (5, 100);
     note "inserting $n_inserts items each in $n_threads threads";
     my @threads = map {
         threads->create(sub {
