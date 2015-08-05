@@ -26,7 +26,6 @@ use MongoDB::OID;
 use MongoDB::Op::_BulkWrite;
 use MongoDB::BulkWriteResult;
 use MongoDB::BulkWriteView;
-use Syntax::Keyword::Junction qw/any/;
 
 use Moo;
 use MongoDB::_Types -types, 'to_WriteConcern';
@@ -124,7 +123,8 @@ sub find {
     MongoDB::UsageError->throw("find requires a criteria document. Use an empty hashref for no criteria.")
       unless defined $doc;
 
-    unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
+    my $type = ref $doc;
+    unless ( @_ == 2 && grep { $type eq $_ } qw/HASH ARRAY Tie::IxHash/ ) {
         MongoDB::UsageError->throw("argument to find must be a single hashref, arrayref or Tie::IxHash");
     }
 

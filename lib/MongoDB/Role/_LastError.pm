@@ -24,15 +24,13 @@ our $VERSION = 'v0.999.999.5';
 
 use Moo::Role;
 use MongoDB::Error;
-use Syntax::Keyword::Junction qw/any/;
 use namespace::clean;
 
 # XXX should we add 'assert' to this API list?
 requires qw/last_errmsg last_code last_wtimeout/;
 
-my $ANY_DUP_KEY = any( DUPLICATE_KEY, DUPLICATE_KEY_UPDATE, DUPLICATE_KEY_CAPPED );
-my $ANY_NOT_MASTER =
-  any( NOT_MASTER, NOT_MASTER_NO_SLAVE_OK, NOT_MASTER_OR_SECONDARY );
+my $ANY_DUP_KEY = [ DUPLICATE_KEY, DUPLICATE_KEY_UPDATE, DUPLICATE_KEY_CAPPED ];
+my $ANY_NOT_MASTER = [ NOT_MASTER, NOT_MASTER_NO_SLAVE_OK, NOT_MASTER_OR_SECONDARY ];
 
 # analyze last_errmsg and last_code and throw an appropriate
 # error message.
@@ -43,10 +41,10 @@ sub _throw_database_error {
     my $err  = $self->last_errmsg;
     my $code = $self->last_code;
 
-    if ( $code == $ANY_NOT_MASTER || $err =~ /^(?:not master|node is recovering)/ ) {
+    if ( grep { $code == $_ } @$ANY_NOT_MASTER || $err =~ /^(?:not master|node is recovering)/ ) {
         $error_class = "MongoDB::NotMasterError";
     }
-    elsif ( $code == $ANY_DUP_KEY ) {
+    elsif ( grep { $code == $_ } @$ANY_DUP_KEY ) {
         $error_class = "MongoDB::DuplicateKeyError";
     }
     elsif ( $self->last_wtimeout ) {

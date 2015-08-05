@@ -44,7 +44,6 @@ use Carp 'carp';
 use boolean;
 use Safe::Isa;
 use Scalar::Util qw/blessed reftype/;
-use Syntax::Keyword::Junction qw/any/;
 use Try::Tiny;
 use Moo;
 use namespace::clean -except => 'meta';

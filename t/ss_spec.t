@@ -20,7 +20,6 @@ use Test::More 0.96;
 use Test::Fatal;
 use JSON::MaybeXS;
 use Path::Tiny 0.054; # basename with suffix
-use Syntax::Keyword::Junction qw/any/;
 use Try::Tiny;
 
 use MongoDB;
@@ -170,7 +169,7 @@ sub run_ss_test {
         );
         my $mode = $read_pref ? lc $read_pref->mode : 'primary';
         my $method =
-          $topo->type eq any(qw/Single Sharded/)
+          $topo->type eq 'Single' || $topo->type eq 'Sharded'
           ? '_find_any_server'
           : "_find_${mode}_server";
 
@@ -178,7 +177,7 @@ sub run_ss_test {
     }
     else {
         my $method =
-          $topo->type eq any(qw/Single Sharded/)
+          $topo->type eq 'Single' || $topo->type eq 'Sharded'
           ? '_find_any_server'
           : "_find_primary_server";
 

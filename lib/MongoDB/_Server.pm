@@ -23,7 +23,6 @@ use Moo;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use List::Util qw/first/;
-use Syntax::Keyword::Junction qw/any none/;
 use Time::HiRes qw/time/;
 use namespace::clean -except => 'meta';
 
@@ -193,7 +192,7 @@ has is_available => (
 
 sub _build_is_available {
     my ($self) = @_;
-    return $self->type eq none(qw/Unknown PossiblePrimary/);
+    return $self->type ne 'Unknown' && $self->type ne 'PossiblePrimary';
 }
 
 has is_readable => (
@@ -206,7 +205,8 @@ has is_readable => (
 # ones out. E.g. "Standalone" won't be found in a replica set topology.
 sub _build_is_readable {
     my ($self) = @_;
-    return $self->type eq any(qw/Standalone RSPrimary RSSecondary Mongos/);
+    my $type = $self->type;
+    return !! grep { $type eq $_ } qw/Standalone RSPrimary RSSecondary Mongos/;
 }
 
 has is_writable => (
@@ -219,7 +219,8 @@ has is_writable => (
 # ones out. E.g. "Standalone" won't be found in a replica set topology.
 sub _build_is_writable {
     my ($self) = @_;
-    return $self->type eq any(qw/Standalone RSPrimary Mongos/);
+    my $type = $self->type;
+    return !! grep { $type eq $_ } qw/Standalone RSPrimary Mongos/;
 }
 
 sub updated_since {

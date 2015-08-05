@@ -24,7 +24,6 @@ our $VERSION = 'v0.999.999.5';
 use Moo::Role;
 
 use MongoDB::Error;
-use Syntax::Keyword::Junction qw/any/;
 use namespace::clean;
 
 requires qw/query _set_query query_flags read_preference/;
@@ -43,7 +42,7 @@ sub _apply_read_prefs {
             $self->query_flags->{slave_ok} = 1;
         }
     }
-    elsif ( $topology_type eq any(qw/ReplicaSetNoPrimary ReplicaSetWithPrimary/) ) {
+    elsif ( grep { $topology_type eq $_ } qw/ReplicaSetNoPrimary ReplicaSetWithPrimary/ ) {
         if ( !$read_pref || $read_pref->mode eq 'primary' ) {
             $self->query_flags->{slave_ok} = 0;
         }
@@ -69,7 +68,7 @@ sub _apply_mongos_read_prefs {
     if ( $mode eq 'primary' ) {
         $self->query_flags->{slave_ok} = 0;
     }
-    elsif ( $mode eq any(qw/secondary primaryPreferred nearest/) ) {
+    elsif ( grep { $mode eq $_ } qw/secondary primaryPreferred nearest/ ) {
         $self->query_flags->{slave_ok} = 1;
         $need_read_pref = 1;
     }

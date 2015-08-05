@@ -42,7 +42,6 @@ use Time::HiRes qw/usleep/;
 use Carp 'carp', 'croak', 'confess';
 use Safe::Isa;
 use Scalar::Util qw/reftype weaken/;
-use Syntax::Keyword::Junction 'any';
 use boolean;
 use Encode;
 use Try::Tiny;

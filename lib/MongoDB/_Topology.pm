@@ -32,7 +32,6 @@ use MongoDB::_Server;
 use Config;
 use List::Util qw/first/;
 use Safe::Isa;
-use Syntax::Keyword::Junction qw/any none/;
 use Time::HiRes qw/time usleep/;
 use Try::Tiny;
 
@@ -338,7 +337,7 @@ sub scan_all_servers {
         elsif ( $next = first { $_->type eq 'PossiblePrimary' } @to_check ) {
             $self->check_address( $next->address );
         }
-        elsif ( @ordinary = grep { $_->type eq none(qw/Unknown RSGhost/) } @to_check ) {
+        elsif ( @ordinary = grep { $_->type ne 'Unknown' && $_->type ne 'RSGhost' } @to_check ) {
             $self->_check_oldest_server(@ordinary);
         }
         else {
@@ -688,7 +687,8 @@ sub _update_topology_from_link {
         # retry a network error if server was previously known to us
         if (    $_->$_isa("MongoDB::NetworkError")
             and $link->server
-            and $link->server->type eq none(qw/Unknown PossiblePrimary/) )
+            and $link->server->type ne 'Unknown'
+            and $link->server->type ne 'PossiblePrimary' )
         {
             # the earlier reset to unknown avoids us reaching this branch again
             # and recursing forever
@@ -887,10 +887,10 @@ sub _update_ReplicaSetNoPrimary {
         # topology changes might have removed all primaries
         $self->_check_for_primary;
     }
-    elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
+    elsif ( grep { $server_type eq $_ } qw/RSSecondary RSArbiter RSOther/ ) {
         $self->_update_rs_without_primary($new_server);
     }
-    elsif ( $server_type eq any(qw/Standalone Mongos/) ) {
+    elsif ( grep { $server_type eq $_ } qw/Standalone Mongos/ ) {
         $self->_remove_server($new_server);
     }
     else {
@@ -908,10 +908,10 @@ sub _update_ReplicaSetWithPrimary {
     if ( $server_type eq 'RSPrimary' ) {
         $self->_update_rs_with_primary_from_primary($new_server);
     }
-    elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
+    elsif ( grep { $server_type eq $_ } qw/RSSecondary RSArbiter RSOther/ ) {
         $self->_update_rs_with_primary_from_member($new_server);
     }
-    elsif ( $server_type eq any(qw/Unknown Standalone Mongos/) ) {
+    elsif ( grep { $server_type eq $_ } qw/Unknown Standalone Mongos/ ) {
         $self->_remove_server($new_server)
           unless $server_type eq 'Unknown';
     }
@@ -928,7 +928,9 @@ sub _update_ReplicaSetWithPrimary {
 sub _update_Sharded {
     my ( $self, $address, $new_server ) = @_;
 
-    if ( $new_server->type eq any(qw/Unknown Mongos/) ) {
+    my $server_type = $new_server->type;
+
+    if ( grep { $server_type eq $_ } qw/Unknown Mongos/ ) {
         # no-op
     }
     else {
@@ -969,7 +971,7 @@ sub _update_Unknown {
         # topology changes might have removed all primaries
         $self->_check_for_primary;
     }
-    elsif ( $server_type eq any(qw/ RSSecondary RSArbiter RSOther /) ) {
+    elsif ( grep { $server_type eq $_ }  qw/RSSecondary RSArbiter RSOther/ ) {
         $self->_set_type('ReplicaSetNoPrimary');
         $self->_update_rs_without_primary($new_server);
     }

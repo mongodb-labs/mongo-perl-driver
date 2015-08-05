@@ -30,7 +30,6 @@ use MongoDB::_Protocol;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use Moo::Role;
-use Syntax::Keyword::Junction qw/any/;
 use namespace::clean;
 
 use constant {

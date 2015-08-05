@@ -30,7 +30,6 @@ use MongoDB::Error;
 use MongoDB::_Constants;
 use MongoDB::_Types -types;
 use Types::Standard -types;
-use Syntax::Keyword::Junction qw/any/;
 use namespace::clean;
 
 # fake empty superclass for backcompat
@@ -163,7 +162,7 @@ sub _parse_cmd_result {
       if eval { $result->isa("MongoDB::CommandResult") };
 
     MongoDB::UsageError->throw("op argument to parse must be one of: @op_map_keys")
-      unless $op eq any(@op_map_keys);
+      unless grep { $op eq $_ } @op_map_keys;
     MongoDB::UsageError->throw("results argument to parse must be a hash reference")
       unless ref $result eq 'HASH';
 

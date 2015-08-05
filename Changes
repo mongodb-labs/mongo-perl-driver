@@ -4,7 +4,7 @@
 
   [Prerequisites]
 
-  - Removes Moose
+  - Removes Moose and Syntax::Keyword::Junction
 
   [~ Internal changes ~]
 

@@ -28,7 +28,6 @@ use Authen::SCRAM::Client 0.003;
 use Digest::MD5 qw/md5_hex/;
 use Encode qw/encode/;
 use MIME::Base64 qw/encode_base64 decode_base64/;
-use Syntax::Keyword::Junction 'any';
 use Tie::IxHash;
 use Try::Tiny;
 use Types::Standard -types;
@@ -98,7 +97,8 @@ sub _build__digested_password {
 
 sub _build_source {
     my ($self) = @_;
-    return $self->mechanism eq any(qw/DEFAULT MONGODB-CR SCRAM-SHA-1/)
+    my $mech = $self->mechanism;
+    return $mech eq 'DEFAULT' || $mech eq 'MONGODB-CR' || $mech eq 'SCRAM-SHA-1'
       ? 'admin'
       : '$external';
 }

@@ -23,7 +23,6 @@ our $VERSION = 'v0.999.999.5';
 
 use Moo;
 
-use Syntax::Keyword::Junction qw/any/;
 use MongoDB::Error;
 use MongoDB::_Types -types;
 use Types::Standard -types;
@@ -79,7 +78,8 @@ sub _update {
     my $method = pop @_;
     my ( $self, $doc ) = @_;
 
-    unless ( @_ == 2 && ref $doc eq any(qw/HASH ARRAY Tie::IxHash/) ) {
+    my $type = ref $doc;
+    unless ( @_ == 2 && grep { $type eq $_ } qw/HASH ARRAY Tie::IxHash/ ) {
         MongoDB::UsageError->throw("argument to $method must be a single hashref, arrayref or Tie::IxHash");
     }
 

@@ -36,7 +36,6 @@ requires 'Moo::Role';
 requires 'Safe::Isa';
 requires 'Scalar::Util';
 requires 'Socket';
-requires 'Syntax::Keyword::Junction';
 requires 'Throwable';
 requires 'Tie::IxHash';
 requires 'Time::HiRes';
