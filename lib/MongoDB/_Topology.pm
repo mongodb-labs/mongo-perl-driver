@@ -324,12 +324,21 @@ sub scan_all_servers {
 
     my ( $next, @ordinary, @to_check );
     my $start_time = time;
+    my $cooldown_time = $start_time - COOLDOWN_SECS;
 
     # anything not updated since scan start is eligible for a check; when all servers
-    # are updated, the loop terminates
+    # are updated, the loop terminates; Unknown servers aren't checked if
+    # they are in the cooldown window since we don't want to wait the connect
+    # timeout each attempt when they are unlikely to have changed status
     while (1) {
-        last
-          unless @to_check = grep { !$_->updated_since($start_time) } $self->all_servers;
+        @to_check =
+          grep {
+            $_->type eq 'Unknown'
+              ? !$_->updated_since($cooldown_time)
+              : !$_->updated_since($start_time)
+          } $self->all_servers;
+
+        last unless @to_check;
 
         if ( $next = first { $_->type eq 'RSPrimary' } @to_check ) {
             $self->check_address( $next->address );

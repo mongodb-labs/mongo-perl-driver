@@ -99,4 +99,14 @@ subtest "topology status" => sub {
     ok( $res->{last_scan_time} > $last, "scan time refreshed" );
 };
 
+subtest "cooldown" => sub {
+    my $conn = build_client( host => "mongodb://localhost:9" );
+    my $topo = $conn->_topology;
+    $topo->scan_all_servers;
+    my $orig_update = $topo->status_struct->{servers}[0]{last_update_time};
+    $topo->scan_all_servers;
+    my $next_update = $topo->status_struct->{servers}[0]{last_update_time};
+    is( $next_update, $orig_update, "Unknown server not scanned again during cooldown" );
+};
+
 done_testing;

@@ -259,8 +259,9 @@ sub status_string {
 sub status_struct {
     my ($self) = @_;
     my $info = {
-        address => $self->address,
-        type    => $self->type
+        address          => $self->address,
+        type             => $self->type,
+        last_update_time => $self->last_update_time,
     };
     $info->{error} = $self->error         if $self->error;
     $info->{tags}  = { %{ $self->tags } } if %{ $self->tags };

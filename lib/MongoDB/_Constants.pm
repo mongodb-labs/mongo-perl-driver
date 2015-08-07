@@ -31,6 +31,7 @@ my $CONSTANTS;
 
 BEGIN {
     $CONSTANTS = {
+        COOLDOWN_SECS        => 5,
         MAX_BSON_OBJECT_SIZE => 4_194_304,
         MAX_BSON_WIRE_SIZE   => 16_793_600,                     # 16MiB + 16KiB
         MAX_WRITE_BATCH_SIZE => 1000,
