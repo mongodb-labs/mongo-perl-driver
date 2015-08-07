@@ -37,11 +37,6 @@ use Try::Tiny;
 
 use namespace::clean;
 
-use constant {
-    EPOCH => 0,
-    MIN_HEARTBEAT_FREQUENCY_USEC => 500_000, # 500ms, not configurable
-};
-
 #--------------------------------------------------------------------------#
 # attributes
 #--------------------------------------------------------------------------#
@@ -115,6 +110,12 @@ has server_selection_timeout_sec => (
     isa => Num,
 );
 
+has server_selection_try_once => (
+    is      => 'ro',
+    default => 1,
+    isa => Bool,
+);
+
 has ewma_alpha => (
     is      => 'ro',
     default => 0.2,
@@ -150,6 +151,12 @@ has current_primary => (
     is => 'rwp',
     clearer => '_clear_current_primary',
     init_arg => undef,
+);
+
+has stale => (
+    is => 'rwp',
+    init_arg => undef,
+    default => 1,
 );
 
 # servers, links and rtt_ewma_sec are all hashes on server address
@@ -315,7 +322,7 @@ sub mark_server_unknown {
 
 sub mark_stale {
     my ($self) = @_;
-    $self->_set_last_scan_time(EPOCH);
+    $self->_set_stale(1);
     return;
 }
 
@@ -355,6 +362,7 @@ sub scan_all_servers {
     }
 
     $self->_set_last_scan_time( time );
+    $self->_set_stale( 0 );
     $self->_check_wire_versions;
     return;
 }
@@ -642,30 +650,51 @@ sub _status_string {
 sub _selection_timeout {
     my ( $self, $method, $read_pref ) = @_;
 
-    my $start_time = time;
+    my $start_time = my $loop_end_time = time();
+    my $max_time = $start_time + $self->server_selection_timeout_sec;
 
-    if ( ($start_time - $self->last_scan_time) > $self->heartbeat_frequency_sec ) {
-        $self->scan_all_servers;
-        $start_time = time; # update after scan
+    if ( $self->last_scan_time + $self->heartbeat_frequency_sec < $start_time ) {
+        $self->_set_stale(1);
     }
 
     while (1) {
-        unless ($self->is_compatible) {
+        if ( $self->stale ) {
+            my $scan_ready_time = $self->last_scan_time + MIN_HEARTBEAT_FREQUENCY_SEC;
+
+            # if not enough time left to wait to check; then caller throws error
+            return if !$self->server_selection_try_once && $scan_ready_time > $max_time;
+
+            # loop_end_time is a proxy for time() to avoid overhead
+            my $sleep_time = $scan_ready_time - $loop_end_time;
+
+            usleep( 1e6 * $sleep_time ) if $sleep_time > 0;
+
+            $self->scan_all_servers;
+        }
+
+        unless ( $self->is_compatible ) {
+            $self->_set_stale(1);
             MongoDB::ProtocolError->throw(
                 "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library."
             );
         }
-        if ( my $server = $self->$method($read_pref) ) {
-            return $server;
-        }
-        last if (time - $start_time) > $self->server_selection_timeout_sec;
-    }
-    continue {
-        usleep(MIN_HEARTBEAT_FREQUENCY_USEC); # delay before rescanning
-        $self->scan_all_servers;
-    }
 
-    return; # caller has to throw appropriate timeout error
+        my $server = $self->$method($read_pref);
+
+        return $server if $server;
+
+        $self->_set_stale(1);
+        $loop_end_time = time();
+
+        if ( $self->server_selection_try_once ) {
+            # if already tried once; then caller throws error
+            return if $self->last_scan_time > $start_time;
+        }
+        else {
+            # if selection timed out; then caller throws error
+            return if $loop_end_time > $max_time;
+        }
+    }
 }
 
 my $PRIMARY = MongoDB::ReadPreference->new;

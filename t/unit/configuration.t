@@ -228,6 +228,21 @@ subtest replica_set_name => sub {
     is( $mc->_topology->replica_set_name, "repl2", "topology object matches" );
 };
 
+subtest server_selection_try_once => sub {
+    my $mc = _mc();
+    ok( $mc->server_selection_try_once, "default server_selection_try_once true" );
+
+    $mc = _mc( server_selection_try_once => 0 );
+    ok( !$mc->server_selection_try_once, "server_selection_try_once (false)" );
+
+    $mc = _mc(
+        host                      => 'mongodb://localhost/?serverSelectionTryOnce=false',
+        server_selection_try_once => 1,
+    );
+    ok( !$mc->server_selection_try_once, "URI supersedes argument" )
+        or diag explain $mc->_uri;
+};
+
 subtest socket_timeout_ms => sub {
     my $mc = _mc();
     is( $mc->socket_timeout_ms, 30000, "default socket_timeout_ms" );

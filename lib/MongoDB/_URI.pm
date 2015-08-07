@@ -87,6 +87,7 @@ sub _build_valid_options {
             readPreferenceTags
             replicaSet
             serverSelectionTimeoutMS
+            serverSelectionTryOnce
             socketCheckIntervalMS
             socketTimeoutMS
             ssl
@@ -160,7 +161,7 @@ sub BUILD {
                     $parsed{$lc_k} ||= [];
                     push @{$parsed{$lc_k}}, _parse_doc($k,$v);
                 }
-                elsif ( $lc_k eq 'ssl' || $lc_k eq 'journal' ) {
+                elsif ( $lc_k eq 'ssl' || $lc_k eq 'journal' || $lc_k eq 'serverselectiontryonce' ) {
                     $parsed{$lc_k} = __str_to_bool($k, $v);
                 }
                 else {

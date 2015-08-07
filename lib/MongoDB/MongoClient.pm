@@ -541,6 +541,41 @@ sub _build_server_selection_timeout_ms {
     );
 }
 
+=attr server_selection_try_once
+
+This attribute controls whether the client will make only a single attempt
+to find a suitable server for a read or write operation.  The default is true.
+
+When true, the client will B<not> use the C<server_selection_timeout_ms>.
+Instead, if the topology information is stale and needs to be checked or
+if no suitable server is available, the client will make a single
+scan of all known servers to try to find a suitable one.
+
+When false, the client will continually scan known servers until a suitable
+server is found or the C<serverSelectionTimeoutMS> is reached.
+
+See L</SERVER SELECTION> for more details.
+
+This may be set in a connection string with the C<serverSelectionTryOnce>
+option.
+
+=cut
+
+has server_selection_try_once => (
+    is      => 'lazy',
+    isa     => Bool,
+    builder => '_build_server_selection_try_once',
+);
+
+sub _build_server_selection_try_once {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'serverselectiontryonce',
+        e => 'server_selection_try_once',
+        d => 1,
+    );
+}
+
 =attr socket_check_interval_ms
 
 If a socket to a server has not been used in this many milliseconds, an
@@ -963,6 +998,7 @@ sub _build__topology {
         type                        => $type,
         replica_set_name            => $self->replica_set_name,
         server_selection_timeout_sec => $self->server_selection_timeout_ms / 1000,
+        server_selection_try_once    => $self->server_selection_try_once,
         local_threshold_sec          => $self->local_threshold_ms / 1000,
         heartbeat_frequency_sec      => $self->heartbeat_frequency_ms / 1000,
         max_wire_version            => MAX_WIRE_VERSION,
@@ -1036,6 +1072,7 @@ my @deferred_options = qw(
   read_pref_tag_sets
   replica_set_name
   server_selection_timeout_ms
+  server_selection_try_once
   socket_check_interval_ms
   socket_timeout_ms
   ssl
@@ -1604,32 +1641,47 @@ L<http://docs.mongodb.org/manual/reference/connection-string/>.
 
 =head1 SERVER SELECTION
 
-For a single server deployment or a direct connection to a mongod or mongos, all
-reads and writes and sent to that server.  Any read-preference is ignored.
+For a single server deployment or a direct connection to a mongod or
+mongos, all reads and writes and sent to that server.  Any read-preference
+is ignored.
 
-When connected to a deployment with multiple servers, such as a replica set or
-sharded cluster, the driver chooses a server for operations based on the type of
-operation (read or write), the types of servers available and a read preference.
+When connected to a deployment with multiple servers, such as a replica set
+or sharded cluster, the driver chooses a server for operations based on the
+type of operation (read or write), the types of servers available and a
+read preference.
 
-For a replica set deployment, writes are sent to the primary (if available) and
-reads are sent to a server based on the L</read_preference> attribute, which default
-to sending reads to the primary.  See L<MongoDB::ReadPreference> for more.
+For a replica set deployment, writes are sent to the primary (if available)
+and reads are sent to a server based on the L</read_preference> attribute,
+which defaults to sending reads to the primary.  See
+L<MongoDB::ReadPreference> for more.
 
-For a sharded cluster reads and writes are distributed across mongos servers in
-the seed list.  Any read preference is passed through to the mongos and used
-by it when executing reads against shards.
+For a sharded cluster reads and writes are distributed across mongos
+servers in the seed list.  Any read preference is passed through to the
+mongos and used by it when executing reads against shards.
 
 If multiple servers can service an operation (e.g. multiple mongos servers,
 or multiple replica set members), one is chosen at random from within the
-"latency window".  The server with the shortest average round-trip time (RTT)
-is always in the window.  Any servers with an average round-trip time less than
-or equal to the shortest RTT plus the L</local_threshold_ms> are also in the
-latency window.
+"latency window".  The server with the shortest average round-trip time
+(RTT) is always in the window.  Any servers with an average round-trip time
+less than or equal to the shortest RTT plus the L</local_threshold_ms> are
+also in the latency window.
 
-If a server is not immediately available, the driver will block for up to
-L</server_selection_timeout_ms> milliseconds waiting for a suitable server to
-become available.  If no server is available at the end of that time, an
-exception is thrown.
+If a suitable server is not immediately available, what happens next
+depends on the L</server_selection_try_once> option.
+
+If that option is true, a single topology scan will be performed.
+Afterwards if a suitable server is available, it will be returned;
+otherwise, an exception is thrown.
+
+If that option is false, the driver will do topology scans repeatedly
+looking for a suitable server.  When more than
+L</server_selection_timeout_ms> milliseconds have elapsed since the start
+of server selection without a suitable server being found, an exception is
+thrown.
+
+B<Note>: the actual maximum wait time for server selection could be as long
+C<server_selection_timeout_ms> plus the amount of time required to do a
+topology scan.
 
 =head1 SERVER MONITORING AND FAILOVER
 

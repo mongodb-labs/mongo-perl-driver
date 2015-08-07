@@ -31,12 +31,15 @@ my $CONSTANTS;
 
 BEGIN {
     $CONSTANTS = {
-        COOLDOWN_SECS        => 5,
-        MAX_BSON_OBJECT_SIZE => 4_194_304,
-        MAX_BSON_WIRE_SIZE   => 16_793_600,                     # 16MiB + 16KiB
-        MAX_WRITE_BATCH_SIZE => 1000,
-        P_INT32              => $] lt '5.010' ? 'l' : 'l<',
-        WITH_ASSERTS         => $ENV{PERL_MONGO_WITH_ASSERTS},
+        COOLDOWN_SECS                => 5,
+        EPOCH                        => 0,
+        MAX_BSON_OBJECT_SIZE         => 4_194_304,
+        MAX_BSON_WIRE_SIZE           => 16_793_600,                # 16MiB + 16KiB
+        MAX_WRITE_BATCH_SIZE         => 1000,
+        MIN_HEARTBEAT_FREQUENCY_USEC => 500_000,                   # 500ms, not configurable
+        MIN_HEARTBEAT_FREQUENCY_SEC  => .5,
+        P_INT32                      => $] lt '5.010' ? 'l' : 'l<',
+        WITH_ASSERTS => $ENV{PERL_MONGO_WITH_ASSERTS},
     };
 }
 
