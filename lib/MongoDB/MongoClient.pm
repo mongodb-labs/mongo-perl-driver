@@ -198,7 +198,7 @@ sub _build_bson_codec {
 This attribute specifies the amount of time in milliseconds to wait for a
 new connection to a server.
 
-The default is 20,000 ms.
+The default is 10,000 ms.
 
 If set to a negative value, connection operations will block indefinitely
 until the server replies or until the operating system TCP/IP stack gives
@@ -879,14 +879,14 @@ has sasl_mechanism => (
 This option has been renamed as L</connect_timeout_ms>.  If this option is set
 and that one is not, this will be used.
 
-Connection timeout is in milliseconds. Defaults to C<20000>.
+Connection timeout is in milliseconds. Defaults to C<10000>.
 
 =cut
 
 has timeout => (
     is        => 'ro',
     isa       => Int,
-    default   => 20000,
+    default   => 10000,
 );
 
 #--------------------------------------------------------------------------#

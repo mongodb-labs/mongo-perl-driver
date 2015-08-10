@@ -118,7 +118,7 @@ subtest bson_codec => sub {
 
 subtest connect_timeout_ms => sub {
     my $mc = _mc();
-    is( $mc->connect_timeout_ms, 20000, "default connect_timeout_ms" );
+    is( $mc->connect_timeout_ms, 10000, "default connect_timeout_ms" );
 
     $mc = _mc( timeout => 60000, );
     is( $mc->connect_timeout_ms, 60000, "legacy 'timeout' as fallback" );
@@ -130,10 +130,10 @@ subtest connect_timeout_ms => sub {
     is( $mc->connect_timeout_ms, 30000, "connect_timeout_ms" );
 
     $mc = _mc(
-        host               => 'mongodb://localhost/?connectTimeoutMS=10000',
+        host               => 'mongodb://localhost/?connectTimeoutMS=20000',
         connect_timeout_ms => 30000,
     );
-    is( $mc->connect_timeout_ms, 10000, "connectTimeoutMS" );
+    is( $mc->connect_timeout_ms, 20000, "connectTimeoutMS" );
 };
 
 subtest db_name => sub {
