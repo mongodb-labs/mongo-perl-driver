@@ -1254,10 +1254,10 @@ sub topology_status {
 #--------------------------------------------------------------------------#
 
 # Undocumented in old MongoDB::MongoClient; semantics don't translate, but
-# best approximation is checking if we can talk to a primary
+# best approximation is checking if we can send a command to a server
 sub connected {
     my ($self) = @_;
-    return try { !! $self->_topology->get_writable_link }
+    return eval { $self->send_admin_command([ismaster => 1]); 1 };
 }
 
 sub send_admin_command {
