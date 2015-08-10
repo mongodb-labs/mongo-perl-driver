@@ -527,7 +527,7 @@ sub _get_server_link {
         $self->check_address($address);
 
         # topology might have dropped the server
-        $server = $self->servers->{addresses}
+        $server = $self->servers->{$address}
           or return;
 
         my $fresh_link = $self->links->{$address};
