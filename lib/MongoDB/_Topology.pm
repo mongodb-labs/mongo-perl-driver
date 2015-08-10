@@ -624,7 +624,7 @@ sub _status_string {
         $status .= sprintf( "Topology type: %s; Member status:\n", $self->type );
     }
 
-    $status .= join( "\n", map { "  $_" } map { $_->status_string } $self->all_servers );
+    $status .= join( "\n", map { "  $_" } map { $_->status_string } $self->all_servers ) . "\n";
     return $status;
 }
 

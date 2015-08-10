@@ -246,9 +246,10 @@ sub matches_tag_set {
 
 sub status_string {
     my ($self) = @_;
-    if ( $self->error ) {
+    if ( my $err = $self->error ) {
+        $err =~ tr[\n][ ];
         return
-          sprintf( "%s (type: %s, error: %s)", map { $self->$_ } qw/address type error/ );
+          sprintf( "%s (type: %s, error: %s)", $self->{address}, $self->{type}, $err);
     }
     else {
         return sprintf( "%s (type: %s)", map { $self->$_ } qw/address type/ );
