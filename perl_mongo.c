@@ -911,6 +911,16 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
     }
 #endif
 
+#if PERL_REVISION==5 && PERL_VERSION<=18
+    /* Before 5.18, get magic would clear public flags. This restores them
+     * from private flags but ONLY if there is no public flag already, as
+     * we have nothing else to go on for serialization.
+     */
+    if (!(SvFLAGS(sv) & (SVf_IOK|SVf_NOK|SVf_POK))) {
+        SvFLAGS(sv) |= (SvFLAGS(sv) & (SVp_IOK|SVp_NOK|SVp_POK)) >> PRIVSHIFT;
+    }
+#endif
+
     if ( (tempsv = _hv_fetchs_sv(opts, "prefer_numeric")) && SvTRUE (tempsv) ) {
       aggressively_number = looks_like_number(sv);
     }
