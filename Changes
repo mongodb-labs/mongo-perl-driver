@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.708.4.0 2015-08-11 16:06:55-04:00 America/New_York
+
   [Bug fixes]
 
   - Fixes handling of 'safe' option for 'remove'
