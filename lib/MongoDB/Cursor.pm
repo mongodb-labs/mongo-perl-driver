@@ -38,9 +38,9 @@ use namespace::clean -except => 'meta';
 
 =attr started_iterating
 
-If this cursor has queried the database yet. Methods
-modifying the query will complain if they are called
-after the database is queried.
+A boolean indicating if this cursor has queried the database yet. Methods
+modifying the query will complain if they are called after the database is
+queried.
 
 =cut
 
@@ -83,19 +83,15 @@ they are called after results are iterated.
 
 Ordinarily, a cursor "dies" on the database server after a certain length of
 time (approximately 10 minutes), to prevent inactive cursors from hogging
-resources.  This option sets that a cursor should not die until all of its
+resources.  This option indicates that a cursor should not die until all of its
 results have been fetched or it goes out of scope in Perl.
 
 Boolean value, defaults to 0.
 
-C<immortal> is not equivalent to setting a client-side timeout.  If you are
-getting client-side timeouts (e.g., "recv timed out"), set C<query_timeout> on
-your connection.
-
-    # wait forever for a query to return results
-    $connection->query_timeout(-1);
-
-See L<MongoDB::MongoClient/query_timeout>.
+Note: C<immortal> only affects the server-side timeout.  If you are getting
+client-side timeouts you will need to change your client configuration.
+See L<MongoDB::MongoClient/max_time_ms> and
+L<MongoDB::MongoClient/socket_timeout_ms>.
 
 Returns this cursor for chaining operations.
 
@@ -120,8 +116,8 @@ sub immortal {
 
 Selects which fields are returned.  The default is all fields.  When fields
 are specified, _id is returned by default, but this can be disabled by
-explicitly setting it to "0".  E.g.  C<< _id => 0 >>. Argument is either a
-hash reference, a L<Tie::IxHash> or an array reference of key/value pairs.
+explicitly setting it to "0".  E.g.  C<< _id => 0 >>. Argument must be either a
+hash reference or a L<Tie::IxHash> object.
 
 See L<Limit fields to
 return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
