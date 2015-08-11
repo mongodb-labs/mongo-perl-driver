@@ -16,14 +16,14 @@
 
 use strict;
 use warnings;
-use Test::More;
 use Config;
+use if $Config{usethreads}, 'threads';
+use Test::More;
+
 BEGIN { plan skip_all => 'requires threads' unless $Config{usethreads} }
 
 use MongoDB;
 use MongoDB::OID;
-
-use threads;
 
 my @threads = map {
     threads->create(sub {

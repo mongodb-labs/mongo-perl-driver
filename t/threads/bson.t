@@ -16,14 +16,17 @@
 
 use strict;
 use warnings;
-use Test::More;
 use Config;
+use if $Config{usethreads}, 'threads';
+use Test::More;
 
-BEGIN { plan skip_all => 'requires threads' unless $Config{usethreads} }
+BEGIN {
+    plan skip_all => 'requires threads' unless $Config{usethreads};
+    plan skip_all => 'needs Perl 5.10.1' unless $] ge '5.010001';
+}
 
 use MongoDB;
 use Try::Tiny;
-use threads;
 use threads::shared;
 
 use lib "t/lib";
@@ -34,46 +37,43 @@ require_ok($class);
 
 my $codec = $class->new;
 
-subtest "shared clone" => sub {
-    my $var       = { a => 0.1 +0 };
-    my $clone     = shared_clone $var;
-    my $enc_var   = $codec->encode_one($var);
-    my $enc_clone = $codec->encode_one($clone);
+my $var       = { a => 0.1 +0 };
+my $clone     = shared_clone $var;
+my $enc_var   = $codec->encode_one($var);
+my $enc_clone = $codec->encode_one($clone);
 
-    _bson_is( $enc_var, $enc_clone,
-        "encoded top level hash and encoded top level shared hash" );
-    _bson_is(
-        $codec->encode_one( { data => $var } ),
-        $codec->encode_one( { data => $clone } ),
-        "encoded hash and encoded shared hash"
-    );
-    _bson_is(
-        $codec->encode_one( { data => $var->{a} } ),
-        $codec->encode_one( { data => $clone->{a} } ),
-        "encoded double and encoded shared clone of double"
-    );
+_bson_is( $enc_var, $enc_clone,
+    "encoded top level hash and encoded top level shared hash" );
+_bson_is(
+    $codec->encode_one( { data => $var } ),
+    $codec->encode_one( { data => $clone } ),
+    "encoded hash and encoded shared hash"
+);
+_bson_is(
+    $codec->encode_one( { data => $var->{a} } ),
+    $codec->encode_one( { data => $clone->{a} } ),
+    "encoded double and encoded shared clone of double"
+);
 
-    threads->create(
-        sub {
-            _bson_is(
-                $codec->encode_one($var),
-                $codec->encode_one($clone),
-                "(in thread) encoded top level hash and encoded top level shared hash"
-            );
-            _bson_is(
-                $codec->encode_one( { data => $var } ),
-                $codec->encode_one( { data => $clone } ),
-                "(in thread) encoded hash and encoded shared hash"
-            );
-            _bson_is(
-                $codec->encode_one( { data => $var->{a} } ),
-                $codec->encode_one( { data => $clone->{a} } ),
-                "(in thread) encoded double and encoded shared clone of double"
-            );
-        }
-    )->join;
-
-};
+threads->create(
+    sub {
+        _bson_is(
+            $codec->encode_one($var),
+            $codec->encode_one($clone),
+            "(in thread) encoded top level hash and encoded top level shared hash"
+        );
+        _bson_is(
+            $codec->encode_one( { data => $var } ),
+            $codec->encode_one( { data => $clone } ),
+            "(in thread) encoded hash and encoded shared hash"
+        );
+        _bson_is(
+            $codec->encode_one( { data => $var->{a} } ),
+            $codec->encode_one( { data => $clone->{a} } ),
+            "(in thread) encoded double and encoded shared clone of double"
+        );
+    }
+)->join;
 
 sub _bson_is {
     my ( $got, $exp, $label ) = @_;
