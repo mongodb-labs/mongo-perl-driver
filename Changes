@@ -6,6 +6,9 @@
 
   - Fixes handling of 'safe' option for 'remove'
 
+  - PERL-555 Fixes serialization of thread-shared scalars (and likely
+    other tied/magic-using scalars) on Perls before 5.18
+
 v0.708.3.0 2015-07-14 15:42:16-04:00 America/New_York
 
   [Bug fixes]
