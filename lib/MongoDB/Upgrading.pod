@@ -33,33 +33,42 @@ account API changes from the v0 driver to the v1 driver.
 Changes to the driver were deemed necessary to achieve certain goals:
 
 =for :list
-* consistency (intra-driver) – many parts of the v0 API were inconsistent,
+* intra-driver consistency – many parts of the v0 API were inconsistent,
   behaving differently from method to method; the v1 API minimizes
   developer surprises by improving consistency in return types and
-  exception types.
-* consistency (inter-driver) — "next-generation" MongoDB drivers across
-  all languages are converging on common APIs and common behaviors; this
+  exception mechanisms.
+* consistency (inter-driver) — "next-generation" MongoDB drivers across all
+  languages are converging on common APIs and common behaviors; this
   simplifies developer education and support, as cross-language examples
   will be similar.
 * encapsulation – too many low-level, internal operations were exposed as
   part of the API, which complicates maintenance work; the v1 API aims to
-  minimize the "public surface" available to developers.
-* abstraction – many methods returned raw server documents for end-user
-  code to inspect, which is brittle in the face of changes by the server
-  over time; the v1 API uses objects to abstract the details behind
-  standard method calls.
-* compatibility – some new features or changes in the MongoDB server, like
-  the client authentication model, no longer fit the old driver design.
-* portability – the v0 driver had a large dependency tree and required a
-  compiler and various libraries; the v1 driver removes some dependencies
-  and uses widely-used CPAN modules in place of custom C code where
-  possible.
-* round-trippable data – the v0 BSON implementation could easily lead to
-  data corruption when round-tripping documents; the v1 driver makes
-  round-trippability a top priority, even if this means removing or
-  changing how BSON encoding or decoding works
+  minimize the "public surface" available to developers, allowing faster
+  future development keeping up with MongoDB server enhancements with less
+  risk of breakage.
+* abstraction – many v0 methods returned raw server documents for end-user
+  code to inspect, which is brittle in the face of changes in server
+  responses over time; the v1 API uses result classes to abstract the
+  details behind standardized accessors.
+* server compatibility – some new features and behavior changes in the
+  MongoDB server no longer fit the old driver design; the v1 driver
+  transparently supports both old and new servers.
+* portability – the v0 driver had a large dependency tree and substantial
+  non-portable C code; the v1 driver removes some dependencies and uses
+  widely-used, well-tested CPAN modules in place of custom C code where
+  possible; it lays the groundwork for a future "pure-Perl optional"
+  driver.
+* round-trippable data – the v0 BSON implementation could easily change
+  data types when round-tripping documents; the v1 driver is designed to
+  round-trip data correctly whenever possible (within the limits of Perl's
+  dynamic typing).
 
 =head1 INSTALLATION AND DEPENDENCY CHANGES
+
+=head2 Moo instead of Moose
+
+The v1 driver uses L<Moo> instead of L<Moose>.  This change results in
+a slightly faster driver and a significanly reduced deep dependency tree.
 
 =head2 SSL and SASL
 
@@ -231,6 +240,33 @@ connections to be lazy.  When the client is constructed, no connections are
 made until the first network operation is needed.  At that time, the client
 will scan all servers in the seed list and begin regular monitoring.
 Connections that drop will be re-established when needed.
+
+B<IMPORTANT:> Code that used to rely on a fatal exception from
+C<< MongoDB::MongoClient->new >> when no mongod is available will break.
+Instead, users are advised to just conduct their operations and be prepared
+to handle errors.
+
+For testing, users may wish to run a simple command to check that
+a mongod is ready:
+
+    use Test::More;
+
+    # OLD WAY: BROKEN
+    plan skip_all => 'no mongod' unless eval {
+        MongoDB::MongoClient->new
+    };
+
+    # NEW WAY 1: with MongoDB::MongoClient
+    plan skip_all => 'no mongod' unless eval {
+        MongoDB::MongoClient->new->db('admin')->run_command(
+            [ ismaster => 1 ]
+        )
+    };
+
+    # NEW WAY 2: with MongoDB and connect
+    plan skip_all => 'no mongod' unless eval {
+        MongoDB->connect->db('admin')->run_command([ ismaster => 1 ])
+    };
 
 See L<SERVER SELECTION|MongoDB::MongoClient/SERVER SELECTION> and L<SERVER
 MONITORING AND FAILOVER|MongoDB::MongoClient/SERVER MONITORING AND FAILOVER> in
