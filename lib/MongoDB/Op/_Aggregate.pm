@@ -128,18 +128,18 @@ sub execute {
     # different server versions
     if ( $options->{explain} ) {
         return MongoDB::QueryResult->_new(
-            _client      => $self->client,
-            address      => $link->address,
-            ns           => '',
-            bson_codec   => $self->bson_codec,
-            batch_size   => 1,
-            cursor_at    => 0,
-            limit        => 0,
-            cursor_id    => MongoDB::QueryResult::_pack_cursor_id(0),
-            cursor_start => 0,
-            cursor_flags => {},
-            cursor_num   => 1,
-            _docs        => [ $res->output ],
+            _client       => $self->client,
+            _address      => $link->address,
+            _ns           => '',
+            _bson_codec   => $self->bson_codec,
+            _batch_size   => 1,
+            _cursor_at    => 0,
+            _limit        => 0,
+            _cursor_id    => MongoDB::QueryResult::_pack_cursor_id(0),
+            _cursor_start => 0,
+            _cursor_flags => {},
+            _cursor_num   => 1,
+            _docs         => [ $res->output ],
         );
     }
 

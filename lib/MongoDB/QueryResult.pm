@@ -21,7 +21,6 @@ package MongoDB::QueryResult;
 use version;
 our $VERSION = 'v0.999.999.5';
 
-use Config;
 use Moo;
 use MongoDB::Error;
 use MongoDB::_Constants;
@@ -30,11 +29,6 @@ use MongoDB::Op::_KillCursors;
 use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean;
-
-use constant {
-    CURSOR_ZERO => "\0" x 8,
-    HAS_INT64 => $Config{use64bitint},
-};
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
@@ -49,25 +43,25 @@ has _client => (
     isa => InstanceOf['MongoDB::MongoClient'],
 );
 
-has address => (
+has _address => (
     is       => 'ro',
     required => 1,
     isa => HostAddress,
 );
 
-has ns => (
+has _ns => (
     is       => 'ro',
     required => 1,
     isa => Str,
 );
 
-has bson_codec => (
+has _bson_codec => (
     is       => 'ro',
     required => 1,
     isa => BSONCodec,
 );
 
-has batch_size => (
+has _batch_size => (
     is       => 'ro',
     required => 1,
     isa      => Int,
@@ -75,50 +69,50 @@ has batch_size => (
 
 # attributes for tracking progress
 
-has cursor_at => (
+has _cursor_at => (
     is       => 'ro',
     required => 1,
     isa      => Num,
 );
 
-sub _inc_cursor_at { $_[0]{cursor_at}++ }
+sub _inc_cursor_at { $_[0]{_cursor_at}++ }
 
-has limit => (
+has _limit => (
     is       => 'ro',
     required => 1,
     isa      => Num,
 );
 
-# attributes from actual results -- generally get this from BUILDARGS
+# attributes from actual results
 
-has cursor_id => (
+has _cursor_id => (
     is       => 'ro',
     required => 1,
     writer   => '_set_cursor_id',
     isa => Str,
 );
 
-has cursor_start => (
+has _cursor_start => (
     is       => 'ro',
     required => 1,
     writer   => '_set_cursor_start',
     isa      => Num,
 );
 
-has cursor_flags => (
+has _cursor_flags => (
     is       => 'ro',
     required => 1,
     writer   => '_set_cursor_flags',
     isa      => HashRef,
 );
 
-has cursor_num => (
+has _cursor_num => (
     is       => 'ro',
     required => 1,
     isa      => Num,
 );
 
-sub _inc_cursor_num { $_[0]{cursor_num}++ }
+sub _inc_cursor_num { $_[0]{_cursor_num}++ }
 
 has _docs => (
     is       => 'ro',
@@ -135,18 +129,17 @@ sub _add_docs {
 sub _next_doc { shift @{$_[0]{_docs}} }
 sub _clear_doc { @{$_[0]{_docs}} = () }
 
-# for backward compatibility
+# for backwards compatibility
 sub started_iterating() { 1 }
 
-# for backwards compatibility
-sub info {
+sub _info {
     my ($self) = @_;
     return {
-        flag      => $self->cursor_flags,
-        cursor_id => $self->cursor_id,
-        start     => $self->cursor_start,
-        at        => $self->cursor_at,
-        num       => $self->cursor_num,
+        flag      => $self->_cursor_flags,
+        cursor_id => $self->_cursor_id,
+        start     => $self->_cursor_start,
+        at        => $self->_cursor_at,
+        num       => $self->_cursor_num,
     };
 }
 
@@ -164,8 +157,8 @@ necessary.
 
 sub has_next {
     my ($self) = @_;
-    my $limit = $self->limit;
-    if ( $limit > 0 && ( $self->cursor_at + 1 ) > $limit ) {
+    my $limit = $self->_limit;
+    if ( $limit > 0 && ( $self->_cursor_at + 1 ) > $limit ) {
         $self->_kill_cursor;
         return 0;
     }
@@ -191,20 +184,20 @@ sub next {
 
 sub _get_more {
     my ($self) = @_;
-    return 0 if $self->cursor_id eq CURSOR_ZERO;
+    return 0 if $self->_cursor_id eq CURSOR_ZERO;
 
-    my $limit = $self->limit;
-    my $want = $limit > 0 ? ( $limit - $self->cursor_at ) : $self->batch_size;
+    my $limit = $self->_limit;
+    my $want = $limit > 0 ? ( $limit - $self->_cursor_at ) : $self->_batch_size;
 
     my $op = MongoDB::Op::_GetMore->_new(
-        ns         => $self->ns,
+        ns         => $self->_ns,
         client     => $self->_client,
-        bson_codec => $self->bson_codec,
-        cursor_id  => $self->cursor_id,
+        bson_codec => $self->_bson_codec,
+        cursor_id  => $self->_cursor_id,
         batch_size => $want,
     );
 
-    my $result = $self->_client->send_direct_op( $op, $self->address );
+    my $result = $self->_client->send_direct_op( $op, $self->_address );
 
     $self->_set_cursor_id( $result->{cursor_id} );
     $self->_set_cursor_flags( $result->{flags} );
@@ -235,9 +228,9 @@ sub all {
 
 sub _kill_cursor {
     my ($self) = @_;
-    return if !defined $self->cursor_id || $self->cursor_id eq CURSOR_ZERO;
-    my $op = MongoDB::Op::_KillCursors->_new( cursor_ids => [ $self->cursor_id ], );
-    $self->_client->send_direct_op( $op, $self->address );
+    return if !defined $self->_cursor_id || $self->_cursor_id eq CURSOR_ZERO;
+    my $op = MongoDB::Op::_KillCursors->_new( cursor_ids => [ $self->_cursor_id ], );
+    $self->_client->send_direct_op( $op, $self->_address );
     $self->_set_cursor_id(CURSOR_ZERO);
 }
 
@@ -277,10 +270,6 @@ sub _pack_cursor_id {
 
     return $cursor_id;
 }
-
-=for Pod::Coverage
-started_iterating
-info
 
 =head1 SYNOPSIS
 

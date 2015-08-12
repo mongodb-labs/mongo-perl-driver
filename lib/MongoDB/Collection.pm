@@ -1052,16 +1052,16 @@ sub parallel_scan {
         my $batch = $c->{firstBatch};
         my $qr = MongoDB::QueryResult->_new(
             _client    => $self->client,
-            address    => $result->address,
-            ns         => $c->{ns},
-            bson_codec => $self->bson_codec,
-            batch_size   => scalar @$batch,
-            cursor_at    => 0,
-            limit        => 0,
-            cursor_id    => MongoDB::QueryResult::_pack_cursor_id($c->{id}),
-            cursor_start => 0,
-            cursor_flags => {},
-            cursor_num   => scalar @$batch,
+            _address    => $result->address,
+            _ns         => $c->{ns},
+            _bson_codec => $self->bson_codec,
+            _batch_size   => scalar @$batch,
+            _cursor_at    => 0,
+            _limit        => 0,
+            _cursor_id    => MongoDB::QueryResult::_pack_cursor_id($c->{id}),
+            _cursor_start => 0,
+            _cursor_flags => {},
+            _cursor_num   => scalar @$batch,
             _docs        => $batch,
         );
         push @cursors, $qr;

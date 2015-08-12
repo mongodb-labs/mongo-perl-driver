@@ -26,18 +26,21 @@ use version;
 our $VERSION = 'v0.999.999.5';
 
 use Exporter 5.57 qw/import/;
+use Config;
 
 my $CONSTANTS;
 
 BEGIN {
     $CONSTANTS = {
         COOLDOWN_SECS                => 5,
+        CURSOR_ZERO                  => "\0" x 8,
         EPOCH                        => 0,
+        HAS_INT64                    => $Config{use64bitint},
         MAX_BSON_OBJECT_SIZE         => 4_194_304,
         MAX_BSON_WIRE_SIZE           => 16_793_600,                # 16MiB + 16KiB
         MAX_WRITE_BATCH_SIZE         => 1000,
-        MIN_HEARTBEAT_FREQUENCY_USEC => 500_000,                   # 500ms, not configurable
         MIN_HEARTBEAT_FREQUENCY_SEC  => .5,
+        MIN_HEARTBEAT_FREQUENCY_USEC => 500_000,                   # 500ms, not configurable
         P_INT32                      => $] lt '5.010' ? 'l' : 'l<',
         WITH_ASSERTS => $ENV{PERL_MONGO_WITH_ASSERTS},
     };

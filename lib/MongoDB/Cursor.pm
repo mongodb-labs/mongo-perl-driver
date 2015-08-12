@@ -526,7 +526,7 @@ a value of 0.
 sub info {
     my $self = shift;
     if ( $self->started_iterating ) {
-        return $self->result->info;
+        return $self->result->_info;
     }
     else {
         return { num => 0 };

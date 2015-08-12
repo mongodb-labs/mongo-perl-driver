@@ -110,18 +110,18 @@ sub execute {
 
     return $class->_new(
         _client      => $self->client,
-        address      => $link->address,
-        ns           => $ns,
-        bson_codec   => $self->bson_codec,
-        batch_size   => $batch_size,
-        cursor_at    => 0,
-        limit        => $self->limit,
-        cursor_id    => $result->{cursor_id},
-        cursor_start => $result->{starting_from},
-        cursor_flags => $result->{flags} || {},
-        cursor_num   => $result->{number_returned},
+        _address      => $link->address,
+        _ns           => $ns,
+        _bson_codec   => $self->bson_codec,
+        _batch_size   => $batch_size,
+        _cursor_at    => 0,
+        _limit        => $self->limit,
+        _cursor_id    => $result->{cursor_id},
+        _cursor_start => $result->{starting_from},
+        _cursor_flags => $result->{flags} || {},
+        _cursor_num   => $result->{number_returned},
         _docs        => $result->{docs},
-        post_filter  => $self->post_filter,
+        _post_filter  => $self->post_filter,
     );
 }
 

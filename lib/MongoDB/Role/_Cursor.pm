@@ -24,6 +24,6 @@ our $VERSION = 'v0.999.999.5';
 use Moo::Role;
 use namespace::clean;
 
-requires qw/all has_next info next/;
+requires qw/all has_next next/;
 
 1;

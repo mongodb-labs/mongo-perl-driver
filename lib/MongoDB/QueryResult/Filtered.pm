@@ -28,7 +28,7 @@ extends 'MongoDB::QueryResult';
 
 use namespace::clean;
 
-has post_filter => (
+has _post_filter => (
     is       => 'ro',
     isa      => CodeRef,
     required => 1,
@@ -43,7 +43,7 @@ sub has_next {
     }
     while ( !$self->_drained || $self->_get_more ) {
         my $peek = $self->_docs->[0];
-        if ( $self->post_filter->($peek) ) {
+        if ( $self->_post_filter->($peek) ) {
             # if meets criteria, has_next is true
             return 1;
         }
