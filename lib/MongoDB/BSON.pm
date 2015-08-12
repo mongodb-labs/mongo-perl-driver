@@ -97,9 +97,6 @@ If not provided, errors messages will be thrown with C<Carp::croak>.
 
 =cut
 
-# XXX should this be separate for encode & decode? e.g. encode always want
-# to throw with document and decode doesn't?
-
 has error_callback => (
     is      => 'ro',
     isa     => Maybe[CodeRef],
@@ -117,61 +114,6 @@ has invalid_chars => (
     isa     => Str,
     default => '',
 );
-
-## XXX don't need this yet; do with 'invalid_chars' first for now
-##
-##=attr key_validator
-##
-##This attribute must be either a regular expresssion reference or
-##a function reference to validate a key during encoding.
-##
-##A function reference will get a single string argument and must return
-##an error string if the key is B<invalid>; if the key is B<valid> it must
-##return B<nothing>.
-##
-##A regular expression will be matched against the key; if it matches, the
-##key is valid.
-##
-##If not provided, any key is ok.
-##
-##=cut
-##
-##has key_validator => (
-##    is      => 'ro',
-##    isa     => Maybe[RegexpRef|CodeRef],
-##);
-##
-## XXX don't need this until encode_many is implemented
-##
-##=attr max_batch_size
-##
-##This attribute defines the maximum number of documents to return in a chunk
-##when using C<encode_many>.  The default is 0, which disables any maximum.
-##
-##=cut
-##
-##has max_batch_size=> (
-##    is => 'ro',
-##    isa => NonNegNum,
-##    default => 0,
-##);
-
-## XXX don't need this until we have a back-end that isn't hard-coded
-##
-##=attr max_depth
-##
-##This attribute defines the maximum document depth allowed.  The default
-##is 100 for both encoding and decoding.
-##
-##This
-##
-##=cut
-##
-##has max_depth => (
-##    is => 'ro',
-##    isa => NonNegNum,
-##    default => 100,
-##);
 
 =attr max_length
 
