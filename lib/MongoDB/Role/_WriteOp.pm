@@ -32,11 +32,6 @@ use Types::Standard -types;
 use Moo::Role;
 use namespace::clean;
 
-use constant {
-    NO_JOURNAL_RE => qr/^journaling not enabled/,
-    NO_REPLICATION_RE => qr/^no replication has been enabled/,
-};
-
 with qw/MongoDB::Role::_CommandOp/;
 
 requires qw/db_name _parse_cmd _parse_gle/;

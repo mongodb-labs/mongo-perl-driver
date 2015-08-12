@@ -37,12 +37,17 @@ BEGIN {
         EPOCH                        => 0,
         HAS_INT64                    => $Config{use64bitint},
         MAX_BSON_OBJECT_SIZE         => 4_194_304,
-        MAX_BSON_WIRE_SIZE           => 16_793_600,                # 16MiB + 16KiB
+        MAX_BSON_WIRE_SIZE           => 16_793_600,                 # 16MiB + 16KiB
+        MAX_WIRE_VERSION             => 3,
         MAX_WRITE_BATCH_SIZE         => 1000,
         MIN_HEARTBEAT_FREQUENCY_SEC  => .5,
-        MIN_HEARTBEAT_FREQUENCY_USEC => 500_000,                   # 500ms, not configurable
-        P_INT32                      => $] lt '5.010' ? 'l' : 'l<',
-        WITH_ASSERTS => $ENV{PERL_MONGO_WITH_ASSERTS},
+        MIN_HEARTBEAT_FREQUENCY_USEC => 500_000,                    # 500ms, not configurable
+        MIN_KEYED_DOC_LENGTH         => 8,
+        MIN_WIRE_VERSION             => 0,
+        NO_JOURNAL_RE                => qr/^journaling not enabled/,
+        NO_REPLICATION_RE => qr/^no replication has been enabled/,
+        P_INT32           => $] lt '5.010' ? 'l' : 'l<',
+        WITH_ASSERTS      => $ENV{PERL_MONGO_WITH_ASSERTS},
     };
 }
 

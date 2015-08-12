@@ -26,8 +26,6 @@ use MongoDB::Error;
 use MongoDB::BSON::_EncodedDoc;
 use namespace::clean;
 
-use constant PERL58 => $] lt '5.010';
-
 requires qw/bson_codec/;
 
 # takes MongoDB::_Link and ref of type Document; returns

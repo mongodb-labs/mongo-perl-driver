@@ -23,14 +23,8 @@ our $VERSION = 'v0.999.999.5';
 
 use Moo::Role;
 use MongoDB::Error;
+use MongoDB::_Constants;
 use namespace::clean;
-
-use constant PERL58 => $] lt '5.010';
-
-use constant {
-    P_INT32 => PERL58 ? "l" : "l<",
-    MIN_KEYED_DOC_LENGTH => 8,
-};
 
 requires qw/bson_codec/;
 

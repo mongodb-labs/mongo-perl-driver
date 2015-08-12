@@ -49,11 +49,6 @@ use MongoDB::_Types -types;
 use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
-use constant {
-    MAX_WIRE_VERSION => 3,
-    MIN_WIRE_VERSION => 0,
-};
-
 #--------------------------------------------------------------------------#
 # deprecated global variables
 #--------------------------------------------------------------------------#
