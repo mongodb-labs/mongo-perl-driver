@@ -50,14 +50,6 @@ use Types::Standard -types;
 use namespace::clean -except => 'meta';
 
 use constant {
-    PRIMARY             => 'primary',
-    SECONDARY           => 'secondary',
-    PRIMARY_PREFERRED   => 'primaryPreferred',
-    SECONDARY_PREFERRED => 'secondaryPreferred',
-    NEAREST             => 'nearest',
-};
-
-use constant {
     MAX_WIRE_VERSION => 3,
     MIN_WIRE_VERSION => 0,
 };

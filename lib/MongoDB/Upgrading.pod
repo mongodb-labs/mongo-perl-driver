@@ -355,7 +355,8 @@ C<read_pref_mode> and C<read_pref_tag_sets> attributes on L<MongoDB::MongoClient
 
 The old C<read_preference> method to change the read preference has been
 removed and trying to set a read preference after the client has been
-created is a fatal error.
+created is a fatal error.  The old mode constants PRIMARY, SECONDARY,
+etc. have been removed.
 
 The C<read_preference> method now returns the L<MongoDB::ReadPreference>
 object generated from C<read_pref_mode> and C<read_pref_tag_sets>.

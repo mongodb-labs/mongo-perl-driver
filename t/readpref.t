@@ -33,9 +33,7 @@ my $testdb = get_test_db($conn);
 my $server_type = server_type($conn);
 my $coll = $testdb->get_collection("test_coll");
 
-# passing in "undef"
-my @modes = map { MongoDB::MongoClient->$_ }
-  qw( PRIMARY SECONDARY PRIMARY_PREFERRED SECONDARY_PREFERRED NEAREST );
+my @modes = qw/primary secondary primaryPreferred secondaryPreferred nearest/;
 
 subtest "read preference connection string" => sub {
 
