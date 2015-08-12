@@ -14,7 +14,6 @@
 #  limitations under the License.
 #
 
-# XXX rename to _DBErrorSource;
 package MongoDB::Role::_LastError;
 
 # MongoDB interface for providing the last database error
@@ -26,7 +25,6 @@ use Moo::Role;
 use MongoDB::Error;
 use namespace::clean;
 
-# XXX should we add 'assert' to this API list?
 requires qw/last_errmsg last_code last_wtimeout/;
 
 my $ANY_DUP_KEY = [ DUPLICATE_KEY, DUPLICATE_KEY_UPDATE, DUPLICATE_KEY_CAPPED ];

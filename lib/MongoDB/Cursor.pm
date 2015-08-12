@@ -355,7 +355,7 @@ sub partial {
 
     $self->query->allowPartialResults( !! $value );
 
-    # XXX returning self is an API change but more consistent with other cursor methods
+    # returning self is an API change but more consistent with other cursor methods
     return $self;
 }
 
@@ -539,7 +539,6 @@ sub info {
 
 sub count {
     my ($self, $limit_skip) = @_;
-    # XXX deprecate this unintuitive API?
 
     my $cmd = new Tie::IxHash(count => $self->query->coll_name);
 
@@ -586,7 +585,7 @@ sub slave_okay {
         $self->query->read_preference( $PRIMARY );
     }
 
-    # XXX returning self is an API change but more consistent with other cursor methods
+    # returning self is an API change but more consistent with other cursor methods
     return $self;
 }
 

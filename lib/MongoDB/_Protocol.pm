@@ -151,8 +151,8 @@ use constant {
     Q_TAILABLE          => 1,
     Q_SLAVE_OK          => 2,
     Q_NO_CURSOR_TIMEOUT => 4,
-    Q_AWAIT_DATA        => 5, # XXX unsupported (PERL-93)
-    Q_EXHAUST           => 6, # XXX unsupported (PERL-282)
+    Q_AWAIT_DATA        => 5,
+    Q_EXHAUST           => 6, # unsupported (PERL-282)
     Q_PARTIAL           => 7,
 };
 

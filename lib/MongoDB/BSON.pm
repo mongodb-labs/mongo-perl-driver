@@ -70,8 +70,6 @@ is L<DateTime>. Other acceptable values are L<Time::Moment>, L<DateTime::Tiny>
 and C<undef>. The latter will give you the raw epoch value rather than an
 object.
 
-# XXX add MongoDB::BSON::DateTime support and make it the default
-
 =cut
 
 has dt_type => (

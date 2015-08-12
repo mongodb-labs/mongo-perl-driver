@@ -78,7 +78,7 @@ Defaults to the connection string URI C<mongodb://localhost:27017>.
 has host => (
     is      => 'ro',
     isa     => Str,
-    default => 'mongodb://localhost:27017', # XXX eventually, make this localhost
+    default => 'mongodb://localhost:27017',
 );
 
 =attr auth_mechanism

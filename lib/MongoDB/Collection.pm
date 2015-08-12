@@ -1367,7 +1367,6 @@ sub _run_command {
 sub _try_find_and_modify {
     my ($self, $command) = @_;
     my $result;
-    # XXX this ought to use our codec
     try {
         $result = $self->_run_command( $command );
     }

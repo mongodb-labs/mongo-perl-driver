@@ -32,8 +32,6 @@ with 'MongoDB::Role::_DatabaseOp';
 
 requires qw/db_name/;
 
-# XXX should pass in a read preference and modify doc accordingly
-
 sub _send_command {
     my ( $self, $link, $doc, $flags ) = @_;
 
