@@ -206,3 +206,15 @@ C<vX.Y.Z>
 
 See the Changes file included with releases for an indication of the nature of
 changes involved.
+
+=head1 ENVIRONMENT VARIABLES
+
+If the C<PERL_MONGO_WITH_ASSERTS> environment variable is true before the
+MongoDB module is loaded, then its various classes will be generated with
+internal type assertions enabled.  This has a severe performance cost and
+is not recommended for production use.  It may be useful in diagnosing
+bugs.
+
+=cut
+
+# vim: set ts=4 sts=4 sw=4 et tw=75:
