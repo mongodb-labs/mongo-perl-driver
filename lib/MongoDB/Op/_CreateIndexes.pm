@@ -27,9 +27,15 @@ use Moo;
 use MongoDB::CommandResult;
 use MongoDB::_Constants;
 use MongoDB::_Types -types;
-use Types::Standard -types;
 use MongoDB::Op::_BatchInsert;
-use MongoDB::_Types;
+use Types::Standard qw(
+    ArrayRef
+    HashRef
+    Str
+);
+use MongoDB::_Types qw(
+    WriteConcern
+);
 use Tie::IxHash;
 use namespace::clean;
 

@@ -25,8 +25,12 @@ use Moo::Role;
 
 use MongoDB::ReadPreference;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    ReadPreference
+);
+use Types::Standard qw(
+    Maybe
+);
 use namespace::clean;
 
 with 'MongoDB::Role::_DatabaseOp';

@@ -26,8 +26,18 @@ use MongoDB::Op::_Command;
 use MongoDB::ReadPreference;
 use MongoDB::_Constants;
 use MongoDB::_Link;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    BSONCodec
+    NonNegNum
+    TopologyType
+);
+use Types::Standard qw(
+    Bool
+    HashRef
+    InstanceOf
+    Num
+    Str
+);
 use MongoDB::_Server;
 use Config;
 use List::Util qw/first/;

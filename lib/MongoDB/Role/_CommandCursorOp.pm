@@ -24,7 +24,7 @@ our $VERSION = 'v0.999.999.5';
 use MongoDB::Error;
 use MongoDB::QueryResult;
 use Moo::Role;
-use Types::Standard -types;
+
 use namespace::clean;
 
 requires qw/client bson_codec/;

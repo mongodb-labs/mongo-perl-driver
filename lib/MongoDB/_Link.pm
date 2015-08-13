@@ -35,8 +35,19 @@ use Socket qw/SOL_SOCKET SO_KEEPALIVE SO_RCVBUF IPPROTO_TCP TCP_NODELAY/;
 use Time::HiRes qw/time/;
 use MongoDB::Error;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    HostAddress
+    NonNegNum
+    ServerDesc
+);
+use Types::Standard qw(
+    Bool
+    HashRef
+    Maybe
+    Num
+    Str
+    Undef
+);
 use namespace::clean;
 
 my $SOCKET_CLASS =

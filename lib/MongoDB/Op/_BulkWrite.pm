@@ -33,8 +33,14 @@ use MongoDB::Op::_Update;
 use MongoDB::Op::_Delete;
 use MongoDB::_Protocol;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    WriteConcern
+);
+use Types::Standard qw(
+    ArrayRef
+    Bool
+    Str
+);
 use Safe::Isa;
 use Scalar::Util qw/blessed reftype/;
 use Tie::IxHash;

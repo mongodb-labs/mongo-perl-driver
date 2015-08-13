@@ -45,8 +45,23 @@ use Scalar::Util qw/reftype weaken/;
 use boolean;
 use Encode;
 use Try::Tiny;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    ArrayOfHashRef
+    AuthMechanism
+    BSONCodec
+    NonNegNum
+    ReadPrefMode
+    ReadPreference
+);
+use Types::Standard qw(
+    Bool
+    HashRef
+    InstanceOf
+    Int
+    Num
+    Str
+);
+
 use namespace::clean -except => 'meta';
 
 #--------------------------------------------------------------------------#

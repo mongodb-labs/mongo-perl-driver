@@ -22,7 +22,9 @@ use version;
 our $VERSION = 'v0.999.999.5';
 
 use Moo;
-use Types::Standard -types;
+use Types::Standard qw(
+    CodeRef
+);
 
 extends 'MongoDB::QueryResult';
 

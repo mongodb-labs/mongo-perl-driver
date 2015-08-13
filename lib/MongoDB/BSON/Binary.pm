@@ -21,7 +21,10 @@ use version;
 our $VERSION = 'v0.999.999.5';
 
 use Moo;
-use Types::Standard -types;
+use Types::Standard qw(
+    Int
+    Str
+);
 use namespace::clean;
 
 use constant {

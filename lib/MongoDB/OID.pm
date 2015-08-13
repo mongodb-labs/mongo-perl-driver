@@ -25,7 +25,9 @@ use MongoDB::BSON;
 use Moo;
 use MongoDB;
 use MongoDB::_Constants;
-use Types::Standard -types;
+use Types::Standard qw(
+    Str
+);
 use namespace::clean;
 
 =head1 ATTRIBUTES

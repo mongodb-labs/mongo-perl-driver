@@ -27,8 +27,13 @@ use MongoDB::BSON;
 use MongoDB::DeleteResult;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    Document
+);
+use Types::Standard qw(
+    Bool
+    Str
+);
 use Tie::IxHash;
 use namespace::clean;
 

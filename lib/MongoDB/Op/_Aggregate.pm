@@ -26,8 +26,14 @@ use Moo;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    ArrayOfHashRef
+);
+use Types::Standard qw(
+    HashRef
+    InstanceOf
+    Str
+);
 use boolean;
 use namespace::clean;
 

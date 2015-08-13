@@ -25,7 +25,10 @@ our $VERSION = 'v0.999.999.5';
 use MongoDB::Error;
 use IO::File;
 use Moo;
-use Types::Standard -types;
+use Types::Standard qw(
+    HashRef
+    InstanceOf
+);
 use namespace::clean -except => 'meta';
 
 has _grid => (

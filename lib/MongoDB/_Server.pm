@@ -20,8 +20,19 @@ use version;
 our $VERSION = 'v0.999.999.5';
 
 use Moo;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    NonNegNum
+    HostAddress
+    ServerType
+    HostAddressList
+);
+use Types::Standard qw(
+    Bool
+    InstanceOf
+    HashRef
+    Str
+    Num
+);
 use List::Util qw/first/;
 use Time::HiRes qw/time/;
 use namespace::clean -except => 'meta';

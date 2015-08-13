@@ -23,8 +23,10 @@ our $VERSION = 'v0.999.999.5';
 
 use Moo;
 use MongoDB::Error;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    ArrayOfHashRef
+    ReadPrefMode
+);
 use namespace::clean -except => 'meta';
 
 use overload (

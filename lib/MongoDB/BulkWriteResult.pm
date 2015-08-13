@@ -28,8 +28,14 @@ $MongoDB::WriteResult::VERSION = $VERSION;
 use Moo;
 use MongoDB::Error;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    ArrayOfHashRef
+);
+use Types::Standard qw(
+    HashRef
+    Num
+    Undef
+);
 use namespace::clean;
 
 # fake empty superclass for backcompat

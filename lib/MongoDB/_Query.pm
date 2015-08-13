@@ -22,8 +22,23 @@ use version;
 our $VERSION = 'v0.999.999.5';
 
 use Moo;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    BSONCodec
+    Document
+    ReadPreference
+    CursorType
+    IxHash
+);
+
+use Types::Standard qw(
+    Str
+    InstanceOf
+    Maybe
+    HashRef
+    Bool
+    Num
+);
+
 use MongoDB::Op::_Query;
 use Tie::IxHash;
 use namespace::clean;

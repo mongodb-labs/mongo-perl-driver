@@ -28,8 +28,14 @@ use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
 use MongoDB::QueryResult::Filtered;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    Document
+);
+use Types::Standard qw(
+    HashRef
+    InstanceOf
+    Str
+);
 use Tie::IxHash;
 use namespace::clean;
 

@@ -29,8 +29,9 @@ our $VERSION = 'v0.999.999.5';
 
 use Moo;
 use Carp;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    ErrorStr
+);
 use Scalar::Util ();
 use Sub::Quote ();
 use Exporter 5.57 qw/import/;
@@ -113,7 +114,7 @@ sub throw {
 
 package MongoDB::DatabaseError;
 use Moo;
-use Types::Standard -types;
+use Types::Standard qw(Num);
 use namespace::clean;
 
 extends("MongoDB::Error");
@@ -135,8 +136,7 @@ sub _build_code { return MongoDB::Error::UNKNOWN_ERROR() }
 package MongoDB::DocumentError;
 
 use Moo;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use Types::Standard qw(Any);
 use namespace::clean;
 
 extends("MongoDB::Error");
@@ -150,8 +150,7 @@ has document => (
 package MongoDB::UsageError;
 
 use Moo;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use Types::Standard qw(Str);
 use namespace::clean -except => 'meta';
 
 extends("MongoDB::Error");
@@ -282,7 +281,7 @@ extends 'MongoDB::Error';
 #--------------------------------------------------------------------------#
 package MongoDB::_CommandSizeError;
 use Moo;
-use Types::Standard -types;
+use Types::Standard qw(Int);
 use namespace::clean;
 
 extends("MongoDB::Error");

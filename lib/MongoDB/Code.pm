@@ -29,7 +29,10 @@ MongoDB::Code - JavaScript code
 =cut
 
 use Moo;
-use Types::Standard -types;
+use Types::Standard qw(
+    HashRef
+    Str
+);
 use namespace::clean -except => 'meta';
 
 =head1 ATTRIBUTES

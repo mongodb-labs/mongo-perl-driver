@@ -24,8 +24,17 @@ our $VERSION = 'v0.999.999.5';
 use Moo;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
-use MongoDB::_Types -types, qw/is_OrderedDoc is_IndexModelList/;
-use Types::Standard qw/-types is_Str/;
+use MongoDB::_Types qw(
+    BSONCodec
+    IxHash
+    is_IndexModelList
+    is_OrderedDoc
+);
+use Types::Standard qw(
+    InstanceOf
+    Str
+    is_Str
+);
 use boolean;
 use namespace::clean -except => 'meta';
 

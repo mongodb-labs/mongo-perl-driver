@@ -24,8 +24,13 @@ our $VERSION = 'v0.999.999.5';
 use Moo;
 
 use MongoDB::Error;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    IxHash
+    Booleanpm
+);
+use Types::Standard qw(
+    InstanceOf
+);
 use boolean;
 use namespace::clean -except => 'meta';
 

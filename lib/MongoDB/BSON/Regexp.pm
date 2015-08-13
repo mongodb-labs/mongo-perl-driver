@@ -6,7 +6,9 @@ our $VERSION = 'v0.999.999.5';
 
 use Moo;
 use MongoDB::Error;
-use Types::Standard -types;
+use Types::Standard qw(
+    Str
+);
 use namespace::clean -except => 'meta';
 
 has pattern => (

@@ -27,8 +27,9 @@ use MongoDB::Error;
 use MongoDB::UnacknowledgedResult;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    WriteConcern
+);
 use Moo::Role;
 use namespace::clean;
 

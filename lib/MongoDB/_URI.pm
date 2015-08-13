@@ -21,8 +21,15 @@ our $VERSION = 'v0.999.999.5';
 
 use Moo;
 use MongoDB::Error;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    ConnectionStr
+);
+use Types::Standard qw(
+    Any
+    ArrayRef
+    HashRef
+    Str
+);
 use namespace::clean -except => 'meta';
 
 my $uri_re = MongoDB::_Types::connection_uri_re();

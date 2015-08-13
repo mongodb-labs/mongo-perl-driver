@@ -30,7 +30,9 @@ use MongoDB::QueryResult;
 use MongoDB::ReadPreference;
 use MongoDB::_Protocol;
 use MongoDB::_Types -types, 'to_IxHash';
-use Types::Standard -types;
+use Types::Standard qw(
+    InstanceOf
+);
 use boolean;
 use Tie::IxHash;
 use Try::Tiny;

@@ -28,8 +28,16 @@ use Digest::MD5;
 use Moo;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    BSONCodec
+    NonNegNum
+    ReadPreference
+    WriteConcern
+);
+use Types::Standard qw(
+    InstanceOf
+    Str
+);
 use namespace::clean -except => 'meta';
 
 =attr chunk_size

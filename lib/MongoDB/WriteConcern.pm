@@ -23,8 +23,15 @@ our $VERSION = 'v0.999.999.5';
 
 use Moo;
 use MongoDB::Error;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    Booleanpm
+);
+use Types::Standard qw(
+    Bool
+    HashRef
+    Num
+    Str
+);
 use Scalar::Util qw/looks_like_number/;
 use namespace::clean -except => 'meta';
 

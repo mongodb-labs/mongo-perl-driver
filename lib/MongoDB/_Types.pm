@@ -59,7 +59,18 @@ use Type::Library
 );
 
 use Type::Utils -all;
-use Types::Standard -types;
+use Types::Standard qw(
+    Any
+    ArrayRef
+    Dict
+    HashRef
+    Maybe
+    Num
+    Optional
+    Ref
+    Str
+    Undef
+);
 
 use Scalar::Util qw/reftype/;
 use boolean;

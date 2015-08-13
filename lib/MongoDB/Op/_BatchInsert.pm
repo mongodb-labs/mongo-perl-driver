@@ -30,9 +30,11 @@ use MongoDB::InsertManyResult;
 use MongoDB::OID;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
-use MongoDB::_Types -types;
-use Types::Standard -types;
-use Safe::Isa;
+use Types::Standard qw(
+    Str
+    ArrayRef
+    Bool
+);
 use Scalar::Util qw/blessed reftype/;
 use Tie::IxHash;
 use namespace::clean;

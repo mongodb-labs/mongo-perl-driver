@@ -37,8 +37,17 @@ use MongoDB::Op::_Distinct;
 use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_Update;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    BSONCodec
+    NonNegNum
+    ReadPreference
+    WriteConcern
+);
+use Types::Standard qw(
+    HashRef
+    InstanceOf
+    Str
+);
 use Tie::IxHash;
 use Carp 'carp';
 use boolean;

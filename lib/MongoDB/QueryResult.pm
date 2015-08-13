@@ -26,8 +26,18 @@ use MongoDB::Error;
 use MongoDB::_Constants;
 use MongoDB::Op::_GetMore;
 use MongoDB::Op::_KillCursors;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    BSONCodec
+    HostAddress
+);
+use Types::Standard qw(
+    ArrayRef
+    InstanceOf
+    Int
+    HashRef
+    Num
+    Str
+);
 use namespace::clean;
 
 with $_ for qw(

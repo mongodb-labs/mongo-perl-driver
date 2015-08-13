@@ -27,8 +27,10 @@ use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use Types::Standard qw(
+    InstanceOf
+    Str
+);
 use Tie::IxHash;
 use Try::Tiny;
 use Safe::Isa;

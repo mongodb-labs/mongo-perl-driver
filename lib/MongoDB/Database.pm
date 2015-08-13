@@ -28,8 +28,16 @@ use MongoDB::GridFS;
 use MongoDB::Op::_ListCollections;
 use MongoDB::ReadPreference;
 use MongoDB::_Query;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    BSONCodec
+    NonNegNum
+    ReadPreference
+    WriteConcern
+);
+use Types::Standard qw(
+    InstanceOf
+    Str
+);
 use Carp 'carp';
 use boolean;
 use Moo;

@@ -23,8 +23,14 @@ our $VERSION = 'v0.999.999.5';
 
 use Tie::IxHash;
 use Moo;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    DBRefColl
+    DBRefDB
+);
+use Types::Standard qw(
+    HashRef
+    Maybe
+);
 use namespace::clean -except => 'meta';
 
 =attr id

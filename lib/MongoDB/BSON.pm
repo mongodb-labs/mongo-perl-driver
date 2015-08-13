@@ -31,8 +31,17 @@ use Config;
 use if ! $Config{use64bitint}, "Math::BigInt";
 use MongoDB::Error;
 use Moo;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    NonNegNum
+    SingleChar
+);
+use Types::Standard qw(
+    Bool
+    CodeRef
+    Maybe
+    Str
+    Undef
+);
 use boolean;
 use namespace::clean -except => 'meta';
 

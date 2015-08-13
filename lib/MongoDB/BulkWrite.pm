@@ -28,8 +28,14 @@ use MongoDB::BulkWriteResult;
 use MongoDB::BulkWriteView;
 
 use Moo;
-use MongoDB::_Types -types, 'to_WriteConcern';
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    to_WriteConcern
+);
+use Types::Standard qw(
+    ArrayRef
+    Bool
+    InstanceOf
+);
 use namespace::clean -except => 'meta';
 
 =attr collection (required)

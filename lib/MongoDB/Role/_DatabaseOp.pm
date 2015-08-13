@@ -26,8 +26,9 @@ use MongoDB::Error;
 use MongoDB::_Protocol;
 use Moo::Role;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use MongoDB::_Types qw(
+    BSONCodec
+);
 use namespace::clean;
 
 requires 'execute';

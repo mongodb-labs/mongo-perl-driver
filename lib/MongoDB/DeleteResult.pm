@@ -23,8 +23,9 @@ our $VERSION = 'v0.999.999.5';
 
 use Moo;
 use MongoDB::_Constants;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use Types::Standard qw(
+    Num
+);
 use namespace::clean;
 
 with $_ for qw(

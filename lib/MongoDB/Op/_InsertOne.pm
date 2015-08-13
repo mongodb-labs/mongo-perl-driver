@@ -30,8 +30,9 @@ use MongoDB::InsertOneResult;
 use MongoDB::OID;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
-use MongoDB::_Types -types;
-use Types::Standard -types;
+use Types::Standard qw(
+    Str
+);
 use boolean;
 use namespace::clean;
 
