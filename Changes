@@ -2,42 +2,72 @@
 
 {{ $NEXT }}
 
+  [!!! Incompatible Changes !!!]
+
+  - The legacy read preference constants in MongoDB::MongoClient have been
+    removed, as they are no longer are used with the new
+    MongoDB::ReadPreference class.
+
   [Additions]
 
   - PERL-554 Implements 'server_selection_try_once' configuration
-    option on MongoDB::MongoClient
+    option on MongoDB::MongoClient.
 
   [Bug fixes]
 
-  - PERL-556 Fixes serialization of thread-shared variables
+  - PERL-556 Fixes serialization of thread-shared variables.
 
-  - Fixes topology status string output
+  - Fixes topology status string output.
 
-  - Fixes a bug in idle socket check
+  - Fixes a bug in idle socket check.
 
   [Changes]
 
-  - Changes default connect_timeout_ms to 10,000
+  - Changes default connect_timeout_ms to 10,000.
 
   - Aborts Makefile.PL on Windows before Vista/2008 for better
-    error message than subsequent compilation/test failures
+    error message than subsequent compilation/test failures.
+
+  - MongoDB::QueryResult attributes have become private, as they are an
+    implementation detail and not intended for end-users to inspect.
+
+  - Loads Authen::SCRAM::Client only on demand, as its Unicode module
+    dependencies are costly when not needed.
+
+  [Testing]
+
+  - Reduced number of threads used in threads testing to avoid
+    out of memory errors on memory constrained systems.
 
   [Prerequisites]
 
-  - Removes Moose, Syntax::Keyword::Junction and Throwable
+  - Removes Moose, Syntax::Keyword::Junction and Throwable.
 
   [Documentation]
 
-  - Corrects errors in MongoDB::Cursor documentation
+  - Adds additional details in MongoDB::Upgrading.
 
-  - Fixes formatting and minor typos in MongoDB::Error
+  - Corrects errors in MongoDB::Cursor documentation.
+
+  - Fixes formatting and minor typos in MongoDB::Error.
 
   [~ Internal changes ~]
 
   - Changes all Moose classes to Moo classes for speed and to minimize
-    the deep dependency tree
+    the deep dependency tree.
 
-  - Inlines and adapts the Throwable CPAN module to avoid deep dependencies
+  - Implements a 5 second "cooldown" period after a network error during
+    topology scanning during which new connection attempts will not be
+    made.  This avoids excessive blocking in the driver when it's unlikely
+    that the server will be available right away.
+
+  - Inlines and adapts the Throwable CPAN module to avoid deep
+    dependencies.
+
+  - Consolidates additional constants to MongoDB::_Constants.
+
+  - Exports only type constraints being used to avoid excessive symbol
+    importing and removal (via namespace::clean).
 
 v0.999.999.4 2015-07-31 17:02:21-04:00 America/New_York (TRIAL RELEASE)
 
