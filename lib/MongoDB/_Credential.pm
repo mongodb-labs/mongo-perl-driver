@@ -24,7 +24,6 @@ use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Types -types;
 
-use Authen::SCRAM::Client 0.003;
 use Digest::MD5 qw/md5_hex/;
 use Encode qw/encode/;
 use MIME::Base64 qw/encode_base64 decode_base64/;
@@ -82,6 +81,10 @@ has _scram_client => (
 
 sub _build__scram_client {
     my ($self) = @_;
+    # loaded only demand as it has a long load time relative to other
+    # modules
+    require Authen::SCRAM::Client;
+    Authen::SCRAM::Client->VERSION(0.003);
     return Authen::SCRAM::Client->new(
         username      => $self->username,
         password      => $self->_digested_password,
