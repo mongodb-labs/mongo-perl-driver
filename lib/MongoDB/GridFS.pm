@@ -23,7 +23,6 @@ use version;
 our $VERSION = 'v0.999.999.5';
 
 use MongoDB::GridFS::File;
-use DateTime 0.78; # drops dependency on bug-prone Math::Round
 use Digest::MD5;
 use Moo;
 use MongoDB::Error;
@@ -339,6 +338,7 @@ with:
 sub insert {
     my ($self, $fh, $metadata, $options) = @_;
     $options ||= {};
+    require DateTime; # lazy load so we don't have overhead if not needed
 
     MongoDB::UsageError->throw("not a file handle") unless $fh;
     $metadata = {} unless $metadata && ref $metadata eq 'HASH';

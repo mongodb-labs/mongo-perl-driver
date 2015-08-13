@@ -29,6 +29,8 @@ use TestBSON;
 plan skip_all => "Requires Time::Moment"
   unless eval { require Time::Moment; 1 };
 
+require DateTime;
+
 my $dt = DateTime->new(
     year       => 1984,
     month      => 10,
