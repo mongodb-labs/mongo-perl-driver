@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.999.999.5 2015-08-13 17:11:49-04:00 America/New_York (TRIAL RELEASE)
+
   [!!! Incompatible Changes !!!]
 
   - The legacy read preference constants in MongoDB::MongoClient have been
