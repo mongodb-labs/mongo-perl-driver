@@ -1864,8 +1864,7 @@ C<auth_mechanism_properties> attribute or in the connection string.
 
     auth_mechanism_properties => { SERVICE_NAME => 'other_service' }
 
-    mongodb://.../?authMechanism=GSSAPI&authMechanism.SERVICE_NAME=other_service
-
+    mongodb://.../?authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:other_service
 
 =head1 THREAD-SAFETY AND FORK-SAFETY
 
