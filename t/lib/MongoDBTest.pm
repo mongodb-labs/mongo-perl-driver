@@ -47,7 +47,7 @@ sub build_client {
         $host,
         {
             ssl                         => $ENV{MONGO_SSL},
-            query_timeout               => 60000,
+            socket_timeout_ms           => 60000,
             server_selection_timeout_ms => 2000,
             %args,
         }
