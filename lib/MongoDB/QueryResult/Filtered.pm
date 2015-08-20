@@ -38,7 +38,7 @@ has _post_filter => (
 
 sub has_next {
     my ($self) = @_;
-    my $limit = $self->limit;
+    my $limit = $self->_limit;
     if ( $limit > 0 && ( $self->cursor_at + 1 ) > $limit ) {
         $self->_kill_cursor;
         return 0;
