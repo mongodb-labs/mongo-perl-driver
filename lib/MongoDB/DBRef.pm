@@ -62,7 +62,7 @@ has ref => (
     is        => 'ro',
     isa       => DBRefColl,
     required  => 1,
-    coerce    => 1,
+    coerce    => DBRefColl->coercion,
 );
 
 =attr db
@@ -81,7 +81,7 @@ This may also be specified in the constructor as C<'$db'>.
 has db => (
     is        => 'ro',
     isa       => Maybe[DBRefDB],
-    coerce    => 1,
+    coerce    => Maybe([DBRefDB])->coercion,
 );
 
 =attr extra

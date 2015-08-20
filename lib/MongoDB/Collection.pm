@@ -99,7 +99,7 @@ has read_preference => (
     is       => 'ro',
     isa      => ReadPreference,
     required => 1,
-    coerce   => 1,
+    coerce   => ReadPreference->coercion,
 );
 
 =attr write_concern
@@ -114,7 +114,7 @@ has write_concern => (
     is       => 'ro',
     isa      => WriteConcern,
     required => 1,
-    coerce   => 1,
+    coerce   => WriteConcern->coercion,
 );
 
 =attr max_time_ms
@@ -145,7 +145,7 @@ inherited from a L<MongoDB::Database> object.
 has bson_codec => (
     is       => 'ro',
     isa      => BSONCodec,
-    coerce   => 1,
+    coerce   => BSONCodec->coercion,
     required => 1,
 );
 

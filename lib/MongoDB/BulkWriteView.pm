@@ -38,7 +38,7 @@ use namespace::clean -except => 'meta';
 has _query => (
     is       => 'ro',
     isa      => IxHash,
-    coerce   => 1,
+    coerce   => IxHash->coercion,
     required => 1
 );
 

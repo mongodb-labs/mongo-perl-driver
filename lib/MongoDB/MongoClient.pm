@@ -179,7 +179,7 @@ If not provided, one will be generated from deprecated configuration options.
 has bson_codec => (
     is      => 'lazy',
     isa     => BSONCodec,
-    coerce  => 1,
+    coerce  => BSONCodec->coercion,
     writer  => '_set_bson_codec',
     builder => '_build_bson_codec',
 );
@@ -438,7 +438,7 @@ This may be set in a connection string with the C<readPreference> option.
 has read_pref_mode => (
     is      => 'lazy',
     isa     => ReadPrefMode,
-    coerce  => 1,
+    coerce  => ReadPrefMode->coercion,
     builder => '_build_read_pref_mode',
 );
 
@@ -475,7 +475,7 @@ which case each document will be added to the tag set list.
 has read_pref_tag_sets => (
     is      => 'lazy',
     isa     => ArrayOfHashRef,
-    coerce  => 1,
+    coerce  => ArrayOfHashRef->coercion,
     builder => '_build_read_pref_tag_sets',
 );
 

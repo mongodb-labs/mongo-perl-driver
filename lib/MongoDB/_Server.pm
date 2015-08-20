@@ -44,7 +44,7 @@ use namespace::clean -except => 'meta';
 has address => (
     is       => 'ro',
     isa      => HostAddress,
-    coerce   => 1,
+    coerce   => HostAddress->coercion,
     required => 1,
 );
 
@@ -134,7 +134,7 @@ for my $s (qw/hosts passives arbiters/) {
         is      => 'lazy',
         isa     => HostAddressList,
         builder => "_build_$s",
-        coerce  => 1,
+        coerce  => HostAddressList->coercion,
     );
 
     no strict 'refs';

@@ -75,7 +75,7 @@ error with a mongod or mongos running with --nojournal option now errors.
 has j => (
     is        => 'ro',
     isa       => Booleanpm,
-    coerce    => 1,
+    coerce    => Booleanpm->coercion,
     predicate => '_has_j',
 );
 

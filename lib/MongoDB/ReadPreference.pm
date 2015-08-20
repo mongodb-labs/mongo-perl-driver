@@ -52,7 +52,7 @@ has mode => (
     is      => 'ro',
     isa     => ReadPrefMode,
     default => 'primary',
-    coerce  => 1,
+    coerce  => ReadPrefMode->coercion,
 );
 
 =attr tag_sets
@@ -69,7 +69,7 @@ has tag_sets => (
     is      => 'ro',
     isa     => ArrayOfHashRef,
     default => sub { [ {} ] },
-    coerce  => 1,
+    coerce  => ArrayOfHashRef->coercion,
 );
 
 sub BUILD {
