@@ -101,9 +101,9 @@ sub _build_is_acknowledged {
 sub _build_as_struct {
     my ($self) = @_;
     return {
-        ( $self->_has_w        ? ( w        => $self->w )        : () ),
-        ( $self->_has_wtimeout ? ( wtimeout => $self->wtimeout ) : () ),
-        ( $self->_has_j        ? ( j        => $self->j )        : () ),
+        ( $self->_has_w        ? ( w        => $self->w )           : () ),
+        ( $self->_has_wtimeout ? ( wtimeout => 0+ $self->wtimeout ) : () ),
+        ( $self->_has_j        ? ( j        => $self->j )           : () ),
     };
 }
 
