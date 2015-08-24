@@ -2,6 +2,19 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-557 Fixes typo in method call in filtered query result objects
+    (fixes regression on mongod < 3.0)
+
+  - Numifies wtimeout in write concern serialization
+
+  - Fixes some type coercions
+
+  [Documentation]
+
+  - Fixes typo in GSSAPI authentication instructions
+
 v0.999.999.5 2015-08-13 17:11:49-04:00 America/New_York (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]
