@@ -19,7 +19,7 @@ package MongoDB::Role::_WriteOp;
 # MongoDB interface for database write operations
 
 use version;
-our $VERSION = 'v0.999.999.6';
+our $VERSION = 'v0.999.999.7';
 
 use MongoDB::BSON;
 use MongoDB::CommandResult;

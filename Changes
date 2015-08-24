@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v0.999.999.6 2015-08-24 10:42:35-04:00 America/New_York (TRIAL RELEASE)
+
   [Bug fixes]
 
   - PERL-557 Fixes typo in method call in filtered query result objects

@@ -19,7 +19,7 @@ package MongoDB::Op::_Query;
 # Encapsulate a query operation; returns a MongoDB::QueryResult object
 
 use version;
-our $VERSION = 'v0.999.999.6';
+our $VERSION = 'v0.999.999.7';
 
 use Moo;
 
