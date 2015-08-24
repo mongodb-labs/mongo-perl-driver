@@ -1,4 +1,5 @@
 language: perl
+sudo: false
 services:
   - mongodb
 install:
