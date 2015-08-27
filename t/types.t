@@ -223,6 +223,7 @@ is($id."", $id->value);
     $code = MongoDB::Code->new("code" => $str,
                                "scope" => {"name" => "Fred"});
     if ( ! $conn->password ) {
+        # XXX eval is deprecated, but we'll leave this test for now
         $x = $testdb->eval($code);
         is($x, "Fred");
     }

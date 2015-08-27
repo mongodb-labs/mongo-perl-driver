@@ -149,8 +149,8 @@ subtest 'getlasterror' => sub {
     isa_ok( $err, "MongoDB::DatabaseError" );
 }
 
-# eval
-subtest "eval" => sub {
+# XXX eval is deprecated, but we'll leave this test for now
+subtest "eval (deprecated)" => sub {
     plan skip_all => "eval not available under auth"
         if $conn->password;
     my $hello = $testdb->eval('function(x) { return "hello, "+x; }', ["world"]);

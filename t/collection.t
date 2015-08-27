@@ -414,6 +414,7 @@ SKIP: {
     }
 
     eval {
+        # XXX eval is deprecated, but we'll leave this test for now
         my $num = $testdb->eval('for (i=0;i<1000;i++) { print(.);}');
     };
 

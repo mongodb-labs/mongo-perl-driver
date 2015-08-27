@@ -598,6 +598,8 @@ new MongoDB driver API.
 =head2 MongoDB::Database
 
 =for :list
+* eval – MongoDB 3.0 deprecated the '$eval' command, so this helper method
+  is deprecated as well.
 * last_error — Errors are now indicated via exceptions at the time database
   commands are executed.
 

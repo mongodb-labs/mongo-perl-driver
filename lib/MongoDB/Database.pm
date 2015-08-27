@@ -345,24 +345,9 @@ sub run_command {
     return $obj->output;
 }
 
-=method eval ($code, $args?, $nolock?)
-
-    my $output = $database->eval('function(x) { return "hello, "+x; }', ["world"]);
-
-Evaluate a JavaScript expression on the Mongo server. The C<$code> argument can
-be a string or an instance of L<MongoDB::Code>.  The C<$args> are an optional
-array of arguments to be passed to the C<$code> function.  C<$nolock> (default
-C<false>) prevents the eval command from taking the global write lock before
-evaluating the JavaScript.
-
-C<eval> is useful if you need to touch a lot of data lightly; in such a scenario
-the network transfer of the data could be a bottleneck. The C<$code> argument
-must be a JavaScript function. C<$args> is an array of parameters that will be
-passed to the function.  C<$nolock> is a L<boolean> value.  For more examples of
-using eval see
-L<http://www.mongodb.org/display/DOCS/Server-side+Code+Execution#Server-sideCodeExecution-Using{{db.eval%28%29}}>.
-
-=cut
+#--------------------------------------------------------------------------#
+# deprecated methods
+#--------------------------------------------------------------------------#
 
 sub eval {
     my ($self, $code, $args, $nolock) = @_;
@@ -382,10 +367,6 @@ sub eval {
         return $output;
     }
 }
-
-#--------------------------------------------------------------------------#
-# deprecated methods
-#--------------------------------------------------------------------------#
 
 sub last_error {
     my ( $self, $opt ) = @_;
