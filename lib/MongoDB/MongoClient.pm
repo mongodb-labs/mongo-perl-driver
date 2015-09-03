@@ -30,6 +30,7 @@ use MongoDB::Cursor;
 use MongoDB::DBRef;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
+use MongoDB::Op::_FSyncUnlock;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
 use MongoDB::_Topology;
@@ -1494,8 +1495,13 @@ Unlocks a database server to allow writes and reverses the operation of a $conn-
 sub fsync_unlock {
     my ($self) = @_;
 
-    # Have to fetch from a special collection to unlock.
-    return $self->get_database('admin')->get_collection('$cmd.sys.unlock')->find_one();
+    my $op = MongoDB::Op::_FSyncUnlock->_new(
+        db_name    => 'admin',
+        client     => $self,
+        bson_codec => $self->bson_codec,
+    );
+
+    return $self->send_read_op($op);
 }
 
 
