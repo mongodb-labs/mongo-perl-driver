@@ -583,7 +583,7 @@ Valid options include:
   document, the sort field overwrites C<$orderby>.  See docs for
   L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
 
-For more infomation, see the L<Read Operations
+For more information, see the L<Read Operations
 Overview|http://docs.mongodb.org/manual/core/read-operations-introduction/> in
 the MongoDB documentation.
 
