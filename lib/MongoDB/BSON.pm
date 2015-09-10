@@ -63,7 +63,18 @@ The hash reference will have keys C<$ref> and C<$id> and may have C<$db> and
 other keys.  The callback must return a scalar value representing the dbref
 (e.g. a document, an object, etc.)
 
-The default returns the DBRef hash reference without modification.
+The default C<dbref_callback> returns the DBRef hash reference without
+modification.
+
+Note: in L<MongoDB::MongoClient>, when no L<MongoDB::BSON> object is
+provided as the C<bson_codec> attribute, L<MongoDB:MongoClient> creates a
+B<custom> L<MongoDB::BSON> object that inflates DBRefs into
+L<MongoDB::DBRef> objects using a custom C<dbref_callback>:
+
+    dbref_callback => sub { return MongoDB::DBRef->new(shift) },
+
+Object-database mappers may wish to implement alternative C<dbref_callback>
+attributes to provide whatever semantics they require.
 
 =cut
 

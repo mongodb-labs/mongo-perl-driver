@@ -172,7 +172,21 @@ An object that provides the C<encode_one> and C<decode_one> methods, such as
 from L<MongoDB::BSON>.  It may be initialized with a hash reference that will
 be coerced into a new L<MongoDB::BSON> object.
 
-If not provided, one will be generated from deprecated configuration options.
+If not provided, one will be generated as follows:
+
+    MongoDB::BSON->new(
+        dbref_callback => sub { return MongoDB::DBRef->new(shift) },
+        dt_type        => $client->dt_type,
+        prefer_numeric => $MongoDB::BSON::looks_like_number || 0,
+        (
+            $MongoDB::BSON::char ne '$' ?
+                ( op_char => $MongoDB::BSON::char ) : ()
+        ),
+    );
+
+This will inflate all DBRefs to L<MongoDB::DBRef> objects, set C<dt_type>
+based on the client's C<db_type> accessor, and set the C<prefer_numeric>
+and C<op_char> attributes based on the deprecated legacy global variables.
 
 =cut
 
