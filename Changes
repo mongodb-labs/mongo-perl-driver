@@ -7,6 +7,10 @@
   - PERL-559 Deprecated the 'eval' method on MongoDB::Database, as
     the MongoDB server version 3.0 deprecated the '$eval' command.
 
+  [Changes]
+
+  - Credential details omitted from usage error messages
+
 v0.999.999.6 2015-08-24 10:42:35-04:00 America/New_York (TRIAL RELEASE)
 
   [Bug fixes]

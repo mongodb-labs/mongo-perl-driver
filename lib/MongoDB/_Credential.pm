@@ -163,7 +163,7 @@ sub BUILD {
     while ( my ( $key, $validator ) = each %{ $CONSTRAINTS{$mech} } ) {
         local $_ = $self->$key;
         unless ( $validator->() ) {
-            MongoDB::UsageError->throw("invalid field $key ('$_') in $mech credential");
+            MongoDB::UsageError->throw("invalid field $key in $mech credential");
         }
     }
 
