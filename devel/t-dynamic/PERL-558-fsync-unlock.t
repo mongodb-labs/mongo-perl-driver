@@ -31,11 +31,13 @@ use lib "devel/lib";
 use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
 
 use MongoDBTest::Orchestrator;
-use MongoDBTest qw/build_client get_test_db clear_testdbs/;
+use MongoDBTest qw/build_client get_test_db clear_testdbs server_version/;
 
 sub _test_lock_unlock {
     local $Test::Builder::Level = $Test::Builder::Level + 1;
     my $conn = build_client( dt_type => undef );
+
+    my $server_version = server_version($conn);
 
     # Lock
     my $ret = $conn->fsync({lock => 1});
@@ -44,7 +46,13 @@ sub _test_lock_unlock {
     is($ret->{info}, "now locked against writes, use db.fsyncUnlock() to unlock", "Successfully locked mongodb.");
 
     # Check the lock.
-    $ret = $conn->get_database('admin')->get_collection('$cmd.sys.inprog')->find_one();
+    if ($server_version <= v3.1.0) {
+        $ret = $conn->get_database('admin')->get_collection('$cmd.sys.inprog')->find_one();
+    } 
+    else { 
+        $ret = $conn->send_admin_command([currentOp => 1]);
+        $ret = $ret->{output};
+    }
     is($ret->{fsyncLock}, 1, "MongoDB is still locked.");
     is($ret->{info}, "use db.fsyncUnlock() to terminate the fsync write/snapshot lock", "Got docs on how to unlock (via shell).");
 

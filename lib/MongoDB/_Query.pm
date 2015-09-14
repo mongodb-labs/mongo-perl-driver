@@ -167,51 +167,27 @@ with $_ for qw(
 sub as_query_op {
     my ( $self, $extra_params ) = @_;
 
-    # build starting query document; modifiers come first as other parameters
-    # take precedence.
-    my $query = {
-        ( $self->modifiers ? %{ $self->modifiers } : () ),
-        ( $self->comment ? ( '$comment' => $self->comment ) : () ),
-        ( $self->sort    ? ( '$orderby' => $self->sort )    : () ),
-        (
-              ( $self->maxTimeMS && $self->coll_name !~ /\A\$cmd/ )
-            ? ( '$maxTimeMS' => $self->maxTimeMS )
-            : ()
-        ),
-        '$query' => ($self->filter || {}),
-    };
-
-    # if no modifers were added and there is no 'query' key in '$query'
-    # we remove the extra layer; this is necessary as some special
-    # command queries will choke on '$query'
-    # (see https://jira.mongodb.org/browse/SERVER-14294)
-    $query = $query->{'$query'}
-      if keys %$query == 1 && !(
-        ( ref( $query->{'$query'} ) eq 'Tie::IxHash' )
-        ? $query->{'$query'}->EXISTS('query')
-        : exists $query->{'$query'}{query}
-      );
-
-    # finally, generate the query op
-    # XXX eventually flag names should get changed here and in _Protocol
-    # to better match documentation or the CRUD API names
     return MongoDB::Op::_Query->_new(
-        db_name     => $self->db_name,
-        coll_name   => $self->coll_name,
-        client      => $self->client,
-        bson_codec  => $self->bson_codec,
-        query       => $query,
-        projection  => $self->projection,
-        batch_size  => $self->batchSize,
-        limit       => $self->limit,
-        skip        => $self->skip,
-        query_flags => {
-            tailable => ( $self->cursorType =~ /^tailable/ ? 1 : 0 ),
-            await_data => $self->cursorType eq 'tailable_await',
-            immortal   => $self->noCursorTimeout,
-            partial    => $self->allowPartialResults,
-        },
-        ( $extra_params ? %$extra_params : () ),
+        db_name               => $self->db_name,
+        coll_name             => $self->coll_name,
+        client                => $self->client,
+        bson_codec            => $self->bson_codec,
+        filter                => $self->filter,
+        projection            => $self->projection,
+        batch_size            => $self->batchSize,
+        limit                 => $self->limit,
+        skip                  => $self->skip,
+        'sort'                => $self->sort,
+        comment               => $self->comment,
+        max_time_ms           => $self->maxTimeMS,
+        oplog_replay          => $self->oplogReplay,
+        no_cursor_timeout     => $self->noCursorTimeout,
+        allow_partial_results => $self->allowPartialResults,
+        modifiers             => $self->modifiers,
+        cursor_type           => $self->cursorType, 
+        read_preference       => $self->read_preference,
+        exists $$extra_params{post_filter} ? 
+            (post_filter => $$extra_params{post_filter}) : (),
     );
 }
 
