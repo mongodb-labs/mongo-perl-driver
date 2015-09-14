@@ -130,7 +130,7 @@ $coll->drop;
     $cursor_sort = $coll->query->sort({'x' => 1});
     is($cursor_sort->next->{'x'}, 1);
     is($cursor_sort->next->{'x'}, 5);
-    
+
     my $hash = Tie::IxHash->new("x" => -1);
     $cursor_sort = $coll->query->sort($hash);
     is($cursor_sort->has_next, 1);
@@ -236,8 +236,10 @@ $coll->drop;
 
     $coll->insert_one({'num' => 1, 'foo' => 1});
 
+    # "Command Op::_Explain will throw a MongoDB::Error, while the legacy
+    # code will throw a MongoDB::DatabaseError, so test must check both.
     like( exception { $coll->query->hint( { 'num' => 1 } )->explain },
-        qr/MongoDB::DatabaseError/, "check error on hint with explain" );
+        qr/MongoDB::(Database)?Error/, "check error on hint with explain" );
 }
 
 # count

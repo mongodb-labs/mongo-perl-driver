@@ -26,15 +26,29 @@ use Moo;
 
 use MongoDB::_Constants;
 use Types::Standard qw(
+    Maybe
     Any
     InstanceOf
     Num
     Str
 );
 use MongoDB::_Protocol;
+
 use namespace::clean;
 
 has ns => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
+has db_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
+has coll_name => (
     is       => 'ro',
     required => 1,
     isa      => Str,
@@ -58,12 +72,58 @@ has batch_size => (
     isa      => Num,
 );
 
+has max_time_ms => (
+    is       => 'ro',
+    isa      => Maybe[Num],
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
+  MongoDB::Role::_CommandOp
 );
 
 sub execute {
+    my ( $self, $link ) = @_;
+
+    my $res =
+        $link->accepts_wire_version(4)
+      ? $self->_command_get_more( $link )
+      : $self->_legacy_get_more( $link );
+
+    return $res;
+}
+
+sub _command_get_more {
+    my ( $self, $link ) = @_;
+
+    my $cmd = [
+        getMore         => $self->cursor_id,
+        collection      => $self->coll_name,
+        $self->batch_size > 0 ? (batchSize => $self->batch_size) : (),
+        defined $self->max_time_ms ? (maxTimeMS => $self->max_time_ms) : (),
+    ];
+
+    my $op = MongoDB::Op::_Command->_new(
+        db_name         => $self->db_name,
+        query           => $cmd,
+        query_flags     => {},
+        bson_codec      => $self->bson_codec,
+    );
+
+    my $c = $op->execute( $link )->output->{cursor};
+    my $batch = $c->{nextBatch} || [];
+
+    return {
+        cursor_id       => $c->{id} || 0,
+        flags           => {},
+        starting_from   => 0,
+        number_returned => scalar @$batch,
+        docs            => $batch,
+    };
+}
+
+sub _legacy_get_more {
     my ( $self, $link ) = @_;
 
     my ( $op_bson, $request_id ) = MongoDB::_Protocol::write_get_more( map { $self->$_ }
