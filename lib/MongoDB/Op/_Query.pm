@@ -29,12 +29,15 @@ use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
     Document
+    CursorType
+    IxHash
 );
 use Types::Standard qw(
     CodeRef
     HashRef
     InstanceOf
     Maybe
+    Bool
     Num
     Str
 );
@@ -58,13 +61,6 @@ has client => (
     isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
-has query => (
-    is       => 'ro',
-    required => 1,
-    writer   => '_set_query',
-    isa      => Document,
-);
-
 has projection => (
     is       => 'ro',
     isa      => Maybe [Document],
@@ -76,11 +72,62 @@ has [qw/batch_size limit skip/] => (
     isa      => Num,
 );
 
-# XXX eventually make this a hash with restricted keys?
+has sort => (
+    is  => 'rw',
+    isa => Maybe( [IxHash] ),
+);
+
+has filter => (
+    is       => 'ro',
+    isa      => Document,
+);
+
+has comment => (
+    is       => 'rw',
+    isa      => Str,
+);
+
+has max_time_ms => (
+    is       => 'rw',
+    isa      => Num,
+);
+
+has oplog_replay => (
+    is       => 'rw',
+    isa      => Bool,
+);
+
+has no_cursor_timeout => (
+    is       => 'rw',
+    isa      => Bool,
+);
+
+has allow_partial_results => (
+    is       => 'rw',
+    isa      => Bool,
+);
+
+has modifiers => (
+    is  => 'ro',
+    isa => HashRef,
+);
+
+has cursor_type => (
+    is       => 'rw',
+    isa      => CursorType,
+);
+
+# XXX legacy dependencies
 has query_flags => (
     is       => 'ro',
-    required => 1,
     isa      => HashRef,
+);
+
+# XXX legacy dependencies
+has query => (
+    is       => 'ro',
+    writer   => '_set_query',
+    isa      => Document,
 );
 
 has post_filter => (
@@ -96,16 +143,67 @@ with $_ for qw(
 with 'MongoDB::Role::_ReadPrefModifier';
 
 sub execute {
-    my ( $self, $link, $topology_type ) = @_;
+    my ( $self, $link, $topology ) = @_;
 
+    my $res =
+        $link->accepts_wire_version(4)
+      ? $self->_command_query( $link, $topology )
+      : $self->_legacy_query( $link, $topology );
+
+    return $res; 
+}
+
+sub _command_query {
+    my ( $self, $link, $topology ) = @_;
+ 
+    die("should not be running this code path yet\n");
+
+    return $self->_legacy_query( $link, $topology);
+}
+
+sub _legacy_query {
+    my ( $self, $link, $topology ) = @_;
+
+    #my $query_flags = {
+    #    tailable => ( $self->cursor_type =~ /^tailable/ ? 1 : 0 ),
+    #    await_data => $self->cursor_type eq 'tailable_await',
+    #    immortal => $self->no_cursor_timeout,
+    #    partial => $self->allow_partial_results,
+    #};
+
+    # build starting query document; modifiers come first as other parameters
+    # take precedence.
+    my $query = {
+        ( $self->modifiers ? %{ $self->modifiers } : () ),
+        ( $self->comment ? ( '$comment' => $self->comment ) : () ),
+        ( $self->sort    ? ( '$orderby' => $self->sort )    : () ),
+        (
+              ( $self->max_time_ms && $self->coll_name !~ /\A\$cmd/ )
+            ? ( '$maxTimeMS' => $self->max_time_ms )
+            : ()
+        ),
+        '$query' => ($self->filter || {}),
+    };
+
+    # if no modifers were added and there is no 'query' key in '$query'
+    # we remove the extra layer; this is necessary as some special
+    # command queries will choke on '$query'
+    # (see https://jira.mongodb.org/browse/SERVER-14294)
+    $query = $query->{'$query'}
+      if keys %$query == 1 && !(
+        ( ref( $query->{'$query'} ) eq 'Tie::IxHash' )
+        ? $query->{'$query'}->EXISTS('query')
+        : exists $query->{'$query'}{query}
+      );
+    
     my $ns         = $self->db_name . "." . $self->coll_name;
-    my $filter     = $self->bson_codec->encode_one( $self->query );
+    my $filter     = $self->bson_codec->encode_one( $query );
     my $batch_size = $self->limit || $self->batch_size;            # limit trumps
 
     my $proj =
       $self->projection ? $self->bson_codec->encode_one( $self->projection ) : undef;
 
-    $self->_apply_read_prefs( $link, $topology_type );
+    $self->_apply_read_prefs( $link, $topology );
 
     my ( $op_bson, $request_id ) =
       MongoDB::_Protocol::write_query( $ns, $filter, $proj, $self->skip, $batch_size,
