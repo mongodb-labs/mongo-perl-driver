@@ -117,19 +117,6 @@ has cursor_type => (
     isa      => CursorType,
 );
 
-# XXX legacy dependencies
-has query_flags => (
-    is       => 'ro',
-    isa      => HashRef,
-);
-
-# XXX legacy dependencies
-has query => (
-    is       => 'ro',
-    writer   => '_set_query',
-    isa      => Document,
-);
-
 has post_filter => (
     is        => 'ro',
     predicate => 'has_post_filter',
@@ -140,7 +127,7 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
 );
-with 'MongoDB::Role::_ReadPrefModifier';
+with 'MongoDB::Role::_LegacyReadPrefModifier';
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
@@ -164,12 +151,12 @@ sub _command_query {
 sub _legacy_query {
     my ( $self, $link, $topology ) = @_;
 
-    #my $query_flags = {
-    #    tailable => ( $self->cursor_type =~ /^tailable/ ? 1 : 0 ),
-    #    await_data => $self->cursor_type eq 'tailable_await',
-    #    immortal => $self->no_cursor_timeout,
-    #    partial => $self->allow_partial_results,
-    #};
+    my $query_flags = {
+        tailable => ( $self->cursor_type =~ /^tailable/ ? 1 : 0 ),
+        await_data => $self->cursor_type eq 'tailable_await',
+        immortal => $self->no_cursor_timeout,
+        partial => $self->allow_partial_results,
+    };
 
     # build starting query document; modifiers come first as other parameters
     # take precedence.
@@ -203,11 +190,11 @@ sub _legacy_query {
     my $proj =
       $self->projection ? $self->bson_codec->encode_one( $self->projection ) : undef;
 
-    $self->_apply_read_prefs( $link, $topology );
+    $self->_apply_read_prefs( $link, $topology, $query_flags, \$query);
 
     my ( $op_bson, $request_id ) =
       MongoDB::_Protocol::write_query( $ns, $filter, $proj, $self->skip, $batch_size,
-        $self->query_flags );
+        $query_flags );
 
     my $result =
       $self->_query_and_receive( $link, $op_bson, $request_id, $self->bson_codec );

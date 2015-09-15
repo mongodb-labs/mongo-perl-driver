@@ -185,15 +185,9 @@ sub as_query_op {
         allow_partial_results => $self->allowPartialResults,
         modifiers             => $self->modifiers,
         cursor_type           => $self->cursorType, 
+        read_preference       => $self->read_preference,
         exists $$extra_params{post_filter} ? 
             (post_filter => $$extra_params{post_filter}) : (),
-
-        query_flags => {
-            tailable => ( $self->cursorType =~ /^tailable/ ? 1 : 0 ),
-            await_data => $self->cursorType eq 'tailable_await',
-            immortal => $self->noCursorTimeout,
-            partial => $self->allowPartialResults,
-        },
     );
 }
 
