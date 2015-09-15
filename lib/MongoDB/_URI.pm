@@ -21,9 +21,6 @@ our $VERSION = 'v0.999.999.7';
 
 use Moo;
 use MongoDB::Error;
-use MongoDB::_Types qw(
-    ConnectionStr
-);
 use Types::Standard qw(
     Any
     ArrayRef
@@ -32,11 +29,20 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
-my $uri_re = MongoDB::_Types::connection_uri_re();
+my $uri_re =
+    qr{
+            mongodb://
+            (?: ([^:]*) (?: : ([^@]*) )? @ )? # [username(:password)?@]
+            ([^/]*) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
+            (?:
+               / ([^?]*) # /[database]
+                (?: [?] (.*) )? # [?options]
+            )?
+    }x;
 
 has uri => (
     is => 'ro',
-    isa => ConnectionStr,
+    isa => Str,
     required => 1,
 );
 
@@ -158,7 +164,7 @@ sub BUILD {
                 # connection string spec calls for case normalization
                 (my $lc_k = $k) =~ tr[A-Z][a-z];
                 if ( !$valid->{$lc_k} ) {
-                    warn "Unsupported option '$k' in URI $uri\n";
+                    warn "Unsupported option '$k' in URI $self\n";
                     next;
                 }
                 if ( $lc_k eq 'authmechanismproperties' ) {
@@ -183,7 +189,8 @@ sub BUILD {
         delete $result{db_name} unless defined $result{db_name} && length $result{db_name};
     }
     else {
-        MongoDB::UsageError->throw("URI '$uri' could not be parsed");
+        # NOT a UsageError to avoid stacktrace revealing credentials
+        MongoDB::Error->throw("URI '$self' could not be parsed");
     }
 
     for my $attr ( qw/username password db_name options hostpairs/ ) {
@@ -204,8 +211,12 @@ sub __str_to_bool {
     MongoDB::UsageError->throw("expected boolean string 'true' or 'false' for key '$k' but instead received '$str'");
 }
 
+# redact user credentials when stringifying
 use overload
-    '""' => sub { $_[0]->uri },
+    '""' => sub {
+        (my $s = $_[0]->uri) =~ s{^(\w+)://[^/]+\@}{$1://[**REDACTED**]\@};
+        return $s
+    },
     'fallback' => 1;
 
 

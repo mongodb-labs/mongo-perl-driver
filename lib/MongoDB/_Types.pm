@@ -29,7 +29,6 @@ use Type::Library
   Booleanpm
   BSONCodec
   ConnectType
-  ConnectionStr
   CursorType
   DBRefColl
   DBRefDB
@@ -76,20 +75,6 @@ use Scalar::Util qw/reftype/;
 use boolean;
 require Tie::IxHash;
 
-sub connection_uri_re {
-    return qr{
-            mongodb://
-            (?: ([^:]*) (?: : ([^@]*) )? @ )? # [username(:password)?@]
-            ([^/]*) # host1[:port1][,host2[:port2],...[,hostN[:portN]]]
-            (?:
-               / ([^?]*) # /[database]
-                (?: [?] (.*) )? # [?options]
-            )?
-    }x;
-}
-
-my $uri_re = MongoDB::_Types::connection_uri_re();
-
 #--------------------------------------------------------------------------#
 # Type declarations (without inherited coercions)
 #--------------------------------------------------------------------------#
@@ -104,10 +89,6 @@ class_type Booleanpm, { class => 'boolean' };
 duck_type BSONCodec, [ qw/encode_one decode_one/ ];
 
 enum ConnectType, [qw/replicaSet direct none/];
-
-declare ConnectionStr, as Str,
-  where { $_ =~ /^$uri_re$/ },
-  message { "Could not parse URI '$_'" };
 
 enum CursorType, [qw/non_tailable tailable tailable_await/];
 
