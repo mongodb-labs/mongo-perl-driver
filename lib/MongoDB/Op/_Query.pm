@@ -126,6 +126,7 @@ has post_filter => (
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
+  MongoDB::Role::_CommandCursorOp
 );
 with 'MongoDB::Role::_LegacyReadPrefModifier';
 
@@ -143,9 +144,67 @@ sub execute {
 sub _command_query {
     my ( $self, $link, $topology ) = @_;
  
-    die("should not be running this code path yet\n");
+    if ($self->limit < 0) {
+        $self->limit = abs($self->limit);
+        $self->single_batch = 1;
+    }
+    if ($self->batch_size < 0) {
+        $self->batch_size = abs($self->batch_size);
+        $self->single_batch = 1;
+    }
 
-    return $self->_legacy_query( $link, $topology);
+    $self->single_batch ||= 0;
+
+    my $tailable = $self->cursor_type =~ /^tailable/ ? 1 : 0;
+    my $await_data = $self->cursor_type eq 'tailable_await' ? 1 : 0;
+
+    my $mod = $self->modifiers;
+
+    my $cmd = Tie::IxHash->new(
+        find                => $self->coll_name,
+        filter              => $self->filter,
+        sort                => $self->sort,
+        projection          => $self->projection,
+
+        defined $mod->{hint} ? (hint => $mod->{hint}) : (),
+        
+        skip                => $self->skip,
+
+        $self->limit != 0 ? (limit => $self->limit) : (),
+        $self->batch_size != 0 ? (batchSize => $self->batch_size) : (),
+
+        singleBatch         => $self->single_batch,
+        comment             => $self->comment,
+        
+        defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : (),
+
+        maxTimeMS           => $self->max_time_ms,
+
+        defined $mod->{max} ? (max => $mod->{max}) : (),
+        defined $mod->{min} ? (min => $mod->{min}) : (),
+        defined $mod->{returnKey} ? (returnKey => $mod->{returnKey}) : (),
+        defined $mod->{showDiskLoc} ? (showRecordId => $mod->{showDiskLoc}) : (),
+        defined $mod->{snapshot} ? (snapshot => $mod->{snapshot}) : (),
+
+        tailable            => $tailable,
+        oplogReplay         => $self->oplog_replay,
+        noCursorTimeout     => $self->no_cursor_timeout,
+        awaitData           => $await_data,
+        allowPartialResults => $self->allow_partial_results,
+        #readConcern = ..., XXX unimplemented 
+    );
+
+    my $op = MongoDB::Op::_Command->_new(
+        db_name         => $self->db_name,
+        query           => $cmd,
+        query_flags     => {},
+        read_preference => $self->read_preference,
+        bson_codec      => $self->bson_codec,
+    );
+
+    my $res = $op->execute( $link, $topology );
+
+    return $self->_build_result_from_cursor( $res );
 }
 
 sub _legacy_query {
@@ -203,7 +262,7 @@ sub _legacy_query {
       $self->has_post_filter ? "MongoDB::QueryResult::Filtered" : "MongoDB::QueryResult";
 
     return $class->_new(
-        _client      => $self->client,
+        _client       => $self->client,
         _address      => $link->address,
         _ns           => $ns,
         _bson_codec   => $self->bson_codec,
@@ -214,7 +273,7 @@ sub _legacy_query {
         _cursor_start => $result->{starting_from},
         _cursor_flags => $result->{flags} || {},
         _cursor_num   => $result->{number_returned},
-        _docs        => $result->{docs},
+        _docs         => $result->{docs},
         _post_filter  => $self->post_filter,
     );
 }
