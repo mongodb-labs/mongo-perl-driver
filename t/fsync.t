@@ -26,12 +26,13 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client server_type/;
+use MongoDBTest qw/skip_unless_mongod build_client server_type server_version/;
 
 skip_unless_mongod();
 
 my $conn = build_client();
 my $server_type = server_type( $conn );
+my $server_version = server_version( $conn );
 
 my $ret;
 
@@ -68,7 +69,13 @@ subtest "fsync with lock" => sub {
     is($ret->{info}, "now locked against writes, use db.fsyncUnlock() to unlock", "Successfully locked mongodb.");
 
     # Check the lock.
-    $ret = $conn->get_database('admin')->get_collection('$cmd.sys.inprog')->find_one();
+    if ($server_version <= v3.1.0) {
+        $ret = $conn->get_database('admin')->get_collection('$cmd.sys.inprog')->find_one();
+    } 
+    else { 
+        $ret = $conn->send_admin_command([currentOp => 1]);
+        $ret = $ret->{output};
+    }
     is($ret->{fsyncLock}, 1, "MongoDB is still locked.");
     is($ret->{info}, "use db.fsyncUnlock() to terminate the fsync write/snapshot lock", "Got docs on how to unlock (via shell).");
 
