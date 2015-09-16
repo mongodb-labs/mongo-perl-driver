@@ -41,6 +41,7 @@ use Types::Standard qw(
     Num
     Str
 );
+use boolean;
 use namespace::clean;
 
 has db_name => (
@@ -144,36 +145,36 @@ sub execute {
 sub _command_query {
     my ( $self, $link, $topology ) = @_;
  
-    if ($self->limit < 0) {
-        $self->limit = abs($self->limit);
-        $self->single_batch = 1;
+    my ($limit, $batch_size, $single_batch) = ($self->limit, $self->batch_size, 0);
+
+    if (defined $limit && $limit < 0) {
+        $limit = abs($limit);
+        $single_batch = true;
     }
-    if ($self->batch_size < 0) {
-        $self->batch_size = abs($self->batch_size);
-        $self->single_batch = 1;
+    if (defined $batch_size && $batch_size < 0) {
+        $batch_size = abs($batch_size);
+        $single_batch = true;
     }
 
-    $self->single_batch ||= 0;
-
-    my $tailable = $self->cursor_type =~ /^tailable/ ? 1 : 0;
-    my $await_data = $self->cursor_type eq 'tailable_await' ? 1 : 0;
+    my $tailable = $self->cursor_type =~ /^tailable/ ? true : false;
+    my $await_data = $self->cursor_type eq 'tailable_await' ? true : false;
 
     my $mod = $self->modifiers;
 
     my $cmd = Tie::IxHash->new(
         find                => $self->coll_name,
         filter              => $self->filter,
-        sort                => $self->sort,
-        projection          => $self->projection,
 
+        defined $self->sort ? (sort => $self->sort) : (),
+        defined $self->projection ? (projection => $self->projection) : (),
         defined $mod->{hint} ? (hint => $mod->{hint}) : (),
         
         skip                => $self->skip,
 
-        $self->limit != 0 ? (limit => $self->limit) : (),
-        $self->batch_size != 0 ? (batchSize => $self->batch_size) : (),
+        $limit != 0 ? (limit => $limit) : (),
+        $batch_size != 0 ? (batchSize => $batch_size) : (),
 
-        singleBatch         => $self->single_batch,
+        singleBatch         => boolean($single_batch),
         comment             => $self->comment,
         
         defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : (),
@@ -187,10 +188,10 @@ sub _command_query {
         defined $mod->{snapshot} ? (snapshot => $mod->{snapshot}) : (),
 
         tailable            => $tailable,
-        oplogReplay         => $self->oplog_replay,
-        noCursorTimeout     => $self->no_cursor_timeout,
+        oplogReplay         => boolean($self->oplog_replay),
+        noCursorTimeout     => boolean($self->no_cursor_timeout),
         awaitData           => $await_data,
-        allowPartialResults => $self->allow_partial_results,
+        allowPartialResults => boolean($self->allow_partial_results),
         #readConcern = ..., XXX unimplemented 
     );
 
