@@ -26,6 +26,7 @@ use Moo;
 
 use MongoDB::_Constants;
 use Types::Standard qw(
+    Maybe
     Any
     InstanceOf
     Num
@@ -75,6 +76,11 @@ has batch_size => (
     isa      => Num,
 );
 
+has max_time_ms => (
+    is       => 'ro',
+    isa      => Maybe[Num],
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
@@ -101,7 +107,7 @@ sub _command_get_more {
         getMore         => $self->cursor_id,
         collection      => $self->coll_name,
         $self->batch_size > 0 ? (batchSize => $self->batch_size) : (),
-        # maxTimeMS     => XXX unimplemented
+        defined $self->max_time_ms ? (maxTimeMS => $self->max_time_ms) : (),
     );
 
     my $res = $self->_send_command( $link, $cmd );

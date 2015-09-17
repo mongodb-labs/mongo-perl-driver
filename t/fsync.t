@@ -71,8 +71,8 @@ subtest "fsync with lock" => sub {
     # Check the lock.
     if ($server_version <= v3.1.0) {
         $ret = $conn->get_database('admin')->get_collection('$cmd.sys.inprog')->find_one();
-    } 
-    else { 
+    }
+    else {
         $ret = $conn->send_admin_command([currentOp => 1]);
         $ret = $ret->{output};
     }

@@ -184,9 +184,9 @@ sub as_query_op {
         no_cursor_timeout     => $self->noCursorTimeout,
         allow_partial_results => $self->allowPartialResults,
         modifiers             => $self->modifiers,
-        cursor_type           => $self->cursorType, 
+        cursor_type           => $self->cursorType,
         read_preference       => $self->read_preference,
-        exists $$extra_params{post_filter} ? 
+        exists $$extra_params{post_filter} ?
             (post_filter => $$extra_params{post_filter}) : (),
     );
 }

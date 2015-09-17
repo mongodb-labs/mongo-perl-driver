@@ -100,18 +100,26 @@ sub _legacy_list_indexes {
 
     my $ns = $self->db_name . "." . $self->coll_name;
     my $op = MongoDB::Op::_Query->_new(
-        db_name         => $self->db_name,
-        coll_name       => 'system.indexes',
-        client          => $self->client,
-        bson_codec      => $self->bson_codec,
-        query           => Tie::IxHash->new( ns => $ns ),
-        read_preference => $self->read_preference,
-        batch_size => 0,
-        limit => 0,
-        skip => 0,
-        query_flags => {},
+        modifiers              => {},
+        allow_partial_results  => 0,
+        batch_size             => 0,
+        comment                => '',
+        cursor_type            => 'non_tailable',
+        limit                  => 0,
+        max_time_ms            => 0,
+        no_cursor_timeout      => 0,
+        oplog_replay           => 0,
+        projection             => undef,
+        skip                   => 0,
+        sort                   => undef,
+        db_name                => $self->db_name,
+        coll_name              => 'system.indexes',
+        bson_codec             => $self->bson_codec,
+        client                 => $self->client,
+        read_preference        => $self->read_preference,
+        filter                 => Tie::IxHash->new( ns => $ns ),
     );
-
+ 
     return $op->execute( $link, $topology );
 }
 

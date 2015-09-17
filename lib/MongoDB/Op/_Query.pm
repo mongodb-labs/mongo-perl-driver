@@ -74,7 +74,7 @@ has [qw/batch_size limit skip/] => (
 );
 
 has sort => (
-    is  => 'rw',
+    is  => 'ro',
     isa => Maybe( [IxHash] ),
 );
 
@@ -84,27 +84,27 @@ has filter => (
 );
 
 has comment => (
-    is       => 'rw',
+    is       => 'ro',
     isa      => Str,
 );
 
 has max_time_ms => (
-    is       => 'rw',
+    is       => 'ro',
     isa      => Num,
 );
 
 has oplog_replay => (
-    is       => 'rw',
+    is       => 'ro',
     isa      => Bool,
 );
 
 has no_cursor_timeout => (
-    is       => 'rw',
+    is       => 'ro',
     isa      => Bool,
 );
 
 has allow_partial_results => (
-    is       => 'rw',
+    is       => 'ro',
     isa      => Bool,
 );
 
@@ -114,7 +114,7 @@ has modifiers => (
 );
 
 has cursor_type => (
-    is       => 'rw',
+    is       => 'ro',
     isa      => CursorType,
 );
 
@@ -139,12 +139,12 @@ sub execute {
       ? $self->_command_query( $link, $topology )
       : $self->_legacy_query( $link, $topology );
 
-    return $res; 
+    return $res;
 }
 
 sub _command_query {
     my ( $self, $link, $topology ) = @_;
- 
+
     my $cmd = $self->as_command;
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
@@ -154,7 +154,7 @@ sub _command_query {
         bson_codec      => $self->bson_codec,
     );
     my $res = $op->execute( $link, $topology );
-    
+
     return $self->_build_result_from_cursor( $res );
 }
 
@@ -192,7 +192,7 @@ sub _legacy_query {
         ? $query->{'$query'}->EXISTS('query')
         : exists $query->{'$query'}{query}
       );
-    
+
     my $ns         = $self->db_name . "." . $self->coll_name;
     my $filter     = $self->bson_codec->encode_one( $query );
     my $batch_size = $self->limit || $self->batch_size;            # limit trumps
@@ -200,6 +200,7 @@ sub _legacy_query {
     my $proj =
       $self->projection ? $self->bson_codec->encode_one( $self->projection ) : undef;
 
+    # $query is passed as a reference because it *may* be replaced
     $self->_apply_read_prefs( $link, $topology, $query_flags, \$query);
 
     my ( $op_bson, $request_id ) =
@@ -229,7 +230,7 @@ sub _legacy_query {
     );
 }
 
-sub as_command { 
+sub as_command {
     my ($self) = @_;
 
     my ($limit, $batch_size, $single_batch) = ($self->limit, $self->batch_size, 0);
@@ -255,7 +256,7 @@ sub as_command {
         defined $self->sort ? (sort => $self->sort) : (),
         defined $self->projection ? (projection => $self->projection) : (),
         defined $mod->{'$hint'} ? (hint => $mod->{'$hint'}) : (),
-        
+
         skip                => $self->skip,
 
         $limit != 0 ? (limit => $limit) : (),
@@ -263,7 +264,7 @@ sub as_command {
 
         singleBatch         => boolean($single_batch),
         comment             => $self->comment,
-        
+
         defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : (),
 
         maxTimeMS           => $self->max_time_ms,
@@ -279,7 +280,7 @@ sub as_command {
         noCursorTimeout     => boolean($self->no_cursor_timeout),
         awaitData           => $await_data,
         allowPartialResults => boolean($self->allow_partial_results),
-        #readConcern = ..., XXX unimplemented 
+        #readConcern = ..., XXX unimplemented
     );
 }
 
