@@ -34,7 +34,7 @@ use namespace::clean;
 has cursor_ids => (
     is       => 'ro',
     required => 1,
-    isa      => ArrayRef [Str],
+    isa      => ArrayRef,
 );
 
 with $_ for qw(

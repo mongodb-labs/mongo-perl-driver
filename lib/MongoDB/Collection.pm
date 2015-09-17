@@ -1067,7 +1067,7 @@ sub parallel_scan {
             _batch_size   => scalar @$batch,
             _cursor_at    => 0,
             _limit        => 0,
-            _cursor_id    => MongoDB::QueryResult::_pack_cursor_id($c->{id}),
+            _cursor_id    => $c->{id},
             _cursor_start => 0,
             _cursor_flags => {},
             _cursor_num   => scalar @$batch,
