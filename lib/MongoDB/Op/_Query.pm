@@ -145,56 +145,7 @@ sub execute {
 sub _command_query {
     my ( $self, $link, $topology ) = @_;
  
-    my ($limit, $batch_size, $single_batch) = ($self->limit, $self->batch_size, 0);
-
-    if (defined $limit && $limit < 0) {
-        $limit = abs($limit);
-        $single_batch = true;
-    }
-    if (defined $batch_size && $batch_size < 0) {
-        $batch_size = abs($batch_size);
-        $single_batch = true;
-    }
-
-    my $tailable = $self->cursor_type =~ /^tailable/ ? true : false;
-    my $await_data = $self->cursor_type eq 'tailable_await' ? true : false;
-
-    my $mod = $self->modifiers;
-
-    my $cmd = Tie::IxHash->new(
-        find                => $self->coll_name,
-        filter              => $self->filter,
-
-        defined $self->sort ? (sort => $self->sort) : (),
-        defined $self->projection ? (projection => $self->projection) : (),
-        defined $mod->{hint} ? (hint => $mod->{hint}) : (),
-        
-        skip                => $self->skip,
-
-        $limit != 0 ? (limit => $limit) : (),
-        $batch_size != 0 ? (batchSize => $batch_size) : (),
-
-        singleBatch         => boolean($single_batch),
-        comment             => $self->comment,
-        
-        defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : (),
-
-        maxTimeMS           => $self->max_time_ms,
-
-        defined $mod->{max} ? (max => $mod->{max}) : (),
-        defined $mod->{min} ? (min => $mod->{min}) : (),
-        defined $mod->{returnKey} ? (returnKey => $mod->{returnKey}) : (),
-        defined $mod->{showDiskLoc} ? (showRecordId => $mod->{showDiskLoc}) : (),
-        defined $mod->{snapshot} ? (snapshot => $mod->{snapshot}) : (),
-
-        tailable            => $tailable,
-        oplogReplay         => boolean($self->oplog_replay),
-        noCursorTimeout     => boolean($self->no_cursor_timeout),
-        awaitData           => $await_data,
-        allowPartialResults => boolean($self->allow_partial_results),
-        #readConcern = ..., XXX unimplemented 
-    );
-
+    my $cmd = $self->as_command;
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
         query           => $cmd,
@@ -202,9 +153,8 @@ sub _command_query {
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
-
     my $res = $op->execute( $link, $topology );
-
+    
     return $self->_build_result_from_cursor( $res );
 }
 
@@ -276,6 +226,60 @@ sub _legacy_query {
         _cursor_num   => $result->{number_returned},
         _docs         => $result->{docs},
         _post_filter  => $self->post_filter,
+    );
+}
+
+sub as_command { 
+    my ($self) = @_;
+
+    my ($limit, $batch_size, $single_batch) = ($self->limit, $self->batch_size, 0);
+
+    if (defined $limit && $limit < 0) {
+        $limit = abs($limit);
+        $single_batch = true;
+    }
+    if (defined $batch_size && $batch_size < 0) {
+        $batch_size = abs($batch_size);
+        $single_batch = true;
+    }
+
+    my $tailable = $self->cursor_type =~ /^tailable/ ? true : false;
+    my $await_data = $self->cursor_type eq 'tailable_await' ? true : false;
+
+    my $mod = $self->modifiers;
+
+    return Tie::IxHash->new(
+        find                => $self->coll_name,
+        filter              => $self->filter,
+
+        defined $self->sort ? (sort => $self->sort) : (),
+        defined $self->projection ? (projection => $self->projection) : (),
+        defined $mod->{'$hint'} ? (hint => $mod->{'$hint'}) : (),
+        
+        skip                => $self->skip,
+
+        $limit != 0 ? (limit => $limit) : (),
+        $batch_size != 0 ? (batchSize => $batch_size) : (),
+
+        singleBatch         => boolean($single_batch),
+        comment             => $self->comment,
+        
+        defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : (),
+
+        maxTimeMS           => $self->max_time_ms,
+
+        defined $mod->{max} ? (max => $mod->{max}) : (),
+        defined $mod->{min} ? (min => $mod->{min}) : (),
+        defined $mod->{returnKey} ? (returnKey => $mod->{returnKey}) : (),
+        defined $mod->{showDiskLoc} ? (showRecordId => $mod->{showDiskLoc}) : (),
+        defined $mod->{snapshot} ? (snapshot => $mod->{snapshot}) : (),
+
+        tailable            => $tailable,
+        oplogReplay         => boolean($self->oplog_replay),
+        noCursorTimeout     => boolean($self->no_cursor_timeout),
+        awaitData           => $await_data,
+        allowPartialResults => boolean($self->allow_partial_results),
+        #readConcern = ..., XXX unimplemented 
     );
 }
 

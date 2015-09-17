@@ -29,6 +29,7 @@ use MongoDB::Error;
 use MongoDB::QueryResult;
 use MongoDB::ReadPreference;
 use MongoDB::_Protocol;
+use MongoDB::Op::_Explain;
 use MongoDB::_Types -types, 'to_IxHash';
 use Types::Standard qw(
     InstanceOf
@@ -421,15 +422,15 @@ L<http://dochub.mongodb.org/core/explain>.
 sub explain {
     my ($self) = @_;
 
-    my $new_query = $self->query->clone;
-    $new_query->modifiers->{'$explain'} = true;
-
-    # per David Storch, drivers *must* send a negative limit to instruct
-    # the query planner analysis module to add a LIMIT stage.  For older
-    # explain implementations, it also ensures a cursor isn't left open.
-    $new_query->limit( -1 * abs( $new_query->limit ) );
-
-    return $new_query->execute->next;
+    my $explain_op = MongoDB::Op::_Explain->_new(
+        db_name         => $self->query->db_name,
+        coll_name       => $self->query->coll_name,
+        bson_codec      => $self->query->bson_codec,
+        query           => $self->query->clone,
+        read_preference => $self->query->read_preference
+    );
+    
+    return $self->query->client->send_read_op($explain_op);
 }
 
 =head1 QUERY ITERATION

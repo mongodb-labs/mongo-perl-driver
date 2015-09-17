@@ -201,8 +201,12 @@ sub _get_more {
     my $limit = $self->_limit;
     my $want = $limit > 0 ? ( $limit - $self->_cursor_at ) : $self->_batch_size;
 
+    my ($db_name, $coll_name) = split(/\./, $self->_ns, 2);
+
     my $op = MongoDB::Op::_GetMore->_new(
         ns         => $self->_ns,
+        db_name    => $db_name,
+        coll_name  => $coll_name,
         client     => $self->_client,
         bson_codec => $self->_bson_codec,
         cursor_id  => $self->_cursor_id,
