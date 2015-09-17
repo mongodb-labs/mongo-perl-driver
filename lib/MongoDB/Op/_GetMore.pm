@@ -34,9 +34,24 @@ use Types::Standard qw(
 use MongoDB::_Protocol;
 use Tie::IxHash;
 use Math::BigInt;
+
+use Devel::StackTrace;
+
 use namespace::clean;
 
 has ns => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
+has db_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
+has coll_name => (
     is       => 'ro',
     required => 1,
     isa      => Str,
@@ -63,7 +78,7 @@ has batch_size => (
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
-  MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_CommandOp
 );
 
 sub execute {
@@ -80,25 +95,24 @@ sub execute {
 sub _command_get_more {
     my ( $self, $link ) = @_;
 
-    my ( $db_name, $coll_name ) = split(/\./, $self->ns, 2); 
-
     my $cmd = Tie::IxHash->new(
         getMore         => $self->cursor_id,
-        collection      => $coll_name,
-        batchSize       => $self->batch_size,
+        collection      => $self->coll_name,
+        $self->batch_size > 0 ? (batchSize => $self->batch_size) : (),
         # maxTimeMS     => XXX unimplemented
     );
 
-    my $op = MongoDB::Op::_Command->_new(
-        db_name         => $db_name,
-        query           => $cmd,
-        query_flags     => {},
-        bson_codec      => $self->bson_codec,
-    );
+    my $res = $self->_send_command( $link, $cmd );
+    my $c = $res->{cursor};
+    my $batch = $c->{nextBatch};
 
-    my $res = $op->execute($link);
-
-    return $self->_build_result_from_cursor($res);
+    return { 
+        cursor_id       => $c->{id},
+        flags           => {},
+        starting_from   => 0,
+        number_returned => scalar @$batch,
+        docs            => $batch,
+    }; 
 }
 
 sub _legacy_get_more { 
