@@ -32,6 +32,8 @@ use Types::Standard qw(
     Str
 );
 use MongoDB::_Protocol;
+use Tie::IxHash;
+use Math::BigInt;
 use namespace::clean;
 
 has ns => (
@@ -61,9 +63,45 @@ has batch_size => (
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
+  MongoDB::Role::_CommandCursorOp
 );
 
 sub execute {
+    my ( $self, $link ) = @_;
+
+    my $res =
+        $link->accepts_wire_version(3)
+      ? $self->_command_get_more( $link )
+      : $self->_legacy_get_more( $link );
+
+    return $res;
+}
+    
+sub _command_get_more {
+    my ( $self, $link ) = @_;
+
+    my ( $db_name, $coll_name ) = split(/\./, $self->ns, 2); 
+
+    my $cmd = Tie::IxHash->new(
+        getMore         => $self->cursor_id,
+        collection      => $coll_name,
+        batchSize       => $self->batch_size,
+        # maxTimeMS     => XXX unimplemented
+    );
+
+    my $op = MongoDB::Op::_Command->_new(
+        db_name         => $db_name,
+        query           => $cmd,
+        query_flags     => {},
+        bson_codec      => $self->bson_codec,
+    );
+
+    my $res = $op->execute($link);
+
+    return $self->_build_result_from_cursor($res);
+}
+
+sub _legacy_get_more { 
     my ( $self, $link ) = @_;
 
     my ( $op_bson, $request_id ) = MongoDB::_Protocol::write_get_more( map { $self->$_ }
