@@ -330,7 +330,7 @@ $coll->drop;
     is($info->{'at'}, 0);
     is($info->{'num'}, $count);
     is($info->{'start'}, 0);
-    is($info->{'cursor_id'}, scalar("\0" x 8));
+    is($info->{'cursor_id'}, 0);
 
     $cursor->next;
     $info = $cursor->info;

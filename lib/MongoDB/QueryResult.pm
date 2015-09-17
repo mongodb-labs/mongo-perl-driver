@@ -32,6 +32,7 @@ use MongoDB::_Types qw(
 );
 use Types::Standard qw(
     ArrayRef
+    Any
     InstanceOf
     Int
     HashRef
@@ -95,11 +96,12 @@ has _limit => (
 
 # attributes from actual results
 
+# integer or MongoDB::_CursorID or Math::BigInt
 has _cursor_id => (
     is       => 'ro',
     required => 1,
     writer   => '_set_cursor_id',
-    isa => Str,
+    isa => Any,
 );
 
 has _cursor_start => (
@@ -194,7 +196,7 @@ sub next {
 
 sub _get_more {
     my ($self) = @_;
-    return 0 if $self->_cursor_id eq CURSOR_ZERO;
+    return 0 if $self->_cursor_id == 0;
 
     my $limit = $self->_limit;
     my $want = $limit > 0 ? ( $limit - $self->_cursor_at ) : $self->_batch_size;
@@ -238,47 +240,16 @@ sub all {
 
 sub _kill_cursor {
     my ($self) = @_;
-    return if !defined $self->_cursor_id || $self->_cursor_id eq CURSOR_ZERO;
-    my $op = MongoDB::Op::_KillCursors->_new( cursor_ids => [ $self->_cursor_id ], );
+    my $cursor_id = $self->_cursor_id;
+    return if !defined $cursor_id || $cursor_id == 0;
+    my $op = MongoDB::Op::_KillCursors->_new( cursor_ids => [ $cursor_id ], );
     $self->_client->send_direct_op( $op, $self->_address );
-    $self->_set_cursor_id(CURSOR_ZERO);
+    $self->_set_cursor_id(0);
 }
 
 sub DEMOLISH {
     my ($self) = @_;
     $self->_kill_cursor;
-}
-
-#--------------------------------------------------------------------------#
-# utility functions
-#--------------------------------------------------------------------------#
-
-# If we get a cursor_id from a command, BSON decoding will give us either
-# a perl scalar or a Math::BigInt object (if we don't have 32 bit support).
-# For OP_GET_MORE, we treat it as an opaque string, so we need to convert back
-# to a packed, little-endian quad
-sub _pack_cursor_id {
-    my $cursor_id = shift;
-    if ( ref($cursor_id) eq "Math::BigInt" ) {
-        my $as_hex = $cursor_id->as_hex; # big-endian hex
-        substr( $as_hex, 0, 2, '' );     # remove "0x"
-        my $len = length($as_hex);
-        substr( $as_hex, 0, 0, "0" x ( 16 - $len ) ) if $len < 16; # pad to quad length
-        $cursor_id = pack( "H*", $as_hex );                        # packed big-endian
-        $cursor_id = reverse($cursor_id);                          # reverse to little-endian
-    }
-    elsif (HAS_INT64) {
-        # pack doesn't have endianness modifiers before perl 5.10.
-        # We die during configuration on big-endian platforms on 5.8
-        $cursor_id = pack( $] lt '5.010' ? "q" : "q<", $cursor_id );
-    }
-    else {
-        # we on 32-bit perl *and* have a cursor ID that fits in 32 bits,
-        # so pack it as long and pad out to a quad
-        $cursor_id = pack( $] lt '5.010' ? "l" : "l<", $cursor_id ) . ( "\0" x 4 );
-    }
-
-    return $cursor_id;
 }
 
 =head1 SYNOPSIS

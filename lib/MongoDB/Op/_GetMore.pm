@@ -26,6 +26,7 @@ use Moo;
 
 use MongoDB::_Constants;
 use Types::Standard qw(
+    Any
     InstanceOf
     Num
     Str
@@ -48,7 +49,7 @@ has client => (
 has cursor_id => (
     is       => 'ro',
     required => 1,
-    isa      => Str,
+    isa      => Any,
 );
 
 has batch_size => (

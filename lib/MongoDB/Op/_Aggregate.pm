@@ -141,7 +141,7 @@ sub execute {
             _batch_size   => 1,
             _cursor_at    => 0,
             _limit        => 0,
-            _cursor_id    => MongoDB::QueryResult::_pack_cursor_id(0),
+            _cursor_id    => 0,
             _cursor_start => 0,
             _cursor_flags => {},
             _cursor_num   => 1,
