@@ -200,6 +200,7 @@ sub _legacy_query {
     my $proj =
       $self->projection ? $self->bson_codec->encode_one( $self->projection ) : undef;
 
+    # $query is passed as a reference because it *may* be replaced
     $self->_apply_read_prefs( $link, $topology, $query_flags, \$query);
 
     my ( $op_bson, $request_id ) =

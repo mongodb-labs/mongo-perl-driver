@@ -237,7 +237,7 @@ $coll->drop;
     $coll->insert_one({'num' => 1, 'foo' => 1});
 
     like( exception { $coll->query->hint( { 'num' => 1 } )->explain },
-        qr/MongoDB::DatabaseError/, "check error on hint with explain" );
+        qr/MongoDB::(Database)?Error/, "check error on hint with explain" );
 }
 
 # count

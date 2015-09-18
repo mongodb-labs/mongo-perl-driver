@@ -79,30 +79,26 @@ sub _command_explain {
     my ( $self, $link, $topology ) = @_;
 
     my $cmd = $self->query->as_query_op->as_command;
+
+    # XXX need to standardize error here
+    if (defined $self->query->modifiers->{hint}) {
+        # cannot use hint on explain, throw error
+        MongoDB::Error->throw(
+            message => "cannot use 'hint' with 'explain'",
+        );
+    }
     
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
         query           => {
             explain   => $cmd,
-            #verbosity => XXX Unimplemented,
         },
         query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
     my $res = $op->execute( $link, $topology );
-
-    # XXX need to standardize error here
-    if (defined $self->query->modifiers->{hint}) {
-        # cannot use hint on explain, throw error
-        MongoDB::DatabaseError->throw(
-            message => "cannot use 'hint' with 'explain",
-            result => MongoDB::CommandResult->_new(
-                output => $res,
-                address => $link->address,
-            ),
-        );
-    }
+    
     return $res->{output};
 }
 

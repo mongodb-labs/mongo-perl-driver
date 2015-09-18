@@ -38,6 +38,12 @@ sub _build_result_from_cursor {
         result  => $res,
       );
 
+    my $max_time_ms = undef;
+    if (defined $self->{cursor_type} &&
+        $self->{cursor_type} eq 'tailable_await') {
+        $max_time_ms = $self->max_time_ms if defined $self->max_time_ms;
+    }
+
     my $batch = $c->{firstBatch};
     my $qr = MongoDB::QueryResult->_new(
         _client      => $self->client,
@@ -52,6 +58,7 @@ sub _build_result_from_cursor {
         _cursor_flags => {},
         _cursor_num   => scalar @$batch,
         _docs        => $batch,
+        defined $max_time_ms ? (_max_time_ms => $max_time_ms) : (),
     );
 }
 
