@@ -97,7 +97,7 @@ sub execute {
 
     return $res;
 }
-    
+
 sub _command_get_more {
     my ( $self, $link ) = @_;
 
@@ -112,16 +112,16 @@ sub _command_get_more {
     my $c = $res->{cursor};
     my $batch = $c->{nextBatch};
 
-    return { 
+    return {
         cursor_id       => $c->{id},
         flags           => {},
         starting_from   => 0,
         number_returned => scalar @$batch,
         docs            => $batch,
-    }; 
+    };
 }
 
-sub _legacy_get_more { 
+sub _legacy_get_more {
     my ( $self, $link ) = @_;
 
     my ( $op_bson, $request_id ) = MongoDB::_Protocol::write_get_more( map { $self->$_ }

@@ -16,7 +16,7 @@
 
 package MongoDB::Op::_Explain;
 
-# Encapsulate code path for explain commands/queries 
+# Encapsulate code path for explain commands/queries
 
 use version;
 our $VERSION = 'v0.999.999.7';
@@ -87,7 +87,7 @@ sub _command_explain {
             message => "cannot use 'hint' with 'explain'",
         );
     }
-    
+
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
         query           => {
@@ -98,7 +98,7 @@ sub _command_explain {
         bson_codec      => $self->bson_codec,
     );
     my $res = $op->execute( $link, $topology );
-    
+
     return $res->{output};
 }
 

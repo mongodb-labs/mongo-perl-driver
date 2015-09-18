@@ -48,15 +48,15 @@ sub _test_lock_unlock {
     # Check the lock.
     if ($server_version <= v3.1.0) {
         $ret = $conn->get_database('admin')->get_collection('$cmd.sys.inprog')->find_one();
-    } 
-    else { 
+    }
+    else {
         $ret = $conn->send_admin_command([currentOp => 1]);
         $ret = $ret->{output};
     }
     is($ret->{fsyncLock}, 1, "MongoDB is still locked.");
     is($ret->{info}, "use db.fsyncUnlock() to terminate the fsync write/snapshot lock", "Got docs on how to unlock (via shell).");
 
-    # Unlock 
+    # Unlock
     $ret = $conn->fsync_unlock();
     is($ret->{ok}, 1, "Got 'ok' => 1 from unlock command.");
     is($ret->{info}, "unlock completed", "Got a successful unlock.");

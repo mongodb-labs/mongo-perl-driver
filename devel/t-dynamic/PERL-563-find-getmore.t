@@ -85,7 +85,7 @@ subtest "wire protocol 3" => sub {
     local $ENV{MONGOD} = $orc->as_uri;
 
     _test_find_getmore();
-    
+
     ok( !scalar $orc->get_server('host1')->grep_log(qr/command: find/),
         "no find in log" );
     ok( !scalar $orc->get_server('host1')->grep_log(qr/command: getMore/),

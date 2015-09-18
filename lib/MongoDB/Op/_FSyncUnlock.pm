@@ -90,7 +90,7 @@ sub _command_fsync_unlock {
 
 sub _legacy_fsync_unlock {
     my ( $self, $link, $topology ) = @_;
-    
+
     my $query = MongoDB::_Query->_new(
         modifiers           => {},
         allowPartialResults => 0,
@@ -109,8 +109,8 @@ sub _legacy_fsync_unlock {
         bson_codec          => $self->bson_codec,
         client              => $self->client,
         read_preference     => $self->read_preference,
-    ); 
-    
+    );
+
     my $op = $query->as_query_op();
 
     return $op->execute( $link, $topology )->next;

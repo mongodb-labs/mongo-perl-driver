@@ -99,29 +99,27 @@ sub _legacy_list_indexes {
     my ( $self, $link, $topology ) = @_;
 
     my $ns = $self->db_name . "." . $self->coll_name;
-
-    my $query = MongoDB::_Query->_new(
-        modifiers           => {},
-        allowPartialResults => 0,
-        batchSize           => 0,
-        comment             => '',
-        cursorType          => 'non_tailable',
-        limit               => 0,
-        maxTimeMS           => 0,
-        noCursorTimeout     => 0,
-        oplogReplay         => 0,
-        projection          => undef,
-        skip                => 0,
-        sort                => undef,
-        db_name         => $self->db_name,
-        coll_name       => 'system.indexes',
-        bson_codec      => $self->bson_codec,
-        client          => $self->client,
-        read_preference => $self->read_preference,
-        filter          => Tie::IxHash->new( ns => $ns ),
+    my $op = MongoDB::Op::_Query->_new(
+        modifiers              => {},
+        allow_partial_results  => 0,
+        batch_size             => 0,
+        comment                => '',
+        cursor_type            => 'non_tailable',
+        limit                  => 0,
+        max_time_ms            => 0,
+        no_cursor_timeout      => 0,
+        oplog_replay           => 0,
+        projection             => undef,
+        skip                   => 0,
+        sort                   => undef,
+        db_name                => $self->db_name,
+        coll_name              => 'system.indexes',
+        bson_codec             => $self->bson_codec,
+        client                 => $self->client,
+        read_preference        => $self->read_preference,
+        filter                 => Tie::IxHash->new( ns => $ns ),
     );
 
-    my $op = $query->as_query_op();
     return $op->execute( $link, $topology );
 }
 

@@ -429,7 +429,7 @@ sub explain {
         query           => $self->query->clone,
         read_preference => $self->query->read_preference
     );
-    
+
     return $self->query->client->send_read_op($explain_op);
 }
 
