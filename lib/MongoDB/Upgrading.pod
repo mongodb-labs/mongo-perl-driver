@@ -33,7 +33,7 @@ account API changes from the v0 driver to the v1 driver.
 Changes to the driver were deemed necessary to achieve certain goals:
 
 =for :list
-* intra-driver consistency – many parts of the v0 API were inconsistent,
+* consistency (intra-driver) – many parts of the v0 API were inconsistent,
   behaving differently from method to method; the v1 API minimizes
   developer surprises by improving consistency in return types and
   exception mechanisms.
