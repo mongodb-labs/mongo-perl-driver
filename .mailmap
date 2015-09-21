@@ -4,9 +4,11 @@ Ashley Willis <ashleyw@cpan.org>
 Ask Bjørn Hansen <ask@develooper.com>
 Brendan W. McAdams <brendan@mongodb.com> <brendan@10gen.com>
 Casey Rojas <casey.j.rojas@gmail.com> <crojas@infotechfl.com>
+Christian Hansen <chansen@cpan.org>
 Christian Sturm <kind@gmx.at>
 Colin Cyr <ccyr@sailingyyc.com>
 D. Ilmari Mannsåker <ilmari.mannsaker@net-a-porter.com>
+Danny Raetzsch <danny@paperskymedia.com>
 David Golden <david@mongodb.com> <dagolden@cpan.org>
 David Morrison <dmorrison@venda.com>
 David Nadle <david@nadle.com>
@@ -24,21 +26,23 @@ Joseph Harnish <bigjoe1008@gmail.com>
 Joshua Juran <jjuran@metamage.com>
 Kamil Slowikowski <kslowikowski@gmail.com>
 Ken Williams <kwilliams@cpan.org> <Ken.Williams@WindLogics.com>
-Kristina Chodorow <k.chodorow@gmail.com> <kristina@mongodb.com>
-Kristina Chodorow <k.chodorow@gmail.com> <kristina@10gen.com>
 Kristina Chodorow <k.chodorow@gmail.com> <k@ubuntu.(none)>
 Kristina Chodorow <k.chodorow@gmail.com> <k@wooster.(none)>
+Kristina Chodorow <k.chodorow@gmail.com> <kristina@10gen.com>
 Kristina Chodorow <k.chodorow@gmail.com> <kristina@Macintosh.local>
+Kristina Chodorow <k.chodorow@gmail.com> <kristina@mongodb.com>
 Matthew Shopsin <matt.shopsin@mongodb.com> <matt.shopsin@10gen.com>
 Michael Langner <langner@fch.de>
 Michael Rotmanov <rotmanov@sipgate.de>
 Mike Dirolf <mike@mongodb.com> <mike@10gen.com>
-Mike Friedman <friedo@friedo.com> <mike.friedman@10gen.com>
 Mike Friedman <friedo@friedo.com> <friedo@mongodb.com>
+Mike Friedman <friedo@friedo.com> <mike.friedman@10gen.com>
 Mike Friedman <friedo@friedo.com> <vagrant@client.mongotest.com>
+Nickola Trupcheff <n.trupcheff@gmail.com>
 Nuno Carvalho <mestre.smash@gmail.com>
 Orlando Vazquez <ovazquez@gmail.com>
 Othello Maurer <omaurer@venda.com>
+Pan Fan <nightsailer@gmail.com>
 Robin Lee <cheeselee@fedoraproject.org>
 Roman Yerin <kid@cpan.org>
 Ronald J Kimball <rkimball@pangeamedia.com>
@@ -46,8 +50,5 @@ Stephen Oberholtzer <stevie@qrpff.net>
 Steve Sanbeg <stevesanbeg@buzzfeed.com>
 Stuart Watt <stuart@morungos.com>
 Uwe Voelker <uwe.voelker@xing.com>
-Whitney.Jackson <whjackson@gmail.com>
-danny <danny@paperskymedia.com>
-mapbuh <n.trupcheff@gmail.com>
-nightlord <zzh_621@yahoo.com>
-nightsailer <nightsailer@gmail.com>
+Whitney Jackson <whjackson@gmail.com>
+Zhihong Zhang <zzh_621@yahoo.com>
