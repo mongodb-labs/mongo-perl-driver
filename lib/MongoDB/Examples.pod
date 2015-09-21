@@ -27,10 +27,12 @@ many common SQL queries could be expressed in MongoDB.
 
 These are Perl-specific examples of translating SQL queries to MongoDB's query
 language.  To see the mappings for JavaScript (or another language), see
-L<http://dochub.mongodb.org/core/sqlToMongo>.
+L<http://docs.mongodb.org/manual/reference/sql-comparison/>.
 
 In the following examples, C<$db> is a L<MongoDB::Database> object which was
-retrieved by using C<get_database>. See L<MongoDB::MongoClient> for more.
+retrieved by using C<get_database>. See L<MongoDB::MongoClient>,
+L<MongoDB::Database> and L<MongoDB::Collection> for more on the methods
+you see below.
 
 =over
 
@@ -40,7 +42,7 @@ retrieved by using C<get_database>. See L<MongoDB::MongoClient> for more.
 
 =item C<INSERT INTO USERS VALUES(1,1)>
 
-    $db->get_collection( 'users' )->insert( { a => 1, b => 1 } );
+    $db->get_collection( 'users' )->insert_one( { a => 1, b => 1 } );
 
 =item C<SELECT a,b FROM users>
 
@@ -88,14 +90,13 @@ retrieved by using C<get_database>. See L<MongoDB::MongoClient> for more.
 
 =item C<CREATE INDEX myindexname ON users(name)>
 
-    $db->get_collection( 'users' )->ensure_index( { name => 1 } );
+    my $indexes = $db->get_collection( 'users' );
+    $indexes->create_one( [ name => 1 ] );
 
 =item C<CREATE INDEX myindexname ON users(name,ts DESC)>
 
-    $db->get_collection( 'users' )->ensure_index( Tie::IxHash->new( name => 1, ts => -1 ) );
-
-In this example, we must use L<Tie::IxHash> to preserve the ordering of the arguments to
-C<ensureIndex>.
+    my $indexes = $db->get_collection( 'users' );
+    $indexes->create_one( [ name => 1, ts => -1 ] );
 
 =item C<SELECT * FROM users WHERE a=1 and b='q'>
 
@@ -119,7 +120,7 @@ C<ensureIndex>.
 
 =item C<SELECT DISTINCT last_name FROM users>
 
-    $db->run_command( { distinct => "users", key => "last_name" } );
+    $db->get_collection( 'users' )->distinct( 'last_name' );
 
 =item C<SELECT COUNT(*y) FROM users>
 
@@ -127,23 +128,23 @@ C<ensureIndex>.
 
 =item C<< SELECT COUNT(*y) FROM users where age > 30 >>
 
-    $db->get_collection( 'users' )->find( { "age" => { '$gt' => 30 } } )->count;
+    $db->get_collection( 'users' )->count( { "age" => { '$gt' => 30 } } );
 
 =item C<SELECT COUNT(age) from users>
 
-    $db->get_collection( 'users' )->find( { age => { '$exists' => 1 } } )->count;
+    $db->get_collection( 'users' )->count( { age => { '$exists' => 1 } } );
 
 =item C<UPDATE users SET a=1 WHERE b='q'>
 
-    $db->get_collection( 'users' )->update( { b => "q" }, { '$set' => { a => 1 } } );
+    $db->get_collection( 'users' )->update_many( { b => "q" }, { '$set' => { a => 1 } } );
 
 =item C<UPDATE users SET a=a+2 WHERE b='q'>
 
-    $db->get_collection( 'users' )->update( { b => "q" }, { '$inc' => { a => 2 } } );
+    $db->get_collection( 'users' )->update_many( { b => "q" }, { '$inc' => { a => 2 } } );
 
 =item C<DELETE FROM users WHERE z="abc">
 
-    $db->get_database( 'users' )->remove( { z => "abc" } );
+    $db->get_database( 'users' )->delete_many( { z => "abc" } );
 
 =back
 
@@ -184,25 +185,27 @@ run:
 
 Next, we can translate the important parts into Perl:
 
-    $db->run_command( { validate => "foo" } );
+    $db->run_command( [ validate => "foo" ] );
 
 
-=head2 Find-and-modify
+=head2 Find-one-and-modify
 
-The find-and-modify command is similar to update (or remove), but it will return
-the modified document.  It can be useful for implementing queues or locks.
+The find-one-and-modify commands in L<MongoDB::Collection> are similar to
+update (or remove), but will return the modified document.  They can be
+useful for implementing queues or locks.
 
-For example, suppose we had a list of things to do, and we wanted to remove the
-highest-priority item for processing.  We could do a L<MongoDB::Collection/find>
-and then a L<MongoDB::Collection/remove>, but that wouldn't be atomic (a write
-could occur between the query and the remove).  Instead, we could use find and
-modify.
+For example, suppose we had a list of things to do, and we wanted to remove
+the highest-priority item for processing.  We could do a
+L<find|MongoDB::Collection/find> and then a
+L<delete_one|MongoDB::Collection/delete_one>, but that wouldn't be atomic
+(a write could occur between the query and the remove).  Instead, we could
+use L<find_one_and_delete|MongoDB::Collection/find_one_and_delete>:
 
-    my $next_task = $db->run_command({
-        findAndModify => "todo",
-        sort => {priority => -1},
-        remove => 1
-    });
+    my $coll = $db->get_collection('todo');
+    my $next_task = $todo->find_one_and_delete(
+        {}, # empty filter means any document
+        { sort => {priority => -1} },
+    );
 
 This will atomically find and pop the next-highest-priority task.
 
@@ -221,8 +224,8 @@ C<$sort>, and C<$geoNear>.
 
 The aggregation framework is the preferred way of performing
 most aggregation tasks. New in version 2.2, it has largely
-obviated mapReduce (L<http://docs.mongodb.org/manual/reference/command/mapReduce/#dbcmd.mapReduce>),
-and group (L<http://docs.mongodb.org/manual/reference/command/group/#dbcmd.group>).
+obviated L<mapReduce|http://docs.mongodb.org/manual/reference/command/mapReduce/#dbcmd.mapReduce>,
+and L<group|http://docs.mongodb.org/manual/reference/command/group/#dbcmd.group>.
 
 See the MongoDB aggregation framework documentation for more
 information (L<http://docs.mongodb.org/manual/aggregation/>).
@@ -242,10 +245,11 @@ could do:
     );
 
 The SQL equivalent is C<SELECT neighborhood, COUNT(*) FROM business GROUP BY neighborhood WHERE type = 'coffeeshop'>.
-After executing the above aggregation query, C<$out> will contain an array of
-result documents such as the following:
+After executing the above aggregation query, C<$out> will contain a
+L<MongoDB::QueryResult>, allowing us to iterate through result documents
+such as the following:
 
-    [
+    (
          {
              '_id' => 'Soho',
              'num_coffeshops' => 23
@@ -262,9 +266,9 @@ result documents such as the following:
              '_id' => 'East Village',
              'num_coffeshops' => 87
          }
-    ]
+    )
 
-Note that L<MongoDB::Collection/aggregate> takes an array reference as
+Note that L<aggregate|MongoDB::Collection/aggregate> takes an array reference as
 an argument. Each element of the array is document which specifies a stage
 in the aggregation pipeline. Here our aggregation query consists of a
 C<$match> phase followed by a C<$group> phase. Use C<$match> to filter the
@@ -297,7 +301,7 @@ courses. An example document in the collection looks like this:
 
 We wish to generate a report containing one document per student that indicates
 the courses in which each student is enrolled. The following call to
-L<MongoDB::Collection/aggregate> will do the trick:
+C<aggregate> will do the trick:
 
     my $out = $db->get_collection('courses')->aggregate([
         {'$unwind' => '$students'},
@@ -317,16 +321,16 @@ L<MongoDB::Collection/aggregate> will do the trick:
 The output documents will each have a student ID number and an array of the
 courses in which that student is enrolled:
 
-    [
+    (
         {
             '_id' => 91736114,
             'courses' => ['CSCI0170', 'CSCI0220', 'APMA1650', 'HIST1230']
-        }
+        },
         {
             '_id' => 89100891,
             'courses' => ['CSCI0170', 'CSCI1670', 'CSCI1690']
         }
-    ]
+    )
 
 The C<$unwind> stage of the aggregation query "peels off" elements of the courses
 array one-by-one and places them in their own documents. After this phase completes,
@@ -361,106 +365,6 @@ student by adding C<$sort>, C<$skip>, and C<$limit> phases to the pipeline:
         {'$skip' => 2},
         {'$limit' => 1}
     ]);
-
-=head2 Group
-
-In addition to the aggregation framework, MongoDB offers a few special
-commands for common aggregation tasks: C<group>, C<distinct>, and C<count>.
-
-Returning to the coffeeshop example, the same result could be obtained using
-C<group> with the following code:
-
-    my $reduce = <<REDUCE;
-    function(doc, prev) {
-        if (doc.type == "coffeeshop") {
-            prev["num coffeeshops"]++;
-        }
-    }
-    REDUCE
-
-    my $result = $db->run_command({group => {
-        'ns' => "business",
-        'key' => {"neighborhood" => 1},
-        'initial' => {"num coffeeshops" => 0},
-        '$reduce' => MongoDB::Code->new(code => $reduce)
-
-Modern code should generally prefer the C<$group> aggregation pipeline
-operator to the C<group> database command.
-
-=head2 Distinct
-
-The distinct command returns all values for a given key in a collection.  For
-example, suppose we had a collection with the following documents (C<_id> value
-ignored):
-
-    { 'name' => 'a', code => 1 }
-    { 'name' => 'b', code => 1 }
-    { 'name' => 'c', code => 2 }
-    { 'name' => 'd', code => "3" }
-
-If we wanted to see all of values in the "code" field, we could run:
-
-    my $result = $db->run_command([
-       "distinct" => "collection_name",
-       "key"      => "code",
-       "query"    => { }
-    ]);
-
-Notice that the arguments are in an array, to ensure that their order is
-preserved.  You could also use a L<Tie::IxHash>.
-
-C<query> is an optional argument, which can be used to only run C<distinct> on
-specific documents.  It takes a hash (or L<Tie::IxHash> or array) in the same
-form as L<MongoDB::Collection/"find($query)">.
-
-Running C<distinct> on the above collection would give you:
-
-    {
-        'ok' => '1',
-        'values' => [
-                      1,
-                      2,
-                      "3"
-                    ]
-    };
-
-=head2 MapReduce
-
-For some special purpose aggregation tasks, the aggregation framework may not
-be sufficient. In this case, the database server can execute special MapReduce
-jobs written in JavaScript. Be warned: MapReduce is generally slower than the
-aggregation framework and should be avoided unless your application requires
-the flexibility that it provides.
-
-This example counts the number of occurrences of each tag in a collection.  Each
-document contains a "tags" array that contains zero or more strings.
-
-    my $map = <<MAP;
-    function() {
-        this.tags.forEach(function(tag) {
-            emit(tag, {count : 1});
-        });
-    }
-    MAP
-
-    my $reduce = <<REDUCE;
-    function(prev, current) {
-        result = {count : 0};
-        current.forEach(function(item) {
-            result.count += item.count;
-        });
-        return result;
-    }
-    REDUCE
-
-    my $cmd = Tie::IxHash->new("mapreduce" => "foo",
-        "map" => $map,
-        "reduce" => $reduce);
-
-    my $result = $db->run_command($cmd);
-
-See the MongoDB documentation on MapReduce for more information
-(L<http://docs.mongodb.org/manual/core/map-reduce>).
 
 =head1 QUERYING
 
@@ -512,7 +416,7 @@ A sample document in JavaScript:
 
 The update:
 
-    $coll->update({"users.name" => "fred"}, {'users.$.name' => "george"});
+    $coll->update_one({"users.name" => "fred"}, {'users.$.name' => "george"});
 
 This will update the array so that the element containing C<"name" =E<gt> "fred">
 now has C<"name" =E<gt> "george">.
