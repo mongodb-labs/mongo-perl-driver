@@ -19,7 +19,7 @@ package MongoDB::QueryResult::Filtered;
 # ABSTRACT: An iterator for Mongo query results with client-side filtering
 
 use version;
-our $VERSION = 'v0.999.999.7';
+our $VERSION = 'v1.0.1';
 
 use Moo;
 use Types::Standard qw(

@@ -19,7 +19,7 @@ package MongoDB::Role::_ReadPrefModifier;
 # MongoDB interface for read ops that respect read preference
 
 use version;
-our $VERSION = 'v0.999.999.7';
+our $VERSION = 'v1.0.1';
 
 use Moo::Role;
 
