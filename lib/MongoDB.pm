@@ -99,44 +99,14 @@ force_double
 force_int
 read_documents
 
-=begin :prelude
-
-This is Release Candidate 1 (RC1) for v1.0.0.
-
-=head1 RELEASE CANDIDATE NOTICE
-
-The v0.999.999.4 driver is the first release candidate for v1.0.0.
-We expect no API changes between now and the final stable release.
-
-It is released for the community to begin testing in preparation for
-migration to v1.0.0.
-
-Users are B<strongly> encourgaed to read L<MongoDB::Upgrading> for
-details on changes and how to upgrade applications.
-
-=head2 Notable changes
-
-The Release Candidate 1 driver is significantly faster than the Beta 3
-driver.
-
-Other changes from Beta 3 are minor.
-
-=end :prelude
-
 =head1 SYNOPSIS
 
     use MongoDB;
 
-    # short-hand
     my $client     = MongoDB->connect('mongodb://localhost');
     my $collection = $client->ns('foo.bar'); # database foo, collection bar
-    my $id         = $collection->insert({ some => 'data' });
+    my $id         = $collection->insert_one({ some => 'data' });
     my $data       = $collection->find_one({ _id => $id });
-
-    # long-hand
-    my $client     = MongoDB::MongoClient->new(host => 'mongodb://localhost');
-    my $database   = $client->get_database( 'foo' );
-    my $collection = $database->get_collection( 'bar' );
 
 =head1 DESCRIPTION
 
@@ -192,7 +162,7 @@ constants.
 
 =head1 SEMANTIC VERSIONING SCHEME
 
-Starting with MongoDB C<v1.0.0>, the driver will revert to the more familiar
+Starting with MongoDB C<v1.0.0>, the driver reverts to the more familiar
 three-part version-tuple numbering scheme used by both Perl and MongoDB:
 C<vX.Y.Z>
 
