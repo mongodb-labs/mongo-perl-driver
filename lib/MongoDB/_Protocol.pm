@@ -23,6 +23,7 @@ package MongoDB::_Protocol;
 use version;
 our $VERSION = 'v0.999.999.7';
 
+use MongoDB::_Constants;
 use MongoDB::Error;
 
 use constant {
@@ -198,7 +199,7 @@ sub write_get_more {
     my $request_id = int( rand( MAX_REQUEST_ID ) );
     my $msg =
       pack( P_GET_MORE, 0, $request_id, 0, OP_GET_MORE, 0, $ns, $batch_size,
-        $cursor_id );
+        _pack_cursor_id($cursor_id) );
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
     return ( $msg, $request_id );
 }
@@ -241,12 +242,9 @@ sub write_delete {
 #     int32     numberOfCursorIDs; // number of cursorIDs in message
 #     int64*    cursorIDs;         // sequence of cursorIDs to close
 # }
-#
-# We treat cursor_id as an opaque string so we don't have to depend
-# on 64-bit integer support
 
 sub write_kill_cursors {
-    my (@cursors) = @_;
+    my (@cursors) = map _pack_cursor_id($_), @_;
     my $msg = pack( P_KILL_CURSORS,
         0, int( rand( 2**32 - 1 ) ),
         0, OP_KILL_CURSORS, 0, scalar(@cursors), @cursors );
@@ -311,17 +309,65 @@ sub parse_reply {
         || ( $opcode != OP_REPLY )
         || ( $response_to != $request_id );
 
+    # returns non-zero cursor_id as blessed object to identify it as an
+    # 8-byte opaque ID rather than an ambiguous Perl scalar. N.B. cursors
+    # from commands are handled differently: they are perl integers or
+    # else Math::BigInt objects
+
     substr( $msg, 0, MIN_REPLY_LENGTH, '' ),
         return {
         flags => {
             cursor_not_found => vec( $bitflags, R_CURSOR_NOT_FOUND, 1 ),
             query_failure    => vec( $bitflags, R_QUERY_FAILURE,    1 ),
         },
-        cursor_id       => $cursor_id,
+        cursor_id => (
+            ( $cursor_id eq CURSOR_ZERO )
+            ? 0
+            : bless( \$cursor_id, "MongoDB::_CursorID" )
+          ),
         starting_from   => $starting_from,
         number_returned => $number_returned,
         docs            => $msg,
         };
+}
+
+#--------------------------------------------------------------------------#
+# utility functions
+#--------------------------------------------------------------------------#
+
+# CursorID's can come in 3 forms:
+#
+# 1. MongoDB::CursorID object (a blessed reference to an 8-byte string)
+# 2. A perl scalar (an integer)
+# 3. A Math::BigInt object (64 bit integer on 32-bit perl)
+#
+# The _pack_cursor_id function converts any of them to a packed Int64 for
+# use in OP_GET_MORE or OP_KILL_CURSORS
+sub _pack_cursor_id {
+    my $cursor_id = shift;
+    if ( ref($cursor_id) eq "MongoDB::_CursorID" ) {
+        $cursor_id = $$cursor_id;
+    }
+    elsif ( ref($cursor_id) eq "Math::BigInt" ) {
+        my $as_hex = $cursor_id->as_hex; # big-endian hex
+        substr( $as_hex, 0, 2, '' );     # remove "0x"
+        my $len = length($as_hex);
+        substr( $as_hex, 0, 0, "0" x ( 16 - $len ) ) if $len < 16; # pad to quad length
+        $cursor_id = pack( "H*", $as_hex );                        # packed big-endian
+        $cursor_id = reverse($cursor_id);                          # reverse to little-endian
+    }
+    elsif (HAS_INT64) {
+        # pack doesn't have endianness modifiers before perl 5.10.
+        # We die during configuration on big-endian platforms on 5.8
+        $cursor_id = pack( $] lt '5.010' ? "q" : "q<", $cursor_id );
+    }
+    else {
+        # we on 32-bit perl *and* have a cursor ID that fits in 32 bits,
+        # so pack it as long and pad out to a quad
+        $cursor_id = pack( $] lt '5.010' ? "l" : "l<", $cursor_id ) . ( "\0" x 4 );
+    }
+
+    return $cursor_id;
 }
 
 1;

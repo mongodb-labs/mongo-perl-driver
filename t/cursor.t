@@ -237,7 +237,7 @@ $coll->drop;
     $coll->insert_one({'num' => 1, 'foo' => 1});
 
     like( exception { $coll->query->hint( { 'num' => 1 } )->explain },
-        qr/MongoDB::DatabaseError/, "check error on hint with explain" );
+        qr/MongoDB::(Database)?Error/, "check error on hint with explain" );
 }
 
 # count
@@ -330,7 +330,7 @@ $coll->drop;
     is($info->{'at'}, 0);
     is($info->{'num'}, $count);
     is($info->{'start'}, 0);
-    is($info->{'cursor_id'}, scalar("\0" x 8));
+    is($info->{'cursor_id'}, 0);
 
     $cursor->next;
     $info = $cursor->info;

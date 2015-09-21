@@ -1,5 +1,5 @@
 #
-#  Copyright 2009-2013 MongoDB, Inc.
+#  Copyright 2014 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,56 +14,33 @@
 #  limitations under the License.
 #
 
-
 use strict;
 use warnings;
-use Test::More 0.96;
+use utf8;
+use Test::More 0.88;
 use Test::Fatal;
+use Test::Deep qw/!blessed/;
+use boolean;
 
-use Data::Dumper;
-
-use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
+use MongoDB::Error;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client server_type server_version/;
+use lib "devel/lib";
 
-skip_unless_mongod();
+use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
 
-my $conn = build_client();
-my $server_type = server_type( $conn );
-my $server_version = server_version( $conn );
+use MongoDBTest::Orchestrator;
+use MongoDBTest qw/build_client get_test_db clear_testdbs server_version/;
 
-my $ret;
+sub _test_lock_unlock {
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
+    my $conn = build_client( dt_type => undef );
 
-# Test normal fsync.
-subtest "normal fsync" => sub {
-    $ret = $conn->fsync();
-    is($ret->{ok},              1, "fsync returned 'ok' => 1");
-    is(exists $ret->{numFiles}, 1, "fsync returned 'numFiles'");
-};
-
-# Test async fsync.
-subtest "async fsync" => sub {
-    my $err = exception { $ret = $conn->fsync({async => 1}) };
-    plan skip_all => 'async not supported'
-       if $err && $err =~ /exception:.*not supported/;
-    is( $err, undef, "fsync command ran without error" )
-        or diag $err;
-
-    if ( ref $ret eq 'HASH' ) {
-        is($ret->{ok},              1, "fsync + async returned 'ok' => 1");
-        is(exists $ret->{numFiles}, 1, "fsync + async returned 'numFiles'");
-    }
-};
-
-# Test fsync with lock.
-subtest "fsync with lock" => sub {
-    plan skip_all => "lock not supported through mongos"
-        if $server_type eq 'Mongos';
+    my $server_version = server_version($conn);
 
     # Lock
-    $ret = $conn->fsync({lock => 1});
+    my $ret = $conn->fsync({lock => 1});
     is($ret->{ok},              1, "fsync + lock returned 'ok' => 1");
     is(exists $ret->{seeAlso},  1, "fsync + lock returned a link to fsync+lock documentation.");
     is($ret->{info}, "now locked against writes, use db.fsyncUnlock() to unlock", "Successfully locked mongodb.");
@@ -79,10 +56,39 @@ subtest "fsync with lock" => sub {
     is($ret->{fsyncLock}, 1, "MongoDB is still locked.");
     is($ret->{info}, "use db.fsyncUnlock() to terminate the fsync write/snapshot lock", "Got docs on how to unlock (via shell).");
 
-    # Unlock 
-    $ret = $conn->fsync_unlock(); Dumper($ret);
+    # Unlock
+    $ret = $conn->fsync_unlock();
     is($ret->{ok}, 1, "Got 'ok' => 1 from unlock command.");
     is($ret->{info}, "unlock completed", "Got a successful unlock.");
+}
+
+subtest "wire protocol 4" => sub {
+    my $orc =
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-any.yml" );
+    diag "starting deployment";
+    $orc->start;
+    local $ENV{MONGOD} = $orc->as_uri;
+
+    _test_lock_unlock();
+
+    ok( scalar $orc->get_server('host1')->grep_log(qr/command: fsyncUnlock/),
+        "saw fsyncUnlock in log" );
 };
 
+subtest "wire protocol 3" => sub {
+    my $orc =
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
+    diag "starting deployment";
+    $orc->start;
+    local $ENV{MONGOD} = $orc->as_uri;
+
+    _test_lock_unlock();
+
+    ok( !scalar $orc->get_server('host1')->grep_log(qr/command: fsyncUnlock/),
+        "no fsyncUnlock in log" );
+};
+
+clear_testdbs;
+
 done_testing;
+
