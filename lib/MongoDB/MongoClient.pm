@@ -681,7 +681,7 @@ C<< SSL_verify_mode => 0x00 >>.
 B<You are strongly encouraged to use your own CA file for increased security>.
 
 Server hostnames are also validated against the CN name in the server
-certificate using C<< SSL_verifycn_scheme => 'default' >>.  You can use the
+certificate using C<< SSL_verifycn_scheme => 'http' >>.  You can use the
 scheme 'none' to disable this check.
 
 B<Disabling certificate or hostname verification is a security risk and is not
@@ -748,12 +748,9 @@ The client I<write concern>.
 
 =over 4
 
-=item * C<-1> Errors ignored. Do not use this.
-
 =item * C<0> Unacknowledged. MongoClient will B<NOT> wait for an acknowledgment that
 the server has received and processed the request. Older documentation may refer
-to this as "fire-and-forget" mode. You must call C<getLastError> manually to check
-if a request succeeds. This option is not recommended.
+to this as "fire-and-forget" mode.  This option is not recommended.
 
 =item * C<1> Acknowledged. This is the default. MongoClient will wait until the
 primary MongoDB acknowledges the write.
@@ -768,11 +765,9 @@ number for more replicas.
 
 =back
 
-In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can specify a
-new "getLastErrorMode" where you can create new
-rules on how your data is replicated. To used you getLastErrorMode, you pass in the
-name of the mode to the C<w> parameter. For more information see:
-http://www.mongodb.org/display/DOCS/Data+Center+Awareness
+In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can
+specify a custom write concern For more information see L<Data Center
+Awareness|http://docs.mongodb.org/manual/data-center-awareness/>
 
 This may be set in a connection string with the C<w> option.
 
