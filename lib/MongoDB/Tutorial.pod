@@ -54,14 +54,19 @@ Autoincrementing primary key
 
 =head1 PREAMBLE
 
-C<use MongoDB> loads most of the packages you'll need to interact with MongoDB:
-L<MongoDB::MongoClient>, L<MongoDB::Database>, L<MongoDB::Collection>, and
-L<MongoDB::Cursor>.  To use special Mongo data types (see
-L<MongoDB::DataTypes>), you have to include them separately.
-
-So, usually, to use Mongo, you'll just start with:
+To use MongoDB, you'll usually just start with:
 
     use MongoDB;
+
+The L<MongoDB> module loads most of the modules you'll need to interact
+with MongoDB:
+
+=for :list
+* L<MongoDB::MongoClient>
+* L<MongoDB::Database>
+* L<MongoDB::Collection>
+* Query result classes like L<MongoDB::Cursor> and L<MongoDB::QueryResult>
+* Write result classes like L<MongoDB::InsertOneResult> and L<MongoDB::UpdateResult>
 
 =head1 CONNECTING
 
@@ -99,9 +104,11 @@ a L<MongoDB::Collection> object direct from the client.
 To add a document to the collection, we use the C<insert_one> function.  It
 takes a hash reference which is saved to the collection.
 
-    $users->insert_one({"name" => "Joe",
+    $users->insert_one( {
+        "name" => "Joe",
         "age" => 52,
-        "likes" => [qw/skiing math ponies/]});
+        "likes" => [qw/skiing math ponies/]
+    });
 
 Now there is a user in the collection.
 
