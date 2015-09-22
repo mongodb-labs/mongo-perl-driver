@@ -4,12 +4,12 @@
 
   [Bug fixes]
 
-  - Fixed a failing test in the case where a user is running a replica
-    set on the default port 27017.
+  - PERL-567 Fixed a failing test in the case where a user is running a
+    replica set on the default port 27017.
 
   [Documentation]
 
-  - Fixed SYNOPSIS of MongoDB.pm
+  - PERL-568 Fixed SYNOPSIS of MongoDB.pm
 
   - Clarified some confusing sections of MongoDB::Tutorial and added
     hyperlinks to documentation for methods used in the tutorial.
