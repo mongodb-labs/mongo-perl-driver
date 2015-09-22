@@ -440,12 +440,16 @@ These methods allow you to iterate over results.
 
     my $result = $cursor->result;
 
-This method will return a L<MongoDB::QueryResult> object with the result of the
-query.  The query will be executed on demand.
+This method will execute the query and return a L<MongoDB::QueryResult> object
+with the results.
+
+The C<has_next>, C<next>, and C<all> methods call C<result> internally,
+which executes the query "on demand".
 
 Iterating with a MongoDB::QueryResult object directly instead of a
-MongoDB::Cursor will be slightly faster, since the MongoDB::Cursor methods
-below just internally call the corresponding method on the result object.
+L<MongoDB::Cursor> will be slightly faster, since the L<MongoDB::Cursor>
+methods below just internally call the corresponding method on the result
+object.
 
 =cut
 
@@ -493,7 +497,7 @@ sub all { $_[0]->result->all }
 
 Resets the cursor.  After being reset, pre-query methods can be
 called on the cursor (sort, limit, etc.) and subsequent calls to
-next, has_next, or all will re-query the database.
+result, next, has_next, or all will re-query the database.
 
 =cut
 

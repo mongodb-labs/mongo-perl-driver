@@ -588,9 +588,10 @@ Overview|http://docs.mongodb.org/manual/core/read-operations-introduction/> in
 the MongoDB documentation.
 
 B<Note>, a L<MongoDB::Cursor> object holds the query and does not issue the
-query to the server until the C<request> method is called on it or until an
-iterator method like C<next> is called.  Performance will be better directly on
-a L<MongoDB::QueryResult> object:
+query to the server until the L<result|MongoDB::Cursor/result> method is
+called on it or until an iterator method like L<next|MongoDB::Cursor/next>
+is called.  Performance will be better directly on a
+L<MongoDB::QueryResult> object:
 
     my $query_result = $coll->find( $filter )->result;
 
