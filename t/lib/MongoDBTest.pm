@@ -34,6 +34,10 @@ our @EXPORT_OK = qw(
 
 my @testdbs;
 
+sub _check_local_rs {
+
+}
+
 # abstract building a connection
 sub build_client {
     my %args = @_;
@@ -74,18 +78,26 @@ sub get_capped {
 sub skip_unless_mongod {
     eval {
         my $conn = build_client( server_selection_timeout_ms => 1000 );
-        $conn->_topology->scan_all_servers;
-        $conn->_topology->_dump;
-        eval { $conn->_topology->get_writable_link }
-            or die "couldn't connect";
-        $conn->get_database("admin")->run_command({ serverStatus => 1 })
-            or die "Database has auth enabled\n";
+        my $topo = $conn->_topology;
+        $topo->scan_all_servers;
+        my $link;
+        eval { $link = $topo->get_writable_link }
+          or die "couldn't connect";
+        $conn->get_database("admin")->run_command( { serverStatus => 1 } )
+          or die "Database has auth enabled\n";
+        my $server = $link->server;
+        if ( !$ENV{MONGOD} && $topo->type eq 'Single' && $server->type =~ /^RS/ ) {
+            # direct connection to RS member on default, so add set name
+            # via MONGOD environment variable for subsequent use
+            $ENV{MONGOD} = "mongodb://localhost/?replicaSet=" . $server->set_name;
+        }
+##        $conn->_topology->_dump;
     };
 
-    if ( $@ ) {
-        (my $err = $@) =~ s/\n//g;
+    if ($@) {
+        ( my $err = $@ ) =~ s/\n//g;
         if ( $err =~ /couldn't connect|connection refused/i ) {
-            $err = "no mongod on " . ($ENV{MONGOD} || "localhost:27017");
+            $err = "no mongod on " . ( $ENV{MONGOD} || "localhost:27017" );
             $err .= ' and $ENV{MONGOD} not set' unless $ENV{MONGOD};
         }
         plan skip_all => "$err";
