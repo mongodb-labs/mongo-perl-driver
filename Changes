@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.0.1    2015-09-22 12:55:08-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-567 Fixed a failing test in the case where a user is running a
