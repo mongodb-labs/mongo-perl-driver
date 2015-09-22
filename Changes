@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Documentation]
+
+  - Fixed SYNOPSIS of MongoDB.pm
+
 v1.0.0    2015-09-21 16:15:04-04:00 America/New_York
 
   [!!! Incompatible Changes !!!]
