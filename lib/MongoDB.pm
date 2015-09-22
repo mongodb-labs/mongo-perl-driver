@@ -105,8 +105,8 @@ read_documents
 
     my $client     = MongoDB->connect('mongodb://localhost');
     my $collection = $client->ns('foo.bar'); # database foo, collection bar
-    my $id         = $collection->insert_one({ some => 'data' });
-    my $data       = $collection->find_one({ _id => $id });
+    my $result     = $collection->insert_one({ some => 'data' });
+    my $data       = $collection->find_one({ _id => $result->inserted_id });
 
 =head1 DESCRIPTION
 
