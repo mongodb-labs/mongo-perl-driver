@@ -1526,6 +1526,11 @@ send_write_op
         replica_set_name => 'myset',
     );
 
+    # connect to a replica set with URI (set name *required*)
+    my $client = MongoDB::MongoClient->new(
+        host => "mongodb://mongo1.example.com,mongo2.example.com/?replicaSet=myset",
+    );
+
     my $db = $client->get_database("test");
     my $coll = $db->get_collection("people");
 

@@ -65,6 +65,11 @@ for L<MongoDB::MongoClient::new|MongoDB::MongoClient/ATTRIBUTES>.
 
 If an error occurs, a L<MongoDB::Error> object will be thrown.
 
+B<NOTE>: To connect to a replica set, a replica set name must be provided.
+For example, if the set name is "setA":
+
+    $client = MongoDB->connect("mongodb://example.com/?replicaSet=setA");
+
 =cut
 
 sub connect {
