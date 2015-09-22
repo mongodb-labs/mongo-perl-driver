@@ -72,6 +72,16 @@ sub _build_name {
     return $self->config->{name};
 }
 
+has port_override => (
+    is => 'lazy',
+    isa => Num|Undef,
+);
+
+sub _build_port_override {
+    my ($self) = @_;
+    return $self->config->{port_override};
+}
+
 has default_args => (
     is => 'ro',
     isa => Str,
@@ -273,7 +283,12 @@ sub _build_client {
 sub start {
     my ($self, $port) = @_;
     retry {
-        defined $port ? $self->_set_port($port) : $self->_set_port(empty_port());
+        if ( defined $self->port_override ) {
+            $self->_set_port( $self->port_override );
+        }
+        else {
+            defined $port ? $self->_set_port($port) : $self->_set_port(empty_port());
+        }
         $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
         my $guard = proc_guard(
             sub {
