@@ -22,11 +22,12 @@
 
 =head1 DESCRIPTION
 
-The tutorial runs through the basic functionality of the MongoDB package.  This
-is a good starting point if you have never used MongoDB before.
+The tutorial runs through the basic functionality of the MongoDB package.
+This is a good starting point if you have never used MongoDB before.
 
-The tutorial assumes that you are running a MongoDB database server locally on the
-default port.  You can download Mongo from L<http://www.mongodb.org>.
+The tutorial assumes that you are running a standalone MongoDB database
+server (i.e. not a replia set) locally on the default port.  You can
+download MongoDB from L<http://www.mongodb.org>.
 
 =head1 TERMINOLOGY
 
@@ -78,7 +79,7 @@ L<connect|MongoDB/connect> method.
 
 Now we we have a client connected to the MongoDB server.  Next we need a
 database to work with, we'll call it "tutorial".  You need not do anything
-special to create the database, Mongo will create it on the fly.
+special to create the database, MongoDB will create it on the fly.
 
     my $db = $client->get_database( 'tutorial' );
 
@@ -101,7 +102,8 @@ a L<MongoDB::Collection> object direct from the client.
 
 =head3 Inserting
 
-To add a document to the collection, we use the C<insert_one> function.  It
+To add a document to the collection, we use the
+L<insert_one|MongoDB::Collection/insert_one> function.  It
 takes a hash reference which is saved to the collection.
 
     $users->insert_one( {
@@ -119,11 +121,12 @@ exist.  By default, this field is a L<MongoDB::OID>, 12 bytes that are
 guaranteed to be unique. The C<_id> field of the inserted document is returned
 in a L<MongoDB::InsertOneResult> object by the C<insert_one> method.
 
-    my $id = $users->insert_one({"name" => "Bill"})->inserted_id;
+    my $result = $users->insert_one({"name" => "Bill"});
+    my $id     = $result->inserted_id;
 
-An efficient way to insert documents is to send many at a time to the database
-by using C<insert_many>, which returns a L<MongoDB::InsertManyResult>
-describing the documents inserted.
+An efficient way to insert documents is to send many at a time to the
+database by using L<insert_many|MongoDB::Collection/insert_many>, which
+returns a L<MongoDB::InsertManyResult> describing the documents inserted.
 
     my $result = $users->insert_many(\@many_users);
 
@@ -131,8 +134,8 @@ describing the documents inserted.
 
 =head3 Queries
 
-To retrieve documents that were saved to a collection, we can use the C<find>
-method.
+To retrieve documents that were saved to a collection, we can use the
+L<find|MongoDB::Collection/find> method.
 
     my $all_users = $users->find;
 
@@ -157,7 +160,7 @@ See L<MongoDB::DataTypes/"Regular Expressions"> for more information.
 =head3 Ranges
 
 As queries are hashes, they use a special syntax to express comparisons, such as
-"x < 4".  To make the query a valid hash, Mongo uses $-prefixed terms.  For
+"x < 4".  To make the query a valid hash, MongoDB uses $-prefixed terms.  For
 example, "x < 4" could be expressed by:
 
     my $doc321 = $collection->find({'x' => { '$lt' => 4 }});
@@ -188,11 +191,11 @@ to print the "name" field of the first result:
 =head3 C<$>-operators
 
 To change a document after it has been saved to the database, you must pass
-C<update_one> (or C<update_many> to change many documents at once)
-two arguments.  The first is a query
-argument, identical to the previous section, to identify the document you
-want to change.  The second is an argument that describes the change that
-you wish to make.
+L<update_one|MongoDB::Collection/update_one> (or
+L<update_many|MongoDB::Collection/update_many> to change many documents at
+once) two arguments.  The first is a query argument, identical to the
+previous section, to identify the document you want to change.  The second
+is an argument that describes the change that you wish to make.
 
 The change is described by $-prefixed descriptors.  For example, to increment a
 field, we would write:
@@ -231,7 +234,8 @@ field would be incremented.
 
 =head2 Deleting Documents
 
-To delete documents, we use the C<delete_one> or C<delete_many> methods.
+To delete documents, we use the L<delete_one|MongoDB::Collection/delete_one>
+or L<delete_many|MongoDB::Collection/delete_many> methods.
 They take the same type of hash queries do:
 
     $users->delete_many({"name" => "Joe"});
@@ -250,15 +254,18 @@ C<drop> can also be used for whole databases:
 
 =head2 Database Commands
 
-There are a large number of useful database commands that can be called directly
-with $db->run_command.
+There are a large number of useful database commands that can be called
+directly on C<$db> with the L<run_command|MongoDB::Database/run_command>
+method.
 
 For example, you can use a database command to create a capped collection like
 so:
 
+    use boolean; # imports 'true' and 'false'
+
     my $cmd = [
         create => "posts",
-        capped => boolean::true,
+        capped => true,
         size   => 10240,
         max    => 100
     ];
@@ -266,9 +273,11 @@ so:
     $db->run_command($cmd);
 
 This will create a capped collection called "posts" in the current database.  It
-has a maximum size of 10240 bytes and can contain up to 100 documents.
+has a maximum size of 10240 bytes and can contain up to 100 documents.  The
+L<boolean> module must be used whenever the database expects an actual
+boolean argument (i.e. not "1" or "0").
 
-Mongo expects commands to have key/value pairs in a certain order, so you must
+MongoDB expects commands to have key/value pairs in a certain order, so you must
 give arguments in an array reference (or L<Tie::IxHash> object).
 
 =head1 NEXT STEPS
