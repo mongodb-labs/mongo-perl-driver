@@ -6,6 +6,9 @@
 
   - Fixed SYNOPSIS of MongoDB.pm
 
+  - Clarified some sections of MongoDB::Collection and MongoDB::Cursor
+    and added some hyperlinks.
+
 v1.0.0    2015-09-21 16:15:04-04:00 America/New_York
 
   [!!! Incompatible Changes !!!]
