@@ -70,7 +70,7 @@ subtest 'run_command' => sub {
     is( ref $testdb->run_command( Tie::IxHash->new( ismaster => 1 ) ),
         'HASH', "run_command(IxHash) gives HASH" );
 
-    if ( $server_type eq 'RSPrimary' ) {
+    if ( $server_type eq 'RSPrimary' && $conn->_topology->all_servers > 1 ) {
         my $primary = $testdb->run_command( [ ismaster => 1 ] );
         my $secondary = $testdb->run_command( [ ismaster => 1 ], { mode => 'secondary' } );
         isnt( $primary->{me}, $secondary->{me}, "run_command respects explicit read preference" )
