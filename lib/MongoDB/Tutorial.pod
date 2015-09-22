@@ -25,8 +25,8 @@
 The tutorial runs through the basic functionality of the MongoDB package.
 This is a good starting point if you have never used MongoDB before.
 
-The tutorial assumes that you are running a standalone MongoDB database
-server (i.e. not a replia set) locally on the default port.  You can
+The tutorial assumes that you are running a B<standalone> MongoDB database
+server (i.e. not a replica set) locally on the default port.  You can
 download MongoDB from L<http://www.mongodb.org>.
 
 =head1 TERMINOLOGY
@@ -91,7 +91,7 @@ using the "users" collection to start out.
 Again, there is no need to create the collection in advance, it will be created
 as needed.
 
-The L<ns|MongoDB::MongoClient/ns> method is a short cut to get
+The L<ns|MongoDB::MongoClient/get_namespace> method is a short cut to get
 a L<MongoDB::Collection> object direct from the client.
 
     my $users = $client->ns("tutorial.users");
