@@ -88,6 +88,10 @@ STRING URI> with a seed list of one or more servers plus connection options.
 
 Defaults to the connection string URI C<mongodb://localhost:27017>.
 
+For IPv6 support, you must have a recent version of L<IO::Socket::IP>
+installed.  This module ships with the Perl core since v5.20.0 and is
+available on CPAN for older Perls.
+
 =cut
 
 has host => (
