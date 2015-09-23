@@ -26,7 +26,11 @@ use Try::Tiny::Retry qw/:all/;
 use Types::Standard -types;
 use namespace::clean;
 
-with 'MooseX::Role::Logger', 'MongoDBTest::Role::ServerSet';
+with $_ for qw(
+  MooseX::Role::Logger
+  MongoDBTest::Role::ServerSet
+  MongoDBTest::Role::VersionShim
+);
 
 has set_name => (
     is => 'ro',
@@ -82,7 +86,7 @@ sub rs_initiate {
 
     # not $self->client because this needs to be a direct connection
     my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
-    $client->get_database("admin")->_try_run_command({replSetInitiate => $rs_config});
+    $self->do_cmd_on_db( $client, "admin", [ replSetInitiate => $rs_config ] );
 
     $self->_logger->debug("waiting for primary");
 
@@ -97,7 +101,7 @@ sub wait_for_all_hosts {
     retry {
         my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
         my $admin = $client->get_database("admin");
-        if ( my $status = eval { $admin->_try_run_command({replSetGetStatus => 1}) } ) {
+        if ( my $status = eval { $self->do_cmd_on_db($client, "admin", [replSetGetStatus => 1]) } ) {
             my @member_states = map { $_->{state} } @{ $status->{members} };
             $self->_logger->debug("host states: @member_states");
             die "Hosts not all PRIMARY or SECONDARY or ARBITER\n"
@@ -120,7 +124,7 @@ sub stepdown_primary {
     my ($self, $timeout_secs) = @_;
     # eval because command causes primary to close connection, causing network error
     eval {
-        $self->client->get_database("admin")->_try_run_command( { replSetStepDown => 5 } );
+        $self->do_cmd_on_db( $self->client, "admin", [ replSetStepDown => 5 ] );
     };
     return;
 }

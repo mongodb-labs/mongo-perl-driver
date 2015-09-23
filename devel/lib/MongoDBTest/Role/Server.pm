@@ -41,6 +41,10 @@ requires '_build_command_name';
 requires '_build_command_args';
 requires '_logger';
 
+with $_ for qw(
+  MongoDBTest::Role::VersionShim
+);
+
 has command_args => (
     is => 'lazy',
     isa => Str,
@@ -267,7 +271,8 @@ sub start {
 
     retry {
         $self->_logger->debug("Pinging " . $self->name . " with ismaster");
-        MongoDB::MongoClient->new(host => $self->as_uri)->get_database("admin")->_try_run_command([ismaster => 1]);
+        my $c = MongoDB::MongoClient->new(host => $self->as_uri);
+        $self->do_cmd_on_db($c, "admin", [ismaster => 1]);
     }
     delay_exp { 13, 1e5 }
     on_retry {
@@ -279,7 +284,10 @@ sub start {
         my ($user, $password) = @{ $self->auth_config }{qw/user password/};
         $self->add_user($user, $password, [ 'root' ]);
         $self->_set_did_auth_setup(1);
-        eval { MongoDB::MongoClient->new(host => "mongodb://localhost:" . $self->port)->get_database("admin")->_try_run_command([shutdown => 1]) };
+        eval {
+            my $c = MongoDB::MongoClient->new(host => "mongodb://localhost:" . $self->port);
+            $self->do_cmd_on_db($c,"admin",[shutdown => 1])
+        };
         $self->_logger->debug("Restarting original server with --auth");
         $self->stop;
         $self->start;
@@ -350,7 +358,7 @@ sub add_user {
     );
     if ( $self->server_version >= v2.6.0 ) {
         $doc->Unshift(createUser => $user);
-        $self->client->get_database("admin")->_try_run_command( $doc );
+        $self->do_cmd_on_db( $self->client, "admin", $doc );
     }
     else {
         $doc->Unshift(user => $user);
