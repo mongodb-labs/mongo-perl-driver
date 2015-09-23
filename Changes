@@ -5,7 +5,12 @@
   [Bug fixes]
 
   - Fixed a failing test in the case where a user is running a
-    single-node replica set
+    single-node replica set.
+
+  [Documentation]
+
+  - Noted that IPv6 support requires IO::Socket::IP (core since
+    Perl v5.20.0).
 
 v1.0.1    2015-09-22 12:55:08-04:00 America/New_York
 
