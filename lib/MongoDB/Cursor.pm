@@ -427,7 +427,8 @@ sub explain {
         coll_name       => $self->query->coll_name,
         bson_codec      => $self->query->bson_codec,
         query           => $self->query->clone,
-        read_preference => $self->query->read_preference
+        read_preference => $self->query->read_preference,
+        read_concern    => $self->query->read_concern,
     );
 
     return $self->query->client->send_read_op($explain_op);

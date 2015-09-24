@@ -31,22 +31,26 @@ use MongoDB::_Query;
 use MongoDB::Op::_Aggregate;
 use MongoDB::Op::_BatchInsert;
 use MongoDB::Op::_BulkWrite;
+use MongoDB::Op::_Count;
 use MongoDB::Op::_CreateIndexes;
 use MongoDB::Op::_Delete;
 use MongoDB::Op::_Distinct;
 use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_ListIndexes;
+use MongoDB::Op::_ParallelScan;
 use MongoDB::Op::_Update;
 use MongoDB::_Types qw(
     BSONCodec
     NonNegNum
     ReadPreference
+    ReadConcern
     WriteConcern
 );
 use Types::Standard qw(
     HashRef
     InstanceOf
     Str
+    Maybe
 );
 use Tie::IxHash;
 use Carp 'carp';
@@ -115,6 +119,23 @@ has write_concern => (
     isa      => WriteConcern,
     required => 1,
     coerce   => WriteConcern->coercion,
+);
+
+=attr read_concern
+
+A L<MongoDB::ReadConcern> object.  May be initialized with a hash
+reference or a string that will be coerced into the level of read
+concern.
+
+By default it will be inherited from a L<MongoDB::Database> object.
+
+=cut
+
+has read_concern => (
+    is       => 'ro',
+    isa      => ReadConcern,
+    required => 1,
+    coerce   => ReadConcern->coercion,
 );
 
 =attr max_time_ms
@@ -241,6 +262,7 @@ sub _build__op_args {
         bson_codec      => $self->bson_codec,
         coll_name       => $self->name,
         write_concern   => $self->write_concern,
+        read_concern    => $self->read_concern,
         read_preference => $self->read_preference,
         full_name       => join( ".", $self->database->name, $self->name ),
     };
@@ -909,6 +931,7 @@ sub aggregate {
         pipeline   => $pipeline,
         options    => $options,
         ( $read_pref ? ( read_preference => $read_pref ) : () ),
+        read_concern => $self->read_concern,
     );
 
     return $self->client->send_read_op($op);
@@ -953,9 +976,17 @@ sub count {
     # string is OK so we check ref, not just exists
     __ixhash($options, 'hint') if ref $options->{hint};
 
-    my $res = $self->_run_command(
-        Tie::IxHash->new( count => $self->name, query => $filter, %$options ),
-        $self->read_preference );
+    my $op = MongoDB::Op::_Count->_new(
+        coll_name       => $self->name,
+        db_name         => $self->database->name,
+        bson_codec      => $self->bson_codec,
+        read_preference => $self->read_preference,
+        read_concern    => $self->read_concern,
+        opts            => $options,
+        filter          => $filter,
+    );
+
+    my $res = $self->client->send_read_op($op);
 
     return $res->{n};
 }
@@ -1008,6 +1039,7 @@ sub distinct {
         filter          => $filter,
         options         => $options,
         read_preference => $self->read_preference,
+        read_concern    => $self->read_concern,
     );
 
     return $self->client->send_read_op($op);
@@ -1041,14 +1073,13 @@ sub parallel_scan {
 
     my $db   = $self->database;
 
-    my @command = ( parallelCollectionScan => $self->name, numCursors => $num_cursors );
-
-    my $op = MongoDB::Op::_Command->_new(
+    my $op = MongoDB::Op::_ParallelScan->_new(
         db_name         => $db->name,
-        query           => \@command,
-        query_flags     => {},
+        coll_name       => $self->name,
+        num_cursors     => $num_cursors,
         bson_codec      => $self->bson_codec,
         read_preference => $self->read_preference,
+        read_concern    => $self->read_concern,
     );
 
     my $result = $self->client->send_read_op( $op );

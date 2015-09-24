@@ -114,9 +114,13 @@ sub execute {
         delete $options->{cursor};
     }
 
+    # read concerns are ignored if the last stage is $out
+    my ($last_op) = keys %{ $self->pipeline->[-1] };
+
     my @command = (
         aggregate => $self->coll_name,
         pipeline  => $self->pipeline,
+        ($last_op eq '$out' ? () : @{ $self->read_concern->as_args }),
         %$options,
     );
 

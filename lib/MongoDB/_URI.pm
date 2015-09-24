@@ -106,6 +106,7 @@ sub _build_valid_options {
             ssl
             w
             wTimeoutMS
+            readConcernLevel
         )
     };
 }

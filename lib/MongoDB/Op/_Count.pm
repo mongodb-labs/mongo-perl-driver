@@ -1,5 +1,5 @@
 #
-#  Copyright 2015 MongoDB, Inc.
+#  Copyright 2014 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,26 +14,43 @@
 #  limitations under the License.
 #
 
-package MongoDB::Op::_Distinct;
+package MongoDB::Op::_Count;
 
-# Encapsulate distinct operation; return MongoDB::QueryResult
+# Encapsulate code path for parallelCollectionScan commands
 
 use version;
-our $VERSION = 'v1.1.0';
+our $VERSION = 'v0.999.999.7';
 
 use Moo;
 
 use MongoDB::Op::_Command;
-use MongoDB::_Constants;
+use MongoDB::Error;
+
 use MongoDB::_Types qw(
     Document
 );
+
 use Types::Standard qw(
+    Str
     InstanceOf
     HashRef
-    Str
 );
+
+use Tie::IxHash;
+use boolean;
 use namespace::clean;
+
+has opts => (
+    is       => 'ro',
+    required => 1,
+    isa => HashRef,
+);
+
+has filter => (
+    is       => 'ro',
+    required => 1,
+    isa => HashRef,
+);
 
 has db_name => (
     is       => 'ro',
@@ -47,71 +64,34 @@ has coll_name => (
     isa => Str,
 );
 
-has client => (
-    is       => 'ro',
-    required => 1,
-    isa => InstanceOf ['MongoDB::MongoClient'],
-);
-
-has fieldname=> (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
-
-has filter => (
-    is      => 'ro',
-    required => 1,
-    isa => Document,
-);
-
-has options => (
-    is      => 'ro',
-    required => 1,
-    isa => HashRef,
-);
-
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
-  MongoDB::Role::_CommandCursorOp
 );
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
 
-    my $options = $self->options;
+    my $command = [
+        count => $self->coll_name,
+        query => $self->filter,
 
-    my $filter =
-      ref( $self->filter ) eq 'ARRAY'
-      ? { @{ $self->filter } }
-      : $self->filter;
+        ($link->accepts_wire_version(4) ?
+            @{ $self->read_concern->as_args } : () ),
 
-    my @command = (
-        distinct => $self->coll_name,
-        key      => $self->fieldname,
-        query    => $filter,
-        @{ $self->read_concern->as_args },
-        %$options
-    );
+        %{ $self->opts },
+    ];
 
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
-        query           => Tie::IxHash->new(@command),
+        query           => $command,
         query_flags     => {},
-        read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
+        read_preference => $self->read_preference,
     );
 
     my $res = $op->execute( $link, $topology );
-
-    $res->output->{cursor} = {
-        ns         => '',
-        id         => 0,
-        firstBatch => ( delete $res->output->{values} ) || [],
-    };
-
-    return $self->_build_result_from_cursor($res);
+    return $res->output;
 }
 
 1;

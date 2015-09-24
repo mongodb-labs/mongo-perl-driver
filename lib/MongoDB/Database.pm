@@ -32,6 +32,7 @@ use MongoDB::_Types qw(
     BSONCodec
     NonNegNum
     ReadPreference
+    ReadConcern
     WriteConcern
 );
 use Types::Standard qw(
@@ -44,7 +45,7 @@ use Moo;
 use Try::Tiny;
 use namespace::clean -except => 'meta';
 
-has _client => ( 
+has _client => (
     is       => 'ro',
     isa      => InstanceOf['MongoDB::MongoClient'],
     required => 1,
@@ -91,6 +92,23 @@ has write_concern => (
     isa      => WriteConcern,
     required => 1,
     coerce   => WriteConcern->coercion,
+);
+
+=attr read_concern
+
+A L<MongoDB::ReadConcern> object.  May be initialized with a hash
+reference or a string that will be coerced into the level of read
+concern.
+
+By default it will be inherited from a L<MongoDB::MongoClient> object.
+
+=cut
+
+has read_concern => (
+    is       => 'ro',
+    isa      => ReadConcern,
+    required => 1,
+    coerce   => ReadConcern->coercion,
 );
 
 =attr max_time_ms
@@ -234,6 +252,7 @@ sub get_collection {
     return MongoDB::Collection->new(
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
+        read_concern    => $self->read_concern,
         bson_codec      => $self->bson_codec,
         max_time_ms     => $self->max_time_ms,
         ( $options ? %$options : () ),
