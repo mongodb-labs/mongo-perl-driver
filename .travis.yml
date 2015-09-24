@@ -1,5 +1,8 @@
 language: perl
 sudo: false
+env:
+    global:
+        - PERL_MONGO_WITH_ASSERTS=1
 services:
   - mongodb
 install:
