@@ -324,7 +324,7 @@ are recommended:
         $coll->insert( $doc )
     }
     catch {
-        if ( $_->$_isa("MongoDB::DuplicateKeyError" ) ) {
+        if ( $_->isa("MongoDB::DuplicateKeyError" ) ) {
             ...
         }
         else {
