@@ -33,10 +33,6 @@ use Types::Standard qw(
     Str
 );
 use MongoDB::_Protocol;
-use Tie::IxHash;
-use Math::BigInt;
-
-use Devel::StackTrace;
 
 use namespace::clean;
 
@@ -101,14 +97,12 @@ sub execute {
 sub _command_get_more {
     my ( $self, $link ) = @_;
 
-    my ( $db_name, $coll_name ) = split(/\./, $self->ns, 2);
-
-    my $cmd = Tie::IxHash->new(
+    my $cmd = [
         getMore         => $self->cursor_id,
         collection      => $self->coll_name,
         $self->batch_size > 0 ? (batchSize => $self->batch_size) : (),
         defined $self->max_time_ms ? (maxTimeMS => $self->max_time_ms) : (),
-    );
+    ];
 
     my $res = $self->_send_command( $link, $cmd );
     my $c = $res->{cursor};

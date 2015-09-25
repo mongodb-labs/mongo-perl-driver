@@ -236,6 +236,8 @@ $coll->drop;
 
     $coll->insert_one({'num' => 1, 'foo' => 1});
 
+    # "Command Op::_Explain will throw a MongoDB::Error, while the legacy
+    # code will throw a MongoDB::DatabaseError, so test must check both.
     like( exception { $coll->query->hint( { 'num' => 1 } )->explain },
         qr/MongoDB::(Database)?Error/, "check error on hint with explain" );
 }

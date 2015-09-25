@@ -90,12 +90,7 @@ has comment => (
 
 has max_time_ms => (
     is       => 'ro',
-    isa      => Num,
-);
-
-has oplog_replay => (
-    is       => 'ro',
-    isa      => Bool,
+    isa      => Maybe[Num],
 );
 
 has no_cursor_timeout => (
@@ -129,7 +124,7 @@ with $_ for qw(
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
-with 'MongoDB::Role::_LegacyReadPrefModifier';
+with 'MongoDB::Role::_ReadPrefModifier';
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
@@ -145,10 +140,9 @@ sub execute {
 sub _command_query {
     my ( $self, $link, $topology ) = @_;
 
-    my $cmd = $self->as_command;
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
-        query           => $cmd,
+        query           => $self->as_command,
         query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
@@ -235,11 +229,11 @@ sub as_command {
 
     my ($limit, $batch_size, $single_batch) = ($self->limit, $self->batch_size, 0);
 
-    if (defined $limit && $limit < 0) {
+    if ($limit < 0) {
         $limit = abs($limit);
         $single_batch = true;
     }
-    if (defined $batch_size && $batch_size < 0) {
+    if ($batch_size < 0) {
         $batch_size = abs($batch_size);
         $single_batch = true;
     }
@@ -249,39 +243,36 @@ sub as_command {
 
     my $mod = $self->modifiers;
 
-    return Tie::IxHash->new(
+    return [
         find                => $self->coll_name,
         filter              => $self->filter,
 
-        defined $self->sort ? (sort => $self->sort) : (),
-        defined $self->projection ? (projection => $self->projection) : (),
-        defined $mod->{'$hint'} ? (hint => $mod->{'$hint'}) : (),
+        (defined $self->sort ? (sort => $self->sort) : ()),
+        (defined $self->projection ? (projection => $self->projection) : ()),
+        (defined $mod->{'$hint'} ? (hint => $mod->{'$hint'}) : ()),
 
         skip                => $self->skip,
 
-        $limit != 0 ? (limit => $limit) : (),
-        $batch_size != 0 ? (batchSize => $batch_size) : (),
+        ($limit ? (limit => $limit) : ()),
+        ($batch_size ? (batchSize => $batch_size) : ()),
 
         singleBatch         => boolean($single_batch),
-        comment             => $self->comment,
 
-        defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : (),
-
-        maxTimeMS           => $self->max_time_ms,
-
-        defined $mod->{max} ? (max => $mod->{max}) : (),
-        defined $mod->{min} ? (min => $mod->{min}) : (),
-        defined $mod->{returnKey} ? (returnKey => $mod->{returnKey}) : (),
-        defined $mod->{showDiskLoc} ? (showRecordId => $mod->{showDiskLoc}) : (),
-        defined $mod->{snapshot} ? (snapshot => $mod->{snapshot}) : (),
+        ($self->{comment} ? (comment => $self->comment) : ()),
+        (defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : ()),
+        (defined $self->{max_time_ms} ? (maxTimeMS => $self->max_time_ms) : ()),
+        (defined $mod->{max} ? (max => $mod->{max}) : ()),
+        (defined $mod->{min} ? (min => $mod->{min}) : ()),
+        (defined $mod->{returnKey} ? (returnKey => $mod->{returnKey}) : ()),
+        (defined $mod->{showDiskLoc} ? (showRecordId => $mod->{showDiskLoc}) : ()),
+        (defined $mod->{snapshot} ? (snapshot => $mod->{snapshot}) : ()),
 
         tailable            => $tailable,
-        oplogReplay         => boolean($self->oplog_replay),
         noCursorTimeout     => boolean($self->no_cursor_timeout),
         awaitData           => $await_data,
         allowPartialResults => boolean($self->allow_partial_results),
         #readConcern = ..., XXX unimplemented
-    );
+    ];
 }
 
 1;

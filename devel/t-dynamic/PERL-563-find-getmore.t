@@ -40,10 +40,8 @@ sub _test_find_getmore {
 
     my $testdb = get_test_db($conn);
     my $server_version = server_version($conn);
-    my $coll;
-    my $cursor;
 
-    $coll = $testdb->get_collection('test');
+    my $coll = $testdb->get_collection('test');
     $coll->drop;
     $coll->indexes->create_one({'sn'=>1});
 
@@ -51,7 +49,7 @@ sub _test_find_getmore {
     $bulk->insert_one({sn => $_}) for 0 .. 5000;
     $bulk->execute;
 
-    $cursor = $coll->query;
+    my $cursor = $coll->query;
     my $count = 0;
     while (my $doc = $cursor->next()) {
         $count++;

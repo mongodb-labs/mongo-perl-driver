@@ -14,9 +14,10 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_LegacyReadPrefModifier;
+package MongoDB::Role::_ReadPrefModifier;
 
 # MongoDB interface for read ops that respect read preference
+# Only affects MongoDB::_Op::_Query on the legacy code path
 
 use version;
 our $VERSION = 'v1.1.0';

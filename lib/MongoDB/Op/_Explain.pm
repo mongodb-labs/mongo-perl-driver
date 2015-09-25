@@ -78,7 +78,7 @@ sub execute {
 sub _command_explain {
     my ( $self, $link, $topology ) = @_;
 
-    my $cmd = $self->query->as_query_op->as_command;
+    my $cmd = Tie::IxHash->new( @{ $self->query->as_query_op->as_command } );
 
     # XXX need to standardize error here
     if (defined $self->query->modifiers->{hint}) {
@@ -90,9 +90,9 @@ sub _command_explain {
 
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
-        query           => {
+        query           => [
             explain   => $cmd,
-        },
+        ],
         query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,

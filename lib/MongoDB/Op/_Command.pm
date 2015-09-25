@@ -57,7 +57,7 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CommandOp
   MongoDB::Role::_ReadOp
-  MongoDB::Role::_LegacyReadPrefModifier
+  MongoDB::Role::_ReadPrefModifier
 );
 
 sub execute {
