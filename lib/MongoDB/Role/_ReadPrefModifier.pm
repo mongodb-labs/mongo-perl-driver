@@ -17,6 +17,7 @@
 package MongoDB::Role::_ReadPrefModifier;
 
 # MongoDB interface for read ops that respect read preference
+# Only affects MongoDB::_Op::_Query on the legacy code path
 
 use version;
 our $VERSION = 'v1.1.0';
@@ -26,10 +27,10 @@ use Moo::Role;
 use MongoDB::Error;
 use namespace::clean;
 
-requires qw/query _set_query query_flags read_preference/;
+requires qw/read_preference/;
 
 sub _apply_read_prefs {
-    my ( $self, $link, $topology_type ) = @_;
+    my ( $self, $link, $topology_type, $query_flags, $query_ref ) = @_;
 
     $topology_type ||= "<undef>";
     my $read_pref = $self->read_preference;
@@ -39,19 +40,19 @@ sub _apply_read_prefs {
             $self->_apply_mongos_read_prefs($read_pref);
         }
         else {
-            $self->query_flags->{slave_ok} = 1;
+            $query_flags->{slave_ok} = 1;
         }
     }
     elsif ( grep { $topology_type eq $_ } qw/ReplicaSetNoPrimary ReplicaSetWithPrimary/ ) {
         if ( !$read_pref || $read_pref->mode eq 'primary' ) {
-            $self->query_flags->{slave_ok} = 0;
+            $query_flags->{slave_ok} = 0;
         }
         else {
-            $self->query_flags->{slave_ok} = 1;
+            $query_flags->{slave_ok} = 1;
         }
     }
     elsif ( $topology_type eq 'Sharded' ) {
-        $self->_apply_mongos_read_prefs($read_pref);
+        $self->_apply_mongos_read_prefs($read_pref, $query_flags, $query_ref);
     }
     else {
         MongoDB::InternalError->throw("can't query topology type '$topology_type'");
@@ -61,19 +62,19 @@ sub _apply_read_prefs {
 }
 
 sub _apply_mongos_read_prefs {
-    my ( $self, $read_pref ) = @_;
+    my ( $self, $read_pref, $query_flags, $query_ref ) = @_;
     my $mode = $read_pref ? $read_pref->mode : 'primary';
     my $need_read_pref;
 
     if ( $mode eq 'primary' ) {
-        $self->query_flags->{slave_ok} = 0;
+        $query_flags->{slave_ok} = 0;
     }
     elsif ( grep { $mode eq $_ } qw/secondary primaryPreferred nearest/ ) {
-        $self->query_flags->{slave_ok} = 1;
+        $query_flags->{slave_ok} = 1;
         $need_read_pref = 1;
     }
     elsif ( $mode eq 'secondaryPreferred' ) {
-        $self->query_flags->{slave_ok} = 1;
+        $query_flags->{slave_ok} = 1;
         $need_read_pref = 1
           unless $read_pref->has_empty_tag_sets;
     }
@@ -82,10 +83,10 @@ sub _apply_mongos_read_prefs {
     }
 
     if ($need_read_pref) {
-        if ( !$self->query->FETCH('$query') ) {
-            $self->_set_query( Tie::IxHash->new( '$query' => $self->query ) );
+        if ( !$$query_ref->FETCH('$query') ) {
+            $$query_ref = Tie::IxHash->new( '$query' => $$query_ref );
         }
-        $self->query->Push( '$readPreference' => $read_pref->for_mongos );
+        $$query_ref->Push( '$readPreference' => $read_pref->for_mongos );
     }
 
     return;

@@ -64,7 +64,8 @@ sub execute {
     my ( $self, $link, $topology_type ) = @_;
     $topology_type ||= 'Single'; # if not specified, assume direct
 
-    $self->_apply_read_prefs( $link, $topology_type );
+    # $query is passed as a reference because it *may* be replaced
+    $self->_apply_read_prefs( $link, $topology_type, $self->query_flags, \$self->query);
 
     my $res = MongoDB::CommandResult->_new(
         output => $self->_send_command( $link, $self->query, $self->query_flags ),
