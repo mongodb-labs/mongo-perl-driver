@@ -795,8 +795,8 @@ sub _build_w {
 
 =attr wtimeout
 
-The number of milliseconds an operation should wait for C<w> slaves to replicate
-it.
+The number of milliseconds an operation should wait for C<w> secondaries to
+replicate it.
 
 Defaults to 1000 (1 second).
 
