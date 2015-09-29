@@ -20,6 +20,7 @@
 #include "XSUB.h"
 #include "regcomp.h"
 #include "string.h"
+#include "limits.h"
 
 /* load after other Perl headers */
 #include "ppport.h"
