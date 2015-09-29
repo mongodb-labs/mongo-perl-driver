@@ -4,6 +4,8 @@
 
   [Bug fixes]
 
+  - PERL-495 Preserve fractional seconds when using dt_type 'raw'
+
   - PERL-571 Include limits.h explicitly rather than relying on other
     headers to load it.
 
