@@ -88,8 +88,8 @@ has dbref_callback => (
 
 Sets the type of object which is returned for BSON DateTime fields. The default
 is L<DateTime>. Other acceptable values are L<Time::Moment>, L<DateTime::Tiny>
-and C<undef>. The latter will give you the raw epoch value rather than an
-object.
+and C<undef>. The latter will give you the raw epoch value (possibly as a
+floating point value) rather than an object.
 
 =cut
 

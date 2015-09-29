@@ -106,7 +106,7 @@ my @cases = (
         input    => { a => $dt },
         bson     => _doc( BSON_DATETIME . _ename("a") . _datetime($dt) ),
         dec_opts => { dt_type => undef },
-        output   => { a => $dt->epoch },
+        output   => { a => $dt_epoch_fraction },
     },
     {
         label    => "BSON Datetime from DateTime to DateTime",
