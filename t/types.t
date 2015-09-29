@@ -24,6 +24,7 @@ use MongoDB::Code;
 use MongoDB::Timestamp;
 use DateTime;
 use JSON::MaybeXS;
+use Test::Fatal;
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
@@ -59,19 +60,30 @@ is($id."", $id->value);
 
 # creating ids from an existing value
 {
-    my $value = "012345678901234567890123";
+    my $value = "012345678901234567890abc";
     my $id = MongoDB::OID->new(value => $value);
     is($id->value, $value);
 
     my $id_orig = MongoDB::OID->new;
     foreach my $args (
         [value => $id_orig->value],
+        [value => uc $id_orig->value],
         [$id_orig->value],
         [$id_orig],
     ) {
         my $id_copy = MongoDB::OID->new(@{$args});
         is($id_orig->value, $id_copy->value);
     }
+}
+
+# invalid ids from an existing value
+{
+    my $value = "506b37b1a7e2037c1f0004";
+    like(
+        exception { MongoDB::OID->new(value => $value) },
+        qr/not a valid OID/i,
+        "Invalid OID throws exception"
+    );
 }
 
 #regexes
