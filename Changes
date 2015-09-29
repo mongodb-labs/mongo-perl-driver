@@ -4,6 +4,9 @@
 
   [Bug fixes]
 
+  - PERL-571 Include limits.h explicitly rather than relying on other
+    headers to load it.
+
   - Fixed a failing test in the case where a user is running a
     single-node replica set.
 
