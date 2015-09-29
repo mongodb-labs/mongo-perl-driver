@@ -25,6 +25,9 @@ use MongoDB::BSON;
 use Moo;
 use MongoDB;
 use MongoDB::_Constants;
+use MongoDB::_Types qw(
+    OID
+);
 use Types::Standard qw(
     Str
 );
@@ -45,7 +48,8 @@ has value => (
     is      => 'ro',
     required => 1,
     builder => '_build_value',
-    isa => Str,
+    isa => OID,
+    coerce => OID->coercion,
 );
 
 # XXX need to set up typedef with str length

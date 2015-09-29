@@ -45,6 +45,7 @@ use Type::Library
   MongoDBQuery
   NonEmptyStr
   NonNegNum
+  OID
   OrderedDoc
   PairArrayRef
   ReadPrefMode
@@ -123,6 +124,10 @@ declare NonNegNum, as Num,
   where { defined($_) && $_ >= 0 },
   message { "value must be a non-negative number" };
 
+declare OID, as Str, where { /\A[0-9a-f]{24}\z/ }, message {
+    "Value '$_' is not a valid OID"
+};
+
 declare PairArrayRef, as ArrayRef,
   where { @$_ % 2 == 0 };
 
@@ -189,6 +194,8 @@ coerce IxHash, from HashRef, via { Tie::IxHash->new(%$_) };
 coerce IxHash, from ArrayRef, via { Tie::IxHash->new(@$_) };
 
 coerce IxHash, from HashLike, via { Tie::IxHash->new(%$_) };
+
+coerce OID, from Str, via { lc $_ };
 
 coerce ReadPreference, from HashRef,
   via { require MongoDB::ReadPreference; MongoDB::ReadPreference->new($_) };
