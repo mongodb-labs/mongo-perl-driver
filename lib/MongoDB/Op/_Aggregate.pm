@@ -120,7 +120,9 @@ sub execute {
     my @command = (
         aggregate => $self->coll_name,
         pipeline  => $self->pipeline,
-        ($last_op eq '$out' ? () : @{ $self->read_concern->as_args }),
+        ($last_op eq '$out' ? () :
+            ($link->accepts_wire_version(4) ?
+                @{ $self->read_concern->as_args } : () ) ),
         %$options,
     );
 

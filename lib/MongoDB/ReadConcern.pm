@@ -19,7 +19,7 @@ package MongoDB::ReadConcern;
 # ABSTRACT: Encapsulate and validate a read concern
 
 use version;
-our $VERSION = 'v0.999.999.7';
+our $VERSION = 'v1.1.0';
 
 use Moo;
 use MongoDB::Error;
@@ -82,10 +82,15 @@ __END__
 
 =head1 SYNOPSIS
 
-    XXX some code samples here
+    $rc = MongoDB::ReadConcern->new(); # no defaults
+
+    $rc = MongoDB::ReadConcern->new(
+        level    => 'local',
+    );
 
 =head1 DESCRIPTION
 
-XXX Write a description
+A Read Concern describes the constraints that MongoDB must satisfy when reading
+data.  Read Concern was introduced in MongoDB 3.2.
 
 =cut

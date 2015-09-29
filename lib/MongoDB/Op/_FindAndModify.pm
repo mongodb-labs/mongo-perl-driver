@@ -14,58 +14,75 @@
 #  limitations under the License.
 #
 
-package MongoDB::Op::_ParallelScan;
+package MongoDB::Op::_FindAndModify;
 
-# Encapsulate code path for parallelCollectionScan commands
+# Encapsulate find_and_modify operation; atomically update and return doc
 
 use version;
 our $VERSION = 'v1.1.0';
 
 use Moo;
 
-use MongoDB::Op::_Command;
 use MongoDB::Error;
-
+use MongoDB::Op::_Command;
 use Types::Standard qw(
-    Int
+    InstanceOf
     Str
+    ArrayRef
+    Maybe
 );
 
-use Tie::IxHash;
-use boolean;
+use MongoDB::_Types qw(
+    WriteConcern
+);
+
+use Try::Tiny;
 use namespace::clean;
-
-has num_cursors => (
-    is       => 'ro',
-    required => 1,
-    isa => Int,
-);
 
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
+);
+
+has client => (
+    is       => 'ro',
+    required => 1,
+    isa      => InstanceOf ['MongoDB::MongoClient'],
+);
+
+has command => (
+    is       => 'ro',
+    required => 1,
+    isa      => ArrayRef,
+);
+
+has write_concern => (
+    is       => 'ro',
+    required => 1,
+    isa      => Maybe [WriteConcern],
 );
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
+  MongoDB::Role::_CommandCursorOp
 );
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
 
     my $command = [
-        parallelCollectionScan => $self->coll_name,
-        numCursors             => $self->num_cursors,
+        @{ $self->command },
         ($link->accepts_wire_version(4) ?
-            @{ $self->read_concern->as_args } : () ),
+            (writeConcern => $self->write_concern->as_struct)
+            : () ),
     ];
 
     my $op = MongoDB::Op::_Command->_new(
@@ -73,10 +90,19 @@ sub execute {
         query           => $command,
         query_flags     => {},
         bson_codec      => $self->bson_codec,
-        read_preference => $self->read_preference,
     );
 
-    return $op->execute( $link, $topology );
+    my $result;
+    try {
+        $result = $op->execute( $link, $topology );
+        $result = $result->{output};
+    }
+    catch {
+        die $_ unless $_ eq 'No matching object found';
+    };
+
+    return $result->{value} if $result;
+    return;
 }
 
 1;

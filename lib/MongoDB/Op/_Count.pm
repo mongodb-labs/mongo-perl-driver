@@ -16,10 +16,10 @@
 
 package MongoDB::Op::_Count;
 
-# Encapsulate code path for parallelCollectionScan commands
+# Encapsulate code path for count commands
 
 use version;
-our $VERSION = 'v0.999.999.7';
+our $VERSION = 'v1.1.0';
 
 use Moo;
 
@@ -40,13 +40,13 @@ use Tie::IxHash;
 use boolean;
 use namespace::clean;
 
-has opts => (
+has filter => (
     is       => 'ro',
     required => 1,
     isa => HashRef,
 );
 
-has filter => (
+has options => (
     is       => 'ro',
     required => 1,
     isa => HashRef,
@@ -79,7 +79,7 @@ sub execute {
         ($link->accepts_wire_version(4) ?
             @{ $self->read_concern->as_args } : () ),
 
-        %{ $self->opts },
+        %{ $self->options },
     ];
 
     my $op = MongoDB::Op::_Command->_new(

@@ -78,8 +78,8 @@ has read_preference => (
 );
 
 has read_concern    => (
-    is => 'rw',                   # mutable for Cursor
-    isa => Maybe( [ReadConcern] ),
+    is => 'ro',                   # mutable for Cursor
+    isa => ReadConcern,
 );
 
 #--------------------------------------------------------------------------#
