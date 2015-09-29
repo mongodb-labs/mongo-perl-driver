@@ -138,6 +138,18 @@ subtest write_concern => sub {
     is($coll->count, 1);
 }
 
+# inserting an _id subdoc with $ keys should be an error
+{
+    like(
+        exception {
+            $coll->insert_one( { '_id' => { '$oid' => "52d0b971b3ba219fdeb4170e" } } )
+        },
+        qr/WriteError/,
+        "inserting an _id subdoc with \$ keys should error"
+    );
+}
+
+
 # rename
 {
     my $newcoll = $coll->rename('test_collection.rename');
