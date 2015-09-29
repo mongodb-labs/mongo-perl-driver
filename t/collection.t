@@ -138,8 +138,8 @@ subtest write_concern => sub {
     is($coll->count, 1);
 }
 
-# inserting an _id subdoc with $ keys should be an error
-{
+# inserting an _id subdoc with $ keys should be an error; only on 2.4+
+if ( $server_version >= v2.4 ) {
     like(
         exception {
             $coll->insert_one( { '_id' => { '$oid' => "52d0b971b3ba219fdeb4170e" } } )
