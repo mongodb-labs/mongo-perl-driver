@@ -4,6 +4,9 @@
 
   [Bug fixes]
 
+  - PERL-198 Validate user-constructed MongoDB::OID objects; also
+    coerces to lower case for consistency with generated OIDs.
+
   - PERL-495 Preserve fractional seconds when using dt_type 'raw'
 
   - PERL-571 Include limits.h explicitly rather than relying on other
