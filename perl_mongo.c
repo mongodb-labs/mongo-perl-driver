@@ -1346,7 +1346,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
 
     if ( dt_type == NULL ) { 
       /* raw epoch */
-      value = newSViv(msec / 1000);
+      value = (msec % 1000 == 0) ? newSViv(msec / 1000) : newSVnv((double) msec / 1000);
     } else if ( strcmp( dt_type, "Time::Moment" ) == 0 ) {
       SV *tm = sv_2mortal(newSVpvs("Time::Moment"));
       SV *sec = sv_2mortal(newSViv(msec / 1000));
