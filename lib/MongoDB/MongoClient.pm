@@ -59,6 +59,7 @@ use Types::Standard qw(
     Bool
     HashRef
     InstanceOf
+    Undef
     Int
     Num
     Str
@@ -782,7 +783,7 @@ This may be set in a connection string with the C<w> option.
 
 has w => (
     is      => 'lazy',
-    isa     => Int|Str,
+    isa     => Int|Str|Undef,
     builder => '_build_w',
 );
 
@@ -791,7 +792,7 @@ sub _build_w {
     return $self->__uri_or_else(
         u => 'w',
         e => 'w',
-        d => 1,
+        d => undef,
     );
 }
 

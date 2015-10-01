@@ -117,7 +117,7 @@ sub _command_insert {
     my $cmd = Tie::IxHash->new(
         insert       => $self->coll_name,
         documents    => $insert_docs,
-        writeConcern => $self->write_concern->as_struct,
+        @{ $self->write_concern->as_args },
     );
 
     return $self->_send_write_command( $link, $cmd, undef, "MongoDB::InsertManyResult" );

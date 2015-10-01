@@ -96,7 +96,7 @@ sub execute {
         query           => $self->filter,
         update          => $self->modifier,
         ($link->accepts_wire_version(4) ?
-            (writeConcern => $self->write_concern->as_struct)
+            (@{ $self->write_concern->as_args })
             : () ),
         %{ $self->options },
     ];

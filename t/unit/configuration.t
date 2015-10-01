@@ -311,7 +311,7 @@ subtest "username and password" => sub {
 
 subtest w => sub {
     my $mc = _mc();
-    is( $mc->w, 1, "default w" );
+    is( $mc->w, undef, "default w" );
 
     $mc = _mc( w => 2 );
     is( $mc->w, 2, "w:2" );

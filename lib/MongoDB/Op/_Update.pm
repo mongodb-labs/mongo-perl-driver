@@ -119,7 +119,7 @@ sub execute {
                         %$orig_op, u => $self->_pre_encode_update( $link, $orig_op->{u}, $self->is_replace ),
                     }
                 ],
-                writeConcern => $self->write_concern->as_struct,
+                @{ $self->write_concern->as_args },
             ],
             $orig_op,
             "MongoDB::UpdateResult"

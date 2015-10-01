@@ -193,7 +193,7 @@ sub _execute_write_command_batch {
             $cmd         => $coll_name,
             $op_key      => $chunk,
             ordered      => $boolean_ordered,
-            writeConcern => $wc->as_struct,
+            @{ $wc->as_args },
         ];
 
         my $op = MongoDB::Op::_Command->_new(
@@ -319,7 +319,8 @@ sub _execute_legacy_batch {
     my $wc  = $self->write_concern;
     my $w_0 = !$wc->is_acknowledged;
     if ($w_0) {
-        my $wcs = $wc->as_struct;
+        my $wc_args = $wc->as_args();
+        my $wcs = scalar @$wc_args ? $wc->as_args()->[1] : {};
         $wcs->{w} = 1;
         $wc = MongoDB::WriteConcern->new($wcs);
     }

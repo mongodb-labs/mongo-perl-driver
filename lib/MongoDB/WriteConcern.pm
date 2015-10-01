@@ -28,9 +28,10 @@ use MongoDB::_Types qw(
 );
 use Types::Standard qw(
     Bool
-    HashRef
+    ArrayRef
     Num
     Str
+    Maybe
 );
 use Scalar::Util qw/looks_like_number/;
 use namespace::clean -except => 'meta';
@@ -43,9 +44,8 @@ Specifies the desired acknowledgement level. Defaults to '1'.
 
 has w => (
     is        => 'ro',
-    isa       => Str,
+    isa       => Maybe [Str],
     predicate => '_has_w',
-    default   => 1,
 );
 
 =attr wtimeout
@@ -86,11 +86,11 @@ has _is_acknowledged => (
     builder => '_build_is_acknowledged',
 );
 
-has _as_struct => (
+has _as_args => (
     is      => 'lazy',
-    isa     => HashRef,
-    reader  => 'as_struct',
-    builder => '_build_as_struct',
+    isa     => ArrayRef,
+    reader  => 'as_args',
+    builder => '_build_as_args',
 );
 
 sub _build_is_acknowledged {
@@ -98,13 +98,16 @@ sub _build_is_acknowledged {
     return !!( $self->j || $self->_w_is_acknowledged );
 }
 
-sub _build_as_struct {
+sub _build_as_args {
     my ($self) = @_;
-    return {
+
+    my $wc = {
         ( $self->_has_w        ? ( w        => $self->w )           : () ),
         ( $self->_has_wtimeout ? ( wtimeout => 0+ $self->wtimeout ) : () ),
         ( $self->_has_j        ? ( j        => $self->j )           : () ),
     };
+
+    return ( (defined $self->w || defined $self->j) ? [writeConcern => $wc] : [] );
 }
 
 sub BUILD {
@@ -117,8 +120,9 @@ sub BUILD {
 
 sub _w_is_acknowledged {
     my ($self) = @_;
-    return $self->_has_w
-      && ( looks_like_number( $self->w ) ? $self->w > 0 : length $self->w );
+    return ($self->_has_w
+      && ( looks_like_number( $self->w ) ? $self->w > 0 : length $self->w ))
+      || !defined $self->w;
 }
 
 
