@@ -29,6 +29,11 @@ use MongoDBTest qw/build_client/;
 
 my $conn = build_client();
 
+my $server_status_res = $conn->get_database('admin')->run_command([serverStatus => 1]);
+my $storage_engine = $server_status_res->{storageEngine}{name} || '';
+plan skip_all => "fsync not supported for inMemory storage engine"
+    if $storage_engine =~ qr/inMemory/;
+
 my $ret;
 
 # Test normal fsync.
