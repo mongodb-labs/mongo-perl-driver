@@ -86,7 +86,7 @@ sub execute {
             [
                 insert       => $self->coll_name,
                 documents    => [$insert_doc],
-                writeConcern => $self->write_concern->as_struct,
+                @{ $self->write_concern->as_args },
             ],
             $orig_doc,
             "MongoDB::InsertOneResult",

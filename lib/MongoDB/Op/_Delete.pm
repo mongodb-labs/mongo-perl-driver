@@ -90,7 +90,7 @@ sub execute {
                 [
                     delete       => $self->coll_name,
                     deletes      => [$op_doc],
-                    writeConcern => $self->write_concern->as_struct,
+                    @{ $self->write_concern->as_args },
                 ],
                 $op_doc,
                 "MongoDB::DeleteResult"

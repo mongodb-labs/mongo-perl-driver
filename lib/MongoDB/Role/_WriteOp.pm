@@ -47,7 +47,9 @@ sub _send_legacy_op_with_gle {
     my ( $self, $link, $op_bson, $op_doc, $result_class ) = @_;
 
     if ( $self->write_concern->is_acknowledged ) {
-        my @write_concern = %{ $self->write_concern->as_struct };
+        my $wc_args = $self->write_concern->as_args();
+        my @write_concern = scalar @$wc_args ? %{ $wc_args->[1] } : ();
+
         my $gle = $self->bson_codec->encode_one( [ getlasterror => 1, @write_concern ] );
         my ( $gle_bson, $request_id ) =
           MongoDB::_Protocol::write_query( $self->db_name . '.$cmd', $gle, undef, 0, -1 );
