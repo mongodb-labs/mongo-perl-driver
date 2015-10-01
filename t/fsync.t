@@ -34,6 +34,11 @@ my $conn = build_client();
 my $server_type = server_type( $conn );
 my $server_version = server_version( $conn );
 
+my $server_status_res = $conn->send_admin_command([serverStatus => 1]);
+my $storage_engine = $server_status_res->{output}{storageEngine}{name} || '';
+plan skip_all => "fsync not supported for inMemory storage engine"
+    if $storage_engine =~ qr/inMemory/;
+
 my $ret;
 
 # Test normal fsync.
