@@ -12,7 +12,9 @@
   - PERL-571 Include limits.h explicitly rather than relying on other
     headers to load it.
 
-  - Fixed a failing test in the case where a user is running a
+  - PERL-575 Copy inflated booleans instead of aliasing them.
+
+  - Fix a failing test in the case where a user is running a
     single-node replica set.
 
   [Documentation]
