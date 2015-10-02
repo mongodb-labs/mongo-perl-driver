@@ -437,5 +437,14 @@ subtest "PERL-543 IxHash undef" => sub {
     is( $doc->{x}, undef, "round-trip undef with regular hash" );
 };
 
+subtest "PERL-575 inflated boolean" => sub {
+    $c->drop;
+    $c->insert( { "okay" => false, "name" => "fred0" } );
+    $c->insert( { "okay" => false, "name" => "fred1" } );
+
+    my @docs = $c->find()->all;
+    is( exception { $_->{okay} = $_->{okay}->TO_JSON for @docs },
+        undef, "replacing one boolean doesn't affect another" );
+};
 
 done_testing;

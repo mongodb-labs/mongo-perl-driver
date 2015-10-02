@@ -1308,8 +1308,8 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
   }
   case BSON_TYPE_BOOL: {
     value = bson_iter_bool(iter)
-      ? SvREFCNT_inc(get_sv("MongoDB::BSON::_boolean_true", GV_ADD))
-      : SvREFCNT_inc(get_sv("MongoDB::BSON::_boolean_false", GV_ADD));
+      ? newSVsv(get_sv("MongoDB::BSON::_boolean_true", GV_ADD))
+      : newSVsv(get_sv("MongoDB::BSON::_boolean_false", GV_ADD));
     break;
   }
   case BSON_TYPE_UNDEFINED:
