@@ -26,6 +26,7 @@ use MongoDB::_Types qw(
     BSONCodec
     Document
     ReadPreference
+    ReadConcern
     CursorType
     IxHash
 );
@@ -74,6 +75,11 @@ has bson_codec => (
 has read_preference => (
     is => 'rw',                   # mutable for Cursor
     isa => Maybe( [ReadPreference] ),
+);
+
+has read_concern    => (
+    is => 'ro',                   # mutable for Cursor
+    isa => ReadConcern,
 );
 
 #--------------------------------------------------------------------------#
@@ -186,6 +192,7 @@ sub as_query_op {
         modifiers             => $self->modifiers,
         cursor_type           => $self->cursorType,
         read_preference       => $self->read_preference,
+        read_concern          => $self->read_concern,
         exists $$extra_params{post_filter} ?
             (post_filter => $$extra_params{post_filter}) : (),
     );

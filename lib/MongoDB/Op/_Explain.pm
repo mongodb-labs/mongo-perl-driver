@@ -92,6 +92,7 @@ sub _command_explain {
         db_name         => $self->db_name,
         query           => [
             explain   => $cmd,
+            @{ $self->read_concern->as_args }
         ],
         query_flags     => {},
         read_preference => $self->read_preference,

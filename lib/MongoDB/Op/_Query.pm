@@ -271,7 +271,8 @@ sub as_command {
         noCursorTimeout     => boolean($self->no_cursor_timeout),
         awaitData           => $await_data,
         allowPartialResults => boolean($self->allow_partial_results),
-        #readConcern = ..., XXX unimplemented
+
+        @{$self->read_concern->as_args},
     ];
 }
 

@@ -31,16 +31,21 @@ use MongoDB::_Query;
 use MongoDB::Op::_Aggregate;
 use MongoDB::Op::_BatchInsert;
 use MongoDB::Op::_BulkWrite;
+use MongoDB::Op::_Count;
 use MongoDB::Op::_CreateIndexes;
 use MongoDB::Op::_Delete;
 use MongoDB::Op::_Distinct;
+use MongoDB::Op::_FindAndDelete;
+use MongoDB::Op::_FindAndUpdate;
 use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_ListIndexes;
+use MongoDB::Op::_ParallelScan;
 use MongoDB::Op::_Update;
 use MongoDB::_Types qw(
     BSONCodec
     NonNegNum
     ReadPreference
+    ReadConcern
     WriteConcern
 );
 use Types::Standard qw(
@@ -115,6 +120,23 @@ has write_concern => (
     isa      => WriteConcern,
     required => 1,
     coerce   => WriteConcern->coercion,
+);
+
+=attr read_concern
+
+A L<MongoDB::ReadConcern> object.  May be initialized with a hash
+reference or a string that will be coerced into the level of read
+concern.
+
+By default it will be inherited from a L<MongoDB::Database> object.
+
+=cut
+
+has read_concern => (
+    is       => 'ro',
+    isa      => ReadConcern,
+    required => 1,
+    coerce   => ReadConcern->coercion,
 );
 
 =attr max_time_ms
@@ -241,6 +263,7 @@ sub _build__op_args {
         bson_codec      => $self->bson_codec,
         coll_name       => $self->name,
         write_concern   => $self->write_concern,
+        read_concern    => $self->read_concern,
         read_preference => $self->read_preference,
         full_name       => join( ".", $self->database->name, $self->name ),
     };
@@ -732,6 +755,7 @@ sub find_one_and_delete {
       unless ref( $_[1] );
 
     my ( $self, $filter, $options ) = @_;
+    $options ||= {};
 
     # rename projection -> fields
     $options->{fields} = delete $options->{projection} if exists $options->{projection};
@@ -744,14 +768,13 @@ sub find_one_and_delete {
     # coerce to IxHash
     __ixhash($options, 'sort');
 
-    my @command = (
-        findAndModify => $self->name,
-        query         => $filter,
-        remove        => true,
-        %$options,
+    my $op = MongoDB::Op::_FindAndDelete->_new(
+        %{ $_[0]->_op_args },
+        filter        => $filter,
+        options       => $options,
     );
 
-    return $self->_try_find_and_modify( \@command );
+    return $self->client->send_write_op($op);
 }
 
 =method find_one_and_replace
@@ -909,6 +932,7 @@ sub aggregate {
         pipeline   => $pipeline,
         options    => $options,
         ( $read_pref ? ( read_preference => $read_pref ) : () ),
+        read_concern => $self->read_concern,
     );
 
     return $self->client->send_read_op($op);
@@ -953,9 +977,13 @@ sub count {
     # string is OK so we check ref, not just exists
     __ixhash($options, 'hint') if ref $options->{hint};
 
-    my $res = $self->_run_command(
-        Tie::IxHash->new( count => $self->name, query => $filter, %$options ),
-        $self->read_preference );
+    my $op = MongoDB::Op::_Count->_new(
+        options         => $options,
+        filter          => $filter,
+        %{ $self->_op_args },
+    );
+
+    my $res = $self->client->send_read_op($op);
 
     return $res->{n};
 }
@@ -1008,6 +1036,7 @@ sub distinct {
         filter          => $filter,
         options         => $options,
         read_preference => $self->read_preference,
+        read_concern    => $self->read_concern,
     );
 
     return $self->client->send_read_op($op);
@@ -1041,14 +1070,9 @@ sub parallel_scan {
 
     my $db   = $self->database;
 
-    my @command = ( parallelCollectionScan => $self->name, numCursors => $num_cursors );
-
-    my $op = MongoDB::Op::_Command->_new(
-        db_name         => $db->name,
-        query           => \@command,
-        query_flags     => {},
-        bson_codec      => $self->bson_codec,
-        read_preference => $self->read_preference,
+    my $op = MongoDB::Op::_ParallelScan->_new(
+        %{ $self->_op_args },
+        num_cursors     => $num_cursors,
     );
 
     my $result = $self->client->send_read_op( $op );
@@ -1342,14 +1366,14 @@ sub _find_one_and_update_or_replace {
         $options->{new} = delete( $options->{returnDocument} ) eq 'after' ? true : false;
     }
 
-    my @command = (
-        findAndModify => $self->name,
-        query         => $filter,
-        update        => $modifier,
-        %$options
+    my $op = MongoDB::Op::_FindAndUpdate->_new(
+        filter         => $filter,
+        modifier       => $modifier,
+        options        => $options,
+        %{ $self->_op_args },
     );
 
-    return $self->_try_find_and_modify( \@command );
+    return $self->client->send_write_op($op);
 }
 
 # we have a private _run_command rather than using the 'database' attribute
@@ -1372,20 +1396,6 @@ sub _run_command {
     my $obj = $self->client->send_read_op($op);
 
     return $obj->output;
-}
-
-sub _try_find_and_modify {
-    my ($self, $command) = @_;
-    my $result;
-    try {
-        $result = $self->_run_command( $command );
-    }
-    catch {
-        die $_ unless $_ eq 'No matching object found';
-    };
-
-    return $result->{value} if $result;
-    return;
 }
 
 #--------------------------------------------------------------------------#
@@ -1446,7 +1456,7 @@ sub batch_insert {
         documents     => $documents,
         write_concern => $self->_dynamic_write_concern($opts),
         check_keys    => 0,
-        ordered       => 1, 
+        ordered       => 1,
     );
 
     my $result = $self->client->send_write_op($op);
@@ -1561,20 +1571,21 @@ sub save {
 
 sub find_and_modify {
     my ( $self, $opts ) = @_;
+    $opts ||= {};
 
-    my $conn = $self->client;
-    my $db   = $self->database;
+    MongoDB::UsageError->throw("find_and_modify requires a 'query' option")
+        unless $opts->{query};
 
-    my $result;
-    try {
-        $result = $db->run_command( [ findAndModify => $self->name, %$opts ] )
-    }
-    catch {
-        die $_ unless $_ eq 'No matching object found';
-    };
+    MongoDB::UsageError->throw("find_and_modify requires a 'remove' or 'update' option")
+        unless $opts->{remove} || $opts->{update};
 
-    return $result->{value} if $result;
-    return;
+    my $query = delete $opts->{query};
+    my $remove = delete $opts->{remove};
+    my $update = delete $opts->{update};
+
+    return $remove
+        ? $self->find_one_and_delete($query, $opts)
+        : $self->find_one_and_update($query, $update, $opts);
 }
 
 sub get_collection {

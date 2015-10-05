@@ -1,5 +1,5 @@
 #
-#  Copyright 2015 MongoDB, Inc.
+#  Copyright 2014 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,61 +14,66 @@
 #  limitations under the License.
 #
 
-package MongoDB::Op::_Distinct;
+package MongoDB::Op::_FindAndDelete;
 
-# Encapsulate distinct operation; return MongoDB::QueryResult
+# Encapsulate find_and_delete operation; atomically delete and return doc
 
 use version;
 our $VERSION = 'v1.1.0';
 
 use Moo;
 
+use boolean;
+use MongoDB::Error;
 use MongoDB::Op::_Command;
-use MongoDB::_Constants;
-use MongoDB::_Types qw(
-    Document
-);
 use Types::Standard qw(
     InstanceOf
-    HashRef
     Str
+    HashRef
+    Maybe
 );
+
+use MongoDB::_Types qw(
+    WriteConcern
+);
+
+use Try::Tiny;
 use namespace::clean;
 
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa      => Str,
 );
 
 has client => (
     is       => 'ro',
     required => 1,
-    isa => InstanceOf ['MongoDB::MongoClient'],
-);
-
-has fieldname=> (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
+    isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
 has filter => (
-    is      => 'ro',
+    is       => 'ro',
     required => 1,
-    isa => Document,
+    isa      => HashRef,
 );
 
 has options => (
-    is      => 'ro',
+    is       => 'ro',
     required => 1,
-    isa => HashRef,
+    isa      => HashRef,
+);
+
+has write_concern => (
+    is       => 'ro',
+    required => 1,
+    isa      => WriteConcern,
 );
 
 with $_ for qw(
@@ -80,39 +85,34 @@ with $_ for qw(
 sub execute {
     my ( $self, $link, $topology ) = @_;
 
-    my $options = $self->options;
-
-    my $filter =
-      ref( $self->filter ) eq 'ARRAY'
-      ? { @{ $self->filter } }
-      : $self->filter;
-
-    my @command = (
-        distinct => $self->coll_name,
-        key      => $self->fieldname,
-        query    => $filter,
+    my $command = [
+        findAndModify   => $self->coll_name,
+        query           => $self->filter,
+        remove          => true,
         ($link->accepts_wire_version(4) ?
-            @{ $self->read_concern->as_args } : ()),
-        %$options
-    );
+            (writeConcern => $self->write_concern->as_struct)
+            : () ),
+        %{ $self->options },
+    ];
 
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
-        query           => Tie::IxHash->new(@command),
+        query           => $command,
         query_flags     => {},
-        read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
 
-    my $res = $op->execute( $link, $topology );
-
-    $res->output->{cursor} = {
-        ns         => '',
-        id         => 0,
-        firstBatch => ( delete $res->output->{values} ) || [],
+    my $result;
+    try {
+        $result = $op->execute( $link, $topology );
+        $result = $result->{output};
+    }
+    catch {
+        die $_ unless $_ eq 'No matching object found';
     };
 
-    return $self->_build_result_from_cursor($res);
+    return $result->{value} if $result;
+    return;
 }
 
 1;

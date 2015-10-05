@@ -33,6 +33,7 @@ use MongoDB::Op::_Command;
 use MongoDB::Op::_FSyncUnlock;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
+use MongoDB::ReadConcern;
 use MongoDB::_Topology;
 use MongoDB::_Constants;
 use MongoDB::_Credential;
@@ -61,6 +62,7 @@ use Types::Standard qw(
     Int
     Num
     Str
+    Maybe
 );
 
 use namespace::clean -except => 'meta';
@@ -821,6 +823,40 @@ sub _build_wtimeout {
     );
 }
 
+=attr read_concern_level
+
+The read concern level determines the consistency level required
+of data being read.
+
+The default level is C<undef>, which means the server will use its configured
+default.
+
+If the level is set to "local", reads will return the latest data a server has
+locally.
+
+Additional levels are storage engine specific.  See L<Read
+Concern|http://docs.mongodb.org/manual/search/?query=readConcern> in the MongoDB
+documentation for more details.
+
+This may be set in a connection string with the the C<readConcernLevel> option.
+
+=cut
+
+has read_concern_level => (
+    is      => 'lazy',
+    isa     => Maybe [Str],
+    builder => '_build_read_concern_level',
+);
+
+sub _build_read_concern_level {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'readconcernlevel',
+        e => 'read_concern_level',
+        d => undef,
+    );
+}
+
 #--------------------------------------------------------------------------#
 # deprecated public attributes
 #--------------------------------------------------------------------------#
@@ -963,6 +999,30 @@ sub _build__write_concern {
     );
 }
 
+=method read_concern
+
+Returns a L<MongoDB::ReadConcern> object constructed from
+L</read_concern_level>.
+
+=cut
+
+has _read_concern => (
+    is     => 'lazy',
+    isa    => InstanceOf['MongoDB::ReadConcern'],
+    reader   => 'read_concern',
+    init_arg => undef,
+    builder  => '_build__read_concern',
+);
+
+sub _build__read_concern {
+    my ($self) = @_;
+
+    return MongoDB::ReadConcern->new(
+        ( $self->read_concern_level ?
+            ( level => $self->read_concern_level ) : () ),
+    );
+}
+
 #--------------------------------------------------------------------------#
 # private attributes
 #--------------------------------------------------------------------------#
@@ -1097,6 +1157,7 @@ my @deferred_options = qw(
   password
   w
   wtimeout
+  read_concern_level
 );
 
 around BUILDARGS => sub {
@@ -1415,6 +1476,7 @@ sub get_database {
     return MongoDB::Database->new(
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
+        read_concern    => $self->read_concern,
         bson_codec      => $self->bson_codec,
         max_time_ms     => $self->max_time_ms,
         ( $options ? %$options : () ),

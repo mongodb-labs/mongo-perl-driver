@@ -27,6 +27,7 @@ use MongoDB::ReadPreference;
 use MongoDB::_Constants;
 use MongoDB::_Types qw(
     ReadPreference
+    ReadConcern
 );
 use Types::Standard qw(
     Maybe
@@ -35,9 +36,16 @@ use namespace::clean;
 
 with 'MongoDB::Role::_DatabaseOp';
 
+# PERL-573 Would like to refactor to remove Maybe types for
+# read_preference and read_concern
 has read_preference => (
     is  => 'ro',
     isa => Maybe [ReadPreference],
+);
+
+has read_concern => (
+    is  => 'ro',
+    isa => Maybe [ReadConcern],
 );
 
 1;

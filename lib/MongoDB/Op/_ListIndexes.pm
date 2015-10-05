@@ -119,7 +119,7 @@ sub _legacy_list_indexes {
         read_preference        => $self->read_preference,
         filter                 => Tie::IxHash->new( ns => $ns ),
     );
- 
+  
     return $op->execute( $link, $topology );
 }
 
