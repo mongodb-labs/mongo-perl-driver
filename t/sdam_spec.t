@@ -73,6 +73,12 @@ sub run_test {
 
                 my ($addr, $is_master) = @$response;
 
+                if ( defined $is_master->{electionId} ){
+                    $is_master->{electionId} = MongoDB::OID->new(
+                        value => $is_master->{electionId}->{'$oid'}
+                    );
+                }
+
                 # Process response
                 my $desc = MongoDB::_Server->new(
 
