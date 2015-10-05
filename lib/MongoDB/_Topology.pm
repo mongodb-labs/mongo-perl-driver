@@ -37,6 +37,7 @@ use Types::Standard qw(
     InstanceOf
     Num
     Str
+    Maybe
 );
 use MongoDB::_Server;
 use Config;
@@ -148,6 +149,12 @@ has number_of_seeds => (
     is      => 'lazy',
     builder => '_build_number_of_seeds',
     isa => Num,
+);
+
+has max_election_id => (
+    is      => 'rw',
+    isa     => Maybe[ InstanceOf['MongoDB::OID'] ],
+    writer  => '_set_max_election_id',
 );
 
 # compatible wire protocol
@@ -856,6 +863,21 @@ sub _update_rs_with_primary_from_primary {
         # provided by the user or previously discovered
         $self->_remove_server($new_server);
         return;
+    }
+
+    my $election_id = $new_server->is_master->{electionId};
+
+    if ( defined $election_id ) {
+        if ( defined $self->max_election_id
+                && $self->max_election_id->value gt $election_id->value ) {
+            # stale primary
+
+            $self->_remove_address($new_server->address);
+            $self->_add_address_as_unknown($new_server->address);
+            $self->_check_for_primary;
+            return;
+        }
+        $self->_set_max_election_id( $election_id );
     }
 
     # possibly invalidate an old primary (even if more than one!)
