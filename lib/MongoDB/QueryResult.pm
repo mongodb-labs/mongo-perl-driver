@@ -145,7 +145,12 @@ sub _add_docs {
     push @{$self->{_docs}}, @_;
 }
 sub _next_doc { shift @{$_[0]{_docs}} }
-sub _clear_doc { @{$_[0]{_docs}} = () }
+sub _drain_docs {
+    my @docs = @{$_[0]{_docs}};
+    $_[0]{_cursor_at} += scalar @docs;
+    @{$_[0]{_docs}} = ();
+    return @docs;
+}
 
 # for backwards compatibility
 sub started_iterating() { 1 }
@@ -241,11 +246,7 @@ Returns all documents as a list.
 sub all {
     my ($self) = @_;
     my @ret;
-
-    while ( my $entry = $self->next ) {
-        push @ret, $entry;
-    }
-
+    push @ret, $self->_drain_docs while $self->has_next;
     return @ret;
 }
 
