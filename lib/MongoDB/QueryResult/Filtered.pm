@@ -30,6 +30,8 @@ extends 'MongoDB::QueryResult';
 
 use namespace::clean;
 
+# N.B.: _post_filter may also munge documents in addition to filtering;
+# it *must* be run on all documents
 has _post_filter => (
     is       => 'ro',
     isa      => CodeRef,
@@ -57,6 +59,14 @@ sub has_next {
     }
     # ran out of docs, so nothing left
     return 0;
+}
+
+sub all {
+    my ($self) = @_;
+    my @ret;
+    push @ret, grep { $self->_post_filter->($_) } $self->_drain_docs
+        while $self->has_next;
+    return @ret;
 }
 
 1;
