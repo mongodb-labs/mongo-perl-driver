@@ -318,23 +318,26 @@ $coll->drop;
 
 # info
 {
+    $coll->drop;
+    $coll->insert_one( { x => $_ } ) for 1 .. 1000;
     $cursor = $coll->find;
-    my $count = $coll->count;
 
     my $info = $cursor->info;
     is_deeply( $info, {num => 0}, "before execution, info only has num field");
 
     ok( $cursor->has_next, "cursor executed and has results" );
     $info = $cursor->info;
-    is($info->{'num'}, 1);
-    is($info->{'at'}, 0);
-    is($info->{'num'}, $count);
+    ok($info->{'num'} > 0, "cursor reports more than zero results");
+    is($info->{'at'}, 0, "cursor still not iterated");
     is($info->{'start'}, 0);
-    is($info->{'cursor_id'}, scalar("\0" x 8));
 
     $cursor->next;
     $info = $cursor->info;
     is($info->{'at'}, 1);
+
+    $cursor->all;
+    $info = $cursor->info;
+    is($info->{at}, 1000);
 }
 
 # sort_by

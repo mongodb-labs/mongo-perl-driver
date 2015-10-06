@@ -98,7 +98,7 @@ subtest "collection names" => sub {
     my $res = $testdb->list_collections;
     cmp_deeply( [ $res->all ], [], "list_collections has empty cursor" );
 
-    my $coll = $testdb->get_collection('test');
+    my $coll = $testdb->get_collection('test_uncapped');
 
     my $cmd = [ create => "test_capped", capped => 1, size => 10000 ];
     $testdb->run_command($cmd);
@@ -112,7 +112,7 @@ subtest "collection names" => sub {
 
     my %names = map {; $_ => 1 } $testdb->collection_names;
     my %got = map { $_->{name} => $_ } $testdb->list_collections( { name => qr/^test/ } )->all;
-    for my $k ( qw/test test_capped/ ) {
+    for my $k ( qw/test_uncapped test_capped/ ) {
         ok( exists $names{$k}, "collection_names included $k" );
         ok( exists $got{$k}, "list_collections included $k" );
     }
