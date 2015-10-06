@@ -50,7 +50,6 @@ use constant {
 # die during configuration on big endian platforms on 5.8
 
 use constant {
-    P_INT32  => PERL58 ? "l"  : "l<",
     P_HEADER => PERL58 ? "l4" : "l<4",
 };
 
