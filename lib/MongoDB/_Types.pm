@@ -73,7 +73,7 @@ use Types::Standard qw(
 );
 
 use Scalar::Util qw/reftype/;
-use boolean;
+use boolean 0.25;
 require Tie::IxHash;
 
 #--------------------------------------------------------------------------#
