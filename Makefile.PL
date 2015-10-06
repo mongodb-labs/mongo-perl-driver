@@ -45,7 +45,7 @@ requires 'Type::Tiny::XS' if $] ge '5.010001';
 requires 'Type::Utils';
 requires 'Types::Standard';
 requires 'XSLoader';
-requires 'boolean';
+requires 'boolean' => 0.25;
 requires 'constant';
 requires 'if';
 requires 'namespace::clean';
