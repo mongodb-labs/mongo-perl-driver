@@ -58,6 +58,9 @@ match each other.
 
 By default, numbers with a decimal point will be saved as doubles (64-bit).
 
+B<NOTE>: On a perl compiled with long-double support, floating point
+number precision will be lost when sending data to MongoDB.
+
 =head3 32-bit Platforms
 
 Numbers without decimal points will be saved as 32-bit integers.  To save a
