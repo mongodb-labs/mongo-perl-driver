@@ -4,7 +4,6 @@
 
 v1.0.2    2015-10-14 15:26:30-04:00 America/New_York
 
-
   [Bug fixes]
 
   - PERL-198 Validate user-constructed MongoDB::OID objects; also
