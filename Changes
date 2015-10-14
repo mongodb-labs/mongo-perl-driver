@@ -2,6 +2,41 @@
 
 {{ $NEXT }}
 
+v1.0.2    2015-10-14 15:26:30-04:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-198 Validate user-constructed MongoDB::OID objects; also
+    coerces to lower case for consistency with generated OIDs.
+
+  - PERL-495 Preserve fractional seconds when using dt_type 'raw'
+
+  - PERL-571 Include limits.h explicitly rather than relying on other
+    headers to load it.
+
+  - PERL-526 Detect stale primaries by election_id (only supported by
+    MongoDB 3.0 or later)
+
+  - PERL-575 Copy inflated booleans instead of aliasing them.
+
+  - Fix a failing test in the case where a user is running a
+    single-node replica set.
+
+  [Documentation]
+
+  - PERL-532 Document loss of precision when serializing long doubles
+
+  - Noted that IPv6 support requires IO::Socket::IP (core since
+    Perl v5.20.0).
+
+  [Prerequisites]
+
+  - PERL-579 Require at least version 0.25 of boolean.pm
+
+  [~ Internal changes ~]
+
+  - PERL-475 Optimize 'all' QueryResult method
+
 v1.0.1    2015-09-22 12:55:08-04:00 America/New_York
 
   [Bug fixes]
