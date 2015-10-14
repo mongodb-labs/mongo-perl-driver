@@ -727,6 +727,48 @@ sub find_one {
     )->execute->next;
 }
 
+=method find_id
+
+    $doc = $collection->find_id( $id );
+    $doc = $collection->find_id( $id, $projection );
+    $doc = $collection->find_id( $id, $projection, $options );
+
+Executes a query with a L<filter expression|/Filter expression> of C<{ _id
+=> $id }> and returns a single document.
+
+If a projection argument is provided, it must be a hash reference specifying
+fields to return.  See L<Limit fields to
+return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>
+in the MongoDB documentation for details.
+
+If only an id is provided or if the projection document is an empty hash
+reference, all fields will be returned.
+
+    my $doc = $collection->find_id( $id );
+    my $doc = $collection->find_id( $id, {}, $options );
+
+A hash reference of options may be provided as a third argument. Valid keys
+include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.  (Note, this will be ignored for servers before version 2.6.)
+* C<sort> – an L<ordered document|/Ordered document> defining the order in which
+  to return matching documents. If C<$orderby> also exists in the modifiers
+  document, the sort field overwrites C<$orderby>.  See docs for
+  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
+
+See also core documentation on querying:
+L<http://docs.mongodb.org/manual/core/read/>.
+
+=cut
+
+sub find_id {
+    my $self = shift;
+    my $id = shift;
+    return $self->find_one({ _id => $id }, @_);
+}
+
 =method find_one_and_delete
 
     $doc = $coll->find_one_and_delete( $filter );

@@ -191,6 +191,23 @@ if ( $server_version >= v2.4.0 ) {
     is($obj->{just}, "an\xE4oth\0er");
 }
 
+# find_id
+{
+  my $doc = { a => 1, b => 2, c => 3 };
+  my $id = $coll->insert_one($doc)->inserted_id;
+  my $result = $coll->find_id($id);
+  is($result->{_id}, $id, 'find_id');
+
+  $result = $coll->find_id($id, { c => 3 });
+  cmp_deeply(
+    $result,
+    { _id => $id, c => 3 },
+    "find_id projection"
+  );
+
+  $coll->delete_one($result);
+}
+
 # remove
 {
     $coll->delete_one($obj);
