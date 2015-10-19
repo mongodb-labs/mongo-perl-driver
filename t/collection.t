@@ -486,6 +486,29 @@ SKIP: {
     is(keys %$result, 1, 'find fields');
 }
 
+# batch
+{
+    $coll->drop;
+
+    for (0..14) { $coll->insert_one({ x => $_ }) };
+
+    $cursor = $coll->find({} , { batchSize => 5 });
+
+    my @batch = $cursor->batch;
+    is(scalar @batch, 5, 'batch');
+
+    $cursor->next;
+    $cursor->next;
+    @batch = $cursor->batch;
+    is(scalar @batch, 3, 'batch with next');
+
+    @batch = $cursor->batch;
+    is(scalar @batch, 5, 'batch after next');
+
+    @batch = $cursor->batch;
+    ok(!@batch, 'empty batch');
+}
+
 
 # ns hack
 # check insert utf8

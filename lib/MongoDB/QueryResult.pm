@@ -205,6 +205,24 @@ sub next {
     return $self->_next_doc;
 }
 
+=method batch
+
+  while ( $batch = $result->batch ) {
+    for $doc ( $batch ) {
+      process_doc($doc);
+    }
+  }
+
+Returns the next batch of documents or C<undef> if the server cursor is exhausted.
+
+=cut
+
+sub batch {
+  my ($self) = @_;
+  return unless $self->has_next;
+  return $self->_drain_docs;
+}
+
 sub _get_more {
     my ($self) = @_;
     return 0 if $self->_cursor_id == 0;
