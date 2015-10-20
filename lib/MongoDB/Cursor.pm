@@ -487,12 +487,12 @@ sub next { $_[0]->result->next }
 
 =head2 batch
 
-    while (my $batch = $cursor->batch) {
+    while (my @batch = $cursor->batch) {
         ...
     }
 
 Returns the next batch of data from the cursor. Will automatically fetch more
-data from the server if necessary. Returns C<undef> if no more data is available.
+data from the server if necessary. Returns an empty list if no more data is available.
 
 =cut
 

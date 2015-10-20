@@ -207,13 +207,13 @@ sub next {
 
 =method batch
 
-  while ( $batch = $result->batch ) {
-    for $doc ( $batch ) {
+  while ( @batch = $result->batch ) {
+    for $doc ( @batch ) {
       process_doc($doc);
     }
   }
 
-Returns the next batch of documents or C<undef> if the server cursor is exhausted.
+Returns the next batch of documents or an empty list if the server cursor is exhausted.
 
 =cut
 
