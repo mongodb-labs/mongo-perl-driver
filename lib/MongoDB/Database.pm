@@ -25,6 +25,7 @@ our $VERSION = 'v1.3.0';
 use MongoDB::CommandResult;
 use MongoDB::Error;
 use MongoDB::GridFS;
+use MongoDB::GridFSBucket;
 use MongoDB::Op::_ListCollections;
 use MongoDB::ReadPreference;
 use MongoDB::_Query;
@@ -295,6 +296,23 @@ sub get_gridfs {
         _database => $self,
         prefix => $prefix
     );
+}
+
+=method get_gridfsbucket
+
+FIXME
+
+=cut
+
+sub get_gridfsbucket {
+    my ($self, $options) = @_;
+
+    return MongoDB::GridFSBucket->new(
+        read_preference => $self->read_preference,
+        write_concern   => $self->write_concern,
+        ( $options ? %$options : () ),
+        database => $self,
+    )
 }
 
 =method drop
