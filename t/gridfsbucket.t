@@ -62,8 +62,8 @@ my $dumb_str;
 
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->delete($save_id);
-    is(undef, $grid->get($save_id), 'bucket delete files');
-    is(undef, $bucket->chunks->find_one, 'bucket delete chunks');
+    is($grid->get($save_id), undef, 'bucket delete files');
+    is($bucket->chunks->find_one, undef, 'bucket delete chunks');
 
     # should throw error if file does not exist
     my $error;
