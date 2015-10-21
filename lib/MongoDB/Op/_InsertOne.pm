@@ -70,6 +70,7 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_WriteOp
   MongoDB::Role::_InsertPreEncoder
+  MongoDB::Role::_BypassValidation
 );
 
 sub execute {
@@ -82,12 +83,14 @@ sub execute {
     return $link->does_write_commands
       ? (
         $self->_send_write_command(
-            $link,
-            [
-                insert       => $self->coll_name,
-                documents    => [$insert_doc],
-                @{ $self->write_concern->as_args },
-            ],
+            $self->_maybe_bypass(
+                $link,
+                [
+                    insert       => $self->coll_name,
+                    documents    => [$insert_doc],
+                    @{ $self->write_concern->as_args },
+                ],
+            ),
             $orig_doc,
             "MongoDB::InsertOneResult",
         )->assert

@@ -63,6 +63,18 @@ has 'ordered' => (
     required => 1,
 );
 
+=attr bypassDocumentValidation
+
+A boolean for whether or not operations should bypass document validation.
+Default is false.
+
+=cut
+
+has 'bypassDocumentValidation' => (
+    is       => 'ro',
+    isa      => Bool,
+);
+
 has '_executed' => (
     is       => 'rw',
     isa      => Bool,
@@ -233,12 +245,13 @@ sub execute {
     $write_concern ||= $self->collection->write_concern;
 
     my $op = MongoDB::Op::_BulkWrite->_new(
-        db_name       => $self->_database->name,
-        coll_name     => $self->collection->name,
-        queue         => $self->_queue,
-        ordered       => $self->ordered,
-        bson_codec    => $self->collection->bson_codec,
-        write_concern => $write_concern,
+        db_name                  => $self->_database->name,
+        coll_name                => $self->collection->name,
+        queue                    => $self->_queue,
+        ordered                  => $self->ordered,
+        bypassDocumentValidation => $self->bypassDocumentValidation,
+        bson_codec               => $self->collection->bson_codec,
+        write_concern            => $write_concern,
     );
 
     return $self->_client->send_write_op( $op );

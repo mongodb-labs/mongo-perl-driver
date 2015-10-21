@@ -86,20 +86,26 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_BypassValidation
 );
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
 
-    my $command = [
-        findAndModify   => $self->coll_name,
-        query           => $self->filter,
-        update          => $self->modifier,
-        ($link->accepts_wire_version(4) ?
-            (@{ $self->write_concern->as_args })
-            : () ),
-        %{ $self->options },
-    ];
+    my ( undef, $command ) = $self->_maybe_bypass(
+        $link,
+        [
+            findAndModify => $self->coll_name,
+            query         => $self->filter,
+            update        => $self->modifier,
+            (
+                $link->accepts_wire_version(4)
+                ? ( @{ $self->write_concern->as_args } )
+                : ()
+            ),
+            %{ $self->options },
+        ]
+    );
 
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,

@@ -335,6 +335,7 @@ sub with_codec {
 =method insert_one
 
     $res = $coll->insert_one( $document );
+    $res = $coll->insert_one( $document, $options );
     $id = $res->inserted_id;
 
 Inserts a single L<document|/Document> into the database and returns a
@@ -343,6 +344,14 @@ L<MongoDB::InsertOneResult> or L<MongoDB::UnacknowledgedResult> object.
 If no C<_id> field is present, one will be added when a document is
 serialized for the database without modifying the original document.
 The generated C<_id> may be retrieved from the result object.
+
+An optional hash reference of options may be given.
+
+Valid options include:
+
+=for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
 
 =cut
 
@@ -353,6 +362,7 @@ sub insert_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_InsertOne->_new(
+            ( defined $_[2] ? (%{$_[2]}) : () ),
             document => $_[1],
             %{ $_[0]->_op_args },
         )
@@ -373,11 +383,17 @@ If no C<_id> field is present, one will be added when a document is
 serialized for the database without modifying the original document.
 The generated C<_id> may be retrieved from the result object.
 
-An optional hash reference of options may be provided.  The only valid option
-is C<ordered>, which defaults to true.  When true, the server will halt
-insertions after the first error (if any).  When false, all documents will be
-processed and any error will only be thrown after all insertions are
-attempted.
+An optional hash reference of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
+* C<ordered> – when true, the server will halt insertions after the first
+  error (if any).  When false, all documents will be processed and any
+  error will only be thrown after all insertions are attempted.  The
+  default is true.
 
 On MongoDB servers before version 2.6, C<insert_many> bulk operations are
 emulated with individual inserts to capture error information.  On 2.6 or
@@ -391,13 +407,16 @@ sub insert_many {
     MongoDB::UsageError->throw("documents argument must be an array reference")
       unless ref( $_[1] ) eq 'ARRAY';
 
-    # ordered defaults to true
     return MongoDB::InsertManyResult->_new(
         acknowledged => $_[0]->write_concern->is_acknowledged,
         inserted     => $_[0]->client->send_write_op(
             MongoDB::Op::_BulkWrite->_new(
+                # default
+                ordered => 1,
+                # user overrides
+                ( defined $_[2] ? ( %{ $_[2] } ) : () ),
+                # un-overridable
                 queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
-                ordered => ( ( defined $_[2] && exists $_[2]->{ordered} ) ? $_[2]->{ordered} : 1 ),
                 %{ $_[0]->_op_args },
             )
           )->inserted,
@@ -467,9 +486,15 @@ L<MongoDB::UnacknowledgedResult> object.
 The replacement document must not have any field-update operators in it (e.g.
 C<$set>).
 
-A hash reference of options may be provided.  The only valid option is
-C<upsert>, which defaults to false.  If provided and true, the replacement
-document will be upserted if no matching document exists.
+A hash reference of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
+* C<upsert> – defaults to false; if true, a new document will be added if one
+  is not found
 
 =cut
 
@@ -480,10 +505,10 @@ sub replace_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
+            ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
             multi      => false,
-            upsert     => $_[3] && $_[3]->{upsert} ? true : false,
             is_replace => 1,
             %{ $_[0]->_op_args },
         )
@@ -502,10 +527,16 @@ object.
 The update document must have only field-update operators in it (e.g.
 C<$set>).
 
-A hash reference of options may be provided.  The only valid option is
-C<upsert>, which defaults to false.  If provided and true, a new document will
-be inserted by taking the filter expression and applying the update document
-operations to it prior to insertion.
+A hash reference of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
+* C<upsert> – defaults to false; if true, a new document will be added if
+  one is not found by taking the filter expression and applying the update
+  document operations to it prior to insertion.
 
 =cut
 
@@ -516,10 +547,10 @@ sub update_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
+            ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
             multi      => false,
-            upsert     => $_[3] && $_[3]->{upsert} ? true : false,
             is_replace => 0,
             %{ $_[0]->_op_args },
         )
@@ -538,10 +569,16 @@ L<MongoDB::UnacknowledgedResult> object.
 The update document must have only field-update operators in it (e.g.
 C<$set>).
 
-A hash reference of options may be provided.  The only valid option is
-C<upsert>, which defaults to false.  If provided and true, a new document will
-be inserted by taking the filter document and applying the update document
-operations to it prior to insertion.
+A hash reference of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
+* C<upsert> – defaults to false; if true, a new document will be added if
+  one is not found by taking the filter expression and applying the update
+  document operations to it prior to insertion.
 
 =cut
 
@@ -552,10 +589,10 @@ sub update_many {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
+            ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
             multi      => true,
-            upsert     => $_[3] && $_[3]->{upsert} ? true : false,
             is_replace => 0,
             %{ $_[0]->_op_args },
         )
@@ -814,6 +851,8 @@ C<$set>).
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.
 * C<projection> - a hash reference defining fields to return. See "L<limit
@@ -854,6 +893,8 @@ The update document must contain only field-update operators (e.g. C<$set>).
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<projection> - a hash reference defining fields to return. See "L<limit
@@ -903,6 +944,8 @@ A hash reference of options may be provided. Valid keys include:
 =for :list
 * C<allowDiskUse> – if, true enables writing to temporary files.
 * C<batchSize> – the number of documents to return per batch.
+* C<bypassDocumentValidation> - skips document validation, if enabled.
+  (Note, this will be ignored for servers before version 3.2.)
 * C<explain> – if true, return a single document with execution information.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
@@ -1188,11 +1231,20 @@ the first error. See L<MongoDB::BulkWrite> for more details.
 
 The method C<initialize_ordered_bulk_op> may be used as an alias.
 
+A hash reference of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
+
 =cut
 
 sub initialize_ordered_bulk_op {
-    my ($self) = @_;
-    return MongoDB::BulkWrite->new( collection => $self, ordered => 1 );
+    my ($self, $args) = @_;
+    $args ||= {};
+    return MongoDB::BulkWrite->new( %$args, collection => $self, ordered => 1, );
 }
 
 =method unordered_bulk
@@ -1203,11 +1255,20 @@ See L<MongoDB::BulkWrite> for more details.
 
 The method C<initialize_unordered_bulk_op> may be used as an alias.
 
+A hash reference of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
+
 =cut
 
 sub initialize_unordered_bulk_op {
-    my ($self) = @_;
-    return MongoDB::BulkWrite->new( collection => $self, ordered => 0 );
+    my ($self, $args) = @_;
+    $args ||= {};
+    return MongoDB::BulkWrite->new( %$args, collection => $self, ordered => 0 );
 }
 
 =method bulk_write
@@ -1253,10 +1314,16 @@ references:
 Valid method names include C<insert_one>, C<insert_many>, C<delete_one>,
 C<delete_many> C<replace_one>, C<update_one>, C<update_many>.
 
-An optional hash reference of options may be provided.  The only valid value
-is C<ordered>. It defaults to true.  When true, the bulk operation is executed
-like L</initialize_ordered_bulk>. When false, the bulk operation is executed
-like L</initialize_unordered_bulk>.
+An optional hash reference of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<bypassDocumentValidation> - skips document validation, if enabled; this
+  is ignored for MongoDB servers older than version 3.2.
+* C<ordered> – when true, the bulk operation is executed like
+  L</initialize_ordered_bulk>. When false, the bulk operation is executed
+  like L</initialize_unordered_bulk>.  The default is true.
 
 See L<MongoDB::BulkWrite> for more details on bulk writes.  Be advised that
 the legacy Bulk API method names differ slightly from MongoDB::Collection
@@ -1273,9 +1340,12 @@ sub bulk_write {
     MongoDB::UsageError->throw("options not a hash reference")
       if defined($options) && ref($options) ne 'HASH';
 
-    $options ||= { ordered => 1 };
+    $options ||= {};
 
-    my $bulk = $options->{ordered} ? $self->ordered_bulk : $self->unordered_bulk;
+    my $ordered = exists $options->{ordered} ? delete $options->{ordered} : 1;
+
+    my $bulk =
+      $ordered ? $self->ordered_bulk($options) : $self->unordered_bulk($options);
 
     my $i = 0;
 
@@ -1388,10 +1458,14 @@ sub _find_one_and_update_or_replace {
         $options->{new} = delete( $options->{returnDocument} ) eq 'after' ? true : false;
     }
 
+    # pass separately for MongoDB::Role::_BypassValidation
+    my $bypass = delete $options->{bypassDocumentValidation};
+
     my $op = MongoDB::Op::_FindAndUpdate->_new(
         filter         => $filter,
         modifier       => $modifier,
         options        => $options,
+        bypassDocumentValidation => $bypass,
         %{ $self->_op_args },
     );
 

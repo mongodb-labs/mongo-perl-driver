@@ -83,6 +83,9 @@ sub execute {
     # will reject it as unrecognized
     delete $options->{maxTimeMS} unless $is_2_6;
 
+    # bypassDocumentValidation isn't available until 3.2 (wire version 4)
+    delete $options->{bypassDocumentValidation} unless $link->accepts_wire_version(4);
+
     # If 'cursor' is explicitly false, we disable using cursors, even
     # for MongoDB 2.6+.  This allows users operating with a 2.6+ mongos
     # and pre-2.6 mongod in shards to avoid fatal errors.  This

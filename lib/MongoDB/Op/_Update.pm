@@ -81,14 +81,13 @@ has multi => (
 
 has upsert => (
     is       => 'ro',
-    required => 1,
-    isa      => Bool,
 );
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_WriteOp
   MongoDB::Role::_UpdatePreEncoder
+  MongoDB::Role::_BypassValidation
 );
 
 # cached
@@ -111,16 +110,18 @@ sub execute {
     return $link->does_write_commands
       ? (
         $self->_send_write_command(
-            $link,
-            [
-                update  => $self->coll_name,
-                updates => [
-                    {
-                        %$orig_op, u => $self->_pre_encode_update( $link, $orig_op->{u}, $self->is_replace ),
-                    }
+            $self->_maybe_bypass(
+                $link,
+                [
+                    update  => $self->coll_name,
+                    updates => [
+                        {
+                            %$orig_op, u => $self->_pre_encode_update( $link, $orig_op->{u}, $self->is_replace ),
+                        }
+                    ],
+                    @{ $self->write_concern->as_args },
                 ],
-                @{ $self->write_concern->as_args },
-            ],
+            ),
             $orig_op,
             "MongoDB::UpdateResult"
         )->assert

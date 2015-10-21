@@ -84,6 +84,7 @@ with $_ for qw(
   MongoDB::Role::_CommandOp
   MongoDB::Role::_UpdatePreEncoder
   MongoDB::Role::_InsertPreEncoder
+  MongoDB::Role::_BypassValidation
 );
 
 sub execute {
@@ -195,6 +196,10 @@ sub _execute_write_command_batch {
             ordered      => $boolean_ordered,
             @{ $wc->as_args },
         ];
+
+        if ( $cmd eq 'insert' || $cmd eq 'update' ) {
+            (undef, $cmd_doc) = $self->_maybe_bypass($link, $cmd_doc);
+        }
 
         my $op = MongoDB::Op::_Command->_new(
             db_name     => $db_name,
