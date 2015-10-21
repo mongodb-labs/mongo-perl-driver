@@ -140,8 +140,9 @@ sub _ensure_indexes {
 sub delete {
     my ($self, $id) = @_;
     my $delete_result = $self->files->delete_one({ _id => $id });
-    unless ($delete_result and $delete_result->deleted_count == 1) {
-        MongoDB::UsageError->throw(sprintf(
+    # This should only ever be 0 or 1, checking for exactly 1 to be thorough
+    unless ($delete_result->deleted_count == 1) {
+        MongoDB::GridFSError->throw(sprintf(
             'found %d files instead of 1 for id %s',
             $delete_result->deleted_count, $id,
         ));
@@ -153,6 +154,12 @@ sub delete {
 sub find {
     my ($self, $filter, $options) = @_;
     return $self->files->find($filter, $options)->result;
+}
+
+sub drop {
+    my ($self) = @_;
+    $self->files->drop;
+    $self->chunks->drop;
 }
 
 1;

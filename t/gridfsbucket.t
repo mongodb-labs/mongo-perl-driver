@@ -67,12 +67,11 @@ my $dumb_str;
 
     # should throw error if file does not exist
     my $error;
-    try {
-        $bucket->delete('nonsense');
-    } catch {
-        $error = $_;
-    };
-    isa_ok($error, 'MongoDB::UsageError');
+    like(
+        exception { $bucket->delete('nonsense') },
+        qr/found [0-9]+ files instead of 1 for id .+/,
+        'delete nonexistant file',
+    );
 }
 
 # find
@@ -94,6 +93,26 @@ my $dumb_str;
     my $file = $results->next;
     is($file->{'length'}, $meta->{'length'});
     ok(!$results->has_next);
+}
+
+# drop
+{
+    my $grid = $testdb->get_gridfs;
+    $grid->drop;
+    my $img = new IO::File($pngfile, "r") or die $!;
+    # Windows is dumb
+    binmode($img);
+    my $id = $grid->insert($img);
+    my $save_id = $id;
+    $img->read($dumb_str, 4000000);
+    $img->close;
+    my $meta = $grid->files->find_one({'_id' => $save_id});
+    is($meta->{'length'}, 1292706);
+
+    my $bucket = $testdb->get_gridfsbucket;
+    $bucket->drop;
+    is($bucket->files->find_one, undef);
+    is($bucket->chunks->find_one, undef);
 }
 
 $testdb->drop;
