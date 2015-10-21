@@ -150,4 +150,9 @@ sub delete {
     return;
 }
 
+sub find {
+    my ($self, $filter, $options) = @_;
+    return $self->files->find($filter, $options)->result;
+}
+
 1;

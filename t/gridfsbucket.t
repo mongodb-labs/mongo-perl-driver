@@ -75,5 +75,26 @@ my $dumb_str;
     isa_ok($error, 'MongoDB::UsageError');
 }
 
+# find
+{
+    my $grid = $testdb->get_gridfs;
+    $grid->drop;
+    my $img = new IO::File($pngfile, "r") or die $!;
+    # Windows is dumb
+    binmode($img);
+    my $id = $grid->insert($img);
+    my $save_id = $id;
+    $img->read($dumb_str, 4000000);
+    $img->close;
+    my $meta = $grid->files->find_one({'_id' => $save_id});
+    is($meta->{'length'}, 1292706);
+
+    my $bucket = $testdb->get_gridfsbucket;
+    my $results = $bucket->find({ length => $meta->{'length'} });
+    my $file = $results->next;
+    is($file->{'length'}, $meta->{'length'});
+    ok(!$results->has_next);
+}
+
 $testdb->drop;
 done_testing;
