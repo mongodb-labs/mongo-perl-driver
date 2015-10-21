@@ -26,7 +26,9 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     Int
     Str
+    InstanceOf
 );
+use Test::More;
 use namespace::clean -except => 'meta';
 
 has database => (
@@ -90,12 +92,62 @@ has read_preference => (
     coerce   => ReadPreference->coercion,
 );
 
+has files => (
+    is => 'lazy',
+    isa => InstanceOf['MongoDB::Collection'],
+);
+
+sub _build_files {
+    my $self = shift;
+    my $coll = $self->database->get_collection(
+        $self->bucket_name . '.files',
+        {
+            read_preference => $self->read_preference,
+            write_concern   => $self->write_concern,
+            # max_time_ms     => $self->max_time_ms,
+            # bson_codec      => $self->bson_codec,
+        }
+    );
+    return $coll;
+}
+
+has chunks => (
+    is => 'lazy',
+    isa => InstanceOf['MongoDB::Collection'],
+);
+
+sub _build_chunks {
+    my $self = shift;
+    my $coll = $self->database->get_collection(
+        $self->bucket_name . '.chunks',
+        {
+            read_preference => $self->read_preference,
+            write_concern   => $self->write_concern,
+            # max_time_ms     => $self->max_time_ms,
+        }
+    );
+    return $coll;
+}
+
 sub _ensure_indexes {
     my ($self) = @_;
 
     # ensure the necessary index is present (this may be first usage)
     $self->files->indexes->create_one([ filename => 1, uploadDate => 1 ]);
     $self->chunks->indexes->create_one([ files_id => 1, n => 1 ]);
+}
+
+sub delete {
+    my ($self, $id) = @_;
+    my $delete_result = $self->files->delete_one({ _id => $id });
+    unless ($delete_result and $delete_result->deleted_count == 1) {
+        MongoDB::UsageError->throw(sprintf(
+            'found %d files instead of 1 for id %s',
+            $delete_result->deleted_count, $id,
+        ));
+    }
+    $self->chunks->delete_many({ files_id => $id });
+    return;
 }
 
 1;

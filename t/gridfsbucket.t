@@ -35,6 +35,9 @@ my $testdb = get_test_db(build_client());
 my $txtfile = "t/data/gridfs/input.txt";
 my $pngfile = "t/data/gridfs/img.png";
 
+my $dumb_str;
+
+# options
 {
     my $bucket = $testdb->get_gridfsbucket;
     cmp_deeply($bucket->read_preference, $testdb->read_preference, 'read preference');
@@ -43,4 +46,34 @@ my $pngfile = "t/data/gridfs/img.png";
     is($bucket->chunk_size_bytes, 255 * 1024, 'default chunk size bytes');
 }
 
+# delete
+{
+    my $grid = $testdb->get_gridfs;
+    $grid->drop;
+    my $img = new IO::File($pngfile, "r") or die $!;
+    # Windows is dumb
+    binmode($img);
+    my $id = $grid->insert($img);
+    my $save_id = $id;
+    $img->read($dumb_str, 4000000);
+    $img->close;
+    my $meta = $grid->files->find_one({'_id' => $save_id});
+    is($meta->{'length'}, 1292706);
+
+    my $bucket = $testdb->get_gridfsbucket;
+    $bucket->delete($save_id);
+    is(undef, $grid->get($save_id), 'bucket delete files');
+    is(undef, $bucket->chunks->find_one, 'bucket delete chunks');
+
+    # should throw error if file does not exist
+    my $error;
+    try {
+        $bucket->delete('nonsense');
+    } catch {
+        $error = $_;
+    };
+    isa_ok($error, 'MongoDB::UsageError');
+}
+
+$testdb->drop;
 done_testing;
