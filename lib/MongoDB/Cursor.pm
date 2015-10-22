@@ -529,8 +529,7 @@ debugging purposes and users should not rely on the contents of this method for
 production use.  Currently the fields are:
 
 =for :list
-* C<cursor_id>  -- the server-side id for this cursor as.  This is an opaque string.
-  A C<cursor_id> of "\0\0\0\0\0\0\0\0" means there are no more results on the server.
+* C<cursor_id>  -- the server-side id for this cursor.  See below for details.
 * C<num> -- the number of results received from the server so far
 * C<at> -- the (zero-based) index of the document that will be returned next from L</next>
 * C<flag> -- if the database could not find the cursor or another error occurred, C<flag> may
@@ -541,6 +540,15 @@ production use.  Currently the fields are:
 
 If the cursor has not yet executed, only the C<num> field will be returned with
 a value of 0.
+
+The C<cursor_id> could appear in one of three forms:
+
+=for :list
+* MongoDB::CursorID object (a blessed reference to an 8-byte string)
+* A perl scalar (an integer)
+* A Math::BigInt object (64 bit integer on 32-bit perl)
+
+When the C<cursor_id> is zero, there are no more results to fetch.
 
 =cut
 
