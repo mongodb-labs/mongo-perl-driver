@@ -1308,7 +1308,7 @@ sub bulk_write {
             $bulk->insert_one($_) for @$args;
         }
         else {
-            my ($filter, $doc, $options) = @$args;
+            my ($filter, $doc, $opts) = @$args;
 
             my $view = $bulk->find($filter);
 
@@ -1323,7 +1323,7 @@ sub bulk_write {
             }
 
             # updates might be upserts
-            $view = $view->upsert if $options && $options->{upsert};
+            $view = $view->upsert if $opts && $opts->{upsert};
 
             # handle updates
             if ( $method eq 'replace_one' ) {
