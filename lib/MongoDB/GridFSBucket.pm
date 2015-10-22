@@ -162,4 +162,18 @@ sub drop {
     $self->chunks->drop;
 }
 
+sub download_to_stream {
+    my ($self, $id, $fh) = @_;
+
+    my $file_doc = $self->files->find_one({ _id => $id });
+    return unless $file_doc && $file_doc->{length} > 0;
+
+    my $chunks = $self->chunks->find({ files_id => $id }, { sort => { n => 1 } });
+    while ($chunks->has_next) {
+        my $chunk = $chunks->next;
+        print $fh $chunk->{data};
+    }
+    return;
+}
+
 1;

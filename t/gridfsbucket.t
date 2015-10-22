@@ -50,7 +50,7 @@ my $dumb_str;
 {
     my $grid = $testdb->get_gridfs;
     $grid->drop;
-    my $img = new IO::File($pngfile, "r") or die $!;
+    my $img = IO::File->new($pngfile, "r") or die $!;
     # Windows is dumb
     binmode($img);
     my $id = $grid->insert($img);
@@ -113,6 +113,29 @@ my $dumb_str;
     $bucket->drop;
     is($bucket->files->find_one, undef);
     is($bucket->chunks->find_one, undef);
+}
+
+# download_to_stream
+{
+    my $grid = $testdb->get_gridfs;
+    $grid->drop;
+    my $img = new IO::File($pngfile, "r") or die $!;
+    # Windows is dumb
+    binmode($img);
+    my $id = $grid->insert($img);
+    my $save_id = $id;
+    $img->read($dumb_str, 4000000);
+    $img->close;
+    my $meta = $grid->files->find_one({'_id' => $save_id});
+    is($meta->{'length'}, 1292706);
+
+    my ($tmp_fh, $tmp_filename) = tempfile();
+    my $bucket = $testdb->get_gridfsbucket;
+    $bucket->download_to_stream($id, $tmp_fh);
+    isnt(fileno $tmp_fh, undef, 'download_to_stream does not close file handle');
+    close $tmp_fh;
+    is(compare($pngfile, $tmp_filename), 0, 'download_to_stream writes to disk');
+    unlink $tmp_filename;
 }
 
 $testdb->drop;
