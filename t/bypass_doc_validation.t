@@ -245,7 +245,7 @@ subtest "find_one_and_replace" => sub {
         skip "without MongoDB 3.2+", 1 unless $does_validation;
 
         like(
-            exception { $coll->find_one_and_replace( { x => 1 }, {} ) },
+            exception { $coll->find_one_and_replace( { x => 1 }, { y => 1 } ) },
             qr/failed validation/,
             "invalid find_one_and_replace throws error"
         );
@@ -253,7 +253,7 @@ subtest "find_one_and_replace" => sub {
 
     is(
         exception {
-            $coll->find_one_and_replace( { x => 1 }, {}, { bypassDocumentValidation => 1 } )
+            $coll->find_one_and_replace( { x => 1 }, { y => 1 }, { bypassDocumentValidation => 1 } )
         },
         undef,
         "validation bypassed"
@@ -293,6 +293,9 @@ subtest "find_one_and_update" => sub {
 
 subtest "aggregate with \$out" => sub {
     _drop_coll();
+
+    plan skip_all => "Aggregation with \$out requires MongoDB 2.6+"
+        unless $server_version >= v2.6.0;
 
     my $source = $testdb->get_collection('test_source');
     $source->insert_many( [ map { { count => $_ } } 1 .. 20 ] );
