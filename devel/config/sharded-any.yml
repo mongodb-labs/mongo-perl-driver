@@ -1,6 +1,6 @@
 ---
 type: sharded
-default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --quiet
+default_args: -v --noprealloc --smallfiles --nohttpinterface --nssize 6 --quiet
 mongoc:
     - name: config1
     - name: config2
