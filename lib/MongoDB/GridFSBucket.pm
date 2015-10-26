@@ -19,6 +19,7 @@ package MongoDB::GridFSBucket;
 
 use Moo;
 use MongoDB::WriteConcern;
+use MongoDB::GridFSBucket::DownloadStream;
 use MongoDB::_Types qw(
     ReadPreference
     WriteConcern
@@ -28,7 +29,6 @@ use Types::Standard qw(
     Str
     InstanceOf
 );
-use Test::More;
 use namespace::clean -except => 'meta';
 
 has database => (
@@ -174,6 +174,15 @@ sub download_to_stream {
         print $fh $chunk->{data};
     }
     return;
+}
+
+sub open_download_stream {
+    my ($self, $id) = @_;
+    return unless $id;
+    return MongoDB::GridFSBucket::DownloadStream->new({
+        _id    => $id,
+        bucket => $self,
+    });
 }
 
 1;

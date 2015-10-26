@@ -25,6 +25,8 @@ use File::Temp qw(tempfile);
 use File::Compare;
 
 use MongoDB;
+use MongoDB::GridFSBucket;
+use MongoDB::GridFSBucket::DownloadStream;
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
@@ -58,7 +60,7 @@ my $dumb_str;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 1292706);
+    is($meta->{'length'}, 6488666);
 
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->delete($save_id);
@@ -86,7 +88,7 @@ my $dumb_str;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 1292706);
+    is($meta->{'length'}, 6488666);
 
     my $bucket = $testdb->get_gridfsbucket;
     my $results = $bucket->find({ length => $meta->{'length'} });
@@ -107,7 +109,7 @@ my $dumb_str;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 1292706);
+    is($meta->{'length'}, 6488666);
 
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->drop;
@@ -127,7 +129,7 @@ my $dumb_str;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 1292706);
+    is($meta->{'length'}, 6488666);
 
     my ($tmp_fh, $tmp_filename) = tempfile();
     my $bucket = $testdb->get_gridfsbucket;
@@ -135,6 +137,46 @@ my $dumb_str;
     isnt(fileno $tmp_fh, undef, 'download_to_stream does not close file handle');
     close $tmp_fh;
     is(compare($pngfile, $tmp_filename), 0, 'download_to_stream writes to disk');
+    unlink $tmp_filename;
+}
+
+# open_download_stream
+{
+    my $grid = $testdb->get_gridfs;
+    $grid->drop;
+    my $img = new IO::File($pngfile, "r") or die $!;
+    # Windows is dumb
+    binmode($img);
+    my $img_id = $grid->insert($img);
+    $img->read($dumb_str, 4000000);
+    $img->close;
+    my $img_meta = $grid->files->find_one({'_id' => $img_id});
+    is($img_meta->{'length'}, 6488666);
+
+    my $txt = new IO::File($txtfile, "r") or die $!;
+    # Windows is dumb part II
+    binmode($txt);
+    my $txt_id = $grid->insert($txt);
+    $txt->read($dumb_str, 100);
+    $txt->close;
+    my $txt_meta = $grid->files->find_one({'_id' => $txt_id});
+    is($txt_meta->{'length'}, 9);
+
+    my $bucket = $testdb->get_gridfsbucket;
+
+    my $dl_stream = $bucket->open_download_stream($txt_id);
+    my $result = $dl_stream->read(3);
+    is($result, 'abc', 'DownloadStream basic read');
+
+    my ($tmp_fh, $tmp_filename) = tempfile();
+    $dl_stream = $bucket->open_download_stream($img_id);
+
+    while (my $data = $dl_stream->read(130565)) {
+        print $tmp_fh $data;
+    }
+    close $tmp_fh;
+    is(compare($pngfile, $tmp_filename), 0, 'DownloadStream complex read');
+
     unlink $tmp_filename;
 }
 
