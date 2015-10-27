@@ -29,6 +29,7 @@ before_install:
   - build-perl
   - perl -V
 install:
+  - cpan-install Config::AutoConf Path::Tiny
   - cpan-install --deps       # installs prereqs, including recommends
   - cpan-install --coverage   # installs converage prereqs, if enabled
 before_script:
