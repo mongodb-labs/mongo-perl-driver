@@ -82,7 +82,7 @@ sub _doc {
 sub _cstring { return $_[0] . "\x00" }
 BEGIN { *_ename = \&_cstring }
 
-sub _double { return pack( "d", shift ) }
+sub _double { return pack( PERL58 ? "d" : "d<", shift ) }
 
 sub _int32 { return pack( P_INT32, shift ) }
 
