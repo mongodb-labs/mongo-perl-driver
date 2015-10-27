@@ -5,16 +5,35 @@ env:
         - PERL_MONGO_WITH_ASSERTS=1
 services:
   - mongodb
-install:
-  - cpanm -n -q --skip-satisfied Config::AutoConf Path::Tiny
-  - cpanm -n -q --skip-satisfied --installdeps .
-script: perl Makefile.PL && make test
 perl:
-  - "5.21"
+  - "blead"
+  - "5.22.0"
+  - "5.22.0-thr"
   - "5.20"
   - "5.18"
   - "5.16"
   - "5.14"
   - "5.12"
   - "5.10"
-  - "5.8"
+  - "5.8.8"
+  - "5.8.8-thr"
+matrix:
+  include:
+    - perl: 5.18
+      env: COVERAGE=1
+  allow_failures:
+    - perl: "blead"
+before_install:
+  - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
+  - source ~/travis-perl-helpers/init
+  - build-perl
+  - perl -V
+install:
+  - cpan-install ExtUtils::CBuilder Config::AutoConf Path::Tiny
+  - cpan-install --deps       # installs prereqs, including recommends
+  - cpan-install --coverage   # installs converage prereqs, if enabled
+before_script:
+  - coverage-setup
+script: perl Makefile.PL && make test
+after_success:
+  - coverage-report
