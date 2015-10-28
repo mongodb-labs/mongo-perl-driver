@@ -36,6 +36,7 @@ skip_unless_mongod();
 my $testdb = get_test_db(build_client());
 my $txtfile = "t/data/gridfs/input.txt";
 my $pngfile = "t/data/gridfs/img.png";
+my $bigfile = "t/data/gridfs/big.txt";
 
 my $dumb_str;
 
@@ -60,7 +61,7 @@ my $dumb_str;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 6488666);
+    is($meta->{'length'}, 1292706);
 
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->delete($save_id);
@@ -88,7 +89,7 @@ my $dumb_str;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 6488666);
+    is($meta->{'length'}, 1292706);
 
     my $bucket = $testdb->get_gridfsbucket;
     my $results = $bucket->find({ length => $meta->{'length'} });
@@ -109,7 +110,7 @@ my $dumb_str;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 6488666);
+    is($meta->{'length'}, 1292706);
 
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->drop;
@@ -129,7 +130,7 @@ my $dumb_str;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 6488666);
+    is($meta->{'length'}, 1292706);
 
     my ($tmp_fh, $tmp_filename) = tempfile();
     my $bucket = $testdb->get_gridfsbucket;
@@ -151,7 +152,7 @@ my $dumb_str;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $img_meta = $grid->files->find_one({'_id' => $img_id});
-    is($img_meta->{'length'}, 6488666);
+    is($img_meta->{'length'}, 1292706);
 
     my $txt = new IO::File($txtfile, "r") or die $!;
     # Windows is dumb part II
@@ -163,21 +164,82 @@ my $dumb_str;
     is($txt_meta->{'length'}, 9);
 
     my $bucket = $testdb->get_gridfsbucket;
+    my $dl_stream;
 
-    my $dl_stream = $bucket->open_download_stream($txt_id);
-    my $result = $dl_stream->read(3);
+    $dl_stream = $bucket->open_download_stream($txt_id);
+    my $result;
+    $dl_stream->read($result, 3);
     is($result, 'abc', 'DownloadStream basic read');
+
+    $dl_stream = $bucket->open_download_stream($txt_id);
+    is($dl_stream->readline, "abc\n", 'readline 1');
+    is($dl_stream->readline, "\n", 'readline 2');
+    is($dl_stream->readline, "zyw\n", 'readline 3');
 
     my ($tmp_fh, $tmp_filename) = tempfile();
     $dl_stream = $bucket->open_download_stream($img_id);
 
-    while (my $data = $dl_stream->read(130565)) {
+    my $data;
+    while ($dl_stream->read($data, 130565)) {
         print $tmp_fh $data;
     }
     close $tmp_fh;
     is(compare($pngfile, $tmp_filename), 0, 'DownloadStream complex read');
-
     unlink $tmp_filename;
+}
+
+# open_download_stream fh magic
+{
+    my $grid = $testdb->get_gridfs;
+    $grid->drop;
+    my $img = new IO::File($pngfile, "r") or die $!;
+    # Windows is dumb
+    binmode($img);
+    my $img_id = $grid->insert($img);
+    $img->read($dumb_str, 4000000);
+    $img->close;
+    my $img_meta = $grid->files->find_one({'_id' => $img_id});
+    is($img_meta->{'length'}, 1292706);
+
+    my $txt = new IO::File($txtfile, "r") or die $!;
+    # Windows is dumb part II
+    binmode($txt);
+    my $txt_id = $grid->insert($txt);
+    $txt->read($dumb_str, 100);
+    $txt->close;
+    my $txt_meta = $grid->files->find_one({'_id' => $txt_id});
+    is($txt_meta->{'length'}, 9);
+
+    my $big = new IO::File($bigfile, "r") or die $!;
+    # Windows is dumb part III
+    binmode($big);
+    my $big_id = $grid->insert($big);
+    $big->read($dumb_str, 4000000);
+    $big->close;
+    my $big_meta = $grid->files->find_one({'_id' => $big_id});
+    is($big_meta->{'length'}, 2097410);
+
+    my $bucket = $testdb->get_gridfsbucket;
+
+    my $dl_stream = $bucket->open_download_stream($txt_id);
+    my $fh = $dl_stream->fh;
+    my $result;
+    read $fh, $result, 3;
+    is($result, 'abc', 'simple fh read');
+
+    $dl_stream = $bucket->open_download_stream($img_id);
+    $fh = $dl_stream->fh;
+    open(my $png_fh, '<', $pngfile);
+    is(compare($fh, $png_fh), 0, 'complex fh read');
+    close $png_fh;
+
+    $dl_stream = $bucket->open_download_stream($big_id);
+    $fh = $dl_stream->fh;
+    open(my $big_fh, '<', $bigfile);
+    while (my $line = <$fh>) {
+        is($line, <$big_fh>, 'complex fh readline');
+    }
+    close $big_fh;
 }
 
 $testdb->drop;
