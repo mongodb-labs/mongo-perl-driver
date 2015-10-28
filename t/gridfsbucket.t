@@ -39,6 +39,43 @@ my $pngfile = "t/data/gridfs/img.png";
 my $bigfile = "t/data/gridfs/big.txt";
 
 my $dumb_str;
+my $grid;
+my ($img_id, $img_meta);
+my ($txt_id, $txt_meta);
+my ($big_id, $big_meta);
+
+sub setup_gridfs {
+    $grid = $testdb->get_gridfs;
+    $grid->drop;
+    my $img = new IO::File($pngfile, "r") or die $!;
+    # Windows is dumb
+    binmode($img);
+    $img_id = $grid->insert($img);
+    $img->read($dumb_str, 4000000);
+    $img->close;
+    $img_meta = $grid->files->find_one({'_id' => $img_id});
+    is($img_meta->{'length'}, 1292706);
+
+    my $txt = new IO::File($txtfile, "r") or die $!;
+    # Windows is dumb part II
+    binmode($txt);
+    $txt_id = $grid->insert($txt);
+    $txt->read($dumb_str, 100);
+    $txt->close;
+    $txt_meta = $grid->files->find_one({'_id' => $txt_id});
+    is($txt_meta->{'length'}, 9);
+
+    my $big = new IO::File($bigfile, "r") or die $!;
+    # Windows is dumb part III
+    binmode($big);
+    $big_id = $grid->insert($big);
+    $big->read($dumb_str, 4000000);
+    $big->close;
+    $big_meta = $grid->files->find_one({'_id' => $big_id});
+    is($big_meta->{'length'}, 2097410);
+}
+
+setup_gridfs;
 
 # options
 {
@@ -51,22 +88,10 @@ my $dumb_str;
 
 # delete
 {
-    my $grid = $testdb->get_gridfs;
-    $grid->drop;
-    my $img = IO::File->new($pngfile, "r") or die $!;
-    # Windows is dumb
-    binmode($img);
-    my $id = $grid->insert($img);
-    my $save_id = $id;
-    $img->read($dumb_str, 4000000);
-    $img->close;
-    my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 1292706);
-
     my $bucket = $testdb->get_gridfsbucket;
-    $bucket->delete($save_id);
-    is($grid->get($save_id), undef, 'bucket delete files');
-    is($bucket->chunks->find_one, undef, 'bucket delete chunks');
+    $bucket->delete($img_id);
+    is($bucket->files->find_id($img_id), undef, 'bucket delete files');
+    is($bucket->chunks->find_id($img_id), undef, 'bucket delete chunks');
 
     # should throw error if file does not exist
     my $error;
@@ -75,66 +100,34 @@ my $dumb_str;
         qr/found [0-9]+ files instead of 1 for id .+/,
         'delete nonexistant file',
     );
+
+    setup_gridfs;
 }
 
 # find
 {
-    my $grid = $testdb->get_gridfs;
-    $grid->drop;
-    my $img = new IO::File($pngfile, "r") or die $!;
-    # Windows is dumb
-    binmode($img);
-    my $id = $grid->insert($img);
-    my $save_id = $id;
-    $img->read($dumb_str, 4000000);
-    $img->close;
-    my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 1292706);
-
     my $bucket = $testdb->get_gridfsbucket;
-    my $results = $bucket->find({ length => $meta->{'length'} });
+    my $results = $bucket->find({ length => $img_meta->{'length'} });
     my $file = $results->next;
-    is($file->{'length'}, $meta->{'length'});
+    is($file->{'length'}, $img_meta->{'length'});
     ok(!$results->has_next);
 }
 
 # drop
 {
-    my $grid = $testdb->get_gridfs;
-    $grid->drop;
-    my $img = new IO::File($pngfile, "r") or die $!;
-    # Windows is dumb
-    binmode($img);
-    my $id = $grid->insert($img);
-    my $save_id = $id;
-    $img->read($dumb_str, 4000000);
-    $img->close;
-    my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 1292706);
-
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->drop;
     is($bucket->files->find_one, undef);
     is($bucket->chunks->find_one, undef);
+
+    setup_gridfs;
 }
 
 # download_to_stream
 {
-    my $grid = $testdb->get_gridfs;
-    $grid->drop;
-    my $img = new IO::File($pngfile, "r") or die $!;
-    # Windows is dumb
-    binmode($img);
-    my $id = $grid->insert($img);
-    my $save_id = $id;
-    $img->read($dumb_str, 4000000);
-    $img->close;
-    my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 1292706);
-
     my ($tmp_fh, $tmp_filename) = tempfile();
     my $bucket = $testdb->get_gridfsbucket;
-    $bucket->download_to_stream($id, $tmp_fh);
+    $bucket->download_to_stream($img_id, $tmp_fh);
     isnt(fileno $tmp_fh, undef, 'download_to_stream does not close file handle');
     close $tmp_fh;
     is(compare($pngfile, $tmp_filename), 0, 'download_to_stream writes to disk');
@@ -143,26 +136,6 @@ my $dumb_str;
 
 # open_download_stream
 {
-    my $grid = $testdb->get_gridfs;
-    $grid->drop;
-    my $img = new IO::File($pngfile, "r") or die $!;
-    # Windows is dumb
-    binmode($img);
-    my $img_id = $grid->insert($img);
-    $img->read($dumb_str, 4000000);
-    $img->close;
-    my $img_meta = $grid->files->find_one({'_id' => $img_id});
-    is($img_meta->{'length'}, 1292706);
-
-    my $txt = new IO::File($txtfile, "r") or die $!;
-    # Windows is dumb part II
-    binmode($txt);
-    my $txt_id = $grid->insert($txt);
-    $txt->read($dumb_str, 100);
-    $txt->close;
-    my $txt_meta = $grid->files->find_one({'_id' => $txt_id});
-    is($txt_meta->{'length'}, 9);
-
     my $bucket = $testdb->get_gridfsbucket;
     my $dl_stream;
 
@@ -190,35 +163,6 @@ my $dumb_str;
 
 # open_download_stream fh magic
 {
-    my $grid = $testdb->get_gridfs;
-    $grid->drop;
-    my $img = new IO::File($pngfile, "r") or die $!;
-    # Windows is dumb
-    binmode($img);
-    my $img_id = $grid->insert($img);
-    $img->read($dumb_str, 4000000);
-    $img->close;
-    my $img_meta = $grid->files->find_one({'_id' => $img_id});
-    is($img_meta->{'length'}, 1292706);
-
-    my $txt = new IO::File($txtfile, "r") or die $!;
-    # Windows is dumb part II
-    binmode($txt);
-    my $txt_id = $grid->insert($txt);
-    $txt->read($dumb_str, 100);
-    $txt->close;
-    my $txt_meta = $grid->files->find_one({'_id' => $txt_id});
-    is($txt_meta->{'length'}, 9);
-
-    my $big = new IO::File($bigfile, "r") or die $!;
-    # Windows is dumb part III
-    binmode($big);
-    my $big_id = $grid->insert($big);
-    $big->read($dumb_str, 4000000);
-    $big->close;
-    my $big_meta = $grid->files->find_one({'_id' => $big_id});
-    is($big_meta->{'length'}, 2097410);
-
     my $bucket = $testdb->get_gridfsbucket;
 
     my $dl_stream = $bucket->open_download_stream($txt_id);
