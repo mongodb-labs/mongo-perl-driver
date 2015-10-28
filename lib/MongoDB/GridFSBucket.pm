@@ -23,6 +23,8 @@ use MongoDB::GridFSBucket::DownloadStream;
 use MongoDB::_Types qw(
     ReadPreference
     WriteConcern
+    BSONCodec
+    NonNegNum
 );
 use Types::Standard qw(
     Int
@@ -92,6 +94,38 @@ has read_preference => (
     coerce   => ReadPreference->coercion,
 );
 
+=attr bson_codec
+
+An object that provides the C<encode_one> and C<decode_one> methods, such as
+from L<MongoDB::BSON>.  It may be initialized with a hash reference that will
+be coerced into a new MongoDB::BSON object.  By default it will be inherited
+from a L<MongoDB::MongoClient> object.
+
+=cut
+
+has bson_codec => (
+    is       => 'ro',
+    isa      => BSONCodec,
+    coerce   => BSONCodec->coercion,
+    required => 1,
+);
+
+=attr max_time_ms
+
+Specifies the maximum amount of time in milliseconds that the server should use
+for working on a query.
+
+B<Note>: this will only be used for server versions 2.6 or greater, as that
+was when the C<$maxTimeMS> meta-operator was introduced.
+
+=cut
+
+has max_time_ms => (
+    is       => 'ro',
+    isa      => NonNegNum,
+    required => 1,
+);
+
 has files => (
     is => 'lazy',
     isa => InstanceOf['MongoDB::Collection'],
@@ -104,8 +138,8 @@ sub _build_files {
         {
             read_preference => $self->read_preference,
             write_concern   => $self->write_concern,
-            # max_time_ms     => $self->max_time_ms,
-            # bson_codec      => $self->bson_codec,
+            max_time_ms     => $self->max_time_ms,
+            bson_codec      => $self->bson_codec,
         }
     );
     return $coll;
@@ -123,7 +157,8 @@ sub _build_chunks {
         {
             read_preference => $self->read_preference,
             write_concern   => $self->write_concern,
-            # max_time_ms     => $self->max_time_ms,
+            max_time_ms     => $self->max_time_ms,
+            bson_codec      => $self->bson_codec,
         }
     );
     return $coll;

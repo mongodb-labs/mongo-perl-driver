@@ -310,6 +310,8 @@ sub get_gridfsbucket {
     return MongoDB::GridFSBucket->new(
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
+        bson_codec      => $self->bson_codec,
+        max_time_ms     => $self->max_time_ms,
         ( $options ? %$options : () ),
         database => $self,
     )
