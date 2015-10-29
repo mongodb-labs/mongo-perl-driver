@@ -126,6 +126,14 @@ has max_time_ms => (
     required => 1,
 );
 
+=attr files
+
+The L<MongoDB::Collection> used to store the files documents for the bucket.
+See L<https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst#terms>
+for more information.
+
+=cut
+
 has files => (
     is => 'lazy',
     isa => InstanceOf['MongoDB::Collection'],
@@ -144,6 +152,14 @@ sub _build_files {
     );
     return $coll;
 }
+
+=attr chunks
+
+The L<MongoDB::Collection> used to store the chunks documents for the bucket.
+See L<https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst#terms>
+for more information.
+
+=cut
 
 has chunks => (
     is => 'lazy',
@@ -172,6 +188,15 @@ sub _ensure_indexes {
     $self->chunks->indexes->create_one([ files_id => 1, n => 1 ]);
 }
 
+=method
+
+    $bucket->delete($id);
+
+Deletes a file from from the bucket matching C<$id>. throws a
+L<MongoDB::GridFSError> if no such file exists.
+
+=cut
+
 sub delete {
     my ($self, $id) = @_;
     my $delete_result = $self->files->delete_one({ _id => $id });
@@ -186,16 +211,44 @@ sub delete {
     return;
 }
 
+=method
+
+    $bucket->find($filter);
+    $bucket->find($filter, $options);
+
+Executes a query on the files collection with a
+L<filter expression|/Filter expression> and
+returns a C<MongoDB::QueryResult> object.
+
+=cut
+
 sub find {
     my ($self, $filter, $options) = @_;
     return $self->files->find($filter, $options)->result;
 }
+
+=method drop
+
+    $bucket->drop;
+
+Drops the files and chunks collections for this bucket.
+
+=cut
 
 sub drop {
     my ($self) = @_;
     $self->files->drop;
     $self->chunks->drop;
 }
+
+=method download_to_stream
+
+    $bucket->download_to_stream($id, $fh);
+
+Downloads the file matching C<$id> and writes it to the
+file handle C<$fh>.
+
+=cut
 
 sub download_to_stream {
     my ($self, $id, $fh) = @_;
@@ -210,6 +263,14 @@ sub download_to_stream {
     }
     return;
 }
+
+=method open_download_stream
+
+    my $stream = $bucket->open_download_stream;
+
+Returns a new L<MongoDB::GridFSBucket::DownloadStream> for this bucket.
+
+=cut
 
 sub open_download_stream {
     my ($self, $id) = @_;
