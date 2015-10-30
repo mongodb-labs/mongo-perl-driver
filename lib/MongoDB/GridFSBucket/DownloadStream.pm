@@ -18,12 +18,13 @@ package MongoDB::GridFSBucket::DownloadStream;
 
 use Moo;
 use Types::Standard qw(
-    Int
-    Str
     Maybe
     HashRef
     InstanceOf
     FileHandle
+);
+use MongoDB::_Types qw(
+    NonNegNum
 );
 use Test::More;
 use namespace::clean -except => 'meta';
@@ -34,7 +35,7 @@ has bucket => (
     required => 1,
 );
 
-has _id => (
+has id => (
     is       => 'ro',
     isa      => InstanceOf['MongoDB::OID'],
     required => 1,
@@ -47,22 +48,22 @@ has _current_chunk => (
 
 has _chunk_location => (
     is => 'rw',
-    isa => Int,
+    isa => NonNegNum,
 );
 
 has _chunk_length => (
     is => 'rw',
-    isa => Int,
+    isa => NonNegNum,
 );
 
 has _result => (
     is  => 'lazy',
-    isa => InstanceOf['MongoDB::QueryResult'],
+    isa => Maybe[InstanceOf['MongoDB::QueryResult']],
 );
 
 sub _build__result {
     my ($self) = @_;
-    return $self->bucket->chunks->find({ files_id => $self->_id }, { sort => { n => 1 } })->result;
+    return $self->bucket->chunks->find({ files_id => $self->id }, { sort => { n => 1 } })->result;
 }
 
 has fh => (
@@ -178,7 +179,6 @@ sub read {
 
 sub TIEHANDLE {
     my ($class, $self) = @_;
-    diag($self);
     return $self;
 }
 

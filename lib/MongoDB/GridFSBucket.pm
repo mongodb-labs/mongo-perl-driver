@@ -276,7 +276,7 @@ sub open_download_stream {
     my ($self, $id) = @_;
     return unless $id;
     return MongoDB::GridFSBucket::DownloadStream->new({
-        _id    => $id,
+        id    => $id,
         bucket => $self,
     });
 }
