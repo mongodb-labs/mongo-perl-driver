@@ -83,7 +83,7 @@ sub _ensure_chunk {
     if ($self->_current_chunk && $self->_chunk_location < $self->_chunk_length) {
         return $self->_current_chunk;
     }
-    return unless $self->_result->has_next;
+    return unless $self->_result && $self->_result->has_next;
     $self->_current_chunk($self->_result->next);
     $self->_chunk_location(0);
     $self->_chunk_length(length $self->_current_chunk->{data}->{data});
@@ -175,6 +175,15 @@ sub read {
 	return $read_len;
 }
 
+sub close {
+    my ($self) = @_;
+    $self->{_result} = undef;
+    $self->_current_chunk(undef);
+    $self->_chunk_location(0);
+    $self->_chunk_length(0);
+    $self->{fh} = undef;
+}
+
 # Magic tie methods
 
 sub TIEHANDLE {
@@ -197,6 +206,11 @@ sub GETC {
 sub READLINE {
 	my ($self) = @_;
     return $self->readline;
+}
+
+sub CLOSE {
+    my ($self) = @_;
+    return $self->close;
 }
 
 1;

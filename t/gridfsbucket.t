@@ -186,5 +186,14 @@ setup_gridfs;
     close $big_fh;
 }
 
+# close
+{
+    my $bucket = $testdb->get_gridfsbucket;
+    my $fh = $bucket->open_download_stream($big_id)->fh;
+    ok(scalar <$fh>, 'fh readline before close');
+    close $fh;
+    is(scalar <$fh>, undef, 'fh readline after close');
+}
+
 $testdb->drop;
 done_testing;
