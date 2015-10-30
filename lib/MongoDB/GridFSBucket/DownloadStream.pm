@@ -25,7 +25,6 @@ use Types::Standard qw(
     InstanceOf
     FileHandle
 );
-use MongoDB::GridFSBucket::_DownloadFH;
 use Test::More;
 use namespace::clean -except => 'meta';
 
@@ -74,7 +73,7 @@ has fh => (
 sub _build_fh {
     my ($self) = @_;
     my $fh = IO::Handle->new();
-    tie *$fh, 'MongoDB::GridFSBucket::_DownloadFH', $self;
+    tie *$fh, 'MongoDB::GridFSBucket::DownloadStream', $self;
     return $fh;
 }
 
@@ -173,6 +172,31 @@ sub read {
     # FIXME: should return undef when empty
     $$buffref = $pre_str . $read;
 	return $read_len;
+}
+
+# Magic tie methods
+
+sub TIEHANDLE {
+    my ($class, $self) = @_;
+    diag($self);
+    return $self;
+}
+
+sub READ {
+	my $self = shift;
+    my $buffref = \$_[0];
+	my(undef,$len,$offset) = @_;
+    return $self->read($$buffref, $len, $offset);
+}
+
+sub GETC {
+	my ($self) = @_;
+    return $self->readbytes(1);
+}
+
+sub READLINE {
+	my ($self) = @_;
+    return $self->readline;
 }
 
 1;
