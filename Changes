@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.0.3    2015-11-03 22:25:12-05:00 America/New_York
+
   [Bug fixes]
 
   - Fixed BSON encoding tests for big-endian platforms.
