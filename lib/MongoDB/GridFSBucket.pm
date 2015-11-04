@@ -18,7 +18,6 @@ package MongoDB::GridFSBucket;
 # ABSTRACT: A file storage utility
 
 use Moo;
-use MongoDB::WriteConcern;
 use MongoDB::GridFSBucket::DownloadStream;
 use MongoDB::_Types qw(
     ReadPreference
