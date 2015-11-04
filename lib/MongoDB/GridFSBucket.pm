@@ -58,7 +58,7 @@ The number of bytes per chunk.  Defaults to 261120 (255kb).
 
 has chunk_size_bytes => (
     is      => 'ro',
-    isa     => Int,
+    isa     => NonNegNum,
     default => sub { 255 * 1024 },
 );
 
@@ -125,7 +125,7 @@ has max_time_ms => (
     required => 1,
 );
 
-=attr files
+=method files
 
 The L<MongoDB::Collection> used to store the files documents for the bucket.
 See L<https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst#terms>
@@ -133,12 +133,14 @@ for more information.
 
 =cut
 
-has files => (
-    is => 'lazy',
-    isa => InstanceOf['MongoDB::Collection'],
+has _files => (
+    is       => 'lazy',
+    isa      => InstanceOf['MongoDB::Collection'],
+    reader   => 'files',
+    init_arg => undef,
 );
 
-sub _build_files {
+sub _build__files {
     my $self = shift;
     my $coll = $self->database->get_collection(
         $self->bucket_name . '.files',
@@ -152,7 +154,7 @@ sub _build_files {
     return $coll;
 }
 
-=attr chunks
+=method chunks
 
 The L<MongoDB::Collection> used to store the chunks documents for the bucket.
 See L<https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst#terms>
@@ -160,12 +162,14 @@ for more information.
 
 =cut
 
-has chunks => (
-    is => 'lazy',
-    isa => InstanceOf['MongoDB::Collection'],
+has _chunks => (
+    is       => 'lazy',
+    isa      => InstanceOf['MongoDB::Collection'],
+    reader   => 'chunks',
+    init_arg => undef,
 );
 
-sub _build_chunks {
+sub _build__chunks {
     my $self = shift;
     my $coll = $self->database->get_collection(
         $self->bucket_name . '.chunks',
@@ -173,6 +177,8 @@ sub _build_chunks {
             read_preference => $self->read_preference,
             write_concern   => $self->write_concern,
             max_time_ms     => $self->max_time_ms,
+            # XXX: Generate a new bson codec here to
+            # prevent users from changing it?
             bson_codec      => $self->bson_codec,
         }
     );
