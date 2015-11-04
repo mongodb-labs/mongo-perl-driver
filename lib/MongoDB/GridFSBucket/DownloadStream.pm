@@ -18,6 +18,7 @@ package MongoDB::GridFSBucket::DownloadStream;
 
 use Moo;
 use Types::Standard qw(
+    Str
     Maybe
     HashRef
     InstanceOf
@@ -26,7 +27,7 @@ use Types::Standard qw(
 use MongoDB::_Types qw(
     NonNegNum
 );
-use Test::More;
+use List::Util qw(max min);
 use namespace::clean -except => 'meta';
 
 has bucket => (
@@ -41,30 +42,34 @@ has id => (
     required => 1,
 );
 
-has _current_chunk => (
-    is => 'rw',
-    isa => Maybe[HashRef],
+has file_doc => (
+    is       => 'ro',
+    isa      => HashRef,
+    required => 1,
 );
 
-has _chunk_location => (
+has _buffer => (
     is => 'rw',
-    isa => NonNegNum,
+    isa => Str,
 );
 
-has _chunk_length => (
-    is => 'rw',
-    isa => NonNegNum,
+has _chunk_n => (
+    is      => 'rw',
+    isa     => NonNegNum,
+    default => sub { 0 },
 );
 
 has _result => (
-    is  => 'lazy',
-    isa => Maybe[InstanceOf['MongoDB::QueryResult']],
+    is       => 'ro',
+    isa      => Maybe[InstanceOf['MongoDB::QueryResult']],
+    required => 1,
 );
 
-sub _build__result {
-    my ($self) = @_;
-    return $self->bucket->chunks->find({ files_id => $self->id }, { sort => { n => 1 } })->result;
-}
+has _offset => (
+    is      => 'rw',
+    isa     => NonNegNum,
+    default => sub { 0 },
+);
 
 has fh => (
     is => 'lazy',
@@ -78,109 +83,100 @@ sub _build_fh {
     return $fh;
 }
 
-sub _ensure_chunk {
+sub _get_next_chunk {
     my ($self) = @_;
-    if ($self->_current_chunk && $self->_chunk_location < $self->_chunk_length) {
-        return $self->_current_chunk;
-    }
+
     return unless $self->_result && $self->_result->has_next;
-    $self->_current_chunk($self->_result->next);
-    $self->_chunk_location(0);
-    $self->_chunk_length(length $self->_current_chunk->{data}->{data});
+    my $chunk = $self->_result->next;
 
-    return $self->_current_chunk;
+    if ( $chunk->{'n'} != $self->_chunk_n ) {
+        MongoDB::GridFSError->throw(sprintf(
+                'Expected chunk %d but got chunk %d',
+                $self->_chunk_n, $chunk->{'n'},
+        ));
+    }
+
+    my $last_chunk_n = int($self->file_doc->{'length'} / $self->file_doc->{'chunkSize'});
+    my $expected_size = $chunk->{'n'} == $last_chunk_n ?
+            $self->file_doc->{'length'} % $self->file_doc->{'chunkSize'} :
+            $self->file_doc->{'chunkSize'};
+    if (length $chunk->{'data'} != $expected_size ) {
+        MongoDB::GridFSError->throw(sprintf(
+            "Chunk %d from file with id %s has incorrect size %d, expected %d",
+            $self->_chunk_n, $self->id, length $chunk->{'data'}, $expected_size,
+        ));
+    }
+
+    $self->{_chunk_n} += 1;
+    $self->{_buffer} .= $chunk->{data}->{data};
 }
 
-sub _read_bytes_from_chunk {
-    my ($self, $nbytes) = @_;
-    return unless $self->_ensure_chunk;
-
-    my $bytes_available = $self->_chunk_length - $self->_chunk_location;
-    my $bytes_read = $bytes_available < $nbytes ? $bytes_available : $nbytes;
-    my $read = substr $self->_current_chunk->{data}->{data}, $self->_chunk_location, $bytes_read;
-    $self->_chunk_location($self->_chunk_location + $bytes_read);
-
-    return ($read, $bytes_read);
-}
-
-sub _readline {
+sub _ensure_buffer {
     my ($self) = @_;
-    return unless $self->_ensure_chunk;
+    if ($self->_buffer) { return $self->_buffer };
 
-    my $newline_position = index $self->_current_chunk->{data}->{data}, $/, $self->_chunk_location;
+    $self->_get_next_chunk;
 
-    my $bytes_read = $newline_position < 0 ? $self->_chunk_length - $self->_chunk_location : ($newline_position - $self->_chunk_location) + 1;
-    my $result = substr $self->_current_chunk->{data}->{data}, $self->_chunk_location, $bytes_read;
-    $self->_chunk_location($self->_chunk_location + $bytes_read);
+    return $self->_buffer;
+}
 
-    return ($result, $newline_position < 0 ? 0 : 1);
+sub _readline_scalar {
+    my ($self) = @_;
+
+    # Special case for "slurp" mode
+    if ( !$/ ) {
+        my $result;
+        $self->read($result, $self->file_doc->{'length'});
+        return $result;
+    }
+
+    return unless $self->_ensure_buffer;
+    my $newline_index;
+    while ( ($newline_index = index $self->_buffer, $/) < 0) { last unless $self->_get_next_chunk };
+    my $substr_len = $newline_index < 0 ? length $self->_buffer : $newline_index + 1;
+    return substr $self->{_buffer}, $self->_offset, $substr_len, '';
 }
 
 sub readline {
     my ($self) = @_;
-    my $result = '';
-    my @result_arr = ();
-    my ($line, $found_newline) = $self->_readline;
-    return unless $line;
-    while ($line) {
-        while ($line) {
-            $result .= $line;
-            last if $found_newline;
-            ($line, $found_newline) = $self->_readline;
-        }
-        return $result unless wantarray();
-        push @result_arr, $result;
+    return $self->_readline_scalar unless wantarray;
+
+    my @result = ();
+    while ( my $line = $self->_readline_scalar ) {
+        push @result, $line;
     }
-    return @result_arr;
+    return @result;
 }
-
-sub readbytes {
-    my ($self, $nbytes) = @_;
-    return unless $self->_ensure_chunk;
-
-    my $result = '';
-    my $remaining = $nbytes;
-    while ($remaining > 0) {
-        my ($tmp, $read) = $self->_read_bytes_from_chunk($remaining);
-        last unless $tmp;
-        $result .= $tmp;
-        $remaining -= $read;
-    }
-
-    return $result;
-};
 
 sub read {
     my $self = shift;
-    return unless $self->_ensure_chunk;
+    return unless $self->_ensure_buffer;
 	my $buffref = \$_[0];
 	my(undef,$len,$offset) = @_;
-    $offset ||= 0;
     my $bufflen = length $$buffref;
-    my $pre_str = '';
-    if ($offset > 0) {
-        if ($offset > $bufflen) {
-            $pre_str = $buffref . ("\0" x ($offset - $bufflen));
-        } else {
-            $pre_str = substr $$buffref, 0, $offset + 1;
-        }
-    } elsif ($offset < 0) {
-        $pre_str = substr $$buffref, 0, $bufflen + $offset;
+
+    $offset ||= 0;
+    $bufflen ||= 0;
+    $$buffref ||= '';
+
+    $offset = max(0, $bufflen + $offset) if $offset < 0;
+    if ($offset > 0 && $offset > $bufflen) {
+        $$buffref .= ("\0" x ($offset - $bufflen));
+    } else {
+        substr $$buffref, $offset, $bufflen, '';
     }
 
-    my $read = $self->readbytes($len);
-    my $read_len = length $read;
-    # FIXME: should return undef when empty
-    $$buffref = $pre_str . $read;
+    while ( length $self->_buffer < $len ) { last unless $self->_get_next_chunk };
+    my $read_len = min(length $self->_buffer, $len);
+    $$buffref .= substr $self->{_buffer}, $self->_offset, $read_len, '';
 	return $read_len;
 }
 
 sub close {
     my ($self) = @_;
     $self->{_result} = undef;
-    $self->_current_chunk(undef);
-    $self->_chunk_location(0);
-    $self->_chunk_length(0);
+    $self->_buffer('');
+    $self->_chunk_n(0);
     $self->{fh} = undef;
 }
 
@@ -191,26 +187,15 @@ sub TIEHANDLE {
     return $self;
 }
 
-sub READ {
-	my $self = shift;
-    my $buffref = \$_[0];
-	my(undef,$len,$offset) = @_;
-    return $self->read($$buffref, $len, $offset);
-}
+*READ = \&read;
+*READLINE = \&readline;
+*CLOSE = \&close;
 
 sub GETC {
 	my ($self) = @_;
-    return $self->readbytes(1);
-}
-
-sub READLINE {
-	my ($self) = @_;
-    return $self->readline;
-}
-
-sub CLOSE {
-    my ($self) = @_;
-    return $self->close;
+    my $char;
+    $self->read($char, 1);
+    return $char;
 }
 
 1;

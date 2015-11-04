@@ -297,7 +297,7 @@ sub download_to_stream {
 
 =method open_download_stream
 
-    my $stream = $bucket->open_download_stream;
+    my $stream = $bucket->open_download_stream($id);
 
 Returns a new L<MongoDB::GridFSBucket::DownloadStream> for this bucket.
 
@@ -305,10 +305,17 @@ Returns a new L<MongoDB::GridFSBucket::DownloadStream> for this bucket.
 
 sub open_download_stream {
     my ($self, $id) = @_;
-    return unless $id;
+    MongoDB::UsageError->throw('No id provided to open_download_stream') unless $id;
+    my $file_doc = $self->files->find_id($id);
+    MongoDB::GridFSError->throw("No file document found for id '$id'") unless $file_doc;
+    my $result = $file_doc->{'length'} > 0 ?
+        $self->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result :
+        undef;
     return MongoDB::GridFSBucket::DownloadStream->new({
-        id    => $id,
-        bucket => $self,
+        id       => $id,
+        bucket   => $self,
+        file_doc => $file_doc,
+        _result  => $result,
     });
 }
 
