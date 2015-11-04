@@ -257,14 +257,40 @@ file handle C<$fh>.
 
 sub download_to_stream {
     my ($self, $id, $fh) = @_;
+    MongoDB::UsageError->throw('No id provided to download_to_stream') unless $id;
 
     my $file_doc = $self->files->find_one({ _id => $id });
-    return unless $file_doc && $file_doc->{length} > 0;
+    if (!$file_doc) {
+        MongoDB::GridFSError->throw("No file document found for id '$id'");
+    }
+    return unless $file_doc->{length} > 0;
 
-    my $chunks = $self->chunks->find({ files_id => $id }, { sort => { n => 1 } });
-    while ($chunks->has_next) {
+    my $chunks = $self->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result;
+    my $last_chunk_n = int($file_doc->{'length'} / $file_doc->{'chunkSize'});
+    for my $n (0..($last_chunk_n)) {
+        if (!$chunks->has_next) {
+            MongoDB::GridFSError->throw("Missing chunk $n for file with id $id");
+        }
         my $chunk = $chunks->next;
+        if ( $chunk->{'n'} != $n) {
+            MongoDB::GridFSError->throw(sprintf(
+                    'Expected chunk %d but got chunk %d',
+                    $n, $chunk->{'n'},
+            ));
+        }
+        my $expected_size = $chunk->{'n'} == $last_chunk_n ?
+            $file_doc->{'length'} % $file_doc->{'chunkSize'} :
+            $file_doc->{'chunkSize'};
+        if ( length $chunk->{'data'} != $expected_size ) {
+            MongoDB::GridFSError->throw(sprintf(
+                "Chunk $n from file with id $id has incorrect size %d, expected %d",
+                length $chunk->{'data'}, $expected_size,
+            ));
+        }
         print $fh $chunk->{data};
+    }
+    if ( $chunks->has_next ) {
+        MongoDB::GridFSError->throw("File with id $id has extra chunks");
     }
     return;
 }
