@@ -127,10 +127,10 @@ setup_gridfs;
 {
     my ($tmp_fh, $tmp_filename) = tempfile();
     my $bucket = $testdb->get_gridfsbucket;
-    $bucket->download_to_stream($img_id, $tmp_fh);
+    $bucket->download_to_stream($big_id, $tmp_fh);
     isnt(fileno $tmp_fh, undef, 'download_to_stream does not close file handle');
     close $tmp_fh;
-    is(compare($pngfile, $tmp_filename), 0, 'download_to_stream writes to disk');
+    is(compare($bigfile, $tmp_filename), 0, 'download_to_stream writes to disk');
     unlink $tmp_filename;
 }
 
@@ -138,26 +138,42 @@ setup_gridfs;
 {
     my $bucket = $testdb->get_gridfsbucket;
     my $dl_stream;
+    my $str;
 
     $dl_stream = $bucket->open_download_stream($txt_id);
-    my $result;
-    $dl_stream->read($result, 3);
-    is($result, 'abc', 'DownloadStream basic read');
+    $dl_stream->read($str, 4);
+    is($str, "abc\n", 'simple read');
+    $dl_stream->read($str, 1, 10);
+    is($str, "abc\n\0\0\0\0\0\0\n", 'read with null byte padding');
+    $dl_stream->read($str, 3, -10);
+    is($str, "azyw", 'read with negative offset');
+    $dl_stream->read($str, 1, -999);
+    is($str, "\n", 'read with large negative offset');
 
     $dl_stream = $bucket->open_download_stream($txt_id);
     is($dl_stream->readline, "abc\n", 'readline 1');
     is($dl_stream->readline, "\n", 'readline 2');
     is($dl_stream->readline, "zyw\n", 'readline 3');
 
+    $dl_stream = $bucket->open_download_stream($txt_id);
+    my @arr = $dl_stream->readline;
+    cmp_deeply(\@arr, ["abc\n", "\n", "zyw\n"], 'readline in list context');
+
+    $dl_stream = $bucket->open_download_stream($txt_id);
+    $/ = undef;
+    $str = $dl_stream->readline;
+    is($str, "abc\n\nzyw\n", 'readline slurp mode');
+    $/ = "\n";
+
     my ($tmp_fh, $tmp_filename) = tempfile();
-    $dl_stream = $bucket->open_download_stream($img_id);
+    $dl_stream = $bucket->open_download_stream($big_id);
 
     my $data;
     while ($dl_stream->read($data, 130565)) {
         print $tmp_fh $data;
     }
     close $tmp_fh;
-    is(compare($pngfile, $tmp_filename), 0, 'DownloadStream complex read');
+    is(compare($bigfile, $tmp_filename), 0, 'DownloadStream complex read');
     unlink $tmp_filename;
 }
 
