@@ -19,6 +19,8 @@ package MongoDB::GridFSBucket::DownloadStream;
 use Moo;
 use Types::Standard qw(
     Str
+    Ref
+    Bool
     Maybe
     HashRef
     InstanceOf
@@ -30,18 +32,6 @@ use MongoDB::_Types qw(
 use List::Util qw(max min);
 use namespace::clean -except => 'meta';
 
-has bucket => (
-    is       => 'ro',
-    isa      => InstanceOf['MongoDB::GridFSBucket'],
-    required => 1,
-);
-
-has id => (
-    is       => 'ro',
-    isa      => InstanceOf['MongoDB::OID'],
-    required => 1,
-);
-
 has file_doc => (
     is       => 'ro',
     isa      => HashRef,
@@ -49,14 +39,14 @@ has file_doc => (
 );
 
 has _buffer => (
-    is => 'rw',
-    isa => Str,
+    is => 'rwp',
+    isa => Ref[Str],
 );
 
 has _chunk_n => (
-    is      => 'rw',
+    is      => 'rwp',
     isa     => NonNegNum,
-    default => sub { 0 },
+    default => 0,
 );
 
 has _result => (
@@ -65,10 +55,13 @@ has _result => (
     required => 1,
 );
 
+# Currently this is always 0, but may be used to add
+# optional rewinding in the future.
 has _offset => (
-    is      => 'rw',
+    is      => 'rwp',
     isa     => NonNegNum,
-    default => sub { 0 },
+    default => 0,
+);
 );
 
 has fh => (
@@ -103,7 +96,7 @@ sub _get_next_chunk {
     if (length $chunk->{'data'} != $expected_size ) {
         MongoDB::GridFSError->throw(sprintf(
             "Chunk %d from file with id %s has incorrect size %d, expected %d",
-            $self->_chunk_n, $self->id, length $chunk->{'data'}, $expected_size,
+            $self->_chunk_n, $self->file_doc->{_id}, length $chunk->{'data'}, $expected_size,
         ));
     }
 
@@ -113,18 +106,18 @@ sub _get_next_chunk {
 
 sub _ensure_buffer {
     my ($self) = @_;
-    if ($self->_buffer) { return $self->_buffer };
+    if ($self->_buffer) { return length $self->_buffer };
 
     $self->_get_next_chunk;
 
-    return $self->_buffer;
+    return length $self->_buffer;
 }
 
 sub _readline_scalar {
     my ($self) = @_;
 
     # Special case for "slurp" mode
-    if ( !$/ ) {
+    if ( !defined($/) ) {
         my $result;
         $self->read($result, $self->file_doc->{'length'});
         return $result;
@@ -134,7 +127,7 @@ sub _readline_scalar {
     my $newline_index;
     while ( ($newline_index = index $self->_buffer, $/) < 0) { last unless $self->_get_next_chunk };
     my $substr_len = $newline_index < 0 ? length $self->_buffer : $newline_index + 1;
-    return substr $self->{_buffer}, $self->_offset, $substr_len, '';
+    return substr $self->_buffer, $self->_offset, $substr_len, '';
 }
 
 sub readline {
@@ -150,9 +143,8 @@ sub readline {
 
 sub read {
     my $self = shift;
-    return unless $self->_ensure_buffer;
-	my $buffref = \$_[0];
-	my(undef,$len,$offset) = @_;
+    my $buffref = \$_[0];
+    my(undef,$len,$offset) = @_;
     my $bufflen = length $$buffref;
 
     $offset ||= 0;
@@ -160,23 +152,25 @@ sub read {
     $$buffref ||= '';
 
     $offset = max(0, $bufflen + $offset) if $offset < 0;
-    if ($offset > 0 && $offset > $bufflen) {
+    if ( $offset > $bufflen ) {
         $$buffref .= ("\0" x ($offset - $bufflen));
     } else {
-        substr $$buffref, $offset, $bufflen, '';
+        substr $$buffref, $offset, $bufflen - $offset, '';
     }
+
+    return unless $self->_ensure_buffer;
 
     while ( length $self->_buffer < $len ) { last unless $self->_get_next_chunk };
     my $read_len = min(length $self->_buffer, $len);
-    $$buffref .= substr $self->{_buffer}, $self->_offset, $read_len, '';
-	return $read_len;
+    $$buffref .= substr $self->_buffer, $self->_offset, $read_len, '';
+    return $read_len;
 }
 
 sub close {
     my ($self) = @_;
     $self->{_result} = undef;
-    $self->_buffer('');
-    $self->_chunk_n(0);
+    $self->{_buffer} = undef;
+    $self->_set__chunk_n(0);
     $self->{fh} = undef;
 }
 
@@ -192,7 +186,7 @@ sub TIEHANDLE {
 *CLOSE = \&close;
 
 sub GETC {
-	my ($self) = @_;
+    my ($self) = @_;
     my $char;
     $self->read($char, 1);
     return $char;
