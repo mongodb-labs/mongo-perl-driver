@@ -160,10 +160,11 @@ setup_gridfs;
     cmp_deeply(\@arr, ["abc\n", "\n", "zyw\n"], 'readline in list context');
 
     $dl_stream = $bucket->open_download_stream($txt_id);
-    $/ = undef;
-    $str = $dl_stream->readline;
-    is($str, "abc\n\nzyw\n", 'readline slurp mode');
-    $/ = "\n";
+    {
+        local $/ = undef;
+        $str = $dl_stream->readline;
+        is($str, "abc\n\nzyw\n", 'readline slurp mode');
+    }
 
     my ($tmp_fh, $tmp_filename) = tempfile();
     $dl_stream = $bucket->open_download_stream($big_id);
@@ -204,6 +205,7 @@ setup_gridfs;
 
 # close
 {
+    no warnings;
     my $bucket = $testdb->get_gridfsbucket;
     my $fh = $bucket->open_download_stream($big_id)->fh;
     ok(scalar <$fh>, 'fh readline before close');

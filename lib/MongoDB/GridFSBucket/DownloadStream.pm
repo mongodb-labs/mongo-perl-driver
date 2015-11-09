@@ -30,6 +30,7 @@ use MongoDB::_Types qw(
     NonNegNum
 );
 use List::Util qw(max min);
+use warnings;
 use namespace::clean -except => 'meta';
 
 has file_doc => (
@@ -62,6 +63,11 @@ has _offset => (
     isa     => NonNegNum,
     default => 0,
 );
+
+has _closed => (
+    is      => 'rwp',
+    isa     => Bool,
+    default => 0,
 );
 
 has fh => (
@@ -132,6 +138,10 @@ sub _readline_scalar {
 
 sub readline {
     my ($self) = @_;
+    if ( $self->_closed ) {
+        warnings::warnif('closed', 'readline called on a closed MongoDB::GridFSBucket::DownloadStream');
+        return;
+    }
     return $self->_readline_scalar unless wantarray;
 
     my @result = ();
@@ -143,8 +153,15 @@ sub readline {
 
 sub read {
     my $self = shift;
+    if ( $self->_closed ) {
+        warnings::warnif('closed', 'read called on a closed MongoDB::GridFSBucket::DownloadStream');
+        return;
+    }
     my $buffref = \$_[0];
     my(undef,$len,$offset) = @_;
+    if ( $len < 0 ) {
+        MongoDB::UsageError->throw('Negative length passed to MongoDB::GridFSBucket::DownloadStream->read')
+    };
     my $bufflen = length $$buffref;
 
     $offset ||= 0;
@@ -168,6 +185,7 @@ sub read {
 
 sub close {
     my ($self) = @_;
+    $self->_set__closed(1);
     $self->{_result} = undef;
     $self->{_buffer} = undef;
     $self->_set__chunk_n(0);
