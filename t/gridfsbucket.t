@@ -26,7 +26,6 @@ use File::Compare;
 
 use MongoDB;
 use MongoDB::GridFSBucket;
-use MongoDB::GridFSBucket::DownloadStream;
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
@@ -38,44 +37,47 @@ my $txtfile = "t/data/gridfs/input.txt";
 my $pngfile = "t/data/gridfs/img.png";
 my $bigfile = "t/data/gridfs/big.txt";
 
-my $dumb_str;
-my $grid;
 my ($img_id, $img_meta);
+my $img_length = 1292706;
+my $img_md5 = 'bc4cd56891f48ddfd214e1348aa9560b';
+
 my ($txt_id, $txt_meta);
+my $txt_length = 9;
+my $txt_md5 = '0781b93a5faff923c5960c560c44c246';
+
 my ($big_id, $big_meta);
+my $big_length = 2097410;
+my $big_md5 = '9c2d4555c51dc9ad2ef9fce9167b5f3b';
 
 sub setup_gridfs {
-    $grid = $testdb->get_gridfs;
-    $grid->drop;
+    my $bucket = $testdb->get_gridfsbucket;
+    $bucket->drop;
     my $img = new IO::File($pngfile, "r") or die $!;
     # Windows is dumb
     binmode($img);
-    $img_id = $grid->insert($img);
-    $img->read($dumb_str, 4000000);
+    $img_id = $bucket->upload_from_stream('img.png', $img);
+    $img_meta = $bucket->files->find_one({'_id' => $img_id});
+    is($img_meta->{'length'}, $img_length);
     $img->close;
-    $img_meta = $grid->files->find_one({'_id' => $img_id});
-    is($img_meta->{'length'}, 1292706);
 
     my $txt = new IO::File($txtfile, "r") or die $!;
     # Windows is dumb part II
     binmode($txt);
-    $txt_id = $grid->insert($txt);
-    $txt->read($dumb_str, 100);
-    $txt->close;
-    $txt_meta = $grid->files->find_one({'_id' => $txt_id});
-    is($txt_meta->{'length'}, 9);
+    $txt_id = $bucket->upload_from_stream('input.txt', $txt);
+    $txt_meta = $bucket->files->find_one({'_id' => $txt_id});
+    is($txt_meta->{'length'}, $txt_length);
+    close $txt;
 
     my $big = new IO::File($bigfile, "r") or die $!;
     # Windows is dumb part III
     binmode($big);
-    $big_id = $grid->insert($big);
-    $big->read($dumb_str, 4000000);
-    $big->close;
-    $big_meta = $grid->files->find_one({'_id' => $big_id});
-    is($big_meta->{'length'}, 2097410);
+    $big_id = $bucket->upload_from_stream('big.txt', $big);
+    $big_meta = $bucket->files->find_one({'_id' => $big_id});
+    is($big_meta->{'length'}, $big_length);
+    close $big;
 }
 
-setup_gridfs;
+# setup_gridfs;
 
 # options
 {
@@ -85,6 +87,62 @@ setup_gridfs;
     is($bucket->bucket_name, 'fs', 'default bucket name');
     is($bucket->chunk_size_bytes, 255 * 1024, 'default chunk size bytes');
 }
+
+# test file upload
+{
+    my $dumb_str = "abc\n\nzyw\n";
+    my $bucket = $testdb->get_gridfsbucket;
+    open(my $file, '<', $txtfile) or die $!;
+    my $time = DateTime->now;
+    ok(my $id = $bucket->upload_from_stream('input.txt', $file), 'upload small file');
+    close $file;
+
+    my @chunks = $bucket->chunks->find({ files_id => $id })->result->all;
+    is(scalar @chunks, 1, 'upload small file has 1 chunk');
+    my $chunk = shift @chunks;
+    is($chunk->{'n'}, 0, 'upload small file chunk n');
+    is($chunk->{'data'}, $dumb_str, 'upload small file data');
+
+    ok(my $filedoc = $bucket->files->find_id($id), 'upload small file files document');
+    is($filedoc->{'md5'}, $txt_md5, 'upload small file md5');
+    is($filedoc->{'length'}, $txt_length, 'upload small file length');
+    is($filedoc->{'filename'}, 'input.txt', 'upload small file length');
+    ok($filedoc->{'uploadDate'}->epoch - $time->epoch < 10, 'upload small file uploadDate');
+
+    open($file, '<', $pngfile) or die $!;
+    # Windooooooooooooooowwwwwwwwwwws!
+    binmode($file);
+    $time = DateTime->now;
+    ok($id = $bucket->upload_from_stream('img.png', $file, {
+        metadata     => { airspeed_velocity => '11m/s' },
+        content_type => 'img/png',
+        aliases        => ['screenshot.png'],
+    }), 'upload large file');
+    seek $file, 0, 0;
+
+    my $chunks = $bucket->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result;
+    my $n = 0;
+    while ( $chunks->has_next ) {
+        $chunk = $chunks->next;
+        is($chunk->{'n'}, $n, "upload large file chunk $n n");
+        read $file, $dumb_str, $bucket->chunk_size_bytes;
+        is($chunk->{'data'}, $dumb_str, "upload large file chunk $n data");
+        $n += 1;
+    }
+    ok(eof $file, 'upload large file whole file');
+    close $file;
+
+    ok($filedoc = $bucket->files->find_id($id), 'upload large file files document');
+    is($filedoc->{'md5'}, $img_md5, 'upload large file md5');
+    is($filedoc->{'length'}, $img_length, 'upload large file length');
+    is($filedoc->{'filename'}, 'img.png', 'upload large file filename');
+    ok($filedoc->{'uploadDate'}->epoch - $time->epoch < 10, 'upload large file uploadDate');
+    cmp_deeply($filedoc->{metadata}, { airspeed_velocity => '11m/s' }, 'upload large file metadta');
+    is($filedoc->{'contentType'}, 'img/png', 'upload large file content_type');
+    cmp_deeply($filedoc->{aliases}, ['screenshot.png'], 'upload large file aliases');
+}
+
+setup_gridfs;
 
 # delete
 {
@@ -212,6 +270,20 @@ setup_gridfs;
     close $fh;
     is(scalar <$fh>, undef, 'fh readline after close');
 }
+
+# # UploadStream
+# {
+#     my $bucket = $testdb->get_gridfsbucket;
+#     $bucket->drop;
+#     open(my $file, '<', $bigfile);
+#     my $id = $bucket->upload_from_stream($txtfile, $file);
+#     my $file_doc = $bucket->files->find_id($id);
+#     is($file_doc->{'length'}, $big_length);
+#     is($file_doc->{'md5'}, $big_md5);
+#     seek $file, 0, 0;
+#     my $fh = $bucket->open_download_stream($id)->fh;
+#     is(compare($fh, $file), 0, 'upload_from_stream');
+# }
 
 $testdb->drop;
 done_testing;

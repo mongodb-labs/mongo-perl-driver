@@ -19,6 +19,7 @@ package MongoDB::GridFSBucket;
 
 use Moo;
 use MongoDB::GridFSBucket::DownloadStream;
+use MongoDB::GridFSBucket::UploadStream;
 use MongoDB::_Types qw(
     ReadPreference
     WriteConcern
@@ -317,6 +318,43 @@ sub open_download_stream {
         file_doc => $file_doc,
         _result  => $result,
     });
+}
+
+=method open_upload_stream
+
+    my $ustream = $bucket->open_upload_stream('filename.b');
+    $ustream->print('data');
+    $ustream->close;
+    my $file_id = $ustream->id
+
+=cut
+
+sub open_upload_stream {
+    my ($self, $filename, $options) = @_;
+
+    return MongoDB::GridFSBucket::UploadStream->new({
+        chunk_size_bytes => $self->chunk_size_bytes,
+        ( $options ? %$options : () ),
+        bucket   => $self,
+        filename => $filename,
+    });
+}
+
+=method upload_from_stream
+
+    FIXME
+
+=cut
+
+sub upload_from_stream {
+    my ($self, $filename, $source, $options) = @_;
+    my $upload_stream = $self->open_upload_stream($filename, $options);
+    my $buffer;
+    while ( read $source, $buffer, $upload_stream->chunk_size_bytes ) {
+        $upload_stream->print($buffer);
+    }
+    $upload_stream->close;
+    return $upload_stream->id;
 }
 
 1;
