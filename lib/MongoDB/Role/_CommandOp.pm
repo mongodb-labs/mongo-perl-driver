@@ -30,7 +30,7 @@ use namespace::clean;
 
 with 'MongoDB::Role::_DatabaseOp';
 
-requires qw/db_name/;
+requires qw/db_name bson_codec/;
 
 sub _send_command {
     my ( $self, $link, $doc, $flags ) = @_;
