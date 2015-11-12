@@ -57,7 +57,29 @@ sub _test_find_getmore {
     is(5001, $count);
 
     my @all = $coll->find->limit(3999)->all;
-    is( 0+@all, 3999, "got limited documents" )
+    is( 0+@all, 3999, "got limited documents" );
+
+    subtest "limit > 0, batchSize > 0 " => sub {
+        my $res = $coll->find({}, {limit => 4, batchSize => 3});
+        my @batch;
+        is ( scalar (@batch = $res->batch), 3, "first batch 3 of 4" );
+        is ( scalar (@batch = $res->batch), 1, "second batch 4 of 4" );
+    };
+
+    subtest "limit < 0, batchSize > 0 " => sub {
+        my $res = $coll->find({}, {limit => -2, batchSize => 1});
+        my @batch;
+        is ( scalar (@batch = $res->batch), 2, "first batch 2 of 2" );
+        is ( scalar (@batch = $res->batch), 0, "second batch empty" );
+    };
+
+    subtest "limit < 0, batchSize < 0 " => sub {
+        my $res = $coll->find({}, {limit => -3, batchSize => -1});
+        my @batch;
+        is ( scalar (@batch = $res->batch), 3, "first batch 3 of 3" );
+        is ( scalar (@batch = $res->batch), 0, "second batch empty" );
+    };
+
 }
 
 subtest "wire protocol 4" => sub {
@@ -73,6 +95,7 @@ subtest "wire protocol 4" => sub {
         "saw find in log" );
     ok( scalar $orc->get_server('host1')->grep_log(qr/command: getMore/),
         "saw getMore in log" );
+
 };
 
 subtest "wire protocol 3" => sub {

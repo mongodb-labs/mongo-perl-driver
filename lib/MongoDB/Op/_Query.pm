@@ -23,6 +23,7 @@ our $VERSION = 'v1.1.0';
 
 use Moo;
 
+use List::Util qw/min/;
 use MongoDB::BSON;
 use MongoDB::QueryResult;
 use MongoDB::_Constants;
@@ -189,7 +190,15 @@ sub _legacy_query {
 
     my $ns         = $self->db_name . "." . $self->coll_name;
     my $filter     = $self->bson_codec->encode_one( $query );
-    my $batch_size = $self->limit || $self->batch_size;            # limit trumps
+
+    # rules for calculating initial batch size
+    my $limit      = $self->limit      || 0;
+    my $batch_size = $self->batch_size || 0;
+    my $n_to_return =
+        $limit == 0      ? $batch_size
+      : $batch_size == 0 ? $limit
+      : $limit < 0       ? $limit
+      :                    min( $limit, $batch_size );
 
     my $proj =
       $self->projection ? $self->bson_codec->encode_one( $self->projection ) : undef;
@@ -198,7 +207,7 @@ sub _legacy_query {
     $self->_apply_read_prefs( $link, $topology, $query_flags, \$query);
 
     my ( $op_bson, $request_id ) =
-      MongoDB::_Protocol::write_query( $ns, $filter, $proj, $self->skip, $batch_size,
+      MongoDB::_Protocol::write_query( $ns, $filter, $proj, $self->skip, $n_to_return,
         $query_flags );
 
     my $result =
@@ -212,7 +221,7 @@ sub _legacy_query {
         _address      => $link->address,
         _ns           => $ns,
         _bson_codec   => $self->bson_codec,
-        _batch_size   => $batch_size,
+        _batch_size   => $n_to_return,
         _cursor_at    => 0,
         _limit        => $self->limit,
         _cursor_id    => $result->{cursor_id},
@@ -229,14 +238,9 @@ sub as_command {
 
     my ($limit, $batch_size, $single_batch) = ($self->limit, $self->batch_size, 0);
 
-    if ($limit < 0) {
-        $limit = abs($limit);
-        $single_batch = true;
-    }
-    if ($batch_size < 0) {
-        $batch_size = abs($batch_size);
-        $single_batch = true;
-    }
+    $single_batch = $limit < 0 || $batch_size < 0;
+    $limit = abs($limit);
+    $batch_size = $limit if $single_batch;
 
     my $tailable = $self->cursor_type =~ /^tailable/ ? true : false;
     my $await_data = $self->cursor_type eq 'tailable_await' ? true : false;
