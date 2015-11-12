@@ -37,6 +37,7 @@ BEGIN {
         EPOCH                        => 0,
         HAS_INT64                    => $Config{use64bitint},
         MAX_BSON_OBJECT_SIZE         => 4_194_304,
+        MAX_GRIDFS_BATCH_SIZE        => 16_777_216,                 # 16MiB
         MAX_BSON_WIRE_SIZE           => 16_793_600,                 # 16MiB + 16KiB
         MAX_WIRE_VERSION             => 3,
         MAX_WRITE_BATCH_SIZE         => 1000,

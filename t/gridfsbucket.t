@@ -77,8 +77,6 @@ sub setup_gridfs {
     close $big;
 }
 
-# setup_gridfs;
-
 # options
 {
     my $bucket = $testdb->get_gridfsbucket;
@@ -93,8 +91,8 @@ sub setup_gridfs {
     my $dumb_str = "abc\n\nzyw\n";
     my $bucket = $testdb->get_gridfsbucket;
     open(my $file, '<', $txtfile) or die $!;
-    my $time = DateTime->now;
     ok(my $id = $bucket->upload_from_stream('input.txt', $file), 'upload small file');
+    my $time = DateTime->now;
     close $file;
 
     my @chunks = $bucket->chunks->find({ files_id => $id })->result->all;
@@ -107,17 +105,17 @@ sub setup_gridfs {
     is($filedoc->{'md5'}, $txt_md5, 'upload small file md5');
     is($filedoc->{'length'}, $txt_length, 'upload small file length');
     is($filedoc->{'filename'}, 'input.txt', 'upload small file length');
-    ok($filedoc->{'uploadDate'}->epoch - $time->epoch < 10, 'upload small file uploadDate');
+    ok($time->epoch - $filedoc->{'uploadDate'}->epoch < 10, 'upload small file uploadDate');
 
     open($file, '<', $pngfile) or die $!;
     # Windooooooooooooooowwwwwwwwwwws!
     binmode($file);
-    $time = DateTime->now;
     ok($id = $bucket->upload_from_stream('img.png', $file, {
         metadata     => { airspeed_velocity => '11m/s' },
         content_type => 'img/png',
         aliases        => ['screenshot.png'],
     }), 'upload large file');
+    $time = DateTime->now;
     seek $file, 0, 0;
 
     my $chunks = $bucket->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result;
@@ -136,10 +134,11 @@ sub setup_gridfs {
     is($filedoc->{'md5'}, $img_md5, 'upload large file md5');
     is($filedoc->{'length'}, $img_length, 'upload large file length');
     is($filedoc->{'filename'}, 'img.png', 'upload large file filename');
-    ok($filedoc->{'uploadDate'}->epoch - $time->epoch < 10, 'upload large file uploadDate');
+    ok($time->epoch - $filedoc->{'uploadDate'}->epoch < 10, 'upload large file uploadDate');
     cmp_deeply($filedoc->{metadata}, { airspeed_velocity => '11m/s' }, 'upload large file metadta');
     is($filedoc->{'contentType'}, 'img/png', 'upload large file content_type');
     cmp_deeply($filedoc->{aliases}, ['screenshot.png'], 'upload large file aliases');
+
 }
 
 setup_gridfs;
@@ -270,20 +269,6 @@ setup_gridfs;
     close $fh;
     is(scalar <$fh>, undef, 'fh readline after close');
 }
-
-# # UploadStream
-# {
-#     my $bucket = $testdb->get_gridfsbucket;
-#     $bucket->drop;
-#     open(my $file, '<', $bigfile);
-#     my $id = $bucket->upload_from_stream($txtfile, $file);
-#     my $file_doc = $bucket->files->find_id($id);
-#     is($file_doc->{'length'}, $big_length);
-#     is($file_doc->{'md5'}, $big_md5);
-#     seek $file, 0, 0;
-#     my $fh = $bucket->open_download_stream($id)->fh;
-#     is(compare($fh, $file), 0, 'upload_from_stream');
-# }
 
 $testdb->drop;
 done_testing;
