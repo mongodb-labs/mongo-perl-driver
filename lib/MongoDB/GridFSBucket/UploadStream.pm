@@ -156,7 +156,7 @@ sub _flush_chunks {
     my ($self, $all) = @_;
     my @chunks = ();
     my $data;
-    while ( ($data = substr $self->_buffer, 0, $self->bucket->chunk_size_bytes, '') ) {
+    while ( ($data = substr $self->_buffer, 0, $self->chunk_size_bytes, '') ) {
         if ( length $data < $self->chunk_size_bytes && !$all ) {
             $self->_set__buffer($data);
             last;

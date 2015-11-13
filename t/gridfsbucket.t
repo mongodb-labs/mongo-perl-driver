@@ -260,7 +260,7 @@ setup_gridfs;
     close $big_fh;
 }
 
-# close
+# DownloadStream close
 {
     no warnings;
     my $bucket = $testdb->get_gridfsbucket;
@@ -268,6 +268,27 @@ setup_gridfs;
     ok(scalar <$fh>, 'fh readline before close');
     close $fh;
     is(scalar <$fh>, undef, 'fh readline after close');
+}
+
+# Custom chunk sizes
+{
+    my $bucket = $testdb->get_gridfsbucket;
+    my $uploadstream = $bucket->open_upload_stream(
+        'customChunks.txt',
+        { chunk_size_bytes => 12, },
+    );
+
+    $uploadstream->print('a' x 12);
+    $uploadstream->print('b' x 8);
+    $uploadstream->close;
+    my $id = $uploadstream->id;
+    is($bucket->chunks->count({ files_id => $id }), 2, 'custom chunk size num chunks');
+    my @results = $bucket->chunks->find({ files_id => $id })->all;
+    is($results[0]->{data}, 'a' x 12, 'custom chunk size boundries 1');
+    is($results[1]->{data}, 'b' x 8, 'custom chunk size boundries 2');
+    my $str;
+    is($bucket->open_download_stream($id)->read($str, 100), 20, 'custom chunk size read');
+    is($str, 'a' x 12 . 'b' x 8, 'custom chunk size download');
 }
 
 $testdb->drop;
