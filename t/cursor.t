@@ -393,7 +393,8 @@ subtest "await data" => sub {
     my $last_doc = $cursor->next();
 
     my $start = time;
-    $cursor = $coll2->find( { _id => { '$gt' => $last_doc->{_id} } } )->tailable_await(1);
+    $cursor = $coll2->find( { _id => { '$gt' => $last_doc->{_id} } } )->tailable_await(1)
+      ->max_await_time_ms(1000);
 
     # We won't get anything yet
     $cursor->next();

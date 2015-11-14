@@ -98,6 +98,7 @@ sub _legacy_fsync_unlock {
         batchSize           => 0,
         comment             => '',
         cursorType          => 'non_tailable',
+        maxAwaitTimeMS      => 0,
         maxTimeMS           => 0,
         noCursorTimeout     => 0,
         oplogReplay         => 0,

@@ -89,6 +89,11 @@ has comment => (
     isa      => Str,
 );
 
+has max_await_time_ms => (
+    is       => 'ro',
+    isa      => Maybe[Num],
+);
+
 has max_time_ms => (
     is       => 'ro',
     isa      => Maybe[Num],
@@ -244,6 +249,7 @@ sub as_command {
 
     my $tailable = $self->cursor_type =~ /^tailable/ ? true : false;
     my $await_data = $self->cursor_type eq 'tailable_await' ? true : false;
+    my $max_time = $await_data ? $self->max_await_time_ms : $self->max_time_ms ;
 
     my $mod = $self->modifiers;
 
@@ -264,7 +270,7 @@ sub as_command {
 
         ($self->{comment} ? (comment => $self->comment) : ()),
         (defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : ()),
-        (defined $self->{max_time_ms} ? (maxTimeMS => $self->max_time_ms) : ()),
+        (defined $self->{max_time_ms} ? (maxTimeMS => $self->{max_time_ms}) : ()),
         (defined $mod->{max} ? (max => $mod->{max}) : ()),
         (defined $mod->{min} ? (min => $mod->{min}) : ()),
         (defined $mod->{returnKey} ? (returnKey => $mod->{returnKey}) : ()),

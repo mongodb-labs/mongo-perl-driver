@@ -132,6 +132,12 @@ has limit => (
     required => 1,
 );
 
+has maxAwaitTimeMS => (
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
+);
+
 has maxTimeMS => (
     is       => 'rw',
     isa      => Num,
@@ -185,6 +191,7 @@ sub as_query_op {
         skip                  => $self->skip,
         'sort'                => $self->sort,
         comment               => $self->comment,
+        max_await_time_ms     => $self->maxAwaitTimeMS,
         max_time_ms           => $self->maxTimeMS,
         oplog_replay          => $self->oplogReplay,
         no_cursor_timeout     => $self->noCursorTimeout,

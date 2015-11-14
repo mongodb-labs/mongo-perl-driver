@@ -41,7 +41,7 @@ sub _build_result_from_cursor {
     my $max_time_ms = undef;
     if ($self->isa('MongoDB::Op::_Query') &&
         $self->cursor_type eq 'tailable_await') {
-        $max_time_ms = $self->max_time_ms if defined $self->max_time_ms;
+        $max_time_ms = $self->max_await_time_ms if defined $self->max_await_time_ms;
     }
 
     my $batch = $c->{firstBatch};

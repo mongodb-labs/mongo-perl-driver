@@ -624,6 +624,10 @@ Valid options include:
   string values: C<'non_tailable'> (the default), C<'tailable'>, and
   C<'tailable_await'>.
 * C<limit> – the maximum number of documents to return.
+* C<maxAwaitTimeMS> – the maximum amount of time for the server to wait on
+  new documents to satisfy a tailable cursor query. This only applies
+  to a C<cursorType> of 'tailable_await'; the option is otherwise ignored.
+  (Note, this will be ignored for servers before version 3.2.)
 * C<maxTimeMS> – the maximum amount of time to allow the query to run. If
   C<$maxTimeMS> also exists in the modifiers document, the C<maxTimeMS> field
   overwrites C<$maxTimeMS>. (Note, this will be ignored for servers before
@@ -684,6 +688,7 @@ sub find {
             comment             => '',
             cursorType          => 'non_tailable',
             limit               => 0,
+            maxAwaitTimeMS      => 0,
             maxTimeMS           => 0,
             noCursorTimeout     => 0,
             oplogReplay         => 0,
@@ -751,6 +756,7 @@ sub find_one {
         comment             => '',
         cursorType          => 'non_tailable',
         limit               => 0,
+        maxAwaitTimeMS      => 0,
         maxTimeMS           => 0,
         noCursorTimeout     => 0,
         oplogReplay         => 0,

@@ -129,6 +129,7 @@ sub _legacy_list_colls {
         comment             => '',
         cursorType          => 'non_tailable',
         limit               => 0,
+        maxAwaitTimeMS      => 0,
         maxTimeMS           => 0,
         noCursorTimeout     => 0,
         oplogReplay         => 0,

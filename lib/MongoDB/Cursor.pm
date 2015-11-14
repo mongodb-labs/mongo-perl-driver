@@ -183,6 +183,31 @@ sub limit {
 }
 
 
+=head2 max_await_time_ms
+
+    $cursor->max_await_time_ms( 500 );
+
+The maximum amount of time in milliseconds for the server to wait on new
+documents to satisfy a tailable cursor query. This only applies to a
+cursor of type 'tailble_await'.  This is ignored if the cursor is not
+a 'tailable_await' cursor or the server version is less than version 3.2.
+
+Returns this cursor for chaining operations.
+
+=cut
+
+sub max_await_time_ms {
+    my ( $self, $num ) = @_;
+    $num = 0 unless defined $num;
+    MongoDB::UsageError->throw("max_await_time_ms must be non-negative")
+      if $num < 0;
+    MongoDB::UsageError->throw("can not set max_await_time_ms after querying")
+      if $self->started_iterating;
+
+    $self->query->maxAwaitTimeMS( $num );
+    return $self;
+}
+
 =head2 max_time_ms
 
     $cursor->max_time_ms( 500 );
