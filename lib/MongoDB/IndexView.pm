@@ -379,7 +379,7 @@ sub __to_index_string {
     $name = $indexes->create_one( [ x => 1, y => -1 ], { unique => 1 } );
 
     @names = $indexes->create_many(
-        { keys => [ x => 1, y => -1 ], { unique => 1 } },
+        { keys => [ x => 1, y => -1 ], options => { unique => 1 } },
         { keys => [ z => 1 ] },
     );
 
