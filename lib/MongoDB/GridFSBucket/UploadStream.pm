@@ -31,6 +31,7 @@ use MongoDB::_Types qw(
 );
 use MongoDB::_Constants;
 use Digest::MD5;
+use bytes;
 use namespace::clean -except => 'meta';
 
 =attr chunk_size_bytes

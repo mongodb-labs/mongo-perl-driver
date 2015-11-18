@@ -23,6 +23,7 @@ use Test::Deep;
 use IO::File;
 use File::Temp qw(tempfile);
 use File::Compare;
+use Encode;
 
 use MongoDB;
 use MongoDB::GridFSBucket;
@@ -120,13 +121,15 @@ sub setup_gridfs {
 
     my $chunks = $bucket->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result;
     my $n = 0;
-    while ( $chunks->has_next ) {
-        $chunk = $chunks->next;
-        is($chunk->{'n'}, $n, "upload large file chunk $n n");
-        read $file, $dumb_str, $bucket->chunk_size_bytes;
-        is($chunk->{'data'}, $dumb_str, "upload large file chunk $n data");
-        $n += 1;
-    }
+    subtest 'upload large file' => sub {
+        while ( $chunks->has_next ) {
+            $chunk = $chunks->next;
+            is($chunk->{'n'}, $n, "upload large file chunk $n n");
+            read $file, $dumb_str, $bucket->chunk_size_bytes;
+            is($chunk->{'data'}, $dumb_str, "upload large file chunk $n data");
+            $n += 1;
+        }
+    };
     ok(eof $file, 'upload large file whole file');
     close $file;
 
@@ -254,9 +257,11 @@ setup_gridfs;
     $dl_stream = $bucket->open_download_stream($big_id);
     $fh = $dl_stream->fh;
     open(my $big_fh, '<', $bigfile);
-    while (my $line = <$fh>) {
-        is($line, <$big_fh>, 'complex fh readline');
-    }
+    subtest 'complex fh readline' => sub {
+        while (my $line = <$fh>) {
+            is($line, <$big_fh>, 'complex fh readline');
+        }
+    };
     close $big_fh;
 }
 
@@ -289,6 +294,28 @@ setup_gridfs;
     my $str;
     is($bucket->open_download_stream($id)->read($str, 100), 20, 'custom chunk size read');
     is($str, 'a' x 12 . 'b' x 8, 'custom chunk size download');
+}
+
+# Unicode
+{
+    my $bucket = $testdb->get_gridfsbucket;
+    my $uploadstream = $bucket->open_upload_stream(
+        'unicode.txt',
+        { chunk_size_bytes => 12 },
+    );
+    my $beer = "\x{1f37a}";
+    my $teststr = 'abcdefghijk' . $beer;
+    my $testlen = length Encode::encode_utf8($teststr);
+
+    $uploadstream->print($teststr);
+    $uploadstream->close;
+    my $id = $uploadstream->id;
+    is($bucket->chunks->count({ files_id => $id }), 2, 'unicode upload');
+    is($bucket->files->find_id($id)->{length}, $testlen, 'unicode upload file length');
+    my $str;
+    is($bucket->open_download_stream($id)->read($str, 100), $testlen, 'unicode read length');
+    $str = Encode::decode_utf8($str);
+    is($str, $teststr, 'unicode read content');
 }
 
 $testdb->drop;
