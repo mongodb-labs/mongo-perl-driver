@@ -104,6 +104,15 @@ force_double
 force_int
 read_documents
 
+=begin :prelude
+
+B<NOTE:> The v1.1.x versions are development releases in advance of the
+MongoDB Perl Driver v1.2.0. They are available for evaluation and testing
+and should not be used in production.  Most notably, they include support
+for features in MongoDB 3.2 release candidates.
+
+=end :prelude
+
 =head1 SYNOPSIS
 
     use MongoDB;
