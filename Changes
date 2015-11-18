@@ -2,6 +2,54 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  -  PERL-561 Add support for bypassDocumentValidation option to relevant
+     CRUD methods.
+
+  -  PERL-564 Add support for readConcern (for MongoDB 3.2 only).
+
+  -  PERL-569 Add 'batch' method to QueryResult for retrieving a chunk
+     of results instead of just one (via 'next') or all.
+
+  -  PERL-594 Add maxAwaitTimeMS option for tailable-await cursors on
+     MongoDB 3.2 servers.
+
+  -  Add find_id method to MongoDB::Collection for easy retrieval of a
+     single document by _id.
+
+  -  Added support for write concern find-and-modify-style methods (for
+     MongoDB 3.2 only)
+
+  [Bug fixes]
+
+  -  PERL-493 Don't send writeConcern if it is not set; this allows the
+     user to get the default write concern set on the server.
+
+  [Changes]
+
+  -  PERL-595 Change limit/batchSize behavior to match CRUD spec; most
+     users won't notice the difference, but generally speaking, when there
+     is both a limit and a batch size, under MongoDB 3.2, the batch size is
+     respected if it is smaller than the limit.  Previously, in some cases,
+     the batch size was ignored and the limit used instead.
+
+  [Documentation]
+
+  -  PERL-570 Update MongoDB::Cursor::info documentation.
+
+  -  Replace term 'slave' with 'secondary' in docs.
+
+  [Testing]
+
+  -  Skip fsync test on inMemory storage engine.
+
+  [~ Internal changes ~]
+
+  -  PERL-558 Implement fsyncUnlock as a command for MongoDB 3.2+.
+
+  -  PERL-563 Implement find/getMore/killCursors as commands.
+
 v1.0.3    2015-11-03 22:25:12-05:00 America/New_York
 
   [Bug fixes]

@@ -51,15 +51,7 @@ for my $commit ( @commits ) {
 
 # grab Changes lines from new version to next un-indented line
 open my $fh, "<:encoding(UTF-8)", "Changes";
-my @content = grep { /^INSERT_VERSION_HERE(?:\s+|$)/ ... /^\S/ } <$fh>;
-
-# drop the version line
-shift @content;
-
-# drop unindented last line and trailing blank lines
-pop @content while ( @content && $content[-1] =~ /^(?:\S|\s*$)/ );
-
-my $changelog = join(" ", @content);
+my $changelog = do { local $/; <$fh> };
 
 my @bad;
 for my $ticket ( keys %ticket_map ) {
