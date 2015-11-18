@@ -157,7 +157,7 @@ setup_gridfs;
     my $error;
     like(
         exception { $bucket->delete('nonsense') },
-        qr/FileNotFound for id .+/,
+        qr/FileNotFound: no file found for id .+/,
         'delete nonexistant file',
     );
 

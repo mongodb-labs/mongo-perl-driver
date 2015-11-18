@@ -108,7 +108,7 @@ sub _get_next_chunk {
 
     if ( $chunk->{'n'} != $self->_chunk_n ) {
         MongoDB::GridFSError->throw(sprintf(
-                'Expected chunk %d but got chunk %d',
+                'ChunkIsMissing: expected chunk %d but got chunk %d',
                 $self->_chunk_n, $chunk->{'n'},
         ));
     }
@@ -119,7 +119,7 @@ sub _get_next_chunk {
             $self->file_doc->{'chunkSize'};
     if (length $chunk->{'data'} != $expected_size ) {
         MongoDB::GridFSError->throw(sprintf(
-            "Chunk %d from file with id %s has incorrect size %d, expected %d",
+            "ChunkIsWrongSize: chunk %d from file with id %s has incorrect size %d, expected %d",
             $self->_chunk_n, $self->file_doc->{_id}, length $chunk->{'data'}, $expected_size,
         ));
     }

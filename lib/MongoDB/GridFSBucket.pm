@@ -208,7 +208,7 @@ sub delete {
     my $delete_result = $self->files->delete_one({ _id => $id });
     # This should only ever be 0 or 1, checking for exactly 1 to be thorough
     unless ($delete_result->deleted_count == 1) {
-        MongoDB::GridFSError->throw("FileNotFound for id $id");
+        MongoDB::GridFSError->throw("FileNotFound: no file found for id $id");
     }
     $self->chunks->delete_many({ files_id => $id });
     return;
@@ -259,7 +259,7 @@ sub download_to_stream {
 
     my $file_doc = $self->files->find_one({ _id => $id });
     if (!$file_doc) {
-        MongoDB::GridFSError->throw("No file document found for id '$id'");
+        MongoDB::GridFSError->throw("FileNotFound: no file found for id '$id'");
     }
     return unless $file_doc->{length} > 0;
 
@@ -267,12 +267,12 @@ sub download_to_stream {
     my $last_chunk_n = int($file_doc->{'length'} / $file_doc->{'chunkSize'});
     for my $n (0..($last_chunk_n)) {
         if (!$chunks->has_next) {
-            MongoDB::GridFSError->throw("Missing chunk $n for file with id $id");
+            MongoDB::GridFSError->throw("ChunkIsMissing: missing chunk $n for file with id $id");
         }
         my $chunk = $chunks->next;
         if ( $chunk->{'n'} != $n) {
             MongoDB::GridFSError->throw(sprintf(
-                    'Expected chunk %d but got chunk %d',
+                    'ChunkIsMissing: expected chunk %d but got chunk %d',
                     $n, $chunk->{'n'},
             ));
         }
@@ -281,7 +281,7 @@ sub download_to_stream {
             $file_doc->{'chunkSize'};
         if ( length $chunk->{'data'} != $expected_size ) {
             MongoDB::GridFSError->throw(sprintf(
-                "Chunk $n from file with id $id has incorrect size %d, expected %d",
+                "ChunkIsWrongSize: chunk $n from file with id $id has incorrect size %d, expected %d",
                 length $chunk->{'data'}, $expected_size,
             ));
         }
@@ -305,7 +305,7 @@ sub open_download_stream {
     my ($self, $id) = @_;
     MongoDB::UsageError->throw('No id provided to open_download_stream') unless $id;
     my $file_doc = $self->files->find_id($id);
-    MongoDB::GridFSError->throw("No file document found for id '$id'") unless $file_doc;
+    MongoDB::GridFSError->throw("FileNotFound: no file found for id '$id'") unless $file_doc;
     my $result = $file_doc->{'length'} > 0 ?
         $self->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result :
         undef;

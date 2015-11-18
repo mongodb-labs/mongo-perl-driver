@@ -38,15 +38,32 @@ my $bucket          = $testdb->get_gridfsbucket;
 my $e_files  = $testdb->get_collection('expected.files');
 my $e_chunks = $testdb->get_collection('expected.chunks');
 
-sub fix_oids {
+sub hex_to_str {
+    my ($hex) = @_;
+    my $result = '';
+    while ( length $hex ) {
+        $result .= chr( hex( substr $hex, 0, 2, '' ) );
+    }
+    return $result;
+}
+
+sub map_fix_types {
     my $obj = $_;
-    $obj ||= shift;
-    for my $target ( $obj, $obj->{q} ) {
-        for my $id ( qw(_id files_id) ) {
-            if ( exists $target->{$id} ) {
-                $target->{$id} = MongoDB::OID->new(
-                    value => $target->{$id}->{'$oid'}
-                )
+    return fix_types($obj);
+}
+
+sub fix_types {
+    my $obj = shift;
+    if ( ( ref $obj ) eq 'HASH' ) {
+        if ( exists $obj->{'$oid'} ) {
+            $obj = MongoDB::OID->new(
+                value => $obj->{'$oid'},
+            );
+        } elsif ( exists $obj->{'$hex'} ) {
+            $obj = MongoDB::BSON::Binary->new({ data => hex_to_str( $obj->{'$hex'} ) });
+        } else {
+            for my $key ( keys %{ $obj } ) {
+                $obj->{$key} = fix_types( $obj->{$key} );
             }
         }
     }
@@ -59,11 +76,16 @@ sub run_commands {
     for my $cmd ( @{ $commands } ) {
         my $exec;
         if ( exists $cmd->{delete} ) {
-            my @arr = map( fix_oids, @{ $cmd->{deletes} } );
+            my @arr = map( map_fix_types, @{ $cmd->{deletes} } );
             $cmd->{deletes} = \@arr;
             $exec = [ delete => $cmd->{delete}, deletes => $cmd->{deletes} ];
+        } elsif ( exists $cmd->{update} ) {
+            my @arr = map( map_fix_types, @{ $cmd->{updates} } );
+            $cmd->{updates} = \@arr;
+            $exec = [ update => $cmd->{update}, updates => $cmd->{updates} ];
         } else {
-            die "don't know how to handle " . explain $cmd;
+            diag(explain $cmd);
+            die "don't know how to handle some command";
         }
         $testdb->run_command( $exec );
     }
@@ -78,7 +100,8 @@ while ( my $path = $iterator->() ) {
         die "Error decoding $path: $@";
     }
     for my $collection ( qw(files chunks) ) {
-        my @arr = map( fix_oids, @{ $plan->{data}->{$collection} } );
+        my @arr = map( map_fix_types, @{ $plan->{data}->{$collection} } );
+        # diag( explain \@arr );
         $plan->{data}->{$collection} = \@arr;
     }
 
@@ -133,8 +156,46 @@ sub check_result {
         ok($got, $label);
     } elsif ( $expected eq 'void' ) {
         is($got, undef, $label);
+    } elsif ( ( ref $expected ) eq 'HASH' ) {
+        if ( exists $expected->{'$hex'} ) {
+            is( $got, hex_to_str( $expected->{'$hex'} ) );
+        } elsif ( ( ref $got ) eq 'HASH' ) {
+            for my $key ( keys %{ $got } ) {
+                fail( $label ) unless exists $expected->{$key};
+                check_result($got->{$key}, $expected->{$key}, $label);
+            }
+        } else {
+            fail($label);
+        }
     } else {
         is($got, $expected, $label);
+    }
+}
+
+sub test_download {
+    my ( undef, $label, $method, $args, $assert ) = @_;
+    my $id = MongoDB::OID->new( value => $args->{id}->{'$oid'} );
+    my $options = $args->{options};
+
+    my $except = exception {
+        my $stream = $bucket->open_download_stream( $id, $args );
+        my $str;
+        $stream->read( $str, 999 );
+        check_result( $str, $assert->{result}, $label ) if $assert->{result};
+    };
+
+    if ( exists $assert->{error} ) {
+        my $expstr = $assert->{error};
+        like(
+            $except,
+            qr/$expstr.*/,
+            $label,
+        );
+    }
+
+    if ( $assert->{data} ) {
+        run_commands( $assert->{data} );
+        compare_collections($label);
     }
 }
 
@@ -154,8 +215,10 @@ sub test_delete {
         check_result($res, $assert->{result}, $label);
     }
 
-    run_commands( $assert->{data} );
-    compare_collections($label);
+    if ( $assert->{data} ) {
+        run_commands( $assert->{data} );
+        compare_collections($label);
+    }
 }
 
 $testdb->drop;
