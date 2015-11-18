@@ -208,10 +208,7 @@ sub delete {
     my $delete_result = $self->files->delete_one({ _id => $id });
     # This should only ever be 0 or 1, checking for exactly 1 to be thorough
     unless ($delete_result->deleted_count == 1) {
-        MongoDB::GridFSError->throw(sprintf(
-            'found %d files instead of 1 for id %s',
-            $delete_result->deleted_count, $id,
-        ));
+        MongoDB::GridFSError->throw("FileNotFound for id $id");
     }
     $self->chunks->delete_many({ files_id => $id });
     return;
