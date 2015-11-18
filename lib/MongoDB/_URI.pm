@@ -17,7 +17,7 @@
 package MongoDB::_URI;
 
 use version;
-our $VERSION = 'v1.1.0';
+our $VERSION = 'v1.1.1';
 
 use Moo;
 use MongoDB::Error;

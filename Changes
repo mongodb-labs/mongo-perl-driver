@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.1.0    2015-11-18 10:37:37-05:00 America/New_York (TRIAL RELEASE)
+
   [Additions]
 
   -  PERL-561 Add support for bypassDocumentValidation option to relevant
