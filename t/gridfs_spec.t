@@ -18,22 +18,18 @@ use strict;
 use warnings;
 use Test::More;
 use JSON::MaybeXS;
-use Test::Deep;
 use Test::Fatal;
 use Path::Tiny;
-use Try::Tiny;
 
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type get_capped/;
+use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
 
 skip_unless_mongod();
 
 my $conn            = build_client();
 my $testdb          = get_test_db($conn);
-my $server_version  = server_version($conn);
-my $server_type     = server_type($conn);
 my $bucket          = $testdb->get_gridfsbucket;
 my $e_files  = $testdb->get_collection('expected.files');
 my $e_chunks = $testdb->get_collection('expected.chunks');
@@ -72,8 +68,7 @@ sub fix_options {
 }
 
 sub map_fix_types {
-    my $obj = $_;
-    return fix_types($obj);
+    return fix_types($_);
 }
 
 sub fix_types {
@@ -121,46 +116,10 @@ sub run_commands {
             $cmd->{documents} = \@arr;
             $exec = [ insert => $cmd->{insert}, documents => $cmd->{documents} ];
         } else {
+            diag( explain $cmd );
             die "don't know how to handle some command";
         }
         $testdb->run_command( $exec );
-    }
-}
-
-my $dir = path("t/data/gridfs/tests");
-my $iterator = $dir->iterator;
-while ( my $path = $iterator->() ) {
-    next unless -f $path && $path =~ /\.json$/;
-    my $plan = eval { decode_json( $path->slurp_utf8 ) };
-    if ( $@ ) {
-        die "Error decoding $path: $@";
-    }
-    for my $collection ( qw(files chunks) ) {
-        my @arr = map( map_fix_types, @{ $plan->{data}->{$collection} } );
-        # diag( explain \@arr );
-        $plan->{data}->{$collection} = \@arr;
-    }
-
-    my $name = $path->relative($dir)->basename('.json');
-
-    subtest $name => sub {
-        for my $test ( @{ $plan->{tests} } ) {
-            $bucket->drop;
-            $e_chunks->drop;
-            $e_files->drop;
-            $ampresult = undef;
-            $bucket->chunks->insert_many( $plan->{data}->{chunks} );
-            $e_chunks->insert_many( $plan->{data}->{chunks} );
-            $bucket->files->insert_many( $plan->{data}->{files} );
-            $e_files->insert_many( $plan->{data}->{files} );
-            if ( exists $test->{arrange} ) {
-                run_commands( $test->{arrange}->{data} );
-            }
-            my $method = $test->{act}->{operation};
-            my $args = $test->{act}->{arguments};
-            my $test_method = "test_$method";
-            main->$test_method( $test->{description}, $method, $args, $test->{assert} )
-        }
     }
 }
 
@@ -174,27 +133,27 @@ sub compare_collections {
     while ( $actual_chunks->has_next && $expected_chunks->has_next ) {
         cmp_special($actual_chunks->next, $expected_chunks->next, $label);
     }
-    ok(!$actual_chunks->has_next, $label);
-    ok(!$expected_chunks->has_next, $label);
+    ok( !$actual_chunks->has_next, 'Extra chunks in fs.chunks' );
+    ok( !$expected_chunks->has_next, 'Extra chunks in expected.chunks' );
 
     while ( $actual_files->has_next && $expected_files->has_next ) {
-        cmp_special($actual_files->next, $expected_files->next, $label);
+        cmp_special( $actual_files->next, $expected_files->next, $label );
     }
 
-    ok(!$actual_files->has_next, $label);
-    ok(!$expected_files->has_next, $label);
+    ok( !$actual_files->has_next, 'Extra files in fs.files' );
+    ok( !$expected_files->has_next, 'Extra files in fs.files' );
 }
 
 sub cmp_special {
     my ($got, $expected, $label) = @_;
 
-    if ( ( ref $got ) eq 'HASH' ) {
-        if ( ( ref $expected ) eq 'HASH' ) {
+    if ( ( ref $expected ) eq 'HASH' ) {
+        if ( ( ref $got ) eq 'HASH' ) {
             for my $key ( keys %{ $got } ) {
                 cmp_special($got->{$key}, $expected->{$key}, $label);
             }
         } else {
-            fail($label);
+            fail("Got $got but expected hashref");
         }
     } elsif ( ( ref $expected ) eq 'ARRAY' ) {
         if ( ( ref $expected ) eq 'ARRAY' && scalar( @{ $got } ) == scalar( @{ $expected } ) ) {
@@ -202,15 +161,22 @@ sub cmp_special {
                 cmp_special( $$got[$i], $$expected[$i], $label );
             }
         } else {
-            fail( $label );
+            fail( "Got $got but expected arrayref, possibly of different size" );
         }
     } elsif ( !defined $expected ) {
         is($got, $expected, $label);
     } elsif ( $expected =~ /^\*actual[0-9]*$/ ) {
-        pass($label);
+        # Any value with '*actual' as the expected result can't be known beforehand,
+        # so is assumed to be correct. To work around using *actual for _id fields,
+        # some may be in the form of the above regex.
+        pass('Passing with special *actual value');
     } elsif ( $expected eq '&result' ) {
+        # This value is not being tested for anything, but future tests may need to
+        # refer to it. Store it in the global $ampresult.
         $ampresult = $got;
     } elsif ( $expected eq '*result' ) {
+        # Should match a value that could not be known when the test was written, but
+        # was saved earlier using &result.
         is($got, $ampresult);
     } elsif ( $expected eq 'void' ) {
         is($got, undef, $label);
@@ -220,66 +186,50 @@ sub cmp_special {
 }
 
 sub test_download {
-    my ( undef, $label, $method, $args, $assert ) = @_;
+    my ( undef, $args ) = @_;
     my $id = MongoDB::OID->new( value => $args->{id}->{'$oid'} );
-    my $options = $args->{options};
+    my $options = fix_options( $args->{options} );
 
-    my $except = exception {
-        my $stream = $bucket->open_download_stream( $id, $args );
-        my $str;
-        $stream->read( $str, 999 );
-        cmp_special( $str, fix_types( $assert->{result} ), $label ) if exists $assert->{result};
-    };
-
-    if ( exists $assert->{error} ) {
-        my $expstr = $assert->{error};
-        like(
-            $except,
-            qr/$expstr.*/,
-            $label,
-        );
-    }
-
-    if ( $assert->{data} ) {
-        run_commands( $assert->{data} );
-        compare_collections($label);
-    }
+    my $stream = $bucket->open_download_stream( $id, $args );
+    my $str;
+    $stream->read( $str, 999 );
+    return $str;
 }
 
 sub test_delete {
-    my ( undef, $label, $method, $args, $assert ) = @_;
+    my ( undef, $args ) = @_;
     my $id = MongoDB::OID->new( value => $args->{id}->{'$oid'} );
 
-    if ( exists $assert->{error} ) {
-        my $expstr = $assert->{error};
-        like(
-            exception { $bucket->$method( $id ) },
-            qr/$expstr.*/,
-            $label,
-        );
-    } else {
-        my $res = $bucket->$method( $id );
-        cmp_special($res, fix_types( $assert->{result} ), $label);
-    }
-
-    if ( $assert->{data} ) {
-        run_commands( $assert->{data} );
-        compare_collections($label);
-    }
+    return $bucket->delete( $id );
 }
 
 sub test_upload {
-    my ( undef, $label, $method, $args, $assert ) = @_;
+    my ( undef, $args ) = @_;
     my $source = hex_to_str( $args->{source}->{'$hex'} );
     my $filename = $args->{filename};
     my $options = fix_options( $args->{options} );
 
+    my $stream = $bucket->open_upload_stream( $filename, $options );
+    $stream->print( $source );
+    $stream->close;
+    return $stream->id;
+}
+
+sub run_test {
+    my $test = shift;
+    my $assert = $test->{assert};
+    my $label = $test->{description};
+    my $method = $test->{act}->{operation};
+    my $args = $test->{act}->{arguments};
+    my $test_method = "test_$method";
+
+    if ( exists $test->{arrange} ) {
+        run_commands( $test->{arrange}->{data} );
+    }
+
     my $except = exception {
-        my $stream = $bucket->open_upload_stream( $filename, $options );
-        $stream->print( $source );
-        $stream->close;
-        my $id = $stream->id;
-        cmp_special( $id, fix_types( $assert->{result} ), $label ) if exists $assert->{result};
+        my $result = main->$test_method( $args );
+            cmp_special( $result, fix_types( $assert->{result} ), $label ) if exists $assert->{result};
     };
 
     if ( exists $assert->{error} ) {
@@ -287,13 +237,43 @@ sub test_upload {
         like(
             $except,
             qr/$expstr.*/,
-            $label,
+            $test->{label},
         );
     }
 
     if ( $assert->{data} ) {
         run_commands( $assert->{data} );
-        compare_collections( $label );
+        subtest "Compare collections for $label" => sub {
+            compare_collections( $label );
+        };
+    }
+}
+
+my $dir = path("t/data/gridfs/tests");
+my $iterator = $dir->iterator;
+while ( my $path = $iterator->() ) {
+    next unless -f $path && $path =~ /\.json$/;
+    my $plan = eval { decode_json( $path->slurp_utf8 ) };
+    if ( $@ ) {
+        die "Error decoding $path: $@";
+    }
+    for my $collection ( qw(files chunks) ) {
+        my @arr = map( map_fix_types, @{ $plan->{data}->{$collection} } );
+        $plan->{data}->{$collection} = \@arr;
+    }
+
+    my $name = $path->relative($dir)->basename('.json');
+
+    for my $test ( @{ $plan->{tests} } ) {
+        $bucket->drop;
+        $e_chunks->drop;
+        $e_files->drop;
+        $ampresult = undef;
+        $bucket->chunks->insert_many( $plan->{data}->{chunks} );
+        $e_chunks->insert_many( $plan->{data}->{chunks} );
+        $bucket->files->insert_many( $plan->{data}->{files} );
+        $e_files->insert_many( $plan->{data}->{files} );
+        run_test($test);
     }
 }
 
