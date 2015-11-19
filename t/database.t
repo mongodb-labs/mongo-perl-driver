@@ -26,6 +26,7 @@ use boolean;
 use MongoDB::Timestamp; # needed if db is being run as master
 
 use MongoDB;
+use MongoDB::_Constants;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
 
@@ -89,6 +90,10 @@ subtest 'run_command' => sub {
             "error from non-existent command"
         );
     }
+
+    $err = exception { $testdb->run_command( [ x => "a" x MAX_BSON_WIRE_SIZE ] ) };
+    like( $err, qr/command too large/, "error on too large command" );
+
 };
 
 # collection_names
