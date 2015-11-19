@@ -287,9 +287,6 @@ sub download_to_stream {
         }
         print $fh $chunk->{data};
     }
-    if ( $chunks->has_next ) {
-        MongoDB::GridFSError->throw("File with id $id has extra chunks");
-    }
     return;
 }
 
