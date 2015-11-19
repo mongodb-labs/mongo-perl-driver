@@ -50,6 +50,27 @@ sub hex_to_str {
     return $result;
 }
 
+# Copied from http://cpansearch.perl.org/src/HIO/String-CamelCase-0.02/lib/String/CamelCase.pm
+sub decamelize {
+	my $s = shift;
+	$s =~ s{([^a-zA-Z]?)([A-Z]*)([A-Z])([a-z]?)}{
+		my $fc = pos($s)==0;
+		my ($p0,$p1,$p2,$p3) = ($1,lc$2,lc$3,$4);
+		my $t = $p0 || $fc ? $p0 : '_';
+		$t .= $p3 ? $p1 ? "${p1}_$p2$p3" : "$p2$p3" : "$p1$p2";
+		$t;
+	}ge;
+	$s;
+}
+
+sub fix_options {
+    my $obj = shift;
+	for my $key ( keys %{ $obj } ) {
+        $obj->{decamelize( $key )} = delete $obj->{$key};
+    }
+    return $obj;
+}
+
 sub map_fix_types {
     my $obj = $_;
     return fix_types($obj);
@@ -251,7 +272,7 @@ sub test_upload {
     my ( undef, $label, $method, $args, $assert ) = @_;
     my $source = hex_to_str( $args->{source}->{'$hex'} );
     my $filename = $args->{filename};
-    my $options = fix_types( $args->{options} );
+    my $options = fix_options( $args->{options} );
 
     my $except = exception {
         my $stream = $bucket->open_upload_stream( $filename, $options );
