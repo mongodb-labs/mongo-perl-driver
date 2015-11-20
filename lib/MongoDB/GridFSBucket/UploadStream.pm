@@ -22,6 +22,7 @@ use MongoDB::BSON::Binary;
 use Types::Standard qw(
     Str
     Bool
+    Maybe
     HashRef
     ArrayRef
     InstanceOf
@@ -65,7 +66,7 @@ An optional subdocument for storing arbitrary metadata about the file.
 
 has metadata => (
     is  => 'ro',
-    isa => HashRef,
+    isa => Maybe[HashRef],
 );
 
 =attr content_type
@@ -128,7 +129,7 @@ True if the stream is closed, false otherwise.
 =cut
 
 has closed => (
-    is      => 'ro',
+    is      => 'rwp',
     isa     => Bool,
     default => 0,
 );
@@ -142,7 +143,7 @@ has _buffer => (
 has _length => (
     is      => 'rwp',
     isa     => NonNegNum,
-    default => sub { 0 },
+    default => 0,
 );
 
 has _md5 => (
@@ -168,7 +169,7 @@ sub _build__chunk_buffer_length {
 has _current_chunk_n => (
     is      => 'rwp',
     isa     => NonNegNum,
-    default => sub { 0 },
+    default => 0,
 );
 
 =method fh
@@ -211,7 +212,7 @@ sub _flush_chunks {
 
         push @chunks, {
             files_id => $self->id,
-            n        => $self->_current_chunk_n,
+            n        => int( $self->_current_chunk_n ),
             data     => MongoDB::BSON::Binary->new({ data => $data }),
         };
         $self->{_current_chunk_n} += 1;
@@ -240,7 +241,7 @@ sub abort {
     my ($self) = @_;
 
     $self->bucket->files->delete_many({ files_id => $self->id });
-    $self->closed(1);
+    $self->_set_closed(1);
 }
 
 =method print
@@ -343,7 +344,7 @@ sub close {
     $filedoc->{'metadata'} = $self->metadata if $self->metadata;
     $filedoc->{'aliases'} = $self->aliases if $self->aliases;
     $self->bucket->files->insert_one($filedoc);
-    $self->{closed} = 1;
+    $self->_set_closed(1);
 }
 
 sub DEMOLISH {
