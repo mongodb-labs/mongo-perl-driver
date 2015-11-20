@@ -46,25 +46,59 @@ has chunk_size_bytes => (
     default => 255 * 1024,
 );
 
-has metadata => (
-    is  => 'ro',
-    isa => HashRef,
-);
+=attr filename
+
+The filename to store the file under. Note that filenames are NOT necessarily unique.
+
+=cut
 
 has filename => (
     is  => 'ro',
     isa => Str,
 );
 
+=attr metadata
+
+An optional subdocument for storing arbitrary metadata about the file.
+
+=cut
+
+has metadata => (
+    is  => 'ro',
+    isa => HashRef,
+);
+
+=attr content_type
+
+DEPRECATED: a valid MIME type. Should only be used for backwards compatibility
+with older GridFS implementations. New applications should store the content type
+in the metadata document if needed.
+
+=cut
+
 has content_type => (
     is  => 'ro',
     isa => Str,
 );
 
+=attr aliases
+
+DEPRECATED: An array of aliases. Should only be used for backwards compatibility
+with older GridFS implementations. New applications should store aliases in the
+metadata document if needed.
+
+=cut
+
 has aliases => (
     is  => 'ro',
     isa => ArrayRef[Str],
 );
+
+=attr bucket
+
+The parent L<MongoDB::GridFSBucket> of the stream;
+
+=cut
 
 has bucket => (
     is       => 'ro',
@@ -72,20 +106,32 @@ has bucket => (
     required => 1,
 );
 
+=method id
+
+The L<MongoDB::OID> of the file created by the stream.
+
+=cut
+
 has id => (
     is       => 'lazy',
     isa      => InstanceOf['MongoDB::OID'],
 );
+
+sub _build_id {
+    return MongoDB::OID->new;
+}
+
+=method closed
+
+True if the stream is closed, false otherwise.
+
+=cut
 
 has closed => (
     is      => 'ro',
     isa     => Bool,
     default => 0,
 );
-
-sub _build_id {
-    return MongoDB::OID->new;
-}
 
 has _buffer => (
     is      => 'rwp',
@@ -181,6 +227,15 @@ sub _write_data {
     $self->_flush_chunks if length $self->_buffer >= $self->_chunk_buffer_length;
 }
 
+=method abort
+
+    $stream->abort;
+
+Aborts the upload by deleting any chunks already uploaded to the database
+and closing the stream.
+
+=cut
+
 sub abort {
     my ($self) = @_;
 
@@ -188,7 +243,7 @@ sub abort {
     $self->closed(1);
 }
 
-=method
+=method print
 
     $uploadstream->print('my data...');
     $uploadstream->print('data', 'more data', 'still more data');
@@ -208,7 +263,7 @@ sub print {
     return 1;
 }
 
-=method
+=method printf
 
     $uploadstream->printf('%s: %d', 'the meaning of life, the universe, and everything', 42)
 
@@ -226,7 +281,7 @@ sub printf {
     $\ = $savedos;
 }
 
-=method
+=method write
 
     $uploadstream->write(SCALAR, LENGTH, OFFSET);
 
@@ -254,7 +309,7 @@ sub write {
     $\ = $savedos;
 }
 
-=method
+=method close
 
     $uploadstream->close;
 
@@ -264,7 +319,7 @@ visible in the GridFS bucket.
 
 Important Notes:
 
-Calling close will also cause any tied file handles created for this stream to
+Calling close will also cause any tied file handles created for the stream to
 also close.
 
 C<close> will be automatically called when a stream is garbage collected. When
