@@ -281,17 +281,17 @@ sub printf {
     $self->print(sprintf($format, @_));
 }
 
-=method write
+=method syswrite
 
     $uploadstream->write(SCALAR, LENGTH, OFFSET);
 
 Attempts to write C<LENGTH> bytes of data from variable C<SCALAR> to the GridFS file.
 If C<LENGTH> is not specified, writes whole C<SCALAR>.
-See L<write> for more details on how to use C<LENGTH> and C<OFFSET>.
+See L<syswrite> for more details on how to use C<LENGTH> and C<OFFSET>.
 
 =cut
 
-sub write {
+sub syswrite {
     my($self, $buff, $len, $offset) = @_;
     my $bufflen = length $buff;
 
@@ -356,7 +356,7 @@ sub TIEHANDLE {
 
 *PRINT = \&print;
 *PRINTF = \&printf;
-*WRITE = \&write;
+*WRITE = \&syswrite;
 *CLOSE = \&close;
 
 1;
