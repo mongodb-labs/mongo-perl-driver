@@ -17,6 +17,7 @@
 package MongoDB::GridFSBucket::UploadStream;
 
 use Moo;
+use DateTime;
 use MongoDB::OID;
 use MongoDB::BSON::Binary;
 use Types::Standard qw(
@@ -240,7 +241,7 @@ and closing the stream.
 sub abort {
     my ($self) = @_;
 
-    $self->bucket->files->delete_many({ files_id => $self->id });
+    $self->bucket->chunks->delete_many({ files_id => $self->id });
     $self->_set_closed(1);
 }
 
@@ -257,8 +258,8 @@ See the documentation for L<print> for more details
 sub print {
     my $self = shift;
     return if $self->closed;
-    my $fsep = $, ? $, : '';
-    my $osep = $\ ? $\ : '';
+    my $fsep = defined($,) ? $, : '';
+    my $osep = defined($\) ? $\ : '';
     my $output = join($fsep, @_) . $osep;
     $self->_write_data($output);
     return 1;
@@ -276,10 +277,8 @@ See the L<printf> documentation for more details.
 sub printf {
     my $self = shift;
     my $format = shift;
-    my $savedos = $\;
-    $\ = undef;
+    local $\;
     $self->print(sprintf($format, @_));
-    $\ = $savedos;
 }
 
 =method write
@@ -304,10 +303,8 @@ sub write {
     $offset ||= 0;
     $offset = max(0, $bufflen) if $offset < 0;
 
-    my $savedos = $\;
-    $\ = undef;
+    local $\;
     $self->print(substr($buff, $offset, $len));
-    $\ = $savedos;
 }
 
 =method close
