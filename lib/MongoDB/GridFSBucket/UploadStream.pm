@@ -310,7 +310,6 @@ sub syswrite {
     };
 
     $offset ||= 0;
-    $offset = max(0, $bufflen) if $offset < 0;
 
     local $\;
     $self->print(substr($buff, $offset, $len));
