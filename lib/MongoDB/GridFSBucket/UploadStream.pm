@@ -218,7 +218,12 @@ sub _flush_chunks {
         };
         $self->{_current_chunk_n} += 1;
     }
-    $self->bucket->chunks->insert_many(\@chunks) unless scalar(@chunks) < 1;
+    if ( scalar(@chunks) ) {
+        eval { $self->bucket->chunks->insert_many(\@chunks) };
+        if ( $@ ) {
+            MongoDB::GridFSError->throw("Error inserting chunks: $@");
+        }
+    }
 }
 
 sub _write_data {
@@ -240,6 +245,10 @@ and closing the stream.
 
 sub abort {
     my ($self) = @_;
+    if ( $self->closed ) {
+        warn 'Attempted to abort an already closed UploadStream';
+        return;
+    }
 
     $self->bucket->chunks->delete_many({ files_id => $self->id });
     $self->_set_closed(1);
@@ -327,7 +336,10 @@ called this way, any errors thrown will not halt execution.
 
 sub close {
     my ($self) = @_;
-    return if $self->closed;
+    if ( $self->closed ) {
+        warn 'Attempted to close an already closed UploadStream';
+        return;
+    }
     $self->_flush_chunks(1);
     my $filedoc = {
         _id         => $self->id,
@@ -340,7 +352,10 @@ sub close {
     $filedoc->{'contentType'} = $self->content_type if $self->content_type;
     $filedoc->{'metadata'} = $self->metadata if $self->metadata;
     $filedoc->{'aliases'} = $self->aliases if $self->aliases;
-    $self->bucket->files->insert_one($filedoc);
+    eval { $self->bucket->files->insert_one($filedoc) };
+    if ( $@ ) {
+        MongoDB::GridFSError->throw("Error inserting file document: $@");
+    };
     $self->_set_closed(1);
 }
 
