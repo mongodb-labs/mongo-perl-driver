@@ -19,7 +19,6 @@ package MongoDB::GridFSBucket::DownloadStream;
 use Moo;
 use Types::Standard qw(
     Str
-    Ref
     Bool
     Maybe
     HashRef
@@ -30,7 +29,6 @@ use MongoDB::_Types qw(
     NonNegNum
 );
 use List::Util qw(max min);
-use warnings;
 use namespace::clean -except => 'meta';
 
 has file_doc => (
@@ -41,7 +39,7 @@ has file_doc => (
 
 has _buffer => (
     is => 'rwp',
-    isa => Ref[Str],
+    isa => Str,
 );
 
 has _chunk_n => (
@@ -70,9 +68,9 @@ has closed => (
     default => 0,
 );
 
-=method
+=method fh
 
-    my $fh $downloadstream->fh;
+    my $fh = $downloadstream->fh;
     while ( <$fh> ) {
         say($_);
     }
