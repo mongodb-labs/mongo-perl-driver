@@ -399,7 +399,12 @@ sub read {
             }
         }
 
-        $len ||= unpack( P_INT32, $msg );
+        if ( !defined $len ) {
+            $len = unpack( P_INT32, $msg );
+            MongoDB::ProtocolError->throw(
+                qq/Server reply of size $len exceeds maximum of / . $self->{max_message_size_bytes} )
+              if $len > $self->max_message_size_bytes;
+        }
         last unless length($msg) < $len;
     }
 
