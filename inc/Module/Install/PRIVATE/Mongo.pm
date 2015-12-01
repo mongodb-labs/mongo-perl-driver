@@ -66,6 +66,10 @@ sub mongo {
     $ccflags .= " -Wall -Wextra -Wuninitialized -Wdeclaration-after-statement"
         if HAS_GCC && ( $ENV{AUTHOR_TESTING} || $ENV{AUTOMATED_TESTING} );
 
+    # Perl on older Centos doesn't come with this by default
+    $ccflags .= " -D_GNU_SOURCE"
+        if HAS_GCC && $ccflags !~ /-D_GNU_SOURCE/;
+
     # MSWin32 requires newer gcc (if using gcc)
     if ( $^O eq 'MSWin32' ) {
         check_for_outdated_win_gcc;
