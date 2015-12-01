@@ -123,6 +123,16 @@ sub execute {
         die $_ unless $_ eq 'No matching object found';
     };
 
+    # findAndModify returns ok:1 even for write concern errors, so 
+    # we must check and throw explicitly
+    if ( $result->{writeConcernError} ) {
+        MongoDB::WriteConcernError->throw(
+            message => $result->{writeConcernError}{errmsg},
+            result  => $result,
+            code    => WRITE_CONCERN_ERROR,
+        );
+    }
+
     return $result->{value} if $result;
     return;
 }

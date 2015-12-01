@@ -622,7 +622,6 @@ subtest "write concern errors" => sub {
     $coll->drop;
     my $coll2 = $coll->clone( write_concern => { w => 99 } );
 
-    # findAndModify doesn't take write concern, so we don't test that
     my @cases = (
         [ insert_one => [ { x => 1 } ] ],
         [ insert_many => [ [ { x => 2 }, { x => 3 } ] ] ],
@@ -631,6 +630,16 @@ subtest "write concern errors" => sub {
         [ replace_one => [ { x => 0 }, { x => 1 }, { upsert => 1 } ] ],
         [ update_one => [ { x => 1 }, { '$inc' => { x => 1 } } ] ],
     );
+
+    # findAndModify doesn't take write concern until MongoDB 3.2
+    if ( $server_version >= v3.2.0 ) {
+        push @cases,
+          (
+            [ find_one_and_replace => [ { x => 2 }, { x      => 1 } ] ],
+            [ find_one_and_update  => [ { x => 1 }, { '$inc' => { x => 1 } } ] ],
+            [ find_one_and_delete => [ { x => 2 } ] ],
+          );
+    }
 
     for my $c ( @cases ) {
         my ($method, $args) = @$c;

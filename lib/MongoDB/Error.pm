@@ -522,7 +522,12 @@ The following error code constants are automatically exported by this module.
 This is a very, very small subset of error codes possible from the server,
 but covers some of the more common ones seen by drivers.
 
-B<Note>: only C<MongoDB::DatabaseError> objects have a C<code> attribute.
+B<Note>:
+
+=for :list
+* Only C<MongoDB::DatabaseError> objects have a C<code> attribute.
+* The database uses multiple write concern error codes.  The driver maps
+  them all to WRITE_CONCERN_ERROR for consistency and convenience.
 
 =cut
 
