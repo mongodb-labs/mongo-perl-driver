@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.0.4    2015-12-02 10:21:03-05:00 America/New_York
+
   [Bug fixes]
 
   - PERL-571 Add -D_GNU_SOURCE to ccflags if needed.
