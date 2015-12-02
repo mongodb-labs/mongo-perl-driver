@@ -20,7 +20,7 @@ package MongoDB::Collection;
 # ABSTRACT: A MongoDB Collection
 
 use version;
-our $VERSION = 'v1.1.1';
+our $VERSION = 'v1.1.2';
 
 use MongoDB::Error;
 use MongoDB::IndexView;

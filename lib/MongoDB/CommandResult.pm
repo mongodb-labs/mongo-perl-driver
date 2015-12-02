@@ -19,7 +19,7 @@ package MongoDB::CommandResult;
 # ABSTRACT: MongoDB generic command result document
 
 use version;
-our $VERSION = 'v1.1.1';
+our $VERSION = 'v1.1.2';
 
 use Moo;
 use MongoDB::Error;

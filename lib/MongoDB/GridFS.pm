@@ -20,7 +20,7 @@ package MongoDB::GridFS;
 # ABSTRACT: A file storage utility
 
 use version;
-our $VERSION = 'v1.1.1';
+our $VERSION = 'v1.1.2';
 
 use MongoDB::GridFS::File;
 use Digest::MD5;

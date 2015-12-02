@@ -19,7 +19,7 @@ package MongoDB::Op::_Aggregate;
 # Encapsulate aggregate operation; return MongoDB::QueryResult
 
 use version;
-our $VERSION = 'v1.1.1';
+our $VERSION = 'v1.1.2';
 
 use Moo;
 
