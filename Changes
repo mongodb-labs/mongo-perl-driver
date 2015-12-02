@@ -65,6 +65,16 @@ v1.1.0    2015-11-18 10:37:37-05:00 America/New_York (TRIAL RELEASE)
 
   -  PERL-563 Implement find/getMore/killCursors as commands.
 
+v1.0.4    2015-12-02 10:21:03-05:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-571 Add -D_GNU_SOURCE to ccflags if needed.
+
+  [Documentation]
+
+  - Fixed SYNOPSIS bug in MongoDB::IndexView for create_many
+
 v1.0.3    2015-11-03 22:25:12-05:00 America/New_York
 
   [Bug fixes]
