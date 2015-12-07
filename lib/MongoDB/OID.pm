@@ -19,7 +19,7 @@ package MongoDB::OID;
 # ABSTRACT: A Mongo Object ID
 
 use version;
-our $VERSION = 'v1.2.1';
+our $VERSION = 'v1.3.0';
 
 use MongoDB::BSON;
 use Moo;

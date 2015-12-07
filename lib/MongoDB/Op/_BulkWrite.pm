@@ -20,7 +20,7 @@ package MongoDB::Op::_BulkWrite;
 # MongoDB::BulkWriteResult object
 
 use version;
-our $VERSION = 'v1.2.1';
+our $VERSION = 'v1.3.0';
 
 use Moo;
 
