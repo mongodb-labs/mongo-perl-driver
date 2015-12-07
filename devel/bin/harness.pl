@@ -60,16 +60,7 @@ try {
 }
 catch {
     say "Problem starting deployment from $config_file.";
-    if ( $opts{verbose} ) {
-        for my $server ( $orc->deployment->all_servers ) {
-            next unless -e -s $server->logfile;
-            say "---------------------------------";
-            say "Log tail for " . $server->name . ":";
-            my @lines = $server->logfile->lines;
-            @lines = splice(@lines,-20) if @lines > 20;
-            say @lines;
-        }
-    }
+    print_log_tails($orc) if $opts{verbose};
     die $_;
 };
 
@@ -81,9 +72,23 @@ my $exit_val = system(@command);
 my $signal = $exit_val & 127;
 $exit_val = $exit_val >> 8;
 
+print_log_tails($orc) if $opts{verbose} && ($signal || $exit_val);
+
 $orc->stop;
 
 exit( $signal || $exit_val );
+
+sub print_log_tails {
+    my ($orc) = shift;
+    for my $server ( $orc->deployment->all_servers ) {
+        next unless -e -s $server->logfile;
+        say "---------------------------------";
+        say "Log tail for " . $server->name . ":";
+        my @lines = $server->logfile->lines;
+        @lines = splice( @lines, -20 ) if @lines > 20;
+        say @lines;
+    }
+}
 
 __END__
 
