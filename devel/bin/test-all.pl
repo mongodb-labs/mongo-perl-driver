@@ -21,7 +21,7 @@ for my $t ( @types ) {
         next unless -f $file;
         say "---- TESTING WITH $file ----";
         if ( -f $file ) {
-            system( "devel/bin/harness.pl", $file, @ARGV );
+            system( "devel/bin/harness.pl", "-v", $file, @ARGV );
             say "---- RESULT WITH $file: " . ($? ? "FAIL" : "PASS") . " ----";
         }
     }
