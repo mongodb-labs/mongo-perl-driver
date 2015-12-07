@@ -19,7 +19,7 @@ package MongoDB::BulkWriteView;
 # ABSTRACT: Bulk write operations against a query document
 
 use version;
-our $VERSION = 'v1.1.2';
+our $VERSION = 'v1.2.1';
 
 use Moo;
 

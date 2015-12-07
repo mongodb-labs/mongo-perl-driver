@@ -20,7 +20,7 @@ package MongoDB::BSON;
 # ABSTRACT: Tools for serializing and deserializing data in BSON form
 
 use version;
-our $VERSION = 'v1.1.2';
+our $VERSION = 'v1.2.1';
 
 
 use XSLoader;

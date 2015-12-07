@@ -23,7 +23,7 @@ package MongoDB::_Constants;
 # Common MongoDB driver constants
 
 use version;
-our $VERSION = 'v1.1.2';
+our $VERSION = 'v1.2.1';
 
 use Exporter 5.57 qw/import/;
 use Config;

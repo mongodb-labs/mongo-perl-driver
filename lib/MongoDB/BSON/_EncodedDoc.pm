@@ -19,7 +19,7 @@ package MongoDB::BSON::_EncodedDoc;
 # Wrapper for pre-encoded BSON documents, with optional metadata
 
 use version;
-our $VERSION = 'v1.1.2';
+our $VERSION = 'v1.2.1';
 
 use Moo;
 use MongoDB::_Constants;
