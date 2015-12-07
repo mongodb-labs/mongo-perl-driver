@@ -185,7 +185,10 @@ has tempdir => (
 
 sub _build_tempdir {
     my $self = shift;
-    return Path::Tiny->tempdir( TEMPLATE => $self->name . "-XXXXXX" );
+    return Path::Tiny->tempdir(
+        TEMPLATE => $self->name . "-XXXXXX",
+        ($ENV{DATA_DIR} ? (DIR => $ENV{DATA_DIR}) : ()),
+    );
 }
 
 has logfile => (
