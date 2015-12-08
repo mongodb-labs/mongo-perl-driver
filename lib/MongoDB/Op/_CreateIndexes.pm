@@ -111,6 +111,7 @@ sub _legacy_index_insert {
     my $op = MongoDB::Op::_BatchInsert->_new(
         db_name       => $self->db_name,
         coll_name     => "system.indexes",
+        full_name     => (join ".", $self->db_name, "system.indexes"),
         documents     => $indexes,
         write_concern => $self->write_concern,
         bson_codec    => $self->bson_codec,

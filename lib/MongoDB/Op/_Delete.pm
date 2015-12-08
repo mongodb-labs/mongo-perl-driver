@@ -83,7 +83,20 @@ sub execute {
     my $op_doc = { q => $filter, limit => $self->just_one ? 1 : 0 };
 
     return (
-        $link->does_write_commands
+        ! $self->write_concern->is_acknowledged
+        ? (
+            $self->_send_legacy_op_noreply(
+                $link,
+                MongoDB::_Protocol::write_delete(
+                    $self->full_name,
+                    $self->bson_codec->encode_one( $self->filter ),
+                    { just_one => $self->just_one ? 1 : 0 }
+                ),
+                $op_doc,
+                "MongoDB::DeleteResult",
+            )
+        )
+        : $link->does_write_commands
         ? (
             $self->_send_write_command(
                 $link,

@@ -107,7 +107,24 @@ sub execute {
         upsert => $self->upsert ? $true : $false,
     };
 
-    return $link->does_write_commands
+    return ! $self->write_concern->is_acknowledged
+      ? (
+        $self->_send_legacy_op_noreply(
+            $link,
+            MongoDB::_Protocol::write_update(
+                $self->full_name,
+                $self->bson_codec->encode_one( $orig_op->{q}, { invalid_chars => '' } ),
+                $self->_pre_encode_update( $link, $orig_op->{u}, $self->is_replace )->{bson},
+                {
+                    upsert => $orig_op->{upsert},
+                    multi  => $orig_op->{multi},
+                },
+            ),
+            $orig_op,
+            "MongoDB::UpdateResult"
+        )
+      )
+      : $link->does_write_commands
       ? (
         $self->_send_write_command(
             $self->_maybe_bypass(

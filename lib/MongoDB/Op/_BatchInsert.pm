@@ -51,6 +51,12 @@ has coll_name => (
     isa      => Str,
 );
 
+has full_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
 # may or may not have _id; will be added if check_keys is true
 has documents => (
     is       => 'ro',
@@ -100,40 +106,35 @@ sub execute {
 
     $self->_set_doc_ids(\@ids);
 
-    my $res =
-        $link->does_write_commands
-      ? $self->_command_insert( $link, \@insert_docs )
-      : $self->_legacy_op_insert( $link, \@insert_docs );
-
-    $res->assert;
-    return $res;
-}
-
-sub _command_insert {
-    my ( $self, $link, $insert_docs ) = @_;
-
-    # XXX have to check size of docs to insert here and possibly split it
-
-    my $cmd = Tie::IxHash->new(
-        insert       => $self->coll_name,
-        documents    => $insert_docs,
-        @{ $self->write_concern->as_args },
-    );
-
-    return $self->_send_write_command( $link, $cmd, undef, "MongoDB::InsertManyResult" );
-}
-
-sub _legacy_op_insert {
-    my ( $self, $link, $insert_docs ) = @_;
-
-    # XXX have to check size of docs to insert here and possibly split it
-
-    my $ns = $self->db_name . "." . $self->coll_name;
-    my $op_bson =
-      MongoDB::_Protocol::write_insert( $ns, join( "", map { $_->{bson} } @$insert_docs ) );
-
-    return $self->_send_legacy_op_with_gle( $link, $op_bson, undef,
-        "MongoDB::InsertManyResult" );
+    # XXX have to check size of docs to insert and possibly split it
+    #
+    return ! $self->write_concern->is_acknowledged
+      ? (
+        $self->_send_legacy_op_noreply( $link,
+            MongoDB::_Protocol::write_insert( $self->full_name, join( "", map { $_->{bson} } @insert_docs ) ),
+            undef,
+            "MongoDB::UnacknowledgedResult"
+        )
+      )
+      : $link->does_write_commands
+      ? (
+        $self->_send_write_command( $link,
+            Tie::IxHash->new(
+                insert       => $self->coll_name,
+                documents    => \@insert_docs,
+                @{ $self->write_concern->as_args },
+            ),
+            undef,
+            "MongoDB::InsertManyResult",
+        )->assert
+      )
+      : (
+        $self->_send_legacy_op_with_gle( $link,
+            MongoDB::_Protocol::write_insert( $self->full_name, join( "", map { $_->{bson} } @insert_docs ) ),
+            undef,
+            "MongoDB::InsertManyResult"
+        )->assert
+      );
 }
 
 sub _parse_cmd {

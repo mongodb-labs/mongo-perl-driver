@@ -1552,16 +1552,16 @@ sub batch_insert {
     my ( $self, $documents, $opts ) = @_;
 
     my $op = MongoDB::Op::_BatchInsert->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        bson_codec    => $self->bson_codec,
         documents     => $documents,
-        write_concern => $self->_dynamic_write_concern($opts),
         check_keys    => 0,
         ordered       => 1,
+        %{ $_[0]->_op_args },
+        write_concern => $self->_dynamic_write_concern($opts),
     );
 
     my $result = $self->client->send_write_op($op);
+
+    return if $result->isa("MongoDB::UnacknowledgedResult");
 
     my @ids;
     my $inserted_ids = $result->inserted_ids;

@@ -80,14 +80,20 @@ sub execute {
     ( $insert_doc = $self->_pre_encode_insert( $link, $orig_doc, '.' ) ),
       ( $self->_set_doc_id( $insert_doc->{metadata}{_id} ) );
 
-    return $link->does_write_commands
+    return ! $self->write_concern->is_acknowledged
+      ? (
+        $self->_send_legacy_op_noreply( $link,
+            MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
+            $orig_doc, "MongoDB::UnacknowledgedResult" )
+      )
+      : $link->does_write_commands
       ? (
         $self->_send_write_command(
             $self->_maybe_bypass(
                 $link,
                 [
-                    insert       => $self->coll_name,
-                    documents    => [$insert_doc],
+                    insert    => $self->coll_name,
+                    documents => [$insert_doc],
                     @{ $self->write_concern->as_args },
                 ],
             ),
