@@ -53,28 +53,20 @@ my $big_md5 = path($bigfile)->digest("MD5");
 sub setup_gridfs {
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->drop;
-    my $img = new IO::File($pngfile, "r") or die $!;
 
+    my $img = new IO::File($pngfile, "r") or die $!;
     binmode($img);
     $img_id = $bucket->upload_from_stream('img.png', $img);
-    $img_meta = $bucket->files->find_one({'_id' => $img_id});
-    is($img_meta->{'length'}, $img_length, "uploaded image length");
     $img->close;
 
     my $txt = new IO::File($txtfile, "r") or die $!;
-
     binmode($txt);
     $txt_id = $bucket->upload_from_stream('input.txt', $txt);
-    $txt_meta = $bucket->files->find_one({'_id' => $txt_id});
-    is($txt_meta->{'length'}, $txt_length, "uploaded small file length");
     close $txt;
 
     my $big = new IO::File($bigfile, "r") or die $!;
-
     binmode($big);
     $big_id = $bucket->upload_from_stream('big.txt', $big);
-    $big_meta = $bucket->files->find_one({'_id' => $big_id});
-    is($big_meta->{'length'}, $big_length, "uploaded big file length" );
     close $big;
 }
 
