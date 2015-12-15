@@ -21,12 +21,12 @@ use Test::More;
 use Test::Fatal;
 use Test::Deep;
 use IO::File;
-use File::Temp qw(tempfile);
 use File::Compare;
 use Encode;
 
 use MongoDB;
 use MongoDB::GridFSBucket;
+use Path::Tiny;
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
@@ -39,42 +39,42 @@ my $pngfile = "t/data/gridfs/img.png";
 my $bigfile = "t/data/gridfs/big.txt";
 
 my ($img_id, $img_meta);
-my $img_length = 1292706;
-my $img_md5 = 'bc4cd56891f48ddfd214e1348aa9560b';
+my $img_length = -s $pngfile;
+my $img_md5 = path($pngfile)->digest("MD5");
 
 my ($txt_id, $txt_meta);
-my $txt_length = 9;
-my $txt_md5 = '0781b93a5faff923c5960c560c44c246';
+my $txt_length = -s $txtfile;
+my $txt_md5 = path($txtfile)->digest("MD5");
 
 my ($big_id, $big_meta);
-my $big_length = 2097410;
-my $big_md5 = '9c2d4555c51dc9ad2ef9fce9167b5f3b';
+my $big_length = -s $bigfile;
+my $big_md5 = path($bigfile)->digest("MD5");
 
 sub setup_gridfs {
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->drop;
     my $img = new IO::File($pngfile, "r") or die $!;
-    # Windows is dumb
+
     binmode($img);
     $img_id = $bucket->upload_from_stream('img.png', $img);
     $img_meta = $bucket->files->find_one({'_id' => $img_id});
-    is($img_meta->{'length'}, $img_length);
+    is($img_meta->{'length'}, $img_length, "uploaded image length");
     $img->close;
 
     my $txt = new IO::File($txtfile, "r") or die $!;
-    # Windows is dumb part II
+
     binmode($txt);
     $txt_id = $bucket->upload_from_stream('input.txt', $txt);
     $txt_meta = $bucket->files->find_one({'_id' => $txt_id});
-    is($txt_meta->{'length'}, $txt_length);
+    is($txt_meta->{'length'}, $txt_length, "uploaded small file length");
     close $txt;
 
     my $big = new IO::File($bigfile, "r") or die $!;
-    # Windows is dumb part III
+
     binmode($big);
     $big_id = $bucket->upload_from_stream('big.txt', $big);
     $big_meta = $bucket->files->find_one({'_id' => $big_id});
-    is($big_meta->{'length'}, $big_length);
+    is($big_meta->{'length'}, $big_length, "uploaded big file length" );
     close $big;
 }
 
@@ -89,7 +89,7 @@ sub setup_gridfs {
 
 # test file upload
 {
-    my $dumb_str = "abc\n\nzyw\n";
+    my $dumb_str = path($txtfile)->slurp_raw;
     my $bucket = $testdb->get_gridfsbucket;
     open(my $file, '<', $txtfile) or die $!;
     ok(my $id = $bucket->upload_from_stream('input.txt', $file), 'upload small file');
@@ -109,7 +109,6 @@ sub setup_gridfs {
     ok($time->epoch - $filedoc->{'uploadDate'}->epoch < 10, 'upload small file uploadDate');
 
     open($file, '<', $pngfile) or die $!;
-    # Windooooooooooooooowwwwwwwwwwws!
     binmode($file);
     ok($id = $bucket->upload_from_stream('img.png', $file, {
         metadata     => { airspeed_velocity => '11m/s' },
@@ -144,10 +143,10 @@ sub setup_gridfs {
 
 }
 
-setup_gridfs;
-
 # delete
 {
+    setup_gridfs;
+
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->delete($img_id);
     is($bucket->files->find_id($img_id), undef, 'bucket delete files');
@@ -161,41 +160,47 @@ setup_gridfs;
         'delete nonexistant file',
     );
 
-    setup_gridfs;
 }
 
 # find
 {
+    setup_gridfs;
+
     my $bucket = $testdb->get_gridfsbucket;
     my $results = $bucket->find({ length => $img_meta->{'length'} });
     my $file = $results->next;
-    is($file->{'length'}, $img_meta->{'length'});
-    ok(!$results->has_next);
+    is($file->{'length'}, $img_meta->{'length'}, "found file length");
+    ok(!$results->has_next, "only one document found");
 }
 
 # drop
 {
+    setup_gridfs;
+
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->drop;
-    is($bucket->files->find_one, undef);
-    is($bucket->chunks->find_one, undef);
+    is($bucket->files->find_one, undef, "drop leaves files empty");
+    is($bucket->chunks->find_one, undef, "drop leaves chunks empty");
 
-    setup_gridfs;
 }
 
 # download_to_stream
 {
-    my ($tmp_fh, $tmp_filename) = tempfile();
+    setup_gridfs;
+
+    my $tmp = Path::Tiny->tempfile;
+    my $tmp_fh = $tmp->openw_raw;
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->download_to_stream($big_id, $tmp_fh);
     isnt(fileno $tmp_fh, undef, 'download_to_stream does not close file handle');
     close $tmp_fh;
-    is(compare($bigfile, $tmp_filename), 0, 'download_to_stream writes to disk');
-    unlink $tmp_filename;
+    is(compare($bigfile, "$tmp"), 0, 'download_to_stream writes to disk');
 }
 
 # open_download_stream
 {
+    setup_gridfs;
+
     my $bucket = $testdb->get_gridfsbucket;
     my $dl_stream;
     my $str;
@@ -226,20 +231,22 @@ setup_gridfs;
         is($str, "abc\n\nzyw\n", 'readline slurp mode');
     }
 
-    my ($tmp_fh, $tmp_filename) = tempfile();
+    my $tmp = Path::Tiny->tempfile;
+    my $tmp_fh = $tmp->openw_raw;
     $dl_stream = $bucket->open_download_stream($big_id);
 
     my $data;
-    while ($dl_stream->read($data, 130565)) {
+    while ($dl_stream->read($data, -s $bigfile)) {
         print $tmp_fh $data;
     }
     close $tmp_fh;
-    is(compare($bigfile, $tmp_filename), 0, 'DownloadStream complex read');
-    unlink $tmp_filename;
+    is(compare($bigfile, $tmp), 0, 'DownloadStream complex read');
 }
 
 # open_download_stream fh magic
 {
+    setup_gridfs;
+
     my $bucket = $testdb->get_gridfsbucket;
 
     my $dl_stream = $bucket->open_download_stream($txt_id);
@@ -257,16 +264,22 @@ setup_gridfs;
     $dl_stream = $bucket->open_download_stream($big_id);
     $fh = $dl_stream->fh;
     open(my $big_fh, '<', $bigfile);
-    subtest 'complex fh readline' => sub {
-        while (my $line = <$fh>) {
+    my $ok = 1;
+    while (my $line = <$fh>) {
+        if ( $line ne <$big_fh> ) {
             is($line, <$big_fh>, 'complex fh readline');
+            $ok = 0;
+            last;
         }
-    };
+    }
+    ok( $ok, "complex fh readline as expected" );
     close $big_fh;
 }
 
 # DownloadStream close
 {
+    setup_gridfs;
+
     no warnings;
     my $bucket = $testdb->get_gridfsbucket;
     my $fh = $bucket->open_download_stream($big_id)->fh;
@@ -277,6 +290,8 @@ setup_gridfs;
 
 # Custom chunk sizes
 {
+    setup_gridfs;
+
     my $bucket = $testdb->get_gridfsbucket;
     my $uploadstream = $bucket->open_upload_stream(
         'customChunks.txt',
@@ -298,6 +313,8 @@ setup_gridfs;
 
 # Unicode
 {
+    setup_gridfs;
+
     my $bucket = $testdb->get_gridfsbucket;
     my $uploadstream = $bucket->open_upload_stream(
         'unicode.txt',
@@ -318,5 +335,4 @@ setup_gridfs;
     is($str, $teststr, 'unicode read content');
 }
 
-$testdb->drop;
 done_testing;
