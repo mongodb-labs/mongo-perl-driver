@@ -262,6 +262,7 @@ sub close {
     $self->{_result} = undef;
     $self->{_buffer} = undef;
     $self->_set__chunk_n(0);
+    return 1;
 }
 
 sub DEMOLISH {
