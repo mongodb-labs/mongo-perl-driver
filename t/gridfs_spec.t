@@ -37,31 +37,24 @@ my $e_chunks = $testdb->get_collection('expected.chunks');
 my $ampresult;
 my $actualidcount = 0;
 
-sub hex_to_str {
-    my ($hex) = @_;
-    my $result = '';
-    while ( length $hex ) {
-        $result .= chr( hex( substr $hex, 0, 2, '' ) );
-    }
-    return $result;
-}
+sub hex_to_str { return pack("H*",$_[0]) }
 
 # Copied from http://cpansearch.perl.org/src/HIO/String-CamelCase-0.02/lib/String/CamelCase.pm
 sub decamelize {
-	my $s = shift;
-	$s =~ s{([^a-zA-Z]?)([A-Z]*)([A-Z])([a-z]?)}{
-		my $fc = pos($s)==0;
-		my ($p0,$p1,$p2,$p3) = ($1,lc$2,lc$3,$4);
-		my $t = $p0 || $fc ? $p0 : '_';
-		$t .= $p3 ? $p1 ? "${p1}_$p2$p3" : "$p2$p3" : "$p1$p2";
-		$t;
-	}ge;
-	$s;
+        my $s = shift;
+        $s =~ s{([^a-zA-Z]?)([A-Z]*)([A-Z])([a-z]?)}{
+                my $fc = pos($s)==0;
+                my ($p0,$p1,$p2,$p3) = ($1,lc$2,lc$3,$4);
+                my $t = $p0 || $fc ? $p0 : '_';
+                $t .= $p3 ? $p1 ? "${p1}_$p2$p3" : "$p2$p3" : "$p1$p2";
+                $t;
+        }ge;
+        $s;
 }
 
 sub fix_options {
     my $obj = shift;
-	for my $key ( keys %{ $obj } ) {
+        for my $key ( keys %{ $obj } ) {
         $obj->{decamelize( $key )} = delete $obj->{$key};
     }
     return $obj;
@@ -124,24 +117,27 @@ sub run_commands {
 }
 
 sub compare_collections {
-    my ($label) = @_;
     my $actual_chunks = $bucket->chunks->find({},  { sort => { _id => 1 } } )->result;
     my $expected_chunks = $e_chunks->find({},  { sort => { _id => 1 } } )->result;
     my $actual_files = $bucket->files->find({}, { sort => { _id => 1 } } )->result;
     my $expected_files = $e_files->find({}, { sort => { _id => 1 } } )->result;
 
+    my $i=0;
     while ( $actual_chunks->has_next && $expected_chunks->has_next ) {
-        cmp_special($actual_chunks->next, $expected_chunks->next, $label);
+        $i++;
+        cmp_special($actual_chunks->next, $expected_chunks->next, "chunk[$i]");
     }
-    ok( !$actual_chunks->has_next, 'Extra chunks in fs.chunks' );
-    ok( !$expected_chunks->has_next, 'Extra chunks in expected.chunks' );
+    ok( !$actual_chunks->has_next, 'No extra chunks in fs.chunks' );
+    ok( !$expected_chunks->has_next, 'No extra chunks in expected.chunks' );
 
+    my $j=0;
     while ( $actual_files->has_next && $expected_files->has_next ) {
-        cmp_special( $actual_files->next, $expected_files->next, $label );
+        $j++;
+        cmp_special( $actual_files->next, $expected_files->next, "files[$j]" );
     }
 
-    ok( !$actual_files->has_next, 'Extra files in fs.files' );
-    ok( !$expected_files->has_next, 'Extra files in fs.files' );
+    ok( !$actual_files->has_next, 'No extra files in fs.files' );
+    ok( !$expected_files->has_next, 'No extra files in expected.files' );
 }
 
 sub cmp_special {
@@ -149,19 +145,19 @@ sub cmp_special {
 
     if ( ( ref $expected ) eq 'HASH' ) {
         if ( ( ref $got ) eq 'HASH' ) {
-            for my $key ( keys %{ $got } ) {
-                cmp_special($got->{$key}, $expected->{$key}, $label);
+            for my $key ( sort keys %{ $got } ) {
+                cmp_special($got->{$key}, $expected->{$key}, "$label.$key");
             }
         } else {
-            fail("Got $got but expected hashref");
+            fail("$label: Got $got but expected hashref");
         }
     } elsif ( ( ref $expected ) eq 'ARRAY' ) {
         if ( ( ref $expected ) eq 'ARRAY' && scalar( @{ $got } ) == scalar( @{ $expected } ) ) {
             for my $i (0 .. $#{ $got } ) {
-                cmp_special( $$got[$i], $$expected[$i], $label );
+                cmp_special( $$got[$i], $$expected[$i], "$label.$i" );
             }
         } else {
-            fail( "Got $got but expected arrayref, possibly of different size" );
+            fail( "$label: Got $got but expected arrayref, possibly of different size" );
         }
     } elsif ( !defined $expected ) {
         is($got, $expected, $label);
@@ -169,7 +165,7 @@ sub cmp_special {
         # Any value with '*actual' as the expected result can't be known beforehand,
         # so is assumed to be correct. To work around using *actual for _id fields,
         # some may be in the form of the above regex.
-        pass('Passing with special *actual value');
+        pass("$label (Passing with special *actual value)");
     } elsif ( $expected eq '&result' ) {
         # This value is not being tested for anything, but future tests may need to
         # refer to it. Store it in the global $ampresult.
@@ -177,11 +173,11 @@ sub cmp_special {
     } elsif ( $expected eq '*result' ) {
         # Should match a value that could not be known when the test was written, but
         # was saved earlier using &result.
-        is($got, $ampresult);
+        is($got, $ampresult, "$label (*result = &result)");
     } elsif ( $expected eq 'void' ) {
-        is($got, undef, $label);
+        is($got, undef, "$label");
     } else {
-        is($got, $expected, $label);
+        is($got, $expected, "$label");
     }
 }
 
@@ -223,29 +219,31 @@ sub run_test {
     my $args = $test->{act}->{arguments};
     my $test_method = "test_$method";
 
-    if ( exists $test->{arrange} ) {
-        run_commands( $test->{arrange}->{data} );
-    }
+    subtest $label => sub {
+        if ( exists $test->{arrange} ) {
+            run_commands( $test->{arrange}->{data} );
+        }
 
-    my $except = exception {
-        my $result = main->$test_method( $args );
-            cmp_special( $result, fix_types( $assert->{result} ), $label ) if exists $assert->{result};
-    };
-
-    if ( exists $assert->{error} ) {
-        my $expstr = $assert->{error};
-        like(
-            $except,
-            qr/$expstr.*/,
-            $test->{label},
-        );
-    }
-
-    if ( $assert->{data} ) {
-        run_commands( $assert->{data} );
-        subtest "Compare collections for $label" => sub {
-            compare_collections( $label );
+        my $except = exception {
+            my $result = main->$test_method( $args );
+            cmp_special( $result, fix_types( $assert->{result} ), 'Assertion' ) if exists $assert->{result};
         };
+
+        if ( exists $assert->{error} ) {
+            my $expstr = $assert->{error};
+            like(
+                $except,
+                qr/$expstr.*/,
+                "Exception: $expstr",
+            );
+        }
+
+        if ( $assert->{data} ) {
+            run_commands( $assert->{data} );
+            subtest "Compare collections" => sub {
+                compare_collections();
+            };
+        }
     }
 }
 
@@ -276,7 +274,5 @@ while ( my $path = $iterator->() ) {
         run_test($test);
     }
 }
-
-$testdb->drop;
 
 done_testing;
