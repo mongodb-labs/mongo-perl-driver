@@ -132,8 +132,6 @@ has max_time_ms => (
 =method files
 
 The L<MongoDB::Collection> used to store the files documents for the bucket.
-See L<https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst#terms>
-for more information.
 
 B<WARNING:> You should not modify this collection directly.
 
@@ -163,8 +161,6 @@ sub _build__files {
 =method chunks
 
 The L<MongoDB::Collection> used to store the chunks documents for the bucket.
-See L<https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst#terms>
-for more information.
 
 B<WARNING:> You should not modify this collection directly.
 
@@ -229,7 +225,7 @@ sub delete {
     $file_doc = $result->next;
 
 
-Executes a query on the files collection with a
+Executes a query on the files documents collection with a
 L<filter expression|MongoDB::Collection/Filter expression> and
 returns a C<MongoDB::QueryResult> object.  It takes an optional hashref
 of options identical to L<MongoDB::Collection/find>.
@@ -245,7 +241,7 @@ sub find {
 
     $bucket->drop;
 
-Drops the files and chunks collections for this bucket.
+Drops the underlying files documents and chunks collections for this bucket.
 
 =cut
 
@@ -257,9 +253,9 @@ sub drop {
 
 =method download_to_stream
 
-    $bucket->download_to_stream($id, $fh);
+    $bucket->download_to_stream($id, $out_fh);
 
-Downloads the file matching C<$id> and writes it to the file handle C<$fh>.
+Downloads the file matching C<$id> and writes it to the file handle C<$out_fh>.
 This throws a L<MongoDB::GridFSError> if no such file exists.
 
 =cut
@@ -365,8 +361,8 @@ sub open_upload_stream {
 
 =method upload_from_stream
 
-    $file_id = $bucket->upload_from_stream($filename, $fh);
-    $file_id = $bucket->upload_from_stream($filename, $fh, $options);
+    $file_id = $bucket->upload_from_stream($filename, $in_fh);
+    $file_id = $bucket->upload_from_stream($filename, $in_fh, $options);
 
 Reads from a filehandle and uploads its contents to GridFS.
 
@@ -433,22 +429,25 @@ like the file's name, length, MD5 hash, and any user-supplied metadata.
 plus a number of "chunks" of binary data.  (Think of the file document as
 a directory entry and the chunks like blocks on disk.)
 
-Valid file document fields typically include the following fields:
+Valid file documents typically include the following fields:
 
 =for :list
-* _id: – a unique ID for this document, typically type BSON ObjectId. Legacy
+* _id – a unique ID for this document, typically type BSON ObjectId. Legacy
   GridFS systems may store this value as a different type. New files must
   be stored using an ObjectId.
-* length: – the length of this stored file, in bytes
-* chunkSize: – the size, in bytes, of each data chunk of this file. This
+* length – the length of this stored file, in bytes
+* chunkSize – the size, in bytes, of each data chunk of this file. This
   value is configurable per file.
-* uploadDate: – the date and time this file was added to GridFS, stored as
+* uploadDate – the date and time this file was added to GridFS, stored as
   a BSON datetime value.
-* md5: – a hash of the contents of the stored file
-* filename: – the name of this stored file; this does not need to be unique
-* metadata: – any additional application data the user wishes to store
-* contentType: – DEPRECATED (store this in C<metadata> if you need it)
-* aliases: – DEPRECATED (store this in C<metadata> if you need it)
+* md5 – a hash of the contents of the stored file
+* filename – the name of this stored file; this does not need to be unique
+* metadata – any additional application data the user wishes to store
+  (optional)
+* contentType – DEPRECATED (store this in C<metadata> if you need it)
+  (optional)
+* aliases – DEPRECATED (store this in C<metadata> if you need it)
+  (optional)
 
 The C<find> method searches file documents using these fields.  Given the
 C<_id> from a document, a file can be downloaded using the download
