@@ -197,26 +197,6 @@ sub _ensure_indexes {
     $self->chunks->indexes->create_one([ files_id => 1, n => 1 ]);
 }
 
-=method delete
-
-    $bucket->delete($id);
-
-Deletes a file from from the bucket matching C<$id>.
-This throws a L<MongoDB::GridFSError> if no such file exists.
-
-=cut
-
-sub delete {
-    my ($self, $id) = @_;
-    my $delete_result = $self->files->delete_one({ _id => $id });
-    # This should only ever be 0 or 1, checking for exactly 1 to be thorough
-    unless ($delete_result->deleted_count == 1) {
-        MongoDB::GridFSError->throw("FileNotFound: no file found for id $id");
-    }
-    $self->chunks->delete_many({ files_id => $id });
-    return;
-}
-
 =method find
 
     $result = $bucket->find($filter);
@@ -235,66 +215,6 @@ of options identical to L<MongoDB::Collection/find>.
 sub find {
     my ($self, $filter, $options) = @_;
     return $self->files->find($filter, $options)->result;
-}
-
-=method drop
-
-    $bucket->drop;
-
-Drops the underlying files documents and chunks collections for this bucket.
-
-=cut
-
-sub drop {
-    my ($self) = @_;
-    $self->files->drop;
-    $self->chunks->drop;
-}
-
-=method download_to_stream
-
-    $bucket->download_to_stream($id, $out_fh);
-
-Downloads the file matching C<$id> and writes it to the file handle C<$out_fh>.
-This throws a L<MongoDB::GridFSError> if no such file exists.
-
-=cut
-
-sub download_to_stream {
-    my ($self, $id, $fh) = @_;
-    MongoDB::UsageError->throw('No id provided to download_to_stream') unless $id;
-
-    my $file_doc = $self->files->find_one({ _id => $id });
-    if (!$file_doc) {
-        MongoDB::GridFSError->throw("FileNotFound: no file found for id '$id'");
-    }
-    return unless $file_doc->{length} > 0;
-
-    my $chunks = $self->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result;
-    my $last_chunk_n = int($file_doc->{'length'} / $file_doc->{'chunkSize'});
-    for my $n (0..($last_chunk_n)) {
-        if (!$chunks->has_next) {
-            MongoDB::GridFSError->throw("ChunkIsMissing: missing chunk $n for file with id $id");
-        }
-        my $chunk = $chunks->next;
-        if ( $chunk->{'n'} != $n) {
-            MongoDB::GridFSError->throw(sprintf(
-                    'ChunkIsMissing: expected chunk %d but got chunk %d',
-                    $n, $chunk->{'n'},
-            ));
-        }
-        my $expected_size = $chunk->{'n'} == $last_chunk_n ?
-            $file_doc->{'length'} % $file_doc->{'chunkSize'} :
-            $file_doc->{'chunkSize'};
-        if ( length $chunk->{'data'} != $expected_size ) {
-            MongoDB::GridFSError->throw(sprintf(
-                "ChunkIsWrongSize: chunk $n from file with id $id has incorrect size %d, expected %d",
-                length $chunk->{'data'}, $expected_size,
-            ));
-        }
-        print $fh $chunk->{data};
-    }
-    return;
 }
 
 =method open_download_stream
@@ -359,6 +279,52 @@ sub open_upload_stream {
     });
 }
 
+=method download_to_stream
+
+    $bucket->download_to_stream($id, $out_fh);
+
+Downloads the file matching C<$id> and writes it to the file handle C<$out_fh>.
+This throws a L<MongoDB::GridFSError> if no such file exists.
+
+=cut
+
+sub download_to_stream {
+    my ($self, $id, $fh) = @_;
+    MongoDB::UsageError->throw('No id provided to download_to_stream') unless $id;
+
+    my $file_doc = $self->files->find_one({ _id => $id });
+    if (!$file_doc) {
+        MongoDB::GridFSError->throw("FileNotFound: no file found for id '$id'");
+    }
+    return unless $file_doc->{length} > 0;
+
+    my $chunks = $self->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result;
+    my $last_chunk_n = int($file_doc->{'length'} / $file_doc->{'chunkSize'});
+    for my $n (0..($last_chunk_n)) {
+        if (!$chunks->has_next) {
+            MongoDB::GridFSError->throw("ChunkIsMissing: missing chunk $n for file with id $id");
+        }
+        my $chunk = $chunks->next;
+        if ( $chunk->{'n'} != $n) {
+            MongoDB::GridFSError->throw(sprintf(
+                    'ChunkIsMissing: expected chunk %d but got chunk %d',
+                    $n, $chunk->{'n'},
+            ));
+        }
+        my $expected_size = $chunk->{'n'} == $last_chunk_n ?
+            $file_doc->{'length'} % $file_doc->{'chunkSize'} :
+            $file_doc->{'chunkSize'};
+        if ( length $chunk->{'data'} != $expected_size ) {
+            MongoDB::GridFSError->throw(sprintf(
+                "ChunkIsWrongSize: chunk $n from file with id $id has incorrect size %d, expected %d",
+                length $chunk->{'data'}, $expected_size,
+            ));
+        }
+        print $fh $chunk->{data};
+    }
+    return;
+}
+
 =method upload_from_stream
 
     $file_id = $bucket->upload_from_stream($filename, $in_fh);
@@ -389,6 +355,40 @@ sub upload_from_stream {
     }
     $upload_stream->close;
     return $upload_stream->id;
+}
+
+=method delete
+
+    $bucket->delete($id);
+
+Deletes a file from from the bucket matching C<$id>.
+This throws a L<MongoDB::GridFSError> if no such file exists.
+
+=cut
+
+sub delete {
+    my ($self, $id) = @_;
+    my $delete_result = $self->files->delete_one({ _id => $id });
+    # This should only ever be 0 or 1, checking for exactly 1 to be thorough
+    unless ($delete_result->deleted_count == 1) {
+        MongoDB::GridFSError->throw("FileNotFound: no file found for id $id");
+    }
+    $self->chunks->delete_many({ files_id => $id });
+    return;
+}
+
+=method drop
+
+    $bucket->drop;
+
+Drops the underlying files documents and chunks collections for this bucket.
+
+=cut
+
+sub drop {
+    my ($self) = @_;
+    $self->files->drop;
+    $self->chunks->drop;
 }
 
 1;
