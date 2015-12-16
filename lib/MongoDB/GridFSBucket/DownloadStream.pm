@@ -15,6 +15,8 @@
 
 package MongoDB::GridFSBucket::DownloadStream;
 
+# ABSTRACT: File handle abstraction for downloading
+
 use version;
 our $VERSION = 'v1.3.0';
 
@@ -287,3 +289,29 @@ sub BINMODE {
 *GETC = \&getc;
 
 1;
+
+__END__
+
+=pod
+
+=head1 SYNOPSIS
+
+    # OO API
+    $stream = $bucket->open_download_stream($file_id)
+    while ( my $line = $stream->readline ) {
+        ...
+    }
+
+    # Tied-handle API
+    $fh = $stream->fh;
+    while ( my $line = <$fh> ) {
+        ...
+    }
+
+=head1 DESCRIPTION
+
+This class provides a file abstraction for downloading.  You can stream
+data from an object of this class using method calls or a tied-handle
+interface.
+
+=cut

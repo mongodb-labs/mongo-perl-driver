@@ -44,7 +44,9 @@ has database => (
 
 =attr bucket_name
 
-The name of the GridFS bucket.  Defaults to 'fs'.
+The name of the GridFS bucket.  Defaults to 'fs'.  The underlying
+collections that are used to implement a GridFS bucket get this string as a
+prefix (e.g "fs.chunks").
 
 =cut
 
@@ -99,10 +101,10 @@ has read_preference => (
 
 =attr bson_codec
 
-An object that provides the C<encode_one> and C<decode_one> methods, such as
-from L<MongoDB::BSON>.  It may be initialized with a hash reference that will
-be coerced into a new MongoDB::BSON object.  By default it will be inherited
-from a L<MongoDB::MongoClient> object.
+An object that provides the C<encode_one> and C<decode_one> methods, such
+as from L<MongoDB::BSON>.  It may be initialized with a hash reference that
+will be coerced into a new MongoDB::BSON object.  By default it will be
+inherited from a L<MongoDB::Database> object.
 
 =cut
 
@@ -115,8 +117,9 @@ has bson_codec => (
 
 =attr max_time_ms
 
-Specifies the maximum amount of time in milliseconds that the server should use
-for working on a query.
+Specifies the maximum amount of time in milliseconds that the server should
+use for working on a query.  By default it will be inherited from a
+L<MongoDB::Database> object.
 
 B<Note>: this will only be used for server versions 2.6 or greater, as that
 was when the C<$maxTimeMS> meta-operator was introduced.
@@ -187,9 +190,9 @@ sub _ensure_indexes {
     $file_doc = $result->next;
 
 
-Executes a query on the files documents collection with a
+Executes a query on the file documents collection with a
 L<filter expression|MongoDB::Collection/Filter expression> and
-returns a C<MongoDB::QueryResult> object.  It takes an optional hashref
+returns a L<MongoDB::QueryResult> object.  It takes an optional hashref
 of options identical to L<MongoDB::Collection/find>.
 
 =cut
@@ -204,8 +207,9 @@ sub find {
     $stream = $bucket->open_download_stream($id);
     $line = $stream->readline;
 
-Returns a new L<MongoDB::GridFSBucket::DownloadStream> for the file matching
-C<$id>.  This throws a L<MongoDB::GridFSError> if no such file exists.
+Returns a new L<MongoDB::GridFSBucket::DownloadStream> that can be used to
+download the file with the file document C<_id> matching C<$id>.  This
+throws a L<MongoDB::GridFSError> if no such file exists.
 
 =cut
 
@@ -235,11 +239,13 @@ sub open_download_stream {
     $file_id = $stream->id
 
 Returns a new L<MongoDB::GridFSBucket::UploadStream> that can be used
-to upload a new file to a GridFS bucket.  It takes a filename under
-which the file will be stored on GridFS.  B<Note:> this does B<not>
-read the filename locally.
+to upload a new file to a GridFS bucket.
 
-It takes an optional hash reference of options that are passed to the
+This method requires a filename to store in the C<filename> field of the
+file document.  B<Note>: the filename is an arbitrary string; the method
+does not read from this filename locally.
+
+You can provide an optional hash reference of options that are passed to the
 L<MongoDB::GridFSBucket::UploadStream> constructor:
 
 =for :list
@@ -312,19 +318,15 @@ sub download_to_stream {
     $file_id = $bucket->upload_from_stream($filename, $in_fh);
     $file_id = $bucket->upload_from_stream($filename, $in_fh, $options);
 
-Reads from a filehandle and uploads its contents to GridFS.
+Reads from a filehandle and uploads its contents to GridFS.  It returns the
+C<_id> field stored in the file document.
 
-It takes a filename under which the file will be stored on GridFS and a
-filehandle to read from.  B<Note:> this does B<not> read the filename
-locally.
+This method requires a filename to store in the C<filename> field of the
+file document.  B<Note>: the filename is an arbitrary string; the method
+does not read from this filename locally.
 
-It takes an optional hash reference of options:
-
-=for :list
-* C<chunk_size_bytes> – the number of bytes per chunk.  Defaults to the
-  C<chunk_size_bytes> of the bucket object.
-* C<metadata> – a hash reference for storing arbitrary metadata about the
-  file.
+You can provide an optional hash reference of options, just like
+L</open_upload_stream>.
 
 =cut
 
@@ -343,7 +345,7 @@ sub upload_from_stream {
 
     $bucket->delete($id);
 
-Deletes a file from from the bucket matching C<$id>.
+Deletes the file matching C<$id> from the bucket.
 This throws a L<MongoDB::GridFSError> if no such file exists.
 
 =cut
@@ -406,10 +408,11 @@ you call C<get_gridfsbucket> on a L<MongoDB::Database> object.
 
 =head2 Data model
 
-A GridFS file is represented in MongoDB as a "file document" with information
-like the file's name, length, MD5 hash, and any user-supplied metadata.
-plus a number of "chunks" of binary data.  (Think of the file document as
-a directory entry and the chunks like blocks on disk.)
+A GridFS file is represented in MongoDB as a "file document" with
+information like the file's name, length, MD5 hash, and any user-supplied
+metadata.  The actual contents are stored as a number of "chunks" of binary
+data.  (Think of the file document as a directory entry and the chunks like
+blocks on disk.)
 
 Valid file documents typically include the following fields:
 
@@ -435,16 +438,16 @@ The C<find> method searches file documents using these fields.  Given the
 C<_id> from a document, a file can be downloaded using the download
 methods.
 
-=head2 API
+=head2 API Overview
 
 In addition to general methods like C<find>, C<delete> and C<drop>, there
 are two ways to go about uploading and downloading:
 
 =for :list
-* filehandle-like: you get an object that you can read/write from just
-  like a filehandle.  You can even get a tied filehandle that you can
-  hand off to other code that requires a handle.
-* streaming: you provide a stream to read from (upload) or print
+* filehandle-like: you get an object that you can read/write from similar
+  to a filehandle.  You can even get a tied filehandle that you can
+  hand off to other code that requires an actual Perl handle.
+* streaming: you provide a file handle to read from (upload) or print
   to (download) and data is streamed to (upload) or from (download)
   GridFS until EOF.
 

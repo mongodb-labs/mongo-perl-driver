@@ -15,6 +15,8 @@
 
 package MongoDB::GridFSBucket::UploadStream;
 
+# ABSTRACT: File handle abstraction for uploading
+
 use version;
 our $VERSION = 'v1.3.0';
 
@@ -103,7 +105,7 @@ has aliases => (
 
 =attr bucket
 
-The parent L<MongoDB::GridFSBucket> of the stream;
+The L<MongoDB::GridFSBucket> that constructed the upload stream.
 
 =cut
 
@@ -180,11 +182,13 @@ has _current_chunk_n => (
 
 =method fh
 
-    my $fh = $uploadstream->fh;
+    my $fh = $stream->fh;
     print $fh, 'test data...';
     close $fh
 
-Returns a new file handle tied to this instance of UploadStream that can be operated on with the functions C<print>, C<printf>, C<syswrite>, and C<close>.
+Returns a new file handle tied to this instance of UploadStream that can be
+operated on with the functions C<print>, C<printf>, C<syswrite>, and
+C<close>.
 
 Important notes:
 
@@ -259,11 +263,11 @@ sub abort {
 
 =method print
 
-    $uploadstream->print('my data...');
-    $uploadstream->print('data', 'more data', 'still more data');
+    $stream->print('my data...');
+    $stream->print('data', 'more data', 'still more data');
 
 Prints a string or a list of strings to the GridFS file.
-See the documentation for L<print> for more details
+See the documentation for C<print> for more details
 
 =cut
 
@@ -279,10 +283,10 @@ sub print {
 
 =method printf
 
-    $uploadstream->printf('%s: %d', 'the meaning of life, the universe, and everything', 42)
+    $stream->printf('%s: %d', 'life, the universe, and everything', 42)
 
-Equivalent to C<$uploadstream->print(sprintf(FORMAT, LIST))>, except that C<$\> is not appended.
-See the L<printf> documentation for more details.
+Equivalent to C<< $stream->print(sprintf(FORMAT, LIST)) >>, except that
+C<$\> is not appended.  See the C<printf> documentation for more details.
 
 =cut
 
@@ -295,11 +299,11 @@ sub printf {
 
 =method syswrite
 
-    $uploadstream->write(SCALAR, LENGTH, OFFSET);
+    $stream->syswrite(SCALAR, LENGTH, OFFSET);
 
 Attempts to write C<LENGTH> bytes of data from variable C<SCALAR> to the GridFS file.
 If C<LENGTH> is not specified, writes whole C<SCALAR>.
-See L<syswrite> for more details on how to use C<LENGTH> and C<OFFSET>.
+See C<syswrite> for more details on how to use C<LENGTH> and C<OFFSET>.
 
 =cut
 
@@ -320,26 +324,27 @@ sub syswrite {
 
 =method close
 
-    $uploadstream->close;
+    $stream->close;
 
 Closes the stream and flushes any remaining data to the database. Once this is
-done a document is created in the C<files> collection, making the uploaded file
-visible in the GridFS bucket.
+done a file document is created in the GridFSbucket, making the uploaded file
+visible in subsequent queries or downloads.
 
-Important Notes:
+B<Important Notes:>
 
-Calling close will also cause any tied file handles created for the stream to
-also close.
-
-C<close> will be automatically called when a stream is garbage collected. When
-called this way, any errors thrown will not halt execution.
+=for :list
+* Calling close will also cause any tied file handles created for the
+  stream to also close.
+* C<close> will be automatically called when a stream object is destroyed.
+  When called this way, any errors thrown will not halt execution.
+* Calling C<close> repeately will warn.
 
 =cut
 
 sub close {
     my ($self) = @_;
     if ( $self->closed ) {
-        warn 'Attempted to close an already closed UploadStream';
+        warn 'Attempted to close an already closed MongoDB::GridFSBucket::UploadStream';
         return;
     }
     $self->_flush_chunks(1);
@@ -386,18 +391,40 @@ __END__
 
 =pod
 
+=head1 SYNOPSIS
+
+    # OO API
+    $stream  = $bucket->open_upload_stream("foo.txt");
+    $stream->print( $data );
+    $stream->close;
+
+    # Tied handle API
+    $fh = $stream->fh
+    print {$fh} $data;
+    close $fh;
+
+=head1 DESCRIPTION
+
+This class provides a file abstraction for uploading.  You can stream data
+to an object of this class via methods or via a tied-handle interface.
+
+When C<close> is called, all data will be flushed to the GridFS Bucket and
+the newly created file will be visible.
+
 =head1 CAVEATS
 
 =head2 Character encodings
 
 All the writer methods (e.g. C<print>, C<printf>, etc.) send a binary
-representation of the string input provided (or created in the case of
-C<printf>).  Unless you explicitly encode it, this will be the B<internal>
-representation of the string in the Perl interpreter.  If you have ASCII
-characters, it will be (ASCII) bytes.  If you have any characters above
-C<0xff>, it will be UTF-8 encoded codepoints.  If you have characters
-between C<0x80> and C<0xff> and not higher, you might have either bytes or
-UTF-8 internally.
+representation of the string input provided (or generated in the case of
+C<printf>).  Unless you explicitly encode it to bytes, this will be the
+B<internal> representation of the string in the Perl interpreter.  If you
+have ASCII characters, it will be (ASCII) bytes.  If you have any
+characters above C<0xff>, it will be UTF-8 encoded codepoints.  If you have
+characters between C<0x80> and C<0xff> and not higher, you might have
+either bytes or UTF-8 internally.
 
 B<You are strongly encouraged to do your own character encoding and upload
 only bytes to GridFS>.
+
+=cut
