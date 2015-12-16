@@ -12,12 +12,10 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-#
 
 package MongoDB::GridFS;
 
-
-# ABSTRACT: A file storage utility
+# ABSTRACT: A file storage abstraction (DEPRECATED)
 
 use version;
 our $VERSION = 'v1.3.0';
@@ -469,6 +467,14 @@ sub _dynamic_write_concern {
     my $grid = $database->get_gridfs;
     my $fh = IO::File->new("myfile", "r");
     $grid->insert($fh, {"filename" => "mydbfile"});
+
+=head1 DEPRECATION
+
+B<Note>: This class has been deprecated in favor of
+L<MongoDB::GridFSBucket>, which implements the new, driver-standard GridFS
+API.  It is also faster and more flexible than this class.  This class will
+be removed in a future release and you are encouraged to migrate your
+applications to L<MongoDB::GridFSBucket>
 
 =head1 DESCRIPTION
 

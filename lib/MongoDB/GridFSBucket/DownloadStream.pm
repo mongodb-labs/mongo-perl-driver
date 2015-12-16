@@ -12,9 +12,11 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-#
 
 package MongoDB::GridFSBucket::DownloadStream;
+
+use version;
+our $VERSION = 'v1.3.0';
 
 use Moo;
 use Types::Standard qw(
@@ -30,6 +32,12 @@ use MongoDB::_Types qw(
 );
 use List::Util qw(max min);
 use namespace::clean -except => 'meta';
+
+=attr file_doc
+
+The file document for the file to be downloaded.
+
+=cut
 
 has file_doc => (
     is       => 'ro',
@@ -62,6 +70,14 @@ has _offset => (
     default => 0,
 );
 
+=method closed
+
+    if ( $handle->closed ) { ... }
+
+Returns true if the handle has been closed or false otherwise.
+
+=cut
+
 has closed => (
     is      => 'rwp',
     isa     => Bool,
@@ -75,19 +91,21 @@ has closed => (
         say($_);
     }
 
-Returns a new file handle tied to this instance of DownloadStream that can be
-operated on with the functions C<read>, C<readline>, C<getc>, and C<close>.
+Returns a new Perl file handle tied to this instance of DownloadStream that
+can be operated on with the functions C<read>, C<readline>, C<getc>, and
+C<close>.
 
 Important notes:
 
-Allowing one of these tied filehandles to fall out of scope will NOT cause close
-to be called. This is due to the way tied file handles are implemented in Perl.
-For close to be called implicitly, all tied filehandles and the original object
-must go out of scope.
+Allowing one of these tied filehandles to fall out of scope will NOT cause
+close to be called. This is due to the way tied file handles are
+implemented in Perl.  For close to be called implicitly, all tied
+filehandles and the original object must go out of scope.
 
-Each file handle retrieved this way is tied back to the same object, so calling
-close on multiple tied file handles and/or the original object will have the
-same effect as calling close on the original object multiple times.
+Each file handle retrieved this way is tied back to the same object, so
+calling close on multiple tied file handles and/or the original object will
+have the same effect as calling close on the original object multiple
+times.
 
 =cut
 
@@ -152,6 +170,14 @@ sub _readline_scalar {
     return substr $self->_buffer, $self->_offset, $substr_len, '';
 }
 
+=method readline
+
+    $line = $stream->readline();
+
+Works like the builtin C<readline>.
+
+=cut
+
 sub readline {
     my ($self) = @_;
     if ( $self->closed ) {
@@ -166,6 +192,14 @@ sub readline {
     }
     return @result;
 }
+
+=method read
+
+    $data = $stream->read($buf, $length, $offset)
+
+Works like the builtin C<read>.
+
+=cut
 
 sub read {
     my $self = shift;
@@ -199,12 +233,28 @@ sub read {
     return $read_len;
 }
 
+=method getc
+
+    $char = $stream->getc();
+
+Works like the builtin C<getc>.
+
+=cut
+
 sub getc {
     my ($self) = @_;
     my $char;
     $self->read($char, 1);
     return $char;
 }
+
+=method close
+
+    $stream->close
+
+Works like the builtin C<close>.
+
+=cut
 
 sub close {
     my ($self) = @_;

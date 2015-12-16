@@ -15,7 +15,10 @@
 
 package MongoDB::GridFSBucket;
 
-# ABSTRACT: A file storage utility
+# ABSTRACT: A file storage abstraction
+
+use version;
+our $VERSION = 'v1.3.0';
 
 use Moo;
 use MongoDB::GridFSBucket::DownloadStream;
@@ -132,6 +135,8 @@ The L<MongoDB::Collection> used to store the files documents for the bucket.
 See L<https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst#terms>
 for more information.
 
+B<WARNING:> You should not modify this collection directly.
+
 =cut
 
 has _files => (
@@ -160,6 +165,8 @@ sub _build__files {
 The L<MongoDB::Collection> used to store the chunks documents for the bucket.
 See L<https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst#terms>
 for more information.
+
+B<WARNING:> You should not modify this collection directly.
 
 =cut
 
@@ -194,12 +201,12 @@ sub _ensure_indexes {
     $self->chunks->indexes->create_one([ files_id => 1, n => 1 ]);
 }
 
-=method
+=method delete
 
     $bucket->delete($id);
 
-Deletes a file from from the bucket matching C<$id>. throws a
-L<MongoDB::GridFSError> if no such file exists.
+Deletes a file from from the bucket matching C<$id>.
+This throws a L<MongoDB::GridFSError> if no such file exists.
 
 =cut
 
@@ -216,12 +223,16 @@ sub delete {
 
 =method find
 
-    $bucket->find($filter);
-    $bucket->find($filter, $options);
+    $result = $bucket->find($filter);
+    $result = $bucket->find($filter, $options);
+
+    $file_doc = $result->next;
+
 
 Executes a query on the files collection with a
-L<filter expression|/Filter expression> and
-returns a C<MongoDB::QueryResult> object.
+L<filter expression|MongoDB::Collection/Filter expression> and
+returns a C<MongoDB::QueryResult> object.  It takes an optional hashref
+of options identical to L<MongoDB::Collection/find>.
 
 =cut
 
@@ -248,8 +259,8 @@ sub drop {
 
     $bucket->download_to_stream($id, $fh);
 
-Downloads the file matching C<$id> and writes it to the
-file handle C<$fh>.
+Downloads the file matching C<$id> and writes it to the file handle C<$fh>.
+This throws a L<MongoDB::GridFSError> if no such file exists.
 
 =cut
 
@@ -292,9 +303,11 @@ sub download_to_stream {
 
 =method open_download_stream
 
-    my $stream = $bucket->open_download_stream($id);
+    $stream = $bucket->open_download_stream($id);
+    $line = $stream->readline;
 
-Returns a new L<MongoDB::GridFSBucket::DownloadStream> for this bucket.
+Returns a new L<MongoDB::GridFSBucket::DownloadStream> for the file matching
+C<$id>.  This throws a L<MongoDB::GridFSError> if no such file exists.
 
 =cut
 
@@ -316,10 +329,26 @@ sub open_download_stream {
 
 =method open_upload_stream
 
-    my $ustream = $bucket->open_upload_stream('filename.b');
-    $ustream->print('data');
-    $ustream->close;
-    my $file_id = $ustream->id
+    $stream = $bucket->open_upload_stream($filename);
+    $stream = $bucket->open_upload_stream($filename, $options);
+
+    $stream->print('data');
+    $stream->close;
+    $file_id = $stream->id
+
+Returns a new L<MongoDB::GridFSBucket::UploadStream> that can be used
+to upload a new file to a GridFS bucket.  It takes a filename under
+which the file will be stored on GridFS.  B<Note:> this does B<not>
+read the filename locally.
+
+It takes an optional hash reference of options that are passed to the
+L<MongoDB::GridFSBucket::UploadStream> constructor:
+
+=for :list
+* C<chunk_size_bytes> – the number of bytes per chunk.  Defaults to the
+  C<chunk_size_bytes> of the bucket object.
+* C<metadata> – a hash reference for storing arbitrary metadata about the
+  file.
 
 =cut
 
@@ -336,7 +365,22 @@ sub open_upload_stream {
 
 =method upload_from_stream
 
-    FIXME
+    $file_id = $bucket->upload_from_stream($filename, $fh);
+    $file_id = $bucket->upload_from_stream($filename, $fh, $options);
+
+Reads from a filehandle and uploads its contents to GridFS.
+
+It takes a filename under which the file will be stored on GridFS and a
+filehandle to read from.  B<Note:> this does B<not> read the filename
+locally.
+
+It takes an optional hash reference of options:
+
+=for :list
+* C<chunk_size_bytes> – the number of bytes per chunk.  Defaults to the
+  C<chunk_size_bytes> of the bucket object.
+* C<metadata> – a hash reference for storing arbitrary metadata about the
+  file.
 
 =cut
 
@@ -352,3 +396,83 @@ sub upload_from_stream {
 }
 
 1;
+
+__END__
+
+=pod
+
+=head1 SYNOPSIS
+
+    $bucket = $database->get_gridfsbucket;
+
+    # upload a file
+    $stream  = $bucket->open_upload_stream("foo.txt");
+    $stream->print( $data );
+    $stream->close;
+
+    # find and download a file
+    $result  = $bucket-find({filename => "foo.txt"});
+    $file_id = $result->next->{_id};
+    $stream  = $bucket->open_download_stream($file_id)
+    $data    = do { local $/; $stream->readline() };
+
+=head1 DESCRIPTION
+
+This class models a GridFS file store in a MongoDB database and provides an
+API for interacting with it.
+
+Generally, you never construct one of these directly with C<new>.  Instead,
+you call C<get_gridfsbucket> on a L<MongoDB::Database> object.
+
+=head1 USAGE
+
+=head2 Data model
+
+A GridFS file is represented in MongoDB as a "file document" with information
+like the file's name, length, MD5 hash, and any user-supplied metadata.
+plus a number of "chunks" of binary data.  (Think of the file document as
+a directory entry and the chunks like blocks on disk.)
+
+Valid file document fields typically include the following fields:
+
+=for :list
+* _id: – a unique ID for this document, typically type BSON ObjectId. Legacy
+  GridFS systems may store this value as a different type. New files must
+  be stored using an ObjectId.
+* length: – the length of this stored file, in bytes
+* chunkSize: – the size, in bytes, of each data chunk of this file. This
+  value is configurable per file.
+* uploadDate: – the date and time this file was added to GridFS, stored as
+  a BSON datetime value.
+* md5: – a hash of the contents of the stored file
+* filename: – the name of this stored file; this does not need to be unique
+* metadata: – any additional application data the user wishes to store
+* contentType: – DEPRECATED (store this in C<metadata> if you need it)
+* aliases: – DEPRECATED (store this in C<metadata> if you need it)
+
+The C<find> method searches file documents using these fields.  Given the
+C<_id> from a document, a file can be downloaded using the download
+methods.
+
+=head2 API
+
+In addition to general methods like C<find>, C<delete> and C<drop>, there
+are two ways to go about uploading and downloading:
+
+=for :list
+* filehandle-like: you get an object that you can read/write from just
+  like a filehandle.  You can even get a tied filehandle that you can
+  hand off to other code that requires a handle.
+* streaming: you provide a stream to read from (upload) or print
+  to (download) and data is streamed to (upload) or from (download)
+  GridFS until EOF.
+
+=head2 Error handling
+
+Unless otherwise explictly documented, all methods throw exceptions if
+an error occurs.  The error types are documented in L<MongoDB::Error>.
+
+=head1 SEE ALSO
+
+Core documentation on GridFS: L<http://dochub.mongodb.org/core/gridfs>.
+

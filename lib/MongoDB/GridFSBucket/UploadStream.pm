@@ -12,9 +12,11 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-#
 
 package MongoDB::GridFSBucket::UploadStream;
+
+use version;
+our $VERSION = 'v1.3.0';
 
 use Moo;
 use Encode;
@@ -40,7 +42,8 @@ use namespace::clean -except => 'meta';
 
 =attr chunk_size_bytes
 
-The number of bytes per chunk.  Defaults to 261120 (255kb).
+The number of bytes per chunk.  Defaults to the C<chunk_size_bytes> of the
+originating bucket object.
 
 =cut
 
