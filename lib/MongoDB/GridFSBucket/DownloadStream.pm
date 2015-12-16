@@ -226,6 +226,10 @@ sub TIEHANDLE {
     return $self;
 }
 
+sub BINMODE {
+    MongoDB::UsageError->throw("binmode() not available on " . __PACKAGE__);
+}
+
 *READ = \&read;
 *READLINE = \&readline;
 *CLOSE = \&close;

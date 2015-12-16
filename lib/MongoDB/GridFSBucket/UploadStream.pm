@@ -17,7 +17,9 @@
 package MongoDB::GridFSBucket::UploadStream;
 
 use Moo;
+use Encode;
 use DateTime;
+use MongoDB::Error;
 use MongoDB::OID;
 use MongoDB::BSON::Binary;
 use Types::Standard qw(
@@ -225,6 +227,7 @@ sub _flush_chunks {
 
 sub _write_data {
     my ($self, $data) = @_;
+    Encode::_utf8_off($data); # force it to bytes for transmission
     $self->{_buffer} .= $data;
     $self->{_length} += length $data;
     $self->_md5->add($data);
@@ -365,9 +368,33 @@ sub TIEHANDLE {
     return $self;
 }
 
+sub BINMODE {
+    MongoDB::UsageError->throw("binmode() not available on " . __PACKAGE__);
+}
+
 *PRINT = \&print;
 *PRINTF = \&printf;
 *WRITE = \&syswrite;
 *CLOSE = \&close;
 
 1;
+
+__END__
+
+=pod
+
+=head1 CAVEATS
+
+=head2 Character encodings
+
+All the writer methods (e.g. C<print>, C<printf>, etc.) send a binary
+representation of the string input provided (or created in the case of
+C<printf>).  Unless you explicitly encode it, this will be the B<internal>
+representation of the string in the Perl interpreter.  If you have ASCII
+characters, it will be (ASCII) bytes.  If you have any characters above
+C<0xff>, it will be UTF-8 encoded codepoints.  If you have characters
+between C<0x80> and C<0xff> and not higher, you might have either bytes or
+UTF-8 internally.
+
+B<You are strongly encouraged to do your own character encoding and upload
+only bytes to GridFS>.
