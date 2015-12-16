@@ -214,7 +214,7 @@ sub delete {
     return;
 }
 
-=method
+=method find
 
     $bucket->find($filter);
     $bucket->find($filter, $options);
