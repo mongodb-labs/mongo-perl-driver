@@ -88,13 +88,13 @@ sub setup_gridfs {
     my $time = DateTime->now;
     close $file;
 
-    my @chunks = $bucket->chunks->find( { files_id => $id } )->result->all;
+    my @chunks = $bucket->_chunks->find( { files_id => $id } )->result->all;
     is( scalar @chunks, 1, 'upload small file has 1 chunk' );
     my $chunk = shift @chunks;
     is( $chunk->{'n'},    0,         'upload small file chunk n' );
     is( $chunk->{'data'}, $dumb_str, 'upload small file data' );
 
-    ok( my $filedoc = $bucket->files->find_id($id), 'upload small file files document' );
+    ok( my $filedoc = $bucket->_files->find_id($id), 'upload small file files document' );
     is( $filedoc->{'md5'},      $txt_md5,    'upload small file md5' );
     is( $filedoc->{'length'},   $txt_length, 'upload small file length' );
     is( $filedoc->{'filename'}, 'input.txt', 'upload small file length' );
@@ -119,7 +119,7 @@ sub setup_gridfs {
     seek $file, 0, 0;
 
     my $chunks =
-      $bucket->chunks->find( { files_id => $id }, { sort => { n => 1 } } )->result;
+      $bucket->_chunks->find( { files_id => $id }, { sort => { n => 1 } } )->result;
     my $n = 0;
     subtest 'upload large file' => sub {
         while ( $chunks->has_next ) {
@@ -133,7 +133,7 @@ sub setup_gridfs {
     ok( eof $file, 'upload large file whole file' );
     close $file;
 
-    ok( $filedoc = $bucket->files->find_id($id), 'upload large file files document' );
+    ok( $filedoc = $bucket->_files->find_id($id), 'upload large file files document' );
     is( $filedoc->{'md5'},      $img_md5,    'upload large file md5' );
     is( $filedoc->{'length'},   $img_length, 'upload large file length' );
     is( $filedoc->{'filename'}, 'img.png',   'upload large file filename' );
@@ -155,8 +155,8 @@ sub setup_gridfs {
 
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->delete($img_id);
-    is( $bucket->files->find_id($img_id),  undef, 'bucket delete files' );
-    is( $bucket->chunks->find_id($img_id), undef, 'bucket delete chunks' );
+    is( $bucket->_files->find_id($img_id),  undef, 'bucket delete files' );
+    is( $bucket->_chunks->find_id($img_id), undef, 'bucket delete chunks' );
 
     # should throw error if file does not exist
     my $error;
@@ -185,8 +185,8 @@ sub setup_gridfs {
 
     my $bucket = $testdb->get_gridfsbucket;
     $bucket->drop;
-    is( $bucket->files->find_one,  undef, "drop leaves files empty" );
-    is( $bucket->chunks->find_one, undef, "drop leaves chunks empty" );
+    is( $bucket->_files->find_one,  undef, "drop leaves files empty" );
+    is( $bucket->_chunks->find_one, undef, "drop leaves chunks empty" );
 
 }
 
@@ -306,9 +306,9 @@ sub setup_gridfs {
     $uploadstream->print( 'b' x 8 );
     $uploadstream->close;
     my $id = $uploadstream->id;
-    is( $bucket->chunks->count( { files_id => $id } ),
+    is( $bucket->_chunks->count( { files_id => $id } ),
         2, 'custom chunk size num chunks' );
-    my @results = $bucket->chunks->find( { files_id => $id } )->all;
+    my @results = $bucket->_chunks->find( { files_id => $id } )->all;
     is( $results[0]->{data}, 'a' x 12, 'custom chunk size boundries 1' );
     is( $results[1]->{data}, 'b' x 8,  'custom chunk size boundries 2' );
     my $str;
@@ -331,8 +331,8 @@ sub setup_gridfs {
     $uploadstream->print($teststr);
     $uploadstream->close;
     my $id = $uploadstream->id;
-    is( $bucket->chunks->count( { files_id => $id } ), 2, 'unicode upload' );
-    is( $bucket->files->find_id($id)->{length}, $testlen, 'unicode upload file length' );
+    is( $bucket->_chunks->count( { files_id => $id } ), 2, 'unicode upload' );
+    is( $bucket->_files->find_id($id)->{length}, $testlen, 'unicode upload file length' );
     my $str;
     is( $bucket->open_download_stream($id)->read( $str, 100 ),
         $testlen, 'unicode read length' );

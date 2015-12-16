@@ -221,7 +221,7 @@ sub _flush_chunks {
         $self->{_current_chunk_n} += 1;
     }
     if ( scalar(@chunks) ) {
-        eval { $self->bucket->chunks->insert_many(\@chunks) };
+        eval { $self->bucket->_chunks->insert_many(\@chunks) };
         if ( $@ ) {
             MongoDB::GridFSError->throw("Error inserting chunks: $@");
         }
@@ -253,7 +253,7 @@ sub abort {
         return;
     }
 
-    $self->bucket->chunks->delete_many({ files_id => $self->id });
+    $self->bucket->_chunks->delete_many({ files_id => $self->id });
     $self->_set_closed(1);
 }
 
@@ -354,7 +354,7 @@ sub close {
     $filedoc->{'contentType'} = $self->content_type if $self->content_type;
     $filedoc->{'metadata'} = $self->metadata if $self->metadata;
     $filedoc->{'aliases'} = $self->aliases if $self->aliases;
-    eval { $self->bucket->files->insert_one($filedoc) };
+    eval { $self->bucket->_files->insert_one($filedoc) };
     if ( $@ ) {
         MongoDB::GridFSError->throw("Error inserting file document: $@");
     };

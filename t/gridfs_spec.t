@@ -122,9 +122,9 @@ sub run_commands {
 }
 
 sub compare_collections {
-    my $actual_chunks = $bucket->chunks->find( {}, { sort => { _id => 1 } } )->result;
+    my $actual_chunks = $bucket->_chunks->find( {}, { sort => { _id => 1 } } )->result;
     my $expected_chunks = $e_chunks->find( {}, { sort => { _id => 1 } } )->result;
-    my $actual_files = $bucket->files->find( {}, { sort => { _id => 1 } } )->result;
+    my $actual_files = $bucket->_files->find( {}, { sort => { _id => 1 } } )->result;
     my $expected_files = $e_files->find( {}, { sort => { _id => 1 } } )->result;
 
     my $i = 0;
@@ -278,9 +278,9 @@ while ( my $path = $iterator->() ) {
         $e_chunks->drop;
         $e_files->drop;
         $ampresult = undef;
-        $bucket->chunks->insert_many( $plan->{data}->{chunks} );
+        $bucket->_chunks->insert_many( $plan->{data}->{chunks} );
         $e_chunks->insert_many( $plan->{data}->{chunks} );
-        $bucket->files->insert_many( $plan->{data}->{files} );
+        $bucket->_files->insert_many( $plan->{data}->{files} );
         $e_files->insert_many( $plan->{data}->{files} );
         run_test($test);
     }

@@ -129,18 +129,9 @@ has max_time_ms => (
     required => 1,
 );
 
-=method files
-
-The L<MongoDB::Collection> used to store the files documents for the bucket.
-
-B<WARNING:> You should not modify this collection directly.
-
-=cut
-
 has _files => (
     is       => 'lazy',
     isa      => InstanceOf['MongoDB::Collection'],
-    reader   => 'files',
     init_arg => undef,
 );
 
@@ -158,18 +149,9 @@ sub _build__files {
     return $coll;
 }
 
-=method chunks
-
-The L<MongoDB::Collection> used to store the chunks documents for the bucket.
-
-B<WARNING:> You should not modify this collection directly.
-
-=cut
-
 has _chunks => (
     is       => 'lazy',
     isa      => InstanceOf['MongoDB::Collection'],
-    reader   => 'chunks',
     init_arg => undef,
 );
 
@@ -193,8 +175,8 @@ sub _ensure_indexes {
     my ($self) = @_;
 
     # ensure the necessary index is present (this may be first usage)
-    $self->files->indexes->create_one([ filename => 1, uploadDate => 1 ]);
-    $self->chunks->indexes->create_one([ files_id => 1, n => 1 ]);
+    $self->_files->indexes->create_one([ filename => 1, uploadDate => 1 ]);
+    $self->_chunks->indexes->create_one([ files_id => 1, n => 1 ]);
 }
 
 =method find
@@ -214,7 +196,7 @@ of options identical to L<MongoDB::Collection/find>.
 
 sub find {
     my ($self, $filter, $options) = @_;
-    return $self->files->find($filter, $options)->result;
+    return $self->_files->find($filter, $options)->result;
 }
 
 =method open_download_stream
@@ -230,10 +212,10 @@ C<$id>.  This throws a L<MongoDB::GridFSError> if no such file exists.
 sub open_download_stream {
     my ($self, $id) = @_;
     MongoDB::UsageError->throw('No id provided to open_download_stream') unless $id;
-    my $file_doc = $self->files->find_id($id);
+    my $file_doc = $self->_files->find_id($id);
     MongoDB::GridFSError->throw("FileNotFound: no file found for id '$id'") unless $file_doc;
     my $result = $file_doc->{'length'} > 0 ?
-        $self->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result :
+        $self->_chunks->find({ files_id => $id }, { sort => { n => 1 } })->result :
         undef;
     return MongoDB::GridFSBucket::DownloadStream->new({
         id       => $id,
@@ -292,13 +274,13 @@ sub download_to_stream {
     my ($self, $id, $fh) = @_;
     MongoDB::UsageError->throw('No id provided to download_to_stream') unless $id;
 
-    my $file_doc = $self->files->find_one({ _id => $id });
+    my $file_doc = $self->_files->find_one({ _id => $id });
     if (!$file_doc) {
         MongoDB::GridFSError->throw("FileNotFound: no file found for id '$id'");
     }
     return unless $file_doc->{length} > 0;
 
-    my $chunks = $self->chunks->find({ files_id => $id }, { sort => { n => 1 } })->result;
+    my $chunks = $self->_chunks->find({ files_id => $id }, { sort => { n => 1 } })->result;
     my $last_chunk_n = int($file_doc->{'length'} / $file_doc->{'chunkSize'});
     for my $n (0..($last_chunk_n)) {
         if (!$chunks->has_next) {
@@ -368,12 +350,12 @@ This throws a L<MongoDB::GridFSError> if no such file exists.
 
 sub delete {
     my ($self, $id) = @_;
-    my $delete_result = $self->files->delete_one({ _id => $id });
+    my $delete_result = $self->_files->delete_one({ _id => $id });
     # This should only ever be 0 or 1, checking for exactly 1 to be thorough
     unless ($delete_result->deleted_count == 1) {
         MongoDB::GridFSError->throw("FileNotFound: no file found for id $id");
     }
-    $self->chunks->delete_many({ files_id => $id });
+    $self->_chunks->delete_many({ files_id => $id });
     return;
 }
 
@@ -387,8 +369,8 @@ Drops the underlying files documents and chunks collections for this bucket.
 
 sub drop {
     my ($self) = @_;
-    $self->files->drop;
-    $self->chunks->drop;
+    $self->_files->drop;
+    $self->_chunks->drop;
 }
 
 1;
