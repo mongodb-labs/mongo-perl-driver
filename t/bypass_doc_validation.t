@@ -292,10 +292,10 @@ subtest "find_one_and_update" => sub {
 };
 
 subtest "aggregate with \$out" => sub {
-    _drop_coll();
-
     plan skip_all => "Aggregation with \$out requires MongoDB 2.6+"
         unless $server_version >= v2.6.0;
+
+    _drop_coll();
 
     my $source = $testdb->get_collection('test_source');
     $source->insert_many( [ map { { count => $_ } } 1 .. 20 ] );
