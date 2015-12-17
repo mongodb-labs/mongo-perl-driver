@@ -474,7 +474,7 @@ B<Note>: This class has been deprecated in favor of
 L<MongoDB::GridFSBucket>, which implements the new, driver-standard GridFS
 API.  It is also faster and more flexible than this class.  This class will
 be removed in a future release and you are encouraged to migrate your
-applications to L<MongoDB::GridFSBucket>
+applications to L<MongoDB::GridFSBucket>.
 
 =head1 DESCRIPTION
 
