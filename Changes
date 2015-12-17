@@ -2,6 +2,19 @@
 
 {{ $NEXT }}
 
+  [*** Deprecations ***]
+
+  - The MongoDB::GridFS and MongoDB::GridFS::File classes are deprecated
+    in favor of the MongoDB::GridFSBucket and related classes.  It will
+    be removed in a future major release.
+
+  [Additions]
+
+  - Adds MongoDB::GridFSBucket class, which implements the new
+    driver-standard GridFS API.  Also included are classes to emulate file
+    handles for uploads and downloads, making GridFS operations more
+    composable with existing Perl libraries.
+
 v1.2.0    2015-12-07 12:55:11-05:00 America/New_York
 
   [Additions]
