@@ -24,11 +24,15 @@ use Path::Tiny;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
+use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
 
 skip_unless_mongod();
 
 my $conn     = build_client();
+my $server_version = server_version($conn);
+
+plan skip_all => "Test requires MongoDB 2.6+" unless $server_version >= v2.6.0;
+
 my $testdb   = get_test_db($conn);
 my $bucket   = $testdb->get_gridfsbucket;
 my $e_files  = $testdb->get_collection('expected.files');
