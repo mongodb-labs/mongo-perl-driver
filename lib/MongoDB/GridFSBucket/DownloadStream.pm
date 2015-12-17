@@ -22,15 +22,15 @@ our $VERSION = 'v1.3.0';
 
 use Moo;
 use Types::Standard qw(
-    Str
-    Bool
-    Maybe
-    HashRef
-    InstanceOf
-    FileHandle
+  Str
+  Bool
+  Maybe
+  HashRef
+  InstanceOf
+  FileHandle
 );
 use MongoDB::_Types qw(
-    NonNegNum
+  NonNegNum
 );
 use List::Util qw(max min);
 use namespace::clean -except => 'meta';
@@ -64,7 +64,7 @@ has file_doc => (
 );
 
 has _buffer => (
-    is => 'rwp',
+    is  => 'rwp',
     isa => Str,
 );
 
@@ -76,7 +76,7 @@ has _chunk_n => (
 
 has _result => (
     is       => 'ro',
-    isa      => Maybe[InstanceOf['MongoDB::QueryResult']],
+    isa      => Maybe [ InstanceOf ['MongoDB::QueryResult'] ],
     required => 1,
 );
 
@@ -133,21 +133,30 @@ sub _get_next_chunk {
     my $chunk = $self->_result->next;
 
     if ( $chunk->{'n'} != $self->_chunk_n ) {
-        MongoDB::GridFSError->throw(sprintf(
+        MongoDB::GridFSError->throw(
+            sprintf(
                 'ChunkIsMissing: expected chunk %d but got chunk %d',
                 $self->_chunk_n, $chunk->{'n'},
-        ));
+            )
+        );
     }
 
-    my $last_chunk_n = int($self->file_doc->{'length'} / $self->file_doc->{'chunkSize'});
-    my $expected_size = $chunk->{'n'} == $last_chunk_n ?
-            $self->file_doc->{'length'} % $self->file_doc->{'chunkSize'} :
-            $self->file_doc->{'chunkSize'};
-    if (length $chunk->{'data'} != $expected_size ) {
-        MongoDB::GridFSError->throw(sprintf(
-            "ChunkIsWrongSize: chunk %d from file with id %s has incorrect size %d, expected %d",
-            $self->_chunk_n, $self->file_doc->{_id}, length $chunk->{'data'}, $expected_size,
-        ));
+    my $last_chunk_n =
+      int( $self->file_doc->{'length'} / $self->file_doc->{'chunkSize'} );
+    my $expected_size =
+        $chunk->{'n'} == $last_chunk_n
+      ? $self->file_doc->{'length'} % $self->file_doc->{'chunkSize'}
+      : $self->file_doc->{'chunkSize'};
+    if ( length $chunk->{'data'} != $expected_size ) {
+        MongoDB::GridFSError->throw(
+            sprintf(
+                "ChunkIsWrongSize: chunk %d from file with id %s has incorrect size %d, expected %d",
+                $self->_chunk_n,
+                $self->file_doc->{_id},
+                length $chunk->{'data'},
+                $expected_size,
+            )
+        );
     }
 
     $self->{_chunk_n} += 1;
@@ -156,7 +165,7 @@ sub _get_next_chunk {
 
 sub _ensure_buffer {
     my ($self) = @_;
-    if ($self->_buffer) { return length $self->_buffer };
+    if ( $self->_buffer ) { return length $self->_buffer }
 
     $self->_get_next_chunk;
 
@@ -169,13 +178,15 @@ sub _readline_scalar {
     # Special case for "slurp" mode
     if ( !defined($/) ) {
         my $result;
-        $self->read($result, $self->file_doc->{'length'});
+        $self->read( $result, $self->file_doc->{'length'} );
         return $result;
     }
 
     return unless $self->_ensure_buffer;
     my $newline_index;
-    while ( ($newline_index = index $self->_buffer, $/) < 0) { last unless $self->_get_next_chunk };
+    while ( ( $newline_index = index $self->_buffer, $/ ) < 0 ) {
+        last unless $self->_get_next_chunk;
+    }
     my $substr_len = $newline_index < 0 ? length $self->_buffer : $newline_index + 1;
     return substr $self->_buffer, $self->_offset, $substr_len, '';
 }
@@ -219,7 +230,7 @@ Works like the builtin C<eof>.
 
 sub eof {
     my ($self) = @_;
-    return 1 if $self->_closed || ! $self->_ensure_buffer;
+    return 1 if $self->_closed || !$self->_ensure_buffer;
     return;
 }
 
@@ -249,7 +260,7 @@ Works like the builtin C<getc>.
 sub getc {
     my ($self) = @_;
     my $char;
-    $self->read($char, 1);
+    $self->read( $char, 1 );
     return $char;
 }
 
@@ -264,31 +275,34 @@ Works like the builtin C<read>.
 sub read {
     my $self = shift;
     if ( $self->_closed ) {
-        warnings::warnif('closed', 'read called on a closed MongoDB::GridFSBucket::DownloadStream');
+        warnings::warnif( 'closed',
+            'read called on a closed MongoDB::GridFSBucket::DownloadStream' );
         return;
     }
     my $buffref = \$_[0];
-    my(undef,$len,$offset) = @_;
+    my ( undef, $len, $offset ) = @_;
     if ( $len < 0 ) {
-        MongoDB::UsageError->throw('Negative length passed to MongoDB::GridFSBucket::DownloadStream->read')
-    };
+        MongoDB::UsageError->throw(
+            'Negative length passed to MongoDB::GridFSBucket::DownloadStream->read');
+    }
     my $bufflen = length $$buffref;
 
-    $offset ||= 0;
-    $bufflen ||= 0;
+    $offset   ||= 0;
+    $bufflen  ||= 0;
     $$buffref ||= '';
 
-    $offset = max(0, $bufflen + $offset) if $offset < 0;
+    $offset = max( 0, $bufflen + $offset ) if $offset < 0;
     if ( $offset > $bufflen ) {
-        $$buffref .= ("\0" x ($offset - $bufflen));
-    } else {
+        $$buffref .= ( "\0" x ( $offset - $bufflen ) );
+    }
+    else {
         substr $$buffref, $offset, $bufflen - $offset, '';
     }
 
     return unless $self->_ensure_buffer;
 
-    while ( length $self->_buffer < $len ) { last unless $self->_get_next_chunk };
-    my $read_len = min(length $self->_buffer, $len);
+    while ( length $self->_buffer < $len ) { last unless $self->_get_next_chunk }
+    my $read_len = min( length $self->_buffer, $len );
     $$buffref .= substr $self->_buffer, $self->_offset, $read_len, '';
     return $read_len;
 }
@@ -305,7 +319,8 @@ Works like the builtin C<readline>.
 sub readline {
     my ($self) = @_;
     if ( $self->_closed ) {
-        warnings::warnif('closed', 'readline called on a closed MongoDB::GridFSBucket::DownloadStream');
+        warnings::warnif( 'closed',
+            'readline called on a closed MongoDB::GridFSBucket::DownloadStream' );
         return;
     }
     return $self->_readline_scalar unless wantarray;
@@ -325,27 +340,27 @@ sub DEMOLISH {
 # Magic tie methods
 
 sub TIEHANDLE {
-    my ($class, $self) = @_;
+    my ( $class, $self ) = @_;
     return $self;
 }
 
 {
     no warnings 'once';
-    *READ = \&read;
+    *READ     = \&read;
     *READLINE = \&readline;
-    *CLOSE = \&close;
-    *GETC = \&getc;
-    *EOF = \&eof;
-    *FILENO = \&fileno;
+    *CLOSE    = \&close;
+    *GETC     = \&getc;
+    *EOF      = \&eof;
+    *FILENO   = \&fileno;
 }
 
 my @unimplemented = qw(
-    BINMODE
-    PRINT
-    PRINTF
-    SEEK
-    TELL
-    WRITE
+  BINMODE
+  PRINT
+  PRINTF
+  SEEK
+  TELL
+  WRITE
 );
 
 for my $u (@unimplemented) {

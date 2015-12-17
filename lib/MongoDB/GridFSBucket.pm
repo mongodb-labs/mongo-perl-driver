@@ -24,17 +24,17 @@ use Moo;
 use MongoDB::GridFSBucket::DownloadStream;
 use MongoDB::GridFSBucket::UploadStream;
 use MongoDB::_Types qw(
-    ReadPreference
-    WriteConcern
-    ReadConcern
-    BSONCodec
-    NonNegNum
+  ReadPreference
+  WriteConcern
+  ReadConcern
+  BSONCodec
+  NonNegNum
 );
 use Scalar::Util qw/reftype/;
 use Types::Standard qw(
-    Int
-    Str
-    InstanceOf
+  Int
+  Str
+  InstanceOf
 );
 use namespace::clean -except => 'meta';
 
@@ -46,7 +46,7 @@ The L<MongoDB::Database> containing the GridFS bucket collections.
 
 has database => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::Database'],
+    isa      => InstanceOf ['MongoDB::Database'],
     required => 1,
 );
 
@@ -164,7 +164,7 @@ has max_time_ms => (
 
 has _files => (
     is       => 'lazy',
-    isa      => InstanceOf['MongoDB::Collection'],
+    isa      => InstanceOf ['MongoDB::Collection'],
     init_arg => undef,
 );
 
@@ -175,7 +175,7 @@ sub _build__files {
         {
             read_preference => $self->read_preference,
             write_concern   => $self->write_concern,
-            read_concern   => $self->read_concern,
+            read_concern    => $self->read_concern,
             max_time_ms     => $self->max_time_ms,
             bson_codec      => $self->bson_codec,
         }
@@ -185,7 +185,7 @@ sub _build__files {
 
 has _chunks => (
     is       => 'lazy',
-    isa      => InstanceOf['MongoDB::Collection'],
+    isa      => InstanceOf ['MongoDB::Collection'],
     init_arg => undef,
 );
 
@@ -196,11 +196,11 @@ sub _build__chunks {
         {
             read_preference => $self->read_preference,
             write_concern   => $self->write_concern,
-            read_concern   => $self->read_concern,
+            read_concern    => $self->read_concern,
             max_time_ms     => $self->max_time_ms,
             # XXX: Generate a new bson codec here to
             # prevent users from changing it?
-            bson_codec      => $self->bson_codec,
+            bson_codec => $self->bson_codec,
         }
     );
     return $coll;
@@ -210,8 +210,8 @@ sub _ensure_indexes {
     my ($self) = @_;
 
     # ensure the necessary index is present (this may be first usage)
-    $self->_files->indexes->create_one([ filename => 1, uploadDate => 1 ]);
-    $self->_chunks->indexes->create_one([ files_id => 1, n => 1 ]);
+    $self->_files->indexes->create_one( [ filename => 1, uploadDate => 1 ] );
+    $self->_chunks->indexes->create_one( [ files_id => 1, n => 1 ] );
 }
 
 =method find
@@ -230,8 +230,8 @@ of options identical to L<MongoDB::Collection/find>.
 =cut
 
 sub find {
-    my ($self, $filter, $options) = @_;
-    return $self->_files->find($filter, $options)->result;
+    my ( $self, $filter, $options ) = @_;
+    return $self->_files->find( $filter, $options )->result;
 }
 
 =method open_download_stream
@@ -246,18 +246,22 @@ throws a L<MongoDB::GridFSError> if no such file exists.
 =cut
 
 sub open_download_stream {
-    my ($self, $id) = @_;
+    my ( $self, $id ) = @_;
     MongoDB::UsageError->throw('No id provided to open_download_stream') unless $id;
     my $file_doc = $self->_files->find_id($id);
-    MongoDB::GridFSError->throw("FileNotFound: no file found for id '$id'") unless $file_doc;
-    my $result = $file_doc->{'length'} > 0 ?
-        $self->_chunks->find({ files_id => $id }, { sort => { n => 1 } })->result :
-        undef;
-    return MongoDB::GridFSBucket::DownloadStream->new({
-        id       => $id,
-        file_doc => $file_doc,
-        _result  => $result,
-    });
+    MongoDB::GridFSError->throw("FileNotFound: no file found for id '$id'")
+      unless $file_doc;
+    my $result =
+        $file_doc->{'length'} > 0
+      ? $self->_chunks->find( { files_id => $id }, { sort => { n => 1 } } )->result
+      : undef;
+    return MongoDB::GridFSBucket::DownloadStream->new(
+        {
+            id       => $id,
+            file_doc => $file_doc,
+            _result  => $result,
+        }
+    );
 }
 
 =method open_upload_stream
@@ -288,16 +292,18 @@ L<MongoDB::GridFSBucket::UploadStream> constructor:
 =cut
 
 sub open_upload_stream {
-    my ($self, $filename, $options) = @_;
+    my ( $self, $filename, $options ) = @_;
     MongoDB::UsageError->throw('No filename provided to open_upload_stream')
-        unless defined $filename && length $filename;
+      unless defined $filename && length $filename;
 
-    return MongoDB::GridFSBucket::UploadStream->new({
-        chunk_size_bytes => $self->chunk_size_bytes,
-        ( $options ? %$options : () ),
-        _bucket   => $self,
-        filename => $filename,
-    });
+    return MongoDB::GridFSBucket::UploadStream->new(
+        {
+            chunk_size_bytes => $self->chunk_size_bytes,
+            ( $options ? %$options : () ),
+            _bucket  => $self,
+            filename => $filename,
+        }
+    );
 }
 
 =method download_to_stream
@@ -310,18 +316,19 @@ This throws a L<MongoDB::GridFSError> if no such file exists.
 =cut
 
 sub download_to_stream {
-    my ($self, $id, $target_fh) = @_;
+    my ( $self, $id, $target_fh ) = @_;
     MongoDB::UsageError->throw('No id provided to download_to_stream')
-        unless defined $id;
+      unless defined $id;
     MongoDB::UsageError->throw('No handle provided to download_to_stream')
-        unless defined $target_fh;
-    MongoDB::UsageError->throw('Invalid handle $target_fh provided to download_to_stream')
-        unless reftype $target_fh eq 'GLOB';
+      unless defined $target_fh;
+    MongoDB::UsageError->throw(
+        'Invalid handle $target_fh provided to download_to_stream')
+      unless reftype $target_fh eq 'GLOB';
 
     my $download_stream = $self->open_download_stream($id);
-    my $csb = $download_stream->file_doc->{chunkSize};
+    my $csb             = $download_stream->file_doc->{chunkSize};
     my $buffer;
-    while ( $download_stream->read($buffer, $csb) ) {
+    while ( $download_stream->read( $buffer, $csb ) ) {
         print {$target_fh} $buffer;
     }
     $download_stream->close;
@@ -346,15 +353,16 @@ L</open_upload_stream>.
 =cut
 
 sub upload_from_stream {
-    my ($self, $filename, $source_fh, $options) = @_;
+    my ( $self, $filename, $source_fh, $options ) = @_;
     MongoDB::UsageError->throw('No filename provided to upload_from_stream')
-        unless defined $filename && length $filename;
+      unless defined $filename && length $filename;
     MongoDB::UsageError->throw('No handle provided to upload_from_stream')
-        unless defined $source_fh;
-    MongoDB::UsageError->throw('Invalid handle $source_fh provided to upload_from_stream')
-        unless reftype $source_fh eq 'GLOB';
+      unless defined $source_fh;
+    MongoDB::UsageError->throw(
+        'Invalid handle $source_fh provided to upload_from_stream')
+      unless reftype $source_fh eq 'GLOB';
 
-    my $upload_stream = $self->open_upload_stream($filename, $options);
+    my $upload_stream = $self->open_upload_stream( $filename, $options );
     my $csb = $upload_stream->chunk_size_bytes;
     my $buffer;
     while ( read $source_fh, $buffer, $csb ) {
@@ -374,13 +382,13 @@ This throws a L<MongoDB::GridFSError> if no such file exists.
 =cut
 
 sub delete {
-    my ($self, $id) = @_;
-    my $delete_result = $self->_files->delete_one({ _id => $id });
+    my ( $self, $id ) = @_;
+    my $delete_result = $self->_files->delete_one( { _id => $id } );
     # This should only ever be 0 or 1, checking for exactly 1 to be thorough
-    unless ($delete_result->deleted_count == 1) {
+    unless ( $delete_result->deleted_count == 1 ) {
         MongoDB::GridFSError->throw("FileNotFound: no file found for id $id");
     }
-    $self->_chunks->delete_many({ files_id => $id });
+    $self->_chunks->delete_many( { files_id => $id } );
     return;
 }
 

@@ -27,15 +27,15 @@ use MongoDB::Error;
 use MongoDB::OID;
 use MongoDB::BSON::Binary;
 use Types::Standard qw(
-    Str
-    Bool
-    Maybe
-    HashRef
-    ArrayRef
-    InstanceOf
+  Str
+  Bool
+  Maybe
+  HashRef
+  ArrayRef
+  InstanceOf
 );
 use MongoDB::_Types qw(
-    NonNegNum
+  NonNegNum
 );
 use MongoDB::_Constants;
 use Digest::MD5;
@@ -83,7 +83,7 @@ document on a successful upload.
 
 has metadata => (
     is  => 'ro',
-    isa => Maybe[HashRef],
+    isa => Maybe [HashRef],
 );
 
 =attr content_type (DEPRECATED)
@@ -115,12 +115,12 @@ document on a successful upload.
 
 has aliases => (
     is  => 'ro',
-    isa => ArrayRef[Str],
+    isa => ArrayRef [Str],
 );
 
 has _bucket => (
     is       => 'ro',
-    isa      => InstanceOf['MongoDB::GridFSBucket'],
+    isa      => InstanceOf ['MongoDB::GridFSBucket'],
     required => 1,
 );
 
@@ -134,8 +134,8 @@ be stored in the C<_id> field of the file document on a successful upload.
 =cut
 
 has id => (
-    is       => 'lazy',
-    isa      => InstanceOf['MongoDB::OID'],
+    is  => 'lazy',
+    isa => InstanceOf ['MongoDB::OID'],
 );
 
 sub _build_id {
@@ -161,8 +161,8 @@ has _length => (
 );
 
 has _md5 => (
-    is => 'lazy',
-    isa => InstanceOf['Digest::MD5'],
+    is  => 'lazy',
+    isa => InstanceOf ['Digest::MD5'],
 );
 
 sub _build__md5 {
@@ -218,29 +218,32 @@ sub fh {
 }
 
 sub _flush_chunks {
-    my ($self, $all) = @_;
+    my ( $self, $all ) = @_;
     my @chunks = ();
     my $data;
-    while ( length $self->_buffer >= $self->chunk_size_bytes || ( $all && length $self->_buffer > 0 ) ) {
+    while ( length $self->_buffer >= $self->chunk_size_bytes
+        || ( $all && length $self->_buffer > 0 ) )
+    {
         $data = substr $self->_buffer, 0, $self->chunk_size_bytes, '';
 
-        push @chunks, {
+        push @chunks,
+          {
             files_id => $self->id,
             n        => int( $self->_current_chunk_n ),
-            data     => MongoDB::BSON::Binary->new({ data => $data }),
-        };
+            data     => MongoDB::BSON::Binary->new( { data => $data } ),
+          };
         $self->{_current_chunk_n} += 1;
     }
     if ( scalar(@chunks) ) {
-        eval { $self->_bucket->_chunks->insert_many(\@chunks) };
-        if ( $@ ) {
+        eval { $self->_bucket->_chunks->insert_many( \@chunks ) };
+        if ($@) {
             MongoDB::GridFSError->throw("Error inserting chunks: $@");
         }
     }
 }
 
 sub _write_data {
-    my ($self, $data) = @_;
+    my ( $self, $data ) = @_;
     Encode::_utf8_off($data); # force it to bytes for transmission
     $self->{_buffer} .= $data;
     $self->{_length} += length $data;
@@ -264,7 +267,7 @@ sub abort {
         return;
     }
 
-    $self->_bucket->_chunks->delete_many({ files_id => $self->id });
+    $self->_bucket->_chunks->delete_many( { files_id => $self->id } );
     $self->_set__closed(1);
 }
 
@@ -295,20 +298,20 @@ sub close {
     }
     $self->_flush_chunks(1);
     my $filedoc = {
-        _id         => $self->id,
-        length      => $self->_length,
-        chunkSize   => $self->chunk_size_bytes,
-        uploadDate  => DateTime->now,
-        md5         => $self->_md5->hexdigest,
-        filename    => $self->filename,
+        _id        => $self->id,
+        length     => $self->_length,
+        chunkSize  => $self->chunk_size_bytes,
+        uploadDate => DateTime->now,
+        md5        => $self->_md5->hexdigest,
+        filename   => $self->filename,
     };
     $filedoc->{'contentType'} = $self->content_type if $self->content_type;
-    $filedoc->{'metadata'} = $self->metadata if $self->metadata;
-    $filedoc->{'aliases'} = $self->aliases if $self->aliases;
+    $filedoc->{'metadata'}    = $self->metadata     if $self->metadata;
+    $filedoc->{'aliases'}     = $self->aliases      if $self->aliases;
     eval { $self->_bucket->_files->insert_one($filedoc) };
-    if ( $@ ) {
+    if ($@) {
         MongoDB::GridFSError->throw("Error inserting file document: $@");
-    };
+    }
     $self->_set__closed(1);
     return 1;
 }
@@ -341,7 +344,7 @@ sub print {
     return if $self->_closed;
     my $fsep = defined($,) ? $, : '';
     my $osep = defined($\) ? $\ : '';
-    my $output = join($fsep, @_) . $osep;
+    my $output = join( $fsep, @_ ) . $osep;
     $self->_write_data($output);
     return 1;
 }
@@ -355,10 +358,10 @@ Works like the builtin C<printf>.
 =cut
 
 sub printf {
-    my $self = shift;
+    my $self   = shift;
     my $format = shift;
     local $\;
-    $self->print(sprintf($format, @_));
+    $self->print( sprintf( $format, @_ ) );
 }
 
 =method syswrite
@@ -372,18 +375,19 @@ Works like the builtin C<syswrite>.
 =cut
 
 sub syswrite {
-    my($self, $buff, $len, $offset) = @_;
+    my ( $self, $buff, $len, $offset ) = @_;
     my $bufflen = length $buff;
 
     $len = $bufflen unless defined $len;
     if ( $len < 0 ) {
-        MongoDB::UsageError->throw('Negative length passed to MongoDB::GridFSBucket::DownloadStream->read')
-    };
+        MongoDB::UsageError->throw(
+            'Negative length passed to MongoDB::GridFSBucket::DownloadStream->read');
+    }
 
     $offset ||= 0;
 
     local $\;
-    $self->print(substr($buff, $offset, $len));
+    $self->print( substr( $buff, $offset, $len ) );
 }
 
 sub DEMOLISH {
@@ -392,27 +396,27 @@ sub DEMOLISH {
 }
 
 sub TIEHANDLE {
-    my ($class, $self) = @_;
+    my ( $class, $self ) = @_;
     return $self;
 }
 
 {
     no warnings 'once';
-    *PRINT = \&print;
+    *PRINT  = \&print;
     *PRINTF = \&printf;
-    *WRITE = \&syswrite;
-    *CLOSE = \&close;
+    *WRITE  = \&syswrite;
+    *CLOSE  = \&close;
     *FILENO = \&fileno;
 }
 
 my @unimplemented = qw(
-    BINMODE
-    EOF
-    GETC
-    READ
-    READLINE
-    SEEK
-    TELL
+  BINMODE
+  EOF
+  GETC
+  READ
+  READLINE
+  SEEK
+  TELL
 );
 
 for my $u (@unimplemented) {
