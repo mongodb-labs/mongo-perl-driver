@@ -26,6 +26,7 @@ use MongoDB::GridFSBucket::UploadStream;
 use MongoDB::_Types qw(
     ReadPreference
     WriteConcern
+    ReadConcern
     BSONCodec
     NonNegNum
 );
@@ -82,6 +83,23 @@ has write_concern => (
     isa      => WriteConcern,
     required => 1,
     coerce   => WriteConcern->coercion,
+);
+
+=attr read_concern
+
+A L<MongoDB::ReadConcern> object.  May be initialized with a hash
+reference or a string that will be coerced into the level of read
+concern.
+
+By default it will be inherited from a L<MongoDB::Database> object.
+
+=cut
+
+has read_concern => (
+    is       => 'ro',
+    isa      => ReadConcern,
+    required => 1,
+    coerce   => ReadConcern->coercion,
 );
 
 =attr read_preference
@@ -146,6 +164,7 @@ sub _build__files {
         {
             read_preference => $self->read_preference,
             write_concern   => $self->write_concern,
+            read_concern   => $self->read_concern,
             max_time_ms     => $self->max_time_ms,
             bson_codec      => $self->bson_codec,
         }
@@ -166,6 +185,7 @@ sub _build__chunks {
         {
             read_preference => $self->read_preference,
             write_concern   => $self->write_concern,
+            read_concern   => $self->read_concern,
             max_time_ms     => $self->max_time_ms,
             # XXX: Generate a new bson codec here to
             # prevent users from changing it?
