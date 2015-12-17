@@ -38,6 +38,12 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
+=attr database
+
+The L<MongoDB::Database> containing the GridFS bucket collections.
+
+=cut
+
 has database => (
     is       => 'ro',
     isa      => InstanceOf['MongoDB::Database'],
@@ -108,6 +114,11 @@ A L<MongoDB::ReadPreference> object.  It may be initialized with a string
 corresponding to one of the valid read preference modes or a hash reference
 that will be coerced into a new MongoDB::ReadPreference object.
 By default it will be inherited from a L<MongoDB::Database> object.
+
+B<Note:> Because many GridFS operations require multiple independent reads from
+separate collections, use with secondaries is B<strongly discouraged> because
+reads could go to different secondaries, resulting in inconsistent data
+if all file and chunk documents have not replicated to all secondaries.
 
 =cut
 
