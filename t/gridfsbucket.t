@@ -257,6 +257,7 @@ sub setup_gridfs {
 
     my $dl_stream = $bucket->open_download_stream($txt_id);
     my $fh        = $dl_stream->fh;
+    is( fileno($fh), -1, "fileno on fh returns -1" );
     my $result;
     read $fh, $result, 3;
     is( $result, 'abc', 'simple fh read' );
@@ -279,6 +280,10 @@ sub setup_gridfs {
         }
     }
     ok( $ok, "complex fh readline as expected" );
+    do { local $/; <$fh> };
+    ok( eof($fh), "EOF" );
+    close $fh;
+    is( fileno($fh), undef, "fileno on closed fh returns undef" );
     close $big_fh;
 }
 
@@ -324,12 +329,15 @@ sub setup_gridfs {
     my $bucket = $testdb->get_gridfsbucket;
     my $uploadstream =
       $bucket->open_upload_stream( 'unicode.txt', { chunk_size_bytes => 12 }, );
+    my $fh = $uploadstream->fh;
+    is( fileno($fh), -1, "fileno on open fh returns -1" );
     my $beer    = "\x{1f37a}";
     my $teststr = 'abcdefghijk' . $beer;
     my $testlen = length Encode::encode_utf8($teststr);
 
     $uploadstream->print($teststr);
     $uploadstream->close;
+    is( fileno($fh), undef, "fileno on closed fh returns undef" );
     my $id = $uploadstream->id;
     is( $bucket->_chunks->count( { files_id => $id } ), 2, 'unicode upload' );
     is( $bucket->_files->find_id($id)->{length}, $testlen, 'unicode upload file length' );

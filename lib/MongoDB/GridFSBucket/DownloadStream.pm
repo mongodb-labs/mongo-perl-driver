@@ -39,6 +39,22 @@ use namespace::clean -except => 'meta';
 
 The file document for the file to be downloaded.
 
+Valid file documents typically include the following fields:
+
+=for :list
+* _id – a unique ID for this document, typically a L<MongoDB::OID> object.
+  Legacy GridFS files may store this value as a different type.
+* length – the length of this stored file, in bytes
+* chunkSize – the size, in bytes, of each full data chunk of this file.
+* uploadDate – the date and time this file was added to GridFS, stored as a
+  BSON datetime value and inflated per the bucket's
+  L<bson_codec|MongoDB::GridFSBucket/bson_codec> attribute.
+* md5 – a hash of the contents of the stored file
+* filename – the name of this stored file; this does not need to be unique
+* metadata – any additional application-specific data
+* contentType – DEPRECATED
+* aliases – DEPRECATED
+
 =cut
 
 has file_doc => (
@@ -72,15 +88,7 @@ has _offset => (
     default => 0,
 );
 
-=method closed
-
-    if ( $handle->closed ) { ... }
-
-Returns true if the handle has been closed or false otherwise.
-
-=cut
-
-has closed => (
+has _closed => (
     is      => 'rwp',
     isa     => Bool,
     default => 0,
@@ -94,10 +102,10 @@ has closed => (
     }
 
 Returns a new Perl file handle tied to this instance of DownloadStream that
-can be operated on with the functions C<read>, C<readline>, C<getc>, and
-C<close>.
+can be operated on with the built-in functions C<read>, C<readline>,
+C<getc>, C<eof>, C<fileno> and C<close>.
 
-Important notes:
+B<Important notes>:
 
 Allowing one of these tied filehandles to fall out of scope will NOT cause
 close to be called. This is due to the way tied file handles are
@@ -172,27 +180,77 @@ sub _readline_scalar {
     return substr $self->_buffer, $self->_offset, $substr_len, '';
 }
 
-=method readline
+=method close
 
-    $line = $stream->readline();
+    $stream->close
 
-Works like the builtin C<readline>.
+Works like the builtin C<close>.
+
+B<Important notes:>
+
+=for :list
+* Calling close will also cause any tied file handles created for the
+  stream to also close.
+* C<close> will be automatically called when a stream object is destroyed.
+* Calling C<close> repeately will warn.
 
 =cut
 
-sub readline {
+sub close {
     my ($self) = @_;
-    if ( $self->closed ) {
-        warnings::warnif('closed', 'readline called on a closed MongoDB::GridFSBucket::DownloadStream');
+    if ( $self->_closed ) {
+        warn 'Attempted to close an already closed MongoDB::GridFSBucket::DownloadStream';
         return;
     }
-    return $self->_readline_scalar unless wantarray;
+    $self->_set__closed(1);
+    $self->{_result} = undef;
+    $self->{_buffer} = undef;
+    $self->_set__chunk_n(0);
+    return 1;
+}
 
-    my @result = ();
-    while ( my $line = $self->_readline_scalar ) {
-        push @result, $line;
-    }
-    return @result;
+=method eof
+
+    if ( $stream->eof() ) { ... }
+
+Works like the builtin C<eof>.
+
+=cut
+
+sub eof {
+    my ($self) = @_;
+    return 1 if $self->_closed || ! $self->_ensure_buffer;
+    return;
+}
+
+=method fileno
+
+    if ( $stream->fileno() ) { ... }
+
+Works like the builtin C<fileno>, but it returns -1 if the stream is open
+and undef if closed.
+
+=cut
+
+sub fileno {
+    my ($self) = @_;
+    return if $self->_closed;
+    return -1;
+}
+
+=method getc
+
+    $char = $stream->getc();
+
+Works like the builtin C<getc>.
+
+=cut
+
+sub getc {
+    my ($self) = @_;
+    my $char;
+    $self->read($char, 1);
+    return $char;
 }
 
 =method read
@@ -205,7 +263,7 @@ Works like the builtin C<read>.
 
 sub read {
     my $self = shift;
-    if ( $self->closed ) {
+    if ( $self->_closed ) {
         warnings::warnif('closed', 'read called on a closed MongoDB::GridFSBucket::DownloadStream');
         return;
     }
@@ -235,41 +293,33 @@ sub read {
     return $read_len;
 }
 
-=method getc
+=method readline
 
-    $char = $stream->getc();
+    $line  = $stream->readline();
+    @lines = $stream->readline();
 
-Works like the builtin C<getc>.
-
-=cut
-
-sub getc {
-    my ($self) = @_;
-    my $char;
-    $self->read($char, 1);
-    return $char;
-}
-
-=method close
-
-    $stream->close
-
-Works like the builtin C<close>.
+Works like the builtin C<readline>.
 
 =cut
 
-sub close {
+sub readline {
     my ($self) = @_;
-    $self->_set_closed(1);
-    $self->{_result} = undef;
-    $self->{_buffer} = undef;
-    $self->_set__chunk_n(0);
-    return 1;
+    if ( $self->_closed ) {
+        warnings::warnif('closed', 'readline called on a closed MongoDB::GridFSBucket::DownloadStream');
+        return;
+    }
+    return $self->_readline_scalar unless wantarray;
+
+    my @result = ();
+    while ( my $line = $self->_readline_scalar ) {
+        push @result, $line;
+    }
+    return @result;
 }
 
 sub DEMOLISH {
     my ($self) = @_;
-    $self->close unless $self->closed;
+    $self->close unless $self->_closed;
 }
 
 # Magic tie methods
@@ -279,14 +329,32 @@ sub TIEHANDLE {
     return $self;
 }
 
-sub BINMODE {
-    MongoDB::UsageError->throw("binmode() not available on " . __PACKAGE__);
+{
+    no warnings 'once';
+    *READ = \&read;
+    *READLINE = \&readline;
+    *CLOSE = \&close;
+    *GETC = \&getc;
+    *EOF = \&eof;
+    *FILENO = \&fileno;
 }
 
-*READ = \&read;
-*READLINE = \&readline;
-*CLOSE = \&close;
-*GETC = \&getc;
+my @unimplemented = qw(
+    BINMODE
+    PRINT
+    PRINTF
+    SEEK
+    TELL
+    WRITE
+);
+
+for my $u (@unimplemented) {
+    no strict 'refs';
+    my $l = $u eq 'WRITE' ? 'syswrite' : lc($u);
+    *{$u} = sub {
+        MongoDB::UsageError->throw( "$l() not available on " . __PACKAGE__ );
+    };
+}
 
 1;
 

@@ -29,6 +29,7 @@ use MongoDB::_Types qw(
     BSONCodec
     NonNegNum
 );
+use Scalar::Util qw/reftype/;
 use Types::Standard qw(
     Int
     Str
@@ -223,7 +224,6 @@ sub open_download_stream {
         undef;
     return MongoDB::GridFSBucket::DownloadStream->new({
         id       => $id,
-        bucket   => $self,
         file_doc => $file_doc,
         _result  => $result,
     });
@@ -258,11 +258,13 @@ L<MongoDB::GridFSBucket::UploadStream> constructor:
 
 sub open_upload_stream {
     my ($self, $filename, $options) = @_;
+    MongoDB::UsageError->throw('No filename provided to open_upload_stream')
+        unless defined $filename && length $filename;
 
     return MongoDB::GridFSBucket::UploadStream->new({
         chunk_size_bytes => $self->chunk_size_bytes,
         ( $options ? %$options : () ),
-        bucket   => $self,
+        _bucket   => $self,
         filename => $filename,
     });
 }
@@ -277,39 +279,21 @@ This throws a L<MongoDB::GridFSError> if no such file exists.
 =cut
 
 sub download_to_stream {
-    my ($self, $id, $fh) = @_;
-    MongoDB::UsageError->throw('No id provided to download_to_stream') unless $id;
+    my ($self, $id, $target_fh) = @_;
+    MongoDB::UsageError->throw('No id provided to download_to_stream')
+        unless defined $id;
+    MongoDB::UsageError->throw('No handle provided to download_to_stream')
+        unless defined $target_fh;
+    MongoDB::UsageError->throw('Invalid handle $target_fh provided to download_to_stream')
+        unless reftype $target_fh eq 'GLOB';
 
-    my $file_doc = $self->_files->find_one({ _id => $id });
-    if (!$file_doc) {
-        MongoDB::GridFSError->throw("FileNotFound: no file found for id '$id'");
+    my $download_stream = $self->open_download_stream($id);
+    my $csb = $download_stream->file_doc->{chunkSize};
+    my $buffer;
+    while ( $download_stream->read($buffer, $csb) ) {
+        print {$target_fh} $buffer;
     }
-    return unless $file_doc->{length} > 0;
-
-    my $chunks = $self->_chunks->find({ files_id => $id }, { sort => { n => 1 } })->result;
-    my $last_chunk_n = int($file_doc->{'length'} / $file_doc->{'chunkSize'});
-    for my $n (0..($last_chunk_n)) {
-        if (!$chunks->has_next) {
-            MongoDB::GridFSError->throw("ChunkIsMissing: missing chunk $n for file with id $id");
-        }
-        my $chunk = $chunks->next;
-        if ( $chunk->{'n'} != $n) {
-            MongoDB::GridFSError->throw(sprintf(
-                    'ChunkIsMissing: expected chunk %d but got chunk %d',
-                    $n, $chunk->{'n'},
-            ));
-        }
-        my $expected_size = $chunk->{'n'} == $last_chunk_n ?
-            $file_doc->{'length'} % $file_doc->{'chunkSize'} :
-            $file_doc->{'chunkSize'};
-        if ( length $chunk->{'data'} != $expected_size ) {
-            MongoDB::GridFSError->throw(sprintf(
-                "ChunkIsWrongSize: chunk $n from file with id $id has incorrect size %d, expected %d",
-                length $chunk->{'data'}, $expected_size,
-            ));
-        }
-        print $fh $chunk->{data};
-    }
+    $download_stream->close;
     return;
 }
 
@@ -331,10 +315,18 @@ L</open_upload_stream>.
 =cut
 
 sub upload_from_stream {
-    my ($self, $filename, $source, $options) = @_;
+    my ($self, $filename, $source_fh, $options) = @_;
+    MongoDB::UsageError->throw('No filename provided to upload_from_stream')
+        unless defined $filename && length $filename;
+    MongoDB::UsageError->throw('No handle provided to upload_from_stream')
+        unless defined $source_fh;
+    MongoDB::UsageError->throw('Invalid handle $source_fh provided to upload_from_stream')
+        unless reftype $source_fh eq 'GLOB';
+
     my $upload_stream = $self->open_upload_stream($filename, $options);
+    my $csb = $upload_stream->chunk_size_bytes;
     my $buffer;
-    while ( read $source, $buffer, $upload_stream->chunk_size_bytes ) {
+    while ( read $source_fh, $buffer, $csb ) {
         $upload_stream->print($buffer);
     }
     $upload_stream->close;
@@ -418,10 +410,10 @@ Valid file documents typically include the following fields:
 
 =for :list
 * _id – a unique ID for this document, typically type BSON ObjectId. Legacy
-  GridFS systems may store this value as a different type. New files must
+  GridFS documents may store this value as a different type. New files must
   be stored using an ObjectId.
 * length – the length of this stored file, in bytes
-* chunkSize – the size, in bytes, of each data chunk of this file. This
+* chunkSize – the size, in bytes, of each full data chunk of this file. This
   value is configurable per file.
 * uploadDate – the date and time this file was added to GridFS, stored as
   a BSON datetime value.

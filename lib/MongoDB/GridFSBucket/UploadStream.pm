@@ -47,6 +47,9 @@ use namespace::clean -except => 'meta';
 The number of bytes per chunk.  Defaults to the C<chunk_size_bytes> of the
 originating bucket object.
 
+This will be stored in the C<chunkSize> field of the file document on
+a successful upload.
+
 =cut
 
 has chunk_size_bytes => (
@@ -59,6 +62,9 @@ has chunk_size_bytes => (
 
 The filename to store the file under. Note that filenames are NOT necessarily unique.
 
+This will be stored in the C<filename> field of the file document on
+a successful upload.
+
 =cut
 
 has filename => (
@@ -68,7 +74,10 @@ has filename => (
 
 =attr metadata
 
-An optional subdocument for storing arbitrary metadata about the file.
+An optional hashref for storing arbitrary metadata about the file.
+
+If defined, this will be stored in the C<metadata> field of the file
+document on a successful upload.
 
 =cut
 
@@ -77,11 +86,14 @@ has metadata => (
     isa => Maybe[HashRef],
 );
 
-=attr content_type
+=attr content_type (DEPRECATED)
 
-DEPRECATED: a valid MIME type. Should only be used for backwards compatibility
-with older GridFS implementations. New applications should store the content type
-in the metadata document if needed.
+An optional MIME type. This field should only be used for backwards
+compatibility with older GridFS implementations. New applications should
+store the content type in the metadata hash if needed.
+
+If defined, this will be stored in the C<contentType> field of the file
+document on a successful upload.
 
 =cut
 
@@ -90,11 +102,14 @@ has content_type => (
     isa => Str,
 );
 
-=attr aliases
+=attr aliases (DEPRECATED)
 
-DEPRECATED: An array of aliases. Should only be used for backwards compatibility
-with older GridFS implementations. New applications should store aliases in the
-metadata document if needed.
+An optional array of aliases. This field should only be used for backwards
+compatibility with older GridFS implementations. New applications should
+store aliases in the metadata hash if needed.
+
+If defined, this will be stored in the C<aliases> field of the file
+document on a successful upload.
 
 =cut
 
@@ -103,13 +118,7 @@ has aliases => (
     isa => ArrayRef[Str],
 );
 
-=attr bucket
-
-The L<MongoDB::GridFSBucket> that constructed the upload stream.
-
-=cut
-
-has bucket => (
+has _bucket => (
     is       => 'ro',
     isa      => InstanceOf['MongoDB::GridFSBucket'],
     required => 1,
@@ -117,7 +126,10 @@ has bucket => (
 
 =method id
 
-The L<MongoDB::OID> of the file created by the stream.
+    $id = $stream->id;
+
+The generated L<MongoDB::OID> of the file created by the stream.  It will
+be stored in the C<_id> field of the file document on a successful upload.
 
 =cut
 
@@ -130,13 +142,7 @@ sub _build_id {
     return MongoDB::OID->new;
 }
 
-=method closed
-
-True if the stream is closed, false otherwise.
-
-=cut
-
-has closed => (
+has _closed => (
     is      => 'rwp',
     isa     => Bool,
     default => 0,
@@ -187,19 +193,20 @@ has _current_chunk_n => (
     close $fh
 
 Returns a new file handle tied to this instance of UploadStream that can be
-operated on with the functions C<print>, C<printf>, C<syswrite>, and
-C<close>.
+operated on with the built-in functions C<print>, C<printf>, C<syswrite>,
+C<fileno> and C<close>.
 
-Important notes:
+B<Important notes>:
 
-Allowing one of these tied filehandles to fall out of scope will NOT cause close
-to be called. This is due to the way tied file handles are implemented in Perl.
-For close to be called implicitly, all tied filehandles and the original object
-must go out of scope.
+Allowing one of these tied filehandles to fall out of scope will NOT cause
+close to be called. This is due to the way tied file handles are
+implemented in Perl.  For close to be called implicitly, all tied
+filehandles and the original object must go out of scope.
 
-Each file handle retrieved this way is tied back to the same object, so calling
-close on multiple tied file handles and/or the original object will have the
-same effect as calling close on the original object multiple times.
+Each file handle retrieved this way is tied back to the same object, so
+calling close on multiple tied file handles and/or the original object will
+have the same effect as calling close on the original object multiple
+times.
 
 =cut
 
@@ -225,7 +232,7 @@ sub _flush_chunks {
         $self->{_current_chunk_n} += 1;
     }
     if ( scalar(@chunks) ) {
-        eval { $self->bucket->_chunks->insert_many(\@chunks) };
+        eval { $self->_bucket->_chunks->insert_many(\@chunks) };
         if ( $@ ) {
             MongoDB::GridFSError->throw("Error inserting chunks: $@");
         }
@@ -252,28 +259,86 @@ and closing the stream.
 
 sub abort {
     my ($self) = @_;
-    if ( $self->closed ) {
+    if ( $self->_closed ) {
         warn 'Attempted to abort an already closed UploadStream';
         return;
     }
 
-    $self->bucket->_chunks->delete_many({ files_id => $self->id });
-    $self->_set_closed(1);
+    $self->_bucket->_chunks->delete_many({ files_id => $self->id });
+    $self->_set__closed(1);
+}
+
+=method close
+
+    $stream->close;
+
+Closes the stream and flushes any remaining data to the database. Once this is
+done a file document is created in the GridFS bucket, making the uploaded file
+visible in subsequent queries or downloads.
+
+B<Important notes:>
+
+=for :list
+* Calling close will also cause any tied file handles created for the
+  stream to also close.
+* C<close> will be automatically called when a stream object is destroyed.
+  When called this way, any errors thrown will not halt execution.
+* Calling C<close> repeately will warn.
+
+=cut
+
+sub close {
+    my ($self) = @_;
+    if ( $self->_closed ) {
+        warn 'Attempted to close an already closed MongoDB::GridFSBucket::UploadStream';
+        return;
+    }
+    $self->_flush_chunks(1);
+    my $filedoc = {
+        _id         => $self->id,
+        length      => $self->_length,
+        chunkSize   => $self->chunk_size_bytes,
+        uploadDate  => DateTime->now,
+        md5         => $self->_md5->hexdigest,
+        filename    => $self->filename,
+    };
+    $filedoc->{'contentType'} = $self->content_type if $self->content_type;
+    $filedoc->{'metadata'} = $self->metadata if $self->metadata;
+    $filedoc->{'aliases'} = $self->aliases if $self->aliases;
+    eval { $self->_bucket->_files->insert_one($filedoc) };
+    if ( $@ ) {
+        MongoDB::GridFSError->throw("Error inserting file document: $@");
+    };
+    $self->_set__closed(1);
+    return 1;
+}
+
+=method fileno
+
+    if ( $stream->fileno ) { ... }
+
+Works like the builtin C<fileno>, but it returns -1 if the stream is open
+and undef if closed.
+
+=cut
+
+sub fileno {
+    my ($self) = @_;
+    return if $self->_closed;
+    return -1;
 }
 
 =method print
 
-    $stream->print('my data...');
-    $stream->print('data', 'more data', 'still more data');
+    $stream->print(@data);
 
-Prints a string or a list of strings to the GridFS file.
-See the documentation for C<print> for more details
+Works like the builtin C<print>.
 
 =cut
 
 sub print {
     my $self = shift;
-    return if $self->closed;
+    return if $self->_closed;
     my $fsep = defined($,) ? $, : '';
     my $osep = defined($\) ? $\ : '';
     my $output = join($fsep, @_) . $osep;
@@ -283,10 +348,9 @@ sub print {
 
 =method printf
 
-    $stream->printf('%s: %d', 'life, the universe, and everything', 42)
+    $stream->printf($format, @data);
 
-Equivalent to C<< $stream->print(sprintf(FORMAT, LIST)) >>, except that
-C<$\> is not appended.  See the C<printf> documentation for more details.
+Works like the builtin C<printf>.
 
 =cut
 
@@ -299,11 +363,11 @@ sub printf {
 
 =method syswrite
 
-    $stream->syswrite(SCALAR, LENGTH, OFFSET);
+    $stream->syswrite($buffer);
+    $stream->syswrite($buffer, $length);
+    $stream->syswrite($buffer, $length, $offset);
 
-Attempts to write C<LENGTH> bytes of data from variable C<SCALAR> to the GridFS file.
-If C<LENGTH> is not specified, writes whole C<SCALAR>.
-See C<syswrite> for more details on how to use C<LENGTH> and C<OFFSET>.
+Works like the builtin C<syswrite>.
 
 =cut
 
@@ -322,53 +386,9 @@ sub syswrite {
     $self->print(substr($buff, $offset, $len));
 }
 
-=method close
-
-    $stream->close;
-
-Closes the stream and flushes any remaining data to the database. Once this is
-done a file document is created in the GridFSbucket, making the uploaded file
-visible in subsequent queries or downloads.
-
-B<Important Notes:>
-
-=for :list
-* Calling close will also cause any tied file handles created for the
-  stream to also close.
-* C<close> will be automatically called when a stream object is destroyed.
-  When called this way, any errors thrown will not halt execution.
-* Calling C<close> repeately will warn.
-
-=cut
-
-sub close {
-    my ($self) = @_;
-    if ( $self->closed ) {
-        warn 'Attempted to close an already closed MongoDB::GridFSBucket::UploadStream';
-        return;
-    }
-    $self->_flush_chunks(1);
-    my $filedoc = {
-        _id         => $self->id,
-        length      => $self->_length,
-        chunkSize   => $self->chunk_size_bytes,
-        uploadDate  => DateTime->now,
-        md5         => $self->_md5->hexdigest,
-        filename    => $self->filename,
-    };
-    $filedoc->{'contentType'} = $self->content_type if $self->content_type;
-    $filedoc->{'metadata'} = $self->metadata if $self->metadata;
-    $filedoc->{'aliases'} = $self->aliases if $self->aliases;
-    eval { $self->bucket->_files->insert_one($filedoc) };
-    if ( $@ ) {
-        MongoDB::GridFSError->throw("Error inserting file document: $@");
-    };
-    $self->_set_closed(1);
-}
-
 sub DEMOLISH {
     my ($self) = @_;
-    $self->close unless $self->closed;
+    $self->close unless $self->_closed;
 }
 
 sub TIEHANDLE {
@@ -376,14 +396,32 @@ sub TIEHANDLE {
     return $self;
 }
 
-sub BINMODE {
-    MongoDB::UsageError->throw("binmode() not available on " . __PACKAGE__);
+{
+    no warnings 'once';
+    *PRINT = \&print;
+    *PRINTF = \&printf;
+    *WRITE = \&syswrite;
+    *CLOSE = \&close;
+    *FILENO = \&fileno;
 }
 
-*PRINT = \&print;
-*PRINTF = \&printf;
-*WRITE = \&syswrite;
-*CLOSE = \&close;
+my @unimplemented = qw(
+    BINMODE
+    EOF
+    GETC
+    READ
+    READLINE
+    SEEK
+    TELL
+);
+
+for my $u (@unimplemented) {
+    no strict 'refs';
+    my $l = lc($u);
+    *{$u} = sub {
+        MongoDB::UsageError->throw( "$l() not available on " . __PACKAGE__ );
+    };
+}
 
 1;
 
@@ -397,6 +435,7 @@ __END__
     $stream  = $bucket->open_upload_stream("foo.txt");
     $stream->print( $data );
     $stream->close;
+    $id = $stream->id;
 
     # Tied handle API
     $fh = $stream->fh
@@ -408,8 +447,9 @@ __END__
 This class provides a file abstraction for uploading.  You can stream data
 to an object of this class via methods or via a tied-handle interface.
 
-When C<close> is called, all data will be flushed to the GridFS Bucket and
-the newly created file will be visible.
+Writes are buffered and sent in chunk-size units.  When C<close> is called,
+all data will be flushed to the GridFS Bucket and the newly created file
+will be visible.
 
 =head1 CAVEATS
 
@@ -419,12 +459,12 @@ All the writer methods (e.g. C<print>, C<printf>, etc.) send a binary
 representation of the string input provided (or generated in the case of
 C<printf>).  Unless you explicitly encode it to bytes, this will be the
 B<internal> representation of the string in the Perl interpreter.  If you
-have ASCII characters, it will be (ASCII) bytes.  If you have any
+have ASCII characters, it will already be bytes.  If you have any
 characters above C<0xff>, it will be UTF-8 encoded codepoints.  If you have
 characters between C<0x80> and C<0xff> and not higher, you might have
 either bytes or UTF-8 internally.
 
-B<You are strongly encouraged to do your own character encoding and upload
-only bytes to GridFS>.
+B<You are strongly encouraged to do your own character encoding with
+the L<Encode> module or equivalent and upload only bytes to GridFS>.
 
 =cut
