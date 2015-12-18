@@ -19,7 +19,7 @@ package MongoDB::Op::_Command;
 # Encapsulate running a command and returning a MongoDB::CommandResult
 
 use version;
-our $VERSION = 'v1.3.0';
+our $VERSION = 'v1.3.1';
 
 use Moo;
 

@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.3.0    2015-12-18 12:21:09-05:00 America/New_York (TRIAL RELEASE)
+
   [*** Deprecations ***]
 
   - The MongoDB::GridFS and MongoDB::GridFS::File classes are deprecated
