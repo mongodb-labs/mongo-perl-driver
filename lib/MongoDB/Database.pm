@@ -25,6 +25,7 @@ our $VERSION = 'v1.3.0';
 use MongoDB::CommandResult;
 use MongoDB::Error;
 use MongoDB::GridFS;
+use MongoDB::GridFSBucket;
 use MongoDB::Op::_ListCollections;
 use MongoDB::ReadPreference;
 use MongoDB::_Query;
@@ -264,15 +265,49 @@ sub get_collection {
 
 { no warnings 'once'; *coll = \&get_collection }
 
-=method get_gridfs
+=method get_gridfsbucket
+
+    my $grid = $database->get_gridfsbucket;
+    my $grid = $database->get_gridfsbucket($options);
+
+This method returns a L<MongoDB::GridFSBucket> object for storing and
+retrieving files from the database.
+
+It takes an optional hash reference of options that are passed to the
+L<MongoDB::GridFSBucket> constructor.
+
+See L<MongoDB::GridFSBucket> for more information.
+
+=cut
+
+sub get_gridfsbucket {
+    my ($self, $options) = @_;
+
+    return MongoDB::GridFSBucket->new(
+        read_preference => $self->read_preference,
+        write_concern   => $self->write_concern,
+        read_concern    => $self->read_concern,
+        bson_codec      => $self->bson_codec,
+        max_time_ms     => $self->max_time_ms,
+        ( $options ? %$options : () ),
+        # not allowed to be overridden by options
+        database => $self,
+    )
+}
+
+=method get_gridfs (DEPRECATED)
 
     my $grid = $database->get_gridfs;
     my $grid = $database->get_gridfs("fs");
     my $grid = $database->get_gridfs("fs", $options);
 
-Returns a L<MongoDB::GridFS> for storing and retrieving files from the database.
-Default prefix is "fs", making C<$grid-E<gt>files> "fs.files" and C<$grid-E<gt>chunks>
-"fs.chunks".
+The L<MongoDB::GridFS> class has been deprecated in favor of the new MongoDB
+driver-wide standard GridFS API, available via L<MongoDB::GridFSBucket> and
+the C<get_gridfsbucket> method.
+
+This method returns a L<MongoDB::GridFS> for storing and retrieving files
+from the database.  Default prefix is "fs", making C<$grid-E<gt>files>
+"fs.files" and C<$grid-E<gt>chunks> "fs.chunks".
 
 It takes an optional hash reference of options that are passed to the
 L<MongoDB::GridFS> constructor.

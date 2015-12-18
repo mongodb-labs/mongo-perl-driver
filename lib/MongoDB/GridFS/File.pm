@@ -17,7 +17,7 @@
 package MongoDB::GridFS::File;
 
 
-# ABSTRACT: A Mongo GridFS file
+# ABSTRACT: A Mongo GridFS file (DEPRECATED)
 
 use version;
 our $VERSION = 'v1.3.0';
@@ -158,6 +158,13 @@ sub slurp {
     $outfile = IO::File->new("outfile", "w");
     $file = $grid->find_one;
     $file->print($outfile);
+
+=head1 DEPRECATION
+
+B<Note>: This class has been deprecated in favor of
+L<MongoDB::GridFSBucket> and its related upload and download classes.  This
+class will be removed in a future release and you are encouraged to migrate
+your applications to L<MongoDB::GridFSBucket>.
 
 =head1 USAGE
 
