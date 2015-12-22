@@ -301,7 +301,7 @@ sub open_upload_stream {
             chunk_size_bytes => $self->chunk_size_bytes,
             ( $options ? %$options : () ),
             _bucket  => $self,
-            filename => $filename,
+            filename => "$filename", # stringify path objects
         }
     );
 }
