@@ -299,7 +299,7 @@ sub read {
         substr $$buffref, $offset, $bufflen - $offset, '';
     }
 
-    return unless $self->_ensure_buffer;
+    return 0 unless $self->_ensure_buffer;
 
     while ( length $self->_buffer < $len ) { last unless $self->_get_next_chunk }
     my $read_len = min( length $self->_buffer, $len );
