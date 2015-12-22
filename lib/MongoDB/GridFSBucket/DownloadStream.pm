@@ -344,6 +344,15 @@ sub TIEHANDLE {
     return $self;
 }
 
+sub BINMODE {
+    my ( $self, $mode ) = @_;
+    if ( !$mode || $mode eq ':raw' ) {
+        return 1;
+    }
+    $! = "binmode for " . __PACKAGE__ . " only supports :raw mode.";
+    return
+}
+
 {
     no warnings 'once';
     *READ     = \&read;
@@ -355,7 +364,6 @@ sub TIEHANDLE {
 }
 
 my @unimplemented = qw(
-  BINMODE
   PRINT
   PRINTF
   SEEK
