@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.3.1    2015-12-23 12:03:47-05:00 America/New_York (TRIAL RELEASE)
+
   [Additions]
 
   - MongoDB::GridFSBucket now has two additional search methods, find_one
