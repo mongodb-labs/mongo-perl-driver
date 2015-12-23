@@ -7,6 +7,19 @@
   - MongoDB::GridFSBucket now has two additional search methods, find_one
     and find_id, just like MongoDB::Collection.
 
+  - MongoDB::GridFSBucket::Upload/DownloadStream tied handles now provide
+    BINMODE, though only raw mode is supported.
+
+  [Bug fixes]
+
+  - Fixed MongoDB::GridFSBucket::DownloadStream::read() to return 0
+    instead of undef when there is no more data to read.
+
+  [Changes]
+
+  - MongoDB::GridFSBucket::UploadStream::close() returns file document
+    on success
+
 v1.3.0    2015-12-18 12:21:09-05:00 America/New_York (TRIAL RELEASE)
 
   [*** Deprecations ***]
