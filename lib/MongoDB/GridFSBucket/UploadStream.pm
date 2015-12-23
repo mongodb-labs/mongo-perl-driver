@@ -273,11 +273,13 @@ sub abort {
 
 =method close
 
-    $stream->close;
+    $file_doc = $stream->close;
 
 Closes the stream and flushes any remaining data to the database. Once this is
 done a file document is created in the GridFS bucket, making the uploaded file
 visible in subsequent queries or downloads.
+
+On success, the file document hash reference is returned as a convenience.
 
 B<Important notes:>
 
@@ -313,7 +315,7 @@ sub close {
         MongoDB::GridFSError->throw("Error inserting file document: $@");
     }
     $self->_set__closed(1);
-    return 1;
+    return $filedoc;
 }
 
 =method fileno

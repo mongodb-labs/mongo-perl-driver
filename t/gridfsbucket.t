@@ -309,8 +309,11 @@ sub setup_gridfs {
 
     $uploadstream->print( 'a' x 12 );
     $uploadstream->print( 'b' x 8 );
-    $uploadstream->close;
+    my $doc = $uploadstream->close;
     my $id = $uploadstream->id;
+    my $doc2 = $bucket->find_id($id);
+    $doc2->{uploadDate} = ignore(); # DateTime objects internals can differ :-(
+    cmp_deeply( $doc, $doc2, "close returns file document" );
     is( $bucket->_chunks->count( { files_id => $id } ),
         2, 'custom chunk size num chunks' );
     my @results = $bucket->_chunks->find( { files_id => $id } )->all;
