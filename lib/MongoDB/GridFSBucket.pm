@@ -452,7 +452,7 @@ __END__
 
 =head1 SYNOPSIS
 
-    $bucket = $database->get_gridfsbucket;
+    $bucket = $database->gfs;
 
     # upload a file
     $stream  = $bucket->open_upload_stream("foo.txt");
@@ -471,7 +471,8 @@ This class models a GridFS file store in a MongoDB database and provides an
 API for interacting with it.
 
 Generally, you never construct one of these directly with C<new>.  Instead,
-you call C<get_gridfsbucket> on a L<MongoDB::Database> object.
+you call C<gfs> (short for C<get_gridfsbucket>) on a L<MongoDB::Database>
+object.
 
 =head1 USAGE
 

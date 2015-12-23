@@ -10,9 +10,12 @@
   - MongoDB::GridFSBucket::Upload/DownloadStream tied handles now provide
     BINMODE, though only raw mode is supported.
 
+  - Add 'gfs' as an alias for MongoDB::Database::get_gridfsbucket (similar
+    to how 'coll' is an alias for 'get_collection').
+
   [Bug fixes]
 
-  - Fixed MongoDB::GridFSBucket::DownloadStream::read() to return 0
+  - Fix MongoDB::GridFSBucket::DownloadStream::read() to return 0
     instead of undef when there is no more data to read.
 
   [Changes]

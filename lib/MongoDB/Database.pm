@@ -308,7 +308,7 @@ sub get_gridfsbucket {
 
 The L<MongoDB::GridFS> class has been deprecated in favor of the new MongoDB
 driver-wide standard GridFS API, available via L<MongoDB::GridFSBucket> and
-the C<get_gridfsbucket> method.
+the C<get_gridfsbucket>/C<gfs> methods.
 
 This method returns a L<MongoDB::GridFS> for storing and retrieving files
 from the database.  Default prefix is "fs", making C<$grid-E<gt>files>
