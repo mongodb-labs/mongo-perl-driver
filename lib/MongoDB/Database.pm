@@ -265,10 +265,11 @@ sub get_collection {
 
 { no warnings 'once'; *coll = \&get_collection }
 
-=method get_gridfsbucket
+=method get_gridfsbucket, gfs
 
     my $grid = $database->get_gridfsbucket;
     my $grid = $database->get_gridfsbucket($options);
+    my $grid = $database->gfs($options);
 
 This method returns a L<MongoDB::GridFSBucket> object for storing and
 retrieving files from the database.
@@ -277,6 +278,8 @@ It takes an optional hash reference of options that are passed to the
 L<MongoDB::GridFSBucket> constructor.
 
 See L<MongoDB::GridFSBucket> for more information.
+
+The C<gfs> method is an alias for C<get_gridfsbucket>.
 
 =cut
 
@@ -294,6 +297,8 @@ sub get_gridfsbucket {
         database => $self,
     )
 }
+
+{ no warnings 'once'; *gfs = \&get_gridfsbucket }
 
 =method get_gridfs (DEPRECATED)
 

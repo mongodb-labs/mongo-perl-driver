@@ -172,7 +172,7 @@ sub setup_gridfs {
 {
     setup_gridfs;
 
-    my $bucket  = $testdb->get_gridfsbucket;
+    my $bucket  = $testdb->gfs;
     my $results = $bucket->find( { length => $img_meta->{'length'} } );
     my $file    = $results->next;
     is( $file->{'length'}, $img_meta->{'length'}, "found file length" );
