@@ -221,7 +221,6 @@ sub _ensure_indexes {
 
     $file_doc = $result->next;
 
-
 Executes a query on the file documents collection with a
 L<filter expression|MongoDB::Collection/Filter expression> and
 returns a L<MongoDB::QueryResult> object.  It takes an optional hashref
@@ -232,6 +231,45 @@ of options identical to L<MongoDB::Collection/find>.
 sub find {
     my ( $self, $filter, $options ) = @_;
     return $self->_files->find( $filter, $options )->result;
+}
+
+=method find_one
+
+    $file_doc = $bucket->find_one($filter, $projection);
+    $file_doc = $bucket->find_one($filter, $projection, $options);
+
+Executes a query on the file documents collection with a
+L<filter expression|MongoDB::Collection/Filter expression> and
+returns the first document found, or C<undef> if no document is found.
+
+See L<MongoDB::Collection/find_one> for details about the
+C<$projection> and optional C<$options> fields.
+
+=cut
+
+sub find_one {
+    my ( $self, $filter, $projection, $options ) = @_;
+    return $self->_files->find_one( $filter, $projection, $options );
+}
+
+=method find_id
+
+    $file_doc = $bucket->find_id( $id );
+    $file_doc = $bucket->find_id( $id, $projection );
+    $file_doc = $bucket->find_id( $id, $projection, $options );
+
+Executes a query with a L<filter expression|/Filter expression> of
+C<< { _id => $id } >> and returns a single document or C<undef> if no document
+is found.
+
+See L<MongoDB::Collection/find_one> for details about the
+C<$projection> and optional C<$options> fields.
+
+=cut
+
+sub find_id {
+    my ( $self, $id, $projection, $options ) = @_;
+    return $self->_files->find_id( $id, $projection, $options );
 }
 
 =method open_download_stream
