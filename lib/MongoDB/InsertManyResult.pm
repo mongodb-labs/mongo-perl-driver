@@ -44,10 +44,16 @@ The number of documents inserted.
 =cut
 
 has inserted_count => (
-    is      => 'ro',
-    default => 0,
+    is      => 'lazy',
+    builder => '_build_inserted_count',
     isa => Num,
 );
+
+sub _build_inserted_count
+{
+    my ($self) = @_;
+    return scalar @{ $self->inserted };
+}
 
 =attr inserted
 
