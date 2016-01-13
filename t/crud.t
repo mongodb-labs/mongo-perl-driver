@@ -116,6 +116,7 @@ subtest "insert_many" => sub {
         },
         "inserted_ids contains correct keys/values"
     );
+    is($res->inserted_count, 2, "Two docs inserted.");
 
     # ordered insert should halt on error
     $coll->drop;
