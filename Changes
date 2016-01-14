@@ -2,6 +2,15 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - Fix uninitialized 'inserted_count' in MongoDB::InsertManyResult
+
+  [~ Internal changes ~]
+
+  - 'insert_one' with write concern {w:0} is sent via the legacy OP_INSERT
+    wire protocol for reduced latency.
+
 v1.3.1    2015-12-23 12:03:47-05:00 America/New_York (TRIAL RELEASE)
 
   [Additions]
