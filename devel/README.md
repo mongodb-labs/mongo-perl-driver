@@ -12,11 +12,14 @@ orchestration:
 * reconfiguring deployments during testing to test failover
   and other dynamic behaviors
 
+* benchmarking
+
 Contents
 --------
 
 Subdirectories include:
 
+* bench – scripts to run common driver benchmarking (see that dir for more)
 * bin — harnesses and other helper programs
 * config — general-purpose deployment definition files in YAML format
 * lib - Perl modules for orchestration

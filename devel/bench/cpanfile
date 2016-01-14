@@ -1,0 +1,5 @@
+requires "Benchmark::Lab";
+requires "JSON::MaybeXS";
+requires "Parallel::ForkManger";
+requires "Path::Tiny";
+requires "Time::Moment";
