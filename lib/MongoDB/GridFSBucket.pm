@@ -32,6 +32,7 @@ use MongoDB::_Types qw(
 );
 use Scalar::Util qw/reftype/;
 use Types::Standard qw(
+  Bool
   Int
   Str
   InstanceOf
@@ -162,6 +163,12 @@ has max_time_ms => (
     required => 1,
 );
 
+# determines whether or not to attempt index creation
+has _tried_indexing => (
+    is => 'rwp',
+    isa => Bool,
+);
+
 has _files => (
     is       => 'lazy',
     isa      => InstanceOf ['MongoDB::Collection'],
@@ -206,12 +213,27 @@ sub _build__chunks {
     return $coll;
 }
 
-sub _ensure_indexes {
+# index operations need primary server, regardless of bucket read prefs
+sub _create_indexes {
     my ($self) = @_;
+    $self->_set__tried_indexing(1);
 
-    # ensure the necessary index is present (this may be first usage)
-    $self->_files->indexes->create_one( [ filename => 1, uploadDate => 1 ] );
-    $self->_chunks->indexes->create_one( [ files_id => 1, n => 1 ] );
+    my $pf = $self->_files->clone( read_preference => 'primary' );
+
+    return if $pf->count > 0;
+
+    my $pfi = $pf->indexes;
+    my $pci = $self->_chunks->clone( read_preference => 'primary' )->indexes;
+
+    if ( !grep { $_->{name} eq 'filename_1_uploadDate_1' } $pfi->list->all ) {
+        $pfi->create_one( [ filename => 1, uploadDate => 1 ], { unique => 1 } );
+    }
+
+    if ( !grep { $_->{name} eq 'files_id_1_n_1' } $pci->list->all ) {
+        $pci->create_one( [ files_id => 1, n => 1 ], { unique => 1 } );
+    }
+
+    return;
 }
 
 =method find
@@ -334,6 +356,8 @@ sub open_upload_stream {
     MongoDB::UsageError->throw('No filename provided to open_upload_stream')
       unless defined $filename && length $filename;
 
+    $self->_create_indexes unless $self->_tried_indexing;
+
     return MongoDB::GridFSBucket::UploadStream->new(
         {
             chunk_size_bytes => $self->chunk_size_bytes,
@@ -421,6 +445,9 @@ This throws a L<MongoDB::GridFSError> if no such file exists.
 
 sub delete {
     my ( $self, $id ) = @_;
+
+    $self->_create_indexes unless $self->_tried_indexing;
+
     my $delete_result = $self->_files->delete_one( { _id => $id } );
     # This should only ever be 0 or 1, checking for exactly 1 to be thorough
     unless ( $delete_result->deleted_count == 1 ) {

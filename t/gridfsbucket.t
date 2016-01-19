@@ -190,6 +190,61 @@ sub setup_gridfs {
 
 }
 
+# index creation
+{
+    my $bucket = $testdb->get_gridfsbucket;
+    $bucket->drop;
+    $bucket = $testdb->get_gridfsbucket;
+
+    cmp_deeply( [ $bucket->_chunks->indexes->list->all ],
+        [], "new bucket doesn't create indexes" );
+
+    my $img = new IO::File( $pngfile, "r" ) or die $!;
+    binmode($img);
+    $img_id = $bucket->upload_from_stream( 'img.png', $img );
+    $img->close;
+
+    my %files_idx  = map { $_->{name} => $_ } $bucket->_files->indexes->list->all;
+    my %chunks_idx = map { $_->{name} => $_ } $bucket->_chunks->indexes->list->all;
+
+    my $idx;
+    $idx = $files_idx{"filename_1_uploadDate_1"};
+    ok(
+        $idx && $idx->{unique},
+        "unique files index on filename+uploadDate created"
+    ) or diag explain $idx;
+
+    $idx = $idx = $chunks_idx{"files_id_1_n_1"};
+    ok(
+        $idx && $idx->{unique},
+        "unique chunks index on files_id+n created"
+    ) or diag explain $idx;
+
+    # subsequent writes should not trigger index creation
+    no warnings 'redefine';
+    local *MongoDB::IndexView::create_one = sub { die "re-indexing shouldn't be called" };
+
+    # next insert should not recreate index
+    eval {
+        $img = new IO::File( $pngfile, "r" ) or die $!;
+        binmode($img);
+        $img_id = $bucket->upload_from_stream( 'img2.png', $img );
+        $img->close;
+    };
+    is( $@, "", "upload on same bucket doesn't reindex" );
+
+    # even new gridfs object should not recreate index on first upload
+    eval {
+        $bucket = $testdb->get_gridfsbucket;
+        $img = new IO::File( $pngfile, "r" ) or die $!;
+        binmode($img);
+        $img_id = $bucket->upload_from_stream( 'img3.png', $img );
+        $img->close;
+    };
+    is( $@, "", "upload on same bucket doesn't reindex" );
+}
+
+
 # download_to_stream
 {
     setup_gridfs;
