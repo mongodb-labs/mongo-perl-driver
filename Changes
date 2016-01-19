@@ -4,7 +4,9 @@
 
   [Bug fixes]
 
-  - Fix uninitialized 'inserted_count' in MongoDB::InsertManyResult
+  - Fix uninitialized 'inserted_count' in MongoDB::InsertManyResult.
+
+  - Create GridFS indexes on first write (if needed) per the GridFS Spec.
 
   [~ Internal changes ~]
 
