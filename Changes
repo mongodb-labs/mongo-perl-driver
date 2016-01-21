@@ -4,6 +4,8 @@
 
   [Bug fixes]
 
+  - PERL-602 Support legacy Cpanel::JSON::XS booleans (before 2.3404)
+
   - Fix uninitilized 'inserted_count' in MongoDB::InsertManyResult
 
 v1.2.1    2015-12-18 11:32:19-05:00 America/New_York
