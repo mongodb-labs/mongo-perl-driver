@@ -749,7 +749,8 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
       /* boolean -- these are the most well-known boolean libraries
        * on CPAN.  Type::Serialiser::Boolean now aliases to
        * JSON::PP::Boolean so it is listed at the end for compatibility
-       * with old versions of it.
+       * with old versions of it.  Old versions of Cpanel::JSON::XS
+       * similarly have their own type, but now use JSON::PP::Boolean.
        */
       else if (
           sv_isa(sv, "boolean") ||
@@ -757,6 +758,7 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
           sv_isa(sv, "JSON::PP::Boolean") ||
           sv_isa(sv, "JSON::Tiny::_Bool") ||
           sv_isa(sv, "Mojo::JSON::_Bool") ||
+          sv_isa(sv, "Cpanel::JSON::XS::Boolean") ||
           sv_isa(sv, "Types::Serialiser::Boolean")
         ) {
         bson_append_bool(bson, key, -1, SvIV(SvRV(sv)));
