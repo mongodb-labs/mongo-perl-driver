@@ -22,6 +22,7 @@ use Test::Fatal;
 use Test::Deep qw/!blessed/;
 use Scalar::Util qw/refaddr/;
 use Tie::IxHash;
+use Try::Tiny::Retry qw/:all/;
 use boolean;
 
 use MongoDB;
@@ -52,6 +53,19 @@ my $coll   = $testdb->get_collection("test_collection");
 subtest "connect to RS without primary" => sub {
     diag "waiting for all hosts to be ready";
     $orc->deployment->server_set->wait_for_all_hosts;
+
+    retry {
+        my $ts = $conn->topology_status( refresh => 1 );
+        if ( $ts->{topology_type} ne 'ReplicaSetWithPrimary' ) {
+            die "No primary available";
+        }
+    }
+    delay {
+        return if $_[0] >= 180;
+        sleep 1;
+    }
+    catch { chomp; die "$_. Giving up!" };
+
 
     is( exception { $coll->drop }, undef, "drop collection" );
 
