@@ -157,6 +157,12 @@ has max_election_id => (
     writer  => '_set_max_election_id',
 );
 
+has max_set_version => (
+    is     => 'rw',
+    isa    => Maybe [Num],
+    writer => '_set_max_set_version',
+);
+
 # compatible wire protocol
 has is_compatible => (
     is => 'ro',
@@ -866,18 +872,35 @@ sub _update_rs_with_primary_from_primary {
     }
 
     my $election_id = $new_server->is_master->{electionId};
+    my $set_version = $new_server->is_master->{setVersion};
+    my $max_election_id = $self->max_election_id;
+    my $max_set_version = $self->max_set_version;
 
-    if ( defined $election_id ) {
-        if ( defined $self->max_election_id
-                && $self->max_election_id->value gt $election_id->value ) {
+    if ( defined $set_version && defined $election_id ) {
+        if (
+               defined $max_election_id
+            && defined $max_set_version
+            && (
+                $max_set_version > $set_version
+                || (   $max_set_version == $set_version
+                    && $max_election_id->value gt $election_id->value )
+            )
+          )
+        {
             # stale primary
 
-            $self->_remove_address($new_server->address);
-            $self->_add_address_as_unknown($new_server->address);
+            $self->_remove_address( $new_server->address );
+            $self->_add_address_as_unknown( $new_server->address );
             $self->_check_for_primary;
             return;
         }
         $self->_set_max_election_id( $election_id );
+    }
+
+    if ( defined $set_version
+        && ( !defined $max_set_version || $set_version > $max_set_version ) )
+    {
+        $self->_set_max_set_version($set_version);
     }
 
     # possibly invalidate an old primary (even if more than one!)
