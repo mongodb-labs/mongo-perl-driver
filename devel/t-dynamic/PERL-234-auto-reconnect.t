@@ -57,6 +57,9 @@ like(
     "first attempt to contact server fails",
 );
 
+diag "waiting for connection cooldown to expire";
+sleep 6; # must outwait the cooldown time
+
 is(
     exception { $id = $coll->insert({post => 'reconnect'}) },
     undef,
@@ -73,6 +76,10 @@ done_testing;
 sub inserted_ok {
     my ($coll, $id) = @_;
 
-    ok($coll->find({_id => $id}), "$id inserted (find)");
-    ok($coll->find_one({_id => $id}), "$id inserted (find_one)");
+    if ( $id ) {
+        ok($coll->find_id($id), "$id inserted (find)");
+    }
+    else {
+        fail "no document inserted to find";
+    }
 }
