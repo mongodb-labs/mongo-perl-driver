@@ -448,7 +448,7 @@ sub _command_args {
             push @args, qw/--setParameter textSearchEnabled=true/;
         }
     }
-    if ( $self->server_version >= v3.2.0 ) {
+    if ( $self->command_name eq 'mongod' && $self->server_version >= v3.2.0 ) {
         push @args, qw/--enableMajorityReadConcern/;
     }
     return @args;
