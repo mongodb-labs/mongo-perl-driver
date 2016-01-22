@@ -1,7 +1,8 @@
 ---
 type: replica
 setName: foo
-default_args: -v --nojournal --nohttpinterface --quiet --storageEngine=inMemoryExperiment
+default_args: -v --nojournal --nohttpinterface --enableMajorityReadConcern --quiet
+default_version: 3.2
 mongod:
     - name: host1
     - name: host2
