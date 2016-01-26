@@ -19,7 +19,7 @@ package MongoDB::WriteConcern;
 # ABSTRACT: Encapsulate and validate a write concern
 
 use version;
-our $VERSION = 'v1.2.2';
+our $VERSION = 'v1.2.3';
 
 use Moo;
 use MongoDB::Error;

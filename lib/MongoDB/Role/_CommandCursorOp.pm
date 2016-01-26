@@ -19,7 +19,7 @@ package MongoDB::Role::_CommandCursorOp;
 # MongoDB interface for database commands with cursors
 
 use version;
-our $VERSION = 'v1.2.2';
+our $VERSION = 'v1.2.3';
 
 use MongoDB::Error;
 use MongoDB::QueryResult;
