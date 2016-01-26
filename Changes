@@ -4,7 +4,7 @@
 
   [Bug fixes]
 
-  - Fix uninitialized 'inserted_count' in MongoDB::InsertManyResult.
+  - All bug fixes from v1.2.2
 
   - Create GridFS indexes on first write (if needed) per the GridFS Spec.
 
@@ -50,6 +50,22 @@ v1.3.0    2015-12-18 12:21:09-05:00 America/New_York (TRIAL RELEASE)
     driver-standard GridFS API.  Also included are classes to emulate file
     handles for uploads and downloads, making GridFS operations more
     composable with existing Perl libraries.
+
+v1.2.2    2016-01-26 15:33:30-05:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-602 Support legacy Cpanel::JSON::XS booleans (before 2.3404)
+
+  - PERL-604 Improve detection of stale primaries when a replica set
+    election protocol version is being upgraded/downgraded.
+
+  - Fix uninitilized 'inserted_count' in MongoDB::InsertManyResult
+
+  [Documentation]
+
+  - Fixed broken link in POD for MongoDB::DataTypes
+
 
 v1.2.1    2015-12-18 11:32:19-05:00 America/New_York
 
