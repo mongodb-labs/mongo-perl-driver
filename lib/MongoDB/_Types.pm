@@ -19,7 +19,7 @@ package MongoDB::_Types;
 # MongoDB type definitions
 
 use version;
-our $VERSION = 'v1.3.2';
+our $VERSION = 'v1.3.3';
 
 use Type::Library
   -base,

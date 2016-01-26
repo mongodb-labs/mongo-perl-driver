@@ -19,7 +19,7 @@ package MongoDB::Role::_DatabaseOp;
 # MongoDB interface for database operations
 
 use version;
-our $VERSION = 'v1.3.2';
+our $VERSION = 'v1.3.3';
 
 use MongoDB::BSON;
 use MongoDB::Error;
