@@ -593,7 +593,11 @@ subtest "count w/ hint" => sub {
         is( $coll->count( {  i => 1 } , { hint => 'x_1' } ), 1, 'spec & hint on empty sparse index');
     }
 
-    is( $coll->count( {}, { hint => 'x_1' } ), 2, 'hint on empty sparse index');
+    # XXX Failing on nightly master -- xdg, 2016-02-11
+    TODO: {
+        local $TODO = "Failing nightly master";
+        is( $coll->count( {}, { hint => 'x_1' } ), 2, 'hint on empty sparse index');
+    }
 };
 
 my $js_str = 'function() { return this.a > this.b }';
