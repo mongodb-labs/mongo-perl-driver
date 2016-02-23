@@ -11,11 +11,23 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
+=attr pattern
+
+A string containing a regular expression pattern (without slashes)
+
+=cut
+
 has pattern => (
     is       => 'ro',
     isa      => Str,
     required => 1,
 );
+
+=attr flags
+
+A string with regular expression flags
+
+=cut
 
 has flags => (
     is        => 'ro',
@@ -49,7 +61,7 @@ sub BUILD {
     }
 }
 
-=method
+=method try_compile
 
     my $qr = $regexp->try_compile;
 
