@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Documentation]
+
+  - Fixed method and attribute documentation in MongoDB::BSON::Regexp
+
 v1.2.2    2016-01-26 15:33:30-05:00 America/New_York
 
   [Bug fixes]
