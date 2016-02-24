@@ -181,15 +181,18 @@ subtest 'text indices' => sub {
     plan skip_all => "text indices won't work with db version $server_version"
         unless $server_version >= v2.4.0;
 
-    my $res = $conn->get_database('admin')->run_command(['getParameter' => 1, 'textSearchEnabled' => 1]);
-    plan skip_all => "text search not enabled"
-        if !$res->{'textSearchEnabled'};
+    # parameter required only on 2.4; deprecated as of 2.6; removed for 3.4
+    if ( $server_version < v2.6.0 ) {
+        my $res = $conn->get_database('admin')->run_command(['getParameter' => 1, 'textSearchEnabled' => 1]);
+        plan skip_all => "text search not enabled"
+            if !$res->{'textSearchEnabled'};
+    }
 
     my $coll = $testdb->get_collection('test_text');
     $coll->insert_one({language => 'english', w1 => 'hello', w2 => 'world'}) foreach (1..10);
     is($coll->count, 10);
 
-    $res = $coll->ensure_index({'$**' => 'text'}, {
+    my $res = $coll->ensure_index({'$**' => 'text'}, {
         name => 'testTextIndex',
         default_language => 'spanish',
         language_override => 'language',
