@@ -23,12 +23,14 @@ use MongoDBTest::Orchestrator;
 
 use Getopt::Long;
 use Log::Any::Adapter 'Null';
+use Path::Tiny;
 use Try::Tiny;
 
 my %opts;
 GetOptions(
     \%opts,
-    'verbose|v'
+    'verbose|v',
+    'preserve=s',
 );
 
 if ( $opts{verbose} ) {
@@ -73,10 +75,27 @@ my $signal = $exit_val & 127;
 $exit_val = $exit_val >> 8;
 
 print_log_tails($orc) if $opts{verbose} && ($signal || $exit_val);
+copy_log_files($orc, $opts{preserve}) if $opts{preserve};
 
 $orc->stop;
 
 exit( $signal || $exit_val );
+
+sub copy_log_files {
+    my ($orc, $path) = @_;
+    say "Copying logs to $path";
+    my $p = path( $path );
+    for my $server ( $orc->deployment->all_servers ) {
+        my $l = path( $server->logfile );
+        eval {
+            $p->mkpath;
+            $l->copy( $p->child( $server->name() . ".log" ) );
+        };
+        if ($@) {
+            warn "Error copying $l: $@\n";
+        }
+    }
+}
 
 sub print_log_tails {
     my ($orc) = shift;
@@ -85,7 +104,7 @@ sub print_log_tails {
         say "---------------------------------";
         say "Log tail for " . $server->name . ":";
         my @lines = $server->logfile->lines;
-        @lines = splice( @lines, -20 ) if @lines > 20;
+        @lines = splice( @lines, -40 ) if @lines > 40;
         say @lines;
     }
 }
@@ -105,6 +124,11 @@ and run the command with arguments.
 
 The C<MONGOD> environment variable will be set to a MongoDB connection
 URI appropriate to the deployment.
+
+=head1 OPTIONS
+
+    --verbose, -v   -- verbose output
+    --preserve=DIR  -- copy log files to DIR before shutdown
 
 =cut
 
