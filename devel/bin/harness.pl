@@ -85,7 +85,7 @@ sub copy_log_files {
     my ($orc, $path) = @_;
     say "Copying logs to $path";
     my $p = path( $path );
-    for my $server ( $orc->deployment->all_servers ) {
+    for my $server ( $orc->cluster->all_servers ) {
         my $l = path( $server->logfile );
         eval {
             $p->mkpath;
