@@ -41,7 +41,7 @@ sub _build_with_CSRS {
     my $self=shift;
     my $temp_server = MongoDBTest::Mongod->new(
         config => { name => "temp" },
-        default_version => $self->config->{default_version},
+        default_version => $self->config->{default_version} // 0,
     );
     return -x $temp_server->executable && $temp_server->server_version >= v3.2.0;
 }
