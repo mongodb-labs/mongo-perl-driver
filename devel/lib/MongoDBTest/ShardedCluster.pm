@@ -21,6 +21,7 @@ package MongoDBTest::ShardedCluster;
 use MongoDB;
 use MongoDBTest::Deployment;
 use MongoDBTest::ServerSet;
+use MongoDBTest::Mongod;
 
 use Moo;
 use Try::Tiny::Retry qw/:all/;
@@ -31,6 +32,20 @@ use namespace::clean;
 
 my $SERVERSET = declare as ConsumerOf['MongoDBTest::Role::ServerSet'];
 
+has with_CSRS => (
+    is => 'lazy',
+    isa => Bool,
+);
+
+sub _build_with_CSRS {
+    my $self=shift;
+    my $temp_server = MongoDBTest::Mongod->new(
+        config => { name => "temp" },
+        default_version => $self->config->{default_version},
+    );
+    return -x $temp_server->executable && $temp_server->server_version >= v3.2.0;
+}
+
 has config_servers => (
     is => 'lazy',
     isa => $SERVERSET,
@@ -38,10 +53,12 @@ has config_servers => (
 
 sub _build_config_servers {
     my ($self) = @_;
-    return MongoDBTest::ServerSet->new(
-        default_args => "--configsvr " . $self->default_args,
+    my $class = $self->with_CSRS ? "MongoDBTest::ReplicaSet" : "MongoDBTest::ServerSet";
+    return $class->new(
+        default_args => "--configsvr",
         default_version => $self->default_version,
         server_config_list => $self->config->{mongoc},
+        ( $self->with_CSRS ? ( set_name => "configReplSet" ) : () ),
     );
 }
 
@@ -54,6 +71,7 @@ has routers => (
 sub _build_routers {
     my ($self) = @_;
     my $config_names = $self->config_servers->as_pairs;
+    $config_names = "configReplSet/$config_names" if $self->with_CSRS;
     return MongoDBTest::ServerSet->new(
         default_args => "--configdb $config_names ", # don't pass default args
         default_version => $self->default_version,
