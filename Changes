@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Testing]
+
+  - Fixed tests for v3.3.X MongoDB series
+
   [Documentation]
 
   - Fixed method and attribute documentation in MongoDB::BSON::Regexp
