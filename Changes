@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Testing]
+
+  - Fixed tests for v3.3.X MongoDB series
+
   [Documentation]
 
   - Fixed method and attribute documentation in MongoDB::BSON::Regexp
@@ -15,7 +19,7 @@ v1.2.2    2016-01-26 15:33:30-05:00 America/New_York
   - PERL-604 Improve detection of stale primaries when a replica set
     election protocol version is being upgraded/downgraded.
 
-  - Fix uninitilized 'inserted_count' in MongoDB::InsertManyResult
+  - Fix uninitialized 'inserted_count' in MongoDB::InsertManyResult
 
   [Documentation]
 
