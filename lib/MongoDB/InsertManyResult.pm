@@ -19,7 +19,7 @@ package MongoDB::InsertManyResult;
 # ABSTRACT: MongoDB single insert result object
 
 use version;
-our $VERSION = 'v1.2.3';
+our $VERSION = 'v1.2.4';
 
 use Moo;
 use MongoDB::_Constants;
