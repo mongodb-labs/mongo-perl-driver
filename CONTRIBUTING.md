@@ -44,8 +44,18 @@ You will need to install Config::AutoConf and Path::Tiny to be able to run
 the Makefile.PL.  While this distribution is shipped using Dist::Zilla, you
 do not need to install it or use it for testing.
 
+To configure:
+
     $ cpan Config::AutoConf Path::Tiny
     $ perl Makefile.PL
+
+The output will highlight any missing dependencies.  Install those with the
+`cpan` client.
+
+    $ cpan [list of dependencies]
+
+To build and test:
+
     $ make
     $ make test
 

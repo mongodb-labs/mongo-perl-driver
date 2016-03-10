@@ -44,6 +44,8 @@ If you are using a modern CPAN client (anything since Perl v5.12), these will
 be installed automatically as needed.  If you have an older CPAN client or are
 doing manual installation, install these before running `Makefile.PL`.
 
+    $ cpan Config::AutoConf Path::Tiny
+
 ## Testing with a database
 
 Most tests will skip unless a MongoDB database is available either on the
