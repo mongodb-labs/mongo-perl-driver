@@ -4,6 +4,9 @@ This file describes requirements and procedures for developing and testing the
 MongoDB Perl driver from its code repository.  For instructions installing
 from CPAN or tarball, see the [INSTALL.md](INSTALL.md) file instead.
 
+While this distribution is shipped using Dist::Zilla, you do not need to
+install it or use it for development and testing.
+
 ## Introduction
 
 `mongo-perl-driver` is the official client-side driver for talking to
@@ -63,6 +66,9 @@ Linux, Fedora, etc.) should issue the following command:
 On Windows, [StrawberryPerl](http://strawberryperl.com/) ships with a
 GCC compiler.
 
+On Mac, install XCode or just the [XCode command line
+tools](https://developer.apple.com/library/ios/technotes/tn2339/_index.html).
+
 ## Installing Perl dependencies as a non-privileged user
 
 If you do not have write permissions to your Perl's site library directory
@@ -77,18 +83,22 @@ to modify your `.bashrc` or equivalent files.
 ## Configuration and dependencies
 
 You will need to install Config::AutoConf and Path::Tiny to be able to run
-the Makefile.PL.  While this distribution is shipped using Dist::Zilla, you
-do not need to install it or use it for testing.
+the Makefile.PL.
+
+    $ cpan Config::AutoConf Path::Tiny
 
 To configure:
 
-    $ cpan Config::AutoConf Path::Tiny
     $ perl Makefile.PL
 
 The output will highlight any missing dependencies.  Install those with the
 `cpan` client.
 
     $ cpan [list of dependencies]
+
+You may also use `cpan` to install the current stable MongoDB driver with
+`cpan MongoDB`, which should pick up most of the dependencies you will
+need automatically.
 
 ## Building and testing
 
