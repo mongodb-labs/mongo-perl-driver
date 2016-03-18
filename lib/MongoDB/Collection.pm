@@ -1226,8 +1226,8 @@ sub drop {
 =method ordered_bulk
 
     $bulk = $coll->ordered_bulk;
-    $bulk->insert( $doc1 );
-    $bulk->insert( $doc2 );
+    $bulk->insert_one( $doc1 );
+    $bulk->insert_one( $doc2 );
     ...
     $result = $bulk->execute;
 
@@ -1883,7 +1883,7 @@ are recommended:
     use Safe::Isa; # provides $_isa
 
     try {
-        $coll->insert( $doc )
+        $coll->insert_one( $doc )
     }
     catch {
         if ( $_->$_isa("MongoDB::DuplicateKeyError" ) {
