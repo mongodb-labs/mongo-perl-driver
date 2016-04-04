@@ -307,7 +307,7 @@ queries and query-like methods.
 
 The C<explain> cursor method no longer resets the cursor.
 
-The C<slave_ok> cursor method now sets the C<read_preference>
+The C<slave_okay> cursor method now sets the C<read_preference>
 to 'secondaryPreferred' or clears it to 'primary'.
 
 The C<snapshot> cursor method now requires a boolean argument, allowing
