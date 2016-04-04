@@ -317,7 +317,7 @@ an argument (as it was in v0) is a fatal exception.
 Parallel scan "cursors" are now L<QueryResult> objects, with the same
 iteration methods as in v0.
 
-The C<$MongoDB::Cursor::slave_ok> global variable has been removed as part
+The C<$MongoDB::Cursor::slave_okay> global variable has been removed as part
 of the revision to read preference handling.  See the L<read
 preferences/Read preference objects and the read_preference method> section
 below for more details.
