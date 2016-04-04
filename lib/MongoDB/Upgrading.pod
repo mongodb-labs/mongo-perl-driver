@@ -319,12 +319,12 @@ iteration methods as in v0.
 
 The C<$MongoDB::Cursor::slave_ok> global variable has been removed as part
 of the revision to read preference handling.  See the L<read
-preferences/Read preference objects and the read_preference method> section
+preferences|/Read preference objects and the read_preference method> section
 below for more details.
 
 The C<$MongoDB::Cursor::timeout> global variable has also been removed.
 Timeouts are set during L<MongoDB::MongoClient> configuration and are
-immutable.  See the section on L<configuration changes/MongoClient
+immutable.  See the section on L<configuration changes|/MongoClient
 configuration> for more.
 
 =head2 Aggregation API
