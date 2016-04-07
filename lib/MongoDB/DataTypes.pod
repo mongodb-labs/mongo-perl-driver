@@ -396,7 +396,7 @@ for always returning certain documents first (or last).
 C<MongoDB::MinKey> has no methods, fields, or string form.  To create one, it is
 sufficient to say:
 
-    bless $minKey, "MongoDB::MinKey";
+    $minKey = bless {}, "MongoDB::MinKey";
 
 =head2 MongoDB::MaxKey
 
@@ -406,7 +406,7 @@ for always returning certain documents last (or first).
 C<MongoDB::MaxKey> has no methods, fields, or string form.  To create one, it is
 sufficient to say:
 
-    bless $minKey, "MongoDB::MaxKey";
+    $maxKey = bless {}, "MongoDB::MaxKey";
 
 =head2 MongoDB::Timestamp
 
