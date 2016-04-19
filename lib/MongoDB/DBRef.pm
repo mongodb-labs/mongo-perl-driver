@@ -160,7 +160,7 @@ a DBRef may point to a document that no longer exists (or never existed.)
 
 Generally, these are not recommended and "manual references" are preferred.
 
-See L<Database references/http://docs.mongodb.org/manual/reference/database-references/>
+See L<Database references|http://docs.mongodb.org/manual/reference/database-references/>
 en the MongoDB manual for more information.
 
 =cut
