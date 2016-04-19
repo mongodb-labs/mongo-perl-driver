@@ -63,7 +63,7 @@ sub test_with_codec {
     };
 }
 
-test_with_codec( "default codec", undef, "MongoDB::OID" );
+test_with_codec( "default codec", undef, "BSON::OID" );
 test_with_codec(
     "TestCodecWrapper codec",
     TestCodecWrapper->new(),

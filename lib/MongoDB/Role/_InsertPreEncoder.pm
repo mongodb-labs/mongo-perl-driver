@@ -25,7 +25,7 @@ our $VERSION = 'v1.999.0';
 
 use Moo::Role;
 
-use MongoDB::BSON::_EncodedDoc;
+use BSON::Raw;
 use MongoDB::OID;
 
 use namespace::clean;
@@ -68,7 +68,7 @@ sub _pre_encode_insert {
 
     # manually bless for speed
     return bless { bson => $bson_doc, metadata => { _id => $id } },
-      "MongoDB::BSON::_EncodedDoc";
+      "BSON::Raw";
 }
 
 1;

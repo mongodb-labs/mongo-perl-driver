@@ -24,10 +24,6 @@ package MongoDB::BSON;
 use version;
 our $VERSION = 'v1.999.0';
 
-
-use XSLoader;
-XSLoader::load("MongoDB", $VERSION);
-
 use BSON::Decimal128;
 use Carp ();
 use Config;

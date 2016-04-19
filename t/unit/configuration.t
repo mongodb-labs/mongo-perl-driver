@@ -21,7 +21,6 @@ use Test::Fatal;
 
 use MongoDB;
 use MongoDB::MongoClient;
-use MongoDB::BSON;
 
 use constant HAS_DATETIME_TINY => eval { require DateTime::Tiny; 1 };
 
@@ -127,7 +126,7 @@ subtest "auth mechanism and properties" => sub {
 };
 
 subtest bson_codec => sub {
-    my $codec = MongoDB::BSON->new( op_char => '-' );
+    my $codec = BSON->new( op_char => '-' );
 
     my $mc = _mc();
     ok( !$mc->bson_codec->prefer_numeric, "default bson_codec object" );
@@ -136,14 +135,8 @@ subtest bson_codec => sub {
     is( $mc->bson_codec->op_char, '-', "bson_codec object" );
 
     $mc = _mc( bson_codec => { prefer_numeric => 1 } );
-    isa_ok( $mc->bson_codec, 'MongoDB::BSON' );
+    isa_ok( $mc->bson_codec, 'BSON' );
     ok( $mc->bson_codec->prefer_numeric, "bson_codec coerced from hashref" );
-
-    if ( HAS_DATETIME_TINY ) {
-        $mc = _mc( dt_type => 'DateTime::Tiny' );
-        isa_ok( $mc->bson_codec, 'MongoDB::BSON' );
-        ok( $mc->bson_codec->dt_type, "legacy dt_type influences default codec" );
-    }
 };
 
 subtest connect_timeout_ms => sub {

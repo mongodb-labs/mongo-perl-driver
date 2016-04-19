@@ -212,7 +212,7 @@ sub _parse_gle {
 
 sub _find_id {
     my ($self, $doc) = @_;
-    if (ref($doc) eq "MongoDB::BSON::_EncodedDoc") {
+    if (ref($doc) eq "BSON::Raw") {
        $doc = $self->bson_codec->decode_one($doc);
     }
     my $type = ref($doc);

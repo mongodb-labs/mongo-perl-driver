@@ -135,8 +135,8 @@ has max_time_ms => (
 =attr bson_codec
 
 An object that provides the C<encode_one> and C<decode_one> methods, such as
-from L<MongoDB::BSON>.  It may be initialized with a hash reference that will
-be coerced into a new MongoDB::BSON object.  By default it will be inherited
+from L<BSON>.  It may be initialized with a hash reference that will
+be coerced into a new L<BSON> object.  By default it will be inherited
 from a L<MongoDB::MongoClient> object.
 
 =cut

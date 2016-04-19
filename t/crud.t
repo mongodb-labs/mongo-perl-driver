@@ -108,7 +108,7 @@ subtest "insert_many" => sub {
     isa_ok( $res, "MongoDB::InsertManyResult", "result" );
     cmp_deeply(
         $res->inserted,
-        [ { index => 0, _id => 'foo' }, { index => 1, _id => obj_isa("MongoDB::OID") } ],
+        [ { index => 0, _id => 'foo' }, { index => 1, _id => obj_isa("BSON::OID") } ],
         "inserted contains correct hashrefs"
     );
     cmp_deeply(
@@ -257,7 +257,7 @@ subtest "replace_one" => sub {
     ok( $server_version >= 2.6.0 ? $res->has_modified_count : !$res->has_modified_count,
         "has_modified_count correct" );
 
-    isa_ok( $res->upserted_id, "MongoDB::OID", "got upserted id" );
+    isa_ok( $res->upserted_id, "BSON::OID", "got upserted id" );
     is( $coll->count( {} ), 1, "one doc in database" );
     my $got = $coll->find_one( { _id => $res->upserted_id } );
     is( $got->{x}, 2, "document contents correct" );
@@ -351,7 +351,7 @@ subtest "update_one" => sub {
         ( $server_version >= v2.6.0 ? 0 : undef ),
         "modified count correct based on server version"
     );
-    isa_ok( $res->upserted_id, "MongoDB::OID", "got upserted id" );
+    isa_ok( $res->upserted_id, "BSON::OID", "got upserted id" );
     is( $coll->count( {} ), 1, "one doc in database" );
     my $got = $coll->find_one( { _id => $res->upserted_id } );
     is( $got->{x}, 2, "document contents correct" );
@@ -450,7 +450,7 @@ subtest "update_many" => sub {
         ( $server_version >= v2.6.0 ? 0 : undef ),
         "modified count correct based on server version"
     );
-    isa_ok( $res->upserted_id, "MongoDB::OID", "got upserted id" );
+    isa_ok( $res->upserted_id, "BSON::OID", "got upserted id" );
     is( $coll->count( {} ), 1, "one doc in database" );
     my $got = $coll->find_one( { _id => $res->upserted_id } );
     cmp_deeply(

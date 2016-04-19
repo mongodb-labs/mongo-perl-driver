@@ -23,7 +23,7 @@ license 'Apache';
 all_from 'lib/MongoDB.pm';
 
 requires 'Authen::SCRAM::Client' => '0.009';
-requires 'BSON::Decimal128' => '1';
+requires 'BSON' => '1.006';
 requires 'Carp';
 requires 'Class::XSAccessor';
 requires 'DateTime' => '0.78';
@@ -77,11 +77,11 @@ test_requires 'bigint';
 test_requires 'lib';
 test_requires 'utf8';
 
-mongo;
-
 repository 'git://github.com/mongodb/mongo-perl-driver.git';
 
 tests_recursive;
+
+extratargets;
 
 WriteAll;
 

@@ -29,7 +29,6 @@ our $VERSION = 'v1.999.0';
 use if ($] eq '5.010000'), 're', 'regexp_pattern';
 
 use Carp ();
-use MongoDB::BSON;
 use MongoDB::MongoClient;
 use MongoDB::Database;
 use MongoDB::Collection;
@@ -42,8 +41,6 @@ use MongoDB::BulkWrite;
 use MongoDB::_Link;
 use MongoDB::_Protocol;
 use BSON::Types;
-
-*read_documents = \&MongoDB::BSON::decode_bson;
 
 # regexp_pattern was unavailable before 5.10, had to be exported to load the
 # function implementation on 5.10, and was automatically available in 5.10.1

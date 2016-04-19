@@ -30,6 +30,7 @@ use MongoDB::Error;
 use MongoDB::Code;
 
 use MongoDB;
+use BSON::Types ':all';
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type/;
@@ -109,7 +110,7 @@ subtest get_namespace => sub {
     $coll->remove;
 
     $id = $coll->insert({});
-    isa_ok($id, 'MongoDB::OID');
+    isa_ok($id, 'BSON::OID');
     $tiny = $coll->find_one;
     is($tiny->{'_id'}, $id);
 
@@ -224,7 +225,7 @@ subtest get_namespace => sub {
     $coll->drop;
     my $hash = Tie::IxHash->new("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
     $id = $coll->insert($hash);
-    isa_ok($id, 'MongoDB::OID');
+    isa_ok($id, 'BSON::OID');
     $tied = $coll->find_one;
     is($tied->{'_id'}."", "$id");
     is($tied->{'f'}, 1);
@@ -243,9 +244,9 @@ subtest get_namespace => sub {
 # () update/insert
 {
     $coll->drop;
-    my @h = ("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
+    my @h = ("f" => bson_int32(1), "s" => 2, "fo" => 4, "t" => 3);
     $id = $coll->insert(\@h);
-    isa_ok($id, 'MongoDB::OID');
+    isa_ok($id, 'BSON::OID');
     $tied = $coll->find_one;
     is($tied->{'_id'}."", "$id");
     is($tied->{'f'}, 1);
@@ -305,7 +306,7 @@ subtest "multiple update" => sub {
     my $res = $coll->update({"x" => 15}, {'$set' => {"z" => 4}}, {'upsert' => 1, 'multi' => 1});
     ok( $res->{ok}, "update succeeded" );
     is( $res->{n}, 0, "update match count" );
-    isa_ok( $res->{upserted}, "MongoDB::OID" );
+    isa_ok( $res->{upserted}, "BSON::OID" );
     ok($coll->find_one({"z" => 4}));
 
     # check that 'multi' and 'multiple' conflicting is an error
@@ -553,7 +554,7 @@ subtest "deep update" => sub {
 
     like(
         exception { $coll->update( { _id => 1 }, { 'p.q' => 23 } ) },
-        qr/cannot contain the '\.' character/,
+        qr/cannot contain the '\.' character|invalid character\(s\)/,
         "replace with dots in field dies"
     );
 

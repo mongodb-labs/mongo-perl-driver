@@ -209,8 +209,7 @@ has last_write_date => (
 sub _build_last_write_date {
     my ($self) = @_;
     return 0 unless exists $self->is_master->{lastWrite}{lastWriteDate};
-    # with dt_type undef, this should be floating point epoch seconds
-    return $self->is_master->{lastWrite}{lastWriteDate};
+    return $self->is_master->{lastWrite}{lastWriteDate}->epoch;
 }
 
 has is_available => (

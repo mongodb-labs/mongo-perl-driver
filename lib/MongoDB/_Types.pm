@@ -187,7 +187,7 @@ declare IndexModelList, as ArrayRef [IndexModel];
 coerce ArrayOfHashRef, from HashRef, via { [$_] };
 
 coerce BSONCodec, from HashRef,
-  via { require MongoDB::BSON; MongoDB::BSON->new($_) };
+  via { require BSON; BSON->new($_) };
 
 coerce Booleanpm, from Any, via { boolean($_) };
 

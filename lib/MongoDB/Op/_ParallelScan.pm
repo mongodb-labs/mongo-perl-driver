@@ -33,6 +33,8 @@ use Types::Standard qw(
     Int
 );
 
+use BSON::Types qw/bson_int64/;
+
 use namespace::clean;
 
 has num_cursors => (
@@ -58,7 +60,7 @@ sub execute {
 
     my $command = [
         parallelCollectionScan => $self->coll_name,
-        numCursors             => $self->num_cursors,
+        numCursors             => bson_int64($self->num_cursors),
         ($link->accepts_wire_version(4) ?
             @{ $self->read_concern->as_args } : () ),
         %{$self->options},

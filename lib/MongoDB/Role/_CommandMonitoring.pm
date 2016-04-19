@@ -22,6 +22,8 @@ package MongoDB::Role::_CommandMonitoring;
 # MongoDB role to add command monitoring support to Ops
 
 use Moo::Role;
+use BSON;
+use BSON::Raw;
 use MongoDB::_Types -types, 'to_IxHash';
 use Tie::IxHash;
 use Time::HiRes qw/time/;
@@ -76,7 +78,7 @@ sub publish_command_reply {
     my $reply =
       ref($bson) eq 'HASH'
       ? $bson
-      : MongoDB::BSON->new( dt_type => undef )->decode_one($bson);
+      : BSON->new()->decode_one($bson);
 
     my $event = {
         databaseName => $start_event->{databaseName},
@@ -229,9 +231,9 @@ sub _convert_legacy_delete {
 
 sub _decode_preencoded {
     my ($obj) = @_;
-    my $codec = MongoDB::BSON->new;
+    my $codec = BSON->new;
     my $type  = ref($obj);
-    if ( $type eq 'MongoDB::BSON::_EncodedDoc' ) {
+    if ( $type eq 'BSON::Raw' ) {
         return $codec->decode_one( $obj->{bson} );
     }
     elsif ( $type eq 'Tie::IxHash' ) {

@@ -186,14 +186,13 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 modified_count   => ( $server_does_bulk ? 0 : undef ),
                 op_count    => 1,
                 batch_count => 1,
-                inserted => [ { index => 0, _id => obj_isa("MongoDB::OID") } ],
+                inserted => [ { index => 0, _id => obj_isa("BSON::OID") } ],
             ),
             "result object correct"
         );
         my $id = $coll->find_one()->{_id};
         # OID PIDs are the low 16 bits
-        is( $id->_get_pid, $$ & 0xffff, "generated ID has our PID" )
-          or diag sprintf( "got OID: %s but our PID is %x", $id->value, $$ );
+        is( $id->_get_pid, $$ & 0xffff, "generated ID has our PID" );
     };
 
 }
@@ -920,8 +919,8 @@ subtest "mixed operations, unordered" => sub {
             batch_count => $server_does_bulk ? 3 : 4,
             # XXX QA Test says index should be 3, but with unordered, that's
             # not guaranteed, so we ignore the value
-            upserted     => [ { index => ignore(), _id => obj_isa("MongoDB::OID") } ],
-            inserted     => [ { index => ignore(), _id => obj_isa("MongoDB::OID") } ],
+            upserted     => [ { index => ignore(), _id => obj_isa("BSON::OID") } ],
+            inserted     => [ { index => ignore(), _id => obj_isa("BSON::OID") } ],
         ),
         "result object correct"
     ) or diag _truncate explain $result;
@@ -952,10 +951,10 @@ subtest "mixed operations, ordered" => sub {
             deleted_count    => 1,
             op_count    => 5,
             batch_count => $server_does_bulk ? 4 : 5,
-            upserted        => [ { index => 2, _id => obj_isa("MongoDB::OID") } ],
+            upserted        => [ { index => 2, _id => obj_isa("BSON::OID") } ],
             inserted        => [
-                { index => 0, _id => obj_isa("MongoDB::OID") },
-                { index => 3, _id => obj_isa("MongoDB::OID") },
+                { index => 0, _id => obj_isa("BSON::OID") },
+                { index => 3, _id => obj_isa("BSON::OID") },
             ],
         ),
         "result object correct"
@@ -999,7 +998,7 @@ subtest "unordered batch with errors" => sub {
         is( $details->modified_count, ( $server_does_bulk ? 0 : undef ), "modified_count" );
         is( $details->count_write_errors, 3, "writeError count" )
           or diag _truncate explain $details;
-        cmp_deeply( $details->upserted, [ { index => 4, _id => obj_isa("MongoDB::OID") }, ],
+        cmp_deeply( $details->upserted, [ { index => 4, _id => obj_isa("BSON::OID") }, ],
             "upsert list" );
     }
     else {
@@ -1014,8 +1013,8 @@ subtest "unordered batch with errors" => sub {
         cmp_deeply(
             $details->upserted,
             [
-                { index => 0, _id => obj_isa("MongoDB::OID") },
-                { index => 1, _id => obj_isa("MongoDB::OID") },
+                { index => 0, _id => obj_isa("BSON::OID") },
+                { index => 1, _id => obj_isa("BSON::OID") },
             ],
             "upsert list"
         );
@@ -1065,8 +1064,8 @@ subtest "ordered batch with errors" => sub {
     cmp_deeply(
         $details->write_errors->[0]{op},
         {
-            q => Tie::IxHash->new( b      => 2 ),
-            u => obj_isa( $server_does_bulk ? 'MongoDB::BSON::_EncodedDoc' : 'Tie::IxHash' ),
+            q => methods(['FETCH','b'] => 2 ),
+            u => obj_isa( $server_does_bulk ? 'BSON::Raw' : 'Tie::IxHash' ),
             multi  => false,
             upsert => true,
         },

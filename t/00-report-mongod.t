@@ -21,6 +21,7 @@ use Test::More 0.88;
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client server_version server_type/;
+use BSON;
 
 skip_unless_mongod();
 
@@ -41,6 +42,9 @@ if ( -d ".git" or -d "../.git" ) {
         diag "git describe: $desc";
     }
 }
+
+my $bc = BSON->_backend_class;
+diag "BSON Backend " . sprintf("%s version %s", $bc, $bc->VERSION);
 
 pass("checked MongoDB test environment");
 

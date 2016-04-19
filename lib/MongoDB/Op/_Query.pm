@@ -235,7 +235,7 @@ sub _as_query_document {
 }
 
 my %options_to_prune =
-  map { $_ => 1 } qw/limit batchSize cursorType maxAwaitTimeMS maxTimeMS modifiers/;
+  map { $_ => 1 } qw/limit batchSize cursorType maxAwaitTimeMS modifiers/;
 
 sub _as_command {
     my ($self) = @_;
@@ -254,7 +254,6 @@ sub _as_command {
 
     my $tailable = $opts->{cursorType} =~ /^tailable/ ? $TRUE : $FALSE;
     my $await_data = $opts->{cursorType} eq 'tailable_await' ? $TRUE : $FALSE;
-    my $max_time = $await_data ? $opts->{maxAwaitTimeMS} : $opts->{maxTimeMS};
 
     return [
         # Always send these options
@@ -267,7 +266,6 @@ sub _as_command {
 
         ( $limit      ? ( limit     => $limit )      : () ),
         ( $batch_size ? ( batchSize => $batch_size ) : () ),
-        ( $max_time   ? ( maxTimeMS => $max_time )   : () ),
 
         # Merge in any server options, but cursorType and maxAwaitTimeMS aren't
         # actually a server option, so we remove it during the merge.  Also

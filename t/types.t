@@ -19,13 +19,13 @@ use warnings;
 use Test::More 0.96;
 
 use MongoDB;
-use MongoDB::OID;
 use MongoDB::Code;
 use MongoDB::Timestamp;
 use DateTime;
 use JSON::MaybeXS;
 use Test::Fatal;
 use boolean;
+use BSON::Types ':all';
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db
@@ -41,23 +41,22 @@ my $server_version = server_version($conn);
 my $coll = $testdb->get_collection('y');
 $coll->drop;
 
-my $id = MongoDB::OID->new;
-isa_ok($id, 'MongoDB::OID');
+my $id = bson_oid();
+isa_ok($id, 'BSON::OID');
 is($id."", $id->value);
 
 # OIDs created in time-ascending order
 {
-    my $ids = [];
+    my @ids;
     for (0..9) {
-        push @$ids, new MongoDB::OID;
-        select undef, undef, undef, 0.1;  # Sleep 0.1 seconds
+        push @ids, bson_oid();
     }
     for (0..8) {
-        ok((@$ids[$_]."") lt (@$ids[$_+1].""));
+        ok($ids[$_] < $ids[$_+1]);
     }
     
     my $now = DateTime->now;
-    $id = MongoDB::OID->new;
+    $id = bson_oid();
     
     ok($id->get_time >= $now->epoch, "OID time >= epoch" );
 }
@@ -65,17 +64,17 @@ is($id."", $id->value);
 # creating ids from an existing value
 {
     my $value = "012345678901234567890abc";
-    my $id = MongoDB::OID->new(value => $value);
+    my $id = bson_oid($value);
     is($id->value, $value);
 
-    my $id_orig = MongoDB::OID->new;
+    my $id_orig = bson_oid();
     foreach my $args (
-        [value => $id_orig->value],
-        [value => uc $id_orig->value],
-        [$id_orig->value],
-        [$id_orig],
+        $id_orig->value,
+        uc( $id_orig->value ),
+        $id_orig->value,
+        $id_orig,
     ) {
-        my $id_copy = MongoDB::OID->new(@{$args});
+        my $id_copy = bson_oid($args);
         is($id_orig->value, $id_copy->value);
     }
 }
@@ -84,8 +83,8 @@ is($id."", $id->value);
 {
     my $value = "506b37b1a7e2037c1f0004";
     like(
-        exception { MongoDB::OID->new(value => $value) },
-        qr/not a valid OID/i,
+        exception { bson_oid($value) },
+        qr/must be 12 packed bytes or 24 bytes of hex/i,
         "Invalid OID throws exception"
     );
 }
@@ -124,15 +123,17 @@ is($id."", $id->value);
     $coll->insert_one({'date' => $now});
     my $date = $coll->find_one;
 
-    is($date->{'date'}->epoch, $now->epoch);
-    is($date->{'date'}->day_of_week, $now->day_of_week);
+    my $date2 = $date->{'date'}->as_datetime;
+    is($date2->epoch, $now->epoch);
+    is($date2->day_of_week, $now->day_of_week);
 
     my $past = DateTime->from_epoch('epoch' => 1234567890);
 
     $coll->insert_one({'date' => $past});
     $date = $coll->find_one({'date' => $past});
+    $date2 = $date->{'date'}->as_datetime;
 
-    is($date->{'date'}->epoch, 1234567890);
+    is($date2->epoch, 1234567890);
 }
 
 # minkey/maxkey
@@ -145,8 +146,8 @@ is($id."", $id->value);
     $coll->insert_one({min => $min, max => $max});
     my $x = $coll->find_one;
 
-    isa_ok($x->{min}, 'MongoDB::MinKey');
-    isa_ok($x->{max}, 'MongoDB::MaxKey');
+    isa_ok($x->{min}, 'BSON::MinKey');
+    isa_ok($x->{max}, 'BSON::MaxKey');
 }
 
 # tie::ixhash
@@ -173,49 +174,14 @@ is($id."", $id->value);
     ok( $coll->insert_one({"bin" => \$invalid}), "inserted binary data" );
 
     my $one = $coll->find_one;
-    isa_ok($one->{bin}, "MongoDB::BSON::Binary", "binary data");
+    isa_ok($one->{bin}, "BSON::Bytes", "binary data");
     is($one->{'bin'}, "\xFE", "read binary data");
-}
-
-# 64-bit ints
-{
-    use bigint;
-    $coll->drop;
-
-    my $x = 2 ** 34;
-    $coll->insert_one({x => $x});
-    my $result = $coll->find_one;
-
-    is($result->{'x'}, 17179869184)
-        or diag explain $result;
-
-    $coll->drop;
-
-    $x = (2 ** 34) * -1;
-    $coll->insert_one({x => $x});
-    $result = $coll->find_one;
-
-    is($result->{'x'}, -17179869184)
-        or diag explain $result;
-
-    $coll->drop;
-
-    $coll->insert_one({x => 2712631400});
-    $result = $coll->find_one;
-    is($result->{'x'}, 2712631400)
-        or diag explain $result;
-
-    eval {
-        $coll->insert_one({x => 9834590149023841902384137418571984503});
-    };
-
-    like($@, qr/can't fit/, "big int too large error message");
-
-    $coll->drop;
 }
 
 # code
 {
+    $coll->drop();
+
     my $str = "function() { return 5; }";
     my $code = MongoDB::Code->new("code" => $str);
     my $scope = $code->scope;
@@ -272,12 +238,13 @@ SKIP: {
 
 # oid json
 {
-    my $doc = {"foo" => MongoDB::OID->new};
+    my $doc = {"foo" => bson_oid()};
 
     my $j = JSON->new;
     $j->allow_blessed;
     $j->convert_blessed;
 
+    local $ENV{BSON_EXTJSON} = 1;
     my $json = $j->encode($doc);
     is($json, '{"foo":{"$oid":"'.$doc->{'foo'}->value.'"}}');
 }
@@ -314,7 +281,7 @@ SKIP: {
         $coll->insert_one({"x" => $coll});
     };
 
-    ok($@ =~ m/type \(MongoDB::Collection\) unhandled/, "can't insert a non-recognized obj");
+    like($@, qr/type \(MongoDB::Collection\) unhandled|can't encode value of type 'MongoDB::Collection'/, "can't insert a non-recognized obj");
 }
 
 

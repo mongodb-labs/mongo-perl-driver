@@ -25,6 +25,7 @@ our $VERSION = 'v1.999.0';
 
 use Moo::Role;
 
+use BSON::Raw;
 use MongoDB::Error;
 use MongoDB::_Constants;
 
@@ -72,7 +73,7 @@ sub _pre_encode_update {
     }
 
     # manually bless for speed
-    return bless { bson => $bson_doc, metadata => {} }, "MongoDB::BSON::_EncodedDoc";
+    return bless { bson => $bson_doc, metadata => {} }, "BSON::Raw";
 }
 
 1;

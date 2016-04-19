@@ -25,11 +25,11 @@ BEGIN { plan skip_all => 'requires threads' unless $Config{usethreads} }
 BEGIN { plan skip_all => 'threads not supported before Perl 5.8.5' unless $] ge "5.008005" }
 
 use MongoDB;
-use MongoDB::OID;
+use BSON::OID;
 
 my @threads = map {
     threads->create(sub {
-        [map { MongoDB::OID->new } 0 .. 3]
+        [map { BSON::OID->new } 0 .. 3]
     });
 } 0 .. 9;
 

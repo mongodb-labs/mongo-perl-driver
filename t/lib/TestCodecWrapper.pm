@@ -1,21 +1,21 @@
 use strict;
 use warnings;
 
-use MongoDB::BSON;
-use MongoDB::OID;
+use BSON;
+use BSON::OID;
 
 package TestCodecWrapper;
 
-our @ISA = qw/MongoDB::BSON/;
+our @ISA = qw/BSON/;
 
 sub create_oid {
-    my $oid = MongoDB::OID->new();
+    my $oid = BSON::OID->new();
     return bless $oid, "TestCodecWrapper::OID";
 }
 
 package TestCodecWrapper::OID;
 
-our @ISA = qw/MongoDB::OID/;
+our @ISA = qw/BSON::OID/;
 
 1;
 

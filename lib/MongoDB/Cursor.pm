@@ -25,8 +25,6 @@ use version;
 our $VERSION = 'v1.999.0';
 
 use Moo;
-use MongoDB;
-use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::QueryResult;
 use MongoDB::ReadPreference;

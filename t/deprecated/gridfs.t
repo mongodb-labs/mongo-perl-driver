@@ -272,7 +272,7 @@ $grid->drop;
 
     $img->seek(0,0);
     $id = $grid->put($img);
-    isa_ok($id, 'MongoDB::OID');
+    isa_ok($id, 'BSON::OID');
 
     $img->seek(0,0);
     eval {

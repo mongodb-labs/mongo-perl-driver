@@ -25,7 +25,6 @@ our $VERSION = 'v1.999.0';
 
 use Moo;
 use MongoDB;
-use MongoDB::BSON;
 use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use MongoDB::Cursor;
@@ -42,6 +41,7 @@ use MongoDB::_Topology;
 use MongoDB::_Constants;
 use MongoDB::_Credential;
 use MongoDB::_URI;
+use BSON v1.6.0;
 use Digest::MD5;
 use UUID::URandom;
 use Tie::IxHash;
@@ -77,14 +77,6 @@ use Types::Standard qw(
 );
 
 use namespace::clean -except => 'meta';
-
-#--------------------------------------------------------------------------#
-# deprecated global variables
-#--------------------------------------------------------------------------#
-
-# These are used to configure a BSON codec options if none is provided.
-$MongoDB::BSON::looks_like_number = 0;
-$MongoDB::BSON::char = '$';
 
 #--------------------------------------------------------------------------#
 # public attributes
@@ -222,24 +214,10 @@ sub _build_auth_mechanism_properties {
 =attr bson_codec
 
 An object that provides the C<encode_one> and C<decode_one> methods, such as
-from L<MongoDB::BSON>.  It may be initialized with a hash reference that will
-be coerced into a new L<MongoDB::BSON> object.
+from L<BSON>.  It may be initialized with a hash reference that will
+be coerced into a new L<BSON> object.
 
-If not provided, one will be generated as follows:
-
-    MongoDB::BSON->new(
-        dbref_callback => sub { return MongoDB::DBRef->new(shift) },
-        dt_type        => $client->dt_type,
-        prefer_numeric => $MongoDB::BSON::looks_like_number || 0,
-        (
-            $MongoDB::BSON::char ne '$' ?
-                ( op_char => $MongoDB::BSON::char ) : ()
-        ),
-    );
-
-This will inflate all DBRefs to L<MongoDB::DBRef> objects, set C<dt_type>
-based on the client's C<db_type> accessor, and set the C<prefer_numeric>
-and C<op_char> attributes based on the deprecated legacy global variables.
+If not provided, a L<BSON> object with default values will be generated.
 
 =cut
 
@@ -251,15 +229,9 @@ has bson_codec => (
     builder => '_build_bson_codec',
 );
 
-# skipping op_char unless $MongoDB::BSON::char is not '$' is an optimization
 sub _build_bson_codec {
     my ($self) = @_;
-    return MongoDB::BSON->new(
-        dbref_callback => sub { return MongoDB::DBRef->new(shift) },
-        dt_type        => $self->dt_type,
-        prefer_numeric => $MongoDB::BSON::looks_like_number || 0,
-        ( $MongoDB::BSON::char ne '$' ? ( op_char => $MongoDB::BSON::char ) : () ),
-    );
+    return BSON->new();
 }
 
 =attr connect_timeout_ms
@@ -959,28 +931,6 @@ sub _build_read_concern_level {
 #--------------------------------------------------------------------------#
 # deprecated public attributes
 #--------------------------------------------------------------------------#
-
-=attr dt_type (DEPRECATED AND READ-ONLY)
-
-Sets the type of object which is returned for DateTime fields. The default
-is L<DateTime>. Other acceptable values are L<DateTime::Tiny>,
-L<Time::Moment> and C<undef>. The latter will give you the raw epoch value
-(possibly as a floating point value) rather than an object.
-
-This will be used to construct L</bson_codec> object if one is not provided.
-
-As this has a one-time effect, it is now read-only to help you detect
-code that was trying to change after the fact during program execution.
-
-For temporary or localized changes, look into overriding the C<bson_codec>
-object for a database or collection object.
-
-=cut
-
-has dt_type => (
-    is      => 'ro',
-    default => 'DateTime'
-);
 
 =attr query_timeout (DEPRECATED AND READ-ONLY)
 

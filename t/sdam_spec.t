@@ -24,6 +24,7 @@ use Try::Tiny;
 
 use MongoDB;
 use MongoDB::_Credential;
+use BSON::Types ':all';
 
 my $iterator = path('t/data/SDAM')->iterator({recurse => 1});
 
@@ -82,9 +83,7 @@ sub run_test {
                 my ($addr, $is_master) = @$response;
 
                 if ( defined $is_master->{electionId} ){
-                    $is_master->{electionId} = MongoDB::OID->new(
-                        value => $is_master->{electionId}->{'$oid'}
-                    );
+                    $is_master->{electionId} = bson_oid($is_master->{electionId}->{'$oid'});
                 }
 
                 # Process response

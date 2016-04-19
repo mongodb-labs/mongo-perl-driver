@@ -47,7 +47,7 @@ use MongoDBTest qw/
 
 use Test::Role::BSONDebug;
 Role::Tiny->apply_roles_to_package(
-    'MongoDB::BSON', 'Test::Role::BSONDebug',
+    'BSON', 'Test::Role::BSONDebug',
 );
 
 my $orc =
@@ -91,11 +91,6 @@ subtest 'Session for ack writes' => sub {
 };
 
 subtest 'No session for unac writes' => sub {
-    use Test::Role::BSONDebug;
-
-    Role::Tiny->apply_roles_to_package(
-        'MongoDB::BSON', 'Test::Role::BSONDebug',
-    );
 
     my $coll = $testdb->get_collection( 'test_collection', { write_concern => { w => 0 } } );
 

@@ -65,7 +65,7 @@ plan skip_all => "Requires MongoDB 3.6"
 use Test::Role::BSONDebug;
 
 Role::Tiny->apply_roles_to_package(
-    'MongoDB::BSON', 'Test::Role::BSONDebug',
+    'BSON', 'Test::Role::BSONDebug',
 );
 
 $coll->insert_many( [ map { { wanted => 1, score => $_ } } 0 .. 400 ] );

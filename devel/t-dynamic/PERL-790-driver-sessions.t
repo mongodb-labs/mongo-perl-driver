@@ -95,7 +95,7 @@ subtest 'clusterTime in commands' => sub {
     use Test::Role::BSONDebug;
 
     Role::Tiny->apply_roles_to_package(
-        'MongoDB::BSON', 'Test::Role::BSONDebug',
+        'BSON', 'Test::Role::BSONDebug',
     );
 
     subtest 'ping' => sub {

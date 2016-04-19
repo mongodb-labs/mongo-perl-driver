@@ -26,7 +26,6 @@ our $VERSION = 'v1.999.0';
 
 use Moo;
 
-use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::BulkWriteResult;
 use MongoDB::UnacknowledgedResult;
@@ -171,7 +170,7 @@ sub _execute_write_command_batch {
             # the update doc is already encoded; this also removes the 'is_replace'
             # field that needs to not be in the command sent to the server
             for ( my $i = 0; $i <= $#$chunk; $i++ ) {
-                next if ref( $chunk->[$i]{u} ) eq 'MongoDB::BSON::_EncodedDoc';
+                next if ref( $chunk->[$i]{u} ) eq 'BSON::Raw';
                 my $is_replace = delete $chunk->[$i]{is_replace};
                 $chunk->[$i]{u} = $self->_pre_encode_update( $link->max_bson_object_size, $chunk->[$i]{u}, $is_replace );
             }
@@ -181,7 +180,7 @@ sub _execute_write_command_batch {
             # field; since this might be called more than once if chunks are getting
             # split, check if the doc is already encoded
             for ( my $i = 0; $i <= $#$chunk; $i++ ) {
-                unless ( ref( $chunk->[$i] ) eq 'MongoDB::BSON::_EncodedDoc' ) {
+                unless ( ref( $chunk->[$i] ) eq 'BSON::Raw' ) {
                     $chunk->[$i] = $self->_pre_encode_insert( $link, $chunk->[$i], '.' );
                 };
             }

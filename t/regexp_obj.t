@@ -59,7 +59,7 @@ like(
     my $doc = $coll->find_one( { _id => 'spl0rt' } );
     ok $doc->{foo};
     ok ref $doc->{foo};
-    isa_ok $doc->{foo}, 'MongoDB::BSON::Regexp';
+    isa_ok $doc->{foo}, 'BSON::Regex';
 
     is $doc->{foo}->pattern, 'foo.+bar';
     is $doc->{foo}->flags, 'ims';

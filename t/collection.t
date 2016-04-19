@@ -29,6 +29,7 @@ use MongoDB::Error;
 use MongoDB::Code;
 
 use MongoDB;
+use BSON::Types ':all';
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type/;
@@ -110,7 +111,7 @@ subtest get_namespace => sub {
     $coll->drop;
 
     $id = $coll->insert_one({})->inserted_id;
-    isa_ok($id, 'MongoDB::OID');
+    isa_ok($id, 'BSON::OID');
     $tiny = $coll->find_one;
     is($tiny->{'_id'}, $id);
 
@@ -206,7 +207,7 @@ if ( $server_version >= v2.4.11 ) {
   $result = $coll->find_id($id, { c => 3 });
   cmp_deeply(
     $result,
-    { _id => $id, c => 3 },
+    { _id => str($id), c => 3 }, # use str() to allow MongoDB::OID vs BSON::OID
     "find_id projection"
   );
 
@@ -329,7 +330,7 @@ if ( $server_version >= v2.4.11 ) {
     $coll->drop;
     my $hash = Tie::IxHash->new("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
     $id = $coll->insert_one($hash)->inserted_id;
-    isa_ok($id, 'MongoDB::OID');
+    isa_ok($id, 'BSON::OID');
     $tied = $coll->find_one;
     is($tied->{'_id'}."", "$id");
     is($tied->{'f'}, 1);
@@ -348,9 +349,9 @@ if ( $server_version >= v2.4.11 ) {
 # () update/insert
 {
     $coll->drop;
-    my @h = ("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
+    my @h = ("f" => bson_int32(1), "s" => 2, "fo" => 4, "t" => 3);
     $id = $coll->insert_one(\@h)->inserted_id;
-    isa_ok($id, 'MongoDB::OID');
+    isa_ok($id, 'BSON::OID');
     $tied = $coll->find_one;
     is($tied->{'_id'}."", "$id");
     is($tied->{'f'}, 1);
@@ -822,7 +823,7 @@ subtest "deep update" => sub {
 
     like(
         exception { $coll->replace_one( { _id => 1 }, { 'p.q' => 23 } ) },
-        qr/documents for storage cannot contain/,
+        qr/documents for storage cannot contain|has invalid character/,
         "replace with dots in field dies"
     );
 

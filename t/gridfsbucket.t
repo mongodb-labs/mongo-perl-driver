@@ -406,6 +406,7 @@ sub text_is {
     my $id = $uploadstream->id;
     my $doc2 = $bucket->find_id($id);
     $doc2->{uploadDate} = ignore(); # DateTime objects internals can differ :-(
+    $doc2->{_id} = str($doc2->{_id}); # BSON OID types can differ
     cmp_deeply( $doc, $doc2, "close returns file document" );
     is( $bucket->_chunks->count( { files_id => $id } ),
         2, 'custom chunk size num chunks' );

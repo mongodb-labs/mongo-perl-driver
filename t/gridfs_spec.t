@@ -22,6 +22,7 @@ use Test::Fatal;
 use Path::Tiny;
 
 use MongoDB;
+use BSON::Types ':all';
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
@@ -72,7 +73,7 @@ sub fix_types {
     my $obj = shift;
     if ( ( ref $obj ) eq 'HASH' ) {
         if ( exists $obj->{'$oid'} ) {
-            $obj = MongoDB::OID->new( value => $obj->{'$oid'}, );
+            $obj = bson_oid($obj->{'$oid'});
         }
         elsif ( exists $obj->{'$hex'} ) {
             $obj = MongoDB::BSON::Binary->new( { data => hex_to_str( $obj->{'$hex'} ) } );
@@ -201,7 +202,7 @@ sub cmp_special {
 
 sub test_download {
     my ( undef, $args ) = @_;
-    my $id = MongoDB::OID->new( value => $args->{id}->{'$oid'} );
+    my $id = bson_oid($args->{id}->{'$oid'});
     my $options = fix_options( $args->{options} );
 
     my $stream = $bucket->open_download_stream( $id, $args );
@@ -212,7 +213,7 @@ sub test_download {
 
 sub test_delete {
     my ( undef, $args ) = @_;
-    my $id = MongoDB::OID->new( value => $args->{id}->{'$oid'} );
+    my $id = bson_oid( $args->{id}->{'$oid'} );
 
     return $bucket->delete($id);
 }

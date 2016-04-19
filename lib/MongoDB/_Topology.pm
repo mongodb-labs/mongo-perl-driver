@@ -22,7 +22,7 @@ use version;
 our $VERSION = 'v1.999.0';
 
 use Moo;
-use MongoDB::BSON;
+use BSON;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Platform;
@@ -182,7 +182,7 @@ has link_options => (
 
 has bson_codec => (
     is       => 'ro',
-    default  => sub { MongoDB::BSON->new },
+    default  => sub { BSON->new },
     isa => BSONCodec,
 );
 

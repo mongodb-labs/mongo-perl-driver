@@ -91,6 +91,12 @@ my $index_name = $coll->indexes->create_one( [ x => 1 ] );
 # Test helpers
 #--------------------------------------------------------------------------#
 
+sub diag_got_exp {
+    my ($g, $e) = @_;
+    diag "GOT:\n", explain $g;
+    diag "EXP:\n", explain $e;
+}
+
 sub option_is {
     my ( $payload, $option_name, $expected ) = @_;
 
@@ -110,7 +116,7 @@ sub option_is {
         cmp_got_ixhash( $got, $expected, $label );
     }
     else {
-        cmp_deeply( $got, $expected, $label );
+        cmp_deeply( $got, $expected, $label ) or diag_got_exp($got, $expected);
     }
 }
 
@@ -120,17 +126,20 @@ sub cmp_got_ixhash {
     my ( $got, $expected, $label ) = @_;
 
     local $Test::Builder::Level = $Test::Builder::Level + 1;
+    $got->[3] = 0; # clear iterator for comparison
 
     if ( ref($expected) eq 'Tie::IxHash' ) {
-        cmp_deeply( $got, $expected, $label );
+        cmp_deeply( $got, $expected, $label ) or diag_got_exp($got, $expected);
     }
     elsif ( ref($expected) eq 'ARRAY' ) {
-        cmp_deeply( $got, Tie::IxHash->new(@$expected), $label );
+        my $exp = Tie::IxHash->new(@$expected);
+        cmp_deeply( $got, $exp , $label ) or diag_got_exp($got, $exp);
     }
     elsif ( ref($expected) eq 'HASH' ) {
         warn "Comparing multi-key expected hash is unpredictable"
           if keys %$expected > 1;
-        cmp_deeply( $got, Tie::IxHash->new(%$expected), $label );
+        my $exp = Tie::IxHash->new(%$expected);
+        cmp_deeply( $got, $exp, $label ) or diag_got_exp($got, $exp);
     }
     else {
         die "Don't know how to compare '$got' to '$expected'";

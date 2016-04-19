@@ -135,8 +135,8 @@ has read_preference => (
 =attr bson_codec
 
 An object that provides the C<encode_one> and C<decode_one> methods, such
-as from L<MongoDB::BSON>.  It may be initialized with a hash reference that
-will be coerced into a new MongoDB::BSON object.  By default it will be
+as from L<BSON>.  It may be initialized with a hash reference that
+will be coerced into a new BSON object.  By default it will be
 inherited from a L<MongoDB::Database> object.
 
 =cut
@@ -395,8 +395,9 @@ L</open_upload_stream>.
 
 sub open_upload_stream_with_id {
     my ( $self, $id, $filename, $options ) = @_;
+    my $id_copy = $id;
     MongoDB::UsageError->throw('No id provided to open_upload_stream_with_id')
-      unless defined $id && length $id;
+      unless defined $id_copy && length $id_copy;
     MongoDB::UsageError->throw('No filename provided to open_upload_stream_with_id')
       unless defined $filename && length $filename;
 
@@ -502,8 +503,9 @@ Unlike L</open_upload_stream>, this method returns nothing.
 
 sub upload_from_stream_with_id {
     my ( $self, $id, $filename, $source_fh, $options ) = @_;
+    my $id_copy = $id; # preserve number/string form
     MongoDB::UsageError->throw('No id provided to upload_from_stream_with_id')
-      unless defined $id && length $id;
+      unless defined $id_copy && length $id_copy;
     MongoDB::UsageError->throw('No filename provided to upload_from_stream_with_id')
       unless defined $filename && length $filename;
     MongoDB::UsageError->throw('No handle provided to upload_from_stream_with_id')

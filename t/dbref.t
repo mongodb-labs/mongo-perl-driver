@@ -33,16 +33,15 @@ my $conn = build_client();
 my $testdb = get_test_db($conn);
 
 {
-    my $ref = MongoDB::DBRef->new( db => 'test', ref => 'test_coll', id => 123 );
-    ok $ref;
-    isa_ok $ref, 'MongoDB::DBRef';
+    ok( my $ref = BSON::DBRef->new( db => 'test', ref => 'test_coll', id => 123 ), "constructor" );
+    isa_ok( $ref, 'BSON::DBRef' );
 }
 
 # test type coercions
 {
     my $coll = $testdb->get_collection( 'test_collection' );
 
-    my $ref = MongoDB::DBRef->new( db => $testdb, ref => $coll, id => 123 );
+    my $ref = BSON::DBRef->new( db => $testdb->name, ref => $coll, id => 123 );
 
     ok $ref;
     ok not blessed $ref->db;
@@ -52,16 +51,16 @@ my $testdb = get_test_db($conn);
     is $ref->ref, 'test_collection';
     is $ref->id, 123;
 
-    $ref = MongoDB::DBRef->new( ref => $coll, id => 123 );
+    $ref = BSON::DBRef->new( ref => $coll, id => 123 );
     is( $ref->db, undef, "no db in new gives undef db" );
 
-    $ref = MongoDB::DBRef->new( ref => $coll, id => 123, db => undef );
+    $ref = BSON::DBRef->new( ref => $coll, id => 123, db => undef );
     is( $ref->db, undef, "explicit undef db in new gives undef db" );
 }
 
 # test roundtrip
 {
-    my $dbref = MongoDB::DBRef->new( db => 'some_db', ref => 'some_coll', id => 123 );
+    my $dbref = BSON::DBRef->new( db => 'some_db', ref => 'some_coll', id => 123 );
     my $coll = $testdb->get_collection( 'test_coll' );
 
     $coll->insert_one( { _id => 'wut wut wut', thing => $dbref } );
@@ -71,45 +70,19 @@ my $testdb = get_test_db($conn);
 
     my $thing = $doc->{thing};
 
-    isa_ok $thing, 'MongoDB::DBRef';
+    isa_ok $thing, 'BSON::DBRef';
     is $thing->ref, 'some_coll';
     is $thing->id,  123;
     is $thing->db,  'some_db';
 
-    $dbref = MongoDB::DBRef->new( ref => 'some_coll', id => 123 );
+    $dbref = BSON::DBRef->new( ref => 'some_coll', id => 123 );
     $coll->insert_one( { _id => 123, thing => $dbref } );
     $doc = $coll->find_one( { _id => 123 } );
     $thing = $doc->{thing};
-    isa_ok( $thing, 'MongoDB::DBRef' );
+    isa_ok( $thing, 'BSON::DBRef' );
     is( $thing->ref, 'some_coll', '$ref' );
     is( $thing->id,  123,         '$id' );
     is( $thing->db,  undef,       '$db undefined' );
-
-    $coll->drop;
-}
-
-# test changing dbref_callback on bson_codec
-{
-    my $coll =
-      $testdb->get_collection( 'test_coll', { bson_codec => {} } );
-
-    my $dbref = MongoDB::DBRef->new( db => $testdb->name, ref => 'some_coll', id => 123 );
-
-    $coll->insert_one( { _id => 'wut wut wut', thing => $dbref } );
-    my $doc = $coll->find_one( { _id => 'wut wut wut' } );
-    ok( exists $doc->{thing}, "got inserted doc from db" );
-    is( ref $doc->{thing}, 'HASH', "doc is hash, not object" );;
-    is( $doc->{thing}{'$id'}, 123, '$id' );
-    is( $doc->{thing}{'$ref'}, 'some_coll', '$ref' );
-    is( $doc->{thing}{'$db'}, $testdb->name, '$db' );
-
-    $dbref = MongoDB::DBRef->new( ref => 'some_coll', id => 123 );
-    $coll->insert_one( { _id => 123, thing => $dbref } );
-    $doc = $coll->find_one( { _id => 123 } );
-    ok( exists $doc->{thing}, "got inserted doc from db" );
-    is( $doc->{thing}{'$id'}, 123, '$id' );
-    is( $doc->{thing}{'$ref'}, 'some_coll', '$ref' );
-    ok( !exists($doc->{thing}{'$db'}), '$db not inserted' );
 
     $coll->drop;
 }
@@ -132,7 +105,7 @@ subtest "round-trip fields" => sub {
     my $doc = $coll->find_one( { _id => 123 } );
     my $dbref = $doc->{thing};
 
-    isa_ok( $dbref, "MongoDB::DBRef" );
+    isa_ok( $dbref, "BSON::DBRef" );
 
     $coll->insert_one( { _id => 124, thing => $dbref } );
     $doc = $coll->find_one( { _id => 124 } );

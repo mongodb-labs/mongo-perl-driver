@@ -40,7 +40,7 @@ my $now = DateTime->now;
 {
     $base_coll->insert_one( { date => $now } );
     my $date1 = $base_coll->find_one->{date};
-    isa_ok $date1, 'DateTime';
+    isa_ok $date1, 'BSON::Time';
     is $date1->epoch, $now->epoch;
     $base_coll->drop;
 }
@@ -50,7 +50,7 @@ my $now = DateTime->now;
 
     $coll->insert_one( { date => $now } );
     my $date3 = $coll->find_one->{date};
-    ok( ! ref $date3, "dt_type undef returns unblessed value" );
+    isa_ok $date3, 'BSON::Time';
     is( $date3, $now->epoch, "returned value is epoch secs without fractions" );
     $coll->drop;
 }
@@ -72,7 +72,7 @@ if ( HAS_DATETIME_TINY ) {
     like( exception { 
             my $date4 = $coll->find_one->{date};
         },
-        qr/Invalid dt_type "DateTime::Bad"/i,
+        qr/Invalid dt_type "DateTime::Bad"|Unsupported dt_type ['"]DateTime::Bad['"]/i,
         "invalid dt_type throws"
     );
     $coll->drop;
@@ -84,7 +84,7 @@ if ( HAS_DATETIME_TINY ) {
     $base_coll->insert_one( { date => $now } );
     my $doc = $base_coll->find_one;
 
-    $doc->{date}->add( seconds => 60 );
+    $doc->{date} = $doc->{date}->as_datetime->add( seconds => 60 );
 
     $base_coll->replace_one( { _id => $doc->{_id} }, { date => $doc->{date} } );
 
@@ -124,14 +124,15 @@ if ( HAS_DATETIME_TINY ) {
 
     $base_coll->insert_one( { date => $now } );
     my $doc = $base_coll->find_one;
+    my $date = $doc->{date}->as_datetime;
 
-    is $doc->{date}->year,       $now->year;
-    is $doc->{date}->month,      $now->month;
-    is $doc->{date}->day,        $now->day;
-    is $doc->{date}->hour,       $now->hour;
-    is $doc->{date}->minute,     $now->minute;
-    is $doc->{date}->second,     $now->second;
-    is $doc->{date}->nanosecond, $now->nanosecond;
+    is $date->year,       $now->year;
+    is $date->month,      $now->month;
+    is $date->day,        $now->day;
+    is $date->hour,       $now->hour;
+    is $date->minute,     $now->minute;
+    is $date->second,     $now->second;
+    is $date->nanosecond, $now->nanosecond;
     $base_coll->drop;
 }
 

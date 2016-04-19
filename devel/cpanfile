@@ -14,6 +14,6 @@ requires "Type::Utils";
 requires "Types::Path::Tiny";
 requires "Types::Standard";
 requires "Version::Next";
-requires "YAML::XS";
+requires "YAML::XS" => 0.67;
 requires "namespace::clean";
 requires "version";
