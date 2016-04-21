@@ -106,6 +106,12 @@ then look at it in the shell, we see:
 This doesn't mean that we saved a float, it just means that the float value of
 a 64-bit integer may not be exact.
 
+=head3 Decimal128
+
+MongoDB 3.4 will add support for a new BSON type, Decimal128.  The
+L<BSON::Decimal128> class is used as a proxy for these values for both
+inserting and retrieving documents.
+
 =head3 Dealing with numbers and strings in Perl
 
 Perl is very flexible about whether something is number or a string; it

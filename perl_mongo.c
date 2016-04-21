@@ -854,6 +854,15 @@ sv_to_bson_elem (bson_t * bson, const char * in_key, SV *sv, HV *opts, stackette
 
         append_decomposed_regex( bson, key, SvPV_nolen( pattern ), SvPV_nolen( flags ) );
       }
+      else if (sv_isa(sv, "BSON::Decimal128") ) {
+        bson_decimal128_t dec;
+        SV *dec_sv;
+
+        dec_sv = sv_2mortal(call_perl_reader( sv, "value" ));
+        bson_decimal128_from_string( SvPV_nolen(dec_sv), &dec );
+
+        bson_append_decimal128(bson, key, -1, &dec);
+      }
       else {
         croak ("type (%s) unhandled", HvNAME(SvSTASH(SvRV(sv))));
       }
@@ -1452,6 +1461,22 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
   case BSON_TYPE_MAXKEY: {
     HV *stash = gv_stashpv("MongoDB::MaxKey", GV_ADD);
     value = sv_bless(newRV((SV*)newHV()), stash);
+    break;
+  }
+  case BSON_TYPE_DECIMAL128: {
+    bson_decimal128_t dec;
+    char bid_string[BSON_DECIMAL128_STRING];
+    SV *dec_sv;
+
+    if ( ! bson_iter_decimal128(iter, &dec) ) {
+      croak("could not decode decimal128");
+    }
+
+    bson_decimal128_to_string(&dec, &bid_string);
+
+    dec_sv = sv_2mortal(newSVpv(bid_string, 0));
+    value = new_object_from_pairs("BSON::Decimal128", "value", dec_sv, NULL);
+
     break;
   }
   default: {

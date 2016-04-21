@@ -41,6 +41,7 @@ use MongoDB::BSON::Regexp;
 use MongoDB::BulkWrite;
 use MongoDB::_Link;
 use MongoDB::_Protocol;
+use BSON::Types;
 
 *read_documents = \&MongoDB::BSON::decode_bson;
 

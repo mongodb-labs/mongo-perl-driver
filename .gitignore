@@ -1,6 +1,6 @@
 .*
 !.gitignore
-*.c
+xs/BSON.c
 !perl_mongo.c
 !mongo_link.c
 *.o

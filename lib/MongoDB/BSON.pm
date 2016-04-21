@@ -26,6 +26,7 @@ our $VERSION = 'v1.5.0';
 use XSLoader;
 XSLoader::load("MongoDB", $VERSION);
 
+use BSON::Decimal128;
 use Carp ();
 use Config;
 use if ! $Config{use64bitint}, "Math::BigInt";

@@ -30,6 +30,7 @@
 #include "bson-atomic.h"
 #include "bson-context.h"
 #include "bson-clock.h"
+#include "bson-decimal128.h"
 #include "bson-error.h"
 #include "bson-iter.h"
 #include "bson-keys.h"
@@ -134,6 +135,9 @@ BSON_BEGIN_DECLS
 #define BSON_APPEND_MINKEY(b,key) \
       bson_append_minkey (b, key, (int) strlen (key))
 
+#define BSON_APPEND_DECIMAL128(b, key, val) \
+   bson_append_decimal128 (b, key, (int)strlen (key), val)
+
 #define BSON_APPEND_MAXKEY(b,key) \
       bson_append_maxkey (b, key, (int) strlen (key))
 
@@ -183,6 +187,18 @@ BSON_BEGIN_DECLS
 bson_t *
 bson_new (void);
 
+
+bson_t *
+bson_new_from_json (const uint8_t *data,
+                    ssize_t        len,
+                    bson_error_t  *error);
+
+
+bool
+bson_init_from_json (bson_t        *bson,
+                     const char    *data,
+                     ssize_t        len,
+                     bson_error_t  *error);
 
 
 /**
@@ -351,6 +367,11 @@ void
 bson_destroy (bson_t *bson);
 
 
+bool
+bson_steal (bson_t *dst,
+            bson_t *src);
+
+
 /**
  * bson_destroy_with_steal:
  * @bson: A #bson_t.
@@ -458,6 +479,29 @@ bson_validate (const bson_t         *bson,
                size_t               *offset);
 
 
+/**
+ * bson_as_json:
+ * @bson: A bson_t.
+ * @length: A location for the string length, or NULL.
+ *
+ * Creates a new string containing @bson in extended JSON format. The caller
+ * is responsible for freeing the resulting string. If @length is non-NULL,
+ * then the length of the resulting string will be placed in @length.
+ *
+ * See http://docs.mongodb.org/manual/reference/mongodb-extended-json/ for
+ * more information on extended JSON.
+ *
+ * Returns: A newly allocated string that should be freed with bson_free().
+ */
+char *
+bson_as_json (const bson_t *bson,
+              size_t       *length);
+
+
+/* like bson_as_json() but for outermost arrays. */
+char *
+bson_array_as_json (const bson_t *bson,
+                    size_t       *length);
 
 
 bool
@@ -729,6 +773,23 @@ bson_append_int64 (bson_t      *bson,
                    const char  *key,
                    int          key_length,
                    int64_t value);
+
+
+/**
+ * bson_append_decimal128:
+ * @bson: A bson_t.
+ * @key: The key for the field.
+ * @value: The bson_decimal128_t decimal128 value.
+ *
+ * Appends a new field of type BSON_TYPE_DECIMAL128 to @bson.
+ *
+ * Returns: true if successful; false if append would overflow max size.
+ */
+bool
+bson_append_decimal128 (bson_t                  *bson,
+                        const char              *key,
+                        int                      key_length,
+                        const bson_decimal128_t *value);
 
 
 /**

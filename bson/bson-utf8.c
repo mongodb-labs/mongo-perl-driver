@@ -125,7 +125,7 @@ bson_utf8_validate (const char *utf8,       /* IN */
    unsigned i;
    unsigned j;
 
-   bson_return_val_if_fail (utf8, false);
+   BSON_ASSERT (utf8);
 
    for (i = 0; i < utf8_len; i += seq_length) {
       _bson_utf8_get_sequence (&utf8[i], &seq_length, &first_mask);
@@ -233,6 +233,105 @@ bson_utf8_validate (const char *utf8,       /* IN */
    return true;
 }
 
+
+/*
+ *--------------------------------------------------------------------------
+ *
+ * bson_utf8_escape_for_json --
+ *
+ *       Allocates a new string matching @utf8 except that special
+ *       characters in JSON will be escaped. The resulting string is also
+ *       UTF-8 encoded.
+ *
+ *       Both " and \ characters will be escaped. Additionally, if a NUL
+ *       byte is found before @utf8_len bytes, it will be converted to the
+ *       two byte UTF-8 sequence.
+ *
+ * Parameters:
+ *       @utf8: A UTF-8 encoded string.
+ *       @utf8_len: The length of @utf8 in bytes or -1 if NUL terminated.
+ *
+ * Returns:
+ *       A newly allocated string that should be freed with bson_free().
+ *
+ * Side effects:
+ *       None.
+ *
+ *--------------------------------------------------------------------------
+ */
+
+char *
+bson_utf8_escape_for_json (const char *utf8,     /* IN */
+                           ssize_t     utf8_len) /* IN */
+{
+   bson_unichar_t c;
+   bson_string_t *str;
+   bool length_provided = true;
+   const char *end;
+
+   BSON_ASSERT (utf8);
+
+   str = bson_string_new (NULL);
+
+   if (utf8_len < 0) {
+      length_provided = false;
+      utf8_len = strlen (utf8);
+   }
+
+   end = utf8 + utf8_len;
+
+   while (utf8 < end) {
+      c = bson_utf8_get_char (utf8);
+
+      switch (c) {
+      case '\\':
+      case '"':
+      case '/':
+         bson_string_append_c (str, '\\');
+         bson_string_append_unichar (str, c);
+         break;
+      case '\b':
+         bson_string_append (str, "\\b");
+         break;
+      case '\f':
+         bson_string_append (str, "\\f");
+         break;
+      case '\n':
+         bson_string_append (str, "\\n");
+         break;
+      case '\r':
+         bson_string_append (str, "\\r");
+         break;
+      case '\t':
+         bson_string_append (str, "\\t");
+         break;
+      default:
+         if (c < ' ') {
+            bson_string_append_printf (str, "\\u%04u", (unsigned)c);
+         } else {
+            bson_string_append_unichar (str, c);
+         }
+         break;
+      }
+
+      if (c) {
+         utf8 = bson_utf8_next_char (utf8);
+      } else {
+         if (length_provided && !*utf8) {
+            /* we escaped nil as '\u0000', now advance past it */
+            utf8++;
+         } else {
+            /* invalid UTF-8 */
+            bson_string_free (str, true);
+            return NULL;
+         }
+      }
+   }
+
+   return bson_string_free (str, false);
+}
+
+
 /*
  *--------------------------------------------------------------------------
  *
@@ -260,7 +359,7 @@ bson_utf8_get_char (const char *utf8) /* IN */
    uint8_t num;
    int i;
 
-   bson_return_val_if_fail (utf8, -1);
+   BSON_ASSERT (utf8);
 
    _bson_utf8_get_sequence (utf8, &num, &mask);
    c = (*utf8) & mask;
@@ -299,7 +398,7 @@ bson_utf8_next_char (const char *utf8) /* IN */
    uint8_t mask;
    uint8_t num;
 
-   bson_return_val_if_fail (utf8, NULL);
+   BSON_ASSERT (utf8);
 
    _bson_utf8_get_sequence (utf8, &num, &mask);
 
@@ -336,8 +435,8 @@ bson_utf8_from_unichar (
       char            utf8[BSON_ENSURE_ARRAY_PARAM_SIZE(6)], /* OUT */
       uint32_t       *len)                                   /* OUT */
 {
-   bson_return_if_fail (utf8);
-   bson_return_if_fail (len);
+   BSON_ASSERT (utf8);
+   BSON_ASSERT (len);
 
    if (unichar <= 0x7F) {
       utf8[0] = unichar;

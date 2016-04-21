@@ -23,6 +23,7 @@ use Test::More 0.88;
 use MongoDB;
 use MongoDB::OID;
 use boolean;
+use BSON::Decimal128;
 use DateTime;
 use Encode;
 use Tie::IxHash;
@@ -31,13 +32,14 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::BSON::Binary;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
+use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
 
 skip_unless_mongod();
 
-my $testdb = get_test_db(build_client());
-
-my $c = $testdb->get_collection('bar');
+my $conn           = build_client();
+my $server_version = server_version($conn);
+my $testdb         = get_test_db($conn);
+my $c              = $testdb->get_collection('bar');
 
 # relloc
 subtest "realloc" => sub {
@@ -445,6 +447,24 @@ subtest "PERL-575 inflated boolean" => sub {
     my @docs = $c->find()->all;
     is( exception { $_->{okay} = $_->{okay}->TO_JSON for @docs },
         undef, "replacing one boolean doesn't affect another" );
+};
+
+subtest "PERL-611 Decimal128" => sub {
+    plan skip_all => "Decimal128 needs MongoDB 3.3.8 or later"
+      unless $server_version >= v3.3.8;
+
+    my $string = "1.23456789E+1000";
+    my $d128 = BSON::Decimal128->new( value => $string );
+
+    $c->drop;
+    ok( $c->insert_one( { x => $d128 } ), "inserted doc with Decimal128" );
+
+    my $doc = eval { $c->find_one( { x => $d128 } ) };
+    ok( $doc && $@ eq '', "retrieved doc with Decimal128" );
+    if ($doc) {
+        isa_ok( $doc->{x}, "BSON::Decimal128", "Decimal128 field" );
+        is( $doc->{x}, $string, "Decimal128 round-tripped" );
+    }
 };
 
 done_testing;

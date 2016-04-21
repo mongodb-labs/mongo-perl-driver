@@ -2,6 +2,12 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - Adds support for the BSON Decimal128 type, available in MongoDB v3.3.8
+    or later.  Adds a dependency on BSON::Decimal128 as the type-wrapper
+    for this type.
+
 v1.4.2    2016-06-14 09:30:05-04:00 America/New_York
 
   [Bug fixes]

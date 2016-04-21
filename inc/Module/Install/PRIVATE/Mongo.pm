@@ -281,6 +281,27 @@ main ()
 }
 HERE
 
+
+    ##/*
+    ## * Define to 1 if you have _set_output_format (VS2013 and older).
+    ## */
+    $conf{BSON_NEEDS_SET_OUTPUT_FORMAT} = 0;
+
+    ##/*
+    ## * Define to 1 if you have struct timespec available on your platform.
+    ## */
+    $conf{BSON_HAVE_TIMESPEC} = $ca->check_type( 'timespec' );
+
+    ##/*
+    ## * Define to 1 if you want extra aligned types in libbson
+    ## */
+    $conf{BSON_EXTRA_ALIGN} = 0;
+
+    ##/*
+    ## * Define to 1 if _Decimal128 (BID format) is available on your platform.
+    ## */
+    $conf{BSON_HAVE_DECIMAL128} = $ca->check_type( '_Decimal128' );
+
     return \%conf;
 }
 
