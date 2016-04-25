@@ -32,6 +32,9 @@ use Types::Standard qw(
     Num
     Str
 );
+use MongoDB::_Types qw(
+    BSONCodec
+);
 use MongoDB::_Protocol;
 
 use namespace::clean;
@@ -79,8 +82,8 @@ has max_time_ms => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_DatabaseOp
-  MongoDB::Role::_CommandOp
+  MongoDB::Role::_OpReplyParser
+  MongoDB::Role::_BSONCodec
 );
 
 sub execute {

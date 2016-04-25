@@ -69,7 +69,7 @@ has just_one => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_WriteOp
+  MongoDB::Role::_WriteCommand
 );
 
 sub execute {

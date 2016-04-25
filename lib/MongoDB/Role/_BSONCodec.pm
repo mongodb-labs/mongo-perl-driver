@@ -14,28 +14,28 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_WriteOp;
+package MongoDB::Role::_BSONCodec;
 
-# MongoDB interface for database write operations (whether write commands
-# or other things that take a write concern)
+# MongoDB role for things that need a BSON codec property
 
 use version;
 our $VERSION = 'v1.3.4';
 
-use MongoDB::_Types qw(
-    WriteConcern
-);
 use Moo::Role;
+
+use MongoDB::ReadPreference;
+use MongoDB::_Constants;
+use MongoDB::_Types qw(
+    BSONCodec
+);
+
 use namespace::clean;
 
-has write_concern => (
+has bson_codec => (
     is       => 'ro',
+    isa      => BSONCodec,
+    coerce   => BSONCodec->coercion,
     required => 1,
-    isa => WriteConcern,
-);
-
-with $_ for qw(
-  MongoDB::Role::_BSONCodec
 );
 
 1;

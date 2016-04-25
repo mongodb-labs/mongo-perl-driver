@@ -66,12 +66,6 @@ has client => (
     required => 1,
 );
 
-has bson_codec => (
-    is       => 'ro',
-    isa      => BSONCodec,
-    required => 1,
-);
-
 has read_preference => (
     is => 'rw',                   # mutable for Cursor
     isa => Maybe( [ReadPreference] ),
@@ -174,6 +168,7 @@ has sort => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_BSONCodec
 );
 
 sub as_query_op {

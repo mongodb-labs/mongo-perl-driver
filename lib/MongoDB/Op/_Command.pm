@@ -55,7 +55,6 @@ has query_flags => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_CommandOp
   MongoDB::Role::_ReadOp
   MongoDB::Role::_ReadPrefModifier
 );
@@ -67,9 +66,26 @@ sub execute {
     # $query is passed as a reference because it *may* be replaced
     $self->_apply_read_prefs( $link, $topology_type, $self->query_flags, \$self->query);
 
+    my $command = $self->bson_codec->encode_one( $self->query );
+
+    my ( $op_bson, $request_id ) =
+      MongoDB::_Protocol::write_query( $self->db_name . '.$cmd',
+        $command, undef, 0, -1, $self->query_flags);
+
+    if ( length($op_bson) > MAX_BSON_WIRE_SIZE ) {
+        # XXX should this become public?
+        MongoDB::_CommandSizeError->throw(
+            message => "database command too large",
+            size    => length $op_bson,
+        );
+    }
+
+    $link->write( $op_bson ),
+    ( my $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
+
     my $res = MongoDB::CommandResult->_new(
-        output => $self->_send_command( $link, $self->query, $self->query_flags ),
-        address => $link->address
+        output => $self->bson_codec->decode_one( $result->{docs} ),
+        address => $link->address,
     );
 
     $res->assert;

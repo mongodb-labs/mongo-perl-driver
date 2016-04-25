@@ -29,6 +29,7 @@ use MongoDB::QueryResult;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
+    BSONCodec
     Document
     CursorType
     IxHash
@@ -129,6 +130,7 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_OpReplyParser
 );
 with 'MongoDB::Role::_ReadPrefModifier';
 
