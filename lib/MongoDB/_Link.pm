@@ -274,11 +274,6 @@ sub is_connected {
     return $self->connected && $self->fh;
 }
 
-sub idle_time_sec {
-    my ($self) = @_;
-    return( time - $self->last_used );
-}
-
 sub write {
     my ( $self, $buf ) = @_;
 
