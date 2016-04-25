@@ -79,8 +79,7 @@ change to the repo root, build the driver and run benchmarks as follows:
 
 ```
 $ perl Makefile.PL
-$ make
-$ perl -Mblib devel/bench/bin/bench.pl -d <data-dir> [cases...]
+$ make && $ perl -Mblib devel/bench/bin/bench.pl -d <data-dir> [cases...]
 ```
 
 Use the `-v` flag for more verbose output.  Use the `--host=...` option
@@ -92,5 +91,6 @@ Profiling
 ---------
 
 To profile, follow the instructions in the `Benchmarking` section, but set
-the `DO_PROFILE` environment variable to 1.  Profile data will be saved to
-`nytprof.out`.  Convert to an HTML report with `nytprofhtml`.
+the `DO_PROFILE` environment variable to 1.  (Note: the `-f` option is
+recommended.) Profile data will be saved to `nytprof.out`.  Convert to an
+HTML report with `nytprofhtml`.

@@ -43,6 +43,9 @@ my %known = map { $_ => 1 } @cases;
 
 sub main {
 
+    warn "Warning: PERL_MONGO_WITH_ASSERTS is true!  Benchmarks will be slow.\n"
+      if $ENV{PERL_MONGO_WITH_ASSERTS};
+
     my ( $dir, $host, $fast, $verbose );
     GetOptions(
         "datadir|d=s" => \$dir,
