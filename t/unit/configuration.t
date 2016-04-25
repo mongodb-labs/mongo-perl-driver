@@ -56,38 +56,45 @@ subtest "host and port" => sub {
 };
 
 subtest "auth mechanism and properties" => sub {
+    my @up = qw/username johndoe password trustno1/;
     my $mc = _mc();
     is( $mc->auth_mechanism, 'NONE', "default auth_mechanism" );
     is_deeply( $mc->auth_mechanism_properties, {}, "default auth_mechanism_properties" );
 
-    $mc =
-      _mc( auth_mechanism => 'MONGODB-CR', auth_mechanism_properties => { foo => 1 } );
-    is( $mc->auth_mechanism, 'MONGODB-CR', "custom auth_mechanism" );
+    $mc = _mc(
+        @up,
+        auth_mechanism            => 'GSSAPI',
+        auth_mechanism_properties => { foo => 1 }
+    );
+    is( $mc->auth_mechanism, 'GSSAPI', "custom auth_mechanism" );
     is_deeply(
         $mc->auth_mechanism_properties,
-        { foo => 1 },
+        { foo => 1, SERVICE_NAME => 'mongodb' },
         "custom auth_mechanism_properties"
     );
 
     $mc = _mc(
-        host => 'mongodb://localhost/?authMechanism=PLAIN&authMechanismProperties=bar:2',
+        @up,
+        host => 'mongodb://localhost/?authMechanism=GSSAPI&authMechanismProperties=bar:2',
         auth_mechanism            => 'MONGODB-CR',
         auth_mechanism_properties => { foo => 1 },
     );
-    is( $mc->auth_mechanism, 'PLAIN', "authMechanism supersedes auth_mechanism" );
+    is( $mc->auth_mechanism, 'GSSAPI', "authMechanism supersedes auth_mechanism" );
     is_deeply(
         $mc->auth_mechanism_properties,
-        { bar => 2 },
+        { bar => 2, SERVICE_NAME => 'mongodb' },
         "authMechanismProperties supersedes auth_mechanism_properties"
     );
 
     $mc = _mc(
+        @up,
         sasl           => 1,
         sasl_mechanism => 'PLAIN',
     );
     is( $mc->auth_mechanism, 'PLAIN', "sasl+sasl_mechanism is auth_mechanism default" );
 
     $mc = _mc(
+        @up,
         auth_mechanism => 'MONGODB-CR',
         sasl           => 1,
         sasl_mechanism => 'PLAIN',
