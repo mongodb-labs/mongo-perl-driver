@@ -3,6 +3,8 @@ use 5.008001;
 use strict;
 use warnings;
 use Benchmark::Lab -profile => $ENV{DO_PROFILE};
+use FindBin;
+use lib "$FindBin::Bin/../lib";
 
 use Getopt::Long;
 
@@ -49,7 +51,7 @@ sub main {
         "verbose|v"   => \$verbose,
     );
 
-    $host ||= "mongodb://localhost/";
+    $host ||= $ENV{MONGOD} || "mongodb://localhost/";
 
     die "Data directory not specified with -d <dir>\n" unless $dir;
     die "Data directory '$dir', not found\n" unless -d $dir && -r $dir;
