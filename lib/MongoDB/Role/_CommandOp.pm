@@ -50,8 +50,10 @@ sub _send_command {
     }
 
     # return a raw, parsed result, not an object
-    return $self->_query_and_receive( $link, $op_bson, $request_id, undef, 1 )
-      ->{docs}[0];
+    $link->write( $op_bson ),
+    ( my $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
+
+    return $self->bson_codec->decode_one( $result->{docs} );
 }
 
 1;
