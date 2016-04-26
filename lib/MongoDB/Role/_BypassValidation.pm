@@ -26,6 +26,7 @@ use Moo::Role;
 use Types::Standard qw(
   Bool
 );
+use boolean;
 use namespace::clean;
 
 has bypassDocumentValidation => (
@@ -36,7 +37,8 @@ has bypassDocumentValidation => (
 # args not unpacked for efficiency; args are self, link, command;
 # returns (unmodified) link and command
 sub _maybe_bypass {
-    push @{ $_[2] }, bypassDocumentValidation => $_[0]->bypassDocumentValidation
+    push @{ $_[2] },
+      bypassDocumentValidation => ( $_[0]->bypassDocumentValidation ? true : false )
       if defined $_[0]->bypassDocumentValidation && $_[1]->accepts_wire_version(4);
     return $_[1], $_[2];
 }
