@@ -24,6 +24,7 @@ our $VERSION = 'v1.3.4';
 use Moo;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
+use MongoDB::Op::_CreateIndexes;
 use MongoDB::_Types qw(
     BSONCodec
     IxHash

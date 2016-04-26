@@ -29,6 +29,7 @@ use MongoDB::QueryResult;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
+    BSONCodec
     Document
     CursorType
     IxHash
@@ -129,6 +130,7 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_OpReplyParser
 );
 with 'MongoDB::Role::_ReadPrefModifier';
 
@@ -238,37 +240,41 @@ sub _legacy_query {
     );
 }
 
+# awful hack: avoid calling into boolean to get true/false
+my $TRUE = boolean::true();
+my $FALSE = boolean::false();
+
 sub as_command {
     my ($self) = @_;
 
-    my ($limit, $batch_size, $single_batch) = ($self->limit, $self->batch_size, 0);
+    my ($limit, $batch_size, $single_batch) = ($self->{limit}, $self->{batch_size}, 0);
 
     $single_batch = $limit < 0 || $batch_size < 0;
     $limit = abs($limit);
     $batch_size = $limit if $single_batch;
 
-    my $tailable = $self->cursor_type =~ /^tailable/ ? true : false;
-    my $await_data = $self->cursor_type eq 'tailable_await' ? true : false;
-    my $max_time = $await_data ? $self->max_await_time_ms : $self->max_time_ms ;
+    my $tailable = $self->{cursor_type} =~ /^tailable/ ? $TRUE : $FALSE;
+    my $await_data = $self->{cursor_type} eq 'tailable_await' ? $TRUE : $FALSE;
+    my $max_time = $await_data ? $self->{max_await_time_ms} : $self->{max_time_ms} ;
 
-    my $mod = $self->modifiers;
+    my $mod = $self->{modifiers};
 
     return [
-        find                => $self->coll_name,
-        filter              => $self->filter,
+        find                => $self->{coll_name},
+        filter              => $self->{filter},
 
-        (defined $self->sort ? (sort => $self->sort) : ()),
-        (defined $self->projection ? (projection => $self->projection) : ()),
+        (defined $self->{sort} ? (sort => $self->{sort}) : ()),
+        (defined $self->{projection} ? (projection => $self->{projection}) : ()),
         (defined $mod->{'$hint'} ? (hint => $mod->{'$hint'}) : ()),
 
-        skip                => $self->skip,
+        skip                => $self->{skip},
 
         ($limit ? (limit => $limit) : ()),
         ($batch_size ? (batchSize => $batch_size) : ()),
 
-        singleBatch         => boolean($single_batch),
+        singleBatch         => ($single_batch ? $TRUE : $FALSE),
 
-        ($self->{comment} ? (comment => $self->comment) : ()),
+        ($self->{comment} ? (comment => $self->{comment}) : ()),
         (defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : ()),
         (defined $self->{max_time_ms} ? (maxTimeMS => $self->{max_time_ms}) : ()),
         (defined $mod->{max} ? (max => $mod->{max}) : ()),
@@ -278,11 +284,11 @@ sub as_command {
         (defined $mod->{snapshot} ? (snapshot => $mod->{snapshot}) : ()),
 
         tailable            => $tailable,
-        noCursorTimeout     => boolean($self->no_cursor_timeout),
+        noCursorTimeout     =>($self->{no_cursor_timeout} ? $TRUE : $FALSE),
         awaitData           => $await_data,
-        allowPartialResults => boolean($self->allow_partial_results),
+        allowPartialResults =>($self->{allow_partial_results} ? $TRUE : $FALSE ),
 
-        @{$self->read_concern->as_args},
+        @{$self->{read_concern}->as_args},
     ];
 }
 

@@ -33,9 +33,6 @@ use MongoDB::Op::_Update;
 use MongoDB::Op::_Delete;
 use MongoDB::_Protocol;
 use MongoDB::_Constants;
-use MongoDB::_Types qw(
-    WriteConcern
-);
 use Types::Standard qw(
     ArrayRef
     Bool
@@ -72,16 +69,10 @@ has ordered => (
     isa      => Bool,
 );
 
-has write_concern => (
-    is       => 'ro',
-    required => 1,
-    isa      => WriteConcern,
-);
-
-# not _WriteOp because we construct our own result objects
+# not _WriteCommand because we construct our own results objects
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_CommandOp
+  MongoDB::Role::_WriteOp
   MongoDB::Role::_UpdatePreEncoder
   MongoDB::Role::_InsertPreEncoder
   MongoDB::Role::_BypassValidation

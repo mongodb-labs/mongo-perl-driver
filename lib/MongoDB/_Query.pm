@@ -66,12 +66,6 @@ has client => (
     required => 1,
 );
 
-has bson_codec => (
-    is       => 'ro',
-    isa      => BSONCodec,
-    required => 1,
-);
-
 has read_preference => (
     is => 'rw',                   # mutable for Cursor
     isa => Maybe( [ReadPreference] ),
@@ -174,40 +168,40 @@ has sort => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_BSONCodec
 );
 
 sub as_query_op {
     my ( $self, $extra_params ) = @_;
 
     return MongoDB::Op::_Query->_new(
-        db_name               => $self->db_name,
-        coll_name             => $self->coll_name,
-        client                => $self->client,
-        bson_codec            => $self->bson_codec,
-        filter                => $self->filter,
-        projection            => $self->projection,
-        batch_size            => $self->batchSize,
-        limit                 => $self->limit,
-        skip                  => $self->skip,
-        'sort'                => $self->sort,
-        comment               => $self->comment,
-        max_await_time_ms     => $self->maxAwaitTimeMS,
-        max_time_ms           => $self->maxTimeMS,
-        oplog_replay          => $self->oplogReplay,
-        no_cursor_timeout     => $self->noCursorTimeout,
-        allow_partial_results => $self->allowPartialResults,
-        modifiers             => $self->modifiers,
-        cursor_type           => $self->cursorType,
-        read_preference       => $self->read_preference,
-        read_concern          => $self->read_concern,
+        db_name               => $self->{db_name},
+        coll_name             => $self->{coll_name},
+        client                => $self->{client},
+        bson_codec            => $self->{bson_codec},
+        filter                => $self->{filter},
+        projection            => $self->{projection},
+        batch_size            => $self->{batchSize},
+        limit                 => $self->{limit},
+        skip                  => $self->{skip},
+        'sort'                => $self->{sort},
+        comment               => $self->{comment},
+        max_await_time_ms     => $self->{maxAwaitTimeMS},
+        max_time_ms           => $self->{maxTimeMS},
+        oplog_replay          => $self->{oplogReplay},
+        no_cursor_timeout     => $self->{noCursorTimeout},
+        allow_partial_results => $self->{allowPartialResults},
+        modifiers             => $self->{modifiers},
+        cursor_type           => $self->{cursorType},
+        read_preference       => $self->{read_preference},
+        read_concern          => $self->{read_concern},
         exists $$extra_params{post_filter} ?
             (post_filter => $$extra_params{post_filter}) : (),
     );
 }
 
 sub execute {
-    my ($self) = @_;
-    return $self->client->send_read_op( $self->as_query_op );
+    return $_[0]->{client}->send_read_op( $_[0]->as_query_op );
 }
 
 sub clone {

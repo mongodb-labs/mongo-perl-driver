@@ -34,8 +34,6 @@ use Types::Standard qw(
 );
 use namespace::clean;
 
-with 'MongoDB::Role::_DatabaseOp';
-
 # PERL-573 Would like to refactor to remove Maybe types for
 # read_preference and read_concern
 has read_preference => (
@@ -46,6 +44,10 @@ has read_preference => (
 has read_concern => (
     is  => 'ro',
     isa => Maybe [ReadConcern],
+);
+
+with $_ for qw(
+  MongoDB::Role::_BSONCodec
 );
 
 1;

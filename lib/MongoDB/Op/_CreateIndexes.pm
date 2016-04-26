@@ -27,14 +27,12 @@ use Moo;
 use MongoDB::CommandResult;
 use MongoDB::_Constants;
 use MongoDB::_Types -types;
+use MongoDB::Op::_Command;
 use MongoDB::Op::_BatchInsert;
 use Types::Standard qw(
     ArrayRef
     HashRef
     Str
-);
-use MongoDB::_Types qw(
-    WriteConcern
 );
 use Tie::IxHash;
 use namespace::clean;
@@ -57,15 +55,9 @@ has indexes => (
     isa      => ArrayRef [HashRef],
 );
 
-has write_concern => (
-    is       => 'ro',
-    required => 1,
-    isa      => WriteConcern,
-);
-
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_CommandOp
+  MongoDB::Role::_WriteOp
 );
 
 sub execute {
@@ -84,17 +76,14 @@ sub execute {
 sub _command_create_indexes {
     my ( $self, $link, $op_doc ) = @_;
 
-    my $cmd = Tie::IxHash->new(
-        createIndexes => $self->coll_name,
-        indexes       => $self->indexes,
+    my $op = MongoDB::Op::_Command->_new(
+        db_name         => $self->db_name,
+        query           => [ createIndexes => $self->coll_name, indexes => $self->indexes, ],
+        query_flags     => {},
+        bson_codec      => $self->bson_codec,
     );
 
-    my $res = $self->_send_command( $link, $cmd );
-
-    return MongoDB::CommandResult->_new(
-        output => $self->write_concern->is_acknowledged ? $res : { ok => 1 },
-        address => $link->address,
-    );
+    return $op->execute( $link );
 }
 
 sub _legacy_index_insert {

@@ -1208,6 +1208,9 @@ sub BUILD {
         );
     }
 
+    # Instantiate topology
+    $self->_topology;
+
     return;
 }
 
@@ -1361,15 +1364,15 @@ sub send_admin_command {
 sub send_direct_op {
     my ( $self, $op, $address ) = @_;
     my ( $link, $result );
-    ( $link = $self->_topology->get_specific_link($address) ), (
+    ( $link = $self->{_topology}->get_specific_link($address) ), (
         eval { ($result) = $op->execute($link); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
             if ( $err->$_isa("MongoDB::ConnectionError") ) {
-                $self->_topology->mark_server_unknown( $link->server, $err );
+                $self->{_topology}->mark_server_unknown( $link->server, $err );
             }
             elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
-                $self->_topology->mark_server_unknown( $link->server, $err );
-                $self->_topology->mark_stale;
+                $self->{_topology}->mark_server_unknown( $link->server, $err );
+                $self->{_topology}->mark_stale;
             }
             # regardless of cleanup, rethrow the error
             WITH_ASSERTS ? ( confess $err ) : ( die $err );
@@ -1382,15 +1385,15 @@ sub send_direct_op {
 sub send_write_op {
     my ( $self, $op ) = @_;
     my ( $link, $result );
-    ( $link = $self->_topology->get_writable_link ), (
+    ( $link = $self->{_topology}->get_writable_link ), (
         eval { ($result) = $op->execute($link); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
             if ( $err->$_isa("MongoDB::ConnectionError") ) {
-                $self->_topology->mark_server_unknown( $link->server, $err );
+                $self->{_topology}->mark_server_unknown( $link->server, $err );
             }
             elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
-                $self->_topology->mark_server_unknown( $link->server, $err );
-                $self->_topology->mark_stale;
+                $self->{_topology}->mark_server_unknown( $link->server, $err );
+                $self->{_topology}->mark_stale;
             }
             # regardless of cleanup, rethrow the error
             WITH_ASSERTS ? ( confess $err ) : ( die $err );
@@ -1403,16 +1406,16 @@ sub send_write_op {
 sub send_read_op {
     my ( $self, $op ) = @_;
     my ( $link, $type, $result );
-    ( $link = $self->_topology->get_readable_link( $op->read_preference ) ),
-      ( $type = $self->_topology->type ), (
+    ( $link = $self->{_topology}->get_readable_link( $op->read_preference ) ),
+      ( $type = $self->{_topology}->type ), (
         eval { ($result) = $op->execute( $link, $type ); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
             if ( $err->$_isa("MongoDB::ConnectionError") ) {
-                $self->_topology->mark_server_unknown( $link->server, $err );
+                $self->{_topology}->mark_server_unknown( $link->server, $err );
             }
             elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
-                $self->_topology->mark_server_unknown( $link->server, $err );
-                $self->_topology->mark_stale;
+                $self->{_topology}->mark_server_unknown( $link->server, $err );
+                $self->{_topology}->mark_stale;
             }
             # regardless of cleanup, rethrow the error
             WITH_ASSERTS ? ( confess $err ) : ( die $err );

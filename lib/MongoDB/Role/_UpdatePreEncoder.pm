@@ -67,11 +67,8 @@ sub _pre_encode_update {
         );
     }
 
-
-    return MongoDB::BSON::_EncodedDoc->_new(
-        bson => $bson_doc,
-        metadata => {},
-    );
+    # manually bless for speed
+    return bless { bson => $bson_doc, metadata => {} }, "MongoDB::BSON::_EncodedDoc";
 }
 
 1;

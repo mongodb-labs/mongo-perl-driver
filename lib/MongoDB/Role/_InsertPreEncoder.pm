@@ -57,10 +57,9 @@ sub _pre_encode_insert {
         }
     );
 
-    return MongoDB::BSON::_EncodedDoc->_new(
-        bson => $bson_doc,
-        metadata => { _id => $id },
-    );
+    # manually bless for speed
+    return bless { bson => $bson_doc, metadata => { _id => $id } },
+      "MongoDB::BSON::_EncodedDoc";
 }
 
 1;

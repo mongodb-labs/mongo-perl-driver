@@ -68,7 +68,7 @@ has _doc_id => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_WriteOp
+  MongoDB::Role::_WriteCommand
   MongoDB::Role::_InsertPreEncoder
   MongoDB::Role::_BypassValidation
 );

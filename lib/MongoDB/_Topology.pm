@@ -563,7 +563,7 @@ sub _get_server_link {
     return unless $link;
 
     # for idle links, refresh the server and verify validity
-    if ( $link->idle_time_sec > $self->socket_check_interval_sec ) {
+    if ( time - $link->last_used > $self->socket_check_interval_sec ) {
         $self->check_address($address);
 
         # topology might have dropped the server
