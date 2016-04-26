@@ -48,12 +48,12 @@ _decode_bson(msg, options)
         }
 
         reader = bson_reader_new_from_data((uint8_t *)data, length);
+        SAVEDESTRUCTOR((void(*)(void*))bson_reader_destroy,reader);
 
         while ((bson = bson_reader_read(reader, &reached_eof))) {
           XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, opts)));
         }
 
-        bson_reader_destroy(reader);
 
 void
 _encode_bson(doc, options)
@@ -65,6 +65,8 @@ _encode_bson(doc, options)
     PPCODE:
         opts = NULL;
         bson = bson_new();
+        SAVEDESTRUCTOR((void(*)(void*))bson_destroy,bson);
+
         if ( options ) {
             if ( SvROK(options) && SvTYPE(SvRV(options)) == SVt_PVHV ) {
                 opts = (HV *) SvRV(options);
@@ -74,8 +76,8 @@ _encode_bson(doc, options)
             }
         }
         perl_mongo_sv_to_bson(bson, doc, opts);
+
         XPUSHs(sv_2mortal(newSVpvn((const char *)bson_get_data(bson), bson->len)));
-        bson_destroy(bson);
 
 SV *
 generate_oid ()
