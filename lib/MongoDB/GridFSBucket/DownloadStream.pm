@@ -177,9 +177,7 @@ sub _readline_scalar {
 
     # Special case for "slurp" mode
     if ( !defined($/) ) {
-        my $result;
-        $self->read( $result, $self->file_doc->{'length'} );
-        return $result;
+        return $self->_read_all;
     }
 
     return unless $self->_ensure_buffer;
@@ -189,6 +187,51 @@ sub _readline_scalar {
     }
     my $substr_len = $newline_index < 0 ? length $self->_buffer : $newline_index + 1;
     return substr $self->_buffer, $self->_offset, $substr_len, '';
+}
+
+sub _read_all {
+    my ($self) = @_;
+
+    if ( $self->_closed ) {
+        warnings::warnif( 'closed',
+            'read called on a closed MongoDB::GridFSBucket::DownloadStream' );
+        return;
+    }
+
+    return unless $self->_result;
+
+    my $chunk_size = $self->file_doc->{'chunkSize'};
+    my $length = $self->file_doc->{'length'};
+    my $last_chunk_n = int( $length / $chunk_size );
+    my $last_chunk_size = $length % $chunk_size;
+
+    my @chunks = $self->_result->all;
+
+    for (my $i = 0; $i < @chunks; $i++ ) {
+        my $n = $chunks[$i]{n};
+
+        if ( $n != $i ) {
+            MongoDB::GridFSError->throw(
+                sprintf( 'ChunkIsMissing: expected chunk %d but got chunk %d', $i, $n)
+            );
+        }
+
+        my $expected_size = ($n == $last_chunk_n ? $last_chunk_size : $chunk_size);
+        if ( length $chunks[$i]{data}{data} != $expected_size ) {
+            MongoDB::GridFSError->throw(
+                sprintf(
+                    "ChunkIsWrongSize: chunk %d of %d from file with id %s has incorrect size %d, expected %d",
+                    $n,
+                    $last_chunk_n,
+                    $self->file_doc->{_id},
+                    length $chunks[$i]{data}{data},
+                    $expected_size,
+                )
+            );
+        }
+    }
+
+    return join( "", map { $_->{data}{data} } @chunks );
 }
 
 =method close
