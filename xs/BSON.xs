@@ -54,6 +54,9 @@ _decode_bson(msg, options)
           XPUSHs(sv_2mortal(perl_mongo_bson_to_sv(bson, opts)));
         }
 
+        if ( !reached_eof ) {
+            croak("invalid BSON document");
+        }
 
 void
 _encode_bson(doc, options)
