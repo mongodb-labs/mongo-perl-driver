@@ -19,7 +19,7 @@ package MongoDB::Role::_WriteCommand;
 # MongoDB interface for database insert/update/delete operations
 
 use version;
-our $VERSION = 'v1.3.4';
+our $VERSION = 'v1.3.5';
 
 use MongoDB::CommandResult;
 use MongoDB::Error;

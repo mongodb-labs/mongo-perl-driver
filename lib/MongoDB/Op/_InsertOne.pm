@@ -20,7 +20,7 @@ package MongoDB::Op::_InsertOne;
 # MongoDB::InsertOneResult
 
 use version;
-our $VERSION = 'v1.3.4';
+our $VERSION = 'v1.3.5';
 
 use Moo;
 

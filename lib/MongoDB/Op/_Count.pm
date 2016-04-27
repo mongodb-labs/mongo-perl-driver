@@ -19,7 +19,7 @@ package MongoDB::Op::_Count;
 # Encapsulate code path for count commands
 
 use version;
-our $VERSION = 'v1.3.4';
+our $VERSION = 'v1.3.5';
 
 use Moo;
 

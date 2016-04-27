@@ -20,7 +20,7 @@ package MongoDB::Role::_ReadPrefModifier;
 # Only affects MongoDB::_Op::_Query on the legacy code path
 
 use version;
-our $VERSION = 'v1.3.4';
+our $VERSION = 'v1.3.5';
 
 use Moo::Role;
 
