@@ -4,7 +4,23 @@
 
   [Bug fixes]
 
-  - Fixed BSON memory leak if errors occurred during encoding or decoding.
+  - PERL-619 Fixed BSON memory leak when throwing exceptions during
+    encoding or decoding.
+
+  - Invalid BSON documents (e.g. invalid length, not null-terminated) were
+    silently ignored; the driver now correctly throws an error.
+
+  - bypassDocumentValidation is now sent as a boolean
+
+  [Documentation]
+
+  - Fixed some typos and broken POD links.
+
+  [~ Internal changes ~]
+
+  - Optimized GridFSBucket::DownloadStream for slurp
+
+  - Optimized some query/command execution paths
 
 v1.3.3    2016-03-08 15:10:33-05:00 America/New_York (TRIAL RELEASE)
 
