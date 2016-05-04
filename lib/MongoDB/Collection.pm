@@ -1117,6 +1117,7 @@ sub distinct {
 =method parallel_scan
 
     @result_objs = $collection->parallel_scan(10);
+    @result_objs = $collection->parallel_scan(10, $options );
 
 Returns one or more L<MongoDB::QueryResult> objects to scan the collection in
 parallel. The argument is the maximum number of L<MongoDB::QueryResult> objects
@@ -1128,22 +1129,29 @@ appear only once in one of the cursors' result sets.
 B<Note>: the server may return fewer cursors than requested, depending on the
 underlying storage engine and resource availability.
 
+A hash reference of options may be provided. Valid keys include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.  (Note, this will be ignored for servers before version 3.4.)
+
 =cut
 
 sub parallel_scan {
-    my ( $self, $num_cursors, $opts ) = @_;
+    my ( $self, $num_cursors, $options ) = @_;
     unless (defined $num_cursors && $num_cursors == int($num_cursors)
         && $num_cursors > 0 && $num_cursors <= 10000
     ) {
         MongoDB::UsageError->throw( "first argument to parallel_scan must be a positive integer between 1 and 10000" )
     }
-    $opts = ref $opts eq 'HASH' ? $opts : { };
+    $options = ref $options eq 'HASH' ? $options : { };
 
     my $db   = $self->database;
 
     my $op = MongoDB::Op::_ParallelScan->_new(
         %{ $self->_op_args },
         num_cursors     => $num_cursors,
+        options         => $options,
     );
 
     my $result = $self->client->send_read_op( $op );

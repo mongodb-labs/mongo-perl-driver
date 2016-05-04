@@ -27,6 +27,7 @@ use MongoDB::Op::_Command;
 use MongoDB::Error;
 
 use Types::Standard qw(
+    HashRef
     Int
     Str
 );
@@ -39,6 +40,12 @@ has num_cursors => (
     is       => 'ro',
     required => 1,
     isa => Int,
+);
+
+has options => (
+    is      => 'ro',
+    required => 1,
+    isa => HashRef,
 );
 
 has db_name => (
@@ -66,6 +73,7 @@ sub execute {
         numCursors             => $self->num_cursors,
         ($link->accepts_wire_version(4) ?
             @{ $self->read_concern->as_args } : () ),
+        %{$self->options},
     ];
 
     my $op = MongoDB::Op::_Command->_new(
