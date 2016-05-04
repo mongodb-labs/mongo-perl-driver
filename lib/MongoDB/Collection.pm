@@ -1146,8 +1146,6 @@ sub parallel_scan {
     }
     $options = ref $options eq 'HASH' ? $options : { };
 
-    my $db   = $self->database;
-
     my $op = MongoDB::Op::_ParallelScan->_new(
         %{ $self->_op_args },
         num_cursors     => $num_cursors,
