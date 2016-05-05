@@ -156,13 +156,20 @@ subtest "expected behaviors" => sub {
         "list_collections command with maxTimeMS works"
     );
 
-    is(
-        exception {
-            my $cursor = $coll->parallel_scan( 20, { maxTimeMS => 5000 } );
-        },
-        undef,
-        "parallel_scan command with maxTimeMS works"
-    );
+    subtest "parallel_scan" => sub { 
+        plan skip_all => "Parallel scan not supported before MongoDB 2.6"
+        unless $server_version >= v2.6.0;
+        plan skip_all => "Parallel scan not supported on mongos"
+        if $server_type eq 'Mongos';
+
+        is(
+            exception {
+                my $cursor = $coll->parallel_scan( 20, { maxTimeMS => 5000 } );
+            },
+            undef,
+            "parallel_scan command with maxTimeMS works"
+        );
+    };
 
 };
 
@@ -296,13 +303,20 @@ subtest "force maxTimeMS failures" => sub {
         "list_collections command times out"
     );
 
-    like(
-        exception {
-            my $cursor = $coll->parallel_scan( 20, { maxTimeMS => 10 } );
-        },
-        qr/exceeded time limit/,
-        "parallel_scan command times out"
-    );
+    subtest "parallel_scan" => sub { 
+        plan skip_all => "Parallel scan not supported before MongoDB 2.6"
+        unless $server_version >= v2.6.0;
+        plan skip_all => "Parallel scan not supported on mongos"
+        if $server_type eq 'Mongos';
+
+        like(
+            exception {
+                my $cursor = $coll->parallel_scan( 20, { maxTimeMS => 10 } );
+            },
+            qr/exceeded time limit/,
+            "parallel_scan command times out"
+        );
+    };
 
     subtest "max_time_ms via constructor" => sub {
         is(
