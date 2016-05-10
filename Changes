@@ -7,6 +7,10 @@
   - PERL-610 Adds support for maxTimeMS for parallel_scan (available in
     MongoDB 3.4).
 
+  [Documentation]
+
+  - Fixed index creation examples
+
 v1.3.4    2016-04-27 11:06:55-04:00 America/New_York (TRIAL RELEASE)
 
   [Bug fixes]
