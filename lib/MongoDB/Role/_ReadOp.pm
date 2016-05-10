@@ -19,7 +19,7 @@ package MongoDB::Role::_ReadOp;
 # MongoDB role for read ops that provides read preference
 
 use version;
-our $VERSION = 'v1.4.1';
+our $VERSION = 'v1.5.0';
 
 use Moo::Role;
 
