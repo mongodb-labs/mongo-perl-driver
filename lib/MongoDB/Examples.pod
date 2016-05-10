@@ -90,12 +90,12 @@ you see below.
 
 =item C<CREATE INDEX myindexname ON users(name)>
 
-    my $indexes = $db->get_collection( 'users' );
+    my $indexes = $db->get_collection( 'users' )->indexes;
     $indexes->create_one( [ name => 1 ] );
 
 =item C<CREATE INDEX myindexname ON users(name,ts DESC)>
 
-    my $indexes = $db->get_collection( 'users' );
+    my $indexes = $db->get_collection( 'users' )->indexes;
     $indexes->create_one( [ name => 1, ts => -1 ] );
 
 =item C<SELECT * FROM users WHERE a=1 and b='q'>
