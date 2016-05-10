@@ -19,7 +19,7 @@ package MongoDB::DBRef;
 # ABSTRACT: A MongoDB database reference
 
 use version;
-our $VERSION = 'v1.3.5';
+our $VERSION = 'v1.4.1';
 
 use Tie::IxHash;
 use Moo;

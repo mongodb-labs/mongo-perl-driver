@@ -18,7 +18,7 @@ package MongoDB::BSON::Binary;
 # ABSTRACT: MongoDB binary type
 
 use version;
-our $VERSION = 'v1.3.5';
+our $VERSION = 'v1.4.1';
 
 use Moo;
 use Types::Standard qw(

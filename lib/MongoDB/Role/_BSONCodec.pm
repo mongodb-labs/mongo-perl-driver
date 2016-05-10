@@ -19,7 +19,7 @@ package MongoDB::Role::_BSONCodec;
 # MongoDB role for things that need a BSON codec property
 
 use version;
-our $VERSION = 'v1.3.5';
+our $VERSION = 'v1.4.1';
 
 use Moo::Role;
 
