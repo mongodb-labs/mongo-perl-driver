@@ -124,8 +124,21 @@ subtest write_concern => sub {
     ) or diag "got:", explain $err;
 };
 
+# inserting an _id subdoc with $ keys should be an error; only on 2.4+
+if ( $server_version >= v2.4.11 ) {
+    like(
+        exception {
+            $coll->insert_one( { '_id' => { '$oid' => "52d0b971b3ba219fdeb4170e" } } )
+        },
+        qr/WriteError/,
+        "inserting an _id subdoc with \$ keys should error"
+    );
+}
+
 # insert
 {
+    $coll->drop;
+
     $id = $coll->insert_one({ just => 'another', perl => 'hacker' })->inserted_id;
     is($coll->count, 1, 'count');
 
@@ -137,18 +150,6 @@ subtest write_concern => sub {
     });
     is($coll->count, 1);
 }
-
-# inserting an _id subdoc with $ keys should be an error; only on 2.4+
-if ( $server_version >= v2.4.0 ) {
-    like(
-        exception {
-            $coll->insert_one( { '_id' => { '$oid' => "52d0b971b3ba219fdeb4170e" } } )
-        },
-        qr/WriteError/,
-        "inserting an _id subdoc with \$ keys should error"
-    );
-}
-
 
 # rename
 {
