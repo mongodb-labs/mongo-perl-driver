@@ -7,86 +7,11 @@
   - PERL-621 Fixed GridFSBucket uploads when Class::XSAccessor (an
     optional dependency for Moo) is not installed.
 
+  [Documentation]
+
+  - Consolidated v1.3.x change notices into section v1.4.0
+
 v1.4.0    2016-05-10 16:59:16-04:00 America/New_York
-
-  [Additions]
-
-  - PERL-610 Adds support for maxTimeMS for parallel_scan (available in
-    MongoDB 3.4).
-
-  [Documentation]
-
-  - Fixed index creation examples
-
-v1.3.4    2016-04-27 11:06:55-04:00 America/New_York (TRIAL RELEASE)
-
-  [Bug fixes]
-
-  - PERL-619 Fixed BSON memory leak when throwing exceptions during
-    encoding or decoding.
-
-  - Invalid BSON documents (e.g. invalid length, not null-terminated) were
-    silently ignored; the driver now correctly throws an error.
-
-  - bypassDocumentValidation is now sent as a boolean
-
-  [Documentation]
-
-  - Fixed some typos and broken POD links.
-
-  [~ Internal changes ~]
-
-  - Optimized GridFSBucket::DownloadStream for slurp
-
-  - Optimized some query/command execution paths
-
-v1.3.3    2016-03-08 15:10:33-05:00 America/New_York (TRIAL RELEASE)
-
-  [Testing]
-
-  - Fixed tests for v3.3.X MongoDB series
-
-  [Documentation]
-
-  - Fixed method and attribute documentation in MongoDB::BSON::Regexp
-
-v1.3.2    2016-01-26 16:44:09-05:00 America/New_York (TRIAL RELEASE)
-
-  [Bug fixes]
-
-  - All bug fixes from v1.2.2
-
-  - Create GridFS indexes on first write (if needed) per the GridFS Spec.
-
-  [~ Internal changes ~]
-
-  - 'insert_one' with write concern {w:0} is sent via the legacy OP_INSERT
-    wire protocol for reduced latency.
-
-v1.3.1    2015-12-23 12:03:47-05:00 America/New_York (TRIAL RELEASE)
-
-  [Additions]
-
-  - MongoDB::GridFSBucket now has two additional search methods, find_one
-    and find_id, just like MongoDB::Collection.
-
-  - MongoDB::GridFSBucket::Upload/DownloadStream tied handles now provide
-    BINMODE, though only raw mode is supported.
-
-  - Add 'gfs' as an alias for MongoDB::Database::get_gridfsbucket (similar
-    to how 'coll' is an alias for 'get_collection').
-
-  [Bug fixes]
-
-  - Fix MongoDB::GridFSBucket::DownloadStream::read() to return 0
-    instead of undef when there is no more data to read.
-
-  [Changes]
-
-  - MongoDB::GridFSBucket::UploadStream::close() returns file document
-    on success
-
-v1.3.0    2015-12-18 12:21:09-05:00 America/New_York (TRIAL RELEASE)
 
   [*** Deprecations ***]
 
@@ -96,10 +21,46 @@ v1.3.0    2015-12-18 12:21:09-05:00 America/New_York (TRIAL RELEASE)
 
   [Additions]
 
+  - PERL-610 Adds support for maxTimeMS for parallel_scan (available in
+    MongoDB 3.4).
+
   - Adds MongoDB::GridFSBucket class, which implements the new
     driver-standard GridFS API.  Also included are classes to emulate file
     handles for uploads and downloads, making GridFS operations more
     composable with existing Perl libraries.
+
+  [Bug fixes]
+
+  - PERL-619 Fixed BSON memory leak when throwing exceptions during
+    encoding or decoding.
+
+  - Invalid BSON documents (e.g. invalid length, not null-terminated) were
+    silently ignored; the driver now correctly throws an error.
+
+  - bypassDocumentValidation is now sent as a boolean.
+
+  [Documentation]
+
+  - Fixed index creation examples.
+
+  - Fixed some typos and broken POD links.
+
+  [~ Internal changes ~]
+
+  - 'insert_one' with write concern {w:0} is sent via the legacy OP_INSERT
+    wire protocol for reduced latency.
+
+  - Optimized some query/command execution paths.
+
+v1.3.4    2016-04-27 11:06:55-04:00 America/New_York (TRIAL RELEASE)
+
+v1.3.3    2016-03-08 15:10:33-05:00 America/New_York (TRIAL RELEASE)
+
+v1.3.2    2016-01-26 16:44:09-05:00 America/New_York (TRIAL RELEASE)
+
+v1.3.1    2015-12-23 12:03:47-05:00 America/New_York (TRIAL RELEASE)
+
+v1.3.0    2015-12-18 12:21:09-05:00 America/New_York (TRIAL RELEASE)
 
 v1.2.3    2016-03-08 15:15:36-05:00 America/New_York
 
@@ -125,7 +86,6 @@ v1.2.2    2016-01-26 15:33:30-05:00 America/New_York
   [Documentation]
 
   - Fixed broken link in POD for MongoDB::DataTypes
-
 
 v1.2.1    2015-12-18 11:32:19-05:00 America/New_York
 
