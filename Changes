@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-621 Fixed GridFSBucket uploads when Class::XSAccessor (an
+    optional dependency for Moo) is not installed.
+
 v1.4.0    2016-05-10 16:59:16-04:00 America/New_York
 
   [Additions]
