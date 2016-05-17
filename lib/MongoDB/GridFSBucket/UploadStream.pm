@@ -221,10 +221,10 @@ sub _flush_chunks {
     my ( $self, $all ) = @_;
     my @chunks = ();
     my $data;
-    while ( length $self->_buffer >= $self->chunk_size_bytes
-        || ( $all && length $self->_buffer > 0 ) )
+    while ( length $self->{_buffer} >= $self->chunk_size_bytes
+        || ( $all && length $self->{_buffer} > 0 ) )
     {
-        $data = substr $self->_buffer, 0, $self->chunk_size_bytes, '';
+        $data = substr $self->{_buffer}, 0, $self->chunk_size_bytes, '';
 
         push @chunks,
           {
@@ -248,7 +248,7 @@ sub _write_data {
     $self->{_buffer} .= $data;
     $self->{_length} += length $data;
     $self->_md5->add($data);
-    $self->_flush_chunks if length $self->_buffer >= $self->_chunk_buffer_length;
+    $self->_flush_chunks if length $self->{_buffer} >= $self->_chunk_buffer_length;
 }
 
 =method abort
