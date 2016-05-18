@@ -165,11 +165,11 @@ sub _get_next_chunk {
 
 sub _ensure_buffer {
     my ($self) = @_;
-    if ( $self->_buffer ) { return length $self->_buffer }
+    if ( $self->{_buffer} ) { return length $self->{_buffer} }
 
     $self->_get_next_chunk;
 
-    return length $self->_buffer;
+    return length $self->{_buffer};
 }
 
 sub _readline_scalar {
@@ -182,11 +182,11 @@ sub _readline_scalar {
 
     return unless $self->_ensure_buffer;
     my $newline_index;
-    while ( ( $newline_index = index $self->_buffer, $/ ) < 0 ) {
+    while ( ( $newline_index = index $self->{_buffer}, $/ ) < 0 ) {
         last unless $self->_get_next_chunk;
     }
-    my $substr_len = $newline_index < 0 ? length $self->_buffer : $newline_index + 1;
-    return substr $self->_buffer, $self->_offset, $substr_len, '';
+    my $substr_len = $newline_index < 0 ? length $self->{_buffer} : $newline_index + 1;
+    return substr $self->{_buffer}, $self->_offset, $substr_len, '';
 }
 
 sub _read_all {
@@ -344,9 +344,9 @@ sub read {
 
     return 0 unless $self->_ensure_buffer;
 
-    while ( length $self->_buffer < $len ) { last unless $self->_get_next_chunk }
-    my $read_len = min( length $self->_buffer, $len );
-    $$buffref .= substr $self->_buffer, $self->_offset, $read_len, '';
+    while ( length $self->{_buffer} < $len ) { last unless $self->_get_next_chunk }
+    my $read_len = min( length $self->{_buffer}, $len );
+    $$buffref .= substr $self->{_buffer}, $self->_offset, $read_len, '';
     return $read_len;
 }
 
