@@ -195,6 +195,21 @@ sub _build_tags {
     return $self->is_master->{tags} || {};
 }
 
+# last_write_date: for replica set and wire version 5+ (converted to
+# seconds)
+has last_write_date => (
+    is      => 'lazy',
+    isa     => Num,
+    builder => "_build_last_write_date",
+);
+
+sub _build_last_write_date {
+    my ($self) = @_;
+    return 0 unless exists $self->is_master->{lastWrite}{lastWriteDate};
+    # with dt_type undef, this should be floating point epoch seconds
+    return $self->is_master->{lastWrite}{lastWriteDate};
+}
+
 has is_available => (
     is      => 'lazy',
     isa     => Bool,

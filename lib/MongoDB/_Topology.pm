@@ -170,6 +170,12 @@ has is_compatible => (
     isa => Bool,
 );
 
+has wire_version_floor => (
+    is => 'ro',
+    writer => '_set_wire_version_floor',
+    default => 0,
+);
+
 has current_primary => (
     is => 'rwp',
     clearer => '_clear_current_primary',
@@ -215,6 +221,9 @@ sub BUILD {
     my ($self) = @_;
     my $type = $self->type;
     my @addresses = @{ $self->uri->hostpairs };
+
+    # clone bson codec to disable dt_type
+    $self->{bson_codec} = $self->bson_codec->clone( dt_type => undef );
 
     if ( my $set_name = $self->replica_set_name ) {
         if ( $type eq 'Single' || $type eq 'ReplicaSetNoPrimary' ) {
@@ -271,9 +280,9 @@ sub get_readable_link {
 
     my $mode = $read_pref ? lc $read_pref->mode : 'primary';
     my $method =
-      ( $self->type eq "Single" || $self->type eq "Sharded" )
-      ? '_find_any_server'
-      : "_find_${mode}_server";
+        $self->type eq "Single"  ? '_find_available_server'
+      : $self->type eq "Sharded" ? '_find_readable_mongos_server'
+      :                            "_find_${mode}_server";
 
     if ($mode eq 'primary' && $self->current_primary) {
         my $link = $self->_get_server_link( $self->current_primary, $method );
@@ -314,7 +323,7 @@ sub get_writable_link {
 
     my $method =
       ( $self->type eq "Single" || $self->type eq "Sharded" )
-      ? '_find_any_server'
+      ? '_find_available_server'
       : "_find_primary_server";
 
 
@@ -451,21 +460,50 @@ sub _check_oldest_server {
     return;
 }
 
+my $max_int32 = 2147483647;
+
 sub _check_wire_versions {
     my ($self) = @_;
 
     my $compat = 1;
+    my $min_seen = $max_int32;
     for my $server ( grep { $_->is_available } $self->all_servers ) {
         my ( $server_min_wire_version, $server_max_wire_version ) =
           @{ $server->is_master }{qw/minWireVersion maxWireVersion/};
 
-        if (   ( $server_min_wire_version || 0 ) > $self->max_wire_version
-            || ( $server_max_wire_version || 0 ) < $self->min_wire_version )
-        {
-            $compat = 0;
-        }
+        $server_max_wire_version = 0 unless defined $server_max_wire_version; 
+        $server_min_wire_version = 0 unless defined $server_min_wire_version; 
+
+        $compat = 0
+          if $server_min_wire_version > $self->max_wire_version
+          || $server_max_wire_version < $self->min_wire_version;
+
+        $min_seen = $server_max_wire_version if $server_max_wire_version < $min_seen;
     }
     $self->_set_is_compatible($compat);
+    $self->_set_wire_version_floor($min_seen);
+
+    return;
+}
+
+sub _check_staleness_compatibility {
+    my ($self, $read_pref) = @_;
+
+    if ( $read_pref->max_staleness_ms > 0 ) {
+        if ( $self->wire_version_floor < 5 ) {
+            MongoDB::ProtocolError->throw(
+                "Incompatible wire protocol version. You tried to use max_staleness_ms with one or more servers that don't support it."
+            );
+        }
+
+        if (
+            ( $self->type eq "ReplicaSetWithPrimary" || $self->type eq "ReplicaSetNoPrimary" )
+            && $read_pref->max_staleness_ms < 2000 * $self->heartbeat_frequency_sec )
+        {
+            MongoDB::UsageError->throw(
+                "max_staleness_ms must be at least twice heartbeat_frequency_ms" );
+        }
+    }
 
     return;
 }
@@ -478,29 +516,83 @@ sub _dump {
 sub _eligible {
     my ( $self, $read_pref, @candidates ) = @_;
 
-    return @candidates
-      if $read_pref->has_empty_tag_sets;
-
     # given a tag set list, if a tag set matches at least one
     # candidate, then all candidates matching that tag set are eligible
-    for my $ts ( @{ $read_pref->tag_sets } ) {
-        my @eligible = grep { $_->matches_tag_set($ts) } @candidates;
-        return @eligible if @eligible;
+    if ( ! $read_pref->has_empty_tag_sets ) {
+        for my $ts ( @{ $read_pref->tag_sets } ) {
+            @candidates = grep { $_->matches_tag_set($ts) } @candidates;
+        }
     }
 
-    return;
+    if ( $read_pref->max_staleness_ms > 0 ) {
+        @candidates = $self->_filter_fresh_servers($read_pref, @candidates );
+    };
+
+    return @candidates;
 }
 
-sub _find_any_server {
-    my ( $self, undef, @candidates ) = @_;
+sub _filter_fresh_servers {
+    my ($self, $read_pref, @candidates) = @_;
+
+    # all values should be floating point seconds
+    my $max_staleness_sec = $read_pref->max_staleness_ms / 1000;
+    my $heartbeat_frequency_sec = $self->heartbeat_frequency_sec;
+
+    if ( $self->type eq 'ReplicaSetWithPrimary' ) {
+        my ($primary) = $self->_primaries;
+
+        # all values should be floating point seconds
+        my $p_last_write_date = $primary->last_write_date;
+        my $p_last_update_time = $primary->last_update_time;
+
+        return map { $_->[0] }
+          grep { $_->[1] <= $max_staleness_sec }
+          map {
+            [
+                $_,
+                $p_last_write_date
+                  + ( $_->last_update_time - $p_last_update_time )
+                  - $_->last_write_date
+                  + $heartbeat_frequency_sec
+            ]
+          } @candidates;
+    }
+    else {
+        my ($smax) = map { $_->[0] }
+          sort { $b->[1] <=> $a->[1] }
+          map { [ $_, $_->last_write_date ] } $self->_secondaries;
+        my $smax_last_write_date = $smax->last_write_date;
+
+        return map { $_->[0] }
+          grep     { $_->[1] <= $max_staleness_sec }
+          map {
+            [ $_, $smax_last_write_date - $_->last_write_date + $heartbeat_frequency_sec ]
+          } @candidates;
+    }
+}
+
+# This works for reads and writes; for writes, $read_pref will be undef
+sub _find_available_server {
+    my ( $self, $read_pref, @candidates ) = @_;
+    $self->_check_staleness_compatibility($read_pref) if $read_pref;
     push @candidates, $self->all_servers unless @candidates;
     return $self->_get_server_in_latency_window(
         [ grep { $_->is_available } @candidates ] );
 }
 
+# This uses read preference to check for max staleness compatibility in
+# mongos, but otherwise read preference is ignored (mongos will pass it on)
+sub _find_readable_mongos_server {
+    my ( $self, $read_pref, @candidates ) = @_;
+    $self->_check_staleness_compatibility($read_pref);
+    push @candidates, $self->all_servers unless @candidates;
+    return $self->_get_server_in_latency_window(
+        [ grep { $_->is_available } @candidates ] );
+}
 
 sub _find_nearest_server {
     my ( $self, $read_pref, @candidates ) = @_;
+    $self->_check_staleness_compatibility($read_pref);
     push @candidates, ( $self->_primaries, $self->_secondaries ) unless @candidates;
     my @suitable = $self->_eligible( $read_pref, @candidates );
     return $self->_get_server_in_latency_window( \@suitable );
@@ -516,12 +608,14 @@ sub _find_primary_server {
 
 sub _find_primarypreferred_server {
     my ( $self, $read_pref, @candidates ) = @_;
+    $self->_check_staleness_compatibility($read_pref);
     return $self->_find_primary_server(@candidates)
       || $self->_find_secondary_server( $read_pref, @candidates );
 }
 
 sub _find_secondary_server {
     my ( $self, $read_pref, @candidates ) = @_;
+    $self->_check_staleness_compatibility($read_pref);
     push @candidates, $self->_secondaries unless @candidates;
     my @suitable = $self->_eligible( $read_pref, @candidates );
     return $self->_get_server_in_latency_window( \@suitable );
@@ -529,6 +623,7 @@ sub _find_secondary_server {
 
 sub _find_secondarypreferred_server {
     my ( $self, $read_pref, @candidates ) = @_;
+    $self->_check_staleness_compatibility($read_pref);
     return $self->_find_secondary_server( $read_pref, @candidates )
       || $self->_find_primary_server(@candidates);
 }

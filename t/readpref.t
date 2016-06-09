@@ -51,7 +51,7 @@ subtest "read preference connection string" => sub {
 
 };
 
-subtest "read preference propagation" => sub {
+subtest "read preference mode propagation" => sub {
     for my $m (@modes) {
         my $conn2 = build_client( read_pref_mode => $m );
         my $db2   = $conn2->get_database( $testdb->name );
@@ -63,6 +63,39 @@ subtest "read preference propagation" => sub {
         }
         is( $cur->query->read_preference->mode, $m, "$m set on " . ref($cur) );
     }
+};
+
+subtest "read preference staleness propagation" => sub {
+    my $max = 9999;
+    my $conn2 = build_client( max_staleness_ms => $max, read_pref_mode => 'nearest' );
+    my $db2   = $conn2->get_database( $testdb->name );
+    my $coll2 = $db2->get_collection("test_coll");
+    my $cur   = $coll2->find( {} );
+
+    for my $thing ( $conn2, $db2, $coll2 ) {
+        is( $thing->read_preference->max_staleness_ms, $max, "staleness set on " . ref($thing) );
+    }
+    is( $cur->query->read_preference->max_staleness_ms, $max, "staleness set on " . ref($cur) );
+};
+
+subtest "max staleness vs heartbeat frequency" => sub {
+    plan skip_all => "Needs replica set"
+      unless $server_type eq 'RSPrimary';
+
+    my $conn2 = build_client(
+        heartbeat_frequency_ms => 1000,
+        max_staleness_ms => 1400,
+        read_pref_mode => 'nearest'
+    );
+    my $db2   = $conn2->get_database( $testdb->name );
+    my $coll2 = $db2->get_collection("test_coll");
+
+    like(
+        exception { $coll2->find({})->result; },
+        qr/max_staleness_ms must be at least twice heartbeat_frequency_ms/,
+        "max staleness less than twice heartbeat throws"
+    );
+
 };
 
 subtest "read preference on cursor" => sub {

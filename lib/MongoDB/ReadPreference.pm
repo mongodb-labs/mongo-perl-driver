@@ -25,6 +25,7 @@ use Moo;
 use MongoDB::Error;
 use MongoDB::_Types qw(
     ArrayOfHashRef
+    NonNegNum
     ReadPrefMode
 );
 use namespace::clean -except => 'meta';
@@ -72,11 +73,31 @@ has tag_sets => (
     coerce  => ArrayOfHashRef->coercion,
 );
 
+=attr max_staleness_ms
+
+The C<max_staleness_ms> parameter represents the maximum replication lag in
+milliseconds (wall clock time) that a secondary can suffer and still be
+eligible for reads. The default is zero, which disables staleness checks.
+
+If the C<mode> is 'primary', then C<max_staleness_ms> must not be supplied.
+
+=cut
+
+has max_staleness_ms => (
+    is => 'ro',
+    isa => NonNegNum,
+    default => 0,
+);
+
 sub BUILD {
     my ($self) = @_;
 
     if ( $self->mode eq 'primary' && !$self->has_empty_tag_sets ) {
         MongoDB::UsageError->throw("A tag set list is not allowed with read preference mode 'primary'");
+    }
+
+    if ( $self->mode eq 'primary' && $self->max_staleness_ms ) {
+        MongoDB::UsageError->throw("A positive max_staleness_ms is not allowed with read preference mode 'primary'");
     }
 
     return;

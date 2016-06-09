@@ -75,11 +75,11 @@ subtest "random selection" => sub {
     }
 
     # try up to 20
-    my $first = $topo->_find_any_server;
+    my $first = $topo->_find_available_server;
 
     my $different = 0;
     for ( 1 .. 20 ) {
-        my $another = $topo->_find_any_server;
+        my $another = $topo->_find_available_server;
         if ( $first->address ne $another->address ) {
             $different = 1;
             last;
@@ -169,16 +169,16 @@ sub run_ss_test {
         );
         my $mode = $read_pref ? lc $read_pref->mode : 'primary';
         my $method =
-          $topo->type eq 'Single' || $topo->type eq 'Sharded'
-          ? '_find_any_server'
-          : "_find_${mode}_server";
+            $topo->type eq "Single"  ? '_find_available_server'
+          : $topo->type eq "Sharded" ? '_find_readable_mongos_server'
+          :                            "_find_${mode}_server";
 
         $got = $topo->$method($read_pref);
     }
     else {
         my $method =
           $topo->type eq 'Single' || $topo->type eq 'Sharded'
-          ? '_find_any_server'
+          ? '_find_available_server'
           : "_find_primary_server";
 
         $got = $topo->$method;

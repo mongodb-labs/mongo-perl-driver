@@ -13,21 +13,42 @@ is(
     "new without args has default"
 );
 
-my @modes = qw(
-    primary PRIMARY PrImArY
-    secondary secondary_preferred primary_preferred nearest
-    secondarypreferred primarypreferred
-);
+subtest "mode" => sub {
+    my @modes = qw(
+        primary PRIMARY PrImArY
+        secondary secondary_preferred primary_preferred nearest
+        secondarypreferred primarypreferred
+    );
 
-for my $mode (@modes) {
-    new_ok( $class, [ mode => $mode ], "new( mode => '$mode' )" );
-}
+    for my $mode (@modes) {
+        new_ok( $class, [ mode => $mode ], "new( mode => '$mode' )" );
+    }
 
-like(
-    exception { $class->new( mode => 'primary', tag_sets => [ { dc => 'us' } ] ) },
-    qr/not allowed/,
-    "tag set list not allowed with primary"
-);
+    like(
+        exception { $class->new( mode => 'primary', tag_sets => [ { dc => 'us' } ] ) },
+        qr/not allowed/,
+        "tag set list not allowed with primary"
+    );
+};
+
+subtest "max_staleness_ms" => sub {
+    for my $t ( 0, 42 ) {
+        my $obj = new_ok(
+            $class,
+            [ mode => 'nearest', max_staleness_ms => $t ],
+            "new with max_staleness_ms $t"
+        );
+        is( $obj->max_staleness_ms, $t, "max_staleness_ms is correct" );
+    }
+
+    is( $class->new->max_staleness_ms, 0, "max_staleness_ms default is 0" );
+
+    like(
+        exception { $class->new( mode => 'primary', max_staleness_ms => 42 ) },
+        qr/not allowed/,
+        "max staleness not allowed with primary"
+    );
+};
 
 subtest "stringification" => sub {
     my $rp;

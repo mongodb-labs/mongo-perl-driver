@@ -160,6 +160,7 @@ subtest db_name => sub {
 my %simple_time_options = (
     heartbeat_frequency_ms      => 60000,
     local_threshold_ms          => 15,
+    max_staleness_ms            => 0,
     max_time_ms                 => 0,
     server_selection_timeout_ms => 30000,
     socket_check_interval_ms    => 5000,
@@ -167,16 +168,17 @@ my %simple_time_options = (
 
 for my $key ( sort keys %simple_time_options ) {
     subtest $key => sub {
-        my $mc = _mc();
+        my $mc = _mc( read_pref_mode => 'nearest' );
         is( $mc->$key, $simple_time_options{$key}, "default $key" );
 
-        $mc = _mc( $key => 99999, );
+        $mc = _mc( $key => 99999, read_pref_mode => 'nearest' );
         is( $mc->$key, 99999, "$key" );
 
         ( my $cs_key = $key ) =~ s/_//g;
         $mc = _mc(
-            host => "mongodb://localhost/?$cs_key=88888",
-            $key => 99999,
+            host           => "mongodb://localhost/?$cs_key=88888",
+            $key           => 99999,
+            read_pref_mode => 'nearest'
         );
         is( $mc->$key, 88888, "$cs_key" );
     };
@@ -194,6 +196,19 @@ subtest journal => sub {
         j    => 1,
     );
     ok( !$mc->j, "journal supersedes j" );
+};
+
+subtest "heartbeat frequency minimum" => sub {
+    like(
+        exception { _mc( heartbeat_frequency_ms => 10 ) },
+        qr/must be at least 500/,
+        "heartbeat_frequency_ms < 500 throws"
+    );
+    is(
+        exception { _mc( heartbeat_frequency_ms => 500 ) },
+        undef,
+        "heartbeat_frequency_ms == 500"
+    );
 };
 
 subtest "read_pref_mode and read_pref_tag_sets" => sub {

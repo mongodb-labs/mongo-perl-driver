@@ -35,6 +35,7 @@ use Type::Library
   Document
   ErrorStr
   HashLike
+  HeartbeatFreq
   HostAddress
   HostAddressList
   IndexModel
@@ -97,6 +98,10 @@ enum CursorType, [qw/non_tailable tailable tailable_await/];
 declare ErrorStr, as Str, where { $_ }; # needs a true value
 
 declare HashLike, as Ref, where { reftype($_) eq 'HASH' };
+
+declare HeartbeatFreq, as Num,
+  where { defined($_) && $_ >= 500 },
+  message { "value must be at least 500" };
 
 # XXX loose address validation for now.  Host part should really be hostname or
 # IPv4/IPv6 literals

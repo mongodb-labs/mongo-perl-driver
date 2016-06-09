@@ -51,6 +51,7 @@ use MongoDB::_Types qw(
     ArrayOfHashRef
     AuthMechanism
     BSONCodec
+    HeartbeatFreq
     NonNegNum
     ReadPrefMode
     ReadPreference
@@ -288,7 +289,7 @@ This may be set in a connection string with the C<heartbeatFrequencyMS> option.
 
 has heartbeat_frequency_ms => (
     is      => 'lazy',
-    isa     => NonNegNum,
+    isa     => HeartbeatFreq,
     builder => '_build_heartbeat_frequency_ms',
 );
 
@@ -359,6 +360,39 @@ sub _build_local_threshold_ms {
         u => 'localthresholdms',
         e => 'local_threshold_ms',
         d => 15,
+    );
+}
+
+=attr max_staleness_ms
+
+The C<max_staleness_ms> parameter represents the maximum replication lag in
+milliseconds (wall clock time) that a secondary can suffer and still be
+eligible for reads. The default is zero, which disables staleness checks.
+
+If the read preference mode is 'primary', then C<max_staleness_ms> must not
+be supplied.
+
+The C<max_staleness_ms> must be at least twice the C<heartbeat_frequency_ms>.
+
+B<Note>: this will only be used for server versions 3.4 or greater, as that
+was when support for staleness tracking was added.
+
+This may be set in a connection string with the C<maxStalenessMS> option.
+
+=cut
+
+has max_staleness_ms => (
+    is      => 'lazy',
+    isa     => NonNegNum,
+    builder => '_build_max_staleness_ms',
+);
+
+sub _build_max_staleness_ms {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'maxstalenessms',
+        e => 'max_staleness_ms',
+        d => 0,
     );
 }
 
@@ -973,6 +1007,7 @@ sub _build__read_preference {
     return MongoDB::ReadPreference->new(
         ( $self->read_pref_mode     ? ( mode     => $self->read_pref_mode )     : () ),
         ( $self->read_pref_tag_sets ? ( tag_sets => $self->read_pref_tag_sets ) : () ),
+        ( $self->max_staleness_ms ? ( max_staleness_ms => $self->max_staleness_ms ) : () ),
     );
 }
 
@@ -1145,6 +1180,7 @@ my @deferred_options = qw(
   heartbeat_frequency_ms
   j
   local_threshold_ms
+  max_staleness_ms
   max_time_ms
   read_pref_mode
   read_pref_tag_sets
