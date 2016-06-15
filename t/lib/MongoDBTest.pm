@@ -82,7 +82,7 @@ sub skip_unless_mongod {
         $topo->scan_all_servers;
         my $link;
         eval { $link = $topo->get_writable_link }
-          or die "couldn't connect";
+          or die "couldn't connect: $@";
         $conn->get_database("admin")->run_command( { serverStatus => 1 } )
           or die "Database has auth enabled\n";
         my $server = $link->server;
