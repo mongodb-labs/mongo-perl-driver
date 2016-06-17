@@ -34,12 +34,13 @@ use MongoDBTest::Orchestrator;
 use MongoDBTest qw/build_client get_test_db clear_testdbs server_version/;
 
 sub _test_read_concern_set {
+    my $level = $_[0] || 'majority';
     local $Test::Builder::Level = $Test::Builder::Level + 1;
     my $conn = build_client( dt_type => undef );
 
     my $server_version = server_version($conn);
 
-    my $coll = $conn->get_database('test_db')->get_collection('test', {read_concern => {level => 'majority'}});
+    my $coll = $conn->get_database('test_db')->get_collection('test', {read_concern => {level => $level}});
 
     $coll->drop;
     $coll->insert_one({ a => 1 });
@@ -69,7 +70,7 @@ sub _test_read_concern_not_set {
 
 subtest "wire protocol 4" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-any.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.2.yml" );
     diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
@@ -79,9 +80,21 @@ subtest "wire protocol 4" => sub {
         "saw readConcern in log" );
 };
 
+subtest "wire protocol 4 (must lower-case)" => sub {
+    my $orc =
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.2.yml" );
+    diag "starting deployment";
+    $orc->start;
+    local $ENV{MONGOD} = $orc->as_uri;
+
+    _test_read_concern_set('MaJority');
+    ok( scalar $orc->get_server('host1')->grep_log(qr/readConcern.*majority/),
+        "saw readConcern in log" );
+};
+
 subtest "wire protocol 4 : readConcern not set" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-any.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.2.yml" );
     diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;

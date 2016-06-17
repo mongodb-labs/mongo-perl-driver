@@ -63,6 +63,13 @@ has _as_args => (
     builder   => '_build_as_args',
 );
 
+sub BUILD {
+    my $self = shift;
+    if ( defined $self->{level} ) {
+        $self->{level} = lc $self->{level};
+    }
+}
+
 sub _build_as_args {
     my ($self) = @_;
 
