@@ -24,13 +24,15 @@ use MongoDB;
 use Tie::IxHash;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_type/;
+use MongoDBTest
+  qw/skip_unless_mongod build_client get_test_db server_type server_version/;
 
 skip_unless_mongod();
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
 my $server_type = server_type($conn);
+my $server_version = server_version($conn);
 my $coll = $testdb->get_collection("test_coll");
 
 my @modes = qw/primary secondary primaryPreferred secondaryPreferred nearest/;
@@ -79,8 +81,8 @@ subtest "read preference staleness propagation" => sub {
 };
 
 subtest "max staleness vs heartbeat frequency" => sub {
-    plan skip_all => "Needs replica set"
-      unless $server_type eq 'RSPrimary';
+    plan skip_all => "Needs v3.3.8+ replica set"
+      unless $server_type eq 'RSPrimary' && $server_version >= v3.3.8;
 
     my $conn2 = build_client(
         heartbeat_frequency_ms => 1000,
