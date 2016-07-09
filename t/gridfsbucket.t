@@ -34,7 +34,7 @@ skip_unless_mongod();
 
 my $testdb  = get_test_db( build_client() );
 my $txtfile = "t/data/gridfs/input.txt";
-my $pngfile = "t/data/gridfs/img.png";
+my $pngfile = "t/data/gridfs/data.bin";
 my $bigfile = "t/data/gridfs/big.txt";
 
 my ( $img_id, $img_meta );
@@ -55,7 +55,7 @@ sub setup_gridfs {
 
     my $img = new IO::File( $pngfile, "r" ) or die $!;
     binmode($img);
-    $img_id = $bucket->upload_from_stream( 'img.png', $img );
+    $img_id = $bucket->upload_from_stream( 'data.bin', $img );
     $img->close;
 
     my $txt = new IO::File( $txtfile, "r" ) or die $!;
@@ -105,11 +105,11 @@ sub setup_gridfs {
     binmode($file);
     ok(
         $id = $bucket->upload_from_stream(
-            'img.png',
+            'data.bin',
             $file,
             {
                 metadata     => { airspeed_velocity => '11m/s' },
-                content_type => 'img/png',
+                content_type => 'data.bin',
                 aliases      => ['screenshot.png'],
             }
         ),
@@ -136,7 +136,7 @@ sub setup_gridfs {
     ok( $filedoc = $bucket->_files->find_id($id), 'upload large file files document' );
     is( $filedoc->{'md5'},      $img_md5,    'upload large file md5' );
     is( $filedoc->{'length'},   $img_length, 'upload large file length' );
-    is( $filedoc->{'filename'}, 'img.png',   'upload large file filename' );
+    is( $filedoc->{'filename'}, 'data.bin',   'upload large file filename' );
     ok( $time->epoch - $filedoc->{'uploadDate'}->epoch < 10,
         'upload large file uploadDate' );
     cmp_deeply(
@@ -144,7 +144,7 @@ sub setup_gridfs {
         { airspeed_velocity => '11m/s' },
         'upload large file metadta'
     );
-    is( $filedoc->{'contentType'}, 'img/png', 'upload large file content_type' );
+    is( $filedoc->{'contentType'}, 'data.bin', 'upload large file content_type' );
     cmp_deeply( $filedoc->{aliases}, ['screenshot.png'], 'upload large file aliases' );
 
 }
@@ -201,7 +201,7 @@ sub setup_gridfs {
 
     my $img = new IO::File( $pngfile, "r" ) or die $!;
     binmode($img);
-    $img_id = $bucket->upload_from_stream( 'img.png', $img );
+    $img_id = $bucket->upload_from_stream( 'data.bin', $img );
     $img->close;
 
     my %files_idx  = map { $_->{name} => $_ } $bucket->_files->indexes->list->all;

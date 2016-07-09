@@ -36,7 +36,7 @@ skip_unless_mongod();
 
 my $testdb = get_test_db(build_client());
 my $txtfile = "t/data/gridfs/input.txt";
-my $pngfile = "t/data/gridfs/img.png";
+my $pngfile = "t/data/gridfs/data.bin";
 
 my $dumb_str;
 my $now;
@@ -94,7 +94,7 @@ $grid->drop;
     $img->read($dumb_str, 4000000);
     $img->close;
     my $meta = $grid->files->find_one({'_id' => $save_id});
-    is($meta->{'length'}, 1292706);
+    is($meta->{'length'}, -s $pngfile);
 
     my $chunk = $grid->chunks->find_one({'files_id' => $id});
     is(0, $chunk->{'n'});
@@ -176,7 +176,7 @@ $grid->drop;
         isa_ok($list[$i], 'MongoDB::GridFS::File');
     }
     is($list[0]->info->{'length'}, 9, 'checking lens');
-    is($list[1]->info->{'length'}, 1292706);
+    is($list[1]->info->{'length'}, -s $pngfile);
     is($list[2]->info->{'length'}, 9);
 }
 
@@ -250,11 +250,11 @@ $grid->drop;
     $grid->drop;
     my $img = new IO::File($pngfile, "r") or die $!;
     $img->binmode;
-    $grid->insert($img, {filename => 'img.png'}, {safe => boolean::true});
+    $grid->insert($img, {filename => 'data.bin'}, {safe => boolean::true});
 
     $file = $grid->find_one;
-    is($file->info->{filename}, 'img.png', 'safe insert');
-    is($file->info->{length}, 1292706);
+    is($file->info->{filename}, 'data.bin', 'safe insert');
+    is($file->info->{length}, -s $pngfile);
     ok($file->info->{md5} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->info->{'md5'});
 }
 
@@ -265,8 +265,8 @@ $grid->drop;
     my $img = new IO::File($pngfile, "r") or die $!;
     $img->binmode;
 
-    my $id = $grid->put($img, {_id => 'img.png', filename => 'img.png'});
-    is($id, 'img.png', "put _id");
+    my $id = $grid->put($img, {_id => 'data.bin', filename => 'data.bin'});
+    is($id, 'data.bin', "put _id");
 
     $img->seek(0,0);
     $id = $grid->put($img);
@@ -274,16 +274,16 @@ $grid->drop;
 
     $img->seek(0,0);
     eval {
-        $id = $grid->put($img, {_id => 'img.png', filename => 'img.png'});
+        $id = $grid->put($img, {_id => 'data.bin', filename => 'data.bin'});
     };
 
     like($@->result->last_errmsg, qr/E11000/, 'duplicate key exception');
 
-    $file = $grid->get('img.png');
-    is($file->info->{filename}, 'img.png');
+    $file = $grid->get('data.bin');
+    is($file->info->{filename}, 'data.bin');
     ok($file->info->{md5} ne 'd41d8cd98f00b204e9800998ecf8427e', $file->info->{'md5'});
 
-    $grid->delete('img.png');
+    $grid->delete('data.bin');
 
     my $coll = $testdb->get_collection('fs.files');
 
