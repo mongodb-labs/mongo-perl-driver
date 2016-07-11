@@ -368,6 +368,49 @@ sub open_upload_stream {
     );
 }
 
+=method open_upload_stream_with_id
+
+    $stream = $bucket->open_upload_stream_with_id($id, $filename);
+    $stream = $bucket->open_upload_stream_with_id($id, $filename, $options);
+
+    $stream->print('data');
+    $stream->close;
+
+Returns a new L<MongoDB::GridFSBucket::UploadStream> that can be used to
+upload a new file to a GridFS bucket.
+
+This method uses C<$id> as the _id of the file being created, which must be
+unique.
+
+This method requires a filename to store in the C<filename> field of the
+file document.  B<Note>: the filename is an arbitrary string; the method
+does not read from this filename locally.
+
+You can provide an optional hash reference of options, just like
+L</open_upload_stream>.
+
+=cut
+
+sub open_upload_stream_with_id {
+    my ( $self, $id, $filename, $options ) = @_;
+    MongoDB::UsageError->throw('No id provided to open_upload_stream_with_id')
+      unless defined $id && length $id;
+    MongoDB::UsageError->throw('No filename provided to open_upload_stream_with_id')
+      unless defined $filename && length $filename;
+
+    $self->_create_indexes unless $self->_tried_indexing;
+
+    return MongoDB::GridFSBucket::UploadStream->new(
+        {
+            chunk_size_bytes => $self->chunk_size_bytes,
+            ( $options ? %$options : () ),
+            _bucket  => $self,
+            filename => "$filename", # stringify path objects
+            id => $id,
+        }
+    );
+}
+
 =method download_to_stream
 
     $bucket->download_to_stream($id, $out_fh);
@@ -432,6 +475,49 @@ sub upload_from_stream {
     }
     $upload_stream->close;
     return $upload_stream->id;
+}
+
+=method upload_from_stream_with_id
+
+    $bucket->upload_from_stream_with_id($id, $filename, $in_fh);
+    $bucket->upload_from_stream_with_id($id, $filename, $in_fh, $options);
+
+Reads from a filehandle and uploads its contents to GridFS.
+
+This method uses C<$id> as the _id of the file being created, which must be
+unique.
+
+This method requires a filename to store in the C<filename> field of the
+file document.  B<Note>: the filename is an arbitrary string; the method
+does not read from this filename locally.
+
+You can provide an optional hash reference of options, just like
+L</open_upload_stream>.
+
+Unlike L</open_upload_stream>, this method returns nothing.
+
+=cut
+
+sub upload_from_stream_with_id {
+    my ( $self, $id, $filename, $source_fh, $options ) = @_;
+    MongoDB::UsageError->throw('No id provided to upload_from_stream_with_id')
+      unless defined $id && length $id;
+    MongoDB::UsageError->throw('No filename provided to upload_from_stream_with_id')
+      unless defined $filename && length $filename;
+    MongoDB::UsageError->throw('No handle provided to upload_from_stream_with_id')
+      unless defined $source_fh;
+    MongoDB::UsageError->throw(
+        'Invalid handle $source_fh provided to upload_from_stream_with_id')
+      unless reftype $source_fh eq 'GLOB';
+
+    my $upload_stream = $self->open_upload_stream_with_id( $id, $filename, $options );
+    my $csb = $upload_stream->chunk_size_bytes;
+    my $buffer;
+    while ( read $source_fh, $buffer, $csb ) {
+        $upload_stream->print($buffer);
+    }
+    $upload_stream->close;
+    return;
 }
 
 =method delete
@@ -514,9 +600,7 @@ blocks on disk.)
 Valid file documents typically include the following fields:
 
 =for :list
-* _id – a unique ID for this document, typically type BSON ObjectId. Legacy
-  GridFS documents may store this value as a different type. New files must
-  be stored using an ObjectId.
+* _id – a unique ID for this document, typically type BSON ObjectId.
 * length – the length of this stored file, in bytes
 * chunkSize – the size, in bytes, of each full data chunk of this file. This
   value is configurable per file.

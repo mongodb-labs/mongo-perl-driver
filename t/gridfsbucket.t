@@ -149,6 +149,31 @@ sub setup_gridfs {
 
 }
 
+# test file upload with custom id
+{
+    setup_gridfs;
+    my $bucket = $testdb->get_gridfsbucket;
+
+    # upload_from_stream_with_id()
+    open( my $file, '<', $txtfile ) or die $!;
+    $bucket->upload_from_stream_with_id( 5, "file_5.txt", $file );
+    close $file;
+    my $doc = $bucket->find_id(5);
+    is( $doc->{"md5"},      $txt_md5,     "upload custom id md5" );
+    is( $doc->{"length"},   $txt_length,  "upload custom id length" );
+    is( $doc->{"filename"}, "file_5.txt", "upload custom id filename" );
+
+    # open_upload_stream_with_id()
+    my $uploadstream = $bucket->open_upload_stream_with_id( 6, "file_6.txt" );
+    $uploadstream->print( "a" x 12 );
+    $uploadstream->print( "b" x 8 );
+    my $doc2 = $uploadstream->close;
+    is( $uploadstream->id, 6, "created file has correct custom file id" );
+    my $doc3 = $bucket->find_id(6);
+    $doc3->{uploadDate} = ignore(); # DateTime objects internals can differ :-(
+    cmp_deeply( $doc2, $doc3, "finding file created with custom file id" );
+}
+
 # delete
 {
     setup_gridfs;

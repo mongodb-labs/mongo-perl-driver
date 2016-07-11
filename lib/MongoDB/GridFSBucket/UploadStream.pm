@@ -128,14 +128,15 @@ has _bucket => (
 
     $id = $stream->id;
 
-The generated L<MongoDB::OID> of the file created by the stream.  It will
-be stored in the C<_id> field of the file document on a successful upload.
+The id of the file created by the stream.  It will be stored in the C<_id>
+field of the file document on a successful upload.  Some upload methods
+require specifying an id at upload time.  Defaults to a newly-generated
+L<MongoDB::OID>.
 
 =cut
 
 has id => (
     is  => 'lazy',
-    isa => InstanceOf ['MongoDB::OID'],
 );
 
 sub _build_id {
