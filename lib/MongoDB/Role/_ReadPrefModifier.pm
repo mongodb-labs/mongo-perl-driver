@@ -25,6 +25,7 @@ our $VERSION = 'v1.5.0';
 use Moo::Role;
 
 use MongoDB::Error;
+use MongoDB::_Types -types, 'to_IxHash';
 use namespace::clean;
 
 requires qw/read_preference/;
@@ -37,7 +38,7 @@ sub _apply_read_prefs {
 
     if ( $topology_type eq 'Single' ) {
         if ( $link->server && $link->server->type eq 'Mongos' ) {
-            $self->_apply_mongos_read_prefs($read_pref);
+            $self->_apply_mongos_read_prefs($read_pref, $query_flags, $query_ref);
         }
         else {
             $query_flags->{slave_ok} = 1;
@@ -83,10 +84,11 @@ sub _apply_mongos_read_prefs {
     }
 
     if ($need_read_pref) {
-        if ( !$$query_ref->FETCH('$query') ) {
+        $$query_ref = to_IxHash( $$query_ref );
+        if ( ! ($$query_ref)->FETCH('$query') ) {
             $$query_ref = Tie::IxHash->new( '$query' => $$query_ref );
         }
-        $$query_ref->Push( '$readPreference' => $read_pref->for_mongos );
+        ($$query_ref)->Push( '$readPreference' => $read_pref->for_mongos );
     }
 
     return;
