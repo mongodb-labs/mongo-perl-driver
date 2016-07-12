@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-636 Fix application of read preference to mongos
+
 v1.4.2    2016-06-14 09:30:05-04:00 America/New_York
 
   [Bug fixes]
