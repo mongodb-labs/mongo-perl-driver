@@ -1,23 +1,26 @@
-# Drivers MUST raise an error if ``maxStalenessMS`` is not zero or null
-# and the ``mode`` field is 'primary'.
+# Filter out the stale secondary.
 ---
 topology_description:
-  type: ReplicaSetWithPrimary
+  type: ReplicaSetNoPrimary
   servers:
   - &1
     address: a:27017
-    type: RSPrimary
+    type: RSSecondary
     avg_rtt_ms: 5
     lastUpdateTime: 0
     maxWireVersion: 5
-    lastWriteDate: 1
+    lastWriteDate: 1000001
   - &2
     address: b:27017
     type: RSSecondary
     avg_rtt_ms: 5
     lastUpdateTime: 0
     maxWireVersion: 5
-    lastWriteDate: 1
+    lastWriteDate: 1  # Very stale.
 read_preference:
+  mode: SecondaryPreferred
   maxStalenessMS: 120000
-error: true
+suitable_servers:
+- *1
+in_latency_window:
+- *1

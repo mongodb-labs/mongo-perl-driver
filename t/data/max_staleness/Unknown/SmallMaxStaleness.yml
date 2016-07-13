@@ -1,4 +1,4 @@
-# Driver doesn't validate maxStalenessMS while TopologyType is Unknown
+# Driver doesn't validate maxStalenessMS while TopologyType is Unknown.
 ---
 heartbeatFrequencyMS: 10000
 topology_description:

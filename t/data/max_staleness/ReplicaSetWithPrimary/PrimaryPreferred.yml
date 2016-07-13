@@ -1,7 +1,6 @@
-# A driver MUST raise an error
-# if the TopologyType is ReplicaSetWithPrimary or ReplicaSetNoPrimary
-# and ``maxStalenessMS`` is less than twice the client's `heartbeatFrequencyMS`.
+# Ignore maxStalenessMS is primary is available.
 ---
+heartbeatFrequencyMS: 25000  # 25 seconds.
 topology_description:
   type: ReplicaSetWithPrimary
   servers:
@@ -20,6 +19,9 @@ topology_description:
     maxWireVersion: 5
     lastWriteDate: 1
 read_preference:
-  mode: Nearest
-  maxStalenessMS: 1  # Too small.
-error: true
+  mode: PrimaryPreferred
+  maxStalenessMS: 50000
+suitable_servers:
+- *1
+in_latency_window:
+- *1

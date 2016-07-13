@@ -1,4 +1,4 @@
-# Driver doesn't validate maxStalenessMS for direct connection
+# Driver doesn't validate maxStalenessMS for direct connection.
 ---
 heartbeatFrequencyMS: 10000
 topology_description:

@@ -31,4 +31,3 @@ suitable_servers:
 - *2
 in_latency_window:
 - *1
-

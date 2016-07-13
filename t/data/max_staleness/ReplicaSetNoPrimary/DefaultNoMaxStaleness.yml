@@ -24,4 +24,3 @@ suitable_servers:  # Very stale server is fine.
 - *2
 in_latency_window:
 - *2
-

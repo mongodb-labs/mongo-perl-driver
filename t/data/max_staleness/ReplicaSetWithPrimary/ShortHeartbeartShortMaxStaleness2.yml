@@ -1,5 +1,5 @@
 # Users can configure a shorter ``heartbeatFrequencyMS`` than the default to
-# Allow a smaller ``maxStalenessMS`` with replica sets..
+# allow a smaller ``maxStalenessMS`` with replica sets.
 ---
 heartbeatFrequencyMS: 1000  # 1 second.
 topology_description:
