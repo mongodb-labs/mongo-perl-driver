@@ -135,6 +135,9 @@ sub as_string {
         }
         $string .= " (" . join( ",", map { "{$_}" } @ts ) . ")";
     }
+    if ( $self->max_staleness_ms > 0) {
+        $string .= " ( maxStalenessMS: " . $self->max_staleness_ms . " )";
+    }
     return $string;
 }
 
