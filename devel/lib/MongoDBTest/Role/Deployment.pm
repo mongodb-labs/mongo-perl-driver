@@ -105,4 +105,6 @@ sub DEMOLISH {
     $self->stop;
 }
 
+with 'MongoDBTest::Role::Verbosity';
+
 1;

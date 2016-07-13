@@ -295,8 +295,8 @@ sub start {
         $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
         my $guard = proc_guard(
             sub {
-                open STDOUT, ">", File::Spec->devnull unless $ENV{MONGOVERBOSE};
-                open STDERR, ">", File::Spec->devnull unless $ENV{MONGOVERBOSE};
+                open STDOUT, ">", File::Spec->devnull unless $self->verbose;
+                open STDERR, ">", File::Spec->devnull unless $self->verbose;
                 open STDIN, "<", File::Spec->devnull;
                 exec( $self->executable, $self->_command_args );
             }
@@ -420,7 +420,8 @@ sub as_uri {
 
 sub _command_args {
     my ($self) = @_;
-    my @args = split ' ', $self->default_args;
+    my @args = ($self->log_verbose ? "-vvv" : "-v");
+    push @args, split ' ', $self->default_args;
     push @args, split ' ', $self->config->{args} if exists $self->config->{args};
     push @args, split ' ', $self->command_args;
     push @args, '--port', $self->port, '--logpath', $self->logfile, '--logappend';
@@ -479,5 +480,7 @@ sub DEMOLISH {
     my ($self) = @_;
     $self->stop if $self->is_alive;
 }
+
+with 'MongoDBTest::Role::Verbosity';
 
 1;

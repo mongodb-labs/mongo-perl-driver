@@ -91,6 +91,8 @@ sub _build__servers {
             auth_config => $self->auth_config,
             ssl_config => $self->ssl_config,
             ( $self->timeout ? ( timeout => $self->timeout ) : () ),
+            verbose => $self->verbose,
+            log_verbose => $self->log_verbose,
         );
     }
     return $set;
@@ -154,5 +156,7 @@ sub DEMOLISH {
     my ($self) = @_;
     $self->stop;
 }
+
+with 'MongoDBTest::Role::Verbosity';
 
 1;

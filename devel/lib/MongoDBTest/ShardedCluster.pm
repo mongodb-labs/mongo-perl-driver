@@ -59,6 +59,8 @@ sub _build_config_servers {
         default_version => $self->default_version,
         server_config_list => $self->config->{mongoc},
         ( $self->with_CSRS ? ( set_name => "configReplSet" ) : () ),
+        verbose => $self->verbose,
+        log_verbose => $self->log_verbose,
     );
 }
 
@@ -73,10 +75,13 @@ sub _build_routers {
     my $config_names = $self->config_servers->as_pairs;
     $config_names = "configReplSet/$config_names" if $self->with_CSRS;
     return MongoDBTest::ServerSet->new(
-        default_args => "--configdb $config_names ", # don't pass default args
+        # don't pass default args from config file
+        default_args => "--configdb $config_names",
         default_version => $self->default_version,
         server_config_list => $self->config->{mongos},
         server_type => 'mongos',
+        verbose => $self->verbose,
+        log_verbose => $self->log_verbose,
     );
 }
 

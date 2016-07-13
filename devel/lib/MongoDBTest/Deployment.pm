@@ -45,6 +45,8 @@ sub _build_server_set {
         ssl_config => $self->ssl_config,
         server_config_list => $self->config->{mongod},
         $self->is_replica ? ( set_name => $self->config->{setName} // "rs" . $anon_rs_number++ ) : (),
+        verbose => $self->verbose,
+        log_verbose => $self->log_verbose,
     );
 }
 

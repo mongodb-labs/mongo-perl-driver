@@ -76,7 +76,9 @@ sub _build_deployment {
     my ($self) = @_;
     my $class = "MongoDBTest::" . ($self->deployment_type eq 'sharded' ? "ShardedCluster" : "Deployment");
     return $class->new(
-        config => $self->config,
+        config      => $self->config,
+        verbose     => $self->verbose,
+        log_verbose => $self->log_verbose,
     );
 }
 
@@ -84,5 +86,7 @@ sub DEMOLISH {
     my ($self) = @_;
     $self->stop;
 }
+
+with 'MongoDBTest::Role::Verbosity';
 
 1;
