@@ -1472,7 +1472,7 @@ bson_elem_to_sv (const bson_iter_t * iter, HV *opts ) {
       croak("could not decode decimal128");
     }
 
-    bson_decimal128_to_string(&dec, &bid_string);
+    bson_decimal128_to_string(&dec, bid_string);
 
     dec_sv = sv_2mortal(newSVpv(bid_string, 0));
     value = new_object_from_pairs("BSON::Decimal128", "value", dec_sv, NULL);
