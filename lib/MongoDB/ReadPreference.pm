@@ -118,7 +118,8 @@ sub for_mongos {
     my ($self) = @_;
     return {
         mode => $self->mode,
-        tags => $self->tag_sets,
+        ( $self->has_empty_tag_sets ? () : ( tags => $self->tag_sets ) ),
+        ( $self->max_staleness_ms > 0 ? ( maxStalenessMS => $self->max_staleness_ms ) : () ),
     };
 }
 

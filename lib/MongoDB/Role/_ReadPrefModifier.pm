@@ -77,7 +77,7 @@ sub _apply_mongos_read_prefs {
     elsif ( $mode eq 'secondaryPreferred' ) {
         $query_flags->{slave_ok} = 1;
         $need_read_pref = 1
-          unless $read_pref->has_empty_tag_sets;
+          unless $read_pref->has_empty_tag_sets && $self->max_staleness_ms == 0 ;
     }
     else {
         MongoDB::InternalError->throw("invalid read preference mode '$mode'");

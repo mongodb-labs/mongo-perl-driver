@@ -489,7 +489,7 @@ sub _check_wire_versions {
 sub _check_staleness_compatibility {
     my ($self, $read_pref) = @_;
 
-    if ( $read_pref->max_staleness_ms > 0 ) {
+    if ( $read_pref && $read_pref->max_staleness_ms > 0 ) {
         if ( $self->wire_version_floor < 5 ) {
             MongoDB::ProtocolError->throw(
                 "Incompatible wire protocol version. You tried to use max_staleness_ms with one or more servers that don't support it."
