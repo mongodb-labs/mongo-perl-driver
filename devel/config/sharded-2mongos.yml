@@ -1,12 +1,13 @@
 ---
 type: sharded
-default_args: --noprealloc --smallfiles --nohttpinterface --nssize 6 --quiet
+default_args: -vvvv --noprealloc --smallfiles --nohttpinterface --nssize 6 --quiet
 mongoc:
     - name: config1
     - name: config2
     - name: config3
 mongos:
     - name: router1
+    - name: router2
 shards:
     - name: sh1
       type: single
