@@ -12,6 +12,8 @@
 
   - PERL-636 Fix application of read preference to mongos
 
+  - PERL-638 Fix application of query modifiers for MongoDB server 3.2+
+
 v1.4.2    2016-06-14 09:30:05-04:00 America/New_York
 
   [Bug fixes]
