@@ -632,7 +632,7 @@ Valid options include:
   C<$maxTimeMS> also exists in the modifiers document, the C<maxTimeMS> field
   overwrites C<$maxTimeMS>. (Note, this will be ignored for servers before
   version 2.6.)
-* C<modifiers> – a hash reference of L<query
+* C<modifiers> – a hash reference of dollar-prefixed L<query
   modifiers|http://docs.mongodb.org/manual/reference/operator/query-modifier/>
   modifying the output or behavior of a query.
 * C<noCursorTimeout> – if true, prevents the server from timing out a cursor

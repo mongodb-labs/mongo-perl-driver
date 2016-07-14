@@ -21,6 +21,7 @@ package MongoDB::Op::_Query;
 use version;
 our $VERSION = 'v1.4.3';
 
+use boolean;
 use Moo;
 
 use List::Util qw/min/;
@@ -275,13 +276,13 @@ sub as_command {
         singleBatch         => ($single_batch ? $TRUE : $FALSE),
 
         ($self->{comment} ? (comment => $self->{comment}) : ()),
-        (defined $mod->{maxScan} ? (maxScan => $mod->{maxScan}) : ()),
+        (defined $mod->{'$maxScan'} ? (maxScan => $mod->{'$maxScan'}) : ()),
         (defined $self->{max_time_ms} ? (maxTimeMS => $self->{max_time_ms}) : ()),
-        (defined $mod->{max} ? (max => $mod->{max}) : ()),
-        (defined $mod->{min} ? (min => $mod->{min}) : ()),
-        (defined $mod->{returnKey} ? (returnKey => $mod->{returnKey}) : ()),
-        (defined $mod->{showDiskLoc} ? (showRecordId => $mod->{showDiskLoc}) : ()),
-        (defined $mod->{snapshot} ? (snapshot => $mod->{snapshot}) : ()),
+        (defined $mod->{'$max'} ? (max => $mod->{'$max'}) : ()),
+        (defined $mod->{'$min'} ? (min => $mod->{'$min'}) : ()),
+        (defined $mod->{'$returnKey'} ? (returnKey => $mod->{'$returnKey'}) : ()),
+        (defined $mod->{'$showDiskLoc'} ? (showRecordId => $mod->{'$showDiskLoc'}) : ()),
+        (defined $mod->{'$snapshot'} ? (snapshot => boolean($mod->{'$snapshot'})) : ()),
 
         tailable            => $tailable,
         noCursorTimeout     =>($self->{no_cursor_timeout} ? $TRUE : $FALSE),
