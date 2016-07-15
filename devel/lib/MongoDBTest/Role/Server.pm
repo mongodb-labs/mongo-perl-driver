@@ -420,7 +420,13 @@ sub as_uri {
 
 sub _command_args {
     my ($self) = @_;
-    my @args = ($self->log_verbose ? "-vvv" : "-v");
+    my @args;
+    if ( $self->server_version < v2.6.0 && $self->command_name eq 'mongos' ) {
+        push @args, "-v"; # 2.4 mongos has problems with too much verbosity
+    }
+    else {
+        push @args, ( $self->log_verbose ? "-vvv" : "-v" );
+    }
     push @args, split ' ', $self->default_args;
     push @args, split ' ', $self->config->{args} if exists $self->config->{args};
     push @args, split ' ', $self->command_args;
