@@ -87,7 +87,7 @@ sub rs_initiate {
 
     $self->_logger->debug("waiting for primary");
 
-    $self->wait_for_all_hosts;
+    $self->wait_for_primary;
 
     return;
 }
@@ -103,6 +103,31 @@ sub wait_for_all_hosts {
             $self->_logger->debug("host states: @member_states");
             die "Hosts not all PRIMARY or SECONDARY or ARBITER\n"
               unless @member_states == grep { $_ == 1 || $_ == 2 || $_ == 7 } @member_states;
+        }
+        else {
+            die "Can't get replica set status";
+        }
+    }
+    delay {
+        return if $_[0] >= 180;
+        sleep 1;
+    }
+    catch { chomp; die "$_. Giving up!" };
+
+    return;
+}
+
+sub wait_for_primary {
+    my ($self) = @_;
+    my ($first) = $self->all_servers;
+    retry {
+        my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
+        my $admin = $client->get_database("admin");
+        if ( my $status = eval { $admin->run_command({replSetGetStatus => 1}) } ) {
+            my @member_states = map { $_->{state} } @{ $status->{members} };
+            $self->_logger->debug("host states: @member_states");
+            die "No PRIMARY\n"
+              unless grep { $_ == 1 } @member_states;
         }
         else {
             die "Can't get replica set status";
