@@ -20,7 +20,7 @@ package MongoDB::Role::_WriteOp;
 # or other things that take a write concern)
 
 use version;
-our $VERSION = 'v1.4.3';
+our $VERSION = 'v1.4.4';
 
 use MongoDB::_Types qw(
     WriteConcern
