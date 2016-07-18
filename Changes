@@ -8,6 +8,8 @@
     or later.  Adds a dependency on BSON::Decimal128 as the type-wrapper
     for this type.
 
+v1.4.3    2016-07-18 16:05:16-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-636 Fix application of read preference to mongos
