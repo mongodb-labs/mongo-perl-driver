@@ -4,12 +4,19 @@
 
   [Additions]
 
-  - PERL-611 Adds support for the BSON Decimal128 type, available in
+  - PERL-611 Add support for the BSON Decimal128 type, available in
     MongoDB v3.3.8 or later.  Adds a dependency on BSON::Decimal128 as the
     type-wrapper for this type.
 
-  - PERL-626 Adds support for maxStalenessMS configuration parameter,
+  - PERL-620 Add support for GridFS files with custom file_id values.
+
+  - PERL-626 Add support for maxStalenessMS configuration parameter,
     available in MongoDB v3.3.9 or later.
+
+  [Bug fixes]
+
+  - PERL-630 ReadConcern level must always be lower-case when sent to
+    server.
 
 v1.4.3    2016-07-18 16:05:16-04:00 America/New_York
 
