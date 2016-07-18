@@ -53,8 +53,6 @@ sub execute {
       ? $self->_command_create_indexes($link)
       : $self->_legacy_index_insert($link);
 
-    $res->assert;
-
     return $res;
 }
 
@@ -62,13 +60,20 @@ sub _command_create_indexes {
     my ( $self, $link, $op_doc ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name         => $self->db_name,
-        query           => [ createIndexes => $self->coll_name, indexes => $self->indexes, ],
-        query_flags     => {},
-        bson_codec      => $self->bson_codec,
+        db_name => $self->db_name,
+        query   => [
+            createIndexes => $self->coll_name,
+            indexes       => $self->indexes,
+            ( $link->accepts_wire_version(5) ? ( @{ $self->write_concern->as_args } ) : () )
+        ],
+        query_flags => {},
+        bson_codec  => $self->bson_codec,
     );
 
-    return $op->execute( $link );
+    my $res = $op->execute( $link );
+    $res->assert_no_write_concern_error;
+
+    return $res;
 }
 
 sub _legacy_index_insert {

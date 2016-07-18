@@ -63,6 +63,7 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
+  MongoDB::Role::_WriteOp
   MongoDB::Role::_CommandCursorOp
 );
 
@@ -110,24 +111,31 @@ sub execute {
         delete $options->{cursor};
     }
 
+    my $has_out = $self->has_out;
+
     my @command = (
         aggregate => $self->coll_name,
         pipeline  => $self->pipeline,
-        ($self->has_out ? () :
-            ($link->accepts_wire_version(4) ?
-                @{ $self->read_concern->as_args } : () ) ),
         %$options,
+        (
+            !$has_out && $link->accepts_wire_version(4) ? @{ $self->read_concern->as_args } : ()
+        ),
+        (
+            $has_out && $link->accepts_wire_version(5) ? @{ $self->write_concern->as_args } : ()
+        ),
     );
 
     my $op = MongoDB::Op::_Command->_new(
         db_name         => $self->db_name,
         query           => Tie::IxHash->new(@command),
         query_flags     => {},
-        read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
+        ( $has_out ? () : ( read_preference => $self->read_preference ) ),
     );
 
     my $res = $op->execute( $link, $topology );
+
+    $res->assert_no_write_concern_error if $has_out;
 
     # For explain, we give the whole response as fields have changed in
     # different server versions

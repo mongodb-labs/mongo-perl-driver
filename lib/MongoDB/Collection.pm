@@ -34,11 +34,13 @@ use MongoDB::Op::_Count;
 use MongoDB::Op::_CreateIndexes;
 use MongoDB::Op::_Delete;
 use MongoDB::Op::_Distinct;
+use MongoDB::Op::_DropCollection;
 use MongoDB::Op::_FindAndDelete;
 use MongoDB::Op::_FindAndUpdate;
 use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_ParallelScan;
+use MongoDB::Op::_RenameCollection;
 use MongoDB::Op::_Query;
 use MongoDB::Op::_Update;
 use MongoDB::_Types qw(
@@ -1188,20 +1190,17 @@ collection.
 =cut
 
 sub rename {
-    my ($self, $collectionname) = @_;
+    my ( $self, $new_name ) = @_;
 
-    my $conn = $self->client;
-    my $database = $conn->get_database( 'admin' );
-    my $fullname = $self->full_name;
+    my $op = MongoDB::Op::_RenameCollection->_new(
+        src_ns => $self->full_name,
+        dst_ns => join( ".", $self->database->name, $new_name ),
+        %{ $self->_op_args },
+    );
 
-    my ($db, @collection_bits) = split(/\./, $fullname);
-    my $collection = join('.', @collection_bits);
+    $self->client->send_write_op($op);
 
-    # this does NOT use our private _run_command method as it needs to run
-    # against a totally different database
-    my $obj = $database->run_command([ 'renameCollection' => "$db.$collection", 'to' => "$db.$collectionname" ]);
-
-    return $conn->get_database( $db )->get_collection( $collectionname );
+    return $self->database->get_collection($new_name);
 }
 
 =method drop
@@ -1214,12 +1213,14 @@ Deletes a collection as well as all of its indexes.
 
 sub drop {
     my ($self) = @_;
+
     try {
-        $self->_run_command({ drop => $self->name });
+        $self->client->send_write_op( MongoDB::Op::_DropCollection->_new( $self->_op_args ) );
     }
     catch {
         die $_ unless /ns not found/;
     };
+
     return;
 }
 

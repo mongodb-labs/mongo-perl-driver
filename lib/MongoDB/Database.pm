@@ -27,6 +27,7 @@ use MongoDB::Error;
 use MongoDB::GridFS;
 use MongoDB::GridFSBucket;
 use MongoDB::Op::_Command;
+use MongoDB::Op::_DropDatabase;
 use MongoDB::Op::_ListCollections;
 use MongoDB::ReadPreference;
 use MongoDB::_Types qw(
@@ -347,7 +348,13 @@ Deletes the database.
 
 sub drop {
     my ($self) = @_;
-    return $self->run_command({ 'dropDatabase' => 1 });
+    return $self->_client->send_write_op(
+        MongoDB::Op::_DropDatabase->_new(
+            db_name       => $self->name,
+            bson_codec    => $self->bson_codec,
+            write_concern => $self->write_concern,
+        )
+    )->output;
 }
 
 =method run_command

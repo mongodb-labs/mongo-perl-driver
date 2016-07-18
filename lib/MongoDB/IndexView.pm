@@ -23,8 +23,8 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 use MongoDB::Error;
-use MongoDB::WriteConcern;
 use MongoDB::Op::_CreateIndexes;
+use MongoDB::Op::_DropIndexes;
 use MongoDB::_Types qw(
     BSONCodec
     IxHash
@@ -101,6 +101,17 @@ has _db_name => (
 sub _build__db_name {
     my ($self) = @_;
     return $self->collection->database->name;
+}
+
+has _write_concern => (
+    is      => 'lazy',
+    isa     => InstanceOf( ['MongoDB::WriteConcern'] ),
+    builder => '_build__write_concern',
+);
+
+sub _build__write_concern {
+    my ($self) = @_;
+    return $self->collection->write_concern;
 }
 
 #--------------------------------------------------------------------------#
@@ -243,7 +254,7 @@ sub create_many {
         full_name     => '', # unused
         bson_codec    => $self->_bson_codec,
         indexes       => $indexes,
-        write_concern => MongoDB::WriteConcern->new,
+        write_concern => $self->_write_concern,
     );
 
     # succeed or die; we don't care about response document
@@ -274,12 +285,16 @@ sub drop_one {
         MongoDB::UsageError->throw("Can't use '*' as an argument to drop_one");
     }
 
-    return $self->collection->_run_command(
-        [
-            dropIndexes => $self->_coll_name,
-            index       => $name,
-        ]
+    my $op = MongoDB::Op::_DropIndexes->_new(
+        db_name       => $self->_db_name,
+        coll_name     => $self->_coll_name,
+        full_name     => '',                   # unused
+        bson_codec    => $self->_bson_codec,
+        write_concern => $self->_write_concern,
+        index_name    => $name,
     );
+
+    $self->_client->send_write_op($op)->output;
 }
 
 =method drop_all
@@ -297,12 +312,16 @@ my $drop_all_args;
 sub drop_all {
     my ($self) = @_;
 
-    return $self->collection->_run_command(
-        [
-            dropIndexes => $self->_coll_name,
-            index       => '*',
-        ]
+    my $op = MongoDB::Op::_DropIndexes->_new(
+        db_name       => $self->_db_name,
+        coll_name     => $self->_coll_name,
+        full_name     => '',                   # unused
+        bson_codec    => $self->_bson_codec,
+        write_concern => $self->_write_concern,
+        index_name    => '*',
     );
+
+    $self->_client->send_write_op($op)->output;
 }
 
 #--------------------------------------------------------------------------#

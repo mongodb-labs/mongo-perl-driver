@@ -76,6 +76,9 @@ sub last_code {
     elsif ( $output->{lastErrorObject} ) {
         return $output->{lastErrorObject}{code} || 0;
     }
+    elsif ( $output->{writeConcernError} ) {
+        return $output->{writeConcernError}{code} || 0;
+    }
     else {
         return 0;
     }
@@ -89,21 +92,26 @@ Error string (if any) or the empty string if there was no error.
 
 sub last_errmsg {
     my ($self) = @_;
+    my $output = $self->output;
     for my $err_key (qw/$err err errmsg/) {
-        return $self->output->{$err_key} if exists $self->output->{$err_key};
+        return $output->{$err_key} if exists $output->{$err_key};
+    }
+    if ( exists $output->{writeConcernError} ) {
+        return $output->{writeConcernError}{errmsg}
     }
     return "";
 }
 
 =method last_wtimeout
 
-True if a write concern timed out or false otherwise.
+True if a write concern error or timeout occurred or false otherwise.
 
 =cut
 
 sub last_wtimeout {
     my ($self) = @_;
-    return !!$self->output->{wtimeout};
+    return !!( exists $self->output->{wtimeout}
+        || exists $self->output->{writeConcernError} );
 }
 
 =method assert
@@ -117,6 +125,21 @@ sub assert {
 
     $self->_throw_database_error( $default_class )
         if ! $self->output->{ok};
+
+    return 1;
+}
+
+=method assert_no_write_concern_error
+
+Throws an exception if a write concern error occurred
+
+=cut
+
+sub assert_no_write_concern_error {
+    my ($self) = @_;
+
+    $self->_throw_database_error( "MongoDB::WriteConcernError" )
+        if $self->last_wtimeout;
 
     return 1;
 }
