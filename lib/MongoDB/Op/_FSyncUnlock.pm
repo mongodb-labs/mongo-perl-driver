@@ -54,7 +54,6 @@ has client => (
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_ReadOp
-  MongoDB::Role::_CommandCursorOp
 );
 
 sub execute {
