@@ -44,7 +44,7 @@ use namespace::clean;
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_Cursor
+  MongoDB::Role::_CursorAPI
 );
 
 # attributes needed for get more

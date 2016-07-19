@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_Cursor;
+package MongoDB::Role::_CursorAPI;
 
 # Role providing a cursor interface
 

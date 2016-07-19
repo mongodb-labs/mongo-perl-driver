@@ -47,7 +47,7 @@ queried.
 
 =cut
 
-with 'MongoDB::Role::_Cursor';
+with 'MongoDB::Role::_CursorAPI';
 
 # attributes for sending a query
 has query => (
