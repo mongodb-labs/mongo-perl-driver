@@ -85,7 +85,7 @@ has upsert => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_WriteCommand
+  MongoDB::Role::_SingleBatchDocWrite
   MongoDB::Role::_UpdatePreEncoder
   MongoDB::Role::_BypassValidation
 );

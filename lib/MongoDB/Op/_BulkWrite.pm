@@ -69,7 +69,6 @@ has ordered => (
     isa      => Bool,
 );
 
-# not _WriteCommand because we construct our own results objects
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_WriteOp

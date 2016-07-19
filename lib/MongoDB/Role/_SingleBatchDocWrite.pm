@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_WriteCommand;
+package MongoDB::Role::_SingleBatchDocWrite;
 
 # MongoDB interface for database insert/update/delete operations
 
