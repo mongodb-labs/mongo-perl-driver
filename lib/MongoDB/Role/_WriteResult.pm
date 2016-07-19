@@ -35,7 +35,7 @@ has [qw/write_errors write_concern_errors/] => (
     isa      => ArrayOfHashRef,
 );
 
-with 'MongoDB::Role::_LastError';
+with 'MongoDB::Role::_DatabaseErrorThrower';
 
 sub acknowledged() { 1 }; # override to 0 for MongoDB::UnacknowledgedResult
 

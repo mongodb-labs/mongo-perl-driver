@@ -121,7 +121,7 @@ extends("MongoDB::Error");
 
 has result => (
     is       => 'ro',
-    does     => 'MongoDB::Role::_LastError',
+    does     => 'MongoDB::Role::_DatabaseErrorThrower',
     required => 1,
 );
 

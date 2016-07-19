@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_LastError;
+package MongoDB::Role::_DatabaseErrorThrower;
 
 # MongoDB interface for providing the last database error
 
