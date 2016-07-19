@@ -22,6 +22,8 @@ use Test::More;
 
 BEGIN { plan skip_all => 'requires threads' unless $Config{usethreads} }
 
+BEGIN { plan skip_all => 'threads not supported before Perl 5.8.5' unless $] ge "5.008005" }
+
 use MongoDB;
 use MongoDB::OID;
 

@@ -199,6 +199,11 @@ internal type assertions enabled.  This has a severe performance cost and
 is not recommended for production use.  It may be useful in diagnosing
 bugs.
 
+=head1 THREADS
+
+Because of well-known bugs, use of threads on perls before v5.8.5 is
+not supported.
+
 =cut
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:

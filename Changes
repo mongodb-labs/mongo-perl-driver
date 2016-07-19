@@ -18,6 +18,10 @@
   - PERL-630 ReadConcern level must always be lower-case when sent to
     server.
 
+  [Changes]
+
+  - PERL-644 Use of threads is no longer supported on perls before 5.8.5.
+
 v1.4.3    2016-07-18 16:05:16-04:00 America/New_York
 
   [Bug fixes]
