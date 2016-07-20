@@ -50,10 +50,11 @@ queried.
 with 'MongoDB::Role::_CursorAPI';
 
 # attributes for sending a query
-has query => (
+has _query => (
     is => 'ro',
     isa => InstanceOf['MongoDB::_Query'],
     required => 1,
+    init_arg => 'query',
 );
 
 # lazy result attribute
@@ -68,7 +69,7 @@ has result => (
 # this does the query if it hasn't been done yet
 sub _build_result {
     my ($self) = @_;
-    $self->query->execute;
+    $self->_query->execute;
 }
 
 #--------------------------------------------------------------------------#
@@ -105,7 +106,7 @@ sub immortal {
     MongoDB::UsageError->throw("cannot set immortal after querying")
         if $self->started_iterating;
 
-    $self->query->noCursorTimeout(!!$bool);
+    $self->_query->noCursorTimeout(!!$bool);
     return $self;
 }
 
@@ -137,7 +138,7 @@ sub fields {
     MongoDB::UsageError->throw("not a hash reference")
       unless ref $f eq 'HASH' || ref $f eq 'Tie::IxHash';
 
-    $self->query->projection($f);
+    $self->_query->projection($f);
     return $self;
 }
 
@@ -159,7 +160,7 @@ sub sort {
     MongoDB::UsageError->throw("cannot set sort after querying")
       if $self->started_iterating;
 
-    $self->query->sort( to_IxHash($order) );
+    $self->_query->sort( to_IxHash($order) );
     return $self;
 }
 
@@ -178,7 +179,7 @@ sub limit {
     my ( $self, $num ) = @_;
     MongoDB::UsageError->throw("cannot set limit after querying")
       if $self->started_iterating;
-    $self->query->limit($num);
+    $self->_query->limit($num);
     return $self;
 }
 
@@ -204,7 +205,7 @@ sub max_await_time_ms {
     MongoDB::UsageError->throw("can not set max_await_time_ms after querying")
       if $self->started_iterating;
 
-    $self->query->maxAwaitTimeMS( $num );
+    $self->_query->maxAwaitTimeMS( $num );
     return $self;
 }
 
@@ -227,7 +228,7 @@ sub max_time_ms {
     MongoDB::UsageError->throw("can not set max_time_ms after querying")
       if $self->started_iterating;
 
-    $self->query->maxTimeMS( $num );
+    $self->_query->maxTimeMS( $num );
     return $self;
 
 }
@@ -257,7 +258,7 @@ sub tailable {
     MongoDB::UsageError->throw("cannot set tailable after querying")
         if $self->started_iterating;
 
-    $self->query->cursorType($bool ? 'tailable' : 'non_tailable');
+    $self->_query->cursorType($bool ? 'tailable' : 'non_tailable');
     return $self;
 }
 
@@ -281,7 +282,7 @@ sub tailable_await {
     MongoDB::UsageError->throw("cannot set tailable_await after querying")
         if $self->started_iterating;
 
-    $self->query->cursorType($bool ? 'tailable_await' : 'non_tailable');
+    $self->_query->cursorType($bool ? 'tailable_await' : 'non_tailable');
     return $self;
 }
 
@@ -302,7 +303,7 @@ sub skip {
     MongoDB::UsageError->throw("cannot set skip after querying")
       if $self->started_iterating;
 
-    $self->query->skip($num);
+    $self->_query->skip($num);
     return $self;
 }
 
@@ -330,7 +331,7 @@ sub snapshot {
     MongoDB::UsageError->throw("snapshot requires a defined, boolean argument")
       unless defined $bool;
 
-    $self->query->modifiers->{'$snapshot'} = $bool;
+    $self->_query->modifiers->{'$snapshot'} = $bool;
     return $self;
 }
 
@@ -359,7 +360,7 @@ sub hint {
         MongoDB::UsageError->throw("not a hash reference");
     }
 
-    $self->query->modifiers->{'$hint'} = $index;
+    $self->_query->modifiers->{'$hint'} = $index;
     return $self;
 }
 
@@ -381,7 +382,7 @@ sub partial {
     MongoDB::UsageError->throw("cannot set partial after querying")
       if $self->started_iterating;
 
-    $self->query->allowPartialResults( !! $value );
+    $self->_query->allowPartialResults( !! $value );
 
     # returning self is an API change but more consistent with other cursor methods
     return $self;
@@ -411,7 +412,7 @@ sub read_preference {
 
     my $type = ref $_[0];
     if ( $type eq 'MongoDB::ReadPreference' ) {
-        $self->query->read_preference( $_[0] );
+        $self->_query->read_preference( $_[0] );
     }
     else {
         my $mode     = shift || 'primary';
@@ -420,7 +421,7 @@ sub read_preference {
             mode => $mode,
             ( $tag_sets ? ( tag_sets => $tag_sets ) : () )
         );
-        $self->query->read_preference($rp);
+        $self->_query->read_preference($rp);
     }
 
     return $self;
@@ -448,15 +449,15 @@ sub explain {
     my ($self) = @_;
 
     my $explain_op = MongoDB::Op::_Explain->_new(
-        db_name         => $self->query->db_name,
-        coll_name       => $self->query->coll_name,
-        bson_codec      => $self->query->bson_codec,
-        query           => $self->query->clone,
-        read_preference => $self->query->read_preference,
-        read_concern    => $self->query->read_concern,
+        db_name         => $self->_query->db_name,
+        coll_name       => $self->_query->coll_name,
+        bson_codec      => $self->_query->bson_codec,
+        query           => $self->_query->clone,
+        read_preference => $self->_query->read_preference,
+        read_concern    => $self->_query->read_concern,
     );
 
-    return $self->query->client->send_read_op($explain_op);
+    return $self->_query->client->send_read_op($explain_op);
 }
 
 =head1 QUERY ITERATION
@@ -594,22 +595,22 @@ sub info {
 sub count {
     my ($self, $limit_skip) = @_;
 
-    my $cmd = new Tie::IxHash(count => $self->query->coll_name);
+    my $cmd = new Tie::IxHash(count => $self->_query->coll_name);
 
-    $cmd->Push(query => $self->query->filter);
+    $cmd->Push(query => $self->_query->filter);
 
     if ($limit_skip) {
-        $cmd->Push(limit => $self->query->limit) if $self->query->limit;
-        $cmd->Push(skip => $self->query->skip) if $self->query->skip;
+        $cmd->Push(limit => $self->_query->limit) if $self->_query->limit;
+        $cmd->Push(skip => $self->_query->skip) if $self->_query->skip;
     }
 
-    if (my $hint = $self->query->modifiers->{'$hint'}) {
+    if (my $hint = $self->_query->modifiers->{'$hint'}) {
         $cmd->Push(hint => $hint);
     }
 
     my $result = try {
-        my $db = $self->query->client->get_database( $self->query->db_name );
-        $db->run_command( $cmd, $self->query->read_preference );
+        my $db = $self->_query->client->get_database( $self->_query->db_name );
+        $db->run_command( $cmd, $self->_query->read_preference );
     }
     catch {
         # if there was an error, check if it was the "ns missing" one that means the
@@ -630,13 +631,13 @@ sub slave_okay {
 
     if ($value) {
         # if not 'primary', then slave_ok is already true, so leave alone
-        if ( $self->query->read_preference->mode eq 'primary' ) {
+        if ( $self->_query->read_preference->mode eq 'primary' ) {
             # secondaryPreferred is how mongos interpretes slave_ok
-            $self->query->read_preference( $SEC_PREFERRED );
+            $self->_query->read_preference( $SEC_PREFERRED );
         }
     }
     else {
-        $self->query->read_preference( $PRIMARY );
+        $self->_query->read_preference( $PRIMARY );
     }
 
     # returning self is an API change but more consistent with other cursor methods

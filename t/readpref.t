@@ -63,7 +63,7 @@ subtest "read preference mode propagation" => sub {
         for my $thing ( $conn2, $db2, $coll2 ) {
             is( $thing->read_preference->mode, $m, "$m set on " . ref($thing) );
         }
-        is( $cur->query->read_preference->mode, $m, "$m set on " . ref($cur) );
+        is( $cur->_query->read_preference->mode, $m, "$m set on " . ref($cur) );
     }
 };
 
@@ -77,7 +77,7 @@ subtest "read preference staleness propagation" => sub {
     for my $thing ( $conn2, $db2, $coll2 ) {
         is( $thing->read_preference->max_staleness_ms, $max, "staleness set on " . ref($thing) );
     }
-    is( $cur->query->read_preference->max_staleness_ms, $max, "staleness set on " . ref($cur) );
+    is( $cur->_query->read_preference->max_staleness_ms, $max, "staleness set on " . ref($cur) );
 };
 
 subtest "max staleness vs heartbeat frequency" => sub {
@@ -103,7 +103,7 @@ subtest "max staleness vs heartbeat frequency" => sub {
 subtest "read preference on cursor" => sub {
     for my $m ( @modes ) {
         my $cur = $coll->find()->read_preference($m);
-        is( $cur->query->read_preference->mode, $m, "$m set on " . ref($cur) );
+        is( $cur->_query->read_preference->mode, $m, "$m set on " . ref($cur) );
     }
 };
 
