@@ -80,7 +80,7 @@ diag "MONGOD: $ENV{MONGOD}";
 #--------------------------------------------------------------------------#
 
 my $uri = MongoDB::_URI->new( uri => $ENV{MONGOD} );
-my $no_auth_string = "mongodb://" . $uri->hostpairs->[0];
+my $no_auth_string = "mongodb://" . $uri->hostids->[0];
 
 subtest "invalid client" => sub {
     my $conn = build_client(

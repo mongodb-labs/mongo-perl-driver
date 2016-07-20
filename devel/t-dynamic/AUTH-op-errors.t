@@ -45,7 +45,7 @@ $ENV{MONGOD} = $orc->as_uri;
 diag "MONGOD: $ENV{MONGOD}";
 
 my $uri = MongoDB::_URI->new( uri => $ENV{MONGOD} );
-my $no_auth_string = "mongodb://" . $uri->hostpairs->[0];
+my $no_auth_string = "mongodb://" . $uri->hostids->[0];
 
 # This file is for testing operations that fail when unauthorized.  It uses
 # two client connections, one with root permissions ($alice) and one with

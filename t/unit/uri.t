@@ -23,13 +23,13 @@ use Test::Fatal;
 use MongoDB::_URI;
 
 subtest "localhost" => sub {
-    my @hostpairs = ('localhost:27017');
+    my @hostids = ('localhost:27017');
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://localhost');
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
 
     $uri = MongoDB::_URI->new( uri => 'mongodb://localhost,');
-    is_deeply($uri->hostpairs, \@hostpairs, "trailing comma");
+    is_deeply($uri->hostids, \@hostids, "trailing comma");
 };
 
 subtest "db_name" => sub {
@@ -54,9 +54,9 @@ subtest "db_name" => sub {
 subtest "localhost with username/password" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://fred:foobar@localhost');
-    my @hostpairs = ('localhost:27017');
+    my @hostids = ('localhost:27017');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
     is($uri->username, 'fred');
     is($uri->password, 'foobar');
 };
@@ -65,9 +65,9 @@ subtest "localhost with username/password" => sub {
 subtest "localhost with username only" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://fred@localhost');
-    my @hostpairs = ('localhost:27017');
+    my @hostids = ('localhost:27017');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
     is($uri->username, 'fred');
     is($uri->password, undef);
 };
@@ -75,9 +75,9 @@ subtest "localhost with username only" => sub {
 subtest "localhost with username/password and db" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://fred:foobar@localhost/baz');
-    my @hostpairs = ('localhost:27017');
+    my @hostids = ('localhost:27017');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
     is($uri->username, 'fred');
     is($uri->password, 'foobar');
     is($uri->db_name, 'baz');
@@ -86,9 +86,9 @@ subtest "localhost with username/password and db" => sub {
 subtest "localhost with username/password and db (trailing comma)" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://fred:foobar@localhost,/baz');
-    my @hostpairs = ('localhost:27017');
+    my @hostids = ('localhost:27017');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
     is($uri->username, 'fred');
     is($uri->password, 'foobar');
     is($uri->db_name, 'baz');
@@ -97,9 +97,9 @@ subtest "localhost with username/password and db (trailing comma)" => sub {
 subtest "localhost with username/password and db (trailing question)" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://fred:foobar@localhost/baz?');
-    my @hostpairs = ('localhost:27017');
+    my @hostids = ('localhost:27017');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
     is($uri->username, 'fred');
     is($uri->password, 'foobar');
     is($uri->db_name, 'baz');
@@ -108,51 +108,51 @@ subtest "localhost with username/password and db (trailing question)" => sub {
 subtest "localhost with empty extras" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://:@localhost/?');
-    my @hostpairs = ('localhost:27017');
+    my @hostids = ('localhost:27017');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
 };
 
 subtest "multiple hostnames" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://example1.com:27017,example2.com:27017');
-    my @hostpairs = ('example1.com:27017', 'example2.com:27017');
+    my @hostids = ('example1.com:27017', 'example2.com:27017');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
 };
 
 subtest "multiple hostnames at localhost" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://localhost,localhost:27018,localhost:27019');
-    my @hostpairs = ('localhost:27017', 'localhost:27018', 'localhost:27019');
+    my @hostids = ('localhost:27017', 'localhost:27018', 'localhost:27019');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
 };
 
 subtest "multiple hostnames (localhost/domain)" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://localhost,example1.com:27018,localhost:27019');
-    my @hostpairs = ('localhost:27017', 'example1.com:27018', 'localhost:27019');
+    my @hostids = ('localhost:27017', 'example1.com:27018', 'localhost:27019');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
 };
 
 subtest "multiple hostnames (localhost/domain)" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://localhost,example1.com:27018,localhost:27019');
-    my @hostpairs = ('localhost:27017', 'example1.com:27018', 'localhost:27019');
+    my @hostids = ('localhost:27017', 'example1.com:27018', 'localhost:27019');
 
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
 };
 
 subtest "percent encoded username and password" => sub {
 
     my $uri = MongoDB::_URI->new( uri => 'mongodb://dog%3Adogston:p%40ssword@localhost');
-    my @hostpairs = ('localhost:27017');
+    my @hostids = ('localhost:27017');
 
     is($uri->username, 'dog:dogston');
     is($uri->password, 'p@ssword');
-    is_deeply($uri->hostpairs, \@hostpairs);
+    is_deeply($uri->hostids, \@hostids);
 };
 
 subtest "empty username and password" => sub {
@@ -166,8 +166,8 @@ subtest "case normalization" => sub {
     my $uri;
 
     $uri = MongoDB::_URI->new( uri => 'mongodb://eXaMpLe1.cOm:27017,eXAMPLe2.com:27017');
-    my @hostpairs = ('example1.com:27017', 'example2.com:27017');
-    is_deeply($uri->hostpairs, \@hostpairs, "hostname normalized");
+    my @hostids = ('example1.com:27017', 'example2.com:27017');
+    is_deeply($uri->hostids, \@hostids, "hostname normalized");
 
     $uri = MongoDB::_URI->new( uri => 'mongodb://localhost/?ReAdPrEfErEnCe=Primary&wTimeoutMS=1000' );
     is( $uri->options->{readpreference}, 'Primary', "readPreference key normalized" );

@@ -1102,7 +1102,7 @@ sub _build__topology {
 
     my $type =
         length( $self->replica_set_name ) ? 'ReplicaSetNoPrimary'
-      : @{ $self->_uri->hostpairs } > 1   ? 'Sharded'
+      : @{ $self->_uri->hostids } > 1   ? 'Sharded'
       :                                     'Single';
 
     MongoDB::_Topology->new(
@@ -1215,7 +1215,7 @@ sub BUILD {
 
     my $uri = $self->_uri;
 
-    my @addresses = @{ $uri->hostpairs };
+    my @addresses = @{ $uri->hostids };
 
     # resolve and validate all deferred attributes
     $self->$_ for @deferred_options;

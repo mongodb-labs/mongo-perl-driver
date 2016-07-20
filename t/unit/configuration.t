@@ -51,7 +51,7 @@ subtest "host and port" => sub {
     is( $mc->host,      "mongodb://example.com", "host as URI is preserved" );
     is( $mc->port,      99,                      "port changed" );
     is( $mc->_uri->uri, $mc->host,               "uri matches host" );
-    is_deeply( $mc->_uri->hostpairs, ["example.com:27017"],
+    is_deeply( $mc->_uri->hostids, ["example.com:27017"],
         "host pairs ignores changed port" );
 };
 

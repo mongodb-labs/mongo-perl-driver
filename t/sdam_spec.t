@@ -41,7 +41,7 @@ sub create_mock_topology {
     my ($name, $string) = @_;
 
     my $uri = MongoDB::_URI->new( uri => $string );
-    my $seed_count = scalar @{ $uri->hostpairs };
+    my $seed_count = scalar @{ $uri->hostids };
 
     # XXX this is a hack because the direct tests are written to
     # assume Single, even though this is not implied by the spec

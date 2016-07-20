@@ -72,10 +72,10 @@ has options => (
     default => sub { {} },
 );
 
-has hostpairs => (
+has hostids => (
     is => 'ro',
     isa => ArrayRef,
-    writer => '_set_hostpairs',
+    writer => '_set_hostids',
     default => sub { [] },
 );
 
@@ -141,18 +141,18 @@ sub BUILD {
 
     if ($uri =~ m{^$uri_re$}) {
 
-        ($result{username}, $result{password}, $result{hostpairs}, $result{db_name}, $result{options}) = ($1, $2, $3, $4, $5);
+        ($result{username}, $result{password}, $result{hostids}, $result{db_name}, $result{options}) = ($1, $2, $3, $4, $5);
 
         # Decode components
         for my $subcomponent ( qw/username password db_name/ ) {
             $result{$subcomponent} = _unescape_all($result{$subcomponent}) unless !(defined $result{$subcomponent});
         }
 
-        $result{hostpairs} = 'localhost' unless $result{hostpairs};
-        $result{hostpairs} = [
+        $result{hostids} = 'localhost' unless $result{hostids};
+        $result{hostids} = [
             map { lc $_ }
             map { @_ = split ':', $_; _unescape_all($_[0]).":"._unescape_all($_[1]) }
-            map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $result{hostpairs}
+            map { $_ .= ':27017' unless $_ =~ /:/ ; $_ } split ',', $result{hostids}
         ];
 
         if ( defined $result{options} ) {
@@ -195,7 +195,7 @@ sub BUILD {
         MongoDB::Error->throw("URI '$self' could not be parsed");
     }
 
-    for my $attr ( qw/username password db_name options hostpairs/ ) {
+    for my $attr ( qw/username password db_name options hostids/ ) {
         my $setter = "_set_$attr";
         $self->$setter( $result{$attr} ) if defined $result{$attr};
     }

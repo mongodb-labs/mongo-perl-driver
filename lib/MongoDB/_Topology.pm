@@ -214,13 +214,13 @@ has rtt_ewma_sec => (
 
 sub _build_number_of_seeds {
     my ($self) = @_;
-    return scalar @{ $self->uri->hostpairs };
+    return scalar @{ $self->uri->hostids };
 }
 
 sub BUILD {
     my ($self) = @_;
     my $type = $self->type;
-    my @addresses = @{ $self->uri->hostpairs };
+    my @addresses = @{ $self->uri->hostids };
 
     # clone bson codec to disable dt_type
     $self->{bson_codec} = $self->bson_codec->clone( dt_type => undef );
