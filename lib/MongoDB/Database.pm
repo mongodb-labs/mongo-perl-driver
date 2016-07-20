@@ -28,7 +28,6 @@ use MongoDB::GridFS;
 use MongoDB::GridFSBucket;
 use MongoDB::Op::_ListCollections;
 use MongoDB::ReadPreference;
-use MongoDB::_Query;
 use MongoDB::_Types qw(
     BSONCodec
     NonNegNum

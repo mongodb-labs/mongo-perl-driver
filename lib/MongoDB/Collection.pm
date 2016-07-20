@@ -27,7 +27,6 @@ use MongoDB::IndexView;
 use MongoDB::InsertManyResult;
 use MongoDB::QueryResult;
 use MongoDB::WriteConcern;
-use MongoDB::_Query;
 use MongoDB::Op::_Aggregate;
 use MongoDB::Op::_BatchInsert;
 use MongoDB::Op::_BulkWrite;
@@ -40,6 +39,7 @@ use MongoDB::Op::_FindAndUpdate;
 use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_ParallelScan;
+use MongoDB::Op::_Query;
 use MongoDB::Op::_Update;
 use MongoDB::_Types qw(
     BSONCodec
@@ -681,7 +681,8 @@ sub find {
     __ixhash( $options, 'sort' );
 
     return MongoDB::Cursor->new(
-        query => MongoDB::_Query->_new(
+        client => $self->{_client},
+        query => MongoDB::Op::_Query->_new(
             modifiers           => {},
             allowPartialResults => 0,
             batchSize           => 0,
@@ -749,25 +750,27 @@ sub find_one {
     # coerce to IxHash
     __ixhash( $options, 'sort' );
 
-    return MongoDB::_Query->_new(
-        modifiers           => {},
-        allowPartialResults => 0,
-        batchSize           => 0,
-        comment             => '',
-        cursorType          => 'non_tailable',
-        limit               => 0,
-        maxAwaitTimeMS      => 0,
-        maxTimeMS           => 0,
-        noCursorTimeout     => 0,
-        oplogReplay         => 0,
-        skip                => 0,
-        sort                => undef,
-        %$options,
-        filter     => $filter     || {},
-        projection => $projection || {},
-        limit      => -1,
-        %{ $self->_op_args },
-    )->execute->next;
+    return $self->client->send_read_op(
+        MongoDB::Op::_Query->_new(
+            modifiers           => {},
+            allowPartialResults => 0,
+            batchSize           => 0,
+            comment             => '',
+            cursorType          => 'non_tailable',
+            limit               => 0,
+            maxAwaitTimeMS      => 0,
+            maxTimeMS           => 0,
+            noCursorTimeout     => 0,
+            oplogReplay         => 0,
+            skip                => 0,
+            sort                => undef,
+            %$options,
+            filter     => $filter     || {},
+            projection => $projection || {},
+            limit      => -1,
+            %{ $self->_op_args },
+        )
+    )->next;
 }
 
 =method find_id

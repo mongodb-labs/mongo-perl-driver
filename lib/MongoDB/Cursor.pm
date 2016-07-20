@@ -50,9 +50,15 @@ queried.
 with 'MongoDB::Role::_CursorAPI';
 
 # attributes for sending a query
+has client => (
+    is       => 'ro',
+    required => 1,
+    isa      => InstanceOf ['MongoDB::MongoClient'],
+);
+
 has _query => (
     is => 'ro',
-    isa => InstanceOf['MongoDB::_Query'],
+    isa => InstanceOf['MongoDB::Op::_Query'],
     required => 1,
     init_arg => 'query',
 );
@@ -69,7 +75,7 @@ has result => (
 # this does the query if it hasn't been done yet
 sub _build_result {
     my ($self) = @_;
-    $self->_query->execute;
+    return $self->{client}->send_read_op( $self->_query );
 }
 
 #--------------------------------------------------------------------------#

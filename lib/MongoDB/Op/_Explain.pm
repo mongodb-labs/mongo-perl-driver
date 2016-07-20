@@ -44,7 +44,7 @@ use namespace::clean;
 has query => (
     is       => 'ro',
     required => 1,
-    isa => InstanceOf['MongoDB::_Query'],
+    isa => InstanceOf['MongoDB::Op::_Query'],
 );
 
 has db_name => (
@@ -78,7 +78,7 @@ sub execute {
 sub _command_explain {
     my ( $self, $link, $topology ) = @_;
 
-    my $cmd = Tie::IxHash->new( @{ $self->query->as_query_op->as_command } );
+    my $cmd = Tie::IxHash->new( @{ $self->query->as_command } );
 
     # XXX need to standardize error here
     if (defined $self->query->modifiers->{hint}) {

@@ -122,7 +122,7 @@ sub _command_list_colls {
 sub _legacy_list_colls {
     my ( $self, $link, $topology ) = @_;
 
-    my $query = MongoDB::_Query->_new(
+    my $op = MongoDB::Op::_Query->_new(
         modifiers           => {},
         allowPartialResults => 0,
         batchSize           => 0,
@@ -143,9 +143,8 @@ sub _legacy_list_colls {
         client          => $self->client,
         read_preference => $self->read_preference,
         filter          => $self->filter,
+        post_filter => \&__filter_legacy_names
     );
-
-    my $op = $query->as_query_op( { post_filter => \&__filter_legacy_names } );
 
     return $op->execute( $link, $topology );
 }

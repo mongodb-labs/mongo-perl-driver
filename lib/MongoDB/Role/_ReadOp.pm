@@ -37,7 +37,7 @@ use namespace::clean;
 # PERL-573 Would like to refactor to remove Maybe types for
 # read_preference and read_concern
 has read_preference => (
-    is  => 'ro',
+    is  => 'rw', # rw for Op::_Query which can be modified by Cursor
     isa => Maybe [ReadPreference],
 );
 
