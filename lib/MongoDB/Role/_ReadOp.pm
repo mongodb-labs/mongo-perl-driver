@@ -47,7 +47,7 @@ has read_concern => (
 );
 
 with $_ for qw(
-  MongoDB::Role::_BSONCodec
+  MongoDB::Role::_DatabaseOp
 );
 
 1;

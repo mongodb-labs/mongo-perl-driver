@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_BSONCodec;
+package MongoDB::Role::_DatabaseOp;
 
 # MongoDB role for things that need a BSON codec property
 

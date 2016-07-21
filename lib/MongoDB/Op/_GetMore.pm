@@ -77,7 +77,7 @@ has max_time_ms => (
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_OpReplyParser
-  MongoDB::Role::_BSONCodec
+  MongoDB::Role::_DatabaseOp
 );
 
 sub execute {
