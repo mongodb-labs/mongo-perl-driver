@@ -36,8 +36,4 @@ has write_concern => (
     isa => WriteConcern,
 );
 
-with $_ for qw(
-  MongoDB::Role::_DatabaseOp
-);
-
 1;

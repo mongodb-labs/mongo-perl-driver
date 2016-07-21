@@ -45,8 +45,4 @@ has read_concern => (
     isa => Maybe [ReadConcern],
 );
 
-with $_ for qw(
-  MongoDB::Role::_DatabaseOp
-);
-
 1;
