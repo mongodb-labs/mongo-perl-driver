@@ -26,6 +26,7 @@ use MongoDB::CommandResult;
 use MongoDB::Error;
 use MongoDB::GridFS;
 use MongoDB::GridFSBucket;
+use MongoDB::Op::_Command;
 use MongoDB::Op::_ListCollections;
 use MongoDB::ReadPreference;
 use MongoDB::_Types qw(

@@ -16,8 +16,8 @@
 
 package MongoDB::Role::_ReadPrefModifier;
 
-# MongoDB interface for read ops that respect read preference
-# Only affects MongoDB::_Op::_Query on the legacy code path
+# MongoDB role to modify OP_QUERY query document or flags to account
+# for topology-specific treatment of a read-preference (if any)
 
 use version;
 our $VERSION = 'v1.5.0';

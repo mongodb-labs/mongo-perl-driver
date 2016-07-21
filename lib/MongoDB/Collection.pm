@@ -1481,18 +1481,13 @@ sub _find_one_and_update_or_replace {
 # we have a private _run_command rather than using the 'database' attribute
 # so that we're using our BSON codec and not the source database one
 sub _run_command {
-    my ( $self, $command, $read_pref ) = @_;
-
-    if ( $read_pref && ref($read_pref) eq 'HASH' ) {
-        $read_pref = MongoDB::ReadPreference->new($read_pref);
-    }
+    my ( $self, $command ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
         db_name     => $self->database->name,
         query       => $command,
         query_flags => {},
         bson_codec  => $self->bson_codec,
-        ( $read_pref ? ( read_preference => $read_pref ) : () ),
     );
 
     my $obj = $self->client->send_read_op($op);
