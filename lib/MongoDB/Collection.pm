@@ -1785,7 +1785,7 @@ sub get_indexes {
         %{ $_[0]->_op_args },
     );
 
-    my $res = $self->client->send_read_op($op);
+    my $res = $self->client->send_primary_op($op);
 
     return $res->all;
 }

@@ -1438,6 +1438,14 @@ sub send_write_op {
       return $result;
 }
 
+# Sometimes, seeing an op dispatched as "send_write_op" is confusing when
+# really, we're just insisting that it be sent only to a primary or
+# directly connected server.
+BEGIN {
+    no warnings 'once';
+    *send_primary_op = \&send_write_op;
+}
+
 # op dispatcher written in highly optimized style
 sub send_read_op {
     my ( $self, $op ) = @_;
@@ -1603,7 +1611,7 @@ sub fsync_unlock {
         bson_codec => $self->bson_codec,
     );
 
-    return $self->send_write_op($op);
+    return $self->send_primary_op($op);
 }
 
 
