@@ -22,7 +22,9 @@ use version;
 our $VERSION = 'v1.5.0';
 
 use Moo::Role;
+
 use MongoDB::Error;
+
 use namespace::clean;
 
 requires qw/last_errmsg last_code last_wtimeout/;

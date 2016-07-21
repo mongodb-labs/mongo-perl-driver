@@ -26,6 +26,7 @@ use Moo::Role;
 
 use MongoDB::Error;
 use MongoDB::_Types -types, 'to_IxHash';
+
 use namespace::clean;
 
 requires qw/read_preference/;

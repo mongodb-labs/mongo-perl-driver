@@ -21,9 +21,10 @@ package MongoDB::Role::_CommandCursorOp;
 use version;
 our $VERSION = 'v1.5.0';
 
+use Moo::Role;
+
 use MongoDB::Error;
 use MongoDB::QueryResult;
-use Moo::Role;
 
 use namespace::clean;
 

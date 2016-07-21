@@ -21,12 +21,14 @@ package MongoDB::Role::_WriteResult;
 use version;
 our $VERSION = 'v1.5.0';
 
+use Moo::Role;
+
 use MongoDB::Error;
 use MongoDB::_Constants;
 use MongoDB::_Types qw(
     ArrayOfHashRef
 );
-use Moo::Role;
+
 use namespace::clean;
 
 has [qw/write_errors write_concern_errors/] => (

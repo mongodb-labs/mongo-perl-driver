@@ -21,6 +21,8 @@ package MongoDB::Role::_SingleBatchDocWrite;
 use version;
 our $VERSION = 'v1.5.0';
 
+use Moo::Role;
+
 use MongoDB::CommandResult;
 use MongoDB::Error;
 use MongoDB::UnacknowledgedResult;
@@ -29,7 +31,7 @@ use MongoDB::_Protocol;
 use MongoDB::_Types qw(
     WriteConcern
 );
-use Moo::Role;
+
 use namespace::clean;
 
 with $_ for qw(

@@ -23,8 +23,6 @@ our $VERSION = 'v1.5.0';
 
 use Moo::Role;
 
-use MongoDB::ReadPreference;
-use MongoDB::_Constants;
 use MongoDB::_Types qw(
     ReadPreference
     ReadConcern
@@ -32,6 +30,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     Maybe
 );
+
 use namespace::clean;
 
 # PERL-573 Would like to refactor to remove Maybe types for

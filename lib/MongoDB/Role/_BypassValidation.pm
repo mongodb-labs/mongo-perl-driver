@@ -23,10 +23,12 @@ use version;
 our $VERSION = 'v1.5.0';
 
 use Moo::Role;
+
 use Types::Standard qw(
   Bool
 );
 use boolean;
+
 use namespace::clean;
 
 has bypassDocumentValidation => (

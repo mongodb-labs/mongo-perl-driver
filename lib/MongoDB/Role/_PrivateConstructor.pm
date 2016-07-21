@@ -22,7 +22,9 @@ use version;
 our $VERSION = 'v1.5.0';
 
 use Moo::Role;
+
 use MongoDB::_Constants;
+
 use namespace::clean;
 
 # When assertions are enabled, the private constructor delegates to the
