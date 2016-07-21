@@ -29,11 +29,8 @@ use MongoDB::Error;
 use Types::Standard qw(
     HashRef
     Int
-    Str
 );
 
-use Tie::IxHash;
-use boolean;
 use namespace::clean;
 
 has num_cursors => (

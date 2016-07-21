@@ -24,18 +24,13 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::BSON;
-use MongoDB::Error;
 use MongoDB::InsertManyResult;
-use MongoDB::OID;
-use MongoDB::_Constants;
-use MongoDB::_Protocol;
+use Tie::IxHash;
 use Types::Standard qw(
     ArrayRef
     Bool
 );
-use Scalar::Util qw/blessed reftype/;
-use Tie::IxHash;
+
 use namespace::clean;
 
 # may or may not have _id; will be added if check_keys is true

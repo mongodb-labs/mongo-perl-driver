@@ -23,19 +23,17 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::BSON;
 use MongoDB::UpdateResult;
-use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
     Document
 );
 use Types::Standard qw(
     Bool
-    Str
 );
 use Tie::IxHash;
 use boolean;
+
 use namespace::clean;
 
 has filter => (

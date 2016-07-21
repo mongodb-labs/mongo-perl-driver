@@ -24,7 +24,6 @@ our $VERSION = 'v1.5.0';
 use Moo;
 
 use MongoDB::Op::_Command;
-use MongoDB::_Constants;
 use MongoDB::_Types qw(
     Document
 );
@@ -33,6 +32,7 @@ use Types::Standard qw(
     HashRef
     Str
 );
+
 use namespace::clean;
 
 has client => (

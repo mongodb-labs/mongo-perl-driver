@@ -24,20 +24,10 @@ our $VERSION = 'v1.5.0';
 use Moo;
 
 use MongoDB::Op::_Command;
-use MongoDB::Error;
-
-use MongoDB::_Types qw(
-    Document
-);
-
 use Types::Standard qw(
-    Str
-    InstanceOf
     HashRef
 );
 
-use Tie::IxHash;
-use boolean;
 use namespace::clean;
 
 has filter => (

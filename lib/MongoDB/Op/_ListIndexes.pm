@@ -26,14 +26,13 @@ use Moo;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
-use MongoDB::_Constants;
 use Types::Standard qw(
     InstanceOf
-    Str
 );
 use Tie::IxHash;
 use Try::Tiny;
 use Safe::Isa;
+
 use namespace::clean;
 
 has client => (

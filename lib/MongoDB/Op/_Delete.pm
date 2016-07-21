@@ -23,9 +23,7 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::BSON;
 use MongoDB::DeleteResult;
-use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
     Document
@@ -33,7 +31,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     Bool
 );
-use Tie::IxHash;
+
 use namespace::clean;
 
 has filter => (

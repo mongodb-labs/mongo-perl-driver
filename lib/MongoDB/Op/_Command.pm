@@ -30,7 +30,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     HashRef
 );
-use Tie::IxHash;
+
 use namespace::clean;
 
 has query => (

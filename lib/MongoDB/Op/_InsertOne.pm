@@ -24,16 +24,10 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::InsertOneResult;
-use MongoDB::OID;
-use MongoDB::_Constants;
 use MongoDB::_Protocol;
-use Types::Standard qw(
-    Str
-);
-use boolean;
+
 use namespace::clean;
 
 has document => (

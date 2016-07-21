@@ -23,21 +23,13 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use boolean;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use Types::Standard qw(
-    InstanceOf
-    Str
     HashRef
-    Maybe
 );
-
-use MongoDB::_Types qw(
-    WriteConcern
-);
-
 use Try::Tiny;
+
 use namespace::clean;
 
 has filter => (

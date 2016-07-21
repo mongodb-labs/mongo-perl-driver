@@ -25,12 +25,11 @@ use boolean;
 use Moo;
 
 use List::Util qw/min/;
-use MongoDB::BSON;
 use MongoDB::QueryResult;
+use MongoDB::QueryResult::Filtered;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
-    BSONCodec
     Document
     CursorType
     IxHash
@@ -45,6 +44,7 @@ use Types::Standard qw(
     Str
 );
 use boolean;
+
 use namespace::clean;
 
 has client => (

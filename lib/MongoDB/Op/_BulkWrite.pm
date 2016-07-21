@@ -38,10 +38,9 @@ use Types::Standard qw(
     Bool
 );
 use Safe::Isa;
-use Scalar::Util qw/blessed reftype/;
-use Tie::IxHash;
 use Try::Tiny;
 use boolean;
+
 use namespace::clean;
 
 has queue => (

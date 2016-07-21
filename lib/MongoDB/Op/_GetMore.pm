@@ -24,18 +24,12 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::_Constants;
+use MongoDB::_Protocol;
 use Types::Standard qw(
     Maybe
     Any
-    InstanceOf
     Num
-    Str
 );
-use MongoDB::_Types qw(
-    BSONCodec
-);
-use MongoDB::_Protocol;
 
 use namespace::clean;
 

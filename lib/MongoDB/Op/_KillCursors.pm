@@ -23,12 +23,11 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::_Constants;
+use MongoDB::_Protocol;
 use Types::Standard qw(
     ArrayRef
-    Str
 );
-use MongoDB::_Protocol;
+
 use namespace::clean;
 
 has cursor_ids => (

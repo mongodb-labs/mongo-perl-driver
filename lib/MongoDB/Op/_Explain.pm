@@ -24,21 +24,12 @@ our $VERSION = 'v1.5.0';
 use Moo;
 
 use MongoDB::Op::_Command;
-use MongoDB::Op::_Query;
-use MongoDB::QueryResult::Filtered;
-use MongoDB::_Constants;
-use MongoDB::Error;
-use MongoDB::CommandResult;
-use MongoDB::_Types qw(
-    Document
-);
 use Types::Standard qw(
-    HashRef
     InstanceOf
-    Str
 );
 use Tie::IxHash;
 use boolean;
+
 use namespace::clean;
 
 has query => (
