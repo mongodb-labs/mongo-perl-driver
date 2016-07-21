@@ -46,9 +46,9 @@ sub _build_result_from_cursor {
 
     my $batch = $c->{firstBatch};
     my $qr = MongoDB::QueryResult->_new(
-        _client      => $self->client,
+        _client       => $self->client,
         _address      => $res->address,
-        _ns           => $c->{ns},
+        _full_name    => $c->{ns},
         _bson_codec   => $self->bson_codec,
         _batch_size   => scalar @$batch,
         _cursor_at    => 0,
@@ -57,8 +57,8 @@ sub _build_result_from_cursor {
         _cursor_start => 0,
         _cursor_flags => {},
         _cursor_num   => scalar @$batch,
-        _docs        => $batch,
-        defined $max_time_ms ? (_max_time_ms => $max_time_ms) : (),
+        _docs         => $batch,
+        defined $max_time_ms ? ( _max_time_ms => $max_time_ms ) : (),
     );
 }
 
@@ -66,9 +66,9 @@ sub _empty_query_result {
     my ( $self, $link ) = @_;
 
     my $qr = MongoDB::QueryResult->_new(
-        _client      => $self->client,
+        _client       => $self->client,
         _address      => $link->address,
-        _ns           => '',
+        _full_name    => '',
         _bson_codec   => $self->bson_codec,
         _batch_size   => 1,
         _cursor_at    => 0,
@@ -77,7 +77,7 @@ sub _empty_query_result {
         _cursor_start => 0,
         _cursor_flags => {},
         _cursor_num   => 0,
-        _docs        => [],
+        _docs         => [],
     );
 }
 

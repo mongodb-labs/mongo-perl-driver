@@ -61,7 +61,7 @@ has _address => (
     isa => HostAddress,
 );
 
-has _ns => (
+has _full_name => (
     is       => 'ro',
     required => 1,
     isa => Str,
@@ -230,10 +230,10 @@ sub _get_more {
     my $limit = $self->_limit;
     my $want = $limit > 0 ? ( $limit - $self->_cursor_at ) : $self->_batch_size;
 
-    my ($db_name, $coll_name) = split(/\./, $self->_ns, 2);
+    my ($db_name, $coll_name) = split(/\./, $self->_full_name, 2);
 
     my $op = MongoDB::Op::_GetMore->_new(
-        ns          => $self->_ns,
+        full_name   => $self->_full_name,
         db_name     => $db_name,
         coll_name   => $coll_name,
         client      => $self->_client,

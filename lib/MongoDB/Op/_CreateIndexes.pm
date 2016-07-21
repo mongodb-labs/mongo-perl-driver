@@ -37,18 +37,6 @@ use Types::Standard qw(
 use Tie::IxHash;
 use namespace::clean;
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
 has indexes => (
     is       => 'ro',
     required => 1,
@@ -57,6 +45,7 @@ has indexes => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_WriteOp
 );
 

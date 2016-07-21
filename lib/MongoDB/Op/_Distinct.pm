@@ -35,18 +35,6 @@ use Types::Standard qw(
 );
 use namespace::clean;
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
-
 has client => (
     is       => 'ro',
     required => 1,
@@ -73,6 +61,7 @@ has options => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );

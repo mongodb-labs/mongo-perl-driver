@@ -244,9 +244,11 @@ sub execute {
 
     $write_concern ||= $self->collection->write_concern;
 
+
     my $op = MongoDB::Op::_BulkWrite->_new(
         db_name                  => $self->_database->name,
         coll_name                => $self->collection->name,
+        full_name                => $self->collection->full_name,
         queue                    => $self->_queue,
         ordered                  => $self->ordered,
         bypassDocumentValidation => $self->bypassDocumentValidation,

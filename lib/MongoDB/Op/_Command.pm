@@ -29,16 +29,9 @@ use MongoDB::_Types qw(
 );
 use Types::Standard qw(
     HashRef
-    Str
 );
 use Tie::IxHash;
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
 
 has query => (
     is       => 'ro',
@@ -55,6 +48,7 @@ has query_flags => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_DatabaseOp
   MongoDB::Role::_ReadOp
   MongoDB::Role::_ReadPrefModifier
 );

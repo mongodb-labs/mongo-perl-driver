@@ -36,24 +36,6 @@ use Types::Standard qw(
 use boolean;
 use namespace::clean;
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has full_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
 has document => (
     is       => 'ro',
     required => 1,
@@ -68,6 +50,7 @@ has _doc_id => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_SingleBatchDocWrite
   MongoDB::Role::_InsertPreEncoder
   MongoDB::Role::_BypassValidation

@@ -996,17 +996,13 @@ sub aggregate {
 
     # read preferences are ignored if the last stage is $out
     my ($last_op) = keys %{ $pipeline->[-1] };
-    my $read_pref = $last_op eq '$out' ? undef : $self->read_preference;
 
     my $op = MongoDB::Op::_Aggregate->_new(
-        db_name    => $self->database->name,
-        coll_name  => $self->name,
-        client     => $self->client,
-        bson_codec => $self->bson_codec,
-        pipeline   => $pipeline,
-        options    => $options,
-        ( $read_pref ? ( read_preference => $read_pref ) : () ),
+        pipeline     => $pipeline,
+        options      => $options,
         read_concern => $self->read_concern,
+        has_out      => $last_op eq '$out',
+        %{ $self->_op_args },
     );
 
     return $self->client->send_read_op($op);
@@ -1102,15 +1098,10 @@ sub distinct {
     }
 
     my $op = MongoDB::Op::_Distinct->_new(
-        db_name         => $self->database->name,
-        coll_name       => $self->name,
-        client          => $self->client,
-        bson_codec      => $self->bson_codec,
         fieldname       => $fieldname,
         filter          => $filter,
         options         => $options,
-        read_preference => $self->read_preference,
-        read_concern    => $self->read_concern,
+        %{ $self->_op_args },
     );
 
     return $self->client->send_read_op($op);
@@ -1165,10 +1156,10 @@ sub parallel_scan {
     for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
         my $batch = $c->{firstBatch};
         my $qr = MongoDB::QueryResult->_new(
-            _client    => $self->client,
-            _address    => $result->address,
-            _ns         => $c->{ns},
-            _bson_codec => $self->bson_codec,
+            _client       => $self->client,
+            _address      => $result->address,
+            _full_name    => $c->{ns},
+            _bson_codec   => $self->bson_codec,
             _batch_size   => scalar @$batch,
             _cursor_at    => 0,
             _limit        => 0,
@@ -1176,7 +1167,7 @@ sub parallel_scan {
             _cursor_start => 0,
             _cursor_flags => {},
             _cursor_num   => scalar @$batch,
-            _docs        => $batch,
+            _docs         => $batch,
         );
         push @cursors, $qr;
     }
@@ -1723,6 +1714,7 @@ sub ensure_index {
     my $op = MongoDB::Op::_CreateIndexes->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        full_name     => $self->full_name,
         bson_codec    => $self->bson_codec,
         indexes       => [ { key => $keys, %$opts } ],
         write_concern => $wc,
@@ -1795,10 +1787,7 @@ sub get_indexes {
     my ($self) = @_;
 
     my $op = MongoDB::Op::_ListIndexes->_new(
-        db_name    => $self->database->name,
-        coll_name  => $self->name,
-        client     => $self->client,
-        bson_codec => $self->bson_codec,
+        %{ $_[0]->_op_args },
     );
 
     my $res = $self->client->send_read_op($op);

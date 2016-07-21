@@ -457,6 +457,7 @@ sub explain {
     my $explain_op = MongoDB::Op::_Explain->_new(
         db_name         => $self->_query->db_name,
         coll_name       => $self->_query->coll_name,
+        full_name       => $self->_query->full_name,
         bson_codec      => $self->_query->bson_codec,
         query           => $self->_query->clone,
         read_preference => $self->_query->read_preference,

@@ -31,31 +31,12 @@ use MongoDB::OID;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use Types::Standard qw(
-    Str
     ArrayRef
     Bool
 );
 use Scalar::Util qw/blessed reftype/;
 use Tie::IxHash;
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has full_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
 
 # may or may not have _id; will be added if check_keys is true
 has documents => (
@@ -86,6 +67,7 @@ has _doc_ids => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_SingleBatchDocWrite
   MongoDB::Role::_InsertPreEncoder
 );

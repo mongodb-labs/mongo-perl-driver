@@ -40,24 +40,6 @@ use MongoDB::_Types qw(
 use Try::Tiny;
 use namespace::clean;
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has client => (
-    is       => 'ro',
-    required => 1,
-    isa      => InstanceOf ['MongoDB::MongoClient'],
-);
-
 has filter => (
     is       => 'ro',
     required => 1,
@@ -78,6 +60,7 @@ has options => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_WriteOp
   MongoDB::Role::_BypassValidation
 );

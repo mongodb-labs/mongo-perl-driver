@@ -38,12 +38,6 @@ use Types::Standard qw(
 use Tie::IxHash;
 use namespace::clean;
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
-
 has client => (
     is       => 'ro',
     required => 1,

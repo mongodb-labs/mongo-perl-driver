@@ -38,24 +38,6 @@ use Tie::IxHash;
 use boolean;
 use namespace::clean;
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has full_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
 has filter => (
     is       => 'ro',
     required => 1,
@@ -85,6 +67,7 @@ has upsert => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_SingleBatchDocWrite
   MongoDB::Role::_UpdatePreEncoder
   MongoDB::Role::_BypassValidation

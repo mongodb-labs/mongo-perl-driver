@@ -52,20 +52,9 @@ has options => (
     isa => HashRef,
 );
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
-
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
 );
 

@@ -39,24 +39,6 @@ use MongoDB::_Protocol;
 
 use namespace::clean;
 
-has ns => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
 has cursor_id => (
     is       => 'ro',
     required => 1,
@@ -76,6 +58,7 @@ has max_time_ms => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_OpReplyParser
   MongoDB::Role::_DatabaseOp
 );
@@ -124,7 +107,7 @@ sub _legacy_get_more {
     my ( $self, $link ) = @_;
 
     my ( $op_bson, $request_id ) = MongoDB::_Protocol::write_get_more( map { $self->$_ }
-          qw/ns cursor_id batch_size/ );
+          qw/full_name cursor_id batch_size/ );
 
     my $result =
       $self->_query_and_receive( $link, $op_bson, $request_id, $self->bson_codec );

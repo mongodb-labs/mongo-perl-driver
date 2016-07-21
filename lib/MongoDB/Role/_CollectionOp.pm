@@ -1,5 +1,5 @@
 #
-#  Copyright 2014 MongoDB, Inc.
+#  Copyright 2016 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,35 +14,36 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_DatabaseOp;
+package MongoDB::Role::_CollectionOp;
 
-# MongoDB role for operations within a database, that need a database name
-# and a BSON codec.  This is likely a "base role" for all operations.
+# MongoDB role for things that operate on collections and need
+# collection name (and possibly full-name for legacy operation)
 
 use version;
 our $VERSION = 'v1.5.0';
 
 use Moo::Role;
 
-use MongoDB::_Types qw(
-    BSONCodec
-);
 use Types::Standard qw(
     Str
 );
 
 use namespace::clean;
 
-has bson_codec => (
-    is       => 'ro',
-    required => 1,
-    isa      => BSONCodec,
-);
-
-has db_name => (
+has coll_name => (
     is       => 'ro',
     required => 1,
     isa      => Str,
+);
+
+has full_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
+with $_ for qw(
+  MongoDB::Role::_DatabaseOp
 );
 
 1;
