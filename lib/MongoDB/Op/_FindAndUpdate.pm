@@ -76,16 +76,9 @@ has options => (
     isa      => HashRef,
 );
 
-has write_concern => (
-    is       => 'ro',
-    required => 1,
-    isa      => WriteConcern,
-);
-
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_ReadOp
-  MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_WriteOp
   MongoDB::Role::_BypassValidation
 );
 

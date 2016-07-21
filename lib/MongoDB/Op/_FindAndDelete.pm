@@ -78,8 +78,7 @@ has write_concern => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_ReadOp
-  MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_WriteOp
 );
 
 sub execute {
