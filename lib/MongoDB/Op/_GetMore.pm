@@ -57,12 +57,6 @@ has coll_name => (
     isa      => Str,
 );
 
-has client => (
-    is       => 'ro',
-    required => 1,
-    isa      => InstanceOf ['MongoDB::MongoClient'],
-);
-
 has cursor_id => (
     is       => 'ro',
     required => 1,
