@@ -26,8 +26,7 @@ use Moo;
 
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
-use MongoDB::QueryResult::Filtered;
-use MongoDB::_Constants;
+use MongoDB::ReadPreference;
 use MongoDB::_Types qw(
     Document
 );
@@ -53,7 +52,7 @@ has client => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_ReadOp
+  MongoDB::Role::_DatabaseOp
 );
 
 sub execute {
@@ -78,7 +77,7 @@ sub _command_fsync_unlock {
         db_name         => $self->db_name,
         query           => $cmd,
         query_flags     => {},
-        read_preference => $self->read_preference,
+        read_preference => MongoDB::ReadPreference->new,
         bson_codec      => $self->bson_codec,
     );
 
@@ -109,7 +108,7 @@ sub _legacy_fsync_unlock {
         limit               => -1,
         bson_codec          => $self->bson_codec,
         client              => $self->client,
-        read_preference     => $self->read_preference,
+        read_preference     => MongoDB::ReadPreference->new,
     );
 
     return $op->execute( $link, $topology )->next;

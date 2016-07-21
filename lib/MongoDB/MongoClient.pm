@@ -1603,7 +1603,7 @@ sub fsync_unlock {
         bson_codec => $self->bson_codec,
     );
 
-    return $self->send_read_op($op);
+    return $self->send_write_op($op);
 }
 
 
