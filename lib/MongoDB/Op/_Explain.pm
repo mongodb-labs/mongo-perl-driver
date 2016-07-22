@@ -94,7 +94,7 @@ sub _legacy_explain {
     # explain implementations, it also ensures a cursor isn't left open.
     $new_query->limit( -1 * abs( $new_query->limit ) );
 
-    return $new_query->execute->next;
+    return $new_query->execute( $link, $topology );
 }
 
 1;

@@ -26,6 +26,8 @@ use Moo;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
+use MongoDB::ReadConcern;
+use MongoDB::ReadPreference;
 use Types::Standard qw(
     InstanceOf
 );
@@ -101,9 +103,11 @@ sub _legacy_list_indexes {
         sort                => undef,
         db_name             => $self->db_name,
         coll_name           => 'system.indexes',
+        full_name           => $self->db_name . '.system.indexes',
         bson_codec          => $self->bson_codec,
         client              => $self->client,
         read_preference     => MongoDB::ReadPreference->new,
+        read_concern        => MongoDB::ReadConcern->new,
         filter              => Tie::IxHash->new( ns => $ns ),
     );
   

@@ -227,7 +227,7 @@ sub _legacy_query {
         : exists $query->{'$query'}{query}
       );
 
-    my $ns         = $self->db_name . "." . $self->coll_name;
+    my $full_name  = $self->full_name;
     my $filter     = $self->bson_codec->encode_one( $query );
 
     # rules for calculating initial batch size
@@ -246,7 +246,7 @@ sub _legacy_query {
     $self->_apply_read_prefs( $link, $topology, $query_flags, \$query);
 
     my ( $op_bson, $request_id ) =
-      MongoDB::_Protocol::write_query( $ns, $filter, $proj, $self->skip, $n_to_return,
+      MongoDB::_Protocol::write_query( $full_name, $filter, $proj, $self->skip, $n_to_return,
         $query_flags );
 
     my $result =
@@ -258,7 +258,7 @@ sub _legacy_query {
     return $class->_new(
         _client       => $self->client,
         _address      => $link->address,
-        _ns           => $ns,
+        _full_name    => $full_name,
         _bson_codec   => $self->bson_codec,
         _batch_size   => $n_to_return,
         _cursor_at    => 0,

@@ -26,6 +26,7 @@ use Moo;
 
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
+use MongoDB::ReadConcern;
 use MongoDB::ReadPreference;
 use MongoDB::_Types qw(
     Document
@@ -98,10 +99,12 @@ sub _legacy_fsync_unlock {
         sort                => undef,
         db_name             => 'admin',
         coll_name           => '$cmd.sys.unlock',
+        full_name           => 'admin.$cmd.sys.unlock',
         limit               => -1,
         bson_codec          => $self->bson_codec,
         client              => $self->client,
         read_preference     => MongoDB::ReadPreference->new,
+        read_concern        => MongoDB::ReadConcern->new,
     );
 
     return $op->execute( $link, $topology )->next;

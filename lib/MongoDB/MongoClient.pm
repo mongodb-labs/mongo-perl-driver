@@ -1422,7 +1422,7 @@ sub send_write_op {
     my ( $self, $op ) = @_;
     my ( $link, $result );
     ( $link = $self->{_topology}->get_writable_link ), (
-        eval { ($result) = $op->execute($link); 1 } or do {
+        eval { ($result) = $op->execute($link, $self->{_topology}->type); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
             if ( $err->$_isa("MongoDB::ConnectionError") ) {
                 $self->{_topology}->mark_server_unknown( $link->server, $err );
