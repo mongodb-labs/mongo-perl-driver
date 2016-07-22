@@ -14,12 +14,14 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_WriteCommand;
+package MongoDB::Role::_SingleBatchDocWrite;
 
 # MongoDB interface for database insert/update/delete operations
 
 use version;
 our $VERSION = 'v1.5.0';
+
+use Moo::Role;
 
 use MongoDB::CommandResult;
 use MongoDB::Error;
@@ -29,7 +31,7 @@ use MongoDB::_Protocol;
 use MongoDB::_Types qw(
     WriteConcern
 );
-use Moo::Role;
+
 use namespace::clean;
 
 with $_ for qw(

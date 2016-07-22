@@ -34,7 +34,7 @@ use namespace::clean;
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_LastError
+  MongoDB::Role::_DatabaseErrorThrower
 );
 
 =attr output

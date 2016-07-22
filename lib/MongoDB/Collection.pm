@@ -27,7 +27,6 @@ use MongoDB::IndexView;
 use MongoDB::InsertManyResult;
 use MongoDB::QueryResult;
 use MongoDB::WriteConcern;
-use MongoDB::_Query;
 use MongoDB::Op::_Aggregate;
 use MongoDB::Op::_BatchInsert;
 use MongoDB::Op::_BulkWrite;
@@ -40,6 +39,7 @@ use MongoDB::Op::_FindAndUpdate;
 use MongoDB::Op::_InsertOne;
 use MongoDB::Op::_ListIndexes;
 use MongoDB::Op::_ParallelScan;
+use MongoDB::Op::_Query;
 use MongoDB::Op::_Update;
 use MongoDB::_Types qw(
     BSONCodec
@@ -681,7 +681,8 @@ sub find {
     __ixhash( $options, 'sort' );
 
     return MongoDB::Cursor->new(
-        query => MongoDB::_Query->_new(
+        client => $self->{_client},
+        query => MongoDB::Op::_Query->_new(
             modifiers           => {},
             allowPartialResults => 0,
             batchSize           => 0,
@@ -749,25 +750,27 @@ sub find_one {
     # coerce to IxHash
     __ixhash( $options, 'sort' );
 
-    return MongoDB::_Query->_new(
-        modifiers           => {},
-        allowPartialResults => 0,
-        batchSize           => 0,
-        comment             => '',
-        cursorType          => 'non_tailable',
-        limit               => 0,
-        maxAwaitTimeMS      => 0,
-        maxTimeMS           => 0,
-        noCursorTimeout     => 0,
-        oplogReplay         => 0,
-        skip                => 0,
-        sort                => undef,
-        %$options,
-        filter     => $filter     || {},
-        projection => $projection || {},
-        limit      => -1,
-        %{ $self->_op_args },
-    )->execute->next;
+    return $self->client->send_read_op(
+        MongoDB::Op::_Query->_new(
+            modifiers           => {},
+            allowPartialResults => 0,
+            batchSize           => 0,
+            comment             => '',
+            cursorType          => 'non_tailable',
+            limit               => 0,
+            maxAwaitTimeMS      => 0,
+            maxTimeMS           => 0,
+            noCursorTimeout     => 0,
+            oplogReplay         => 0,
+            skip                => 0,
+            sort                => undef,
+            %$options,
+            filter     => $filter     || {},
+            projection => $projection || {},
+            limit      => -1,
+            %{ $self->_op_args },
+        )
+    )->next;
 }
 
 =method find_id
@@ -993,17 +996,13 @@ sub aggregate {
 
     # read preferences are ignored if the last stage is $out
     my ($last_op) = keys %{ $pipeline->[-1] };
-    my $read_pref = $last_op eq '$out' ? undef : $self->read_preference;
 
     my $op = MongoDB::Op::_Aggregate->_new(
-        db_name    => $self->database->name,
-        coll_name  => $self->name,
-        client     => $self->client,
-        bson_codec => $self->bson_codec,
-        pipeline   => $pipeline,
-        options    => $options,
-        ( $read_pref ? ( read_preference => $read_pref ) : () ),
+        pipeline     => $pipeline,
+        options      => $options,
         read_concern => $self->read_concern,
+        has_out      => $last_op eq '$out',
+        %{ $self->_op_args },
     );
 
     return $self->client->send_read_op($op);
@@ -1099,15 +1098,10 @@ sub distinct {
     }
 
     my $op = MongoDB::Op::_Distinct->_new(
-        db_name         => $self->database->name,
-        coll_name       => $self->name,
-        client          => $self->client,
-        bson_codec      => $self->bson_codec,
         fieldname       => $fieldname,
         filter          => $filter,
         options         => $options,
-        read_preference => $self->read_preference,
-        read_concern    => $self->read_concern,
+        %{ $self->_op_args },
     );
 
     return $self->client->send_read_op($op);
@@ -1162,10 +1156,10 @@ sub parallel_scan {
     for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
         my $batch = $c->{firstBatch};
         my $qr = MongoDB::QueryResult->_new(
-            _client    => $self->client,
-            _address    => $result->address,
-            _ns         => $c->{ns},
-            _bson_codec => $self->bson_codec,
+            _client       => $self->client,
+            _address      => $result->address,
+            _full_name    => $c->{ns},
+            _bson_codec   => $self->bson_codec,
             _batch_size   => scalar @$batch,
             _cursor_at    => 0,
             _limit        => 0,
@@ -1173,7 +1167,7 @@ sub parallel_scan {
             _cursor_start => 0,
             _cursor_flags => {},
             _cursor_num   => scalar @$batch,
-            _docs        => $batch,
+            _docs         => $batch,
         );
         push @cursors, $qr;
     }
@@ -1487,18 +1481,13 @@ sub _find_one_and_update_or_replace {
 # we have a private _run_command rather than using the 'database' attribute
 # so that we're using our BSON codec and not the source database one
 sub _run_command {
-    my ( $self, $command, $read_pref ) = @_;
-
-    if ( $read_pref && ref($read_pref) eq 'HASH' ) {
-        $read_pref = MongoDB::ReadPreference->new($read_pref);
-    }
+    my ( $self, $command ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
         db_name     => $self->database->name,
         query       => $command,
         query_flags => {},
         bson_codec  => $self->bson_codec,
-        ( $read_pref ? ( read_preference => $read_pref ) : () ),
     );
 
     my $obj = $self->client->send_read_op($op);
@@ -1720,6 +1709,7 @@ sub ensure_index {
     my $op = MongoDB::Op::_CreateIndexes->_new(
         db_name       => $self->database->name,
         coll_name     => $self->name,
+        full_name     => $self->full_name,
         bson_codec    => $self->bson_codec,
         indexes       => [ { key => $keys, %$opts } ],
         write_concern => $wc,
@@ -1792,13 +1782,10 @@ sub get_indexes {
     my ($self) = @_;
 
     my $op = MongoDB::Op::_ListIndexes->_new(
-        db_name    => $self->database->name,
-        coll_name  => $self->name,
-        client     => $self->client,
-        bson_codec => $self->bson_codec,
+        %{ $_[0]->_op_args },
     );
 
-    my $res = $self->client->send_read_op($op);
+    my $res = $self->client->send_primary_op($op);
 
     return $res->all;
 }

@@ -23,37 +23,16 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::BSON;
 use MongoDB::DeleteResult;
-use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
     Document
 );
 use Types::Standard qw(
     Bool
-    Str
 );
-use Tie::IxHash;
+
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has full_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
 
 has filter => (
     is       => 'ro',
@@ -69,7 +48,8 @@ has just_one => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_WriteCommand
+  MongoDB::Role::_CollectionOp
+  MongoDB::Role::_SingleBatchDocWrite
 );
 
 sub execute {

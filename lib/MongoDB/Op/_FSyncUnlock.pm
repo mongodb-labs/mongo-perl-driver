@@ -26,24 +26,16 @@ use Moo;
 
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
-use MongoDB::QueryResult::Filtered;
-use MongoDB::_Constants;
+use MongoDB::ReadPreference;
 use MongoDB::_Types qw(
     Document
 );
 use Types::Standard qw(
-    HashRef
     InstanceOf
-    Str
 );
 use Tie::IxHash;
-use namespace::clean;
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
+use namespace::clean;
 
 has client => (
     is       => 'ro',
@@ -53,8 +45,7 @@ has client => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_ReadOp
-  MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_DatabaseOp
 );
 
 sub execute {
@@ -79,7 +70,7 @@ sub _command_fsync_unlock {
         db_name         => $self->db_name,
         query           => $cmd,
         query_flags     => {},
-        read_preference => $self->read_preference,
+        read_preference => MongoDB::ReadPreference->new,
         bson_codec      => $self->bson_codec,
     );
 
@@ -91,7 +82,7 @@ sub _command_fsync_unlock {
 sub _legacy_fsync_unlock {
     my ( $self, $link, $topology ) = @_;
 
-    my $query = MongoDB::_Query->_new(
+    my $op = MongoDB::Op::_Query->_new(
         modifiers           => {},
         filter              => {},
         allowPartialResults => 0,
@@ -110,10 +101,8 @@ sub _legacy_fsync_unlock {
         limit               => -1,
         bson_codec          => $self->bson_codec,
         client              => $self->client,
-        read_preference     => $self->read_preference,
+        read_preference     => MongoDB::ReadPreference->new,
     );
-
-    my $op = $query->as_query_op();
 
     return $op->execute( $link, $topology )->next;
 }

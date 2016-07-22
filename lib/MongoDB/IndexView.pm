@@ -135,11 +135,12 @@ sub list {
     my $op = MongoDB::Op::_ListIndexes->_new(
         client     => $self->_client,
         db_name    => $self->_db_name,
+        full_name  => '', # unused
         coll_name  => $self->_coll_name,
         bson_codec => $self->_bson_codec,
     );
 
-    return $self->_client->send_read_op($op);
+    return $self->_client->send_primary_op($op);
 }
 
 =method create_one
@@ -239,6 +240,7 @@ sub create_many {
     my $op = MongoDB::Op::_CreateIndexes->_new(
         db_name       => $self->_db_name,
         coll_name     => $self->_coll_name,
+        full_name     => '', # unused
         bson_codec    => $self->_bson_codec,
         indexes       => $indexes,
         write_concern => MongoDB::WriteConcern->new,

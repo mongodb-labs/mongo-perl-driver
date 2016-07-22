@@ -26,8 +26,7 @@ use Moo;
 
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
-use MongoDB::QueryResult::Filtered;
-use MongoDB::_Constants;
+use MongoDB::ReadPreference;
 use MongoDB::_Types qw(
     Document
 );
@@ -37,13 +36,8 @@ use Types::Standard qw(
     Str
 );
 use Tie::IxHash;
-use namespace::clean;
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
+use namespace::clean;
 
 has client => (
     is       => 'ro',
@@ -65,7 +59,7 @@ has options => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_ReadOp
+  MongoDB::Role::_DatabaseOp
   MongoDB::Role::_CommandCursorOp
 );
 
@@ -110,7 +104,6 @@ sub _command_list_colls {
         db_name         => $self->db_name,
         query           => $cmd,
         query_flags     => {},
-        read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
 
@@ -122,7 +115,7 @@ sub _command_list_colls {
 sub _legacy_list_colls {
     my ( $self, $link, $topology ) = @_;
 
-    my $query = MongoDB::_Query->_new(
+    my $op = MongoDB::Op::_Query->_new(
         modifiers           => {},
         allowPartialResults => 0,
         batchSize           => 0,
@@ -141,11 +134,10 @@ sub _legacy_list_colls {
         coll_name       => 'system.namespaces',
         bson_codec      => $self->bson_codec,
         client          => $self->client,
-        read_preference => $self->read_preference,
+        read_preference => MongoDB::ReadPreference->new,
         filter          => $self->filter,
+        post_filter => \&__filter_legacy_names
     );
-
-    my $op = $query->as_query_op( { post_filter => \&__filter_legacy_names } );
 
     return $op->execute( $link, $topology );
 }

@@ -25,12 +25,11 @@ use boolean;
 use Moo;
 
 use List::Util qw/min/;
-use MongoDB::BSON;
 use MongoDB::QueryResult;
+use MongoDB::QueryResult::Filtered;
 use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
-    BSONCodec
     Document
     CursorType
     IxHash
@@ -45,19 +44,8 @@ use Types::Standard qw(
     Str
 );
 use boolean;
+
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
 
 has client => (
     is       => 'ro',
@@ -65,62 +53,104 @@ has client => (
     isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
-has projection => (
-    is       => 'ro',
-    isa      => Maybe [Document],
-);
+#--------------------------------------------------------------------------#
+# Attributes based on the CRUD API spec: filter
+#
+# Some are mutable so that MongoDB::Cursor methods can manipulate them
+# until the query is executed
+#
+# Unlike most parameters, these are camelCase so that find method options
+# may be passed through directly.
+#--------------------------------------------------------------------------#
 
-has [qw/batch_size limit skip/] => (
-    is       => 'ro',
-    required => 1,
-    isa      => Num,
-);
-
-has sort => (
-    is  => 'ro',
-    isa => Maybe( [IxHash] ),
-);
+# Immutable attributes
 
 has filter => (
     is       => 'ro',
     isa      => Document,
+    required => 1,
 );
 
-has comment => (
-    is       => 'ro',
-    isa      => Str,
-);
-
-has max_await_time_ms => (
-    is       => 'ro',
-    isa      => Maybe[Num],
-);
-
-has max_time_ms => (
-    is       => 'ro',
-    isa      => Maybe[Num],
-);
-
-has no_cursor_timeout => (
-    is       => 'ro',
-    isa      => Bool,
-);
-
-has allow_partial_results => (
-    is       => 'ro',
-    isa      => Bool,
-);
+# Immutable attribute, but mutable hash.  We require it to be provided as
+# we allow a private constructor so can't rely on a default.
 
 has modifiers => (
     is  => 'ro',
     isa => HashRef,
+    required => 1,
 );
 
-has cursor_type => (
-    is       => 'ro',
+# Mutable attributes, due to legacy behavior of MongoDB::Cursor that allows
+# modifying a deferred query operation before executing it.
+
+has allowPartialResults => (
+    is       => 'rw',
+    isa      => Bool,
+    required => 1,
+);
+
+has batchSize => (
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
+);
+
+has comment => (
+    is       => 'rw',
+    isa      => Str,
+    required => 1,
+);
+
+has cursorType => (
+    is       => 'rw',
     isa      => CursorType,
+    required => 1,
 );
 
+has limit => (
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
+);
+
+has maxAwaitTimeMS => (
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
+);
+
+has maxTimeMS => (
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
+);
+
+has noCursorTimeout => (
+    is       => 'rw',
+    isa      => Bool,
+    required => 1,
+);
+
+has skip => (
+    is       => 'rw',
+    isa      => Num,
+    required => 1,
+);
+
+# optional attributes
+
+has projection => (
+    is  => 'rw',
+    isa => Maybe( [Document] ),
+);
+
+has sort => (
+    is  => 'rw',
+    isa => Maybe( [IxHash] ),
+);
+
+# Not a MongoDB query attribute; this is used during construction of a
+# result object
 has post_filter => (
     is        => 'ro',
     predicate => 'has_post_filter',
@@ -129,11 +159,12 @@ has post_filter => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
   MongoDB::Role::_OpReplyParser
+  MongoDB::Role::_ReadPrefModifier
 );
-with 'MongoDB::Role::_ReadPrefModifier';
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
@@ -165,10 +196,10 @@ sub _legacy_query {
     my ( $self, $link, $topology ) = @_;
 
     my $query_flags = {
-        tailable => ( $self->cursor_type =~ /^tailable/ ? 1 : 0 ),
-        await_data => $self->cursor_type eq 'tailable_await',
-        immortal => $self->no_cursor_timeout,
-        partial => $self->allow_partial_results,
+        tailable => ( $self->cursorType =~ /^tailable/ ? 1 : 0 ),
+        await_data => $self->cursorType eq 'tailable_await',
+        immortal => $self->noCursorTimeout,
+        partial => $self->allowPartialResults,
     };
 
     # build starting query document; modifiers come first as other parameters
@@ -178,8 +209,8 @@ sub _legacy_query {
         ( $self->comment ? ( '$comment' => $self->comment ) : () ),
         ( $self->sort    ? ( '$orderby' => $self->sort )    : () ),
         (
-              ( $self->max_time_ms && $self->coll_name !~ /\A\$cmd/ )
-            ? ( '$maxTimeMS' => $self->max_time_ms )
+              ( $self->maxTimeMS && $self->coll_name !~ /\A\$cmd/ )
+            ? ( '$maxTimeMS' => $self->maxTimeMS )
             : ()
         ),
         '$query' => ($self->filter || {}),
@@ -201,7 +232,7 @@ sub _legacy_query {
 
     # rules for calculating initial batch size
     my $limit      = $self->limit      || 0;
-    my $batch_size = $self->batch_size || 0;
+    my $batch_size = $self->batchSize || 0;
     my $n_to_return =
         $limit == 0      ? $batch_size
       : $batch_size == 0 ? $limit
@@ -248,15 +279,15 @@ my $FALSE = boolean::false();
 sub as_command {
     my ($self) = @_;
 
-    my ($limit, $batch_size, $single_batch) = ($self->{limit}, $self->{batch_size}, 0);
+    my ($limit, $batch_size, $single_batch) = ($self->{limit}, $self->{batchSize}, 0);
 
     $single_batch = $limit < 0 || $batch_size < 0;
     $limit = abs($limit);
     $batch_size = $limit if $single_batch;
 
-    my $tailable = $self->{cursor_type} =~ /^tailable/ ? $TRUE : $FALSE;
-    my $await_data = $self->{cursor_type} eq 'tailable_await' ? $TRUE : $FALSE;
-    my $max_time = $await_data ? $self->{max_await_time_ms} : $self->{max_time_ms} ;
+    my $tailable = $self->{cursorType} =~ /^tailable/ ? $TRUE : $FALSE;
+    my $await_data = $self->{cursorType} eq 'tailable_await' ? $TRUE : $FALSE;
+    my $max_time = $await_data ? $self->{maxAwaitTimeMS} : $self->{maxTimeMS} ;
 
     my $mod = $self->{modifiers};
 
@@ -277,7 +308,7 @@ sub as_command {
 
         ($self->{comment} ? (comment => $self->{comment}) : ()),
         (defined $mod->{'$maxScan'} ? (maxScan => $mod->{'$maxScan'}) : ()),
-        (defined $self->{max_time_ms} ? (maxTimeMS => $self->{max_time_ms}) : ()),
+        (defined $self->{maxTimeMS} ? (maxTimeMS => $self->{maxTimeMS}) : ()),
         (defined $mod->{'$max'} ? (max => $mod->{'$max'}) : ()),
         (defined $mod->{'$min'} ? (min => $mod->{'$min'}) : ()),
         (defined $mod->{'$returnKey'} ? (returnKey => $mod->{'$returnKey'}) : ()),
@@ -285,12 +316,36 @@ sub as_command {
         (defined $mod->{'$snapshot'} ? (snapshot => boolean($mod->{'$snapshot'})) : ()),
 
         tailable            => $tailable,
-        noCursorTimeout     =>($self->{no_cursor_timeout} ? $TRUE : $FALSE),
+        noCursorTimeout     =>($self->{noCursorTimeout} ? $TRUE : $FALSE),
         awaitData           => $await_data,
-        allowPartialResults =>($self->{allow_partial_results} ? $TRUE : $FALSE ),
+        allowPartialResults =>($self->{allowPartialResults} ? $TRUE : $FALSE ),
 
         @{$self->{read_concern}->as_args},
     ];
+}
+
+sub clone {
+    my ($self) = @_;
+
+    # shallow copy everything;
+    my %args = %$self;
+
+    # deep copy any documents
+    for my $k (qw/filter modifiers projection sort/) {
+        my ($orig ) = $args{$k};
+        next unless $orig;
+        if ( ref($orig) eq 'Tie::IxHash' ) {
+          $args{$k}= Tie::IxHash->new( map { $_ => $orig->FETCH($_) } $orig->Keys );
+        }
+        elsif ( ref($orig) eq 'ARRAY' ) {
+         $args{$k}= [@$orig];
+        }
+        else {
+         $args{$k} = { %$orig };
+        }
+    }
+
+    return ref($self)->_new(%args);
 }
 
 1;

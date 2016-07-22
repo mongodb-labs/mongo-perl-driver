@@ -23,31 +23,17 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::Error;
 use MongoDB::Op::_Command;
-use MongoDB::_Constants;
 use MongoDB::_Types qw(
     ArrayOfHashRef
 );
 use Types::Standard qw(
+    Bool
     HashRef
     InstanceOf
-    Str
 );
-use boolean;
+
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
 
 has client => (
     is       => 'ro',
@@ -67,8 +53,15 @@ has options => (
     isa      => HashRef,
 );
 
+has has_out => (
+    is       => 'ro',
+    required => 1,
+    isa      => Bool,
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
@@ -117,13 +110,10 @@ sub execute {
         delete $options->{cursor};
     }
 
-    # read concerns are ignored if the last stage is $out
-    my ($last_op) = keys %{ $self->pipeline->[-1] };
-
     my @command = (
         aggregate => $self->coll_name,
         pipeline  => $self->pipeline,
-        ($last_op eq '$out' ? () :
+        ($self->has_out ? () :
             ($link->accepts_wire_version(4) ?
                 @{ $self->read_concern->as_args } : () ) ),
         %$options,
@@ -145,7 +135,7 @@ sub execute {
         return MongoDB::QueryResult->_new(
             _client       => $self->client,
             _address      => $link->address,
-            _ns           => '',
+            _full_name    => '',
             _bson_codec   => $self->bson_codec,
             _batch_size   => 1,
             _cursor_at    => 0,

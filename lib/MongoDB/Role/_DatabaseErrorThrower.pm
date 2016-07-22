@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_LastError;
+package MongoDB::Role::_DatabaseErrorThrower;
 
 # MongoDB interface for providing the last database error
 
@@ -22,7 +22,9 @@ use version;
 our $VERSION = 'v1.5.0';
 
 use Moo::Role;
+
 use MongoDB::Error;
+
 use namespace::clean;
 
 requires qw/last_errmsg last_code last_wtimeout/;

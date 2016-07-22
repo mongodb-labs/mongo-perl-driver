@@ -14,28 +14,16 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_BSONCodec;
+package MongoDB::Role::_CursorAPI;
 
-# MongoDB role for things that need a BSON codec property
+# Role providing a cursor interface
 
 use version;
 our $VERSION = 'v1.5.0';
 
 use Moo::Role;
-
-use MongoDB::ReadPreference;
-use MongoDB::_Constants;
-use MongoDB::_Types qw(
-    BSONCodec
-);
-
 use namespace::clean;
 
-has bson_codec => (
-    is       => 'ro',
-    isa      => BSONCodec,
-    coerce   => BSONCodec->coercion,
-    required => 1,
-);
+requires qw/all has_next next/;
 
 1;

@@ -1,5 +1,5 @@
 #
-#  Copyright 2015 MongoDB, Inc.
+#  Copyright 2016 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,26 +14,36 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_PrivateConstructor;
+package MongoDB::Role::_CollectionOp;
 
-# MongoDB interface for a private constructor
+# MongoDB role for things that operate on collections and need
+# collection name (and possibly full-name for legacy operation)
 
 use version;
 our $VERSION = 'v1.5.0';
 
 use Moo::Role;
 
-use MongoDB::_Constants;
+use Types::Standard qw(
+    Str
+);
 
 use namespace::clean;
 
-# When assertions are enabled, the private constructor delegates to the
-# public one, which checks required/isa assertions.  When disabled,
-# the private constructor blesses args directly to the class for speed.
-BEGIN {
-  WITH_ASSERTS
-  ? eval 'sub _new { my $class = shift; $class->new(@_) }'
-  : eval 'sub _new { my $class = shift; return bless {@_}, $class }';
-}
+has coll_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
+has full_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
+
+with $_ for qw(
+  MongoDB::Role::_DatabaseOp
+);
 
 1;

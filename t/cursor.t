@@ -262,24 +262,24 @@ $coll->drop;
     $cursor = $coll->find();
 
     $cursor = $cursor->tailable(1);
-    is($cursor->query->cursorType, 'tailable', "set tailable");
+    is($cursor->_query->cursorType, 'tailable', "set tailable");
     $cursor = $cursor->tailable(0);
-    is($cursor->query->cursorType, 'non_tailable', "clear tailable");
+    is($cursor->_query->cursorType, 'non_tailable', "clear tailable");
 
     $cursor = $cursor->tailable_await(1);
-    is($cursor->query->cursorType, 'tailable_await', "set tailable_await");
+    is($cursor->_query->cursorType, 'tailable_await', "set tailable_await");
     $cursor = $cursor->tailable_await(0);
-    is($cursor->query->cursorType, 'non_tailable', "clear tailable_await");
+    is($cursor->_query->cursorType, 'non_tailable', "clear tailable_await");
 
     $cursor = $cursor->tailable(1);
-    is($cursor->query->cursorType, 'tailable', "set tailable");
+    is($cursor->_query->cursorType, 'tailable', "set tailable");
     $cursor = $cursor->tailable_await(0);
-    is($cursor->query->cursorType, 'non_tailable', "clear tailable_await");
+    is($cursor->_query->cursorType, 'non_tailable', "clear tailable_await");
 
     $cursor = $cursor->tailable_await(1);
-    is($cursor->query->cursorType, 'tailable_await', "set tailable_await");
+    is($cursor->_query->cursorType, 'tailable_await', "set tailable_await");
     $cursor = $cursor->tailable(0);
-    is($cursor->query->cursorType, 'non_tailable', "clear tailable");
+    is($cursor->_query->cursorType, 'non_tailable', "clear tailable");
 
     #test is actual cursor
     $coll->drop;
@@ -291,14 +291,14 @@ $coll->drop;
     $cursor = $coll->find();
 
     $cursor->immortal(1);
-    ok($cursor->query->noCursorTimeout, "set immortal");
+    ok($cursor->_query->noCursorTimeout, "set immortal");
     $cursor->immortal(0);
-    ok(! $cursor->query->noCursorTimeout, "clear immortal");
+    ok(! $cursor->_query->noCursorTimeout, "clear immortal");
 
     $cursor->slave_okay(1);
-    is($cursor->query->read_preference->mode, 'secondaryPreferred', "set slave_ok");
+    is($cursor->_query->read_preference->mode, 'secondaryPreferred', "set slave_ok");
     $cursor->slave_okay(0);
-    is($cursor->query->read_preference->mode, 'primary', "clear slave_ok");
+    is($cursor->_query->read_preference->mode, 'primary', "clear slave_ok");
 }
 
 # explain

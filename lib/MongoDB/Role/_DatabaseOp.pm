@@ -14,16 +14,35 @@
 #  limitations under the License.
 #
 
-package MongoDB::Role::_Cursor;
+package MongoDB::Role::_DatabaseOp;
 
-# Role providing a cursor interface
+# MongoDB role for operations within a database, that need a database name
+# and a BSON codec.  This is likely a "base role" for all operations.
 
 use version;
 our $VERSION = 'v1.5.0';
 
 use Moo::Role;
+
+use MongoDB::_Types qw(
+    BSONCodec
+);
+use Types::Standard qw(
+    Str
+);
+
 use namespace::clean;
 
-requires qw/all has_next next/;
+has bson_codec => (
+    is       => 'ro',
+    required => 1,
+    isa      => BSONCodec,
+);
+
+has db_name => (
+    is       => 'ro',
+    required => 1,
+    isa      => Str,
+);
 
 1;

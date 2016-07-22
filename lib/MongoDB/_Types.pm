@@ -43,7 +43,6 @@ use Type::Library
   IxHash
   MongoDBCollection
   MongoDBDatabase
-  MongoDBQuery
   NonEmptyStr
   NonNegNum
   OID
@@ -121,8 +120,6 @@ declare MaybeHashRef, as Maybe[ HashRef ];
 class_type MongoDBCollection, { class => 'MongoDB::Collection' };
 
 class_type MongoDBDatabase, { class => 'MongoDB::Database' };
-
-class_type MongoDBQuery, { class => 'MongoDB::_Query' };
 
 declare NonEmptyStr, as Str, where { defined $_ && length $_ };
 

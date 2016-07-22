@@ -23,40 +23,14 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use boolean;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use Types::Standard qw(
-    InstanceOf
-    Str
     HashRef
-    Maybe
 );
-
-use MongoDB::_Types qw(
-    WriteConcern
-);
-
 use Try::Tiny;
+
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has client => (
-    is       => 'ro',
-    required => 1,
-    isa      => InstanceOf ['MongoDB::MongoClient'],
-);
 
 has filter => (
     is       => 'ro',
@@ -76,16 +50,10 @@ has options => (
     isa      => HashRef,
 );
 
-has write_concern => (
-    is       => 'ro',
-    required => 1,
-    isa      => WriteConcern,
-);
-
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_ReadOp
-  MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_CollectionOp
+  MongoDB::Role::_WriteOp
   MongoDB::Role::_BypassValidation
 );
 

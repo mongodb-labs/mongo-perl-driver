@@ -26,27 +26,14 @@ use Moo;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
-use MongoDB::_Constants;
 use Types::Standard qw(
     InstanceOf
-    Str
 );
 use Tie::IxHash;
 use Try::Tiny;
 use Safe::Isa;
+
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
 
 has client => (
     is       => 'ro',
@@ -56,7 +43,7 @@ has client => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_ReadOp
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_CommandCursorOp
 );
 
@@ -78,7 +65,6 @@ sub _command_list_indexes {
         db_name         => $self->db_name,
         query           => Tie::IxHash->new( listIndexes => $self->coll_name, cursor => {} ),
         query_flags => {},
-        read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
 
@@ -100,24 +86,25 @@ sub _legacy_list_indexes {
 
     my $ns = $self->db_name . "." . $self->coll_name;
     my $op = MongoDB::Op::_Query->_new(
-        modifiers              => {},
-        allow_partial_results  => 0,
-        batch_size             => 0,
-        comment                => '',
-        cursor_type            => 'non_tailable',
-        limit                  => 0,
-        max_time_ms            => 0,
-        no_cursor_timeout      => 0,
-        oplog_replay           => 0,
-        projection             => undef,
-        skip                   => 0,
-        sort                   => undef,
-        db_name                => $self->db_name,
-        coll_name              => 'system.indexes',
-        bson_codec             => $self->bson_codec,
-        client                 => $self->client,
-        read_preference        => $self->read_preference,
-        filter                 => Tie::IxHash->new( ns => $ns ),
+        modifiers           => {},
+        allowPartialResults => 0,
+        batchSize           => 0,
+        comment             => '',
+        cursorType          => 'non_tailable',
+        limit               => 0,
+        maxAwaitTimeMS      => 0,
+        maxTimeMS           => 0,
+        noCursorTimeout     => 0,
+        oplogReplay         => 0,
+        projection          => undef,
+        skip                => 0,
+        sort                => undef,
+        db_name             => $self->db_name,
+        coll_name           => 'system.indexes',
+        bson_codec          => $self->bson_codec,
+        client              => $self->client,
+        read_preference     => MongoDB::ReadPreference->new,
+        filter              => Tie::IxHash->new( ns => $ns ),
     );
   
     return $op->execute( $link, $topology );

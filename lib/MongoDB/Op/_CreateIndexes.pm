@@ -24,30 +24,14 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::CommandResult;
-use MongoDB::_Constants;
-use MongoDB::_Types -types;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_BatchInsert;
 use Types::Standard qw(
     ArrayRef
     HashRef
-    Str
 );
-use Tie::IxHash;
+
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
 
 has indexes => (
     is       => 'ro',
@@ -57,6 +41,7 @@ has indexes => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_WriteOp
 );
 

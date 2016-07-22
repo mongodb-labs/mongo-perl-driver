@@ -24,7 +24,6 @@ our $VERSION = 'v1.5.0';
 use Moo;
 
 use MongoDB::Op::_Command;
-use MongoDB::_Constants;
 use MongoDB::_Types qw(
     Document
 );
@@ -33,19 +32,8 @@ use Types::Standard qw(
     HashRef
     Str
 );
+
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
 
 has client => (
     is       => 'ro',
@@ -73,6 +61,7 @@ has options => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );

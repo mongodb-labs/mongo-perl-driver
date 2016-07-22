@@ -22,20 +22,18 @@ package MongoDB::Role::_WriteOp;
 use version;
 our $VERSION = 'v1.5.0';
 
+use Moo::Role;
+
 use MongoDB::_Types qw(
     WriteConcern
 );
-use Moo::Role;
+
 use namespace::clean;
 
 has write_concern => (
     is       => 'ro',
     required => 1,
     isa => WriteConcern,
-);
-
-with $_ for qw(
-  MongoDB::Role::_BSONCodec
 );
 
 1;

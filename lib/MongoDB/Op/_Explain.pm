@@ -24,43 +24,23 @@ our $VERSION = 'v1.5.0';
 use Moo;
 
 use MongoDB::Op::_Command;
-use MongoDB::Op::_Query;
-use MongoDB::QueryResult::Filtered;
-use MongoDB::_Constants;
-use MongoDB::Error;
-use MongoDB::CommandResult;
-use MongoDB::_Types qw(
-    Document
-);
 use Types::Standard qw(
-    HashRef
     InstanceOf
-    Str
 );
 use Tie::IxHash;
 use boolean;
+
 use namespace::clean;
 
 has query => (
     is       => 'ro',
     required => 1,
-    isa => InstanceOf['MongoDB::_Query'],
-);
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa => Str,
+    isa => InstanceOf['MongoDB::Op::_Query'],
 );
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
 );
 
@@ -78,7 +58,7 @@ sub execute {
 sub _command_explain {
     my ( $self, $link, $topology ) = @_;
 
-    my $cmd = Tie::IxHash->new( @{ $self->query->as_query_op->as_command } );
+    my $cmd = Tie::IxHash->new( @{ $self->query->as_command } );
 
     # XXX need to standardize error here
     if (defined $self->query->modifiers->{hint}) {

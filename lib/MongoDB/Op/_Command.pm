@@ -26,19 +26,14 @@ use Moo;
 use MongoDB::_Constants;
 use MongoDB::_Types qw(
     Document
+    ReadPreference
 );
 use Types::Standard qw(
     HashRef
-    Str
+    Maybe
 );
-use Tie::IxHash;
-use namespace::clean;
 
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
+use namespace::clean;
 
 has query => (
     is       => 'ro',
@@ -53,9 +48,14 @@ has query_flags => (
     isa      => HashRef,
 );
 
+has read_preference => (
+    is  => 'ro',
+    isa => Maybe [ReadPreference],
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_ReadOp
+  MongoDB::Role::_DatabaseOp
   MongoDB::Role::_ReadPrefModifier
 );
 

@@ -26,9 +26,9 @@ use MongoDB::CommandResult;
 use MongoDB::Error;
 use MongoDB::GridFS;
 use MongoDB::GridFSBucket;
+use MongoDB::Op::_Command;
 use MongoDB::Op::_ListCollections;
 use MongoDB::ReadPreference;
-use MongoDB::_Query;
 use MongoDB::_Types qw(
     BSONCodec
     NonNegNum
@@ -201,7 +201,7 @@ sub list_collections {
         options    => $options,
     );
 
-    return $self->_client->send_read_op($op);
+    return $self->_client->send_primary_op($op);
 }
 
 =method collection_names
@@ -227,7 +227,7 @@ sub collection_names {
         options    => {},
     );
 
-    my $res = $self->_client->send_read_op($op);
+    my $res = $self->_client->send_primary_op($op);
 
     return map { $_->{name} } $res->all;
 }

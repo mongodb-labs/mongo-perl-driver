@@ -21,11 +21,12 @@ package MongoDB::Role::_OpReplyParser;
 use version;
 our $VERSION = 'v1.5.0';
 
-use MongoDB::BSON;
+use Moo::Role;
+
 use MongoDB::Error;
 use MongoDB::_Protocol;
-use Moo::Role;
 use MongoDB::_Constants;
+
 use namespace::clean;
 
 # Sends a BSON query/get-more string, then read, parse and validate the reply.

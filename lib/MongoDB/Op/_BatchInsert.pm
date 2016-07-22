@@ -24,38 +24,14 @@ our $VERSION = 'v1.5.0';
 
 use Moo;
 
-use MongoDB::BSON;
-use MongoDB::Error;
 use MongoDB::InsertManyResult;
-use MongoDB::OID;
-use MongoDB::_Constants;
-use MongoDB::_Protocol;
+use Tie::IxHash;
 use Types::Standard qw(
-    Str
     ArrayRef
     Bool
 );
-use Scalar::Util qw/blessed reftype/;
-use Tie::IxHash;
+
 use namespace::clean;
-
-has db_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has coll_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
-
-has full_name => (
-    is       => 'ro',
-    required => 1,
-    isa      => Str,
-);
 
 # may or may not have _id; will be added if check_keys is true
 has documents => (
@@ -86,7 +62,8 @@ has _doc_ids => (
 
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_WriteCommand
+  MongoDB::Role::_CollectionOp
+  MongoDB::Role::_SingleBatchDocWrite
   MongoDB::Role::_InsertPreEncoder
 );
 
