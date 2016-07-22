@@ -44,7 +44,6 @@ has client => (
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
-  MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
 
@@ -66,7 +65,6 @@ sub _command_list_indexes {
         db_name         => $self->db_name,
         query           => Tie::IxHash->new( listIndexes => $self->coll_name, cursor => {} ),
         query_flags => {},
-        read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
 
@@ -105,7 +103,7 @@ sub _legacy_list_indexes {
         coll_name           => 'system.indexes',
         bson_codec          => $self->bson_codec,
         client              => $self->client,
-        read_preference     => $self->read_preference,
+        read_preference     => MongoDB::ReadPreference->new,
         filter              => Tie::IxHash->new( ns => $ns ),
     );
   

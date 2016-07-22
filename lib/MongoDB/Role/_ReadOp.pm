@@ -37,12 +37,14 @@ use namespace::clean;
 # read_preference and read_concern
 has read_preference => (
     is  => 'rw', # rw for Op::_Query which can be modified by Cursor
-    isa => Maybe [ReadPreference],
+    required => 1,
+    isa => ReadPreference,
 );
 
 has read_concern => (
     is  => 'ro',
-    isa => Maybe [ReadConcern],
+    required => 1,
+    isa => ReadConcern,
 );
 
 1;

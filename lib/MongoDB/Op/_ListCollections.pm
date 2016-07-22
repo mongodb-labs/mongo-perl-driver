@@ -26,6 +26,7 @@ use Moo;
 
 use MongoDB::Op::_Command;
 use MongoDB::Op::_Query;
+use MongoDB::ReadPreference;
 use MongoDB::_Types qw(
     Document
 );
@@ -59,7 +60,6 @@ has options => (
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
-  MongoDB::Role::_ReadOp
   MongoDB::Role::_CommandCursorOp
 );
 
@@ -104,7 +104,6 @@ sub _command_list_colls {
         db_name         => $self->db_name,
         query           => $cmd,
         query_flags     => {},
-        read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
     );
 
@@ -135,7 +134,7 @@ sub _legacy_list_colls {
         coll_name       => 'system.namespaces',
         bson_codec      => $self->bson_codec,
         client          => $self->client,
-        read_preference => $self->read_preference,
+        read_preference => MongoDB::ReadPreference->new,
         filter          => $self->filter,
         post_filter => \&__filter_legacy_names
     );
