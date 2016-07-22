@@ -121,6 +121,9 @@ subtest "collection names" => sub {
         ok( exists $names{$k}, "collection_names included $k" );
         ok( exists $got{$k}, "list_collections included $k" );
     }
+
+    my @names_of_capped = $testdb->collection_names( { 'options.capped' => true } );
+    cmp_deeply( \@names_of_capped, ['test_capped'], "collection_names with filter" );
 };
 
 # getlasterror

@@ -208,23 +208,31 @@ sub list_collections {
 =method collection_names
 
     my @collections = $database->collection_names;
+    my @collections = $database->collection_names( $filter );
 
 Returns the list of collections in this database.
 
-B<Warning:> if the number of collections is very large, this will return
-a very large result.  Use L</list_collections> to iterate over collections
-instead.
+An optional filter document may be provided, which cause only collection
+description documents matching a filter expression to be returned.  See the
+L<listCollections command
+documentation|http://docs.mongodb.org/manual/reference/command/listCollections/>
+for more details on filtering for specific collections.
+
+B<Warning:> if the number of collections is very large, this may return
+a very large result.  Either pass an appropriate filter, or use
+L</list_collections> to iterate over collections instead.
 
 =cut
 
 sub collection_names {
-    my ($self) = @_;
+    my ( $self, $filter ) = @_;
+    $filter ||= {};
 
     my $op = MongoDB::Op::_ListCollections->_new(
         db_name    => $self->name,
         client     => $self->_client,
         bson_codec => $self->bson_codec,
-        filter     => {},
+        filter     => $filter,
         options    => {},
     );
 
