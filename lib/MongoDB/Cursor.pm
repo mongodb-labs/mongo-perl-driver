@@ -464,7 +464,7 @@ sub explain {
         read_concern    => $self->_query->read_concern,
     );
 
-    return $self->_query->client->send_read_op($explain_op)->next;
+    return $self->_query->client->send_read_op($explain_op);
 }
 
 =head1 QUERY ITERATION
