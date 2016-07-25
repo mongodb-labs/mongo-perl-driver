@@ -1478,23 +1478,6 @@ sub _find_one_and_update_or_replace {
     return $self->client->send_write_op($op);
 }
 
-# we have a private _run_command rather than using the 'database' attribute
-# so that we're using our BSON codec and not the source database one
-sub _run_command {
-    my ( $self, $command ) = @_;
-
-    my $op = MongoDB::Op::_Command->_new(
-        db_name     => $self->database->name,
-        query       => $command,
-        query_flags => {},
-        bson_codec  => $self->bson_codec,
-    );
-
-    my $obj = $self->client->send_read_op($op);
-
-    return $obj->output;
-}
-
 #--------------------------------------------------------------------------#
 # utility function
 #--------------------------------------------------------------------------#
@@ -1809,6 +1792,22 @@ sub validate {
     my $obj = $self->_run_command({ validate => $self->name });
 }
 
+# we have a private _run_command rather than using the 'database' attribute
+# so that we're using our BSON codec and not the source database one
+sub _run_command {
+    my ( $self, $command ) = @_;
+
+    my $op = MongoDB::Op::_Command->_new(
+        db_name     => $self->database->name,
+        query       => $command,
+        query_flags => {},
+        bson_codec  => $self->bson_codec,
+    );
+
+    my $obj = $self->client->send_read_op($op);
+
+    return $obj->output;
+}
 
 1;
 
