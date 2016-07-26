@@ -256,7 +256,7 @@ has client => (
 sub _build_client {
     my ($self) = @_;
     my @args = (
-        host    => $self->as_uri,
+        host    => $self->as_uri_with_auth,
         dt_type => undef,
     );
     if ( my $ssl = $self->ssl_config ) {
@@ -278,6 +278,7 @@ sub _build_client {
         }
         push @args, ssl => $ssl_arg;
     }
+
     return MongoDB::MongoClient->new( @args );
 }
 
@@ -292,13 +293,17 @@ sub start {
         else {
             defined $port ? $self->_set_port($port) : $self->_set_port(empty_port());
         }
-        $self->_logger->debug("Running " . $self->executable . " " . join(" ", $self->_command_args));
+        $self->_logger->debug( "Running "
+              . $self->executable . " "
+              . join( " ", $self->_command_args( $self->auth_config && !$self->did_auth_setup ) )
+        );
         my $guard = proc_guard(
             sub {
                 open STDOUT, ">", File::Spec->devnull unless $self->verbose;
                 open STDERR, ">", File::Spec->devnull unless $self->verbose;
                 open STDIN, "<", File::Spec->devnull;
-                exec( $self->executable, $self->_command_args );
+                exec( $self->executable,
+                    $self->_command_args( $self->auth_config && !$self->did_auth_setup ) )
             }
         );
         $self->_set_guard( $guard );
@@ -335,7 +340,7 @@ sub start {
 
     if ( $self->auth_config && !$self->did_auth_setup ) {
         my ( $user, $password ) = @{ $self->auth_config }{qw/user password/};
-        $self->add_user( "admin", $user, $password, ['root'] );
+        $self->add_user( "admin", $user, $password, [ {role => 'root', db => 'admin' } ] );
         $self->_set_did_auth_setup(1);
         $self->_logger->debug("Restarting original server with --auth");
         $self->_local_restart;
@@ -418,8 +423,18 @@ sub as_uri {
     return "mongodb://" . $self->as_host_port;
 }
 
-sub _command_args {
+sub as_uri_with_auth {
     my ($self) = @_;
+    my $uri = $self->as_uri;
+    if ( $self->auth_config && $self->did_auth_setup ) {
+        my ( $u, $p ) = @{ $self->auth_config }{qw/user password/};
+        $uri =~ s{mongodb://}{mongodb://$u:$p\@};
+    }
+    return $uri;
+}
+
+sub _command_args {
+    my ($self, $skip_replset ) = @_;
     my @args;
     if ( $self->server_version < v2.6.0 && $self->command_name eq 'mongos' ) {
         push @args, "-v"; # 2.4 mongos has problems with too much verbosity
@@ -455,6 +470,19 @@ sub _command_args {
             push @args, qw/--setParameter textSearchEnabled=true/;
         }
     }
+
+    if ($skip_replset) {
+        my @new_args;
+        for ( my $i=0; $i < @args; $i++ ) {
+            if ($args[$i] eq '--replSet' || $args[$i] eq '--keyFile') {
+                $i++;
+                next;
+            }
+            push @new_args, $args[$i];
+        }
+        @args = @new_args;
+    }
+
     return @args;
 }
 

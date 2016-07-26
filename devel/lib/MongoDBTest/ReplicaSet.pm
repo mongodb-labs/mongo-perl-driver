@@ -22,6 +22,8 @@ use MongoDB;
 
 use JSON;
 use Moo;
+use MIME::Base64 qw/encode_base64/;
+use Path::Tiny;
 use Try::Tiny::Retry qw/:all/;
 use Types::Standard -types;
 use namespace::clean;
@@ -44,14 +46,52 @@ sub _build_client {
     return MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef );
 }
 
+has 'keyfile' => (
+    is => 'lazy',
+    isa => InstanceOf['Path::Tiny'],
+);
+
+sub _build_keyfile {
+    my ($self) = @_;
+    my $file = Path::Tiny->tempfile;
+    $file->chmod("0600");
+    $file->append(encode_base64(join("", map { ["a" .. "z"]->[int(rand(26))] } 1 .. 100)));
+    return $file;
+}
+
 after 'start' => sub {
     my ($self) = @_;
     $self->rs_initiate;
 };
 
+# override to only set up auth on the first server
+sub _build__servers {
+    my ($self) = @_;
+    my $set = {};
+    my $did_first;
+    for my $server ( sort { $a->{name} cmp $b->{name} } @{ $self->server_config_list } )
+    {
+        my $class = "MongoDBTest::" . ucfirst( $self->server_type );
+        $set->{ $server->{name} } = $class->new(
+            config          => $server,
+            default_args    => $self->default_args,
+            default_version => $self->default_version,
+            ( $did_first ? () : ( auth_config => $self->auth_config ) ),
+            ssl_config => $self->ssl_config,
+            ( $self->timeout ? ( timeout => $self->timeout ) : () ),
+            verbose     => $self->verbose,
+            log_verbose => $self->log_verbose,
+        );
+        $did_first++;
+    }
+    return $set;
+}
+
 sub BUILD {
     my ($self) = @_;
-    $self->_set_default_args( $self->default_args . " --replSet " . $self->set_name );
+    my $new_args = $self->default_args . " --replSet " . $self->set_name;
+    $new_args .= " --keyFile " . $self->keyfile if $self->auth_config;
+    $self->_set_default_args( $new_args );
 }
 
 sub rs_initiate {
@@ -78,11 +118,17 @@ sub rs_initiate {
         members => $members,
     };
 
-    $self->_logger->debug("configuring replica set with: " . to_json($rs_config));
+    $self->_logger->debug(
+        "configuring replica set on @{[$first->name]} with: " . to_json($rs_config) );
 
     # not $self->client because this needs to be a direct connection, i.e. one
     # seed and no replicaSet URI option
-    my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
+    my $uri = $first->as_uri_with_auth;
+
+    my $client = MongoDB::MongoClient->new( host => $uri, dt_type => undef, );
+
+    $client->get_database("admin")->run_command({ismaster => 1});
+
     $client->get_database("admin")->run_command({replSetInitiate => $rs_config});
 
     $self->_logger->debug("waiting for primary");
@@ -96,7 +142,7 @@ sub wait_for_all_hosts {
     my ($self) = @_;
     my ($first) = $self->all_servers;
     retry {
-        my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
+        my $client = MongoDB::MongoClient->new( host => $first->as_uri_with_auth, dt_type => undef );
         my $admin = $client->get_database("admin");
         if ( my $status = eval { $admin->run_command({replSetGetStatus => 1}) } ) {
             my @member_states = map { $_->{state} } @{ $status->{members} };
@@ -121,7 +167,7 @@ sub wait_for_primary {
     my ($self) = @_;
     my ($first) = $self->all_servers;
     retry {
-        my $client = MongoDB::MongoClient->new( host => $first->as_uri, dt_type => undef );
+        my $client = MongoDB::MongoClient->new( host => $first->as_uri_with_auth, dt_type => undef );
         my $admin = $client->get_database("admin");
         if ( my $status = eval { $admin->run_command({replSetGetStatus => 1}) } ) {
             my @member_states = map { $_->{state} } @{ $status->{members} };
