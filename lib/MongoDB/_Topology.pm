@@ -700,7 +700,7 @@ sub _initialize_link {
     # we have a link and the server is a valid member, so
     # try to authenticate; if authentication fails, all
     # servers are considered invalid and we throw an error
-    if ( first { $_ eq $server->type } qw/Standalone Mongos RSPrimary RSSecondary/ ) {
+    if ( $self->type eq 'Single' || first { $_ eq $server->type } qw/Standalone Mongos RSPrimary RSSecondary/ ) {
         try {
             $self->credential->authenticate($link, $self->bson_codec);
         }
