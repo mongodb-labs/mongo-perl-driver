@@ -1,7 +1,8 @@
-# Users can configure a shorter ``heartbeatFrequencyMS`` than the default to
-# allow a smaller ``maxStalenessMS`` with replica sets.
+# Primary has wire version 5, secondary has 4, read preference primaryPreferred
+# with maxStalenessMS. The client must error, even though it uses primary and
+# never applies maxStalenessMS. Proves that the compatibility check precedes
+# filtration.
 ---
-heartbeatFrequencyMS: 1000  # 1 second.
 topology_description:
   type: ReplicaSetWithPrimary
   servers:
@@ -15,15 +16,12 @@ topology_description:
   - &2
     address: b:27017
     type: RSSecondary
-    avg_rtt_ms: 50  # Too far.
+    avg_rtt_ms: 5
     lastUpdateTime: 0
-    maxWireVersion: 5
+    maxWireVersion: 4  # Too old.
     lastWrite: {lastWriteDate: {$numberLong: "1"}}
 read_preference:
-  mode: Nearest
-  maxStalenessMS: 2000  # 2 seconds, permitted.
-suitable_servers:
-- *1
-- *2
-in_latency_window:
-- *1
+  mode: PrimaryPreferred
+  maxStalenessMS: 50000
+error: true
+

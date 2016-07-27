@@ -69,8 +69,9 @@ sub create_mock_server {
     my ($s) = @_;
 
     my %is_master = %{ $is_master_tmpl{ $s->{type} } };
-    $is_master{lastWrite}{lastWriteDate} = $s->{lastWriteDate} / 1000
-      if exists $s->{lastWriteDate};
+    $is_master{lastWrite}{lastWriteDate} =
+      $s->{lastWrite}{lastWriteDate}{'$numberLong'} / 1000
+      if exists $s->{lastWrite}{lastWriteDate};
     $is_master{minWireVersion} = 0;
     $is_master{maxWireVersion} = $s->{maxWireVersion} || 0;
     $is_master{tags}           = $s->{tags} if exists $s->{tags};

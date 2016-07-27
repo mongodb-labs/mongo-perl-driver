@@ -9,14 +9,14 @@ topology_description:
     avg_rtt_ms: 50  # Too far.
     lastUpdateTime: 0
     maxWireVersion: 5
-    lastWriteDate: 1000001
+    lastWrite: {lastWriteDate: {$numberLong: "1000001"}}
   - &2
     address: b:27017
     type: RSSecondary
     avg_rtt_ms: 5
     lastUpdateTime: 0
     maxWireVersion: 5
-    lastWriteDate: 1  # Very stale.
+    lastWrite: {lastWriteDate: {$numberLong: "1"}}  # Very stale.
 read_preference:
   mode: Nearest
   maxStalenessMS: 0  # Means "no max staleness".
