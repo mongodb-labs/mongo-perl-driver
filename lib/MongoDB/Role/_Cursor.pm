@@ -19,7 +19,7 @@ package MongoDB::Role::_Cursor;
 # Role providing a cursor interface
 
 use version;
-our $VERSION = 'v1.4.4';
+our $VERSION = 'v1.4.5';
 
 use Moo::Role;
 use namespace::clean;

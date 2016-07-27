@@ -18,7 +18,7 @@ package MongoDB::Timestamp;
 # ABSTRACT: Replication timestamp
 
 use version;
-our $VERSION = 'v1.4.4';
+our $VERSION = 'v1.4.5';
 
 use Moo;
 use Types::Standard qw(

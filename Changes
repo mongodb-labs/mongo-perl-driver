@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.4.4    2016-07-27 15:06:43-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-647 Authenticate always to topology type Single to ensure

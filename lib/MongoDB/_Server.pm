@@ -17,7 +17,7 @@
 package MongoDB::_Server;
 
 use version;
-our $VERSION = 'v1.4.4';
+our $VERSION = 'v1.4.5';
 
 use Moo;
 use MongoDB::_Types qw(

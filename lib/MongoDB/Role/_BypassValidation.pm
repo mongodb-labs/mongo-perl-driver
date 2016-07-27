@@ -20,7 +20,7 @@ package MongoDB::Role::_BypassValidation;
 # to a command
 
 use version;
-our $VERSION = 'v1.4.4';
+our $VERSION = 'v1.4.5';
 
 use Moo::Role;
 use Types::Standard qw(

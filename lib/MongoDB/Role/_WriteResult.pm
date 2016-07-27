@@ -19,7 +19,7 @@ package MongoDB::Role::_WriteResult;
 # MongoDB interface for common write result attributes and methods
 
 use version;
-our $VERSION = 'v1.4.4';
+our $VERSION = 'v1.4.5';
 
 use MongoDB::Error;
 use MongoDB::_Constants;
