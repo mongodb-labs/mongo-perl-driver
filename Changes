@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-647 Authenticate always to topology type Single to ensure
+    auth happens for hidden or uninitialized replica set members.
+
 v1.4.3    2016-07-18 16:05:16-04:00 America/New_York
 
   [Bug fixes]
