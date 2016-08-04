@@ -3,16 +3,16 @@
         {
             "address": "a:27017", 
             "avg_rtt_ms": 5, 
-            "tags": [
-                { "data_center": "nyc" }
-            ], 
+            "tags": {
+                "data_center": "nyc"
+            }, 
             "type": "RSPrimary"
         }
     ], 
     "operation": "read", 
     "read_preference": {
         "mode": "SecondaryPreferred", 
-        "tags": [
+        "tag_sets": [
             {
                 "data_center": "nyc"
             }
@@ -22,9 +22,9 @@
         {
             "address": "a:27017", 
             "avg_rtt_ms": 5, 
-            "tags": [
-                { "data_center": "nyc" }
-            ], 
+            "tags": {
+                "data_center": "nyc"
+            }, 
             "type": "RSPrimary"
         }
     ], 
@@ -33,17 +33,17 @@
             {
                 "address": "a:27017", 
                 "avg_rtt_ms": 5, 
-                "tags": [
-                    { "data_center": "nyc" }
-                ], 
+                "tags": {
+                    "data_center": "nyc"
+                }, 
                 "type": "RSPrimary"
             }, 
             {
                 "address": "b:27017", 
                 "avg_rtt_ms": 5, 
-                "tags": [
-                    { "data_center": "sf" }
-                ], 
+                "tags": {
+                    "data_center": "sf"
+                }, 
                 "type": "RSSecondary"
             }
         ], 

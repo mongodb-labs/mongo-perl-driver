@@ -18,6 +18,9 @@
   - PERL-630 ReadConcern level must always be lower-case when sent to
     server.
 
+  - PERL-632 Fix server selection bugs in the case of read preferences with
+    multiple tag-set entries.
+
   [Changes]
 
   - PERL-644 Use of threads is no longer supported on perls before 5.8.5.

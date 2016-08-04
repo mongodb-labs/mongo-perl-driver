@@ -1,3 +1,5 @@
+# Catch bugs like CDRIVER-1447, ensure clients select a server that matches all
+# tags, even when the other server mismatches multiple tags.
 ---
 topology_description:
   type: ReplicaSetNoPrimary
@@ -7,20 +9,23 @@ topology_description:
     avg_rtt_ms: 5
     type: RSSecondary
     tags:
+      rack: one
       data_center: nyc
   - &2
     address: c:27017
-    avg_rtt_ms: 100
+    avg_rtt_ms: 5
     type: RSSecondary
     tags:
-      data_center: nyc
+      rack: two
+      data_center: sf
 operation: read
 read_preference:
-  mode: Nearest
+  mode: Secondary
   tag_sets:
   - data_center: nyc
+    rack: one
+  - other_tag: doesntexist
 suitable_servers:
 - *1
-- *2
 in_latency_window:
 - *1

@@ -150,12 +150,11 @@ sub run_ss_test {
     $topo->_remove_address("localhost:27017");
     for my $s ( @{ $topo_desc->{servers} } ) {
         my $address = $s->{address};
-        my %tags    = map { %$_ } @{ $s->{tags} };
         my $server  = create_mock_server(
             $address,
             $s->{avg_rtt_ms}/1000,
             type => $s->{type},
-            tags => \%tags,
+            tags => $s->{tags},
         );
         $topo->servers->{$server->address} = $server;
         $topo->_update_ewma( $server->address, $server );
@@ -165,7 +164,7 @@ sub run_ss_test {
     if ( $plan->{operation} eq 'read' ) {
         my $read_pref = MongoDB::ReadPreference->new(
             mode     => $plan->{read_preference}{mode},
-            tag_sets => $plan->{read_preference}{tags},
+            tag_sets => $plan->{read_preference}{tag_sets},
         );
         my $mode = $read_pref ? lc $read_pref->mode : 'primary';
         my $method =
@@ -185,9 +184,14 @@ sub run_ss_test {
     }
 
     if ( my @expect = @{ $plan->{in_latency_window} } ) {
-        my $got_address = $got->address;
-        my $found = grep { $got_address eq $_->{address} } @expect;
-        ok( $found, $name );
+        if ( defined($got) ) {
+            my $got_address = $got->address;
+            my $found = grep { $got_address eq $_->{address} } @expect;
+            ok( $found, $name );
+        }
+        else {
+            fail( "expected @expect, but got nothing" );
+        }
     }
     else {
         ok( !defined($got), $name );

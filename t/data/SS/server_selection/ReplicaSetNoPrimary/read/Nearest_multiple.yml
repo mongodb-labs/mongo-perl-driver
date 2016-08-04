@@ -4,13 +4,13 @@ topology_description:
   servers:
   - &1
     address: b:27017
-    avg_rtt_ms: 5
+    avg_rtt_ms: 10
     type: RSSecondary
     tags:
       data_center: nyc
   - &2
     address: c:27017
-    avg_rtt_ms: 100
+    avg_rtt_ms: 20
     type: RSSecondary
     tags:
       data_center: nyc
@@ -24,3 +24,4 @@ suitable_servers:
 - *2
 in_latency_window:
 - *1
+- *2

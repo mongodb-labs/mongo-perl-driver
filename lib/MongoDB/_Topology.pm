@@ -516,17 +516,23 @@ sub _dump {
 sub _eligible {
     my ( $self, $read_pref, @candidates ) = @_;
 
+    # must filter on max staleness first, so that the remaining servers
+    # are checked against the list of tag_sets
+    if ( $read_pref->max_staleness_ms > 0 ) {
+        @candidates = $self->_filter_fresh_servers($read_pref, @candidates );
+        return unless @candidates;
+    };
+
     # given a tag set list, if a tag set matches at least one
     # candidate, then all candidates matching that tag set are eligible
     if ( ! $read_pref->has_empty_tag_sets ) {
         for my $ts ( @{ $read_pref->tag_sets } ) {
-            @candidates = grep { $_->matches_tag_set($ts) } @candidates;
+            if ( my @ts_candidates = grep { $_->matches_tag_set($ts) } @candidates ) {
+                return @ts_candidates;
+            }
         }
+        return;
     }
-
-    if ( $read_pref->max_staleness_ms > 0 ) {
-        @candidates = $self->_filter_fresh_servers($read_pref, @candidates );
-    };
 
     return @candidates;
 }
