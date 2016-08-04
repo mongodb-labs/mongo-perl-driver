@@ -1,8 +1,16 @@
 {
     "in_latency_window": [
         {
+            "address": "b:27017", 
+            "avg_rtt_ms": 10, 
+            "tags": {
+                "data_center": "nyc"
+            }, 
+            "type": "RSSecondary"
+        }, 
+        {
             "address": "a:27017", 
-            "avg_rtt_ms": 26, 
+            "avg_rtt_ms": 20, 
             "tags": {
                 "data_center": "nyc"
             }, 
@@ -11,28 +19,44 @@
     ], 
     "operation": "read", 
     "read_preference": {
-        "mode": "PrimaryPreferred", 
+        "mode": "Nearest", 
         "tag_sets": [
             {
-                "data_center": "sf"
+                "data_center": "nyc"
             }
         ]
     }, 
     "suitable_servers": [
         {
+            "address": "b:27017", 
+            "avg_rtt_ms": 10, 
+            "tags": {
+                "data_center": "nyc"
+            }, 
+            "type": "RSSecondary"
+        }, 
+        {
             "address": "a:27017", 
-            "avg_rtt_ms": 26, 
+            "avg_rtt_ms": 20, 
             "tags": {
                 "data_center": "nyc"
             }, 
             "type": "RSPrimary"
+        }, 
+        {
+            "address": "c:27017", 
+            "avg_rtt_ms": 100, 
+            "tags": {
+                "data_center": "nyc"
+            }, 
+            "type": "RSSecondary"
         }
     ], 
     "topology_description": {
         "servers": [
             {
                 "address": "b:27017", 
-                "avg_rtt_ms": 5, 
+                "avg_rtt_ms": 10, 
                 "tags": {
                     "data_center": "nyc"
                 }, 
@@ -48,7 +72,7 @@
             }, 
             {
                 "address": "a:27017", 
-                "avg_rtt_ms": 26, 
+                "avg_rtt_ms": 20, 
                 "tags": {
                     "data_center": "nyc"
                 }, 

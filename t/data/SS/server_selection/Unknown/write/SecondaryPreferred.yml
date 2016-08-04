@@ -5,9 +5,7 @@ topology_description:
 operation: write
 read_preference:
   mode: SecondaryPreferred
-  tags:
+  tag_sets:
   - data_center: nyc
-candidate_servers: []
-eligible_servers: []
 suitable_servers: []
 in_latency_window: []

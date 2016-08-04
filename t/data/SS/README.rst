@@ -64,6 +64,10 @@ For each file, create a server description object initialized with ``avg_rtt_ms`
 Parse ``new_rtt_ms``, and ensure that the new RTT value for the mocked server
 description is equal to ``new_avg_rtt``.
 
+If driver architecture doesn't easily allow construction of server description
+objects in isolation, unit testing the EWMA algorithm using these inputs
+and expected outputs is acceptable.
+
 Server Selection Logic Tests
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -79,17 +83,12 @@ values from ``read_preference``.
 
 Together with "operation", pass the newly-created TopologyDescription and ReadPreference
 to server selection, and ensure that it selects the correct subset of servers from
-the TopologyDescription. Each YAML file contains a key for each substage of server selection:
+the TopologyDescription. Each YAML file contains a key for these stages of server selection:
 
-- ``candidate_servers``: the set of servers in topology_description that are candidates,
-  as per the Server Selection spec, given operation and read_preference
-- ``eligible_servers``: the set of servers in topology_description that are eligible, as
-  per the Server Selection spec, given operation and read_preference
 - ``suitable_servers``: the set of servers in topology_description that are suitable, as
   per the Server Selection spec, given operation and read_preference
 - ``in_latency_window``: the set of suitable_servers that fall within the latency window
 
-Drivers implementing server selection MUST test that their implementations
-correctly return the set of servers in ``in_latency_window``. Drivers SHOULD test against
-``suitable_servers`` if possible, and MAY test against ``eligible_servers`` and
-``candidate_servers`` if testing at intermediate stages of server selection is desired.
+Drivers implementing server selection MUST test that their implementation
+correctly returns the set of servers in ``in_latency_window``. Drivers SHOULD also test
+against ``suitable_servers`` if possible.
