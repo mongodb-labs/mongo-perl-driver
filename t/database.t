@@ -105,7 +105,7 @@ subtest "collection names" => sub {
 
     my $coll = $testdb->get_collection('test');
 
-    my $cmd = [ create => "test_capped", capped => 1, size => 10000 ];
+    my $cmd = [ create => "test_capped", capped => true, size => 10000 ];
     $testdb->run_command($cmd);
     my $cap = $testdb->get_collection("test_capped");
 
