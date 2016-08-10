@@ -126,24 +126,6 @@ subtest "collection names" => sub {
     cmp_deeply( \@names_of_capped, ['test_capped'], "collection_names with filter" );
 };
 
-# getlasterror
-subtest 'getlasterror' => sub {
-    plan skip_all => "MongoDB 1.5+ needed"
-        unless $server_version >= v1.5.0;
-
-    $testdb->run_command([ismaster => 1]);
-    my $result = $testdb->last_error({fsync => 1});
-    is($result->{ok}, 1);
-    is($result->{err}, undef);
-
-    $result = $testdb->last_error;
-    is($result->{ok}, 1, 'last_error: ok');
-    is($result->{err}, undef, 'last_error: err');
-
-    # mongos never returns 'n'
-    is($result->{n}, $server_type eq 'Mongos' ? undef : 0, 'last_error: n');
-};
-
 # reseterror 
 {
     my $result = $testdb->run_command({reseterror => 1});
@@ -156,20 +138,6 @@ subtest 'getlasterror' => sub {
 
     isa_ok( $err, "MongoDB::DatabaseError" );
 }
-
-# XXX eval is deprecated, but we'll leave this test for now
-subtest "eval (deprecated)" => sub {
-    plan skip_all => "eval not available under auth"
-        if $conn->password;
-    my $hello = $testdb->eval('function(x) { return "hello, "+x; }', ["world"]);
-    is('hello, world', $hello, 'db eval');
-
-    like(
-        exception { $testdb->eval('function(x) { xreturn "hello, "+x; }', ["world"]) },
-        qr/SyntaxError/,
-        'js err'
-    );
-};
 
 # tie
 {

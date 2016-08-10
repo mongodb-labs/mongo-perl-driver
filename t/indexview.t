@@ -40,7 +40,7 @@ my ($iv);
 
 # XXX work around SERVER-18062; create collection to initialize DB for
 # sharded collection so gridfs index creation doesn't fail
-$testdb->coll("testtesttest")->insert({});
+$testdb->coll("testtesttest")->insert_one({});
 
 subtest "collection API" => sub {
     $iv = $coll->indexes;
@@ -78,7 +78,7 @@ subtest "create_many" => sub {
 
 subtest "list indexes" => sub {
     $coll->drop;
-    $coll->insert( {} );
+    $coll->insert_one( {} );
     my $res = $iv->list();
     isa_ok( $res, "MongoDB::QueryResult", "indexes->list" );
     is_deeply( [ sort map { $_->{name} } $res->all ],
@@ -279,7 +279,7 @@ subtest 'text indices' => sub {
 
     ok( $res, "created text index" );
 
-    my ($text_index) = grep { $_->{name} eq 'testTextIndex' } $coll2->get_indexes;
+    my ($text_index) = grep { $_->{name} eq 'testTextIndex' } $coll2->indexes->list->all;
     is( $text_index->{'default_language'}, 'spanish', 'default_language option works' );
     is( $text_index->{'language_override'},
         'language', 'language_override option works' );

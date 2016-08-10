@@ -127,7 +127,7 @@ subtest "UTF-8 strings" => sub {
     my $x =$c->find_one;
     is($x->{char}, "\xFE");
 
-    $c->remove;
+    $c->delete_many({});
 
     # non-latin1
     my $valid = "\x{8D4B}\x{8BD5}";
@@ -441,8 +441,8 @@ subtest "PERL-543 IxHash undef" => sub {
 
 subtest "PERL-575 inflated boolean" => sub {
     $c->drop;
-    $c->insert( { "okay" => false, "name" => "fred0" } );
-    $c->insert( { "okay" => false, "name" => "fred1" } );
+    $c->insert_one( { "okay" => false, "name" => "fred0" } );
+    $c->insert_one( { "okay" => false, "name" => "fred1" } );
 
     my @docs = $c->find()->all;
     is( exception { $_->{okay} = $_->{okay}->TO_JSON for @docs },

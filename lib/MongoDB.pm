@@ -199,6 +199,10 @@ internal type assertions enabled.  This has a severe performance cost and
 is not recommended for production use.  It may be useful in diagnosing
 bugs.
 
+If the C<PERL_MONGO_NO_DEP_WARNINGS> environment variable is true, then
+deprecated methods will not issue warnings when used.  (Normally, a
+deprecation warning is issued once per call-site for deprecated methods.)
+
 =head1 THREADS
 
 Because of well-known bugs, use of threads on perls before v5.8.5 is

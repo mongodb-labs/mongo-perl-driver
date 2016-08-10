@@ -217,7 +217,7 @@ subtest "replace_one" => sub {
     is( $got->{x}, 2, "document contents correct" );
 
     # replace existing with upsert -- add duplicate to confirm only one
-    $coll->insert( { x => 2 } );
+    $coll->insert_one( { x => 2 } );
     $res = $coll->replace_one( { x => 2 }, { x => 3 }, { upsert => 1 } );
     is( $coll->count( {} ), 2, "replace existing with upsert" );
     is( $res->matched_count, 1, "matched_count 1" );
@@ -287,7 +287,7 @@ subtest "update_one" => sub {
     is( $got->{x}, 2, "document contents correct" );
 
     # update existing with upsert -- add duplicate to confirm only one
-    $coll->insert( { x => 2 } );
+    $coll->insert_one( { x => 2 } );
     $res = $coll->update_one( { x => 2 }, { '$set' => { x => 3 } }, { upsert => 1 } );
     is( $coll->count( {} ), 2, "update existing with upsert" );
     is( $res->matched_count, 1, "matched_count 1" );
@@ -354,7 +354,7 @@ subtest "update_many" => sub {
     );
 
     # update existing with upsert -- add duplicate to confirm multiple
-    $coll->insert( { x => 2 } );
+    $coll->insert_one( { x => 2 } );
     $res = $coll->update_many( { x => 2 }, { '$set' => { x => 3 } }, { upsert => 1 } );
     is( $coll->count( {} ), 2, "update existing with upsert" );
     is( $res->matched_count, 2, "matched_count 2" );

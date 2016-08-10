@@ -154,7 +154,7 @@ subtest "direct connection" => sub {
     my $N = 20;
 
     $coll->drop;
-    $coll->insert({'a' => $_}) for 1..$N;
+    $coll->insert_one({'a' => $_}) for 1..$N;
 
     for my $s ( $conn->_topology->all_servers ) {
         next unless $s->is_readable;

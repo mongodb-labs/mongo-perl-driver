@@ -271,6 +271,10 @@ sub _build__op_args {
     };
 }
 
+with $_ for qw(
+  MongoDB::Role::_DeprecationWarner
+);
+
 #--------------------------------------------------------------------------#
 # public methods
 #--------------------------------------------------------------------------#
@@ -1513,6 +1517,8 @@ sub insert {
 
     my ( $self, $document, $opts ) = @_;
 
+    $self->_warn_deprecated( 'insert' => ['insert_one'] );
+
     my $op = MongoDB::Op::_InsertOne->_new(
         document => $document,
         %{ $self->_op_args },
@@ -1529,6 +1535,8 @@ sub batch_insert {
       unless ref( $_[1] ) eq 'ARRAY';
 
     my ( $self, $documents, $opts ) = @_;
+
+    $self->_warn_deprecated( 'batch_insert' => ['insert_many'] );
 
     my $op = MongoDB::Op::_BatchInsert->_new(
         documents     => $documents,
@@ -1555,6 +1563,8 @@ sub remove {
     my ($self, $query, $opts) = @_;
     $opts ||= {};
 
+    $self->_warn_deprecated( 'remove' => [qw/delete_many delete_one/] );
+
     my $op = MongoDB::Op::_Delete->_new(
         filter        => $query || {},
         just_one      => !! $opts->{just_one},
@@ -1575,6 +1585,8 @@ my $legacy_update_args;
 sub update {
     my ( $self, $query, $object, $opts ) = @_;
     $opts ||= {};
+
+    $self->_warn_deprecated( 'update' => [qw/update_one update_many replace_one/] );
 
     if ( exists $opts->{multiple} ) {
         if ( exists( $opts->{multi} ) && !!$opts->{multi} ne !!$opts->{multiple} ) {
@@ -1628,6 +1640,8 @@ sub save {
 
     my ($self, $doc, $options) = @_;
 
+    $self->_warn_deprecated( 'save', "Use 'replace_one' with upsert instead." );
+
     my $type = ref($doc);
     my $id = (
           $type eq 'HASH' ? $doc->{_id}
@@ -1654,6 +1668,9 @@ sub find_and_modify {
     my ( $self, $opts ) = @_;
     $opts ||= {};
 
+    $self->_warn_deprecated( 'find_and_modify' =>
+          [qw/find_one_and_update find_one_and_replace find_one_and_delete/] );
+
     MongoDB::UsageError->throw("find_and_modify requires a 'query' option")
         unless $opts->{query};
 
@@ -1673,11 +1690,17 @@ sub get_collection {
     my $self = shift @_;
     my $coll = shift @_;
 
+    $self->_warn_deprecated( 'get_collection',
+        "Use \$coll->database->coll(join('.', \$coll->name, 'subname')) instead." );
+
     return $self->database->get_collection($self->name.'.'.$coll);
 }
 
 sub ensure_index {
     my ( $self, $keys, $opts ) = @_;
+
+    $self->_warn_deprecated( 'ensure_index' => "Use 'indexes' to work with a MongoDB::IndexView instead." );
+
     MongoDB::UsageError->throw("ensure_index options must be a hash reference")
       if $opts && !ref($opts) eq 'HASH';
 
@@ -1765,6 +1788,8 @@ sub __to_index_string {
 sub get_indexes {
     my ($self) = @_;
 
+    $self->_warn_deprecated( 'get_indexes'  => "Use 'indexes' to work with a MongoDB::IndexView instead." );
+
     my $op = MongoDB::Op::_ListIndexes->_new(
         %{ $_[0]->_op_args },
     );
@@ -1776,11 +1801,17 @@ sub get_indexes {
 
 sub drop_indexes {
     my ($self) = @_;
+
+    $self->_warn_deprecated( 'drop_indexes'  => "Use 'indexes' to work with a MongoDB::IndexView instead." );
+
     return $self->drop_index('*');
 }
 
 sub drop_index {
     my ($self, $index_name) = @_;
+
+    $self->_warn_deprecated( 'drop_index'  => "Use 'indexes' to work with a MongoDB::IndexView instead." );
+
     return $self->_run_command([
         dropIndexes => $self->name,
         index => $index_name,
@@ -1789,6 +1820,9 @@ sub drop_index {
 
 sub validate {
     my ($self, $scan_data) = @_;
+
+    $self->_warn_deprecated( 'validate'  => "Use 'validate' manually via MongoDB::Database::run_command" );
+
     $scan_data = 0 unless defined $scan_data;
     my $obj = $self->_run_command({ validate => $self->name });
 }

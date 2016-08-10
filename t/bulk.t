@@ -331,7 +331,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         );
 
         # check expected values
-        is( $coll->find( { key => 3 } )->count, 1, "one document updated" );
+        is( $coll->count( { key => 3 } ), 1, "one document updated" );
     };
 
 }

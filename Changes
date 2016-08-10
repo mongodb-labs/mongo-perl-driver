@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [*** Deprecations ***]
+
+  - No new deprecations, but deprecated methods now issue warnings and a
+    stack trace once per call-site.
+
   [Additions]
 
   - PERL-611 Add support for the BSON Decimal128 type, available in

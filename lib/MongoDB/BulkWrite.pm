@@ -120,6 +120,10 @@ sub _build__client {
     return $self->_database->_client;
 }
 
+with $_ for qw(
+  MongoDB::Role::_DeprecationWarner
+);
+
 =method find
 
     $view = $bulk->find( $query_document );
@@ -263,11 +267,13 @@ sub execute {
 # Deprecated methods
 #--------------------------------------------------------------------------#
 
-BEGIN {
-    no warnings 'once';
-    *insert = \&insert_one;
-}
+sub insert {
+    my $self = shift;
 
+    $self->_warn_deprecated( 'insert' => [qw/insert_one/] );
+
+    return $self->insert_one(@_);
+}
 
 1;
 

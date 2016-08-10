@@ -242,20 +242,6 @@ $coll->drop;
         qr/MongoDB::(Database)?Error/, "check error on hint with explain" );
 }
 
-# count
-{
-    $coll->drop;
-    is ($coll->count, 0, "empty" );
-    $coll->insert_many([{'x' => 1}, {'x' => 1}, {'y' => 1}, {'x' => 1, 'z' => 1}]);
-
-    is($coll->query->count, 4, 'count');
-    is($coll->query({'x' => 1})->count, 3, 'count query');
-
-    is($coll->query->limit(1)->count(1), 1, 'count limit');
-    is($coll->query->skip(1)->count(1), 3, 'count skip');
-    is($coll->query->limit(1)->skip(1)->count(1), 1, 'count limit & skip');
-}
-
 # cursor opts
 # not a functional test, just make sure they don't blow up
 {
@@ -294,11 +280,6 @@ $coll->drop;
     ok($cursor->_query->noCursorTimeout, "set immortal");
     $cursor->immortal(0);
     ok(! $cursor->_query->noCursorTimeout, "clear immortal");
-
-    $cursor->slave_okay(1);
-    is($cursor->_query->read_preference->mode, 'secondaryPreferred', "set slave_ok");
-    $cursor->slave_okay(0);
-    is($cursor->_query->read_preference->mode, 'primary', "clear slave_ok");
 }
 
 # explain
@@ -351,8 +332,9 @@ $coll->drop;
         $coll->insert_one({x => $i});
     }
 
+    # XXX this test makes no sense; remove? fix? -- xdg, 2016-08-10
     $cursor = $coll->query({}, { limit => 10, skip => 0, sort_by => {created => 1 }});
-    is($cursor->count(), 5);
+    is($coll->count(), 5);
 }
 
 # delayed tailable cursor
@@ -403,49 +385,6 @@ subtest "await data" => sub {
     # did it actually block for a bit?
     ok( $end >= $start + 1, "cursor blocked to await data" )
       or diag "START: $start; END: $end";
-};
-
-subtest "count w/ hint" => sub {
-
-    $coll->drop;
-    $coll->insert_one( { i => 1 } );
-    $coll->insert_one( { i => 2 } );
-    is ($coll->find()->count(), 2, 'count = 2');
-
-    $coll->indexes->create_one( { i => 1 } );
-
-    is( $coll->find( { i => 1 } )->hint( '_id_' )->count(), 1, 'count w/ hint & spec');
-    is( $coll->find()->hint( '_id_' )->count(), 2, 'count w/ hint');
-
-    my $current_version = version->parse($server_version);
-    my $version_2_6 = version->parse('v2.6');
-
-    if ( $current_version > $version_2_6 ) {
-
-        eval { $coll->find( { i => 1 } )->hint( 'BAD HINT')->count() };
-        like($@, ($server_type eq "Mongos" ? qr/failed/ : qr/bad hint/ ), 'check bad hint error');
-
-    } else {
-
-        is( $coll->find( { i => 1 } )->hint( 'BAD HINT' )->count(), 1, 'bad hint and spec');
-    }
-
-    $coll->indexes->create_one( { x => 1 }, { sparse => 1 } );
-
-    if ($current_version > $version_2_6 ) {
-
-        is( $coll->find( {  i => 1 } )->hint( 'x_1' )->count(), 0, 'spec & hint on empty sparse index');
-
-    } else {
-
-        is( $coll->find( {  i => 1 } )->hint( 'x_1' )->count(), 1, 'spec & hint on empty sparse index');
-    }
-
-    # XXX Failing on nightly master -- xdg, 2016-02-11
-    TODO: {
-        local $TODO = "Failing nightly master";
-        is( $coll->find()->hint( 'x_1' )->count(), 2, 'hint on empty sparse index');
-    }
 };
 
 done_testing;

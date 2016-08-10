@@ -25,6 +25,7 @@ use MongoDB::Timestamp;
 use DateTime;
 use JSON::MaybeXS;
 use Test::Fatal;
+use boolean;
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
@@ -227,17 +228,16 @@ is($id."", $id->value);
     my $x;
 
     if ( ! $conn->password ) {
-        $x = $testdb->eval($code);
-        is($x, 5);
+        $x = $testdb->run_command([eval => $code, nolock => false]);
+        is($x->{retval}, 5);
     }
 
     $str = "function() { return name; }";
     $code = MongoDB::Code->new("code" => $str,
                                "scope" => {"name" => "Fred"});
     if ( ! $conn->password ) {
-        # XXX eval is deprecated, but we'll leave this test for now
-        $x = $testdb->eval($code);
-        is($x, "Fred");
+        $x = $testdb->run_command([eval => $code, nolock => false]);
+        is($x->{retval}, "Fred");
     }
 
     $coll->drop;

@@ -56,6 +56,10 @@ has _upsert => (
     default => sub { false },
 );
 
+with $_ for qw(
+  MongoDB::Role::_DeprecationWarner
+);
+
 sub upsert {
     my ($self) = @_;
     unless ( @_ == 1 ) {
@@ -126,13 +130,29 @@ sub delete_one {
 # Deprecated methods
 #--------------------------------------------------------------------------#
 
-BEGIN {
-    no warnings 'once';
-    *update = \&update_many;
-    *remove = \&delete_many;
-    *remove_one = \&delete_one;
+sub update {
+    my $self = shift;
+
+    $self->_warn_deprecated( 'update' => [qw/update_many/] );
+
+    return $self->update_many(@_);
 }
 
+sub remove {
+    my $self = shift;
+
+    $self->_warn_deprecated( 'remove' => [qw/delete_many/] );
+
+    return $self->delete_many(@_);
+}
+
+sub remove_one {
+    my $self = shift;
+
+    $self->_warn_deprecated( 'remove_one' => [qw/delete_one/] );
+
+    return $self->delete_one(@_);
+}
 
 1;
 

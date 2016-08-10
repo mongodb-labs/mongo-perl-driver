@@ -34,6 +34,8 @@ use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
 
 skip_unless_mongod();
 
+$ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1;
+
 my $testdb = get_test_db(build_client());
 my $txtfile = "t/data/gridfs/input.txt";
 my $pngfile = "t/data/gridfs/data.bin";
@@ -45,7 +47,7 @@ my $save_id;
 
 # XXX work around SERVER-18062; create collection to initialize DB for
 # sharded collection so gridfs index creation doesn't fail
-$testdb->coll("testtesttest")->insert({});
+$testdb->coll("testtesttest")->insert_one({});
 
 # DB initialized, so now get gridfs object
 my $grid = $testdb->get_gridfs;

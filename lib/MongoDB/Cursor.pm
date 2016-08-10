@@ -47,7 +47,10 @@ queried.
 
 =cut
 
-with 'MongoDB::Role::_CursorAPI';
+with $_ for qw(
+  MongoDB::Role::_CursorAPI
+  MongoDB::Role::_DeprecationWarner
+);
 
 # attributes for sending a query
 has client => (
@@ -602,6 +605,9 @@ sub info {
 sub count {
     my ($self, $limit_skip) = @_;
 
+    $self->_warn_deprecated(
+        'count' => "Use the 'count' method from MongoDB::Collection instead." );
+
     my $cmd = new Tie::IxHash(count => $self->_query->coll_name);
 
     $cmd->Push(query => $self->_query->filter);
@@ -633,6 +639,9 @@ my $SEC_PREFERRED = MongoDB::ReadPreference->new( mode => 'secondaryPreferred' )
 
 sub slave_okay {
     my ($self, $value) = @_;
+
+    $self->_warn_deprecated( 'slave_okay' => [qw/read_preference/] );
+
     MongoDB::UsageError->throw("cannot set slave_ok after querying")
       if $self->started_iterating;
 

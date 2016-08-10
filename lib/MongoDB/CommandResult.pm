@@ -35,6 +35,7 @@ use namespace::clean;
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseErrorThrower
+  MongoDB::Role::_DeprecationWarner
 );
 
 =attr output
@@ -145,7 +146,13 @@ sub assert_no_write_concern_error {
 }
 
 # deprecated
-sub result { shift->output }
+sub result {
+    my $self = shift;
+
+    $self->_warn_deprecated( 'result' => [qw/output/] );
+
+    return $self->output;
+}
 
 1;
 

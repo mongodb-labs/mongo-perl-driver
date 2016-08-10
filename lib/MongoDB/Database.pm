@@ -145,6 +145,10 @@ has bson_codec => (
     required => 1,
 );
 
+with $_ for qw(
+  MongoDB::Role::_DeprecationWarner
+);
+
 #--------------------------------------------------------------------------#
 # methods
 #--------------------------------------------------------------------------#
@@ -334,6 +338,8 @@ sub get_gridfs {
     my ($self, $prefix, $options) = @_;
     $prefix = "fs" unless $prefix;
 
+    $self->_warn_deprecated( 'get_gridfs' => [qw/get_gridfsbucket gfs/] );
+
     return MongoDB::GridFS->new(
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
@@ -426,6 +432,8 @@ sub run_command {
 sub eval {
     my ($self, $code, $args, $nolock) = @_;
 
+    $self->_warn_deprecated( 'eval', "Run manually via run_command instead." );
+
     $nolock = boolean::false unless defined $nolock;
 
     my $cmd = tie(my %hash, 'Tie::IxHash');
@@ -444,6 +452,10 @@ sub eval {
 
 sub last_error {
     my ( $self, $opt ) = @_;
+
+    $self->_warn_deprecated(
+        'last_error' => "Use a write concern or manually run getlasterror with run_command." );
+
     return $self->run_command( [ getlasterror => 1, ( $opt ? %$opt : () ) ] );
 }
 

@@ -176,8 +176,8 @@ sub _ensure_indexes {
     my ($self) = @_;
 
     # ensure the necessary index is present (this may be first usage)
-    $self->files->ensure_index(Tie::IxHash->new(filename => 1), {"safe" => 1});
-    $self->chunks->ensure_index(Tie::IxHash->new(files_id => 1, n => 1), {"safe" => 1, "unique" => 1});
+    $self->files->indexes->create_one(Tie::IxHash->new(filename => 1));
+    $self->chunks->indexes->create_one(Tie::IxHash->new(files_id => 1, n => 1), {"unique" => 1});
 }
 
 =method get
