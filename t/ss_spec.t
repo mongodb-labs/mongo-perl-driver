@@ -67,7 +67,7 @@ subtest "random selection" => sub {
     my $topo = create_mock_topology( "mongodb://localhost", 'Sharded' );
     $topo->_remove_address("localhost:27017");
 
-    for my $n ( "A" .. "Z" ) {
+    for my $n ( "a" .. "z" ) {
         my $address = "$n:27017";
         my $server = create_mock_server( $address, 10, type => 'Mongos' );
         $topo->servers->{$server->address} = $server;

@@ -106,11 +106,11 @@ declare HeartbeatFreq, as Num,
 # IPv4/IPv6 literals
 declare HostAddress, as Str,
   where { $_ =~ /^[^:]+:[0-9]+$/ and lc($_) eq $_ }, message {
-    "Address '$_' not formatted as 'hostname:port'"
+    "Address '$_' either not lowercased or not formatted as 'hostname:port'"
   };
 
 declare HostAddressList, as ArrayRef [HostAddress], message {
-    "Address list <@$_> is not all hostname:port pairs"
+    "Address list <@$_> not all formatted as lowercased 'hostname:port' pairs"
 };
 
 class_type IxHash, { class => 'Tie::IxHash' };
@@ -185,12 +185,6 @@ coerce DBRefColl, from MongoDBCollection, via { $_->name };
 coerce DBRefDB, from MongoDBDatabase, via { $_->name };
 
 coerce ErrorStr, from Str, via { $_ || "unspecified error" };
-
-coerce HostAddress, from Str, via { /:/ ? lc $_ : lc "$_:27017" };
-
-coerce HostAddressList, from ArrayRef, via {
-    [ map { /:/ ? lc $_ : lc "$_:27017" } @$_ ]
-};
 
 coerce ReadPrefMode, from Str, via { $_ = lc $_; s/_?preferred/Preferred/; $_ };
 
