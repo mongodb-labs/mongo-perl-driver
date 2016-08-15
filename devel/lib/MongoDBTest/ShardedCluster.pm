@@ -93,7 +93,7 @@ sub _build_shard_sets {
     for my $shard ( @{ $self->config->{shards} } ) {
         my $name = $shard->{name};
         # args are additive, version is not
-        $shard->{default_args} = $self->default_args . ($shard->{default_args} // "");
+        $shard->{default_args} = "--shardsvr " . $self->default_args . ($shard->{default_args} // "");
         $shard->{default_version} //= $self->default_version,
 
         $set->{$name} = MongoDBTest::Deployment->new( config => $shard );
