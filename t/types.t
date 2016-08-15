@@ -28,12 +28,15 @@ use Test::Fatal;
 use boolean;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
+use MongoDBTest qw/skip_unless_mongod build_client get_test_db
+    server_type server_version/;
 
 skip_unless_mongod();
 
 my $conn = build_client();
 my $testdb = get_test_db($conn);
+my $server_type = server_type($conn);
+my $server_version = server_version($conn);
 
 my $coll = $testdb->get_collection('y');
 $coll->drop;
@@ -227,17 +230,22 @@ is($id."", $id->value);
 
     my $x;
 
-    if ( ! $conn->password ) {
-        $x = $testdb->run_command([eval => $code, nolock => false]);
-        is($x->{retval}, 5);
+    if ( !( $server_type eq 'Mongos' && $server_version < v2.6.0 ) && !$conn->password )
+    {
+        $x = $testdb->run_command( [ eval => $code, nolock => false ] );
+        is( $x->{retval}, 5, "eval with scope" );
     }
 
-    $str = "function() { return name; }";
-    $code = MongoDB::Code->new("code" => $str,
-                               "scope" => {"name" => "Fred"});
-    if ( ! $conn->password ) {
-        $x = $testdb->run_command([eval => $code, nolock => false]);
-        is($x->{retval}, "Fred");
+    $str  = "function() { return name; }";
+    $code = MongoDB::Code->new(
+        "code"  => $str,
+        "scope" => { "name" => "Fred" }
+    );
+
+    if ( !( $server_type eq 'Mongos' && $server_version < v2.6.0 ) && !$conn->password )
+    {
+        $x = $testdb->run_command( [ eval => $code, nolock => false ] );
+        is( $x->{retval}, "Fred", "eval with scope" );
     }
 
     $coll->drop;

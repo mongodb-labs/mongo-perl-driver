@@ -41,7 +41,11 @@ my $conn = build_client();
 my $testdb = get_test_db($conn);
 my $db_name = $testdb->name;
 my $server_version = server_version($conn);
-my $server_type = server_type($conn);;
+my $server_type = server_type($conn);
+
+# make sure database is created; otherwise eval tests fail on sharded 2.4
+# and 3.2
+$testdb->coll("test")->insert({});
 
 subtest 'getlasterror' => sub {
     plan skip_all => "MongoDB 1.5+ needed"
