@@ -75,7 +75,7 @@ sub run_test {
 
     is_deeply( $test->{options} || {}, $uri->options, "parsing of options" );
 
-    is( $test->{warning}, $warning_counter > 0, "correct number of warnings" );
+    is( !!$test->{warning}, !!($warning_counter > 0), "correct number of warnings" );
 }
 
 my $dir      = path("t/data/connection_string");
