@@ -33,8 +33,11 @@ install:
   - cpan-install ExtUtils::CBuilder Config::AutoConf Path::Tiny
   - cpan-install --deps       # installs prereqs, including recommends
   - cpan-install --coverage   # installs converage prereqs, if enabled
+  - cpan-install App::mymeta_requires # for listing deps
 before_script:
   - coverage-setup
 script: perl Makefile.PL && make test
+after_script:
+  - mymeta-requires --report
 after_success:
   - coverage-report
