@@ -69,13 +69,13 @@ sub run_test {
 
     is_deeply( \@hosts, $test->{hosts}, "parsing of host list" );
 
-    is( $test->{auth}->{db} || "", $uri->db_name, "parsing of auth database" );
-    is( $test->{auth}->{username}, $uri->username, "parsing of username" );
-    is( $test->{auth}->{password}, $uri->password, "parsing of password" );
+    is( $uri->db_name, $test->{auth}->{db} || "", "parsing of auth database" );
+    is( $uri->username, $test->{auth}->{username}, "parsing of username" );
+    is( $uri->password, $test->{auth}->{password}, "parsing of password" );
 
-    is_deeply( $test->{options} || {}, $uri->options, "parsing of options" );
+    is_deeply( $uri->options, $test->{options} || {}, "parsing of options" );
 
-    is( !!$test->{warning}, !!($warning_counter > 0), "correct number of warnings" );
+    is( !!($warning_counter > 0), !!$test->{warning}, "correct number of warnings" );
 }
 
 my $dir      = path("t/data/connection_string");
