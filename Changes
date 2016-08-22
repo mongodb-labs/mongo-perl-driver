@@ -26,6 +26,10 @@
   - PERL-632 Fix server selection bugs in the case of read preferences with
     multiple tag-set entries.
 
+  - PERL-652 The deprecated legacy 'update' method had a bug that wouldn't
+    allow an empty replacement document (which destroys all fields except
+    for _id).  While strange, this now works.
+
   [Changes]
 
   - PERL-644 Use of threads is no longer supported on perls before 5.8.5.

@@ -630,4 +630,12 @@ for my $criteria ( $js_str, $js_obj ) {
     };
 }
 
+subtest "empty update" => sub {
+    $coll->drop;
+    my $id = $coll->insert( { a => 1, b => 1 } );
+    $coll->update( { a => 1 }, {} );
+    is( $coll->count( { _id => $id } ), 1, "document _id field not modified" );
+    is( $coll->count( { a => 1 } ), 0, "document data modified" );
+};
+
 done_testing;

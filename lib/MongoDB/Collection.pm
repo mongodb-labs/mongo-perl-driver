@@ -1585,6 +1585,7 @@ my $legacy_update_args;
 sub update {
     my ( $self, $query, $object, $opts ) = @_;
     $opts ||= {};
+    $object ||= {};
 
     $self->_warn_deprecated( 'update' => [qw/update_one update_many replace_one/] );
 
@@ -1606,8 +1607,8 @@ sub update {
     );
     $fk = defined($fk) ? substr($fk,0,1) : '';
 
-    my $op_char = eval { $self->bson_codec->op_char } || '';
-    my $is_replace = $fk ne '$' && $fk ne $op_char;
+    my $op_char = eval { $self->bson_codec->op_char } || '$';
+    my $is_replace = $fk ne $op_char;
 
     my $op = MongoDB::Op::_Update->_new(
         filter => $query  || {},
