@@ -18,7 +18,7 @@ package MongoDB::GridFS;
 # ABSTRACT: A file storage abstraction (DEPRECATED)
 
 use version;
-our $VERSION = 'v1.4.5';
+our $VERSION = 'v1.4.6';
 
 use MongoDB::GridFS::File;
 use Digest::MD5;

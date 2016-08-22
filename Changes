@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.4.5    2016-08-22 15:40:36-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-652 The deprecated legacy 'update' method had a bug that wouldn't

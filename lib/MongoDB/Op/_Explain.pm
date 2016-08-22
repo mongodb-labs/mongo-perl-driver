@@ -19,7 +19,7 @@ package MongoDB::Op::_Explain;
 # Encapsulate code path for explain commands/queries
 
 use version;
-our $VERSION = 'v1.4.5';
+our $VERSION = 'v1.4.6';
 
 use Moo;
 

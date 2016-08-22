@@ -2,7 +2,7 @@ package MongoDB::BSON::Regexp;
 # ABSTRACT: Regular expression type
 
 use version;
-our $VERSION = 'v1.4.5';
+our $VERSION = 'v1.4.6';
 
 use Moo;
 use MongoDB::Error;

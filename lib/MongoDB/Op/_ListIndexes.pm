@@ -19,7 +19,7 @@ package MongoDB::Op::_ListIndexes;
 # Encapsulate index list operation; returns array ref of index documents
 
 use version;
-our $VERSION = 'v1.4.5';
+our $VERSION = 'v1.4.6';
 
 use Moo;
 

@@ -19,7 +19,7 @@ package MongoDB::Op::_Distinct;
 # Encapsulate distinct operation; return MongoDB::QueryResult
 
 use version;
-our $VERSION = 'v1.4.5';
+our $VERSION = 'v1.4.6';
 
 use Moo;
 

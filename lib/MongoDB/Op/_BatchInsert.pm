@@ -20,7 +20,7 @@ package MongoDB::Op::_BatchInsert;
 # MongoDB::InsertManyResult
 
 use version;
-our $VERSION = 'v1.4.5';
+our $VERSION = 'v1.4.6';
 
 use Moo;
 

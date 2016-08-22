@@ -18,7 +18,7 @@ package MongoDB::GridFSBucket;
 # ABSTRACT: A file storage abstraction
 
 use version;
-our $VERSION = 'v1.4.5';
+our $VERSION = 'v1.4.6';
 
 use Moo;
 use MongoDB::GridFSBucket::DownloadStream;
