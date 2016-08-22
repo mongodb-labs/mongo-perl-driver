@@ -2,6 +2,12 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-652 The deprecated legacy 'update' method had a bug that wouldn't
+    allow an empty replacement document (which destroys all fields except
+    for _id).  While strange, this now works.
+
 v1.4.4    2016-07-27 15:06:43-04:00 America/New_York
 
   [Bug fixes]
