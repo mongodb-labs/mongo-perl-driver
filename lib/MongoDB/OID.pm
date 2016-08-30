@@ -40,7 +40,7 @@ use namespace::clean;
 =head2 value
 
 The OID value. A random value will be generated if none exists already.
-It is a 24-character hexidecimal string (12 bytes).
+It is a 24-character hexadecimal string (12 bytes).
 
 Its string representation is the 24-character string.
 
@@ -87,7 +87,7 @@ sub _new_oid {
 
     my $hex = $oid->to_string;
 
-Gets the value of this OID as a 24-digit hexidecimal string.
+Gets the value of this OID as a 24-digit hexadecimal string.
 
 =cut
 

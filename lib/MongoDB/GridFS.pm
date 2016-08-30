@@ -498,7 +498,7 @@ using one over the other is a matter of preference.
 
 =head2 Error handling
 
-Unless otherwise explictly documented, all methods throw exceptions if
+Unless otherwise explicitly documented, all methods throw exceptions if
 an error occurs.  The error types are documented in L<MongoDB::Error>.
 
 To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules

@@ -1979,7 +1979,7 @@ call C<get_collection> on a L<MongoDB::Database> object.
 
 =head2 Error handling
 
-Unless otherwise explictly documented, all methods throw exceptions if
+Unless otherwise explicitly documented, all methods throw exceptions if
 an error occurs.  The error types are documented in L<MongoDB::Error>.
 
 To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules
@@ -2043,7 +2043,7 @@ The C<get_collection> method is deprecated; it implied a 'subcollection'
 relationship that is purely notional.
 
 The C<ensure_index>, C<drop_indexes>, C<drop_index>, and C<get_index>
-methods are deprecated. The new L<MongoDB::IndexView> class is accessable
+methods are deprecated. The new L<MongoDB::IndexView> class is accessible
 through the C<indexes> method, and offer greater consistency in behavior
 across drivers.
 

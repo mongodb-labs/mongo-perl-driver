@@ -307,11 +307,11 @@ __END__
 
 =head1 DESCRIPTION
 
-This class defines a heirarchy of exception objects.
+This class defines a hierarchy of exception objects.
 
 =head1 USAGE
 
-Unless otherwise explictly documented, all driver methods throw exceptions if
+Unless otherwise explicitly documented, all driver methods throw exceptions if
 an error occurs.
 
 To catch and handle errors, the L<Try::Tiny> and L<Safe::Isa> modules

@@ -636,7 +636,7 @@ are two ways to go about uploading and downloading:
 
 =head2 Error handling
 
-Unless otherwise explictly documented, all methods throw exceptions if
+Unless otherwise explicitly documented, all methods throw exceptions if
 an error occurs.  The error types are documented in L<MongoDB::Error>.
 
 =head1 SEE ALSO

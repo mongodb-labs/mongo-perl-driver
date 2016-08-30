@@ -576,7 +576,7 @@ triggering Perl memory bugs under threads.  Therefore, the v1.0.0 driver no
 longer support fetching directly from L<MongoDB::DBRef>; users will need to
 implement their own methods for dereferencing.
 
-Additonally, the C<db> attribute is now optional, consistent with the
+Additionally, the C<db> attribute is now optional, consistent with the
 specification for DBRefs.
 
 Also, all attributes (C<ref>, C<id> and C<db>) are now read-only,
@@ -613,7 +613,7 @@ new MongoDB driver API.
   have a Collection be a factory for collections.  Users who want nested
   namespaces should be explicit and create them off Database objects instead.
 * ensure_index, drop_indexes, drop_index, get_index — A new
-  L<MongoDB::IndexView> class is accessable through the C<indexes> method,
+  L<MongoDB::IndexView> class is accessible through the C<indexes> method,
   offering greater consistency in behavior across drivers.
 * validate — The return values have changed over different server versions,
   so this method is risky to use; it has more use as a one-off tool, which

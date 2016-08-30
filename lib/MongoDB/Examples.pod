@@ -335,7 +335,7 @@ courses in which that student is enrolled:
 The C<$unwind> stage of the aggregation query "peels off" elements of the courses
 array one-by-one and places them in their own documents. After this phase completes,
 there is a separate document for each (course, student) pair. The C<$project> stage
-then throws out unecessary fields and keeps the ones we are interested in. It also
+then throws out unnecessary fields and keeps the ones we are interested in. It also
 pulls the student ID field out of its subdocument and creates a top-level field
 with the key C<student_id>. Last, we group by student ID, using C<$addToSet> in
 order to add the unique courses for each student to the C<courses> array.
