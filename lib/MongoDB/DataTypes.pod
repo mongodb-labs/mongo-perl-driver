@@ -327,7 +327,7 @@ correctly in the database:
 
 "OID" stands for "Object ID", and is a unique id for identifying documents.
 OIDs are 12 bytes, which are guaranteed to be unique.  Their string form is
-a 24-character string of hexidecimal digits.
+a 24-character string of hexadecimal digits.
 
 To create a unique id:
 

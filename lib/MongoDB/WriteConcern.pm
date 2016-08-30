@@ -51,7 +51,7 @@ has w => (
 =attr wtimeout
 
 Specifies how long to wait for the write concern to be satisfied (in
-milliseonds).  Defaults to 1000.
+milliseconds).  Defaults to 1000.
 
 =cut
 
