@@ -624,6 +624,9 @@ Valid options include:
 * C<allowPartialResults> - get partial results from a mongos if some shards are
   down (instead of throwing an error).
 * C<batchSize> – the number of documents to return per batch.
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<comment> – attaches a comment to the query. If C<$comment> also exists in
   the C<modifiers> document, the comment field overwrites C<$comment>.
 * C<cursorType> – indicates the type of cursor to use. It must be one of three
@@ -732,6 +735,9 @@ A hash reference of options may be provided as a third argument. Valid keys
 include:
 
 =for :list
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<sort> – an L<ordered document|/Ordered document> defining the order in which

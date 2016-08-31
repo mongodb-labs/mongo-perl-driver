@@ -149,6 +149,11 @@ has sort => (
     isa => Maybe( [IxHash] ),
 );
 
+has collation => (
+    is  => 'rw',
+    isa => Maybe( [Document] ),
+);
+
 # Not a MongoDB query attribute; this is used during construction of a
 # result object
 has post_filter => (
@@ -168,6 +173,11 @@ with $_ for qw(
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
+
+    if ( defined $self->collation and !$link->supports_collation ) {
+        MongoDB::UsageError->throw(
+            "MongoDB host '" . $link->address . "' doesn't support collation" );
+    }
 
     my $res =
         $link->accepts_wire_version(4)
@@ -297,6 +307,7 @@ sub as_command {
 
         (defined $self->{sort} ? (sort => $self->{sort}) : ()),
         (defined $self->{projection} ? (projection => $self->{projection}) : ()),
+        (defined $self->{collation} ? (collation => $self->{collation}) : ()),
         (defined $mod->{'$hint'} ? (hint => $mod->{'$hint'}) : ()),
 
         skip                => $self->{skip},

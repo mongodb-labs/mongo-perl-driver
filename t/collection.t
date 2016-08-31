@@ -40,6 +40,10 @@ my $testdb = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type = server_type($conn);
 my $coll = $testdb->get_collection('test_collection');
+
+my $supports_collation = $server_version >= 3.3.9;
+my $case_insensitive_collation = { locale => "en_US", strength => 2 };
+
 my $id;
 my $obj;
 my $ok;
@@ -735,6 +739,40 @@ subtest "count w/ hint" => sub {
     TODO: {
         local $TODO = "Failing nightly master";
         is( $coll->count( {}, { hint => 'x_1' } ), 2, 'hint on empty sparse index');
+    }
+};
+
+subtest "querying w/ collation" => sub {
+    $coll->drop;
+    $coll->insert_one( { _id => 0, x => "FOO" } );
+    $coll->insert_one( { _id => 1, x => "foo" } );
+
+    if ($supports_collation) {
+        my $result_count =
+          $coll->find( { x => "foo" }, { collation => $case_insensitive_collation } )->all;
+        is( $result_count, 2, "find w/ collation" );
+
+        my $doc = $coll->find_one( { _id => 0, x => "foo" },
+            undef, { collation => $case_insensitive_collation } );
+        cmp_deeply( $doc, { _id => 0, x => "FOO" }, "find_one w/ collation" );
+    }
+    else {
+        like(
+            exception {
+                $coll->find( { x => "foo" }, { collation => $case_insensitive_collation } )->all;
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "find w/ collation returns error if unsupported"
+        );
+
+        like(
+            exception {
+                $coll->find_one( { _id => 0, x => "foo" },
+                    undef, { collation => $case_insensitive_collation } );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "find_one w/ collation returns error if unsupported"
+        );
     }
 };
 
