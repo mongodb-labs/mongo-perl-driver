@@ -435,19 +435,30 @@ sub insert_many {
 
     $res = $coll->delete_one( $filter );
     $res = $coll->delete_one( { _id => $id } );
+    $res = $coll->delete_one( $filter, { collation => { locale => "en_US" } } );
 
 Deletes a single document that matches a L<filter expression|/Filter expression> and returns a
 L<MongoDB::DeleteResult> or L<MongoDB::UnacknowledgedResult> object.
 
+A hash reference of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+
 =cut
 
-# args not unpacked for efficiency; args are self, filter
+# args not unpacked for efficiency; args are self, filter, options
 sub delete_one {
     MongoDB::UsageError->throw("filter argument must be a reference")
       unless ref( $_[1] );
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Delete->_new(
+            ( defined $_[2] ? (%{$_[2]}) : () ),
             filter   => $_[1],
             just_one => 1,
             %{ $_[0]->_op_args },
@@ -459,20 +470,29 @@ sub delete_one {
 
     $res = $coll->delete_many( $filter );
     $res = $coll->delete_many( { name => "Larry" } );
+    $res = $coll->delete_many( $filter, { collation => { locale => "en_US" } } );
 
 Deletes all documents that match a L<filter expression|/Filter expression>
 and returns a L<MongoDB::DeleteResult> or L<MongoDB::UnacknowledgedResult>
 object.
 
+Valid options include:
+
+=for :list
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+
 =cut
 
-# args not unpacked for efficiency; args are self, filter
+# args not unpacked for efficiency; args are self, filter, options
 sub delete_many {
     MongoDB::UsageError->throw("filter argument must be a reference")
       unless ref( $_[1] );
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Delete->_new(
+            ( defined $_[2] ? (%{$_[2]}) : () ),
             filter   => $_[1],
             just_one => 0,
             %{ $_[0]->_op_args },
@@ -499,6 +519,9 @@ Valid options include:
 =for :list
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<upsert> – defaults to false; if true, a new document will be added if one
   is not found
 
@@ -540,6 +563,9 @@ Valid options include:
 =for :list
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<upsert> – defaults to false; if true, a new document will be added if
   one is not found by taking the filter expression and applying the update
   document operations to it prior to insertion.
@@ -582,6 +608,9 @@ Valid options include:
 =for :list
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<upsert> – defaults to false; if true, a new document will be added if
   one is not found by taking the filter expression and applying the update
   document operations to it prior to insertion.
@@ -818,6 +847,9 @@ the database and returns it as it appeared before it was deleted.
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<projection> - a hash reference defining fields to return. See "L<limit
@@ -874,6 +906,9 @@ A hash reference of options may be provided. Valid keys include:
 =for :list
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.
 * C<projection> - a hash reference defining fields to return. See "L<limit
@@ -916,6 +951,9 @@ A hash reference of options may be provided. Valid keys include:
 =for :list
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<projection> - a hash reference defining fields to return. See "L<limit
@@ -1580,9 +1618,13 @@ sub remove {
 
     $self->_warn_deprecated( 'remove' => [qw/delete_many delete_one/] );
 
+    MongoDB::UsageError->throw(
+        "deprecated method 'remove' does not support a collation, use one of its replacement methods instead"
+    ) if exists $opts->{collation};
+
     my $op = MongoDB::Op::_Delete->_new(
-        filter        => $query || {},
-        just_one      => !! $opts->{just_one},
+        filter => $query || {},
+        just_one => !!$opts->{just_one},
         %{ $self->_op_args },
         write_concern => $self->_dynamic_write_concern($opts),
     );
@@ -1603,6 +1645,10 @@ sub update {
     $object ||= {};
 
     $self->_warn_deprecated( 'update' => [qw/update_one update_many replace_one/] );
+
+    MongoDB::UsageError->throw(
+        "deprecated method 'update' does not support a collation, use one of its replacement methods instead"
+    ) if exists $opts->{collation};
 
     if ( exists $opts->{multiple} ) {
         if ( exists( $opts->{multi} ) && !!$opts->{multi} ne !!$opts->{multiple} ) {
@@ -1686,6 +1732,10 @@ sub find_and_modify {
 
     $self->_warn_deprecated( 'find_and_modify' =>
           [qw/find_one_and_update find_one_and_replace find_one_and_delete/] );
+
+    MongoDB::UsageError->throw(
+        "deprecated method 'find_and_modify' does not support a collation, use one of its replacement methods instead"
+    ) if exists $opts->{collation};
 
     MongoDB::UsageError->throw("find_and_modify requires a 'query' option")
         unless $opts->{query};

@@ -37,6 +37,9 @@ my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 my $coll           = $testdb->get_collection('test_collection');
 
+my $supports_collation = $server_version >= 3.3.9;
+my $case_insensitive_collation = { locale => "en_US", strength => 2 };
+
 my $res;
 
 subtest "insert_one" => sub {
@@ -147,16 +150,43 @@ subtest "insert_many" => sub {
 
 subtest "delete_one" => sub {
     $coll->drop;
-    $coll->insert_many( [ map { { _id => $_, x => "foo" } } 1 .. 3 ] );
-    is( $coll->count( { x => 'foo' } ), 3, "inserted three docs" );
+    $coll->insert_many( [ map { { _id => $_, x => "foo" } } 1 .. 2 ] );
+    is( $coll->count( { x => 'foo' } ), 2, "inserted two docs" );
     $res = $coll->delete_one( { x => 'foo' } );
     ok( $res->acknowledged, "result acknowledged" );
     isa_ok( $res, "MongoDB::DeleteResult", "result" );
     is( $res->deleted_count, 1, "delete one document" );
-    is( $coll->count( { x => 'foo' } ), 2, "two documents left" );
+    is( $coll->count( { x => 'foo' } ), 1, "one document left" );
     $res = $coll->delete_one( { x => 'bar' } );
     is( $res->deleted_count, 0, "delete non existent document does nothing" );
-    is( $coll->count( { x => 'foo' } ), 2, "two documents left" );
+    is( $coll->count( { x => 'foo' } ), 1, "one document left" );
+
+    if ($supports_collation) {
+        my $doc;
+        $doc = $coll->find_one( { x => "foo" } );
+        $res =
+          $coll->delete_one( { x => 'FOO' }, { collation => $case_insensitive_collation } );
+        is( $res->deleted_count, 1, "delete_one with collation" );
+        is( $coll->count( { x => 'foo' } ), 0, "no documents left" );
+
+        my $coll2 = $coll->clone( write_concern => { w => 0 } );
+        like(
+            exception {
+                $coll2->delete_one( { x => 'FOO' }, { collation => $case_insensitive_collation } );
+            },
+            qr/Unacknowledged deletes that specify a collation are not allowed/,
+            "delete_one w/ collation returns error if write is unacknowledged"
+        );
+    }
+    else {
+        like(
+            exception {
+              $coll->delete_one( { x => 'FOO' }, { collation => $case_insensitive_collation } );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "delete_one w/ collation returns error if unsupported"
+        );
+    }
 
     # test errors -- deletion invalid on capped collection
     my $cap = get_capped($testdb);
@@ -169,16 +199,32 @@ subtest "delete_one" => sub {
 
 subtest "delete_many" => sub {
     $coll->drop;
-    $coll->insert_many( [ map { { _id => $_, x => $_ } } 1 .. 3 ] );
-    is( $coll->count( {} ), 3, "inserted three docs" );
-    $res = $coll->delete_many( { x => { '$gt', 1 } } );
+    $coll->insert_many( [ map { { _id => $_, x => "foo" } } 1 .. 5 ] );
+    is( $coll->count( {} ), 5, "inserted five docs" );
+    $res = $coll->delete_many( { _id => { '$gt', 3 } } );
     ok( $res->acknowledged, "result acknowledged" );
     isa_ok( $res, "MongoDB::DeleteResult", "result" );
     is( $res->deleted_count, 2, "deleted two documents" );
-    is( $coll->count( {} ), 1, "one documents left" );
+    is( $coll->count( {} ), 3, "three documents left" );
     $res = $coll->delete_many( { y => 'bar' } );
     is( $res->deleted_count, 0, "delete non existent document does nothing" );
-    is( $coll->count( {} ), 1, "one documents left" );
+    is( $coll->count( {} ), 3, "three documents left" );
+
+    if ($supports_collation) {
+        $res =
+          $coll->delete_many( { x => 'FOO' }, { collation => $case_insensitive_collation } );
+        is( $res->deleted_count, 3, "delete_many with collation" );
+        is( $coll->count( {} ), 0, "no documents left" );
+    }
+    else {
+        like(
+            exception {
+                $coll->delete_many( { x => 'FOO' }, { collation => $case_insensitive_collation } );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "delete_many w/ collation returns error if unsupported"
+        );
+    }
 
     # test errors -- deletion invalid on capped collection
     my $cap = get_capped($testdb);
@@ -261,6 +307,30 @@ subtest "replace_one" => sub {
     };
     ok( $err, "replace with op_char update operators is an error" );
     like( $err, qr/must not contain update operators/, "correct error message" );
+
+    if ($supports_collation) {
+        $coll->insert_one( { x => 'foo' } );
+
+        $res = $coll->replace_one(
+            { x         => 'FOO' },
+            { x         => 'bar' },
+            { collation => $case_insensitive_collation }
+        );
+        is( $coll->count( { x => 'bar' } ), 1, "replace_one with collation" );
+    }
+    else {
+        like(
+            exception {
+                $coll->replace_one(
+                    { x         => 'FOO' },
+                    { x         => 'bar' },
+                    { collation => $case_insensitive_collation }
+                );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "replace_one w/ collation returns error if unsupported"
+        );
+    }
 };
 
 subtest "update_one" => sub {
@@ -324,6 +394,42 @@ subtest "update_one" => sub {
     ok( $err, "update without update operators is an error" );
     like( $err, qr/must only contain update operators/, "correct error message" );
 
+    if ($supports_collation) {
+        $coll->insert_one( { x => 'foo' } );
+
+        $res = $coll->update_one(
+            { x         => 'FOO' },
+            { '$set'    => { x => 'bar' } },
+            { collation => $case_insensitive_collation }
+        );
+        is( $coll->count( { x => 'bar' } ), 1, "update_one with collation" );
+
+        my $coll2 = $coll->clone( write_concern => { w => 0 } );
+        like(
+            exception {
+                $coll2->update_one(
+                    { x         => 'FOO' },
+                    { '$set'    => { x => 'bar' } },
+                    { collation => $case_insensitive_collation }
+                );
+            },
+            qr/Unacknowledged updates that specify a collation are not allowed/,
+            "update_one w/ collation returns error if write is unacknowledged"
+        );
+    }
+    else {
+        like(
+            exception {
+                $coll->update_one(
+                    { x         => 'FOO' },
+                    { '$set'    => { x => 'bar' } },
+                    { collation => $case_insensitive_collation }
+                );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "update_one w/ collation returns error if unsupported"
+        );
+    }
 };
 
 subtest "update_many" => sub {
@@ -391,6 +497,30 @@ subtest "update_many" => sub {
     ok( $err, "update without update operators is an error" );
     like( $err, qr/must only contain update operators/, "correct error message" );
 
+    if ($supports_collation) {
+        $coll->insert_one( { x => 'foo' } );
+        $coll->insert_one( { x => 'Foo' } );
+
+        $res = $coll->update_many(
+            { x         => 'FOO' },
+            { '$set'    => { x => 'bar' } },
+            { collation => $case_insensitive_collation }
+        );
+        is( $coll->count( { x => 'bar' } ), 2, "update_many with collation" );
+    }
+    else {
+        like(
+            exception {
+                $coll->update_many(
+                    { x         => 'FOO' },
+                    { '$set'    => { x => 'bar' } },
+                    { collation => $case_insensitive_collation }
+                );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "update_many w/ collation returns error if unsupported"
+        );
+    }
 };
 
 subtest 'bulk_write' => sub {
@@ -482,6 +612,31 @@ subtest "find_one_and_delete" => sub {
     cmp_deeply( $doc, { _id => ignore(), y => 'a' }, "expected doc returned" );
     is( $coll->count( {} ), 1, "only 1 doc left" );
 
+    if ($supports_collation) {
+        $doc = $coll->find_one_and_delete(
+            { y         => 'B' },
+            { collation => $case_insensitive_collation },
+        );
+        cmp_deeply(
+            $doc,
+            { _id => ignore(), x => 1, y => 'b' },
+            "find_one_and_delete with collation"
+        );
+        is( $coll->count( { y => 'b' } ), 0, "no documents left" );
+    }
+    else {
+        like(
+            exception {
+                $coll->find_one_and_delete(
+                    { y         => 'B' },
+                    { collation => $case_insensitive_collation },
+                );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "find_one_and_delete w/ collation returns error if unsupported"
+        );
+    }
+
     # XXX how to test max_time_ms?
 };
 
@@ -546,6 +701,36 @@ subtest "find_one_and_replace" => sub {
     ok( $err, "upsert dup key got an error" );
     isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
       or diag explain $err;
+
+    $coll->drop;
+    if ($supports_collation) {
+        $coll->insert_one( { y => 'b' } );
+
+        $doc = $coll->find_one_and_replace(
+            { y         => 'B' },
+            { y         => 'c' },
+            { collation => $case_insensitive_collation },
+        );
+        cmp_deeply(
+            $doc,
+            { _id => ignore(), y => 'b' },
+            "find_one_and_replace with collation"
+        );
+        is( $coll->count( { y => 'c' } ), 1, "doc matching replacement" );
+    }
+    else {
+        like(
+            exception {
+                $coll->find_one_and_replace(
+                    { y         => 'B' },
+                    { y         => 'c' },
+                    { collation => $case_insensitive_collation },
+                );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "find_one_and_replace w/ collation returns error if unsupported"
+        );
+    }
 };
 
 subtest "find_one_and_update" => sub {
@@ -614,6 +799,36 @@ subtest "find_one_and_update" => sub {
     ok( $err, "update dup key got an error" );
     isa_ok( $err, 'MongoDB::DuplicateKeyError', 'caught error' )
       or diag explain $err;
+
+    $coll->drop;
+    if ($supports_collation) {
+        $coll->insert_one( { y => 'b' } );
+
+        $doc = $coll->find_one_and_update(
+            { y         => 'B' },
+            { '$set'    => { y => 'c' } },
+            { collation => $case_insensitive_collation },
+        );
+        cmp_deeply(
+            $doc,
+            { _id => ignore(), y => 'b' },
+            "find_one_and_update with collation"
+        );
+        is( $coll->count( { y => 'c' } ), 1, "doc matching replacement" );
+    }
+    else {
+        like(
+            exception {
+                $coll->find_one_and_update(
+                    { y         => 'B' },
+                    { '$set'    => { y => 'c' } },
+                    { collation => $case_insensitive_collation },
+                );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "find_one_and_update w/ collation returns error if unsupported"
+        );
+    }
 };
 
 subtest "write concern errors" => sub {

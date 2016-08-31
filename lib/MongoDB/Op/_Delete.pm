@@ -30,6 +30,7 @@ use MongoDB::_Types qw(
 );
 use Types::Standard qw(
     Bool
+    Maybe
 );
 
 use namespace::clean;
@@ -46,6 +47,11 @@ has just_one => (
     isa      => Bool,
 );
 
+has collation => (
+    is       => 'ro',
+    isa      => Maybe( [Document] ),
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
@@ -55,12 +61,25 @@ with $_ for qw(
 sub execute {
     my ( $self, $link ) = @_;
 
+    if ( defined $self->collation ) {
+        MongoDB::UsageError->throw(
+            "MongoDB host '" . $link->address . "' doesn't support collation" )
+          if !$link->supports_collation;
+        MongoDB::UsageError->throw(
+            "Unacknowledged deletes that specify a collation are not allowed")
+          if !$self->write_concern->is_acknowledged;
+    }
+
     my $filter =
       ref( $self->filter ) eq 'ARRAY'
       ? { @{ $self->filter } }
       : $self->filter;
 
-    my $op_doc = { q => $filter, limit => $self->just_one ? 1 : 0 };
+    my $op_doc = {
+        q     => $filter,
+        limit => $self->just_one ? 1 : 0,
+        ( defined $self->collation ? ( collation => $self->collation ) : () ),
+    };
 
     return (
         ! $self->write_concern->is_acknowledged

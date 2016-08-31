@@ -30,6 +30,7 @@ use MongoDB::_Types qw(
 );
 use Types::Standard qw(
     Bool
+    Maybe
 );
 use Tie::IxHash;
 use boolean;
@@ -63,6 +64,11 @@ has upsert => (
     is       => 'ro',
 );
 
+has collation => (
+    is       => 'ro',
+    isa      => Maybe( [Document] ),
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
@@ -77,6 +83,15 @@ my ($true, $false) = (true, false);
 sub execute {
     my ( $self, $link ) = @_;
 
+    if ( defined $self->collation ) {
+        MongoDB::UsageError->throw(
+            "MongoDB host '" . $link->address . "' doesn't support collation" )
+          if !$link->supports_collation;
+        MongoDB::UsageError->throw(
+            "Unacknowledged updates that specify a collation are not allowed")
+          if !$self->write_concern->is_acknowledged;
+    }
+
     my $orig_op = {
         q => (
             ref( $self->filter ) eq 'ARRAY'
@@ -86,6 +101,7 @@ sub execute {
         u      => $self->update,
         multi  => $self->multi ? $true : $false,
         upsert => $self->upsert ? $true : $false,
+        ( defined $self->collation ? ( collation => $self->collation ) : () ),
     };
 
     return ! $self->write_concern->is_acknowledged

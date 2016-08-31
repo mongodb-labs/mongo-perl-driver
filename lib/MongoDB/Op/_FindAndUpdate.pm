@@ -60,6 +60,11 @@ with $_ for qw(
 sub execute {
     my ( $self, $link, $topology ) = @_;
 
+    if ( defined $self->options->{collation} and !$link->supports_collation ) {
+        MongoDB::UsageError->throw(
+            "MongoDB host '" . $link->address . "' doesn't support collation" );
+    }
+
     my ( undef, $command ) = $self->_maybe_bypass(
         $link,
         [
