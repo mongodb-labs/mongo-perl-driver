@@ -967,6 +967,9 @@ A hash reference of options may be provided. Valid keys include:
 * C<batchSize> – the number of documents to return per batch.
 * C<bypassDocumentValidation> - skips document validation, if enabled.
   (Note, this will be ignored for servers before version 3.2.)
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<explain> – if true, return a single document with execution information.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
@@ -1030,6 +1033,9 @@ Returns a count of documents matching a L<filter expression|/Filter expression>.
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<hint> – L<specify an index to
   use|http://docs.mongodb.org/manual/reference/command/count/#specify-the-index-to-use>;
   must be a string, array reference, hash reference or L<Tie::IxHash> object.
@@ -1085,6 +1091,9 @@ expression>.
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 

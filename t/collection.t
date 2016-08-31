@@ -682,6 +682,30 @@ subtest "aggregation explain" => sub {
     $coll->drop;
 };
 
+subtest "aggregation with collation" => sub {
+    $coll->insert_one( { _id => "foo" } );
+
+    if ($supports_collation) {
+        my @result = $coll->aggregate(
+            [ { '$match' => { _id => "FOO" } } ],
+            { collation => $case_insensitive_collation },
+        )->all;
+        is_deeply( \@result, [ { _id => "foo" } ], "aggregate with collation" );
+    }
+    else {
+        like(
+            exception {
+                $coll->aggregate(
+                    [ { '$match' => { _id => "FOO" } } ],
+                    { collation => $case_insensitive_collation },
+                )->all;
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "aggregate w/ collation returns error if unsupported"
+        );
+    }
+};
+
 subtest "deep update" => sub {
     $coll->drop;
     $coll->insert_one( { _id => 1 } );
@@ -739,6 +763,46 @@ subtest "count w/ hint" => sub {
     TODO: {
         local $TODO = "Failing nightly master";
         is( $coll->count( {}, { hint => 'x_1' } ), 2, 'hint on empty sparse index');
+    }
+};
+
+subtest "count w/ collation" => sub {
+    $coll->drop;
+    $coll->insert_one( { x => "foo" } );
+
+    if ($supports_collation) {
+        is( $coll->count( { x => "FOO" }, { collation => $case_insensitive_collation } ),
+            1, 'count w/ collation' );
+    }
+    else {
+        like(
+            exception {
+                $coll->count( { x => "FOO" }, { collation => $case_insensitive_collation } );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "count w/ collation returns error if unsupported"
+        );
+    }
+};
+
+subtest "distinct w/ collation" => sub {
+    $coll->drop;
+    $coll->insert_one( { x => "foo" } );
+    $coll->insert_one( { x => "FOO" } );
+
+    if ($supports_collation) {
+        my $num_distinct =
+          $coll->distinct( "x", {}, { collation => $case_insensitive_collation } )->all;
+        is( $num_distinct, 1, "distinct w/ collation" );
+    }
+    else {
+        like(
+            exception {
+                $coll->distinct( "x", {}, { collation => $case_insensitive_collation } )->all;
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "distinct w/ collation returns error if unsupported"
+        );
     }
 };
 

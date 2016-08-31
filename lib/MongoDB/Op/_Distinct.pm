@@ -71,6 +71,11 @@ sub execute {
 
     my $options = $self->options;
 
+    if ( defined $options->{collation} and !$link->supports_collation ) {
+        MongoDB::UsageError->throw(
+            "MongoDB host '" . $link->address . "' doesn't support collation" );
+    }
+
     my $filter =
       ref( $self->filter ) eq 'ARRAY'
       ? { @{ $self->filter } }
