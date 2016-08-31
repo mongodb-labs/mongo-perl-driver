@@ -232,6 +232,9 @@ Some of the more commonly used options include:
 * C<background> — when true, index creation won't block but will run in the
   background; this is strongly recommended to avoid blocking other
   operations on the database.
+* C<collation> - a L<document|/Document> defining the collation for this operation.
+  See docs for the format of the collation document here:
+  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
 * C<unique> — enforce uniqueness when true; inserting a duplicate document
   (or creating one with update modifiers) will raise an error.
 * C<name> — a name (string) for the index; one will be generated if this is

@@ -28,6 +28,7 @@ use MongoDB::Op::_Command;
 use MongoDB::Op::_BatchInsert;
 use Types::Standard qw(
     ArrayRef
+    Bool
     HashRef
 );
 
@@ -45,8 +46,17 @@ with $_ for qw(
   MongoDB::Role::_WriteOp
 );
 
+sub has_collation {
+    return grep { defined $_->{collation} } @{ $_[0]->indexes };
+}
+
 sub execute {
     my ( $self, $link ) = @_;
+
+    if ( $self->has_collation && !$link->supports_collation ) {
+        MongoDB::UsageError->throw(
+            "MongoDB host '" . $link->address . "' doesn't support collation" );
+    }
 
     my $res =
         $link->does_write_commands

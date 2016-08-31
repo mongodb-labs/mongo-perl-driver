@@ -36,6 +36,11 @@ my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 my $coll           = $testdb->get_collection('test_collection');
 
+my $supports_collation = $server_version >= 3.3.9;
+my $valid_collation           = { locale => "en_US", strength => 2 };
+my $valid_collation_alternate = { locale => "fr_CA" };
+my $invalid_collation         = { locale => "en_US", blah => 5 };
+
 my ($iv);
 
 # XXX work around SERVER-18062; create collection to initialize DB for
@@ -74,6 +79,33 @@ subtest "create_many" => sub {
 
     is( exception { $iv->create_many( { keys => { y => 1 } } ) },
         undef, "no exception on single-key hashref" );
+
+    $coll->drop;
+    if ($supports_collation) {
+        ok(
+            $iv->create_many(
+                { keys => { x => 1 } },
+                { keys => { y => 1 }, options => { collation => $valid_collation } }
+            ),
+            "create_many with valid collation"
+        );
+
+        my @indexes = grep { $_->{name} eq "y_1" } $iv->list->all;
+        is( 1, scalar @indexes, "index created successfully" );
+        my $index = $indexes[0];
+        is( $index->{collation}{locale},   "en_US", "created index has correct locale" );
+        is( $index->{collation}{strength}, 2,       "created index has correct strength" );
+    }
+    else {
+        like(
+            exception {
+                $iv->create_many( { keys => { x => 1 } },
+                    { keys => { y => 1 }, options => { collation => $valid_collation } } );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "create_many w/ collation returns error if unsupported"
+        );
+    }
 };
 
 subtest "list indexes" => sub {
@@ -126,6 +158,32 @@ subtest "create_one" => sub {
             },
             qr/MongoDB::(?:Database|Write)Error/,
             "exception creating impossible index",
+        );
+    }
+
+    $coll->drop;
+    if ($supports_collation) {
+        ok( $iv->create_one( { x => 1 }, { collation => $valid_collation } ),
+            "create_one with valid collation" );
+
+        $coll->drop;
+        isnt(
+            exception {
+                $iv->create_one( { x => 1 }, { collation => $invalid_collation } );
+            },
+            undef,
+            "create_one with invalid collation"
+        );
+
+        $coll->drop;
+    }
+    else {
+        like(
+            exception {
+                $iv->create_one( { x => 1 }, { collation => $valid_collation } );
+            },
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "create_one w/ collation returns error if unsupported"
         );
     }
 };
@@ -212,6 +270,27 @@ subtest 'ensure index arbitrary options' => sub {
         $index->{notReallyAnOption},
         { foo => 1 },
         "arbitrary option set on index"
+    );
+};
+
+subtest 'indexes w/ same key pattern but different collations' => sub {
+    plan skip_all => "Server version $server_version doesn't support collation"
+      unless $supports_collation;
+
+    $coll->drop;
+    $iv->create_one( { a => 1 }, { collation => $valid_collation, name => "index1" } );
+    $iv->create_one( { a => 1 },
+        { collation => $valid_collation_alternate, name => "index2" } );
+    cmp_deeply(
+        [ map { $_->{key} } $iv->list->all ],
+        [ { _id => 1 }, { a => 1 }, { a => 1 } ],
+        "both indexes created"
+    );
+    $iv->drop_one("index1");
+    cmp_deeply(
+        [ map { $_->{name} } $iv->list->all ],
+        [ "_id_", "index2" ],
+        "correct index dropped"
     );
 };
 

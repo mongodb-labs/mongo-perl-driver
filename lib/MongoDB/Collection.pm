@@ -1770,6 +1770,10 @@ sub ensure_index {
     MongoDB::UsageError->throw("ensure_index options must be a hash reference")
       if $opts && !ref($opts) eq 'HASH';
 
+    MongoDB::UsageError->throw(
+        "deprecated method 'ensure_index' does not support a collation, use 'indexes' instead"
+    ) if exists $opts->{collation};
+
     $keys = Tie::IxHash->new(@$keys) if ref $keys eq 'ARRAY';
     $opts = $self->_clean_index_options( $opts, $keys );
 
