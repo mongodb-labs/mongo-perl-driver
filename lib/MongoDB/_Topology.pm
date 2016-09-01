@@ -299,7 +299,7 @@ sub check_address {
 
     my $link = $self->links->{$address};
     if ( $link && $link->is_connected ) {
-        $self->_update_topology_from_link($link);
+        $self->_update_topology_from_link( $link, with_handshake => 0 );
     }
     else {
         # initialize_link will call update_topology_from_link
@@ -737,7 +737,7 @@ sub _initialize_link {
 
     # connection succeeded, so register link and get a server description
     $self->links->{$address} = $link;
-    $self->_update_topology_from_link($link);
+    $self->_update_topology_from_link( $link, with_handshake => 1 );
 
     # after update, server might or might not exist in the topology;
     # if not, return nothing
@@ -863,14 +863,22 @@ sub _selection_timeout {
 
 my $PRIMARY = MongoDB::ReadPreference->new;
 
+sub _generate_ismaster_request {
+    my ($self, $should_perform_handshake) = @_;
+    return [
+        ismaster => 1,
+        ($should_perform_handshake ? (client => $self->handshake_document) : ()),
+    ];
+}
+
 sub _update_topology_from_link {
-    my ( $self, $link ) = @_;
+    my ( $self, $link, %opts ) = @_;
 
     my $start_time = time;
     my $is_master = eval {
         my $op = MongoDB::Op::_Command->_new(
             db_name         => 'admin',
-            query           => [ ismaster => 1 ],
+            query           => $self->_generate_ismaster_request( $opts{with_handshake} ),
             query_flags     => {},
             bson_codec      => $self->bson_codec,
             read_preference => $PRIMARY,
