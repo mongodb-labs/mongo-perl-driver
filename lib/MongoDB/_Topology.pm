@@ -23,13 +23,16 @@ use Moo;
 use MongoDB::BSON;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
+use MongoDB::_Platform;
 use MongoDB::ReadPreference;
 use MongoDB::_Constants;
 use MongoDB::_Link;
 use MongoDB::_Types qw(
     BSONCodec
+    Document
     NonNegNum
     TopologyType
+    to_IxHash
 );
 use Types::Standard qw(
     Bool
@@ -81,6 +84,12 @@ has type => (
     writer  => '_set_type',
     default => 'Unknown',
     isa => TopologyType,
+);
+
+has app_name => (
+    is      => 'ro',
+    default => '',
+    isa     => Str,
 );
 
 has replica_set_name => (
@@ -163,6 +172,13 @@ has max_set_version => (
     writer => '_set_max_set_version',
 );
 
+# generated only once per _Topology, for performance
+has handshake_document => (
+    is      => 'lazy',
+    isa     => Document,
+    builder => '_build_handshake_document',
+);
+
 # compatible wire protocol
 has is_compatible => (
     is => 'ro',
@@ -215,6 +231,30 @@ has rtt_ewma_sec => (
 sub _build_number_of_seeds {
     my ($self) = @_;
     return scalar @{ $self->uri->hostids };
+}
+
+sub _truncate_for_handshake {
+    my $str = shift;
+    return substr( $str, 0, 64 );
+}
+
+sub _build_handshake_document {
+    my ($self) = @_;
+    my $driver_version_without_leading_v = substr( $VERSION, 1 );
+
+    return to_IxHash(
+        [
+            ( length( $self->app_name ) ? ( application => { name => $self->app_name } ) : () ),
+            driver => to_IxHash(
+                [
+                    name    => "MongoDB Perl Driver",
+                    version => $driver_version_without_leading_v,
+                ]
+            ),
+            os => { type => _truncate_for_handshake(MongoDB::_Platform::os_type) },
+            platform => _truncate_for_handshake(MongoDB::_Platform::platform_details)
+        ]
+    );
 }
 
 sub BUILD {

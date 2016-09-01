@@ -1144,6 +1144,7 @@ sub _build__topology {
         uri                         => $self->_uri,
         bson_codec                  => $self->bson_codec,
         type                        => $type,
+        app_name                    => $self->app_name,
         replica_set_name            => $self->replica_set_name,
         server_selection_timeout_sec => $self->server_selection_timeout_ms / 1000,
         server_selection_try_once    => $self->server_selection_try_once,
