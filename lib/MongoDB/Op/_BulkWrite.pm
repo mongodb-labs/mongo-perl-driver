@@ -64,10 +64,28 @@ with $_ for qw(
   MongoDB::Role::_BypassValidation
 );
 
+sub has_collation {
+    my $self = shift;
+    return !!grep {
+        my ( $type, $doc ) = @$_;
+        ( $type eq "update" || $type eq "delete" ) && defined $doc->{collation};
+    } @{ $self->queue };
+}
+
 sub execute {
     my ( $self, $link ) = @_;
 
     Carp::confess("NO LINK") unless $link;
+
+    if ( $self->has_collation ) {
+        MongoDB::UsageError->throw(
+            "MongoDB host '" . $link->address . "' doesn't support collation" )
+          if !$link->supports_collation;
+
+        MongoDB::UsageError->throw(
+            "Unacknowledged bulk writes that specify a collation are not allowed")
+          if !$self->write_concern->is_acknowledged;
+    }
 
     my $use_write_cmd = $link->does_write_commands;
 

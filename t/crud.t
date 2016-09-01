@@ -591,6 +591,41 @@ subtest 'bulk_write' => sub {
     $res = $err->result;
     is( $res->inserted_count, 3, "three valid docs inserted" );
 
+    # test collation
+    $coll->drop;
+    $coll->insert_one( { x => $_, y => 1 } ) for "a" .. "e";
+    $err = exception {
+        $coll->bulk_write(
+            [
+                update_one => [
+                    { x         => "A" },
+                    { '$set'    => { y => 0 } },
+                    { collation => $case_insensitive_collation }
+                ],
+                update_many => [
+                    { x         => "B" },
+                    { '$set'    => { y => 0 } },
+                    { collation => $case_insensitive_collation }
+                ],
+                replace_one =>
+                  [ { x => "C" }, { y => 0 }, { collation => $case_insensitive_collation } ],
+                delete_one  => [ { x => "D" }, { collation => $case_insensitive_collation } ],
+                delete_many => [ { x => "E" }, { collation => $case_insensitive_collation } ],
+            ]
+        );
+    };
+    if ($supports_collation) {
+        is( $err, undef, "bulk_write w/ collation" );
+        is( $coll->count( { y => 1 } ), 0, "collection updated" );
+    }
+    else {
+        like(
+            $err,
+            qr/MongoDB host '.*:\d+' doesn't support collation/,
+            "bulk_write w/ collation returns error if unsupported"
+        );
+        is( $coll->count( { y => 1 } ), 5, "collection not updated" );
+    }
 };
 
 subtest "find_one_and_delete" => sub {

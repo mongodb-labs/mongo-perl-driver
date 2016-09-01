@@ -1442,9 +1442,16 @@ sub bulk_write {
             $bulk->insert_one($_) for @$args;
         }
         else {
-            my ($filter, $doc, $opts) = @$args;
+            my ( $filter, $arg2, $arg3 ) = @$args;
+
+            my $is_delete = $method eq 'delete_one' || $method eq 'delete_many';
+            my $update_doc = $is_delete ? undef : $arg2;
+            my $opts       = $is_delete ? $arg2 : $arg3;
 
             my $view = $bulk->find($filter);
+
+            # set collation
+            $view = $view->collation( $opts->{collation} ) if $opts && $opts->{collation};
 
             # handle deletes
             if ( $method eq 'delete_one' ) {
@@ -1461,13 +1468,13 @@ sub bulk_write {
 
             # handle updates
             if ( $method eq 'replace_one' ) {
-                $view->replace_one($doc);
+                $view->replace_one($update_doc);
             }
             elsif ( $method eq 'update_one' ) {
-                $view->update_one($doc);
+                $view->update_one($update_doc);
             }
             elsif ( $method eq 'update_many' ) {
-                $view->update_many($doc);
+                $view->update_many($update_doc);
             }
             else {
                 MongoDB::UsageError->throw("unknown bulk operation '$method'");

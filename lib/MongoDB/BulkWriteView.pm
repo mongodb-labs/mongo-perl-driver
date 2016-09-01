@@ -25,10 +25,12 @@ use Moo;
 
 use MongoDB::Error;
 use MongoDB::_Types qw(
+    Document
     IxHash
     Booleanpm
 );
 use Types::Standard qw(
+    Maybe
     InstanceOf
 );
 use boolean;
@@ -50,6 +52,11 @@ has _bulk => (
     handles  => [qw/_enqueue_write/]
 );
 
+has _collation => (
+    is  => 'ro',
+    isa => Maybe [Document],
+);
+
 has _upsert => (
     is      => 'ro',
     isa     => Booleanpm,
@@ -59,6 +66,11 @@ has _upsert => (
 with $_ for qw(
   MongoDB::Role::_DeprecationWarner
 );
+
+sub collation {
+    my ($self, $collation) = @_;
+    return $self->new( %$self, _collation => $collation );
+}
 
 sub upsert {
     my ($self) = @_;
@@ -107,6 +119,7 @@ sub _update {
         multi  => $method eq 'update_many' ? true : false,
         upsert => boolean( $self->_upsert ),
         is_replace => $method eq 'replace_one',
+        (defined $self->_collation ? (collation => $self->_collation) : ()),
     };
 
     $self->_enqueue_write( [ update => $update ] );
@@ -116,13 +129,29 @@ sub _update {
 
 sub delete_many {
     my ($self) = @_;
-    $self->_enqueue_write( [ delete => { q => $self->_query, limit => 0 } ] );
+    $self->_enqueue_write(
+        [
+            delete => {
+                q     => $self->_query,
+                limit => 0,
+                ( defined $self->_collation ? ( collation => $self->_collation ) : () ),
+            }
+        ]
+    );
     return;
 }
 
 sub delete_one {
     my ($self) = @_;
-    $self->_enqueue_write( [ delete => { q => $self->_query, limit => 1 } ] );
+    $self->_enqueue_write(
+        [
+            delete => {
+                q     => $self->_query,
+                limit => 1,
+                ( defined $self->_collation ? ( collation => $self->_collation ) : () ),
+            }
+        ]
+    );
     return;
 }
 
@@ -168,6 +197,10 @@ __END__
     # Update all documents matching the selector
     bulk->find( { a => 2 } )->update_many( { '$inc' => { x => 2 } } );
 
+    # Update all documents matching the selector, with respect to a collation
+    bulk->find( { a => { '$gte' => 'F' } )->collation($collation)
+          ->update_many( { '$inc' => { x => 2 } } );
+
     # Update all documents
     bulk->find( {} )->update_many( { '$inc' => { x => 2 } } );
 
@@ -189,6 +222,9 @@ __END__
     # Remove all documents matching the selector
     bulk->find( { a => 5 } )->delete_many();
 
+    # Remove all documents matching the selector, with respect to a collation
+    bulk->find( { a => { '$gte' => 'F' } )->collation($collation)->delete_many();
+
     # Remove all documents
     bulk->find( {} )->delete_many();
 
@@ -198,10 +234,19 @@ This class provides means to specify write operations constrained by a query
 document.
 
 To instantiate a C<MongoDB::BulkWriteView>, use the L<find|MongoDB::BulkWrite/find>
-method from L<MongoDB::BulkWrite> or the L</upsert> method described below.
+method from L<MongoDB::BulkWrite>.
 
-Except for L</upsert>, all methods have an empty return on success; an
-exception will be thrown on error.
+Except for L</collation> and L</upsert>, all methods have an empty return on
+success; an exception will be thrown on error.
+
+=method collation
+
+    $bulk->collation( $collation )->delete_one;
+
+Returns a new C<MongoDB::BulkWriteView> object, where the specified
+collation will be used to determine which documents match the query
+document.  A collation can be specified for any deletion, replacement,
+or update.
 
 =method delete_many
 

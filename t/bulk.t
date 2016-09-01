@@ -35,6 +35,7 @@ skip_unless_mongod();
 my $conn = build_client();
 my $testdb = get_test_db($conn);
 my $coll = $testdb->get_collection("test_collection");
+my $server_version = server_version($conn);
 
 my $ismaster      = $testdb->run_command( { ismaster     => 1 } );
 my $server_status = $testdb->run_command( { serverStatus => 1 } );
@@ -43,7 +44,10 @@ my $server_status = $testdb->run_command( { serverStatus => 1 } );
 # standalone won't
 my $is_standalone = $conn->topology_type eq 'Single' && ! exists $server_status->{repl};
 
-my $server_does_bulk = server_version($conn) >= v2.5.5;
+my $server_does_bulk = $server_version >= v2.5.5;
+
+my $supports_collation = $server_version >= v3.3.9;
+my $case_insensitive_collation = { locale => "en_US", strength => 2 };
 
 sub _truncate {
     return( length($_[0]) > 1600 ? (substr($_[0],0,1600)."...") : $_[0] );
@@ -334,6 +338,31 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         is( $coll->count( { key => 3 } ), 1, "one document updated" );
     };
 
+    subtest "update and update_one with collation, using $method" => sub {
+        for my $update (qw/update_many update_one/) {
+            $coll->drop;
+            $coll->insert_one( { key => "a" } );
+
+            my $bulk = $coll->$method;
+            $bulk->insert_one( { key => "b" } );
+            $bulk->find( { key => "A" } )->collation($case_insensitive_collation)
+              ->$update( { '$set' => { key => "b" } } );
+
+            my $err = exception { $bulk->execute };
+            if ($supports_collation) {
+                is( $err, undef, "bulk update_one w/ collation" );
+                is( $coll->count( { key => "b" } ), 2, "collection updated" );
+            }
+            else {
+                like(
+                    $err,
+                    qr/MongoDB host '.*:\d+' doesn't support collation/,
+                    "bulk update_one w/ collation returns error if unsupported"
+                );
+                is( $coll->count( { key => "b" } ), 0, "collection not updated" );
+            }
+        }
+    };
 }
 
 note("QA-477 REPLACE_ONE");
@@ -405,6 +434,29 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         cmp_deeply( $distinct, bag( 1, 3 ), "only one document replaced" );
     };
 
+    subtest "replace_one with collation, using $method" => sub {
+        $coll->drop;
+        $coll->insert_one( { key => "a" } );
+
+        my $bulk = $coll->$method;
+        $bulk->insert_one( { key => "b" } );
+        $bulk->find( { key => "A" } )->collation($case_insensitive_collation)
+          ->replace_one( { key => "b" } );
+
+        my $err = exception { $bulk->execute };
+        if ($supports_collation) {
+            is( $err, undef, "bulk replace_one w/ collation" );
+            is( $coll->count( { key => "b" } ), 2, "collection updated" );
+        }
+        else {
+            like(
+                $err,
+                qr/MongoDB host '.*:\d+' doesn't support collation/,
+                "bulk replace_one w/ collation returns error if unsupported"
+            );
+            is( $coll->count( { key => "b" } ), 0, "collection not updated" );
+        }
+    };
 }
 
 note("QA-477 UPSERT-UPDATE");
@@ -732,6 +784,39 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             "correct object remains"
         );
     };
+
+    subtest "delete_many with collation, using $method" => sub {
+        $coll->drop;
+        $coll->insert_one( { key => "a" } );
+        $coll->insert_one( { key => "a" } );
+
+        my $bulk = $coll->$method;
+        $bulk->insert_one( { key => "b" } );
+        $bulk->find( { key => "A" } )->collation($case_insensitive_collation)
+          ->delete_many;
+
+        my $err = exception { $bulk->execute };
+        if ($supports_collation) {
+            is( $err, undef, "bulk delete_many w/ collation" );
+            cmp_deeply(
+                [ $coll->find( {} )->all ],
+                bag( { _id => ignore(), key => "b" } ),
+                "collection updated"
+            );
+        }
+        else {
+            like(
+                $err,
+                qr/MongoDB host '.*:\d+' doesn't support collation/,
+                "bulk delete_many w/ collation returns error if unsupported"
+            );
+            cmp_deeply(
+                [ $coll->find( {} )->all ],
+                bag( { _id => ignore(), key => "a" }, { _id => ignore(), key => "a" } ),
+                "collection not updated"
+            );
+        }
+    };
 }
 
 note("QA-477 delete_one");
@@ -769,6 +854,38 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         ) or diag _truncate explain $result;
 
         is( $coll->count, 1, "only one doc removed" );
+    };
+
+    subtest "delete_one with collation, using $method" => sub {
+        $coll->drop;
+        $coll->insert_one( { key => "a" } );
+
+        my $bulk = $coll->$method;
+        $bulk->insert_one( { key => "b" } );
+        $bulk->find( { key => "A" } )->collation($case_insensitive_collation)
+          ->delete_one;
+
+        my $err = exception { $bulk->execute };
+        if ($supports_collation) {
+            is( $err, undef, "bulk delete_one w/ collation" );
+            cmp_deeply(
+                [ $coll->find( {} )->all ],
+                bag( { _id => ignore(), key => "b" } ),
+                "collection updated"
+            );
+        }
+        else {
+            like(
+                $err,
+                qr/MongoDB host '.*:\d+' doesn't support collation/,
+                "bulk delete_one w/ collation returns error if unsupported"
+            );
+            cmp_deeply(
+                [ $coll->find( {} )->all ],
+                bag( { _id => ignore(), key => "a" } ),
+                "collection not updated"
+            );
+        }
     };
 }
 
@@ -1307,6 +1424,21 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         my $expect = $method eq 'initialize_ordered_bulk_op' ? 1 : 2;
         is( $coll->count, $expect, "document count ($expect)" );
+    };
+}
+
+for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
+    subtest "collation w/ w:0 bulk writes return error, using $method" => sub {
+        plan skip_all => "Collation tests for MongoDB 3.4+" unless $supports_collation;
+
+        $coll->drop;
+        my $bulk = $coll->$method;
+        $bulk->find( { x => "foo" } )->collation($case_insensitive_collation)->delete_one;
+        like(
+            exception { $bulk->execute( { w => 0 } ) },
+            qr/Unacknowledged bulk writes that specify a collation are not allowed/,
+            "bulk write w/ collation returns error if write is unacknowledged"
+        );
     };
 }
 
