@@ -92,6 +92,7 @@ has valid_options => (
 sub _build_valid_options {
     return {
         map { lc($_) => 1 } qw(
+            appName
             authMechanism
             authMechanismProperties
             connectTimeoutMS

@@ -55,6 +55,29 @@ subtest "host and port" => sub {
         "host pairs ignores changed port" );
 };
 
+subtest "app name" => sub {
+    my $mc = _mc();
+    is( $mc->app_name, "", "default app name" );
+
+    $mc = _mc( app_name => "foo" );
+    is( $mc->app_name, "foo", "app_name" );
+
+    $mc = _mc( host => 'mongodb://localhost/?appName=foo', );
+    is( $mc->app_name, "foo", "appName" );
+
+    $mc = _mc(
+        host     => 'mongodb://localhost/?appName=foo',
+        app_name => "bar",
+    );
+    is( $mc->app_name, "foo", "appName supersedes app_name" );
+
+    like(
+        exception { _mc( app_name => 'x' x 129 ) },
+        qr/app name must be at most 128 bytes/,
+        "long app names are rejected"
+    );
+};
+
 subtest "auth mechanism and properties" => sub {
     my @up = qw/username johndoe password trustno1/;
     my $mc = _mc();

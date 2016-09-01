@@ -105,6 +105,41 @@ has host => (
     default => 'mongodb://localhost:27017',
 );
 
+=attr app_name
+
+This attribute specifies an application name that should be associated with
+this client.  The application name will be communicated to the server as
+part of the initial connection handshake, and will appear in
+connection-level and operation-level diagnostics on the server generated on
+behalf of this client.  This may be set in a connection string with the
+C<appName> option.
+
+The default is the empty string, which indicates a lack of an application
+name.
+
+The application name must not exceed 128 bytes.
+
+=cut
+
+has app_name => (
+    is  => 'lazy',
+    isa => Str,
+    builder => '_build_app_name',
+);
+
+sub _build_app_name {
+    my ($self) = @_;
+    my $app_name = $self->__uri_or_else(
+        u => 'appname',
+        e => 'app_name',
+        d => '',
+    );
+    unless ( length($app_name) <= 128 ) {
+        MongoDB::UsageError->throw("app name must be at most 128 bytes");
+    }
+    return $app_name;
+}
+
 =attr auth_mechanism
 
 This attribute determines how the client authenticates with the server.
@@ -1173,6 +1208,7 @@ sub _build__uri {
 # these attributes are lazy, built from either _uri->options or from
 # _config_options captured in BUILDARGS
 my @deferred_options = qw(
+  app_name
   auth_mechanism
   auth_mechanism_properties
   connect_timeout_ms
@@ -1761,6 +1797,7 @@ string:
 The currently supported connection string options are:
 
 =for :list
+*appName
 *authMechanism
 *authMechanism.SERVICE_NAME
 *connectTimeoutMS
