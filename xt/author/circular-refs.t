@@ -20,7 +20,9 @@ use MongoDB;
 use boolean;
 
 use lib "t/lib";
-use MongoDBTest qw/build_client get_test_db/;
+use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
+
+skip_unless_mongod();
 
 plan skip_all => "Requires Test::Memory::Cycle"
   unless eval { require Test::Memory::Cycle; 1 };
