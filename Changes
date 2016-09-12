@@ -18,6 +18,12 @@
   - PERL-626 Add support for maxStalenessMS configuration parameter,
     available in MongoDB v3.3.9 or later.
 
+  - PERL-635 Add support for collation option to CRUD and index building
+    methods, available in MongoDB v3.3.11 or later.
+
+  - PERL-649 Report driver information, system information, and
+    user-configured application name to server during connection handshake.
+
   [Bug fixes]
 
   - PERL-630 ReadConcern level must always be lower-case when sent to
