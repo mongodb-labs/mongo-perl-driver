@@ -4,7 +4,7 @@
 
   [*** Deprecations ***]
 
-  - No new deprecations, but deprecated methods now issue warnings and a
+  - PERL-643 No new deprecations, but deprecated methods now issue warnings and a
     stack trace once per call-site.
 
   [Additions]
@@ -17,6 +17,11 @@
 
   - PERL-626 Add support for maxStalenessMS configuration parameter,
     available in MongoDB v3.3.9 or later.
+
+  - PERL-627 Add support for sending write concern for all database
+    commands that allow it (varies based on server version).  Exceptions
+    will be thrown if write concern is requested for a command and
+    the server version does not support it.
 
   - PERL-635 Add support for collation option to CRUD and index building
     methods, available in MongoDB v3.3.11 or later.
@@ -35,6 +40,13 @@
   [Changes]
 
   - PERL-644 Use of threads is no longer supported on perls before 5.8.5.
+
+  [~ Internal changes ~]
+
+  - PERL-573 Generate a default ReadPreference if not specified in
+    the private _ReadOp role.
+
+  - PERL-645 Refactor internal roles.
 
 v1.4.5    2016-08-22 15:40:36-04:00 America/New_York
 
