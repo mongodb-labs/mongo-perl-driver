@@ -9,6 +9,8 @@
 
   [Additions]
 
+  - PERL-443 Database->collection_names takes an optional filter parameter.
+
   - PERL-611 Add support for the BSON Decimal128 type, available in
     MongoDB v3.3.8 or later.  Adds a dependency on BSON::Decimal128 as the
     type-wrapper for this type.
@@ -30,6 +32,8 @@
     user-configured application name to server during connection handshake.
 
   [Bug fixes]
+
+  - PERL-582 Fix some edge cases in URI parsing.
 
   - PERL-630 ReadConcern level must always be lower-case when sent to
     server.
