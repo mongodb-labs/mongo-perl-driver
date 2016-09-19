@@ -17,7 +17,7 @@
 package MongoDB::_Credential;
 
 use version;
-our $VERSION = 'v1.5.0';
+our $VERSION = 'v1.5.1';
 
 use Moo;
 use MongoDB::Error;

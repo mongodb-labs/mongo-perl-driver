@@ -19,7 +19,7 @@ package MongoDB::Role::_CommandCursorOp;
 # MongoDB interface for database commands with cursors
 
 use version;
-our $VERSION = 'v1.5.0';
+our $VERSION = 'v1.5.1';
 
 use Moo::Role;
 
