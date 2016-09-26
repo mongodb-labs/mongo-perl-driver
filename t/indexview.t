@@ -263,14 +263,21 @@ subtest '2d index with options' => sub {
 
 subtest 'ensure index arbitrary options' => sub {
     $coll->drop;
-    $iv->create_one( { wibble => 1 }, { notReallyAnOption => { foo => 1 } } );
-    my ($index) = grep { $_->{name} eq 'wibble_1' } $iv->list->all;
-    ok( $index, "created index" );
-    cmp_deeply(
-        $index->{notReallyAnOption},
-        { foo => 1 },
-        "arbitrary option set on index"
-    );
+    eval { $iv->create_one( { wibble => 1 }, { notReallyAnOption => { foo => 1 } } ); };
+    # for invalid options, we expect either a server error or an index successfully
+    # created with the requested option
+    if ($@) {
+        isa_ok( $@, "MongoDB::DatabaseError", "error from create_one w/ invalid opts" );
+    }
+    else {
+        my ($index) = grep { $_->{name} eq 'wibble_1' } $iv->list->all;
+        ok( $index, "created index" );
+        cmp_deeply(
+            $index->{notReallyAnOption},
+            { foo => 1 },
+            "arbitrary option set on index"
+        );
+    }
 };
 
 subtest 'indexes w/ same key pattern but different collations' => sub {
