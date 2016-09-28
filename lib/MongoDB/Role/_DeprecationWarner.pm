@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_DeprecationWarner;
 
 # MongoDB interface for issuing deprecation warnings

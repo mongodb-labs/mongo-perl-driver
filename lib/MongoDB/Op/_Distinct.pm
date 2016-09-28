@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_Distinct;
 
 # Encapsulate distinct operation; return MongoDB::QueryResult

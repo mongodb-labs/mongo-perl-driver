@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::_Credential;
 
 use version;

@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::BulkWrite;
 
 # ABSTRACT: MongoDB bulk write interface

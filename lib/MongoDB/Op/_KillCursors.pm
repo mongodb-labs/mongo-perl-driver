@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_KillCursors;
 
 # Encapsulate a cursor kill operation; returns true

@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::_URI;
 
 use version;
@@ -129,7 +131,7 @@ sub _parse_doc {
     my $set = {};
     for my $tag ( split /,/, $string ) {
         if ( $tag =~ /\S/ ) {
-            my @kv = map { s{^\s*}{}; s{\s*$}{}; $_ } split /:/, $tag, 2;
+            my @kv = map { my $s = $_; $s =~ s{^\s*}{}; $s =~ s{\s*$}{}; $s } split /:/, $tag, 2;
             MongoDB::UsageError->throw("in option '$name', '$tag' is not a key:value pair")
               unless @kv == 2;
             $set->{$kv[0]} = $kv[1];

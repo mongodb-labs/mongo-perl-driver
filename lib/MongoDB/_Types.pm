@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::_Types;
 
 # MongoDB type definitions
@@ -41,6 +43,7 @@ use Type::Library
   IndexModel
   IndexModelList
   IxHash
+  MaybeHashRef
   MongoDBCollection
   MongoDBDatabase
   NonEmptyStr

@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::IndexView;
 
 # ABSTRACT: Index management for a collection

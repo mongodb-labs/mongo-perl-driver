@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_InsertOne;
 
 # Encapsulate a single-document insert operation; returns a

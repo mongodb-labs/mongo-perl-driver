@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_FindAndUpdate;
 
 # Encapsulate find_and_update operation; atomically update and return doc

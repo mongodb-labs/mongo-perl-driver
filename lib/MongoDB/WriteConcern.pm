@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::WriteConcern;
 
 # ABSTRACT: Encapsulate and validate a write concern

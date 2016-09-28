@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_FindAndDelete;
 
 # Encapsulate find_and_delete operation; atomically delete and return doc

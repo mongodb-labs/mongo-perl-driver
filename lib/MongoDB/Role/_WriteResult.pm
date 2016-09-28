@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_WriteResult;
 
 # MongoDB interface for common write result attributes and methods

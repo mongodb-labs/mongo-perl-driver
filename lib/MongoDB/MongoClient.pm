@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::MongoClient;
 
 # ABSTRACT: A connection to a MongoDB server or multi-server deployment

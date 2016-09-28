@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::ReadPreference;
 
 # ABSTRACT: Encapsulate and validate read preferences

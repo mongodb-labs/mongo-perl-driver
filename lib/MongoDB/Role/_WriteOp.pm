@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_WriteOp;
 
 # MongoDB interface for database write operations (whether write commands

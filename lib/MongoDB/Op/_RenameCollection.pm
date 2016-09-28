@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_RenameCollection;
 
 # Implements a collection move/rename; returns a MongoDB::CommandResult

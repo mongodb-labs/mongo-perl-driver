@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_SingleBatchDocWrite;
 
 # MongoDB interface for database insert/update/delete operations

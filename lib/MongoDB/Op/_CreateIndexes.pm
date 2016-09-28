@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_CreateIndexes;
 
 # Encapsulate index creation operations; returns a MongoDB::CommandResult

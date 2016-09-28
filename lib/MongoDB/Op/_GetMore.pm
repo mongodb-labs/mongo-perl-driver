@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_GetMore;
 
 # Encapsulate a cursor fetch operation; returns raw results object

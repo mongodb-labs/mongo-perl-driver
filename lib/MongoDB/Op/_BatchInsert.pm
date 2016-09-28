@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_BatchInsert;
 
 # Encapsulate a multi-document insert operation; returns a

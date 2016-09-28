@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_DatabaseOp;
 
 # MongoDB role for operations within a database, that need a database name

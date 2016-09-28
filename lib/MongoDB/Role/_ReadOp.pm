@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_ReadOp;
 
 # MongoDB role for read ops that provides read preference

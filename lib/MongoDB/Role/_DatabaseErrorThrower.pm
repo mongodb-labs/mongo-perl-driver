@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_DatabaseErrorThrower;
 
 # MongoDB interface for providing the last database error

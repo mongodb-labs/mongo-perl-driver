@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::BSON::_EncodedDoc;
 
 # Wrapper for pre-encoded BSON documents, with optional metadata

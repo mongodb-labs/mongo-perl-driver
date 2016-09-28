@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::ReadConcern;
 
 # ABSTRACT: Encapsulate and validate a read concern

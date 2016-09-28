@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_FSyncUnlock;
 
 # Encapsulate collection list operations; returns arrayref of collection

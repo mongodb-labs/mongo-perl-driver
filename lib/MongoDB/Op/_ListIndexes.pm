@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_ListIndexes;
 
 # Encapsulate index list operation; returns array ref of index documents
@@ -75,7 +77,7 @@ sub _command_list_indexes {
     }
     catch {
         if ( $_->$_isa("MongoDB::DatabaseError") ) {
-            return undef if $_->code == NAMESPACE_NOT_FOUND();
+            return undef if $_->code == NAMESPACE_NOT_FOUND(); ## no critic: make $res undef
         }
         die $_;
     };

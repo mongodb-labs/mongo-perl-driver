@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 package MongoDB::BSON::Regexp;
 # ABSTRACT: Regular expression type
 

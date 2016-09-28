@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_InsertPreEncoder;
 
 # MongoDB interface for pre-encoding and validating docs to insert

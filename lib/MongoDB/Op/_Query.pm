@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_Query;
 
 # Encapsulate a query operation; returns a MongoDB::QueryResult object

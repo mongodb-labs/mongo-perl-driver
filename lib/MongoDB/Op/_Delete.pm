@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_Delete;
 
 # Encapsulate a delete operation; returns a MongoDB::DeleteResult

@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::QueryResult;
 
 # ABSTRACT: An iterator for Mongo query results

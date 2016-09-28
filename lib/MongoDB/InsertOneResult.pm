@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::InsertOneResult;
 
 # ABSTRACT: MongoDB single insert result object

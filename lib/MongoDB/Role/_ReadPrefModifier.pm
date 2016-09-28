@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_ReadPrefModifier;
 
 # MongoDB role to modify OP_QUERY query document or flags to account

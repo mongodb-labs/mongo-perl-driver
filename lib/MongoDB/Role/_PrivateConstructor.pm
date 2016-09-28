@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_PrivateConstructor;
 
 # MongoDB interface for a private constructor
@@ -32,8 +34,8 @@ use namespace::clean;
 # the private constructor blesses args directly to the class for speed.
 BEGIN {
   WITH_ASSERTS
-  ? eval 'sub _new { my $class = shift; $class->new(@_) }'
-  : eval 'sub _new { my $class = shift; return bless {@_}, $class }';
+  ? eval 'sub _new { my $class = shift; $class->new(@_) }' ## no critic
+  : eval 'sub _new { my $class = shift; return bless {@_}, $class }'; ## no critic
 }
 
 1;

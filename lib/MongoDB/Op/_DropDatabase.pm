@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_DropDatabase;
 
 # Implements a database drop; returns a MongoDB::CommandResult

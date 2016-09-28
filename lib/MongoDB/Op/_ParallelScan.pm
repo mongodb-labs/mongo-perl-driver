@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_ParallelScan;
 
 # Encapsulate code path for parallelCollectionScan commands

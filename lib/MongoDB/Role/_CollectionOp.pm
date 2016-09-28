@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_CollectionOp;
 
 # MongoDB role for things that operate on collections and need

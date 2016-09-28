@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_BulkWrite;
 
 # Encapsulate a multi-document multi-operation write; returns a
@@ -380,7 +382,7 @@ sub _execute_legacy_batch {
                 return $_->result;
             }
             die $_ unless $w_0 && /exceeds maximum size/;
-            return undef;
+            return undef; ## no critic: this makes op_result undef
         };
 
         my $gle_result =

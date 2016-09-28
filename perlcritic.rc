@@ -1,0 +1,26 @@
+severity = 5
+verbose = [%p] %m at %f, line %l, column %c. (Severity: %s)\n
+
+[Variables::ProhibitPunctuationVars]
+allow = $@ $!
+
+[TestingAndDebugging::ProhibitNoStrict]
+allow = refs
+
+[Variables::ProhibitEvilVariables]
+variables = $DB::single
+
+# Turn these off
+[-BuiltinFunctions::ProhibitStringyEval]
+[-ControlStructures::ProhibitPostfixControls]
+[-ControlStructures::ProhibitUnlessBlocks]
+[-Documentation::RequirePodSections]
+[-InputOutput::ProhibitInteractiveTest]
+[-References::ProhibitDoubleSigils]
+[-RegularExpressions::RequireExtendedFormatting]
+[-InputOutput::ProhibitTwoArgOpen]
+[-Modules::ProhibitEvilModules]
+
+# Turn this on
+[Lax::ProhibitStringyEval::ExceptForRequire]
+

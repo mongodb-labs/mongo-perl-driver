@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [~ Internal changes ~]
+
+  - PERL-667 Add and pass Perl::Critic tests before release
+
 v1.5.0    2016-09-19 15:26:09-07:00 America/Los_Angeles (TRIAL RELEASE)
 
   [*** Deprecations ***]

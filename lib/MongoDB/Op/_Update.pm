@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_Update;
 
 # Encapsulate an update operation; returns a MongoDB::UpdateResult

@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Op::_Command;
 
 # Encapsulate running a command and returning a MongoDB::CommandResult

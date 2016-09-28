@@ -13,6 +13,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+use strict;
+use warnings;
 package MongoDB::GridFS;
 
 # ABSTRACT: A file storage abstraction (DEPRECATED)
@@ -245,7 +247,7 @@ sub find_one {
     $criteria ||= {};
 
     my $file = $self->files->find_one($criteria, $fields);
-    return undef unless $file;
+    return undef unless $file; ## no critic
     return MongoDB::GridFS::File->new({_grid => $self,info => $file});
 }
 

@@ -14,6 +14,8 @@
 #  limitations under the License.
 #
 
+use strict;
+use warnings;
 package MongoDB::Role::_OpReplyParser;
 
 # MongoDB interface for sending OP_QUERY|OP_GETMORE and parsing OP_REPLY
