@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Testing]
+
+  - PERL-665 Allow invalid opt index tests to fail with server error
+
   [~ Internal changes ~]
 
   - PERL-667 Add and pass Perl::Critic tests before release
