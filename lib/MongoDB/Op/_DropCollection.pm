@@ -25,8 +25,10 @@ our $VERSION = 'v1.5.1';
 
 use Moo;
 
+use MongoDB::Error;
 use MongoDB::Op::_Command;
-
+use Safe::Isa;
+use Try::Tiny;
 use namespace::clean;
 
 with $_ for qw(
@@ -48,8 +50,17 @@ sub execute {
         bson_codec  => $self->bson_codec,
     );
 
-    my $res = $op->execute($link);
-    $res->assert_no_write_concern_error;
+    my $res;
+    try {
+        $res = $op->execute($link);
+        $res->assert_no_write_concern_error;
+    }
+    catch {
+        if ( $_->$_isa("MongoDB::DatabaseError") ) {
+            return undef if $_->code == NAMESPACE_NOT_FOUND() || $_->message =~ /^ns not found/; ## no critic: make $res undef
+        }
+        die $_;
+    };
 
     return $res;
 }
