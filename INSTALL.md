@@ -121,7 +121,7 @@ module for GSSAPI support.
 
 Installing the GSSAPI module from CPAN rather than an OS package requires
 libkrb5 and the krb5-config utility (available for Debian/RHEL systems in
-the C<libkrb5-dev> or equivalent package).
+the libkrb5-dev or equivalent package).
 
 Alternatively, the [Authen::SASL::XS](http://p3rl.org/Authen::SASL::XS)
 or [Authen::SASL::Cyrus](http://p3rl.org/Authen::SASL::Cyrus) modules
