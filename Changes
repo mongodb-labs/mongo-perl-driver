@@ -6,6 +6,9 @@
 
   - PERL-665 Allow invalid opt index tests to fail with server error
 
+  - PERL-675 Make fsync tests more robust by removing tests for specific
+    error strings
+
   [Documentation]
 
   - PERL-657 Fix spelling typos
