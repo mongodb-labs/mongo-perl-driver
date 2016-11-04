@@ -45,21 +45,6 @@ my $ret;
 subtest "normal fsync" => sub {
     $ret = $conn->fsync();
     is($ret->{ok},              1, "fsync returned 'ok' => 1");
-    is(exists $ret->{numFiles}, 1, "fsync returned 'numFiles'");
-};
-
-# Test async fsync.
-subtest "async fsync" => sub {
-    my $err = exception { $ret = $conn->fsync({async => 1}) };
-    plan skip_all => 'async not supported'
-       if $err && $err =~ /exception:.*not supported/;
-    is( $err, undef, "fsync command ran without error" )
-        or diag $err;
-
-    if ( ref $ret eq 'HASH' ) {
-        is($ret->{ok},              1, "fsync + async returned 'ok' => 1");
-        is(exists $ret->{numFiles}, 1, "fsync + async returned 'numFiles'");
-    }
 };
 
 # Test fsync with lock.
@@ -70,8 +55,6 @@ subtest "fsync with lock" => sub {
     # Lock
     $ret = $conn->fsync({lock => 1});
     is($ret->{ok},              1, "fsync + lock returned 'ok' => 1");
-    is(exists $ret->{seeAlso},  1, "fsync + lock returned a link to fsync+lock documentation.");
-    is($ret->{info}, "now locked against writes, use db.fsyncUnlock() to unlock", "Successfully locked mongodb.");
 
     # Check the lock.
     if ($server_version <= v3.1.0) {
@@ -81,13 +64,22 @@ subtest "fsync with lock" => sub {
         $ret = $conn->send_admin_command([currentOp => 1]);
         $ret = $ret->{output};
     }
-    is($ret->{fsyncLock}, 1, "MongoDB is still locked.");
-    is($ret->{info}, "use db.fsyncUnlock() to terminate the fsync write/snapshot lock", "Got docs on how to unlock (via shell).");
+    is($ret->{fsyncLock}, 1, "MongoDB is locked.");
 
     # Unlock 
     $ret = $conn->fsync_unlock(); Dumper($ret);
     is($ret->{ok}, 1, "Got 'ok' => 1 from unlock command.");
-    is($ret->{info}, "unlock completed", "Got a successful unlock.");
+
+    # Check the lock was released.
+    if ($server_version <= v3.1.0) {
+        $ret = $conn->get_database('admin')->get_collection('$cmd.sys.inprog')->find_one();
+    }
+    else {
+        $ret = $conn->send_admin_command([currentOp => 1]);
+        $ret = $ret->{output};
+    }
+    ok(! $ret->{fsyncLock}, "MongoDB is no longer locked.");
+
 };
 
 done_testing;

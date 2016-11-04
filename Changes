@@ -2,6 +2,9 @@
 
 {{ $NEXT }}
 
+  - PERL-676 Make fsync tests more robust by removing tests for specific
+    error strings
+
 v1.4.5    2016-08-22 15:40:36-04:00 America/New_York
 
   [Bug fixes]
