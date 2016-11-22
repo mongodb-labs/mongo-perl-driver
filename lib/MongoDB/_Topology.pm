@@ -120,6 +120,13 @@ has local_threshold_sec => (
     isa => Num,
 );
 
+has next_scan_time => (
+    is      => 'ro',
+    default => sub { time() },
+    writer  => '_set_next_scan_time',
+    isa => Num,
+);
+
 has socket_check_interval_sec => (
     is      => 'ro',
     default => 5,
@@ -326,7 +333,8 @@ sub get_readable_link {
       : $self->type eq "Sharded" ? '_find_readable_mongos_server'
       :                            "_find_${mode}_server";
 
-    if ($mode eq 'primary' && $self->current_primary) {
+    if ( $mode eq 'primary' && $self->current_primary && $self->next_scan_time > time() )
+    {
         my $link = $self->_get_server_link( $self->current_primary, $method );
         return $link if $link;
     }
@@ -369,7 +377,7 @@ sub get_writable_link {
       : "_find_primary_server";
 
 
-    if ($self->current_primary) {
+    if ( $self->current_primary && $self->next_scan_time > time() ) {
         my $link = $self->_get_server_link( $self->current_primary, $method );
         return $link if $link;
     }
@@ -435,7 +443,9 @@ sub scan_all_servers {
         }
     }
 
-    $self->_set_last_scan_time( time );
+    my $now = time();
+    $self->_set_last_scan_time( $now );
+    $self->_set_next_scan_time( $now + $self->heartbeat_frequency_sec );
     $self->_set_stale( 0 );
     $self->_check_wire_versions;
     return;
@@ -819,7 +829,7 @@ sub _selection_timeout {
     my $start_time = my $loop_end_time = time();
     my $max_time = $start_time + $self->server_selection_timeout_sec;
 
-    if ( $self->last_scan_time + $self->heartbeat_frequency_sec < $start_time ) {
+    if ( $self->next_scan_time < $start_time ) {
         $self->_set_stale(1);
     }
 
