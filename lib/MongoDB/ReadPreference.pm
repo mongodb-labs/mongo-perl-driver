@@ -27,6 +27,7 @@ use Moo;
 use MongoDB::Error;
 use MongoDB::_Types qw(
     ArrayOfHashRef
+    MaxStalenessNum
     NonNegNum
     ReadPrefMode
 );
@@ -75,20 +76,20 @@ has tag_sets => (
     coerce  => ArrayOfHashRef->coercion,
 );
 
-=attr max_staleness_ms
+=attr max_staleness_seconds
 
-The C<max_staleness_ms> parameter represents the maximum replication lag in
-milliseconds (wall clock time) that a secondary can suffer and still be
-eligible for reads. The default is zero, which disables staleness checks.
+The C<max_staleness_seconds> parameter represents the maximum replication lag in
+seconds (wall clock time) that a secondary can suffer and still be
+eligible for reads. The default is -1, which disables staleness checks.
 
-If the C<mode> is 'primary', then C<max_staleness_ms> must not be supplied.
+If the C<mode> is 'primary', then C<max_staleness_seconds> must not be supplied.
 
 =cut
 
-has max_staleness_ms => (
+has max_staleness_seconds => (
     is => 'ro',
-    isa => NonNegNum,
-    default => 0,
+    isa => MaxStalenessNum,
+    default => -1,
 );
 
 sub BUILD {
@@ -98,8 +99,8 @@ sub BUILD {
         MongoDB::UsageError->throw("A tag set list is not allowed with read preference mode 'primary'");
     }
 
-    if ( $self->mode eq 'primary' && $self->max_staleness_ms ) {
-        MongoDB::UsageError->throw("A positive max_staleness_ms is not allowed with read preference mode 'primary'");
+    if ( $self->mode eq 'primary' && $self->max_staleness_seconds > 0 ) {
+        MongoDB::UsageError->throw("A positive max_staleness_seconds is not allowed with read preference mode 'primary'");
     }
 
     return;
@@ -121,7 +122,7 @@ sub for_mongos {
     return {
         mode => $self->mode,
         ( $self->has_empty_tag_sets ? () : ( tags => $self->tag_sets ) ),
-        ( $self->max_staleness_ms > 0 ? ( maxStalenessMS => $self->max_staleness_ms ) : () ),
+        ( $self->max_staleness_seconds > 0 ? ( maxStalenessSeconds => int($self->max_staleness_seconds )) : () ),
     };
 }
 
@@ -137,8 +138,8 @@ sub as_string {
         }
         $string .= " (" . join( ",", map { "{$_}" } @ts ) . ")";
     }
-    if ( $self->max_staleness_ms > 0) {
-        $string .= " ( maxStalenessMS: " . $self->max_staleness_ms . " )";
+    if ( $self->max_staleness_seconds > 0) {
+        $string .= " ( maxStalenessSeconds: " . $self->max_staleness_seconds . " )";
     }
     return $string;
 }

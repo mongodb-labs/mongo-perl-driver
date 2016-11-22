@@ -102,7 +102,7 @@ sub _build_valid_options {
             heartbeatFrequencyMS
             journal
             localThresholdMS
-            maxStalenessMS
+            maxStalenessSeconds
             maxTimeMS
             readPreference
             readPreferenceTags

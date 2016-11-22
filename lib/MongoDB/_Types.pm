@@ -43,6 +43,7 @@ use Type::Library
   IndexModel
   IndexModelList
   IxHash
+  MaxStalenessNum
   MaybeHashRef
   MongoDBCollection
   MongoDBDatabase
@@ -129,6 +130,10 @@ declare NonEmptyStr, as Str, where { defined $_ && length $_ };
 declare NonNegNum, as Num,
   where { defined($_) && $_ >= 0 },
   message { "value must be a non-negative number" };
+
+declare MaxStalenessNum, as Num,
+  where { defined($_) && ( $_ > 0 || $_ == -1 ) },
+  message { "value must be a positive number or -1" };
 
 declare OID, as Str, where { /\A[0-9a-f]{24}\z/ }, message {
     "Value '$_' is not a valid OID"

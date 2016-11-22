@@ -109,8 +109,8 @@ sub run_staleness_test {
             ( exists $rp->{mode}     ? ( mode     => $rp->{mode} )     : () ),
             ( exists $rp->{tag_sets} ? ( tag_sets => $rp->{tag_sets} ) : () ),
             (
-                exists $rp->{maxStalenessMS}
-                ? ( max_staleness_ms => $rp->{maxStalenessMS} )
+                exists $rp->{maxStalenessSeconds}
+                ? ( max_staleness_seconds => $rp->{maxStalenessSeconds} )
                 : ()
             ),
         );
@@ -170,6 +170,30 @@ for my $path ( exhaust_sort($iterator) ) {
     if ( my $err = $@ ) {
         fail("$relpath failed");
         diag($err);
+    }
+}
+
+# second value undef means error
+my @uri_tests = (
+    [ "mongodb://host/?readPreference=secondary&maxStalenessSeconds=120", 120 ],
+    [ "mongodb://host/?maxStalenessSeconds=120",                          undef ],
+    [ "mongodb://host/?readPreference=primary&maxStalenessSeconds=120",   undef ],
+    [ "mongodb://host/?readPreference=secondary&maxStalenessSeconds=-1",  -1 ],
+    [ "mongodb://host/?readPreference=secondary&maxStalenessSeconds=1",   1 ],
+    [ "mongodb://host/?maxStalenessSeconds=-1",                           -1 ],
+    [ "mongodb://host/?readPreference=primary&maxStalenessSeconds=-1",    -1 ],
+    [ "mongodb://host/?readPreference=secondary&maxStalenessSeconds=0",   undef ],
+);
+
+for my $case (@uri_tests) {
+    my ( $uri, $value ) = @$case;
+    if ($value) {
+        my $mc = MongoDB->connect($uri);
+        is( $mc->read_preference->max_staleness_seconds, $value, "$uri parsed" );
+    }
+    else {
+        eval { MongoDB->connect($uri) };
+        like( $@, qr/max_staleness_seconds/, "$uri is an error" );
     }
 }
 

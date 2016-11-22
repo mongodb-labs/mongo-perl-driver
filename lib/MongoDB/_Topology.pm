@@ -46,7 +46,7 @@ use Types::Standard qw(
 );
 use MongoDB::_Server;
 use Config;
-use List::Util qw/first/;
+use List::Util qw/first max/;
 use Safe::Isa;
 use Time::HiRes qw/time usleep/;
 use Try::Tiny;
@@ -540,20 +540,25 @@ sub _check_wire_versions {
 
 sub _check_staleness_compatibility {
     my ($self, $read_pref) = @_;
+    my $max_staleness_sec = $read_pref ? $read_pref->max_staleness_seconds : -1;
 
-    if ( $read_pref && $read_pref->max_staleness_ms > 0 ) {
+    if ( $max_staleness_sec > 0 ) {
         if ( $self->wire_version_floor < 5 ) {
             MongoDB::ProtocolError->throw(
-                "Incompatible wire protocol version. You tried to use max_staleness_ms with one or more servers that don't support it."
+                "Incompatible wire protocol version. You tried to use max_staleness_seconds with one or more servers that don't support it."
             );
         }
 
         if (
             ( $self->type eq "ReplicaSetWithPrimary" || $self->type eq "ReplicaSetNoPrimary" )
-            && $read_pref->max_staleness_ms < 2000 * $self->heartbeat_frequency_sec )
+            && $max_staleness_sec < max( SMALLEST_MAX_STALENESS_SEC,
+                $self->heartbeat_frequency_sec + IDLE_WRITE_PERIOD_SEC
+            )
+          )
         {
             MongoDB::UsageError->throw(
-                "max_staleness_ms must be at least twice heartbeat_frequency_ms" );
+                "max_staleness_seconds must be greater than 90 seconds and greater than heartbeat_frequency (in secs) + 10 secs"
+            );
         }
     }
 
@@ -570,7 +575,7 @@ sub _eligible {
 
     # must filter on max staleness first, so that the remaining servers
     # are checked against the list of tag_sets
-    if ( $read_pref->max_staleness_ms > 0 ) {
+    if ( $read_pref->max_staleness_seconds > 0 ) {
         @candidates = $self->_filter_fresh_servers($read_pref, @candidates );
         return unless @candidates;
     };
@@ -593,7 +598,7 @@ sub _filter_fresh_servers {
     my ($self, $read_pref, @candidates) = @_;
 
     # all values should be floating point seconds
-    my $max_staleness_sec = $read_pref->max_staleness_ms / 1000;
+    my $max_staleness_sec = $read_pref->max_staleness_seconds;
     my $heartbeat_frequency_sec = $self->heartbeat_frequency_sec;
 
     if ( $self->type eq 'ReplicaSetWithPrimary' ) {

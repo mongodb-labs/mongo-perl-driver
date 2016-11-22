@@ -31,20 +31,20 @@ subtest "mode" => sub {
     );
 };
 
-subtest "max_staleness_ms" => sub {
-    for my $t ( 0, 42 ) {
+subtest "max_staleness_seconds" => sub {
+    for my $t ( -1, 90 ) {
         my $obj = new_ok(
             $class,
-            [ mode => 'nearest', max_staleness_ms => $t ],
-            "new with max_staleness_ms $t"
+            [ mode => 'nearest', max_staleness_seconds => $t ],
+            "new with max_staleness_seconds $t"
         );
-        is( $obj->max_staleness_ms, $t, "max_staleness_ms is correct" );
+        is( $obj->max_staleness_seconds, $t, "max_staleness_seconds is correct" );
     }
 
-    is( $class->new->max_staleness_ms, 0, "max_staleness_ms default is 0" );
+    is( $class->new->max_staleness_seconds, -1, "max_staleness_seconds default is -1" );
 
     like(
-        exception { $class->new( mode => 'primary', max_staleness_ms => 42 ) },
+        exception { $class->new( mode => 'primary', max_staleness_seconds => 42 ) },
         qr/not allowed/,
         "max staleness not allowed with primary"
     );

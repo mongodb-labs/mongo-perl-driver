@@ -36,6 +36,7 @@ BEGIN {
         CURSOR_ZERO                  => "\0" x 8,
         EPOCH                        => 0,
         HAS_INT64                    => $Config{use64bitint},
+        IDLE_WRITE_PERIOD_SEC        => 10,
         MAX_BSON_OBJECT_SIZE         => 4_194_304,
         MAX_GRIDFS_BATCH_SIZE        => 16_777_216,                 # 16MiB
         MAX_BSON_WIRE_SIZE           => 16_793_600,                 # 16MiB + 16KiB
@@ -46,9 +47,10 @@ BEGIN {
         MIN_KEYED_DOC_LENGTH         => 8,
         MIN_WIRE_VERSION             => 0,
         NO_JOURNAL_RE                => qr/^journaling not enabled/,
-        NO_REPLICATION_RE => qr/^no replication has been enabled/,
-        P_INT32           => $] lt '5.010' ? 'l' : 'l<',
-        WITH_ASSERTS      => $ENV{PERL_MONGO_WITH_ASSERTS},
+        NO_REPLICATION_RE          => qr/^no replication has been enabled/,
+        P_INT32                    => $] lt '5.010' ? 'l' : 'l<',
+        SMALLEST_MAX_STALENESS_SEC => 90,
+        WITH_ASSERTS               => $ENV{PERL_MONGO_WITH_ASSERTS},
     };
 }
 
