@@ -133,7 +133,7 @@ has _bucket => (
 The id of the file created by the stream.  It will be stored in the C<_id>
 field of the file document on a successful upload.  Some upload methods
 require specifying an id at upload time.  Defaults to a newly-generated
-L<MongoDB::OID>.
+L<MongoDB::OID> or BSON codec specific equivalent.
 
 =cut
 
@@ -142,7 +142,9 @@ has id => (
 );
 
 sub _build_id {
-    return MongoDB::OID->new;
+    my $self = shift;
+    my $creator = $self->_bucket->bson_codec->can("create_oid");
+    return $creator ? $creator->() : MongoDB::OID->_new_oid();
 }
 
 has _closed => (

@@ -15,6 +15,9 @@
   - PERL-685 Cached primary for server selection now expires based on
     heartbeat frequency.
 
+  - PERL-687 Add support for bson_codec specific OID generation if the
+    codec has a "create_oid" class method (forthcoming in BSON.pm).
+
   [Testing]
 
   - PERL-665 Allow invalid opt index tests to fail with server error

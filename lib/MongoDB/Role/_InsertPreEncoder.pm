@@ -49,8 +49,13 @@ sub _pre_encode_insert {
         : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
         : $doc->{_id} # hashlike?
     );
-    $id = MongoDB::OID->_new_oid() unless defined $id;
-
+    if ( ! defined $id ) {
+        my $creator = $self->bson_codec->can("create_oid");
+        # "create_oid" is a new codec API method.  If a codec doesn't
+        # have it, we fall back to MongoDB::OID, but use _new_oid for
+        # efficiency as it bypasses Moo construction overhead.
+        $id = $creator ? $creator->() : MongoDB::OID->_new_oid();
+    }
     my $bson_doc = $self->bson_codec->encode_one(
         $doc,
         {

@@ -24,7 +24,6 @@ use version;
 our $VERSION = 'v1.5.1';
 
 use MongoDB::Error;
-use MongoDB::OID;
 use MongoDB::Op::_BulkWrite;
 use MongoDB::BulkWriteResult;
 use MongoDB::BulkWriteView;

@@ -171,7 +171,6 @@ has number_of_seeds => (
 
 has max_election_id => (
     is      => 'rw',
-    isa     => Maybe[ InstanceOf['MongoDB::OID'] ],
     writer  => '_set_max_election_id',
 );
 
@@ -1049,7 +1048,7 @@ sub _update_rs_with_primary_from_primary {
             && (
                 $max_set_version > $set_version
                 || (   $max_set_version == $set_version
-                    && $max_election_id->value gt $election_id->value )
+                    && "$max_election_id" gt "$election_id" )
             )
           )
         {
