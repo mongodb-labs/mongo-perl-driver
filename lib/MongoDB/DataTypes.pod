@@ -110,7 +110,18 @@ a 64-bit integer may not be exact.
 
 MongoDB 3.4 will add support for a new BSON type, Decimal128.  The
 L<BSON::Decimal128> class is used as a proxy for these values for both
-inserting and retrieving documents.
+inserting and retrieving documents.  Be sure to use B<strings> when
+constructing Decimal128 objects.
+
+    use BSON::Types ':all';
+
+    my $item = {
+        name => "widget",
+        price => bson_decimal128( "4.99" ),
+        currency => "USD",
+    };
+
+    $coll->insert($item);
 
 =head3 Dealing with numbers and strings in Perl
 
