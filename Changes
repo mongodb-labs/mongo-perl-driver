@@ -2,6 +2,19 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - PERL-680 PERL-684 Max staleness parameter called
+    "max_staleness_seconds" and has a different minimum.
+
+  [Bug fixes]
+
+  - PERL-670 Make collection drop check for server error codes, not just
+    a magic text error string
+
+  - PERL-685 Cached primary for server selection now expires based on
+    heartbeat frequency.
+
   [Testing]
 
   - PERL-665 Allow invalid opt index tests to fail with server error
@@ -12,6 +25,10 @@
   [Documentation]
 
   - PERL-657 Fix spelling typos
+
+  - PERL-662 Update collation documentation links
+
+  - PERL-664 Add Decimal128 type example
 
   [~ Internal changes ~]
 
