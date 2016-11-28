@@ -449,7 +449,7 @@ Valid options include:
 =for :list
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 
 =cut
 
@@ -483,7 +483,7 @@ Valid options include:
 =for :list
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 
 =cut
 
@@ -523,7 +523,7 @@ Valid options include:
   is ignored for MongoDB servers older than version 3.2.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<upsert> – defaults to false; if true, a new document will be added if one
   is not found
 
@@ -567,7 +567,7 @@ Valid options include:
   is ignored for MongoDB servers older than version 3.2.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<upsert> – defaults to false; if true, a new document will be added if
   one is not found by taking the filter expression and applying the update
   document operations to it prior to insertion.
@@ -612,7 +612,7 @@ Valid options include:
   is ignored for MongoDB servers older than version 3.2.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<upsert> – defaults to false; if true, a new document will be added if
   one is not found by taking the filter expression and applying the update
   document operations to it prior to insertion.
@@ -657,7 +657,7 @@ Valid options include:
 * C<batchSize> – the number of documents to return per batch.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<comment> – attaches a comment to the query. If C<$comment> also exists in
   the C<modifiers> document, the comment field overwrites C<$comment>.
 * C<cursorType> – indicates the type of cursor to use. It must be one of three
@@ -768,7 +768,7 @@ include:
 =for :list
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<sort> – an L<ordered document|/Ordered document> defining the order in which
@@ -851,7 +851,7 @@ A hash reference of options may be provided. Valid keys include:
 =for :list
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<projection> - a hash reference defining fields to return. See "L<limit
@@ -910,7 +910,7 @@ A hash reference of options may be provided. Valid keys include:
   is ignored for MongoDB servers older than version 3.2.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.
 * C<projection> - a hash reference defining fields to return. See "L<limit
@@ -955,7 +955,7 @@ A hash reference of options may be provided. Valid keys include:
   is ignored for MongoDB servers older than version 3.2.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<projection> - a hash reference defining fields to return. See "L<limit
@@ -1009,7 +1009,7 @@ A hash reference of options may be provided. Valid keys include:
   (Note, this will be ignored for servers before version 3.2.)
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<explain> – if true, return a single document with execution information.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
@@ -1075,7 +1075,7 @@ A hash reference of options may be provided. Valid keys include:
 =for :list
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<hint> – L<specify an index to
   use|http://docs.mongodb.org/manual/reference/command/count/#specify-the-index-to-use>;
   must be a string, array reference, hash reference or L<Tie::IxHash> object.
@@ -1133,7 +1133,7 @@ A hash reference of options may be provided. Valid keys include:
 =for :list
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 

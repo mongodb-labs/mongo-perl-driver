@@ -236,7 +236,7 @@ Some of the more commonly used options include:
   operations on the database.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
-  L<https://docs.mongodb.com/manual/release-notes/3.3-dev-series-collation/#collation-option>.
+  L<https://docs.mongodb.com/master/reference/collation/>.
 * C<unique> — enforce uniqueness when true; inserting a duplicate document
   (or creating one with update modifiers) will raise an error.
 * C<name> — a name (string) for the index; one will be generated if this is
