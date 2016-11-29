@@ -2,47 +2,10 @@
 
 {{ $NEXT }}
 
-  [Additions]
-
-  - PERL-680 PERL-684 Max staleness parameter called
-    "max_staleness_seconds" and has a different minimum.
-
-  [Bug fixes]
-
-  - PERL-670 Make collection drop check for server error codes, not just
-    a magic text error string
-
-  - PERL-685 Cached primary for server selection now expires based on
-    heartbeat frequency.
-
-  - PERL-687 Add support for bson_codec specific OID generation if the
-    codec has a "create_oid" class method (forthcoming in BSON.pm).
-
-  [Testing]
-
-  - PERL-665 Allow invalid opt index tests to fail with server error
-
-  - PERL-675 Make fsync tests more robust by removing tests for specific
-    error strings
-
-  [Documentation]
-
-  - PERL-657 Fix spelling typos
-
-  - PERL-662 Update collation documentation links
-
-  - PERL-664 Add Decimal128 type example
-
-  [~ Internal changes ~]
-
-  - PERL-667 Add and pass Perl::Critic tests before release
-
-v1.5.0    2016-09-19 15:26:09-07:00 America/Los_Angeles (TRIAL RELEASE)
-
   [*** Deprecations ***]
 
-  - PERL-643 No new deprecations, but deprecated methods now issue warnings and a
-    stack trace once per call-site.
+  - PERL-643 No new deprecations, but deprecated methods now issue warnings
+    and a stack trace once per call-site.
 
   [Additions]
 
@@ -54,8 +17,8 @@ v1.5.0    2016-09-19 15:26:09-07:00 America/Los_Angeles (TRIAL RELEASE)
 
   - PERL-620 Add support for GridFS files with custom file_id values.
 
-  - PERL-626 Add support for maxStalenessMS configuration parameter,
-    available in MongoDB v3.3.9 or later.
+  - PERL-626 PERL-680 PERL-684 Add support for maxStalenessSeconds
+    configuration parameter, available for use with MongoDB v3.4.0 or later.
 
   - PERL-627 Add support for sending write concern for all database
     commands that allow it (varies based on server version).  Exceptions
@@ -63,7 +26,7 @@ v1.5.0    2016-09-19 15:26:09-07:00 America/Los_Angeles (TRIAL RELEASE)
     the server version does not support it.
 
   - PERL-635 Add support for collation option to CRUD and index building
-    methods, available in MongoDB v3.3.11 or later.
+    methods, available in MongoDB v3.4.0 or later.
 
   - PERL-649 Report driver information, system information, and
     user-configured application name to server during connection handshake.
@@ -78,9 +41,34 @@ v1.5.0    2016-09-19 15:26:09-07:00 America/Los_Angeles (TRIAL RELEASE)
   - PERL-632 Fix server selection bugs in the case of read preferences with
     multiple tag-set entries.
 
+  - PERL-670 Make collection drop check for server error codes, not just
+    a magic text error string.
+
+  - PERL-685 Cached primary for server selection now expires based on
+    heartbeat frequency.
+
+  - PERL-687 Add support for bson_codec specific OID generation if the
+    codec has a "create_oid" class method (forthcoming in BSON.pm).
+
   [Changes]
 
   - PERL-644 Use of threads is no longer supported on perls before 5.8.5.
+
+  [Testing]
+
+  - PERL-665 Make index creation tests robust against changes in server
+    treatment of arbitrary options.
+
+  - PERL-675 Make fsync tests more robust by removing tests for specific
+    error strings.
+
+  [Documentation]
+
+  - PERL-657 Fix spelling typos.
+
+  - PERL-662 Update collation documentation links.
+
+  - PERL-664 Add Decimal128 type example.
 
   [~ Internal changes ~]
 
@@ -88,6 +76,10 @@ v1.5.0    2016-09-19 15:26:09-07:00 America/Los_Angeles (TRIAL RELEASE)
     the private _ReadOp role.
 
   - PERL-645 Refactor internal roles.
+
+  - PERL-667 Add and pass Perl::Critic tests before release.
+
+v1.5.0    2016-09-19 15:26:09-07:00 America/Los_Angeles (TRIAL RELEASE)
 
 v1.4.5    2016-08-22 15:40:36-04:00 America/New_York
 
