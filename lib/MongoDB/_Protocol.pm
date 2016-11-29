@@ -21,7 +21,7 @@ use warnings;
 package MongoDB::_Protocol;
 
 use version;
-our $VERSION = 'v1.5.1';
+our $VERSION = 'v1.6.1';
 
 use MongoDB::_Constants;
 use MongoDB::Error;

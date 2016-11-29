@@ -22,7 +22,7 @@ package MongoDB::GridFS::File;
 # ABSTRACT: A Mongo GridFS file (DEPRECATED)
 
 use version;
-our $VERSION = 'v1.5.1';
+our $VERSION = 'v1.6.1';
 
 use MongoDB::Error;
 use IO::File;

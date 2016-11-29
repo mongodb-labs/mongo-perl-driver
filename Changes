@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.6.0    2016-11-29 12:12:26-05:00 America/New_York
+
   [*** Deprecations ***]
 
   - PERL-643 No new deprecations, but deprecated methods now issue warnings
