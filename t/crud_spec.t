@@ -179,7 +179,7 @@ sub test_distinct {
     my ( $class, $label, $method, $args, $outcome ) = @_;
     my $fieldname = delete $args->{fieldName};
     my $filter    = delete $args->{filter};
-    my $res       = $coll->distinct( grep { defined } $fieldname, $filter, $args );
+    my $res = $coll->distinct( $fieldname, $filter, $args );
     check_read_outcome( $label, $res, $outcome );
 }
 
