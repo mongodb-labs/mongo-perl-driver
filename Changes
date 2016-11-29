@@ -1,6 +1,10 @@
 # Change history for the MongoDB Perl driver:
 
 {{ $NEXT }}
+  
+  [Testing]
+
+  - PERL-671 Update CRUD testing data files
 
 v1.6.0    2016-11-29 12:12:26-05:00 America/New_York
 
