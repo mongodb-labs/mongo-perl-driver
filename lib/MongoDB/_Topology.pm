@@ -556,7 +556,7 @@ sub _check_staleness_compatibility {
           )
         {
             MongoDB::UsageError->throw(
-                "max_staleness_seconds must be greater than 90 seconds and greater than heartbeat_frequency (in secs) + 10 secs"
+                "max_staleness_seconds must be at least 90 seconds and at least heartbeat_frequency (in secs) + 10 secs"
             );
         }
     }
