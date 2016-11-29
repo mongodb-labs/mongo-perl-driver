@@ -105,14 +105,6 @@ force_double
 force_int
 read_documents
 
-=begin :prelude
-
-B<NOTE:> The v1.5.x versions are development releases in advance of the
-MongoDB Perl Driver v1.6.0. They are available for evaluation and testing
-and should not be used in production.
-
-=end :prelude
-
 =head1 SYNOPSIS
 
     use MongoDB;
