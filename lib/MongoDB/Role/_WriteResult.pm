@@ -21,7 +21,7 @@ package MongoDB::Role::_WriteResult;
 # MongoDB interface for common write result attributes and methods
 
 use version;
-our $VERSION = 'v1.6.1';
+our $VERSION = 'v1.7.0';
 
 use Moo::Role;
 

@@ -21,7 +21,7 @@ package MongoDB::Role::_DatabaseErrorThrower;
 # MongoDB interface for providing the last database error
 
 use version;
-our $VERSION = 'v1.6.1';
+our $VERSION = 'v1.7.0';
 
 use Moo::Role;
 

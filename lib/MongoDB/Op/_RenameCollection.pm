@@ -21,7 +21,7 @@ package MongoDB::Op::_RenameCollection;
 # Implements a collection move/rename; returns a MongoDB::CommandResult
 
 use version;
-our $VERSION = 'v1.6.1';
+our $VERSION = 'v1.7.0';
 
 use Moo;
 
