@@ -1273,7 +1273,7 @@ Deletes a collection as well as all of its indexes.
 sub drop {
     my ($self) = @_;
 
-    $self->client->send_write_op( MongoDB::Op::_DropCollection->_new( $self->_op_args ) );
+    $self->client->send_write_op( MongoDB::Op::_DropCollection->_new( %{ $self->_op_args } ) );
 
     return;
 }
