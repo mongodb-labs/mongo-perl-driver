@@ -47,6 +47,8 @@ for my $dir ( map { path("t/data/CRUD/$_") } qw/read write/ ) {
         my $name = $path->relative($dir)->basename(".json");
 
         subtest $name => sub {
+            plan skip_all => "Requires MongoDB $plan->{minServerVersion}"
+                if $plan->{minServerVersion} > $server_version;
             for my $test ( @{ $plan->{tests} } ) {
                 $coll->drop;
                 $coll->insert_many( $plan->{data} );
