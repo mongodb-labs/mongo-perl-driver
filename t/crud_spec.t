@@ -21,6 +21,7 @@ use JSON::MaybeXS;
 use Test::Deep;
 use Path::Tiny;
 use Try::Tiny;
+use version;
 
 use MongoDB;
 
@@ -47,8 +48,14 @@ for my $dir ( map { path("t/data/CRUD/$_") } qw/read write/ ) {
         my $name = $path->relative($dir)->basename(".json");
 
         subtest $name => sub {
-            plan skip_all => "Requires MongoDB $plan->{minServerVersion}"
-                if $plan->{minServerVersion} > $server_version;
+            if ( exists $plan->{minServerVersion} ) {
+                my $min_version = $plan->{minServerVersion};
+                $min_version = "v$min_version" unless $min_version =~ /^v/;
+                $min_version .= ".0" unless $min_version =~ /^v\d+\.\d+.\d+$/;
+                $min_version = version->new($min_version);
+                plan skip_all => "Requires MongoDB $min_version"
+                    if $min_version > $server_version;
+            }
             for my $test ( @{ $plan->{tests} } ) {
                 $coll->drop;
                 $coll->insert_many( $plan->{data} );
@@ -102,7 +109,7 @@ sub test_modify {
         && $args->{upsert}
         && exists( $args->{replacement} ) )
     {
-        $outcome->{collection}{data}[-1]{_id} = ignore();
+        $outcome->{collection}{data}[-1]{_id} = ignore() if exists $outcome->{collection};
     }
     my $doc = delete $args->{replacement} || delete $args->{update};
     my $res = $coll->$method( $filter, $doc, ( scalar %$args ? $args : () ) );
@@ -125,14 +132,15 @@ sub test_find_and_modify {
         $outcome->{result} = {};
     }
     # SERVER-5289 -- _id not taken from filter before 2.6
-    if (   $server_version < v2.6.0 ) {
-
-        if ( $outcome->{result} && ( !exists $args->{projection}{_id} || $args->{projection}{_id} ) ) {
+    if ( $server_version < v2.6.0 ) {
+        if ( $outcome->{result}
+            && ( !exists $args->{projection}{_id} || $args->{projection}{_id} ) )
+        {
             $outcome->{result}{_id} = ignore();
         }
 
         if ( $args->{upsert} && !$coll->find_one($filter) ) {
-            $outcome->{collection}{data}[-1]{_id} = ignore();
+            $outcome->{collection}{data}[-1]{_id} = ignore() if exists $outcome->{collection};
         }
     }
     my $res = $coll->$method( $filter, $doc, ( scalar %$args ? $args : () ) );
