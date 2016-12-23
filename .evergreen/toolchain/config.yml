@@ -1,0 +1,112 @@
+# Ignore everything except changes to the toolchain files
+ignore:
+    - "*"
+    - "!/.evergreen/toolchain/*"
+
+# FUNCTIONS
+functions:
+  "fetchSource" :
+    command: git.get_project
+    params:
+      directory: mongo-perl-driver
+  "makeWorkDir":
+    command: shell.exec
+    params:
+      script: |
+        set -o errexit
+        set -o verbose
+        mkdir perl-toolchain
+  "buildPerls":
+    command: shell.exec
+    params:
+      working_dir: perl-toolchain
+      script: |
+        set -o errexit
+        set -o verbose
+        ../mongo-perl-driver/.evergreen/toolchain/build-perls.pl
+  "uploadToolchain":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: perl-toolchain/perl.tar.gz
+      remote_file: ${aws_prefix}/${build_variant}/${revision}/${build_id}.tar.gz
+      bucket: mciuploads
+      permissions: public-read
+      content_type: ${content_type|application/x-gzip}
+  "downloadToolchain" :
+    command: shell.exec
+    params:
+      working_dir: "perl-toolchain"
+      script: |
+        set -o errexit
+        set -o verbose
+        curl https://s3.amazonaws.com/mciuploads/${aws_prefix}/${build_variant}/${revision}/${build_id}.tar.gz -o perl.tar.gz --silent --max-time 240
+        tar -zxf perl.tar.gz
+  "validateToolchain" :
+    command: shell.exec
+    params:
+      working_dir: "perl-toolchain"
+      script: |
+        set -o errexit
+        set -o verbose
+        ../mongo-perl-driver/.evergreen/toolchain/validate-perls.sh
+  "copyToolchainToBoxes":
+    command: s3Copy.copy
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      s3_copy_files:
+        - { 'source': { 'path': '${aws_prefix}/${build_variant}/${revision}/${build_id}.tar.gz', 'bucket': 'mciuploads' },
+            'destination': { 'path': 'build/toolchain-drivers/mongo-perl-driver/perl-toolchain-${build_variant}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' }
+          }
+  "cleanUp":
+    command: shell.exec
+    params:
+      script: |
+        set -o errexit
+        set -o verbose
+        rm -rf mongo-perl-driver
+        rm -rf perl-toolchain
+
+# PRE/POST TASKS
+pre:
+  - func: cleanUp
+  - func: fetchSource
+  - func: makeWorkDir
+
+post:
+  - func: cleanUp
+
+# TASK DEFINITIONS
+tasks:
+  - name: build-perls
+    commands:
+      - func: buildPerls
+      - func: uploadToolchain
+
+  - name: validate-perls
+    depends_on:
+    - name: build-perls
+    commands:
+      - func: downloadToolchain
+      - func: validateToolchain
+
+  - name: push-perls
+    depends_on:
+    - name: validate-perls
+    stepback: false
+    commands:
+      - func: copyToolchainToBoxes
+
+# BUILD VARIANTS
+
+buildvariants:
+- name: ubuntu1604
+  display_name: Ubuntu 16.04
+  run_on:
+    - ubuntu1604-build
+  tasks:
+    - build-perls
+    - validate-perls
+    - push-perls
