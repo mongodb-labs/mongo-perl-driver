@@ -229,6 +229,12 @@ subtest "db_name" => sub {
         qr/database name must be URL encoded, found unescaped '\/'/,
         "database with unescaped slash"
     );
+
+    $uri = new_ok( $class, [ uri => 'mongodb://localhost/?authSource=foo' ] );
+    is( $uri->db_name, 'foo', "parse db_name from authSource option" );
+
+    $uri = new_ok( $class, [ uri => 'mongodb://localhost/example_db?authSource=foo' ] );
+    is( $uri->db_name, 'foo', "parse db_name authSource override URI db_name" );
 };
 
 subtest "auth credentials" => sub {

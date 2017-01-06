@@ -97,6 +97,7 @@ sub _build_valid_options {
             appName
             authMechanism
             authMechanismProperties
+            authSource
             connectTimeoutMS
             connect
             heartbeatFrequencyMS
@@ -220,6 +221,9 @@ sub BUILD {
             }
             if ( $lc_k eq 'authmechanismproperties' ) {
                 $parsed{$lc_k} = _parse_doc( $k, $v );
+            }
+            elsif ( $lc_k eq 'authsource' ) {
+                $result{db_name} = $v;
             }
             elsif ( $lc_k eq 'readpreferencetags' ) {
                 $parsed{$lc_k} ||= [];
