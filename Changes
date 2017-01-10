@@ -2,6 +2,12 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-711 Support authSource URI parameter
+
+  - PERL-712 Undefined reference to strerror_r on Windows
+
 v1.6.0    2016-11-29 12:12:26-05:00 America/New_York
 
   [*** Deprecations ***]
