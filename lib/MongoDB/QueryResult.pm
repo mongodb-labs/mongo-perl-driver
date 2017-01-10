@@ -21,7 +21,7 @@ package MongoDB::QueryResult;
 # ABSTRACT: An iterator for Mongo query results
 
 use version;
-our $VERSION = 'v1.6.1';
+our $VERSION = 'v1.6.2';
 
 use Moo;
 use MongoDB::Error;

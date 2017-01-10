@@ -21,7 +21,7 @@ package MongoDB::Op::_FindAndDelete;
 # Encapsulate find_and_delete operation; atomically delete and return doc
 
 use version;
-our $VERSION = 'v1.6.1';
+our $VERSION = 'v1.6.2';
 
 use Moo;
 

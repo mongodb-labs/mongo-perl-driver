@@ -22,7 +22,7 @@ package MongoDB::Op::_ListCollections;
 # names
 
 use version;
-our $VERSION = 'v1.6.1';
+our $VERSION = 'v1.6.2';
 
 use Moo;
 

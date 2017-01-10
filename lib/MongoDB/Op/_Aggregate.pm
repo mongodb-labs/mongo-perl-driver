@@ -21,7 +21,7 @@ package MongoDB::Op::_Aggregate;
 # Encapsulate aggregate operation; return MongoDB::QueryResult
 
 use version;
-our $VERSION = 'v1.6.1';
+our $VERSION = 'v1.6.2';
 
 use Moo;
 
