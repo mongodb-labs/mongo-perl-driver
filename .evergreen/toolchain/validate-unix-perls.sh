@@ -8,4 +8,3 @@ for d in $(ls perl); do
   PERL5LIB="$thisperl/lib" $thisperl/bin/perl -V
   echo ""
 done
-

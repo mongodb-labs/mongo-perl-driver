@@ -16,14 +16,22 @@ functions:
         set -o errexit
         set -o verbose
         mkdir perl-toolchain
-  "buildPerls":
+  "buildUnixPerls":
     command: shell.exec
     params:
       working_dir: perl-toolchain
       script: |
         set -o errexit
         set -o verbose
-        ../mongo-perl-driver/.evergreen/toolchain/build-perls.pl
+        ../mongo-perl-driver/.evergreen/toolchain/build-unix-perls.pl
+  "buildWinPerls":
+    command: shell.exec
+    params:
+      working_dir: perl-toolchain
+      script: |
+        set -o errexit
+        set -o verbose
+        ../mongo-perl-driver/.evergreen/toolchain/build-win-perls.pl
   "uploadToolchain":
     command: s3.put
     params:
@@ -43,14 +51,23 @@ functions:
         set -o verbose
         curl https://s3.amazonaws.com/mciuploads/${aws_prefix}/${build_variant}/${revision}/${build_id}.tar.gz -o perl.tar.gz --silent --max-time 240
         tar -zxf perl.tar.gz
-  "validateToolchain" :
+  "validateUnixToolchain" :
     command: shell.exec
     params:
       working_dir: "perl-toolchain"
       script: |
         set -o errexit
         set -o verbose
-        ../mongo-perl-driver/.evergreen/toolchain/validate-perls.sh
+        ../mongo-perl-driver/.evergreen/toolchain/validate-unix-perls.sh
+  "validateWinToolchain" :
+    command: shell.exec
+    params:
+      working_dir: "perl-toolchain"
+      script: |
+        set -o errexit
+        set -o verbose
+        dos2unix ../mongo-perl-driver/.evergreen/toolchain/validate-win-perls.sh
+        ../mongo-perl-driver/.evergreen/toolchain/validate-win-perls.sh
   "copyToolchainToBoxes":
     command: s3Copy.copy
     params:
@@ -80,21 +97,40 @@ post:
 
 # TASK DEFINITIONS
 tasks:
-  - name: build-perls
+  - name: build-unix-perls
     commands:
-      - func: buildPerls
+      - func: buildUnixPerls
       - func: uploadToolchain
 
-  - name: validate-perls
+  - name: validate-unix-perls
     depends_on:
-    - name: build-perls
+    - name: build-unix-perls
     commands:
       - func: downloadToolchain
-      - func: validateToolchain
+      - func: validateUnixToolchain
 
-  - name: push-perls
+  - name: build-win-perls
+    commands:
+      - func: buildWinPerls
+      - func: uploadToolchain
+
+  - name: validate-win-perls
     depends_on:
-    - name: validate-perls
+    - name: build-win-perls
+    commands:
+      - func: downloadToolchain
+      - func: validateWinToolchain
+
+  - name: push-unix-perls
+    depends_on:
+    - name: validate-unix-perls
+    stepback: false
+    commands:
+      - func: copyToolchainToBoxes
+
+  - name: push-win-perls
+    depends_on:
+    - name: validate-win-perls
     stepback: false
     commands:
       - func: copyToolchainToBoxes
@@ -107,6 +143,14 @@ buildvariants:
   run_on:
     - ubuntu1604-build
   tasks:
-    - build-perls
-    - validate-perls
-    - push-perls
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+- name: windows64
+  display_name: Windows64
+  run_on:
+    - windows-64-vs2015-test
+  tasks:
+    - build-win-perls
+    - validate-win-perls
+    - push-win-perls
