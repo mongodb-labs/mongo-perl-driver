@@ -1,5 +1,4 @@
 #!/usr/bin/env perl
-use v5.10;
 use strict;
 use warnings;
 use Cwd 'getcwd';
@@ -9,7 +8,7 @@ use File::Path qw/mkpath rmtree/;
 
 sub try_system {
     my @command = @_;
-    say "\nRunning: @command\n";
+    print "\nRunning: @command\n\n";
     system(@command) and die "Aborting: '@command' failed";
 }
 
