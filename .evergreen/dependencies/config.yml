@@ -40,7 +40,7 @@ functions:
     params:
       script: |
         ${PREPARE_SHELL}
-        perl -V
+        perl -v
   "makeWorkDir":
     command: shell.exec
     params:
@@ -73,6 +73,15 @@ functions:
         ${PREPARE_SHELL}
         curl https://s3.amazonaws.com/mciuploads/${aws_prefix}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --silent --max-time 240
         tar -zxf perl5lib.tar.gz
+  "testLoadPerlDriver" :
+    command: shell.exec
+    params:
+      working_dir: "perl-toolchain"
+      script: |
+        ${PREPARE_SHELL}
+        export PERL5LIB="$(pwd)/perl5/lib/perl5"
+        export PATH="$(pwd)/perl5/bin:$PATH"
+        perl -we 'use MongoDB'
   "cleanUp":
     command: shell.exec
     params:
@@ -101,6 +110,13 @@ tasks:
       - func: whichPerl
       - func: buildLocalLib
       - func: uploadLocalLib
+  - name: test-locallib
+    depends_on:
+      - name: build-locallib
+    commands:
+      - func: whichPerl
+      - func: downloadLocalLib
+      - func: testLoadPerlDriver
 
 # MATRIX AXIS DEFINITIONS
 axes:
@@ -171,7 +187,7 @@ axes:
 # BUILD VARIANTS
 
 buildvariants:
-- matrix_name: "perl-on-unix"
+- matrix_name: "matrix"
   matrix_spec: {os: "*", perlver: "*"}
   exclude_spec:
     os: windows
@@ -180,3 +196,4 @@ buildvariants:
   display_name: "${os} Perl ${perlver}"
   tasks:
     - build-locallib
+    - test-locallib
