@@ -1,0 +1,146 @@
+# Ignore changes to toolchain and dependencies evergreen files
+ignore:
+    - "!/.evergreen/toolchain/*"
+    - "!/.evergreen/dependencies/*"
+
+# FUNCTIONS
+functions:
+  "dynamicVars":
+    - command: shell.exec
+      params:
+        script: |
+            set -o errexit
+            set -o xtrace
+            export PERLPATH="${perlroot}/${perlver}/${binpath}"
+
+            cat <<EOT > expansion.yml
+            PREPARE_SHELL: |
+                set -o errexit
+                set -o xtrace
+                export PERLPATH="$PERLPATH"
+                export PATH="$PERLPATH:$PATH"
+            EOT
+            cat expansion.yml
+    - command: expansions.update
+      params:
+        file: expansion.yml
+  "fetchSource" :
+    command: git.get_project
+    params:
+      directory: mongo-perl-driver
+  "downloadLocalLib" :
+    command: shell.exec
+    params:
+      working_dir: "mongo-perl-driver"
+      script: |
+        ${PREPARE_SHELL}
+        curl https://s3.amazonaws.com/mciuploads/${aws_prefix}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --silent --max-time 240
+        tar -zxf perl5lib.tar.gz
+  "testPerlDriver" :
+    command: shell.exec
+    params:
+      working_dir: "mongo-perl-driver"
+      script: |
+        ${PREPARE_SHELL}
+        .evergreen/testing/run-tests.pl
+  "cleanUp":
+    command: shell.exec
+    params:
+      script: |
+        ${PREPARE_SHELL}
+        rm -rf mongo-perl-driver
+
+# PRE/POST TASKS
+pre:
+  - func: dynamicVars
+  - func: cleanUp
+  - func: fetchSource
+  - func: downloadLocalLib
+
+post:
+  - func: cleanUp
+
+# TASK DEFINITIONS
+tasks:
+  - name: test-driver
+    commands:
+      - func: testPerlDriver
+
+# MATRIX AXIS DEFINITIONS
+axes:
+- id: os
+  display_name: "OS"
+  values:
+  - id: ubuntu1604
+    display_name: "Ubuntu 16.04"
+    run_on: ubuntu1604-test
+    variables:
+        perlroot: "/opt/perl"
+        binpath: "bin"
+  - id: windows
+    display_name: "Windows 64"
+    run_on: windows-64-vs2015-test
+    variables:
+        perlroot: "/perl"
+        binpath: "perl/bin"
+- id: perlver
+  display_name: "Perl versions"
+  values:
+  - id: 8.8
+  - id: 8.8t
+    tags: ["threads"]
+  - id: 8.8ld
+    tags: ["long-doubles"]
+  - id: 10.1
+  - id: 10.1t
+    tags: ["threads"]
+  - id: 10.1ld
+    tags: ["long-doubles"]
+  - id: 12.5
+  - id: 12.5t
+    tags: ["threads"]
+  - id: 12.5ld
+    tags: ["long-doubles"]
+  - id: 14.4
+  - id: 14.4t
+    tags: ["threads"]
+  - id: 14.4ld
+    tags: ["long-doubles"]
+  - id: 16.3
+  - id: 16.3t
+    tags: ["threads"]
+  - id: 16.3ld
+    tags: ["long-doubles"]
+  - id: 18.4
+  - id: 18.4t
+    tags: ["threads"]
+  - id: 18.4ld
+    tags: ["long-doubles"]
+  - id: 20.3
+  - id: 20.3t
+    tags: ["threads"]
+  - id: 20.3ld
+    tags: ["long-doubles"]
+  - id: 22.2
+  - id: 22.2t
+    tags: ["threads"]
+  - id: 22.2ld
+    tags: ["long-doubles"]
+  - id: 24.0
+  - id: 24.0t
+    tags: ["threads"]
+  - id: 24.0ld
+    tags: ["long-doubles"]
+
+# BUILD VARIANTS
+
+buildvariants:
+- matrix_name: "matrix"
+  matrix_spec: {os: "*", perlver: "*"}
+  exclude_spec:
+    os: windows
+    perlver: "*"
+    # perlver: [".threads", ".long-doubles"]
+  display_name: "${os} Perl ${perlver}"
+  tasks:
+    - test-driver
