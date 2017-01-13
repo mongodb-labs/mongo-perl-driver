@@ -86,11 +86,11 @@ axes:
 - id: perlver
   display_name: "Perl versions"
   values:
-  - id: 8.8
-  - id: 8.8t
-    tags: ["threads"]
-  - id: 8.8ld
-    tags: ["long-doubles"]
+#  - id: 8.8
+#  - id: 8.8t
+#    tags: ["threads"]
+#  - id: 8.8ld
+#    tags: ["long-doubles"]
   - id: 10.1
   - id: 10.1t
     tags: ["threads"]
