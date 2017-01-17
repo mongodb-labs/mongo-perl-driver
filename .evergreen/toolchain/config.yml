@@ -146,6 +146,14 @@ buildvariants:
     - build-unix-perls
     - validate-unix-perls
     - push-unix-perls
+- name: rhel62
+  display_name: RedHat 6.2
+  run_on:
+    - rhel62-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
 - name: windows64
   display_name: Windows64
   run_on:
