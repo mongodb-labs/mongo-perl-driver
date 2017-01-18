@@ -129,6 +129,12 @@ axes:
     variables:
         perlroot: "/opt/perl"
         binpath: "bin"
+  - id: rhel62
+    display_name: "Redhat 6.2"
+    run_on: rhel62-test
+    variables:
+        perlroot: "/opt/perl"
+        binpath: "bin"
   - id: windows
     display_name: "Windows 64"
     run_on: windows-64-vs2015-test
@@ -191,8 +197,7 @@ buildvariants:
   matrix_spec: {os: "*", perlver: "*"}
   exclude_spec:
     os: windows
-    perlver: "*"
-    # perlver: [".threads", ".long-doubles"]
+    perlver: [".threads", ".long-doubles"]
   display_name: "${os} Perl ${perlver}"
   tasks:
     - build-locallib
