@@ -7,6 +7,7 @@ use Cwd 'getcwd';
 use File::Path qw/mkpath rmtree/;
 use HTTP::Tiny;
 use JSON::PP;
+use CPAN::Meta::YAML;
 
 # helper subroutine
 
@@ -86,6 +87,13 @@ for my $ver (@perl_versions) {
 
     # Remove zip
     unlink $file or die $!;
+
+    # Fix portable.perl on old Strawberries
+    my $portable = "$unzip_dir/$ver/portable.perl";
+    chmod 0644, $portable;
+    my $yaml = CPAN::Meta::YAML->read($portable);
+    $yaml->write($portable);
+    chmod 0444, $portable;
 }
 
 chdir $orig_dir;
