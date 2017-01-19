@@ -247,22 +247,18 @@ __DATA__
           set -o errexit
           set -o xtrace
           export ADDPATHS="${addpaths}"
+          export PATH="$ADDPATHS:$PATH"
           export PERL="${perlpath}"
-          export PROJECT_DIRECTORY="$(pwd)"
           export ARTIFACT_BUCKET="mongo-perl-driver"
           export TOOLS_BUCKET="perl-driver-toolchain"
           cat <<EOT > expansion.yml
-          PERL: "$PERL"
-          ADDPATHS: "$ADDPATHS"
-          PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
-          ARTIFACT_BUCKET: "$ARTIFACT_BUCKET"
-          TOOLS_BUCKET: "$TOOLS_BUCKET"
-          PREPARE_SHELL: |
+          artifact_bucket: "$ARTIFACT_BUCKET"
+          tools_bucket: "$TOOLS_BUCKET"
+          prepare_shell: |
+              export PERL="$PERL"
+              export PATH="$PATH"
               set -o errexit
               set -o xtrace
-              export PERL="$PERL"
-              export PATH="$ADDPATHS:$PATH"
-              export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
           EOT
           cat expansion.yml
   - command: expansions.update
@@ -272,7 +268,7 @@ __DATA__
   command: shell.exec
   params:
     script: |
-      ${PREPARE_SHELL}
+      ${prepare_shell}
       git clone https://github.com/mongodb/mongo-perl-bson
       git clone https://github.com/mongodb/mongo-perl-bson-xs
 "fetchSource" :
@@ -284,14 +280,14 @@ __DATA__
   type: test
   params:
     script: |
-      ${PREPARE_SHELL}
+      ${prepare_shell}
       $PERL -v
 "buildPerl5Lib":
   command: shell.exec
   type: test
   params:
     script: |
-      ${PREPARE_SHELL}
+      ${prepare_shell}
       $PERL mongo-perl-driver/.evergreen/dependencies/build-perl5lib.pl
       ls -l perl5lib.tar.gz
 "uploadPerl5Lib":
@@ -300,7 +296,7 @@ __DATA__
     aws_key: ${aws_key}
     aws_secret: ${aws_secret}
     local_file: perl5lib.tar.gz
-    remote_file: ${TOOLS_BUCKET}/${os}/${perlver}/perl5lib.tar.gz
+    remote_file: ${tools_bucket}/${os}/${perlver}/perl5lib.tar.gz
     bucket: mciuploads
     permissions: public-read
     content_type: ${content_type|application/x-gzip}
@@ -308,23 +304,21 @@ __DATA__
   command: shell.exec
   params:
     script: |
-      ${PREPARE_SHELL}
-      curl https://s3.amazonaws.com/mciuploads/${TOOLS_BUCKET}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
+      ${prepare_shell}
+      curl https://s3.amazonaws.com/mciuploads/${tools_bucket}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
       tar -zxf perl5lib.tar.gz
 "testLoadPerlDriver" :
   command: shell.exec
   type: test
   params:
     script: |
-      ${PREPARE_SHELL}
-      export PERL5LIB="$(pwd)/perl5/lib/perl5"
-      export PATH="$(pwd)/perl5/bin:$PATH"
-      $PERL -we 'use MongoDB'
+      ${prepare_shell}
+      $PERL mongo-perl-driver/.evergreen/dependencies/test-perl5lib.pl
 "cleanUp":
   command: shell.exec
   params:
     script: |
-      ${PREPARE_SHELL}
+      ${prepare_shell}
       rm -rf perl5
       rm -rf mongo-perl-driver
       rm -rf mongo-perl-bson

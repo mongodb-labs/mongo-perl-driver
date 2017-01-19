@@ -14,14 +14,11 @@ run_in_dir 'mongo-perl-driver' => sub {
     # Configure ENV vars for local library updated in compile step
     bootstrap_locallib('local');
 
-    # Test without asserts
-    print "Testing with PERL_MONGO_WITH_ASSERTS = 0\n";
-    $ENV{PERL_MONGO_WITH_ASSERTS} = 0;
-    try_system("make test");
-
-    # Test with asserts
-    print "Testing with PERL_MONGO_WITH_ASSERTS = 1\n";
-    $ENV{PERL_MONGO_WITH_ASSERTS} = 1;
-    try_system("make test");
+    # Test with and without asserts
+    for my $n ( 0, 1 ) {
+        print "Testing with PERL_MONGO_WITH_ASSERTS = $n\n";
+        $ENV{PERL_MONGO_WITH_ASSERTS} = $n;
+        make("test");
+    }
 };
 

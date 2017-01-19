@@ -13,7 +13,7 @@ bootstrap_env();
 
 # Install known config prereqs
 
-run_perl5_cpanm($_) for qw/Path::Tiny Config::AutoConf/;
+run_perl5_cpanm(qw/Path::Tiny Config::AutoConf/);
 
 # Install repo dependencies
 
@@ -24,31 +24,31 @@ my @repos = qw(
 );
 
 for my $r (@repos) {
-    run_in_dir $r => sub { run_perl5_cpanm("--installdeps .") };
+    run_in_dir $r => sub { run_perl5_cpanm(qw/--installdeps ./) };
 }
 
 # Install known optionals
 
 my @optionals = qw(
-    Authen::SASL
-    DateTime
-    DateTime::Tiny
-    IO::Socket::IP
-    IO::Socket::SSL
-    Mango::BSON::Time
-    Math::Int64
-    MongoDB
-    Mozilla::CA
-    Net::SSLeay
-    Time::Moment
+  Authen::SASL
+  DateTime
+  DateTime::Tiny
+  IO::Socket::IP
+  IO::Socket::SSL
+  Mango::BSON::Time
+  Math::Int64
+  MongoDB
+  Mozilla::CA
+  Net::SSLeay
+  Time::Moment
 );
 
-for my $m ( @optionals ) {
-    # these are allowed to fail
+for my $m (@optionals) {
+    # these are allowed to fail individually
     eval { run_perl5_cpanm($m) };
 }
 
 # XXX eventually, install develop requirements (e.g. dzil, etc.)
 
 # tar local lib
-try_system("tar -czf perl5lib.tar.gz perl5");
+try_system(qw(tar -czf perl5lib.tar.gz perl5));

@@ -12,7 +12,9 @@ use base 'Exporter';
 our @EXPORT = qw(
   bootstrap_env
   bootstrap_locallib
+  configure
   get_info
+  make
   run_in_dir
   run_local_cpanm
   run_perl5_cpanm
@@ -39,7 +41,7 @@ sub bootstrap_env {
 
     # bootstrap cpanm
     unlink 'cpanm';
-    try_system("curl -L https://cpanmin.us/ --fail --show-error --silent -o cpanm");
+    try_system(qw(curl -L https://cpanmin.us/ --fail --show-error --silent -o cpanm));
 }
 
 sub bootstrap_locallib {
@@ -51,13 +53,20 @@ sub bootstrap_locallib {
 
     _maybe_prepend_env( PERL5LIB => "$path/lib/perl5" );
     _maybe_prepend_env( PATH     => "$path/bin" );
+
+    require lib;
+    lib->import("$path/lib/perl5");
 }
+
+sub configure { try_system($^X, "Makefile.PL") }
 
 sub get_info {
     print "PATH = $ENV{PATH}\n";
     # perl -V prints all env vars starting with "PERL"
-    try_system("perl -V");
+    try_system(qw(perl -V));
 }
+
+sub make { try_system( $Config{make}, @_ ) }
 
 sub run_in_dir {
     my ( $dir, $code ) = @_;
@@ -71,18 +80,20 @@ sub run_local_cpanm {
     my @args     = @_;
     my $locallib = getcwd() . "/local";
     bootstrap_locallib($locallib);
-    try_system(
-        "$^X $cpanm -v --no-interactive --skip-satisfied --with-recommends -l $locallib @args");
+    try_system( $^X, '--', $cpanm,
+        qw( -v --no-interactive --skip-satisfied --with-recommends -l ),
+        $locallib, @args );
 }
 
 sub run_perl5_cpanm {
     my @args = @_;
-    try_system(
-        "$^X $cpanm -v --no-interactive --skip-satisfied --with-recommends -l $perl5lib @args");
+    try_system( $^X, '--', $cpanm,
+        qw( -v --no-interactive --skip-satisfied --with-recommends -l ),
+        $perl5lib, @args );
 }
 
 sub try_system {
-    my @command = split " ", join " ", @_;
+    my @command = @_;
     print "\nRunning: @command\n\n";
     system(@command) and die "Aborting: '@command' failed";
 }
