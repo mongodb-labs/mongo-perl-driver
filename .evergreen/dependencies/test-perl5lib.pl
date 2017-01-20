@@ -10,7 +10,8 @@ use EvergreenHelper;
 # Bootstrap
 bootstrap_env();
 
-# Try loading MongoDB
-require MongoDB;
+# Try loading a couple required modules
+require Config::AutoConf;
+require Moo;
 
 exit 0;
