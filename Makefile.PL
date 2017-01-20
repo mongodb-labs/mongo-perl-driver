@@ -28,6 +28,7 @@ requires 'DateTime' => '0.78';
 requires 'Digest::MD5';
 requires 'Encode';
 requires 'Exporter' => '5.57';
+requires 'ExtUtils::ParseXS' => 3.21;
 requires 'IO::File';
 requires 'IO::Socket' => ( $^O eq 'MSWin32' ? '1.31' : '0' );
 requires 'List::Util';
