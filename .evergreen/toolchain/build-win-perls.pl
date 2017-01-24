@@ -52,7 +52,7 @@ my %url_index;
 
 for my $h (@$manifest) {
     next unless $h->{archname} eq $target_arch;
-    next unless $h->{portable};
+    next unless exists $h->{edition}{portable};
 
     my ($version) = $h->{version} =~ m{^(\d+ \. \d+ \. \d+)}x;
     my $full_version = version->new( $h->{version} );
@@ -63,7 +63,7 @@ for my $h (@$manifest) {
     }
 
     $url_index{$version} = {
-        url          => $h->{portable}{url},
+        url          => $h->{edition}{portable}{url},
         full_version => $full_version
     };
 }
