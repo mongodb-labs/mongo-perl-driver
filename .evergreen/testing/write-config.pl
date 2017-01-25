@@ -22,8 +22,8 @@ sub main {
     );
 
     print assemble_yaml(
-        timeout(1800),
-        buildvariants( \@tasks ),
+        ignore( "/.evergreen/dependencies", "/.evergreen/toolchain" ),
+        timeout(1800), buildvariants( \@tasks ),
     );
 
     return 0;

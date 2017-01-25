@@ -2,6 +2,10 @@ stepback: true
 
 command_type: system
 
+ignore:
+  - /.evergreen/dependencies
+  - /.evergreen/toolchain
+
 exec_timeout_secs: 1800
 
 timeout:
