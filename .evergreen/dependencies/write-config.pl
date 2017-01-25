@@ -12,8 +12,8 @@ use EvergreenConfig;
 
 sub main {
     my @tasks = (
-        pre( qw/dynamicVars cleanUp fetchSource fetchOtherRepos/ ),
-        post( qw/cleanUp/ ),
+        pre( qw/dynamicVars cleanUp cleanUpOtherRepos fetchSource fetchOtherRepos/ ),
+        post( qw/cleanUp cleanUpOtherRepos/ ),
         task( build_perl5lib => [qw/whichPerl buildPerl5Lib uploadPerl5Lib/] ),
         task(
             test_perl5lib => [qw/whichPerl downloadPerl5Lib testLoadPerlDriver/],

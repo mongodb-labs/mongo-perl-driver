@@ -22,7 +22,7 @@ functions:
     params:
       script: |
         ${prepare_shell}
-        $PERL mongo-perl-driver/.evergreen/dependencies/build-perl5lib.pl
+        $PERL ${repo_directory}/.evergreen/dependencies/build-perl5lib.pl
         ls -l perl5lib.tar.gz
 
   "cleanUp":
@@ -31,17 +31,13 @@ functions:
       script: |
         ${prepare_shell}
         rm -rf perl5
-        rm -rf mongo-perl-driver
-        rm -rf mongo-perl-bson
-        rm -rf mongo-perl-bson-xs
+        rm -rf ${repo_directory}
 
-  "cleanUp":
+  "cleanUpOtherRepos":
     command: shell.exec
     params:
       script: |
         ${prepare_shell}
-        rm -rf perl5
-        rm -rf mongo-perl-driver
         rm -rf mongo-perl-bson
         rm -rf mongo-perl-bson-xs
 
@@ -50,7 +46,7 @@ functions:
     params:
       script: |
         ${prepare_shell}
-        curl https://s3.amazonaws.com/mciuploads/${tools_bucket}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
+        curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
         tar -zxf perl5lib.tar.gz
 
   "dynamicVars":
@@ -59,17 +55,11 @@ functions:
         script: |
             set -o errexit
             set -o xtrace
-            export ADDPATHS="${addpaths}"
-            export PATH="$ADDPATHS:$PATH"
-            export PERL="${perlpath}"
-            export ARTIFACT_BUCKET="mongo-perl-driver"
-            export TOOLS_BUCKET="perl-driver-toolchain"
             cat <<EOT > expansion.yml
-            artifact_bucket: "$ARTIFACT_BUCKET"
-            tools_bucket: "$TOOLS_BUCKET"
             prepare_shell: |
-                export PERL="$PERL"
-                export PATH="$PATH"
+                export PATH="${addpaths}:$PATH"
+                export PERL="${perlpath}"
+                export REPO_DIR="${repo_directory}"
                 set -o errexit
                 set -o xtrace
             EOT
@@ -87,9 +77,14 @@ functions:
         git clone https://github.com/mongodb/mongo-perl-bson-xs
 
   "fetchSource" :
-    command: git.get_project
-    params:
-      directory: mongo-perl-driver
+    - command: git.get_project
+      params:
+        directory: src
+    - command: shell.exec
+      params:
+        script: |
+          ${prepare_shell}
+          mv src ${repo_directory}
 
   "testLoadPerlDriver" :
     command: shell.exec
@@ -105,18 +100,10 @@ functions:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
       local_file: perl5lib.tar.gz
-      remote_file: ${tools_bucket}/${os}/${perlver}/perl5lib.tar.gz
+      remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/perl5lib.tar.gz
       bucket: mciuploads
       permissions: public-read
-      content_type: ${content_type|application/x-gzip}
-
-  "whichPerl":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        ${prepare_shell}
-        $PERL -v
+      content_type: application/x-gzip
 
   "whichPerl":
     command: shell.exec
@@ -132,6 +119,8 @@ pre:
   -
     func: cleanUp
   -
+    func: cleanUpOtherRepos
+  -
     func: fetchSource
   -
     func: fetchOtherRepos
@@ -139,6 +128,8 @@ pre:
 post:
   -
     func: cleanUp
+  -
+    func: cleanUpOtherRepos
 
 tasks:
   -
@@ -509,6 +500,10 @@ buildvariants:
       perlver: '14.4'
     name: os_windows64_perl_14.4
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
@@ -524,6 +519,10 @@ buildvariants:
       perlver: '16.3'
     name: os_windows64_perl_16.3
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
@@ -539,6 +538,10 @@ buildvariants:
       perlver: '18.4'
     name: os_windows64_perl_18.4
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
@@ -554,6 +557,10 @@ buildvariants:
       perlver: '20.3'
     name: os_windows64_perl_20.3
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
@@ -569,6 +576,10 @@ buildvariants:
       perlver: '22.2'
     name: os_windows64_perl_22.2
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
@@ -584,6 +595,10 @@ buildvariants:
       perlver: '24.0'
     name: os_windows64_perl_24.0
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large

@@ -4,11 +4,20 @@ use warnings;
 
 package EvergreenConfig;
 
+# This config system assumes the following variables are set at the project
+# level in Evergreen:
+#
+# - aws_artifact_prefix -- S3 path for per-commit/patch build artifacts
+# - aws_toolchain_prefix -- S3 path prefix for common dependencies
+# - aws_key -- S3 credential
+# - aws_secret -- S3 credential
+# - repo_directory -- name for cloned main repo
+
 use base 'Exporter';
 
 # CPAN::Meta::YAML is a clone of YAML::Tiny and is available in Perl 5.14+
 use CPAN::Meta::YAML;
-use List::Util qw/any/;
+use List::Util 1.45 qw/any uniq/;
 use Tie::IxHash;
 
 our @EXPORT = qw(
@@ -28,7 +37,7 @@ my @unix_perls =
 my @win_perls = qw/ 14.4 16.3 18.4 20.3 22.2 24.0/;
 
 my @win_dists = (
-##    ( map { ; "windows-64-$_-compile", "windows-64-$_-test" } qw/vs2010 vs2013/ ),
+    ( map { ; "windows-64-$_-compile", "windows-64-$_-test" } qw/vs2010 vs2013/ ),
     ( map { ; "windows-64-vs2015-$_" } qw/compile test large/ )
 );
 
@@ -144,7 +153,7 @@ sub timeout {
 # Private functions
 
 sub _assemble_functions {
-    return join "\n", "functions:", map { $functions{$_} } sort @_;
+    return join "\n", "functions:", map { $functions{$_} } uniq sort @_;
 }
 
 sub _assemble_tasks {
@@ -196,7 +205,7 @@ sub _assemble_variants {
                     addpaths => join( ":", map { "$prefix_path/$_" } @extra_paths ),
                 },
                 run_on => [ @{ $os_map{$os}{run_on} } ],
-                tasks  => [ @task_names ],
+                tasks  => [@task_names],
               );
         }
     }
@@ -246,17 +255,11 @@ __DATA__
       script: |
           set -o errexit
           set -o xtrace
-          export ADDPATHS="${addpaths}"
-          export PATH="$ADDPATHS:$PATH"
-          export PERL="${perlpath}"
-          export ARTIFACT_BUCKET="mongo-perl-driver"
-          export TOOLS_BUCKET="perl-driver-toolchain"
           cat <<EOT > expansion.yml
-          artifact_bucket: "$ARTIFACT_BUCKET"
-          tools_bucket: "$TOOLS_BUCKET"
           prepare_shell: |
-              export PERL="$PERL"
-              export PATH="$PATH"
+              export PATH="${addpaths}:$PATH"
+              export PERL="${perlpath}"
+              export REPO_DIR="${repo_directory}"
               set -o errexit
               set -o xtrace
           EOT
@@ -264,17 +267,6 @@ __DATA__
   - command: expansions.update
     params:
       file: expansion.yml
-"fetchOtherRepos":
-  command: shell.exec
-  params:
-    script: |
-      ${prepare_shell}
-      git clone https://github.com/mongodb/mongo-perl-bson
-      git clone https://github.com/mongodb/mongo-perl-bson-xs
-"fetchSource" :
-  command: git.get_project
-  params:
-    directory: mongo-perl-driver
 "whichPerl":
   command: shell.exec
   type: test
@@ -282,31 +274,30 @@ __DATA__
     script: |
       ${prepare_shell}
       $PERL -v
+"fetchSource" :
+  - command: git.get_project
+    params:
+      directory: src
+  - command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        mv src ${repo_directory}
+"fetchOtherRepos":
+  command: shell.exec
+  params:
+    script: |
+      ${prepare_shell}
+      git clone https://github.com/mongodb/mongo-perl-bson
+      git clone https://github.com/mongodb/mongo-perl-bson-xs
 "buildPerl5Lib":
   command: shell.exec
   type: test
   params:
     script: |
       ${prepare_shell}
-      $PERL mongo-perl-driver/.evergreen/dependencies/build-perl5lib.pl
+      $PERL ${repo_directory}/.evergreen/dependencies/build-perl5lib.pl
       ls -l perl5lib.tar.gz
-"uploadPerl5Lib":
-  command: s3.put
-  params:
-    aws_key: ${aws_key}
-    aws_secret: ${aws_secret}
-    local_file: perl5lib.tar.gz
-    remote_file: ${tools_bucket}/${os}/${perlver}/perl5lib.tar.gz
-    bucket: mciuploads
-    permissions: public-read
-    content_type: ${content_type|application/x-gzip}
-"downloadPerl5Lib" :
-  command: shell.exec
-  params:
-    script: |
-      ${prepare_shell}
-      curl https://s3.amazonaws.com/mciuploads/${tools_bucket}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
-      tar -zxf perl5lib.tar.gz
 "testLoadPerlDriver" :
   command: shell.exec
   type: test
@@ -314,12 +305,66 @@ __DATA__
     script: |
       ${prepare_shell}
       $PERL mongo-perl-driver/.evergreen/dependencies/test-perl5lib.pl
+"buildModule" :
+  command: shell.exec
+  type: test
+  params:
+    script: |
+      ${prepare_shell}
+      $PERL ${repo_directory}/.evergreen/testing/build.pl
+"testModule" :
+  command: shell.exec
+  type: test
+  params:
+    script: |
+      ${prepare_shell}
+      $PERL ${repo_directory}/.evergreen/testing/test.pl
+"uploadPerl5Lib":
+  command: s3.put
+  params:
+    aws_key: ${aws_key}
+    aws_secret: ${aws_secret}
+    local_file: perl5lib.tar.gz
+    remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/perl5lib.tar.gz
+    bucket: mciuploads
+    permissions: public-read
+    content_type: application/x-gzip
+"downloadPerl5Lib" :
+  command: shell.exec
+  params:
+    script: |
+      ${prepare_shell}
+      curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
+      tar -zxf perl5lib.tar.gz
+"uploadBuildArtifacts":
+  - command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: ${repo_directory}/build.tar.gz
+      remote_file: ${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz
+      bucket: mciuploads
+      permissions: public-read
+      content_type: application/x-gzip
+"downloadBuildArtifacts" :
+  command: shell.exec
+  params:
+    script: |
+      ${prepare_shell}
+      cd ${repo_directory}
+      curl https://s3.amazonaws.com/mciuploads/${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz -o build.tar.gz --fail --show-error --silent --max-time 240
+      tar -zxmf build.tar.gz
 "cleanUp":
   command: shell.exec
   params:
     script: |
       ${prepare_shell}
       rm -rf perl5
-      rm -rf mongo-perl-driver
+      rm -rf ${repo_directory}
+"cleanUpOtherRepos":
+  command: shell.exec
+  params:
+    script: |
+      ${prepare_shell}
       rm -rf mongo-perl-bson
       rm -rf mongo-perl-bson-xs
