@@ -1,140 +1,141 @@
-# Ignore changes to toolchain and dependencies evergreen files
-ignore:
-    - "/.evergreen/toolchain/*"
-    - "/.evergreen/dependencies/*"
-
-# When a task that used to pass starts to fail
-# Go through all versions that may have been skipped to detect
-# when the task started failing
 stepback: true
 
-# Mark a failure as a system/bootstrap failure (purple box) rather then a task
-# failure by default.
-# Actual testing tasks are marked with `type: test`
 command_type: system
 
-# Protect ourself against rogue test case, or curl gone wild, that runs forever
-# Good rule of thumb: the averageish length a task takes, times 5
-# That roughly accounts for variable system performance for various buildvariants
 exec_timeout_secs: 1800
 
-# What to do when evergreen hits the timeout (`post:` tasks are run automatically)
 timeout:
-  - command: shell.exec
+  -
+    command: shell.exec
+    params:
+      script: 'ls -la'
+
+functions:
+  "buildModule" :
+    command: shell.exec
+    type: test
     params:
       script: |
-        ls -la
+        ${prepare_shell}
+        $PERL ${repo_directory}/.evergreen/testing/build.pl
 
-# FUNCTIONS
-functions:
+  "cleanUp":
+    command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        rm -rf perl5
+        rm -rf ${repo_directory}
+
+  "downloadBuildArtifacts" :
+    command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        cd ${repo_directory}
+        curl https://s3.amazonaws.com/mciuploads/${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz -o build.tar.gz --fail --show-error --silent --max-time 240
+        tar -zxmf build.tar.gz
+
+  "downloadPerl5Lib" :
+    command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
+        tar -zxf perl5lib.tar.gz
+
   "dynamicVars":
     - command: shell.exec
       params:
         script: |
             set -o errexit
             set -o xtrace
-            export ADDPATHS="${addpaths}"
-            export PERL="${perlpath}"
-            export PROJECT_DIRECTORY="$(pwd)"
-            export ARTIFACT_BUCKET="mongo-perl-driver"
-            export TOOLS_BUCKET="perl-driver-toolchain"
-
             cat <<EOT > expansion.yml
-            PERL: "$PERL"
-            ADDPATHS: "$ADDPATHS"
-            PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
-            ARTIFACT_BUCKET: "$ARTIFACT_BUCKET"
-            TOOLS_BUCKET: "$TOOLS_BUCKET"
-            PREPARE_SHELL: |
+            prepare_shell: |
+                export PATH="${addpaths}:$PATH"
+                export PERL="${perlpath}"
+                export REPO_DIR="${repo_directory}"
                 set -o errexit
                 set -o xtrace
-                export PERL="$PERL"
-                export PATH="$ADDPATHS:$PATH"
-                export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
             EOT
             cat expansion.yml
     - command: expansions.update
       params:
         file: expansion.yml
+
   "fetchSource" :
-    command: git.get_project
-    params:
-      directory: mongo-perl-driver
-  "downloadPerl5Lib" :
-    command: shell.exec
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        curl https://s3.amazonaws.com/mciuploads/${TOOLS_BUCKET}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
-        tar -zxf perl5lib.tar.gz
-  "compilePerlDriver" :
+    - command: git.get_project
+      params:
+        directory: src
+    - command: shell.exec
+      params:
+        script: |
+          ${prepare_shell}
+          mv src ${repo_directory}
+
+  "testModule" :
     command: shell.exec
     type: test
     params:
       script: |
-        ${PREPARE_SHELL}
-        $PERL mongo-perl-driver/.evergreen/testing/compile-driver.pl
+        ${prepare_shell}
+        $PERL ${repo_directory}/.evergreen/testing/test.pl
+
   "uploadBuildArtifacts":
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: mongo-perl-driver/build.tar.gz
-        remote_file: ${ARTIFACT_BUCKET}/${build_variant}/${revision}/${task_name}/${build_id}.tar.gz
+        local_file: ${repo_directory}/build.tar.gz
+        remote_file: ${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz
         bucket: mciuploads
         permissions: public-read
         content_type: application/x-gzip
-  "downloadBuildArtifacts" :
-    command: shell.exec
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        chdir mongo-perl-driver
-        curl https://s3.amazonaws.com/mciuploads/${ARTIFACT_BUCKET}/${build_variant}/${revision}/${task_name}/${build_id}.tar.gz -o build.tar.gz --fail --show-error --silent --max-time 240
-        tar -zxf build.tar.gz
-  "testPerlDriver" :
+
+  "whichPerl":
     command: shell.exec
     type: test
     params:
       script: |
-        ${PREPARE_SHELL}
-        $PERL mongo-perl-driver/.evergreen/testing/run-tests.pl
-  "cleanUp":
-    command: shell.exec
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        rm -rf perl5
-        rm -rf mongo-perl-driver
+        ${prepare_shell}
+        $PERL -v
 
-# PRE/POST TASKS
 pre:
-  - func: dynamicVars
-  - func: cleanUp
-  - func: fetchSource
-  - func: downloadPerl5Lib
+  -
+    func: dynamicVars
+  -
+    func: cleanUp
+  -
+    func: fetchSource
+  -
+    func: downloadPerl5Lib
 
 post:
-  - func: cleanUp
+  -
+    func: cleanUp
 
 tasks:
   -
     commands:
       -
-        func: compilePerlDriver
+        func: whichPerl
+      -
+        func: buildModule
       -
         func: uploadBuildArtifacts
-    name: compile-driver
+    name: build
   -
     commands:
       -
+        func: whichPerl
+      -
         func: downloadBuildArtifacts
       -
-        func: testPerlDriver
+        func: testModule
     depends_on:
       -
-        name: compile-driver
-    name: unit-test
+        name: build
+    name: test
 
 buildvariants:
   -
@@ -149,8 +150,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 10.1t'
     expansions:
@@ -163,8 +164,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 10.1ld'
     expansions:
@@ -177,8 +178,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 12.5'
     expansions:
@@ -191,8 +192,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 12.5t'
     expansions:
@@ -205,8 +206,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 12.5ld'
     expansions:
@@ -219,8 +220,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 14.4'
     expansions:
@@ -233,8 +234,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 14.4t'
     expansions:
@@ -247,8 +248,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 14.4ld'
     expansions:
@@ -261,8 +262,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 16.3'
     expansions:
@@ -275,8 +276,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 16.3t'
     expansions:
@@ -289,8 +290,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 16.3ld'
     expansions:
@@ -303,8 +304,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 18.4'
     expansions:
@@ -317,8 +318,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 18.4t'
     expansions:
@@ -331,8 +332,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 18.4ld'
     expansions:
@@ -345,8 +346,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 20.3'
     expansions:
@@ -359,8 +360,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 20.3t'
     expansions:
@@ -373,8 +374,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 20.3ld'
     expansions:
@@ -387,8 +388,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 22.2'
     expansions:
@@ -401,8 +402,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 22.2t'
     expansions:
@@ -415,8 +416,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 22.2ld'
     expansions:
@@ -429,8 +430,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 24.0'
     expansions:
@@ -443,8 +444,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 24.0t'
     expansions:
@@ -457,8 +458,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Ubuntu 16.04 Perl 24.0ld'
     expansions:
@@ -471,8 +472,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Win64 Perl 14.4'
     expansions:
@@ -482,12 +483,16 @@ buildvariants:
       perlver: '14.4'
     name: os_windows64_perl_14.4
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Win64 Perl 16.3'
     expansions:
@@ -497,12 +502,16 @@ buildvariants:
       perlver: '16.3'
     name: os_windows64_perl_16.3
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Win64 Perl 18.4'
     expansions:
@@ -512,12 +521,16 @@ buildvariants:
       perlver: '18.4'
     name: os_windows64_perl_18.4
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Win64 Perl 20.3'
     expansions:
@@ -527,12 +540,16 @@ buildvariants:
       perlver: '20.3'
     name: os_windows64_perl_20.3
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Win64 Perl 22.2'
     expansions:
@@ -542,12 +559,16 @@ buildvariants:
       perlver: '22.2'
     name: os_windows64_perl_22.2
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
     tasks:
-      - compile-driver
-      - unit-test
+      - build
+      - test
   -
     display_name: 'Win64 Perl 24.0'
     expansions:
@@ -557,10 +578,13 @@ buildvariants:
       perlver: '24.0'
     name: os_windows64_perl_24.0
     run_on:
+      - windows-64-vs2010-compile
+      - windows-64-vs2010-test
+      - windows-64-vs2013-compile
+      - windows-64-vs2013-test
       - windows-64-vs2015-compile
       - windows-64-vs2015-test
       - windows-64-vs2015-large
     tasks:
-      - compile-driver
-      - unit-test
-
+      - build
+      - test
