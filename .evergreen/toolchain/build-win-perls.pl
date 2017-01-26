@@ -5,6 +5,7 @@ use warnings;
 use version;
 use Cwd 'getcwd';
 use File::Path qw/mkpath rmtree/;
+use File::Find qw/find/;
 use HTTP::Tiny;
 use JSON::PP;
 use CPAN::Meta::YAML;
@@ -15,6 +16,11 @@ sub try_system {
     my @command = @_;
     say "\nRunning: @command\n";
     system(@command) and die "Aborting: '@command' failed";
+}
+
+sub fix_permissions {
+    return unless -f;
+    chmod 0777, $File::Find::name;
 }
 
 # constants
@@ -94,6 +100,9 @@ for my $ver (@perl_versions) {
     my $yaml = CPAN::Meta::YAML->read($portable);
     $yaml->write($portable);
     chmod 0444, $portable;
+
+    # Fix executable bit permissions
+    find( \&fix_permissions, map { "$unzip_dir/$ver/$_/bin" } qw/perl c/ );
 }
 
 chdir $orig_dir;
