@@ -42,6 +42,17 @@ functions:
       bucket: mciuploads
       permissions: public-read
       content_type: ${content_type|application/x-gzip}
+  "uploadTaskLog":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: perl-toolchain/task-logs.tar.gz
+      remote_file: ${aws_prefix}/${version_id}/${build_id}/${task_name}_${execution}/task-logs.tar.gz
+      bucket: mciuploads
+      permissions: public-read
+      optional: true
+      content_type: application/x-gzip
   "downloadToolchain" :
     command: shell.exec
     params:
@@ -93,6 +104,7 @@ pre:
   - func: makeWorkDir
 
 post:
+  - func: uploadTaskLog
   - func: cleanUp
 
 # TASK DEFINITIONS

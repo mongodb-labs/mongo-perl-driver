@@ -5,13 +5,10 @@ use warnings;
 use Cwd 'getcwd';
 use File::Path qw/mkpath rmtree/;
 
-# helper subroutine
-
-sub try_system {
-    my @command = @_;
-    say "\nRunning: @command\n";
-    system(@command) and die "Aborting: '@command' failed";
-}
+# Get helpers
+use FindBin qw($Bin);
+use lib "$Bin/../lib";
+use EvergreenHelper;
 
 # constants
 
@@ -42,21 +39,16 @@ my %config_flags = (
     'ld' => '-Dusemorebits',
 );
 
-# configure local perl5 user directory
-my $perl5lib = getcwd() . "/perl5";
-my $cpanm    = "$perl5lib/bin/cpanm";
-$ENV{PERL5LIB} = "$perl5lib/lib/perl5";
-$ENV{PATH}     = "$perl5lib/bin:$ENV{PATH}";
-mkpath "$perl5lib/$_" for qw{bin lib/perl5};
+# Bootstrap
 
-# get cpanm
-try_system("curl -L https://cpanmin.us/ -o $cpanm");
-chmod 0755, $cpanm;
+bootstrap_env();
 
-# bootstrap perl-build into local 'perl5' library;
-try_system( $cpanm, '-l', $perl5lib, "Perl::Build" );
+# Install Perl::Build
+
+run_perl5_cpanm(qw/Perl::Build/);
 
 # build all perls
+my @logs;
 for my $version (@perl_versions) {
     for my $config ( keys %config_flags ) {
         # prepare arguments
@@ -67,7 +59,9 @@ for my $version (@perl_versions) {
 
         # run perl-build
         local $ENV{DESTDIR} = $destdir;
-        try_system("perl-build @args >$short_ver$config.log 2>&1");
+        my $logfile = "$short_ver$config.log";
+        push @logs, $logfile;
+        try_system("perl-build @args >$logfile 2>&1");
 
         # remove man dirs from $destdir$dest/...
         rmtree("$destdir$dest/man");
@@ -86,3 +80,6 @@ for my $version (@perl_versions) {
 
 # tar inside the destdir/opt
 try_system("tar -czf perl.tar.gz -C $tardir perl");
+
+# tar the build logs
+try_system("tar -czf task-logs.tar.gz @logs");
