@@ -15,14 +15,14 @@ package EvergreenConfig;
 
 use base 'Exporter';
 
-# CPAN::Meta::YAML is a clone of YAML::Tiny and is available in Perl 5.14+
-use CPAN::Meta::YAML;
-use List::Util 1.45 qw/any uniq/;
+use YAML ();
+use List::Util 1.45 qw/uniq/;
 use Tie::IxHash;
 
 our @EXPORT = qw(
   assemble_yaml
   buildvariants
+  clone
   ignore
   pre
   post
@@ -31,6 +31,8 @@ our @EXPORT = qw(
 );
 
 # Constants
+
+{ no warnings 'once'; $YAML::SortKeys = 0; }
 
 my @unix_perls =
   map { $_, "${_}t", "${_}ld" } qw/10.1 12.5 14.4 16.3 18.4 20.3 22.2 24.0/;
@@ -88,14 +90,17 @@ sub buildvariants {
     my ($tasks) = @_;
     my (@functions_found);
 
-    # Pull out task names for later verification of dependencies
+    # Pull out task names for later verification of dependencies.
+    # Also pull out filters for user later in assembly.
     my @task_names = grep { $_ ne 'pre' && $_ ne 'post' } map { $_->{name} } @$tasks;
     my %has_task = map { $_ => 1 } @task_names;
+    my %filters;
 
     # verify the tasks are valid
     for my $t (@$tasks) {
         my @cmds = @{ $t->{commands}   || [] };
         my @deps = @{ $t->{depends_on} || [] };
+        $filters{ $t->{name} } = delete $t->{filter};
 
         my @fcns = map { $_->{func} } @cmds;
         push @functions_found, @fcns;
@@ -107,12 +112,16 @@ sub buildvariants {
         die "Unknown dependent task(s): @bad_deps\n" if @bad_deps;
     }
 
+    # pull out task filters
+
     # assemble the list of functions
     return (
         _assemble_functions(@functions_found),
-        _assemble_tasks($tasks), _assemble_variants(@task_names),
+        _assemble_tasks($tasks), _assemble_variants( \@task_names, \%filters ),
     );
 }
+
+sub clone { return YAML::Load( YAML::Dump(shift) ) }
 
 sub ignore { return { ignore => [@_] } }
 
@@ -128,11 +137,11 @@ sub task {
     my ( $name, $commands, %opts ) = @_;
     die "No commands for $name" unless $commands;
     my $task = _hashify( name => $name, commands => _func_hash_list(@$commands) );
-    my $deps = $opts{depends_on};
-    if ( defined $deps ) {
+    if ( defined( my $deps = $opts{depends_on} ) ) {
         $task->{depends_on} =
           ref $deps eq 'ARRAY' ? _name_hash_list(@$deps) : _name_hash_list($deps);
     }
+    $task->{filter} = $opts{filter};
     return $task;
 }
 
@@ -178,7 +187,7 @@ sub _assemble_tasks {
 }
 
 sub _assemble_variants {
-    my (@task_names) = @_;
+    my ( $task_names, $filters ) = @_;
 
     my @variants;
     for my $os ( sort keys %os_map ) {
@@ -194,18 +203,20 @@ sub _assemble_variants {
             # Explicit path to perl to avoid confusion
             my $perlpath = "$prefix_path/$os_map{$os}{perlpath}/perl";
 
+            # Filter out some tasks based on OS and Perl version
+            my @filtered = _filter_tasks( $os, $ver, $task_names, $filters );
             push @variants,
               _hashify(
                 name         => "os_${os}_perl_${ver}",
                 display_name => "$os_map{$os}{name} Perl $ver",
-                expansions   => {
+                expansions   => _hashify_sorted(
                     os       => $os,
                     perlver  => $ver,
                     perlpath => $perlpath,
                     addpaths => join( ":", map { "$prefix_path/$_" } @extra_paths ),
-                },
+                ),
                 run_on => [ @{ $os_map{$os}{run_on} } ],
-                tasks  => [@task_names],
+                tasks  => [@filtered],
               );
         }
     }
@@ -216,12 +227,43 @@ sub _default_headers {
     return { stepback => 'true' }, { command_type => 'system' };
 }
 
+sub _filter_tasks {
+    my ( $os, $ver, $task_names, $filters ) = @_;
+    my @filtered;
+    for my $t (@$task_names) {
+        my $f      = $filters->{$t} || {};
+        my $os_ok  = $f->{os} ? ( grep { $os eq $_ } @{ $f->{os} } ) : 1;
+        my $ver_ok = $f->{perl} ? ( grep { $ver =~ /^$_/ } @{ $f->{perl} } ) : 1;
+        push @filtered, $t
+          if $os_ok && $ver_ok;
+    }
+    return @filtered;
+}
+
 sub _func_hash_list {
-    return [ map { { func => $_ } } @_ ];
+    my @list;
+    for my $f (@_) {
+        if ( ref $f eq 'ARRAY' ) {
+            push @list, _hashify_sorted( func => $f->[0], vars => _hashify_sorted( %{ $f->[1] } ) );
+        }
+        else {
+            push @list, { func => $f };
+        }
+    }
+    return \@list;
 }
 
 sub _hashify {
     tie my %hash, "Tie::IxHash", @_;
+    return \%hash;
+}
+
+sub _hashify_sorted {
+    my %h = @_;
+    tie my %hash, "Tie::IxHash";
+    for my $k (sort keys %h) {
+        $hash{$k} = $h{$k};
+    }
     return \%hash;
 }
 
@@ -235,12 +277,12 @@ sub _yaml_snippet {
     # Passthrough literal text
     return $data unless ref $data;
 
-    # Convert refs to YAML strings; upgrade 'true' or "true" to true, etc.
-    my $yaml = CPAN::Meta::YAML->new($data);
-    my $text = eval { $yaml->write_string };
+    my $text = eval { YAML::Dump($data) } || '';
+    warn $@ if $@;
+
+    # Remove YAML document divider
     $text =~ s/[^\n]*\n//m;
-    $text =~ s/((["'])true\2)/true/msg;
-    $text =~ s/((["'])false\2)/false/msg;
+
     return $text;
 }
 
@@ -269,7 +311,6 @@ __DATA__
       file: expansion.yml
 "whichPerl":
   command: shell.exec
-  type: test
   params:
     script: |
       ${prepare_shell}
@@ -318,7 +359,23 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
-      $PERL ${repo_directory}/.evergreen/testing/test.pl
+      MONGOD="${MONGODB_URI}" $PERL ${repo_directory}/.evergreen/testing/test.pl
+"setupOrchestration" :
+  - command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        VERSION=${version} TOPOLOGY=${topology} AUTH=${auth} SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/setup-mongo-orchestration.pl
+  - command: expansions.update
+    params:
+      file: mo-expansion.yml
+"teardownOrchestration" :
+  command: shell.exec
+  continue_on_error: true
+  params:
+    script: |
+      ${prepare_shell}
+      $PERL ${repo_directory}/.evergreen/testing/teardown-mongo-orchestration.pl
 "uploadPerl5Lib":
   command: s3.put
   params:

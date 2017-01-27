@@ -10,6 +10,12 @@ use EvergreenHelper;
 # Bootstrap
 bootstrap_env();
 
+# If MONGOD exists in the environment, we expect to be able to
+# connect to it and want things to fail if we can't.  The
+# EVG_ORCH_TEST environment variable stops tests from skipping
+# without a mongod that tests can connect with.
+$ENV{EVG_ORCH_TEST} = 1 if $ENV{MONGOD};
+
 run_in_dir $ENV{REPO_DIR} => sub {
     # Configure ENV vars for local library updated in compile step
     bootstrap_locallib('local');

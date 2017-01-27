@@ -97,6 +97,9 @@ sub skip_unless_mongod {
 
     if ($@) {
         ( my $err = $@ ) =~ s/\n//g;
+        if ( $ENV{EVG_ORCH_TEST} ) {
+            BAIL_OUT($err);
+        }
         if ( $err =~ /couldn't connect|connection refused/i ) {
             $err = "no mongod on " . ( $ENV{MONGOD} || "localhost:27017" );
             $err .= ' and $ENV{MONGOD} not set' unless $ENV{MONGOD};
