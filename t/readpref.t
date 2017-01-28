@@ -151,6 +151,9 @@ subtest 'commands' => sub {
 };
 
 subtest "direct connection" => sub {
+    plan skip_all => "Can't test with authentication enabled"
+      if $conn->auth_mechanism ne 'NONE';
+
     my $N = 20;
 
     $coll->drop;
