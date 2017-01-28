@@ -118,7 +118,8 @@ subtest "app name" => sub {
     my $conn2 = build_client( app_name => $app_name );
     my $ret = $conn2->send_admin_command( [ currentOp => 1, appName => $app_name ] );
     my $num_ops_found = @{ $ret->{output}{inprog} };
-    is( $num_ops_found, 1,
+    # Sharded cluster could find more than 1
+    ok( $num_ops_found >= 1,
         "expected to see app name in client doc from currentOp output" );
 };
 
