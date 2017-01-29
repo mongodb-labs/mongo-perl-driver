@@ -2,6 +2,8 @@
 use strict;
 use warnings;
 
+use File::Spec;
+
 # Get helpers
 use FindBin qw($Bin);
 use lib "$Bin/../lib";
@@ -15,6 +17,11 @@ bootstrap_env();
 # EVG_ORCH_TEST environment variable stops tests from skipping
 # without a mongod that tests can connect with.
 $ENV{EVG_ORCH_TEST} = 1 if $ENV{MONGOD};
+
+if ( $ENV{SSL} ) {
+    $ENV{EVG_TEST_SSL_PEM_FILE} = File::Spec->rel2abs("driver-tools/.evergreen/x509gen/client.pem");
+    $ENV{EVG_TEST_SSL_CA_FILE}  = File::Spec->rel2abs("driver-tools/.evergreen/x509gen/ca.pem");
+}
 
 run_in_dir $ENV{REPO_DIR} => sub {
     # Configure ENV vars for local library updated in compile step

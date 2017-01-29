@@ -46,11 +46,19 @@ sub build_client {
       : exists $ENV{MONGOD} ? $ENV{MONGOD}
       :                       'localhost';
 
+    my $ssl;
+    if ( $ENV{EVG_ORCH_TEST} && $ENV{SSL} ) {
+        $ssl = {
+            SSL_cert_file => $ENV{EVG_TEST_SSL_PEM_FILE},
+            SSL_ca_file   => $ENV{EVG_TEST_SSL_CA_FILE},
+        };
+    }
+
     # long query timeout may help spurious failures on heavily loaded CI machines
     return MongoDB->connect(
         $host,
         {
-            ssl                         => $ENV{MONGO_SSL},
+            ssl                         => $ssl || $ENV{MONGO_SSL},
             socket_timeout_ms           => 60000,
             server_selection_timeout_ms => 2000,
             server_selection_try_once   => 0,
