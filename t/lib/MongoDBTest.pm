@@ -47,7 +47,7 @@ sub build_client {
       :                       'localhost';
 
     my $ssl;
-    if ( $ENV{EVG_ORCH_TEST} && $ENV{SSL} = 'ssl' ) {
+    if ( $ENV{EVG_ORCH_TEST} && $ENV{SSL} eq 'ssl' ) {
         $ssl = {
             SSL_cert_file => $ENV{EVG_TEST_SSL_PEM_FILE},
             SSL_ca_file   => $ENV{EVG_TEST_SSL_CA_FILE},
