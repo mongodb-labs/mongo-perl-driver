@@ -53,6 +53,13 @@ my %os_map = (
         perlpath => 'bin',
         perls    => \@unix_perls,
     },
+    rhel62 => {
+        name     => "RHEL 6.2",
+        run_on   => [ 'rhel62-test', 'rhel62-build', 'rhel62-large' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
     'windows64' => {
         name     => "Win64",
         run_on   => \@win_dists,
@@ -205,6 +212,10 @@ sub _assemble_variants {
 
             # Filter out some tasks based on OS and Perl version
             my @filtered = _filter_tasks( $os, $ver, $task_names, $filters );
+
+            # Skip variant if no tasks
+            next unless @filtered;
+
             push @variants,
               _hashify(
                 name         => "os_${os}_perl_${ver}",
