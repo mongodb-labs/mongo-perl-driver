@@ -703,166 +703,137 @@ tasks:
       - name: test_latest_sharded_cluster_nossl_noauth
 
 buildvariants:
-  - name: os_ubuntu1604_perl_10.1
-    display_name: Ubuntu 16.04 Perl 10.1
+  - name: os_rhel62_perl_10.1
+    display_name: RHEL 6.2 Perl 10.1
     expansions:
       addpaths: /opt/perl/10.1/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/10.1/bin/perl
       perlver: 10.1
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_10.1t
-    display_name: Ubuntu 16.04 Perl 10.1t
+  - name: os_rhel62_perl_10.1t
+    display_name: RHEL 6.2 Perl 10.1t
     expansions:
       addpaths: /opt/perl/10.1t/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/10.1t/bin/perl
       perlver: 10.1t
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_10.1ld
-    display_name: Ubuntu 16.04 Perl 10.1ld
+  - name: os_rhel62_perl_10.1ld
+    display_name: RHEL 6.2 Perl 10.1ld
     expansions:
       addpaths: /opt/perl/10.1ld/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/10.1ld/bin/perl
       perlver: 10.1ld
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_12.5
-    display_name: Ubuntu 16.04 Perl 12.5
+  - name: os_rhel62_perl_12.5
+    display_name: RHEL 6.2 Perl 12.5
     expansions:
       addpaths: /opt/perl/12.5/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/12.5/bin/perl
       perlver: 12.5
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_12.5t
-    display_name: Ubuntu 16.04 Perl 12.5t
+  - name: os_rhel62_perl_12.5t
+    display_name: RHEL 6.2 Perl 12.5t
     expansions:
       addpaths: /opt/perl/12.5t/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/12.5t/bin/perl
       perlver: 12.5t
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_12.5ld
-    display_name: Ubuntu 16.04 Perl 12.5ld
+  - name: os_rhel62_perl_12.5ld
+    display_name: RHEL 6.2 Perl 12.5ld
     expansions:
       addpaths: /opt/perl/12.5ld/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/12.5ld/bin/perl
       perlver: 12.5ld
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_14.4
-    display_name: Ubuntu 16.04 Perl 14.4
+  - name: os_rhel62_perl_14.4
+    display_name: RHEL 6.2 Perl 14.4
     expansions:
       addpaths: /opt/perl/14.4/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/14.4/bin/perl
       perlver: 14.4
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
@@ -908,426 +879,297 @@ buildvariants:
       - test_latest_replica_set_nossl_auth
       - test_latest_sharded_cluster_nossl_noauth
       - test_latest_sharded_cluster_nossl_auth
-  - name: os_ubuntu1604_perl_14.4t
-    display_name: Ubuntu 16.04 Perl 14.4t
+  - name: os_rhel62_perl_14.4t
+    display_name: RHEL 6.2 Perl 14.4t
     expansions:
       addpaths: /opt/perl/14.4t/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/14.4t/bin/perl
       perlver: 14.4t
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
       - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
       - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
       - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
-      - test_3.4_server_nossl_auth
-      - test_3.4_server_ssl_noauth
-      - test_3.4_replica_set_nossl_noauth
-      - test_3.4_replica_set_nossl_auth
-      - test_3.4_sharded_cluster_nossl_noauth
-      - test_3.4_sharded_cluster_nossl_auth
       - test_latest_server_nossl_noauth
-      - test_latest_server_nossl_auth
-      - test_latest_server_ssl_noauth
-      - test_latest_replica_set_nossl_noauth
-      - test_latest_replica_set_nossl_auth
-      - test_latest_sharded_cluster_nossl_noauth
-      - test_latest_sharded_cluster_nossl_auth
-  - name: os_ubuntu1604_perl_14.4ld
-    display_name: Ubuntu 16.04 Perl 14.4ld
+  - name: os_rhel62_perl_14.4ld
+    display_name: RHEL 6.2 Perl 14.4ld
     expansions:
       addpaths: /opt/perl/14.4ld/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/14.4ld/bin/perl
       perlver: 14.4ld
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
       - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
       - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
       - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
-      - test_3.4_server_nossl_auth
-      - test_3.4_server_ssl_noauth
-      - test_3.4_replica_set_nossl_noauth
-      - test_3.4_replica_set_nossl_auth
-      - test_3.4_sharded_cluster_nossl_noauth
-      - test_3.4_sharded_cluster_nossl_auth
       - test_latest_server_nossl_noauth
-      - test_latest_server_nossl_auth
-      - test_latest_server_ssl_noauth
-      - test_latest_replica_set_nossl_noauth
-      - test_latest_replica_set_nossl_auth
-      - test_latest_sharded_cluster_nossl_noauth
-      - test_latest_sharded_cluster_nossl_auth
-  - name: os_ubuntu1604_perl_16.3
-    display_name: Ubuntu 16.04 Perl 16.3
+  - name: os_rhel62_perl_16.3
+    display_name: RHEL 6.2 Perl 16.3
     expansions:
       addpaths: /opt/perl/16.3/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/16.3/bin/perl
       perlver: 16.3
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_16.3t
-    display_name: Ubuntu 16.04 Perl 16.3t
+  - name: os_rhel62_perl_16.3t
+    display_name: RHEL 6.2 Perl 16.3t
     expansions:
       addpaths: /opt/perl/16.3t/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/16.3t/bin/perl
       perlver: 16.3t
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_16.3ld
-    display_name: Ubuntu 16.04 Perl 16.3ld
+  - name: os_rhel62_perl_16.3ld
+    display_name: RHEL 6.2 Perl 16.3ld
     expansions:
       addpaths: /opt/perl/16.3ld/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/16.3ld/bin/perl
       perlver: 16.3ld
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_18.4
-    display_name: Ubuntu 16.04 Perl 18.4
+  - name: os_rhel62_perl_18.4
+    display_name: RHEL 6.2 Perl 18.4
     expansions:
       addpaths: /opt/perl/18.4/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/18.4/bin/perl
       perlver: 18.4
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_18.4t
-    display_name: Ubuntu 16.04 Perl 18.4t
+  - name: os_rhel62_perl_18.4t
+    display_name: RHEL 6.2 Perl 18.4t
     expansions:
       addpaths: /opt/perl/18.4t/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/18.4t/bin/perl
       perlver: 18.4t
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_18.4ld
-    display_name: Ubuntu 16.04 Perl 18.4ld
+  - name: os_rhel62_perl_18.4ld
+    display_name: RHEL 6.2 Perl 18.4ld
     expansions:
       addpaths: /opt/perl/18.4ld/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/18.4ld/bin/perl
       perlver: 18.4ld
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_20.3
-    display_name: Ubuntu 16.04 Perl 20.3
+  - name: os_rhel62_perl_20.3
+    display_name: RHEL 6.2 Perl 20.3
     expansions:
       addpaths: /opt/perl/20.3/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/20.3/bin/perl
       perlver: 20.3
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_20.3t
-    display_name: Ubuntu 16.04 Perl 20.3t
+  - name: os_rhel62_perl_20.3t
+    display_name: RHEL 6.2 Perl 20.3t
     expansions:
       addpaths: /opt/perl/20.3t/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/20.3t/bin/perl
       perlver: 20.3t
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_20.3ld
-    display_name: Ubuntu 16.04 Perl 20.3ld
+  - name: os_rhel62_perl_20.3ld
+    display_name: RHEL 6.2 Perl 20.3ld
     expansions:
       addpaths: /opt/perl/20.3ld/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/20.3ld/bin/perl
       perlver: 20.3ld
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_22.2
-    display_name: Ubuntu 16.04 Perl 22.2
+  - name: os_rhel62_perl_22.2
+    display_name: RHEL 6.2 Perl 22.2
     expansions:
       addpaths: /opt/perl/22.2/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/22.2/bin/perl
       perlver: 22.2
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_22.2t
-    display_name: Ubuntu 16.04 Perl 22.2t
+  - name: os_rhel62_perl_22.2t
+    display_name: RHEL 6.2 Perl 22.2t
     expansions:
       addpaths: /opt/perl/22.2t/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/22.2t/bin/perl
       perlver: 22.2t
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_22.2ld
-    display_name: Ubuntu 16.04 Perl 22.2ld
+  - name: os_rhel62_perl_22.2ld
+    display_name: RHEL 6.2 Perl 22.2ld
     expansions:
       addpaths: /opt/perl/22.2ld/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/22.2ld/bin/perl
       perlver: 22.2ld
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
-  - name: os_ubuntu1604_perl_24.0
-    display_name: Ubuntu 16.04 Perl 24.0
+  - name: os_rhel62_perl_24.0
+    display_name: RHEL 6.2 Perl 24.0
     expansions:
       addpaths: /opt/perl/24.0/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/24.0/bin/perl
       perlver: 24.0
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
@@ -1373,116 +1215,46 @@ buildvariants:
       - test_latest_replica_set_nossl_auth
       - test_latest_sharded_cluster_nossl_noauth
       - test_latest_sharded_cluster_nossl_auth
-  - name: os_ubuntu1604_perl_24.0t
-    display_name: Ubuntu 16.04 Perl 24.0t
+  - name: os_rhel62_perl_24.0t
+    display_name: RHEL 6.2 Perl 24.0t
     expansions:
       addpaths: /opt/perl/24.0t/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/24.0t/bin/perl
       perlver: 24.0t
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
       - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
       - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
       - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
-      - test_3.4_server_nossl_auth
-      - test_3.4_server_ssl_noauth
-      - test_3.4_replica_set_nossl_noauth
-      - test_3.4_replica_set_nossl_auth
-      - test_3.4_sharded_cluster_nossl_noauth
-      - test_3.4_sharded_cluster_nossl_auth
       - test_latest_server_nossl_noauth
-      - test_latest_server_nossl_auth
-      - test_latest_server_ssl_noauth
-      - test_latest_replica_set_nossl_noauth
-      - test_latest_replica_set_nossl_auth
-      - test_latest_sharded_cluster_nossl_noauth
-      - test_latest_sharded_cluster_nossl_auth
-  - name: os_ubuntu1604_perl_24.0ld
-    display_name: Ubuntu 16.04 Perl 24.0ld
+  - name: os_rhel62_perl_24.0ld
+    display_name: RHEL 6.2 Perl 24.0ld
     expansions:
       addpaths: /opt/perl/24.0ld/bin
-      os: ubuntu1604
+      os: rhel62
       perlpath: /opt/perl/24.0ld/bin/perl
       perlver: 24.0ld
     run_on:
-      - ubuntu1604-test
-      - ubuntu1604-build
+      - rhel62-test
+      - rhel62-build
+      - rhel62-large
     tasks:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
       - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
       - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
       - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
-      - test_3.4_server_nossl_auth
-      - test_3.4_server_ssl_noauth
-      - test_3.4_replica_set_nossl_noauth
-      - test_3.4_replica_set_nossl_auth
-      - test_3.4_sharded_cluster_nossl_noauth
-      - test_3.4_sharded_cluster_nossl_auth
       - test_latest_server_nossl_noauth
-      - test_latest_server_nossl_auth
-      - test_latest_server_ssl_noauth
-      - test_latest_replica_set_nossl_noauth
-      - test_latest_replica_set_nossl_auth
-      - test_latest_sharded_cluster_nossl_noauth
-      - test_latest_sharded_cluster_nossl_auth
   - name: os_windows64_perl_14.4
     display_name: Win64 Perl 14.4
     expansions:
@@ -1562,17 +1334,11 @@ buildvariants:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
   - name: os_windows64_perl_18.4
     display_name: Win64 Perl 18.4
     expansions:
@@ -1592,17 +1358,11 @@ buildvariants:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
   - name: os_windows64_perl_20.3
     display_name: Win64 Perl 20.3
     expansions:
@@ -1622,17 +1382,11 @@ buildvariants:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
   - name: os_windows64_perl_22.2
     display_name: Win64 Perl 22.2
     expansions:
@@ -1652,17 +1406,11 @@ buildvariants:
       - build
       - check
       - test_2.4_server_nossl_noauth
-      - test_2.4_replica_set_nossl_noauth
       - test_2.6_server_nossl_noauth
-      - test_2.6_replica_set_nossl_noauth
       - test_3.0_server_nossl_noauth
-      - test_3.0_replica_set_nossl_noauth
       - test_3.2_server_nossl_noauth
-      - test_3.2_replica_set_nossl_noauth
       - test_3.4_server_nossl_noauth
-      - test_3.4_replica_set_nossl_noauth
       - test_latest_server_nossl_noauth
-      - test_latest_replica_set_nossl_noauth
   - name: os_windows64_perl_24.0
     display_name: Win64 Perl 24.0
     expansions:

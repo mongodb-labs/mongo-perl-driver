@@ -14,7 +14,8 @@ use EvergreenConfig;
 # Constants
 #--------------------------------------------------------------------------#
 
-my $main_distro = "ubuntu1604";
+# Limit tasks to certain operating systems
+my $OS_FILTER = { os => [ 'rhel62', 'windows64' ] };
 
 #--------------------------------------------------------------------------#
 # Functions
@@ -41,14 +42,19 @@ sub calc_depends {
 sub calc_filter {
     my $opts = shift;
 
-    # Server and replica sets without auth/ssl should run on every OS & perl
-    return {}
-      if ( $opts->{topology} eq 'replica_set' || $opts->{topology} eq 'server' )
+    my $filter = {%$OS_FILTER};
+
+    # Server without auth/ssl should run on all perls
+    # on rhel62 and windows
+    return $filter
+      if $opts->{topology} eq 'server'
       && $opts->{auth} eq 'noauth'
       && $opts->{ssl} eq 'nossl';
 
     # Everything else should run everywhere, but only on 14 and 24
-    return { perl => [qw/24 14/] };
+    $filter->{perl} = [ qr/24\.\d+$/, qr/14\.\d+$/ ];
+
+    return $filter;
 }
 
 sub generate_test_variations {
@@ -97,7 +103,7 @@ sub test {
 
 sub test_name {
     my $args = shift;
-    (my $version = $args->{version} ) =~ s/^v//;
+    ( my $version = $args->{version} ) =~ s/^v//;
     return join( "_", "test", $version, @{$args}{qw/topology ssl auth/} );
 }
 
@@ -122,11 +128,13 @@ sub with_topology {
 
 sub main {
     # Common tasks for all variants
+    my $filter = {%$OS_FILTER};
+
     my @tasks = (
         pre(qw/dynamicVars cleanUp fetchSource downloadPerl5Lib/),
         post(qw/teardownOrchestration cleanUp/),
-        task( build => [qw/whichPerl buildModule uploadBuildArtifacts/] ),
-        test( name => "check" ),
+        task( build => [qw/whichPerl buildModule uploadBuildArtifacts/], filter => $filter ),
+        test( name => "check", filter => $filter ),
     );
 
     # Add orchestrated tests
