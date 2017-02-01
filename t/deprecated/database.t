@@ -60,8 +60,8 @@ subtest 'getlasterror' => sub {
     is($result->{ok}, 1, 'last_error: ok');
     is($result->{err}, undef, 'last_error: err');
 
-    # mongos never returns 'n'
-    is($result->{n}, $server_type eq 'Mongos' ? undef : 0, 'last_error: n');
+    # some versions of mongos never returns 'n'
+    ok(!$result->{n}, 'last_error: n is false');
 };
 
 subtest "eval (deprecated)" => sub {
