@@ -82,7 +82,7 @@ sub setup_gridfs {
 {
     my $dumb_str = path($txtfile)->slurp_raw;
     my $bucket   = $testdb->get_gridfsbucket;
-    open( my $file, '<', $txtfile ) or die $!;
+    open( my $file, '<:raw', $txtfile ) or die $!;
     ok( my $id = $bucket->upload_from_stream( 'input.txt', $file ),
         'upload small file' );
     my $time = DateTime->now;
@@ -101,7 +101,7 @@ sub setup_gridfs {
     ok( $time->epoch - $filedoc->{'uploadDate'}->epoch < 10,
         'upload small file uploadDate' );
 
-    open( $file, '<', $pngfile ) or die $!;
+    open( $file, '<:raw', $pngfile ) or die $!;
     binmode($file);
     ok(
         $id = $bucket->upload_from_stream(
@@ -155,7 +155,7 @@ sub setup_gridfs {
     my $bucket = $testdb->get_gridfsbucket;
 
     # upload_from_stream_with_id()
-    open( my $file, '<', $txtfile ) or die $!;
+    open( my $file, '<:raw', $txtfile ) or die $!;
     $bucket->upload_from_stream_with_id( 5, "file_5.txt", $file );
     close $file;
     my $doc = $bucket->find_id(5);
@@ -283,6 +283,18 @@ sub setup_gridfs {
     is( compare( $bigfile, "$tmp" ), 0, 'download_to_stream writes to disk' );
 }
 
+sub _hexify {
+    my ($str) = @_;
+    $str =~ s{([^[:graph:]])}{sprintf("\\x{%02x}",ord($1))}ge;
+    return $str;
+}
+
+sub text_is {
+    my ($got, $exp, $label) = @_;
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
+    is( _hexify($got), _hexify($exp), $label );
+}
+
 # open_download_stream
 {
     setup_gridfs;
@@ -293,28 +305,28 @@ sub setup_gridfs {
 
     $dl_stream = $bucket->open_download_stream($txt_id);
     $dl_stream->read( $str, 4 );
-    is( $str, "abc\n", 'simple read' );
+    text_is( $str, "abc\n", 'simple read' );
     $dl_stream->read( $str, 1, 10 );
-    is( $str, "abc\n\0\0\0\0\0\0\n", 'read with null byte padding' );
+    text_is( $str, "abc\n\0\0\0\0\0\0\n", 'read with null byte padding' );
     $dl_stream->read( $str, 3, -10 );
-    is( $str, "azyw", 'read with negative offset' );
+    text_is( $str, "azyw", 'read with negative offset' );
     $dl_stream->read( $str, 1, -999 );
-    is( $str, "\n", 'read with large negative offset' );
+    text_is( $str, "\n", 'read with large negative offset' );
 
     $dl_stream = $bucket->open_download_stream($txt_id);
-    is( $dl_stream->readline, "abc\n", 'readline 1' );
-    is( $dl_stream->readline, "\n",    'readline 2' );
-    is( $dl_stream->readline, "zyw\n", 'readline 3' );
+    text_is( scalar $dl_stream->readline, "abc\n", 'readline 1' );
+    text_is( scalar $dl_stream->readline, "\n",    'readline 2' );
+    text_is( scalar $dl_stream->readline, "zyw\n", 'readline 3' );
 
     $dl_stream = $bucket->open_download_stream($txt_id);
     my @arr = $dl_stream->readline;
-    cmp_deeply( \@arr, [ "abc\n", "\n", "zyw\n" ], 'readline in list context' );
+    cmp_deeply( \@arr, [ "abc\n", "\n", "zyw\n" ], 'readline in ltext_ist context' );
 
     $dl_stream = $bucket->open_download_stream($txt_id);
     {
         local $/ = undef;
         $str = $dl_stream->readline;
-        is( $str, "abc\n\nzyw\n", 'readline slurp mode' );
+        text_is( $str, "abc\n\nzyw\n", 'readline slurp mode' );
     }
 
     my $tmp    = Path::Tiny->tempfile;
@@ -344,13 +356,13 @@ sub setup_gridfs {
 
     $dl_stream = $bucket->open_download_stream($img_id);
     $fh        = $dl_stream->fh;
-    open( my $png_fh, '<', $pngfile );
+    open( my $png_fh, '<:raw', $pngfile );
     is( compare( $fh, $png_fh ), 0, 'complex fh read' );
     close $png_fh;
 
     $dl_stream = $bucket->open_download_stream($big_id);
     $fh        = $dl_stream->fh;
-    open( my $big_fh, '<', $bigfile );
+    open( my $big_fh, '<:raw', $bigfile );
     my $ok = 1;
     while ( my $line = <$fh> ) {
         if ( $line ne <$big_fh> ) {
