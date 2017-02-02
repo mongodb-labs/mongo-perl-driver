@@ -370,7 +370,8 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
-      MONGOD="${MONGODB_URI}" SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/test.pl
+      export MONGOD=$(echo "${MONGODB_URI}" | tr -d '[:space:]')
+      SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/test.pl
 "setupOrchestration" :
   - command: shell.exec
     params:

@@ -11,9 +11,11 @@ use lib "$Bin/../lib";
 use EvergreenHelper;
 
 my $tools_dir     = "driver-tools";
-my $abs_tools_dir = File::Spec->rel2abs($tools_dir);
-my $abs_orch_dir  = File::Spec->catdir( $abs_tools_dir, ".evergreen/orchestration" );
-my $abs_mongodb_bin_dir = File::Spec->catdir( $abs_tools_dir, "mongodb/bin" );
+my $abs_tools_dir = fwd_slash( File::Spec->rel2abs($tools_dir) );
+my $abs_orch_dir =
+  fwd_slash( File::Spec->catdir( $abs_tools_dir, ".evergreen/orchestration" ) );
+my $abs_mongodb_bin_dir =
+  fwd_slash( File::Spec->catdir( $abs_tools_dir, "mongodb/bin" ) );
 
 # Download evergreen driver tool
 rmtree("$tools_dir");
@@ -26,9 +28,9 @@ fix_config_files_in($abs_tools_dir);
 # Add to the environment
 $ENV{DRIVERS_TOOLS}            = $abs_tools_dir;
 $ENV{MONGO_ORCHESTRATION_HOME} = $abs_orch_dir;
+$ENV{MONGO_ORCHESTRATION_TMP}  = "$abs_orch_dir/db";
 $ENV{MONGODB_BINARIES}         = $abs_mongodb_bin_dir;
 $ENV{MONGODB_VERSION}          = $ENV{VERSION};
-
 $ENV{MONGODB_VERSION} =~ s/^v//;
 maybe_prepend_env( PATH => $abs_mongodb_bin_dir );
 

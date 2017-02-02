@@ -17,6 +17,7 @@ our @EXPORT = qw(
   filter_file
   fix_config_files_in
   fix_shell_files_in
+  fwd_slash
   get_info
   make
   maybe_prepend_env
@@ -92,6 +93,12 @@ sub fix_shell_files_in {
         chmod 0755, $_ or die chmod "$_: $!";
     };
     find( $fixer, $dir );
+}
+
+sub fwd_slash {
+    my $path = shift;
+    $path =~ tr[\\][/];
+    return $path;
 }
 
 sub get_info {
