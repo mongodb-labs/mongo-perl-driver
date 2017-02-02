@@ -33,6 +33,11 @@ my @perl_versions = qw(
   5.24.0
 );
 
+# ARM64 builds fail before 5.14
+if ($^O =~ /^aarch64/) {
+    splice @perl_versions, 0, 3;
+}
+
 my %config_flags = (
     ''  => '',
     't' => '-Dusethreads',
@@ -47,9 +52,10 @@ bootstrap_env();
 
 run_perl5_cpanm(qw/Perl::Build/);
 
-# build all perls
+# build all perls from newest to oldest because older ones might fail
+# and we want to see where things stop working
 my @logs;
-for my $version (@perl_versions) {
+for my $version (reverse @perl_versions) {
     for my $config ( keys %config_flags ) {
         # prepare arguments
         ( my $short_ver = $version ) =~ s/^5\.//;
