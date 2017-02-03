@@ -2,6 +2,7 @@
 use v5.10;
 use strict;
 use warnings;
+use Config;
 use Cwd 'getcwd';
 use File::Path qw/mkpath rmtree/;
 
@@ -33,8 +34,8 @@ my @perl_versions = qw(
   5.24.0
 );
 
-# ARM64 builds fail before 5.14
-if ($^O =~ /^aarch64/) {
+# Build only more recent Perls for ZAP
+if ( $Config{archname} =~ /aarch64|s390x|ppc64le/ ) {
     splice @perl_versions, 0, 3;
 }
 
