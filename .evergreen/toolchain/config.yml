@@ -174,7 +174,7 @@ buildvariants:
     - build-unix-perls
     - validate-unix-perls
     - push-unix-perls
-- name: ubuntu1604-zseries
+- name: suse12-zseries
   display_name: SUSE 12 Z Series
   run_on:
     - suse12-zseries-build
