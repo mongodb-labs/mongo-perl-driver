@@ -186,8 +186,14 @@ sub _assemble_tasks {
             push @parts, $t;
         }
     }
+
+    # 'pre' failures are ignored, so we'll stitch those commands into
+    # all tasks directly instead of using Evergreen's 'pre' feature.
+    for my $t ( @parts ) {
+        unshift @{$t->{commands}}, @{ clone($pre) };
+    }
+
     return (
-        ( $pre  ? ( { pre  => $pre } )  : () ),
         ( $post ? ( { post => $post } ) : () ),
         { tasks => [@parts] }
     );

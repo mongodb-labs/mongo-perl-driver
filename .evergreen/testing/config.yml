@@ -121,12 +121,6 @@ functions:
         ${prepare_shell}
         $PERL -v
 
-pre:
-  - func: dynamicVars
-  - func: cleanUp
-  - func: fetchSource
-  - func: downloadPerl5Lib
-
 post:
   - func: teardownOrchestration
   - func: cleanUp
@@ -134,11 +128,19 @@ post:
 tasks:
   - name: build
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: buildModule
       - func: uploadBuildArtifacts
   - name: check
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: testModule
@@ -146,6 +148,10 @@ tasks:
       - name: build
   - name: test_2.4_server_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -159,6 +165,10 @@ tasks:
       - name: check
   - name: test_2.4_server_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -172,6 +182,10 @@ tasks:
       - name: test_2.4_server_nossl_noauth
   - name: test_2.4_server_ssl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -185,6 +199,10 @@ tasks:
       - name: test_2.4_server_nossl_noauth
   - name: test_2.4_replica_set_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -198,6 +216,10 @@ tasks:
       - name: test_2.4_server_nossl_noauth
   - name: test_2.4_replica_set_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -212,6 +234,10 @@ tasks:
       - name: test_2.4_replica_set_nossl_noauth
   - name: test_2.4_sharded_cluster_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -225,6 +251,10 @@ tasks:
       - name: test_2.4_server_nossl_noauth
   - name: test_2.4_sharded_cluster_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -239,6 +269,10 @@ tasks:
       - name: test_2.4_sharded_cluster_nossl_noauth
   - name: test_2.6_server_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -252,6 +286,10 @@ tasks:
       - name: check
   - name: test_2.6_server_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -265,6 +303,10 @@ tasks:
       - name: test_2.6_server_nossl_noauth
   - name: test_2.6_server_ssl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -278,6 +320,10 @@ tasks:
       - name: test_2.6_server_nossl_noauth
   - name: test_2.6_replica_set_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -291,6 +337,10 @@ tasks:
       - name: test_2.6_server_nossl_noauth
   - name: test_2.6_replica_set_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -305,6 +355,10 @@ tasks:
       - name: test_2.6_replica_set_nossl_noauth
   - name: test_2.6_sharded_cluster_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -318,6 +372,10 @@ tasks:
       - name: test_2.6_server_nossl_noauth
   - name: test_2.6_sharded_cluster_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -332,6 +390,10 @@ tasks:
       - name: test_2.6_sharded_cluster_nossl_noauth
   - name: test_3.0_server_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -345,6 +407,10 @@ tasks:
       - name: check
   - name: test_3.0_server_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -358,6 +424,10 @@ tasks:
       - name: test_3.0_server_nossl_noauth
   - name: test_3.0_server_ssl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -371,6 +441,10 @@ tasks:
       - name: test_3.0_server_nossl_noauth
   - name: test_3.0_replica_set_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -384,6 +458,10 @@ tasks:
       - name: test_3.0_server_nossl_noauth
   - name: test_3.0_replica_set_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -398,6 +476,10 @@ tasks:
       - name: test_3.0_replica_set_nossl_noauth
   - name: test_3.0_sharded_cluster_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -411,6 +493,10 @@ tasks:
       - name: test_3.0_server_nossl_noauth
   - name: test_3.0_sharded_cluster_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -425,6 +511,10 @@ tasks:
       - name: test_3.0_sharded_cluster_nossl_noauth
   - name: test_3.2_server_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -438,6 +528,10 @@ tasks:
       - name: check
   - name: test_3.2_server_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -451,6 +545,10 @@ tasks:
       - name: test_3.2_server_nossl_noauth
   - name: test_3.2_server_ssl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -464,6 +562,10 @@ tasks:
       - name: test_3.2_server_nossl_noauth
   - name: test_3.2_replica_set_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -477,6 +579,10 @@ tasks:
       - name: test_3.2_server_nossl_noauth
   - name: test_3.2_replica_set_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -491,6 +597,10 @@ tasks:
       - name: test_3.2_replica_set_nossl_noauth
   - name: test_3.2_sharded_cluster_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -504,6 +614,10 @@ tasks:
       - name: test_3.2_server_nossl_noauth
   - name: test_3.2_sharded_cluster_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -518,6 +632,10 @@ tasks:
       - name: test_3.2_sharded_cluster_nossl_noauth
   - name: test_3.4_server_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -531,6 +649,10 @@ tasks:
       - name: check
   - name: test_3.4_server_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -544,6 +666,10 @@ tasks:
       - name: test_3.4_server_nossl_noauth
   - name: test_3.4_server_ssl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -557,6 +683,10 @@ tasks:
       - name: test_3.4_server_nossl_noauth
   - name: test_3.4_replica_set_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -570,6 +700,10 @@ tasks:
       - name: test_3.4_server_nossl_noauth
   - name: test_3.4_replica_set_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -584,6 +718,10 @@ tasks:
       - name: test_3.4_replica_set_nossl_noauth
   - name: test_3.4_sharded_cluster_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -597,6 +735,10 @@ tasks:
       - name: test_3.4_server_nossl_noauth
   - name: test_3.4_sharded_cluster_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -611,6 +753,10 @@ tasks:
       - name: test_3.4_sharded_cluster_nossl_noauth
   - name: test_latest_server_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -624,6 +770,10 @@ tasks:
       - name: check
   - name: test_latest_server_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -637,6 +787,10 @@ tasks:
       - name: test_latest_server_nossl_noauth
   - name: test_latest_server_ssl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -650,6 +804,10 @@ tasks:
       - name: test_latest_server_nossl_noauth
   - name: test_latest_replica_set_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -663,6 +821,10 @@ tasks:
       - name: test_latest_server_nossl_noauth
   - name: test_latest_replica_set_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -677,6 +839,10 @@ tasks:
       - name: test_latest_replica_set_nossl_noauth
   - name: test_latest_sharded_cluster_nossl_noauth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration
@@ -690,6 +856,10 @@ tasks:
       - name: test_latest_server_nossl_noauth
   - name: test_latest_sharded_cluster_nossl_auth
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: setupOrchestration

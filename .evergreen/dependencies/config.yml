@@ -111,13 +111,6 @@ functions:
         ${prepare_shell}
         $PERL -v
 
-pre:
-  - func: dynamicVars
-  - func: cleanUp
-  - func: cleanUpOtherRepos
-  - func: fetchSource
-  - func: fetchOtherRepos
-
 post:
   - func: cleanUp
   - func: cleanUpOtherRepos
@@ -125,11 +118,21 @@ post:
 tasks:
   - name: build_perl5lib
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: cleanUpOtherRepos
+      - func: fetchSource
+      - func: fetchOtherRepos
       - func: whichPerl
       - func: buildPerl5Lib
       - func: uploadPerl5Lib
   - name: test_perl5lib
     commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: cleanUpOtherRepos
+      - func: fetchSource
+      - func: fetchOtherRepos
       - func: whichPerl
       - func: downloadPerl5Lib
       - func: testLoadPerlDriver
