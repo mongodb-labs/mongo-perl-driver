@@ -31,6 +31,19 @@ Failure to include the relevant information will result in additional
 round-trip communications to ascertain the necessary details, delaying a
 useful response.
 
+## Bugs / Feature Requests
+
+Think you've found a bug? Want to see a new feature? Please open a
+ticket in our issue management tool, JIRA:
+
+ - [Create a JIRA
+   account](https://jira.mongodb.org/secure/Signup!default.jspa) if you
+   don't already have one.
+ - Navigate to the [JIRA PERL
+   project](https://jira.mongodb.org/browse/PERL>)
+ - Click the **Create** button - Please provide as much information as
+   possible for a bug and how to reproduce it.
+
 ## How to Contribute
 
 The code for `mongo-perl-driver` is hosted on GitHub at:
