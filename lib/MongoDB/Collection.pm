@@ -1000,6 +1000,11 @@ The first argument must be an array-ref of L<aggregation
 pipeline|http://docs.mongodb.org/manual/core/aggregation-pipeline/> documents.
 Each pipeline document must be a hash reference.
 
+B<Note>: Some pipeline documents have ordered arguments, such as C<$sort>.
+Be sure to provide these argument using L<Tie::IxHash>.  E.g.:
+
+    { '$sort' => Tie::IxHash->new( age => -1, posts => 1 ) }
+
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
