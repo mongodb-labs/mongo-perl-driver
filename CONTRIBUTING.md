@@ -1,5 +1,10 @@
 # Contributing Guidelines
 
+# *NOTE* The v0.x branch is no longer actively maintained or tested.
+
+Only critical (i.e. security) bugs will be addressed.  End-of-life for the
+v0.x series will be September, 2017.
+
 ## Introduction
 `mongo-perl-driver` is the official client-side driver for talking to MongoDB with Perl. 
 It is free software released under the Apache 2.0 license and available on CPAN under the
