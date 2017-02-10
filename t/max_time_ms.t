@@ -15,6 +15,7 @@
 
 use strict;
 use warnings;
+use version;
 use Test::More 0.96;
 use Test::Fatal;
 
@@ -40,7 +41,7 @@ unless ( $ENV{FAILPOINT_TESTING} ) {
 # Test::Harness 3.31 supports the t/testrules.yml file to ensure that
 # this test file won't be run in parallel other tests, since turning on
 # a fail point will interfere with other tests.
-if ( $ENV{HARNESS_VERSION} < 3.31 ) {
+if ( version->parse($ENV{HARNESS_VERSION}) < version->parse(3.31) ) {
     plan skip_all => "not safe to run fail points before Test::Harness 3.31";
 }
 
