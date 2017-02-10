@@ -43,6 +43,8 @@ my @win_dists = (
     ( map { ; "windows-64-vs2015-$_" } qw/compile test large/ )
 );
 
+my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14.4 16.3 18.4 20.3 22.2 24.0/;
+
 # perlroot: where perls are installed. E.g. /opt/perl or c:/perl
 # binpath: dir under perlroot/$version to find perl binary. E.g. 'bin' or 'perl/bin'
 my %os_map = (
@@ -60,13 +62,34 @@ my %os_map = (
         perlpath => 'bin',
         perls    => \@unix_perls,
     },
-    'windows64' => {
+    windows64 => {
         name     => "Win64",
         run_on   => \@win_dists,
         perlroot => '/cygdrive/c/perl',
         perlpath => 'perl/bin',
         ccpath   => 'c/bin',
         perls    => \@win_perls,
+    },
+    suse12_z => {
+        name     => "SUSE 12 Z Series",
+        run_on   => [ 'suse12-zseries-build', 'suse12-zseries-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@zap_perls,
+    },
+    ubuntu1604_arm64 => {
+        name     => "Ubuntu 16.04 ARM64",
+        run_on   => [ 'ubuntu1604-arm64-large', 'ubuntu1604-arm64-small' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@zap_perls,
+    },
+    ubuntu1604_power8 => {
+        name     => "Ubuntu 16.04 Power8",
+        run_on   => [ 'ubuntu1604-power8-build', 'ubuntu1604-power8-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@zap_perls,
     },
 );
 
@@ -189,14 +212,11 @@ sub _assemble_tasks {
 
     # 'pre' failures are ignored, so we'll stitch those commands into
     # all tasks directly instead of using Evergreen's 'pre' feature.
-    for my $t ( @parts ) {
-        unshift @{$t->{commands}}, @{ clone($pre) };
+    for my $t (@parts) {
+        unshift @{ $t->{commands} }, @{ clone($pre) };
     }
 
-    return (
-        ( $post ? ( { post => $post } ) : () ),
-        { tasks => [@parts] }
-    );
+    return ( ( $post ? ( { post => $post } ) : () ), { tasks => [@parts] } );
 }
 
 sub _assemble_variants {
@@ -248,8 +268,8 @@ sub _filter_tasks {
     my ( $os, $ver, $task_names, $filters ) = @_;
     my @filtered;
     for my $t (@$task_names) {
-        my $f      = $filters->{$t} || {};
-        my $os_ok  = $f->{os} ? ( grep { $os eq $_ } @{ $f->{os} } ) : 1;
+        my $f = $filters->{$t} || {};
+        my $os_ok  = $f->{os}   ? ( grep { $os eq $_ } @{ $f->{os} } )       : 1;
         my $ver_ok = $f->{perl} ? ( grep { $ver =~ /^$_/ } @{ $f->{perl} } ) : 1;
         push @filtered, $t
           if $os_ok && $ver_ok;
@@ -261,7 +281,8 @@ sub _func_hash_list {
     my @list;
     for my $f (@_) {
         if ( ref $f eq 'ARRAY' ) {
-            push @list, _hashify_sorted( func => $f->[0], vars => _hashify_sorted( %{ $f->[1] } ) );
+            push @list,
+              _hashify_sorted( func => $f->[0], vars => _hashify_sorted( %{ $f->[1] } ) );
         }
         else {
             push @list, { func => $f };
@@ -278,7 +299,7 @@ sub _hashify {
 sub _hashify_sorted {
     my %h = @_;
     tie my %hash, "Tie::IxHash";
-    for my $k (sort keys %h) {
+    for my $k ( sort keys %h ) {
         $hash{$k} = $h{$k};
     }
     return \%hash;

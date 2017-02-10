@@ -476,6 +476,240 @@ buildvariants:
     tasks:
       - build_perl5lib
       - test_perl5lib
+  - name: os_suse12_z_perl_14.4
+    display_name: SUSE 12 Z Series Perl 14.4
+    expansions:
+      addpaths: /opt/perl/14.4/bin
+      os: suse12_z
+      perlpath: /opt/perl/14.4/bin/perl
+      perlver: 14.4
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_14.4t
+    display_name: SUSE 12 Z Series Perl 14.4t
+    expansions:
+      addpaths: /opt/perl/14.4t/bin
+      os: suse12_z
+      perlpath: /opt/perl/14.4t/bin/perl
+      perlver: 14.4t
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_14.4ld
+    display_name: SUSE 12 Z Series Perl 14.4ld
+    expansions:
+      addpaths: /opt/perl/14.4ld/bin
+      os: suse12_z
+      perlpath: /opt/perl/14.4ld/bin/perl
+      perlver: 14.4ld
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_16.3
+    display_name: SUSE 12 Z Series Perl 16.3
+    expansions:
+      addpaths: /opt/perl/16.3/bin
+      os: suse12_z
+      perlpath: /opt/perl/16.3/bin/perl
+      perlver: 16.3
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_16.3t
+    display_name: SUSE 12 Z Series Perl 16.3t
+    expansions:
+      addpaths: /opt/perl/16.3t/bin
+      os: suse12_z
+      perlpath: /opt/perl/16.3t/bin/perl
+      perlver: 16.3t
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_16.3ld
+    display_name: SUSE 12 Z Series Perl 16.3ld
+    expansions:
+      addpaths: /opt/perl/16.3ld/bin
+      os: suse12_z
+      perlpath: /opt/perl/16.3ld/bin/perl
+      perlver: 16.3ld
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_18.4
+    display_name: SUSE 12 Z Series Perl 18.4
+    expansions:
+      addpaths: /opt/perl/18.4/bin
+      os: suse12_z
+      perlpath: /opt/perl/18.4/bin/perl
+      perlver: 18.4
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_18.4t
+    display_name: SUSE 12 Z Series Perl 18.4t
+    expansions:
+      addpaths: /opt/perl/18.4t/bin
+      os: suse12_z
+      perlpath: /opt/perl/18.4t/bin/perl
+      perlver: 18.4t
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_18.4ld
+    display_name: SUSE 12 Z Series Perl 18.4ld
+    expansions:
+      addpaths: /opt/perl/18.4ld/bin
+      os: suse12_z
+      perlpath: /opt/perl/18.4ld/bin/perl
+      perlver: 18.4ld
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_20.3
+    display_name: SUSE 12 Z Series Perl 20.3
+    expansions:
+      addpaths: /opt/perl/20.3/bin
+      os: suse12_z
+      perlpath: /opt/perl/20.3/bin/perl
+      perlver: 20.3
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_20.3t
+    display_name: SUSE 12 Z Series Perl 20.3t
+    expansions:
+      addpaths: /opt/perl/20.3t/bin
+      os: suse12_z
+      perlpath: /opt/perl/20.3t/bin/perl
+      perlver: 20.3t
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_20.3ld
+    display_name: SUSE 12 Z Series Perl 20.3ld
+    expansions:
+      addpaths: /opt/perl/20.3ld/bin
+      os: suse12_z
+      perlpath: /opt/perl/20.3ld/bin/perl
+      perlver: 20.3ld
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_22.2
+    display_name: SUSE 12 Z Series Perl 22.2
+    expansions:
+      addpaths: /opt/perl/22.2/bin
+      os: suse12_z
+      perlpath: /opt/perl/22.2/bin/perl
+      perlver: 22.2
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_22.2t
+    display_name: SUSE 12 Z Series Perl 22.2t
+    expansions:
+      addpaths: /opt/perl/22.2t/bin
+      os: suse12_z
+      perlpath: /opt/perl/22.2t/bin/perl
+      perlver: 22.2t
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_22.2ld
+    display_name: SUSE 12 Z Series Perl 22.2ld
+    expansions:
+      addpaths: /opt/perl/22.2ld/bin
+      os: suse12_z
+      perlpath: /opt/perl/22.2ld/bin/perl
+      perlver: 22.2ld
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_24.0
+    display_name: SUSE 12 Z Series Perl 24.0
+    expansions:
+      addpaths: /opt/perl/24.0/bin
+      os: suse12_z
+      perlpath: /opt/perl/24.0/bin/perl
+      perlver: 24.0
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_24.0t
+    display_name: SUSE 12 Z Series Perl 24.0t
+    expansions:
+      addpaths: /opt/perl/24.0t/bin
+      os: suse12_z
+      perlpath: /opt/perl/24.0t/bin/perl
+      perlver: 24.0t
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_suse12_z_perl_24.0ld
+    display_name: SUSE 12 Z Series Perl 24.0ld
+    expansions:
+      addpaths: /opt/perl/24.0ld/bin
+      os: suse12_z
+      perlpath: /opt/perl/24.0ld/bin/perl
+      perlver: 24.0ld
+    run_on:
+      - suse12-zseries-build
+      - suse12-zseries-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
   - name: os_ubuntu1604_perl_10.1
     display_name: Ubuntu 16.04 Perl 10.1
     expansions:
@@ -785,6 +1019,474 @@ buildvariants:
     run_on:
       - ubuntu1604-test
       - ubuntu1604-build
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_14.4
+    display_name: Ubuntu 16.04 ARM64 Perl 14.4
+    expansions:
+      addpaths: /opt/perl/14.4/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/14.4/bin/perl
+      perlver: 14.4
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_14.4t
+    display_name: Ubuntu 16.04 ARM64 Perl 14.4t
+    expansions:
+      addpaths: /opt/perl/14.4t/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/14.4t/bin/perl
+      perlver: 14.4t
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_14.4ld
+    display_name: Ubuntu 16.04 ARM64 Perl 14.4ld
+    expansions:
+      addpaths: /opt/perl/14.4ld/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/14.4ld/bin/perl
+      perlver: 14.4ld
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_16.3
+    display_name: Ubuntu 16.04 ARM64 Perl 16.3
+    expansions:
+      addpaths: /opt/perl/16.3/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/16.3/bin/perl
+      perlver: 16.3
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_16.3t
+    display_name: Ubuntu 16.04 ARM64 Perl 16.3t
+    expansions:
+      addpaths: /opt/perl/16.3t/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/16.3t/bin/perl
+      perlver: 16.3t
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_16.3ld
+    display_name: Ubuntu 16.04 ARM64 Perl 16.3ld
+    expansions:
+      addpaths: /opt/perl/16.3ld/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/16.3ld/bin/perl
+      perlver: 16.3ld
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_18.4
+    display_name: Ubuntu 16.04 ARM64 Perl 18.4
+    expansions:
+      addpaths: /opt/perl/18.4/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/18.4/bin/perl
+      perlver: 18.4
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_18.4t
+    display_name: Ubuntu 16.04 ARM64 Perl 18.4t
+    expansions:
+      addpaths: /opt/perl/18.4t/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/18.4t/bin/perl
+      perlver: 18.4t
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_18.4ld
+    display_name: Ubuntu 16.04 ARM64 Perl 18.4ld
+    expansions:
+      addpaths: /opt/perl/18.4ld/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/18.4ld/bin/perl
+      perlver: 18.4ld
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_20.3
+    display_name: Ubuntu 16.04 ARM64 Perl 20.3
+    expansions:
+      addpaths: /opt/perl/20.3/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/20.3/bin/perl
+      perlver: 20.3
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_20.3t
+    display_name: Ubuntu 16.04 ARM64 Perl 20.3t
+    expansions:
+      addpaths: /opt/perl/20.3t/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/20.3t/bin/perl
+      perlver: 20.3t
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_20.3ld
+    display_name: Ubuntu 16.04 ARM64 Perl 20.3ld
+    expansions:
+      addpaths: /opt/perl/20.3ld/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/20.3ld/bin/perl
+      perlver: 20.3ld
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_22.2
+    display_name: Ubuntu 16.04 ARM64 Perl 22.2
+    expansions:
+      addpaths: /opt/perl/22.2/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/22.2/bin/perl
+      perlver: 22.2
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_22.2t
+    display_name: Ubuntu 16.04 ARM64 Perl 22.2t
+    expansions:
+      addpaths: /opt/perl/22.2t/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/22.2t/bin/perl
+      perlver: 22.2t
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_22.2ld
+    display_name: Ubuntu 16.04 ARM64 Perl 22.2ld
+    expansions:
+      addpaths: /opt/perl/22.2ld/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/22.2ld/bin/perl
+      perlver: 22.2ld
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_24.0
+    display_name: Ubuntu 16.04 ARM64 Perl 24.0
+    expansions:
+      addpaths: /opt/perl/24.0/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/24.0/bin/perl
+      perlver: 24.0
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_24.0t
+    display_name: Ubuntu 16.04 ARM64 Perl 24.0t
+    expansions:
+      addpaths: /opt/perl/24.0t/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/24.0t/bin/perl
+      perlver: 24.0t
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_arm64_perl_24.0ld
+    display_name: Ubuntu 16.04 ARM64 Perl 24.0ld
+    expansions:
+      addpaths: /opt/perl/24.0ld/bin
+      os: ubuntu1604_arm64
+      perlpath: /opt/perl/24.0ld/bin/perl
+      perlver: 24.0ld
+    run_on:
+      - ubuntu1604-arm64-large
+      - ubuntu1604-arm64-small
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_14.4
+    display_name: Ubuntu 16.04 Power8 Perl 14.4
+    expansions:
+      addpaths: /opt/perl/14.4/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/14.4/bin/perl
+      perlver: 14.4
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_14.4t
+    display_name: Ubuntu 16.04 Power8 Perl 14.4t
+    expansions:
+      addpaths: /opt/perl/14.4t/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/14.4t/bin/perl
+      perlver: 14.4t
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_14.4ld
+    display_name: Ubuntu 16.04 Power8 Perl 14.4ld
+    expansions:
+      addpaths: /opt/perl/14.4ld/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/14.4ld/bin/perl
+      perlver: 14.4ld
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_16.3
+    display_name: Ubuntu 16.04 Power8 Perl 16.3
+    expansions:
+      addpaths: /opt/perl/16.3/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/16.3/bin/perl
+      perlver: 16.3
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_16.3t
+    display_name: Ubuntu 16.04 Power8 Perl 16.3t
+    expansions:
+      addpaths: /opt/perl/16.3t/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/16.3t/bin/perl
+      perlver: 16.3t
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_16.3ld
+    display_name: Ubuntu 16.04 Power8 Perl 16.3ld
+    expansions:
+      addpaths: /opt/perl/16.3ld/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/16.3ld/bin/perl
+      perlver: 16.3ld
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_18.4
+    display_name: Ubuntu 16.04 Power8 Perl 18.4
+    expansions:
+      addpaths: /opt/perl/18.4/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/18.4/bin/perl
+      perlver: 18.4
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_18.4t
+    display_name: Ubuntu 16.04 Power8 Perl 18.4t
+    expansions:
+      addpaths: /opt/perl/18.4t/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/18.4t/bin/perl
+      perlver: 18.4t
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_18.4ld
+    display_name: Ubuntu 16.04 Power8 Perl 18.4ld
+    expansions:
+      addpaths: /opt/perl/18.4ld/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/18.4ld/bin/perl
+      perlver: 18.4ld
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_20.3
+    display_name: Ubuntu 16.04 Power8 Perl 20.3
+    expansions:
+      addpaths: /opt/perl/20.3/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/20.3/bin/perl
+      perlver: 20.3
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_20.3t
+    display_name: Ubuntu 16.04 Power8 Perl 20.3t
+    expansions:
+      addpaths: /opt/perl/20.3t/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/20.3t/bin/perl
+      perlver: 20.3t
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_20.3ld
+    display_name: Ubuntu 16.04 Power8 Perl 20.3ld
+    expansions:
+      addpaths: /opt/perl/20.3ld/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/20.3ld/bin/perl
+      perlver: 20.3ld
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_22.2
+    display_name: Ubuntu 16.04 Power8 Perl 22.2
+    expansions:
+      addpaths: /opt/perl/22.2/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/22.2/bin/perl
+      perlver: 22.2
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_22.2t
+    display_name: Ubuntu 16.04 Power8 Perl 22.2t
+    expansions:
+      addpaths: /opt/perl/22.2t/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/22.2t/bin/perl
+      perlver: 22.2t
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_22.2ld
+    display_name: Ubuntu 16.04 Power8 Perl 22.2ld
+    expansions:
+      addpaths: /opt/perl/22.2ld/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/22.2ld/bin/perl
+      perlver: 22.2ld
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_24.0
+    display_name: Ubuntu 16.04 Power8 Perl 24.0
+    expansions:
+      addpaths: /opt/perl/24.0/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/24.0/bin/perl
+      perlver: 24.0
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_24.0t
+    display_name: Ubuntu 16.04 Power8 Perl 24.0t
+    expansions:
+      addpaths: /opt/perl/24.0t/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/24.0t/bin/perl
+      perlver: 24.0t
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
+    tasks:
+      - build_perl5lib
+      - test_perl5lib
+  - name: os_ubuntu1604_power8_perl_24.0ld
+    display_name: Ubuntu 16.04 Power8 Perl 24.0ld
+    expansions:
+      addpaths: /opt/perl/24.0ld/bin
+      os: ubuntu1604_power8
+      perlpath: /opt/perl/24.0ld/bin/perl
+      perlver: 24.0ld
+    run_on:
+      - ubuntu1604-power8-build
+      - ubuntu1604-power8-test
     tasks:
       - build_perl5lib
       - test_perl5lib
