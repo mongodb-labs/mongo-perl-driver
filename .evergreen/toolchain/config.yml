@@ -1,0 +1,201 @@
+# Ignore everything except changes to the toolchain files
+ignore:
+    - "*"
+    - "!/.evergreen/toolchain/*"
+
+# FUNCTIONS
+functions:
+  "fetchSource" :
+    command: git.get_project
+    params:
+      directory: mongo-perl-driver
+  "makeWorkDir":
+    command: shell.exec
+    params:
+      script: |
+        set -o errexit
+        set -o verbose
+        mkdir perl-toolchain
+  "buildUnixPerls":
+    command: shell.exec
+    params:
+      working_dir: perl-toolchain
+      script: |
+        set -o errexit
+        set -o verbose
+        ../mongo-perl-driver/.evergreen/toolchain/build-unix-perls.pl
+  "buildWinPerls":
+    command: shell.exec
+    params:
+      working_dir: perl-toolchain
+      script: |
+        set -o errexit
+        set -o verbose
+        ../mongo-perl-driver/.evergreen/toolchain/build-win-perls.pl
+  "uploadToolchain":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: perl-toolchain/perl.tar.gz
+      remote_file: ${aws_prefix}/${build_variant}/${revision}/${build_id}.tar.gz
+      bucket: mciuploads
+      permissions: public-read
+      content_type: ${content_type|application/x-gzip}
+  "uploadTaskLog":
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: perl-toolchain/task-logs.tar.gz
+      remote_file: ${aws_prefix}/${version_id}/${build_id}/${task_name}_${execution}/task-logs.tar.gz
+      bucket: mciuploads
+      permissions: public-read
+      optional: true
+      content_type: application/x-gzip
+  "downloadToolchain" :
+    command: shell.exec
+    params:
+      working_dir: "perl-toolchain"
+      script: |
+        set -o errexit
+        set -o verbose
+        curl https://s3.amazonaws.com/mciuploads/${aws_prefix}/${build_variant}/${revision}/${build_id}.tar.gz -o perl.tar.gz --silent --max-time 240
+        tar -zxf perl.tar.gz
+  "validateUnixToolchain" :
+    command: shell.exec
+    params:
+      working_dir: "perl-toolchain"
+      script: |
+        set -o errexit
+        set -o verbose
+        ../mongo-perl-driver/.evergreen/toolchain/validate-unix-perls.sh
+  "validateWinToolchain" :
+    command: shell.exec
+    params:
+      working_dir: "perl-toolchain"
+      script: |
+        set -o errexit
+        set -o verbose
+        dos2unix ../mongo-perl-driver/.evergreen/toolchain/validate-win-perls.sh
+        ../mongo-perl-driver/.evergreen/toolchain/validate-win-perls.sh
+  "copyToolchainToBoxes":
+    command: s3Copy.copy
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      s3_copy_files:
+        - { 'source': { 'path': '${aws_prefix}/${build_variant}/${revision}/${build_id}.tar.gz', 'bucket': 'mciuploads' },
+            'destination': { 'path': 'build/toolchain-drivers/mongo-perl-driver/perl-toolchain-${build_variant}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' }
+          }
+  "cleanUp":
+    command: shell.exec
+    params:
+      script: |
+        set -o errexit
+        set -o verbose
+        rm -rf mongo-perl-driver
+        rm -rf perl-toolchain
+
+# PRE/POST TASKS
+pre:
+  - func: cleanUp
+  - func: fetchSource
+  - func: makeWorkDir
+
+post:
+  - func: uploadTaskLog
+  - func: cleanUp
+
+# TASK DEFINITIONS
+tasks:
+  - name: build-unix-perls
+    commands:
+      - func: buildUnixPerls
+      - func: uploadToolchain
+
+  - name: validate-unix-perls
+    depends_on:
+    - name: build-unix-perls
+    commands:
+      - func: downloadToolchain
+      - func: validateUnixToolchain
+
+  - name: build-win-perls
+    commands:
+      - func: buildWinPerls
+      - func: uploadToolchain
+
+  - name: validate-win-perls
+    depends_on:
+    - name: build-win-perls
+    commands:
+      - func: downloadToolchain
+      - func: validateWinToolchain
+
+  - name: push-unix-perls
+    depends_on:
+    - name: validate-unix-perls
+    stepback: false
+    commands:
+      - func: copyToolchainToBoxes
+
+  - name: push-win-perls
+    depends_on:
+    - name: validate-win-perls
+    stepback: false
+    commands:
+      - func: copyToolchainToBoxes
+
+# BUILD VARIANTS
+
+buildvariants:
+- name: ubuntu1604
+  display_name: Ubuntu 16.04 x86_64
+  run_on:
+    - ubuntu1604-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+- name: ubuntu1604-arm64
+  display_name: Ubuntu 16.04 ARM64
+  run_on:
+    - ubuntu1604-arm64-large
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+- name: ubuntu1604-power8
+  display_name: Ubuntu 16.04 Power8
+  run_on:
+    - ubuntu1604-power8-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+- name: suse12-zseries
+  display_name: SUSE 12 Z Series
+  run_on:
+    - suse12-zseries-build
+    - suse12-zseries-test
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+- name: rhel62
+  display_name: RedHat 6.2
+  run_on:
+    - rhel62-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+- name: windows64
+  display_name: Windows64
+  run_on:
+    - windows-64-vs2015-test
+  tasks:
+    - build-win-perls
+    - validate-win-perls
+    - push-win-perls

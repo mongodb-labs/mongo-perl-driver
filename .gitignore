@@ -1,4 +1,3 @@
-.*
 !.gitignore
 xs/BSON.c
 !perl_mongo.c
