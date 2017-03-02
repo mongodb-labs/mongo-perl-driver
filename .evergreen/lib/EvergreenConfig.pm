@@ -375,9 +375,9 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
-      $PERL ${repo_directory}/.evergreen/dependencies/build-perl5lib.pl
+      TARGET="${target}" $PERL ${repo_directory}/.evergreen/dependencies/build-perl5lib.pl
       ls -l perl5lib.tar.gz
-"testLoadPerlDriver" :
+"testPerl5Lib" :
   command: shell.exec
   type: test
   params:
@@ -421,7 +421,7 @@ __DATA__
     aws_key: ${aws_key}
     aws_secret: ${aws_secret}
     local_file: perl5lib.tar.gz
-    remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/perl5lib.tar.gz
+    remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz
     bucket: mciuploads
     permissions: public-read
     content_type: application/x-gzip
@@ -430,7 +430,7 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
-      curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
+      curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
       tar -zxf perl5lib.tar.gz
 "uploadBuildArtifacts":
   - command: s3.put
