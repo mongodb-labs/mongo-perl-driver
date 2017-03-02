@@ -455,6 +455,7 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
+      rm -rf ~/.cpanm
       rm -rf perl5
       rm -rf ${repo_directory}
 "cleanUpOtherRepos":
