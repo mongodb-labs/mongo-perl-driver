@@ -123,4 +123,19 @@ subtest "app name" => sub {
         "expected to see app name in client doc from currentOp output" );
 };
 
+subtest "localhost translated to 127.0.0.1" => sub {
+    my $topo = $conn->_topology;
+    $topo->scan_all_servers;
+    my $link = $topo->get_readable_link;
+    my $fh = $link->fh;
+
+    plan skip_all => "Test needs IO::Socket::IP and localhost mongod"
+        unless $fh->isa("IO::Socket::IP") && $conn->host =~ /localhost/;
+
+    # IO::Socket::IP::as_inet is fatal unless socket is PF_INET
+    eval { $fh->as_inet };
+    is( $@, '', "Socket can convert to plain INET (IPv4)" );
+};
+
+
 done_testing;

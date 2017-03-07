@@ -31,7 +31,7 @@ use Moo;
 use Errno qw[EINTR EPIPE];
 use IO::Socket qw[SOCK_STREAM];
 use Scalar::Util qw/refaddr/;
-use Socket qw/SOL_SOCKET SO_KEEPALIVE SO_RCVBUF IPPROTO_TCP TCP_NODELAY/;
+use Socket qw/SOL_SOCKET SO_KEEPALIVE SO_RCVBUF IPPROTO_TCP TCP_NODELAY AF_INET/;
 use Time::HiRes qw/time/;
 use MongoDB::Error;
 use MongoDB::_Constants;
@@ -165,9 +165,16 @@ sub connect {
 
     my ($host, $port) = split /:/, $self->address;
 
+    # PERL-715: For 'localhost' where MongoDB is only listening on IPv4 and
+    # getaddrinfo returns an IPv6 address before an IPv4 address, some
+    # operating systems tickle a bug in IO::Socket::IP that causes
+    # connection attempts to fail before trying the IPv4 address.  As a
+    # workaround, we always force 'localhost' to use IPv4.
+
     my $fh = $SOCKET_CLASS->new(
         PeerHost => $host,
         PeerPort => $port,
+        ( lc($host) eq 'localhost' ? ( Family => AF_INET ) : () ),
         Proto    => 'tcp',
         Type     => SOCK_STREAM,
         Timeout  => $self->connect_timeout >= 0 ? $self->connect_timeout : undef,
