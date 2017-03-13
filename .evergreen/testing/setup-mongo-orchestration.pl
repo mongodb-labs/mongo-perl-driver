@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 
+use File::Copy 'cp';
 use File::Spec;
 use File::Path 'rmtree';
 
@@ -16,6 +17,7 @@ my $abs_orch_dir =
   fwd_slash( File::Spec->catdir( $abs_tools_dir, ".evergreen/orchestration" ) );
 my $abs_mongodb_bin_dir =
   fwd_slash( File::Spec->catdir( $abs_tools_dir, "mongodb/bin" ) );
+my $abs_x509_dir = fwd_slash( File::Spec->catdir( $abs_tools_dir, ".evergreen/x509gen" ) );
 
 # Download evergreen driver tool
 rmtree("$tools_dir");
@@ -38,6 +40,14 @@ maybe_prepend_env( PATH => $abs_mongodb_bin_dir );
 spew( "$abs_orch_dir/orchestration.config", << "HERE");
 { "releases": { "default": "$abs_mongodb_bin_dir" } }
 HERE
+
+# Replace symlink to client.pem because Windows doesn't do symlinks
+if ( $^O eq 'MSWin32' ) {
+    my $src = File::Spec->catfile( $abs_x509_dir, "client.pem" );
+    my $dst = File::Spec->catfile( $abs_orch_dir, "/lib/client.pem" );
+    unlink $dst;
+    cp $src, $dst;
+}
 
 # Launch
 try_system("sh $tools_dir/.evergreen/run-orchestration.sh");
