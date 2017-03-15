@@ -391,7 +391,7 @@ __DATA__
     script: |
       ${prepare_shell}
       $PERL ${repo_directory}/.evergreen/testing/build.pl
-"testModule" :
+"testDriver" :
   command: shell.exec
   type: test
   params:
@@ -399,6 +399,13 @@ __DATA__
       ${prepare_shell}
       export MONGOD=$(echo "${MONGODB_URI}" | tr -d '[:space:]')
       SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/test.pl
+"testModule" :
+  command: shell.exec
+  type: test
+  params:
+    script: |
+      ${prepare_shell}
+      $PERL ${repo_directory}/.evergreen/testing/test.pl
 "setupOrchestration" :
   - command: shell.exec
     params:

@@ -95,7 +95,7 @@ sub test {
     my $deps  = $opts{deps} // ['build'];
     my @extra = $opts{extra} ? @{ $opts{extra} } : ();
     return task(
-        $name      => [ qw/whichPerl downloadBuildArtifacts/, @extra, 'testModule' ],
+        $name      => [ qw/whichPerl downloadBuildArtifacts/, @extra, 'testDriver' ],
         depends_on => $deps,
         filter     => $opts{filter},
     );
