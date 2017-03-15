@@ -130,8 +130,10 @@ sub main {
     # Common tasks for all variants
     my $filter = {%$OS_FILTER};
 
+    my $download = [ 'downloadPerl5Lib' => { target => '${repo_directory}' } ];
+
     my @tasks = (
-        pre(qw/dynamicVars cleanUp fetchSource downloadPerl5Lib/),
+        pre( qw/dynamicVars cleanUp fetchSource/, $download ),
         post(qw/teardownOrchestration cleanUp/),
         task( build => [qw/whichPerl buildModule uploadBuildArtifacts/], filter => $filter ),
         test( name => "check", filter => $filter ),
