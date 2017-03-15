@@ -213,7 +213,7 @@ sub _assemble_tasks {
     # 'pre' failures are ignored, so we'll stitch those commands into
     # all tasks directly instead of using Evergreen's 'pre' feature.
     for my $t (@parts) {
-        unshift @{ $t->{commands} }, @{ clone($pre) };
+        unshift @{ $t->{commands} }, map { _hashify_sorted(%$_) } @{ clone($pre) };
     }
 
     return ( ( $post ? ( { post => $post } ) : () ), { tasks => [@parts] } );
@@ -300,7 +300,7 @@ sub _hashify_sorted {
     my %h = @_;
     tie my %hash, "Tie::IxHash";
     for my $k ( sort keys %h ) {
-        $hash{$k} = $h{$k};
+        $hash{$k} = ref( $h{$k} ) eq 'HASH' ? _hashify_sorted( %{ $h{$k} } ) : $h{$k};
     }
     return \%hash;
 }
