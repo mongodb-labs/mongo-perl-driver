@@ -95,7 +95,7 @@ functions:
         ${prepare_shell}
         $PERL ${repo_directory}/.evergreen/testing/teardown-mongo-orchestration.pl
 
-  "testModule" :
+  "testDriver" :
     command: shell.exec
     type: test
     params:
@@ -148,7 +148,7 @@ tasks:
           target: '${repo_directory}'
       - func: whichPerl
       - func: downloadBuildArtifacts
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: build
   - name: test_2.4_server_nossl_noauth
@@ -167,7 +167,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v2.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: check
   - name: test_2.4_server_nossl_auth
@@ -186,7 +186,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v2.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.4_server_nossl_noauth
   - name: test_2.4_server_ssl_noauth
@@ -205,7 +205,7 @@ tasks:
           ssl: ssl
           topology: server
           version: v2.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.4_server_nossl_noauth
   - name: test_2.4_replica_set_nossl_noauth
@@ -224,7 +224,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v2.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.4_server_nossl_noauth
   - name: test_2.4_replica_set_nossl_auth
@@ -243,7 +243,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v2.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.4_server_nossl_auth
       - name: test_2.4_replica_set_nossl_noauth
@@ -263,7 +263,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v2.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.4_server_nossl_noauth
   - name: test_2.4_sharded_cluster_nossl_auth
@@ -282,7 +282,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v2.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.4_server_nossl_auth
       - name: test_2.4_sharded_cluster_nossl_noauth
@@ -302,7 +302,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v2.6
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: check
   - name: test_2.6_server_nossl_auth
@@ -321,7 +321,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v2.6
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.6_server_nossl_noauth
   - name: test_2.6_server_ssl_noauth
@@ -340,7 +340,7 @@ tasks:
           ssl: ssl
           topology: server
           version: v2.6
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.6_server_nossl_noauth
   - name: test_2.6_replica_set_nossl_noauth
@@ -359,7 +359,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v2.6
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.6_server_nossl_noauth
   - name: test_2.6_replica_set_nossl_auth
@@ -378,7 +378,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v2.6
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.6_server_nossl_auth
       - name: test_2.6_replica_set_nossl_noauth
@@ -398,7 +398,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v2.6
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.6_server_nossl_noauth
   - name: test_2.6_sharded_cluster_nossl_auth
@@ -417,7 +417,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v2.6
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_2.6_server_nossl_auth
       - name: test_2.6_sharded_cluster_nossl_noauth
@@ -437,7 +437,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v3.0
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: check
   - name: test_3.0_server_nossl_auth
@@ -456,7 +456,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v3.0
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.0_server_nossl_noauth
   - name: test_3.0_server_ssl_noauth
@@ -475,7 +475,7 @@ tasks:
           ssl: ssl
           topology: server
           version: v3.0
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.0_server_nossl_noauth
   - name: test_3.0_replica_set_nossl_noauth
@@ -494,7 +494,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v3.0
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.0_server_nossl_noauth
   - name: test_3.0_replica_set_nossl_auth
@@ -513,7 +513,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v3.0
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.0_server_nossl_auth
       - name: test_3.0_replica_set_nossl_noauth
@@ -533,7 +533,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v3.0
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.0_server_nossl_noauth
   - name: test_3.0_sharded_cluster_nossl_auth
@@ -552,7 +552,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v3.0
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.0_server_nossl_auth
       - name: test_3.0_sharded_cluster_nossl_noauth
@@ -572,7 +572,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v3.2
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: check
   - name: test_3.2_server_nossl_auth
@@ -591,7 +591,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v3.2
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.2_server_nossl_noauth
   - name: test_3.2_server_ssl_noauth
@@ -610,7 +610,7 @@ tasks:
           ssl: ssl
           topology: server
           version: v3.2
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.2_server_nossl_noauth
   - name: test_3.2_replica_set_nossl_noauth
@@ -629,7 +629,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v3.2
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.2_server_nossl_noauth
   - name: test_3.2_replica_set_nossl_auth
@@ -648,7 +648,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v3.2
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.2_server_nossl_auth
       - name: test_3.2_replica_set_nossl_noauth
@@ -668,7 +668,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v3.2
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.2_server_nossl_noauth
   - name: test_3.2_sharded_cluster_nossl_auth
@@ -687,7 +687,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v3.2
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.2_server_nossl_auth
       - name: test_3.2_sharded_cluster_nossl_noauth
@@ -707,7 +707,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v3.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: check
   - name: test_3.4_server_nossl_auth
@@ -726,7 +726,7 @@ tasks:
           ssl: nossl
           topology: server
           version: v3.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.4_server_nossl_noauth
   - name: test_3.4_server_ssl_noauth
@@ -745,7 +745,7 @@ tasks:
           ssl: ssl
           topology: server
           version: v3.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.4_server_nossl_noauth
   - name: test_3.4_replica_set_nossl_noauth
@@ -764,7 +764,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v3.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.4_server_nossl_noauth
   - name: test_3.4_replica_set_nossl_auth
@@ -783,7 +783,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: v3.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.4_server_nossl_auth
       - name: test_3.4_replica_set_nossl_noauth
@@ -803,7 +803,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v3.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.4_server_nossl_noauth
   - name: test_3.4_sharded_cluster_nossl_auth
@@ -822,7 +822,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: v3.4
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_3.4_server_nossl_auth
       - name: test_3.4_sharded_cluster_nossl_noauth
@@ -842,7 +842,7 @@ tasks:
           ssl: nossl
           topology: server
           version: latest
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: check
   - name: test_latest_server_nossl_auth
@@ -861,7 +861,7 @@ tasks:
           ssl: nossl
           topology: server
           version: latest
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_latest_server_nossl_noauth
   - name: test_latest_server_ssl_noauth
@@ -880,7 +880,7 @@ tasks:
           ssl: ssl
           topology: server
           version: latest
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_latest_server_nossl_noauth
   - name: test_latest_replica_set_nossl_noauth
@@ -899,7 +899,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: latest
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_latest_server_nossl_noauth
   - name: test_latest_replica_set_nossl_auth
@@ -918,7 +918,7 @@ tasks:
           ssl: nossl
           topology: replica_set
           version: latest
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_latest_server_nossl_auth
       - name: test_latest_replica_set_nossl_noauth
@@ -938,7 +938,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: latest
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_latest_server_nossl_noauth
   - name: test_latest_sharded_cluster_nossl_auth
@@ -957,7 +957,7 @@ tasks:
           ssl: nossl
           topology: sharded_cluster
           version: latest
-      - func: testModule
+      - func: testDriver
     depends_on:
       - name: test_latest_server_nossl_auth
       - name: test_latest_sharded_cluster_nossl_noauth

@@ -375,9 +375,9 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
-      $PERL ${repo_directory}/.evergreen/dependencies/build-perl5lib.pl
+      TARGET="${target}" $PERL ${repo_directory}/.evergreen/dependencies/build-perl5lib.pl
       ls -l perl5lib.tar.gz
-"testLoadPerlDriver" :
+"testPerl5Lib" :
   command: shell.exec
   type: test
   params:
@@ -391,7 +391,7 @@ __DATA__
     script: |
       ${prepare_shell}
       $PERL ${repo_directory}/.evergreen/testing/build.pl
-"testModule" :
+"testDriver" :
   command: shell.exec
   type: test
   params:
@@ -399,6 +399,13 @@ __DATA__
       ${prepare_shell}
       export MONGOD=$(echo "${MONGODB_URI}" | tr -d '[:space:]')
       SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/test.pl
+"testModule" :
+  command: shell.exec
+  type: test
+  params:
+    script: |
+      ${prepare_shell}
+      $PERL ${repo_directory}/.evergreen/testing/test.pl
 "setupOrchestration" :
   - command: shell.exec
     params:
@@ -421,7 +428,7 @@ __DATA__
     aws_key: ${aws_key}
     aws_secret: ${aws_secret}
     local_file: perl5lib.tar.gz
-    remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/perl5lib.tar.gz
+    remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz
     bucket: mciuploads
     permissions: public-read
     content_type: application/x-gzip
@@ -430,7 +437,7 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
-      curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
+      curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
       tar -zxf perl5lib.tar.gz
 "uploadBuildArtifacts":
   - command: s3.put
@@ -455,6 +462,7 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
+      rm -rf ~/.cpanm
       rm -rf perl5
       rm -rf ${repo_directory}
 "cleanUpOtherRepos":

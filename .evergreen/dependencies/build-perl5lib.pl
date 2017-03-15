@@ -17,17 +17,13 @@ run_perl5_cpanm(qw/Path::Tiny Config::AutoConf/);
 
 # Install repo dependencies
 
-my @repos = qw(
-  mongo-perl-driver
-  mongo-perl-bson
-  mongo-perl-bson-xs
-);
+my $repo = $ENV{TARGET};
 
-for my $r (@repos) {
-    run_in_dir $r => sub { run_perl5_cpanm(qw/--installdeps ./) };
-}
+die "No such directory '$repo'\n" unless -d $repo;
 
-# Install known optionals
+run_in_dir $repo => sub { run_perl5_cpanm(qw/--installdeps ./) };
+
+# Install known optionals only for mongo-perl-driver
 
 my @optionals = qw(
   Authen::SASL
