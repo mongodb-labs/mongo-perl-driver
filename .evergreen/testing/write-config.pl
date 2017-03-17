@@ -63,7 +63,6 @@ sub calc_filter {
     # Everything else should run everywhere, but only on 14 and 24
     $filter->{perl} = [ qr/24\.\d+$/, qr/14\.\d+$/ ];
 
-
     return $filter;
 }
 
@@ -114,7 +113,13 @@ sub test {
 sub test_name {
     my $args = shift;
     ( my $version = $args->{version} ) =~ s/^v//;
-    return join( "_", "test", $version, @{$args}{qw/topology ssl auth/} );
+    my @parts = ( "test", $version );
+    push @parts, "DB" if $args->{topology} eq 'server';
+    push @parts, "RS" if $args->{topology} eq 'replica_set';
+    push @parts, "SC" if $args->{topology} eq 'sharded_cluster';
+    push @parts, "ssl"  if $args->{ssl} eq 'ssl';
+    push @parts, "auth" if $args->{auth} eq 'auth';
+    return join( "_", @parts );
 }
 
 sub with_key {
