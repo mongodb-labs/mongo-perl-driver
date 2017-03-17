@@ -1528,34 +1528,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
-      - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
-      - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
-      - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
       - test_3.4_server_nossl_auth
       - test_3.4_server_ssl_noauth
@@ -1584,10 +1556,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1604,10 +1572,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1624,10 +1588,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1644,10 +1604,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1664,10 +1620,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1684,10 +1636,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1704,10 +1652,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1724,10 +1668,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1744,10 +1684,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1764,10 +1700,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1784,10 +1716,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1804,10 +1732,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1824,10 +1748,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1844,10 +1764,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1864,34 +1780,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
-      - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
-      - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
-      - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
       - test_3.4_server_nossl_auth
       - test_3.4_server_ssl_noauth
@@ -1920,10 +1808,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1940,10 +1824,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -1960,34 +1840,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
-      - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
-      - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
-      - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
       - test_3.4_server_nossl_auth
       - test_3.4_server_ssl_noauth
@@ -2016,10 +1868,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2036,10 +1884,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2056,10 +1900,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2076,10 +1916,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2096,10 +1932,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2116,10 +1948,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2136,10 +1964,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2156,10 +1980,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2176,10 +1996,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2196,10 +2012,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2216,10 +2028,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2236,10 +2044,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2256,10 +2060,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2276,10 +2076,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2296,34 +2092,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
-      - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
-      - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
-      - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
       - test_3.4_server_nossl_auth
       - test_3.4_server_ssl_noauth
@@ -2352,10 +2120,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2372,10 +2136,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2392,34 +2152,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
-      - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
-      - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
-      - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
       - test_3.4_server_nossl_auth
       - test_3.4_server_ssl_noauth
@@ -2448,10 +2180,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2468,10 +2196,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2488,10 +2212,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2508,10 +2228,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2528,10 +2244,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2548,10 +2260,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2568,10 +2276,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2588,10 +2292,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2608,10 +2308,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2628,10 +2324,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2648,10 +2340,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2668,10 +2356,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2688,10 +2372,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2708,10 +2388,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2728,34 +2404,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.4_server_nossl_auth
-      - test_2.4_server_ssl_noauth
-      - test_2.4_replica_set_nossl_noauth
-      - test_2.4_replica_set_nossl_auth
-      - test_2.4_sharded_cluster_nossl_noauth
-      - test_2.4_sharded_cluster_nossl_auth
-      - test_2.6_server_nossl_noauth
-      - test_2.6_server_nossl_auth
-      - test_2.6_server_ssl_noauth
-      - test_2.6_replica_set_nossl_noauth
-      - test_2.6_replica_set_nossl_auth
-      - test_2.6_sharded_cluster_nossl_noauth
-      - test_2.6_sharded_cluster_nossl_auth
-      - test_3.0_server_nossl_noauth
-      - test_3.0_server_nossl_auth
-      - test_3.0_server_ssl_noauth
-      - test_3.0_replica_set_nossl_noauth
-      - test_3.0_replica_set_nossl_auth
-      - test_3.0_sharded_cluster_nossl_noauth
-      - test_3.0_sharded_cluster_nossl_auth
-      - test_3.2_server_nossl_noauth
-      - test_3.2_server_nossl_auth
-      - test_3.2_server_ssl_noauth
-      - test_3.2_replica_set_nossl_noauth
-      - test_3.2_replica_set_nossl_auth
-      - test_3.2_sharded_cluster_nossl_noauth
-      - test_3.2_sharded_cluster_nossl_auth
       - test_3.4_server_nossl_noauth
       - test_3.4_server_nossl_auth
       - test_3.4_server_ssl_noauth
@@ -2784,10 +2432,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
@@ -2804,10 +2448,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_server_nossl_noauth
-      - test_2.6_server_nossl_noauth
-      - test_3.0_server_nossl_noauth
-      - test_3.2_server_nossl_noauth
       - test_3.4_server_nossl_noauth
       - test_latest_server_nossl_noauth
     stepback: false
