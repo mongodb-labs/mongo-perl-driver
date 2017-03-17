@@ -39,17 +39,20 @@ use MongoDBTest::Orchestrator;
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 use MongoDB::_URI;
 
+# Get names from certs like this:
+# openssl x509 -inform PEM -subject -nameopt RFC2253 -in devel/certs/client.pem
+
 my $cert_dir = $ENV{MONGO_TEST_CERT_PATH} || 'devel/certs';
 my $cert_user = $ENV{MONGO_TEST_CERT_USER}
-  || "CN=TEST-CLIENT,OU=QAClient,O=MongoDB,ST=California,C=US";
-my $bad_user = "CN=TEST-CLIENT-2,OU=QAClient,O=MongoDB,ST=California,C=US";
+  || "CN=client,OU=Drivers,O=MongoDB,L=New York,ST=New York,C=US";
+my $bad_user = "CN=client,OU=Legal,O=Evil Corp,L=Los Angeles,ST=California,C=US";
+my $server_cn = "CN=localhost,OU=Server,O=MongoDB,L=New York,ST=New York,C=US";
 
 my %certs = (
     client    => "$cert_dir/client.pem",
-    badclient => "$cert_dir/client2.pem",
+    badclient => "$cert_dir/badclient.pem",
     ca        => "$cert_dir/ca.pem",
     server    => "$cert_dir/server.pem",
-    crl       => "$cert_dir/crl-server.pem",
 );
 
 #--------------------------------------------------------------------------#
@@ -60,7 +63,7 @@ my $config = LoadFile("devel/config/mongod-3.0.yml");
 $config->{ssl_config} = {
     mode     => 'requireSSL',
     username => $cert_user,
-    servercn => 'server',
+    servercn => $server_cn,
     certs    => { map { $_ => $certs{$_} } qw/server ca client/ },
 };
 my $config_path = Path::Tiny->tempfile;

@@ -1,0 +1,52 @@
+--- CA.pl	2016-09-26 08:15:32.000000000 -0400
++++ CA.pl	2017-03-17 06:31:29.000000000 -0400
+@@ -45,8 +45,8 @@
+ }
+ 
+ $SSLEAY_CONFIG=$ENV{"SSLEAY_CONFIG"};
+-$DAYS="-days 365";	# 1 year
+-$CADAYS="-days 1095";	# 3 years
++$DAYS="-days 3650";	# 10 year
++$CADAYS="-days 3650";	# 10 years
+ $REQ="$openssl req $SSLEAY_CONFIG";
+ $CA="$openssl ca $SSLEAY_CONFIG";
+ $VERIFY="$openssl verify";
+@@ -73,7 +73,7 @@
+ 	    print "Certificate is in newcert.pem, private key is in newkey.pem\n"
+ 	} elsif (/^-newreq$/) {
+ 	    # create a certificate request
+-	    system ("$REQ -new -keyout newkey.pem -out newreq.pem $DAYS");
++	    system ("$REQ -new -nodes -keyout newkey.pem -out newreq.pem $DAYS");
+ 	    $RET=$?;
+ 	    print "Request is in newreq.pem, private key is in newkey.pem\n";
+ 	} elsif (/^-newreq-nodes$/) {
+@@ -111,7 +111,7 @@
+ 		    $RET=$?;
+ 		} else {
+ 		    print "Making CA certificate ...\n";
+-		    system ("$REQ -new -keyout " .
++		    system ("$REQ -new -nodes -keyout " .
+ 			"${CATOP}/private/$CAKEY -out ${CATOP}/$CAREQ");
+ 		    system ("$CA -create_serial " .
+ 			"-out ${CATOP}/$CACERT $CADAYS -batch " . 
+@@ -134,17 +134,17 @@
+ 	    system ("$CA -policy policy_anything -infiles newreq.pem");
+ 	    $RET=$?;
+ 	} elsif (/^(-sign|-signreq)$/) {
+-	    system ("$CA -policy policy_anything -out newcert.pem " .
++	    system ("$CA -policy policy_anything $DAYS -out newcert.pem " .
+ 							"-infiles newreq.pem");
+ 	    $RET=$?;
+ 	    print "Signed certificate is in newcert.pem\n";
+ 	} elsif (/^(-signCA)$/) {
+-	    system ("$CA -policy policy_anything -out newcert.pem " .
++	    system ("$CA -policy policy_anything $DAYS -out newcert.pem " .
+ 					"-extensions v3_ca -infiles newreq.pem");
+ 	    $RET=$?;
+ 	    print "Signed CA certificate is in newcert.pem\n";
+ 	} elsif (/^-signcert$/) {
+-	    system ("$X509 -x509toreq -in newreq.pem -signkey newreq.pem " .
++	    system ("$X509 -x509toreq -in newreq.pem $DAYS -signkey newreq.pem " .
+ 								"-out tmp.pem");
+ 	    system ("$CA -policy policy_anything -out newcert.pem " .
+ 							"-infiles tmp.pem");
