@@ -15,7 +15,9 @@ use EvergreenConfig;
 #--------------------------------------------------------------------------#
 
 # Limit tasks to certain operating systems
-my $OS_FILTER = { os => [ 'rhel62', 'windows64' ] };
+my $OS_FILTER =
+  { os =>
+      [ 'rhel62', 'windows64', 'suse12_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ] };
 
 #--------------------------------------------------------------------------#
 # Functions
