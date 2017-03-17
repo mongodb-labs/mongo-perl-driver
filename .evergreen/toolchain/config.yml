@@ -3,6 +3,8 @@ ignore:
     - "*"
     - "!/.evergreen/toolchain/*"
 
+stepback: false
+
 # FUNCTIONS
 functions:
   "fetchSource" :
