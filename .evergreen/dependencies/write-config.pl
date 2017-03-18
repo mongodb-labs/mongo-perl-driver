@@ -26,12 +26,17 @@ sub main {
         my $upload   = [ 'uploadPerl5Lib'   => $vars ];
         my $download = [ 'downloadPerl5Lib' => $vars ];
 
-        push @tasks, task( "build_${name}_perl5lib" => [ 'whichPerl', $build, $upload ] );
+        push @tasks,
+          task(
+            "build_${name}_perl5lib" => [ 'whichPerl', $build, $upload ],
+            stepback                 => 'false'
+          );
 
         push @tasks,
           task(
             "test_${name}_perl5lib" => [ 'whichPerl', $download, 'testPerl5Lib' ],
-            depends_on              => "build_${name}_perl5lib"
+            depends_on              => "build_${name}_perl5lib",
+            stepback                => 'false',
           );
     }
 

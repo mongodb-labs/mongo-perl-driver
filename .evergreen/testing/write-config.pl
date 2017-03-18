@@ -3,6 +3,7 @@ use v5.10;
 use strict;
 use warnings;
 use utf8;
+use version;
 use open qw/:std :utf8/;
 
 # Get helpers
@@ -18,6 +19,8 @@ use EvergreenConfig;
 my $OS_FILTER =
   { os =>
       [ 'rhel62', 'windows64', 'suse12_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ] };
+
+my $NON_ZAP_OS_FILTER = { os => [ 'rhel62', 'windows64' ] };
 
 #--------------------------------------------------------------------------#
 # Functions
@@ -44,7 +47,11 @@ sub calc_depends {
 sub calc_filter {
     my $opts = shift;
 
-    my $filter = {%$OS_FILTER};
+    # ZAP should only run on 3.4 or latest
+    my $filter =
+        $opts->{version} eq 'latest'                             ? {%$OS_FILTER}
+      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$OS_FILTER}
+      :                                                            {%$NON_ZAP_OS_FILTER};
 
     # Server without auth/ssl should run on all perls
     # on rhel62 and windows
@@ -77,7 +84,7 @@ sub orch_test {
     my $args = shift;
     die 'orch_tests needs a hashref' unless ref $args eq 'HASH';
     my %opts = (
-        version  => '3.4',
+        version  => 'v3.4',
         topology => 'server',
         ssl      => 'nossl',
         auth     => 'noauth',
@@ -106,7 +113,13 @@ sub test {
 sub test_name {
     my $args = shift;
     ( my $version = $args->{version} ) =~ s/^v//;
-    return join( "_", "test", $version, @{$args}{qw/topology ssl auth/} );
+    my @parts = ( "test", $version );
+    push @parts, "DB" if $args->{topology} eq 'server';
+    push @parts, "RS" if $args->{topology} eq 'replica_set';
+    push @parts, "SC" if $args->{topology} eq 'sharded_cluster';
+    push @parts, "ssl"  if $args->{ssl} eq 'ssl';
+    push @parts, "auth" if $args->{auth} eq 'auth';
+    return join( "_", @parts );
 }
 
 sub with_key {

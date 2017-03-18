@@ -76,6 +76,7 @@ my %os_map = (
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@zap_perls,
+        stepback => 'false',
     },
     ubuntu1604_arm64 => {
         name     => "Ubuntu 16.04 ARM64",
@@ -83,6 +84,7 @@ my %os_map = (
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@zap_perls,
+        stepback => 'false',
     },
     ubuntu1604_power8 => {
         name     => "Ubuntu 16.04 Power8",
@@ -90,6 +92,7 @@ my %os_map = (
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@zap_perls,
+        stepback => 'false',
     },
 );
 
@@ -172,6 +175,7 @@ sub task {
           ref $deps eq 'ARRAY' ? _name_hash_list(@$deps) : _name_hash_list($deps);
     }
     $task->{filter} = $opts{filter};
+    $task->{stepback} = $opts{stepback} if $opts{stepback};
     return $task;
 }
 
@@ -254,6 +258,7 @@ sub _assemble_variants {
                 ),
                 run_on => [ @{ $os_map{$os}{run_on} } ],
                 tasks  => [@filtered],
+                ( $os_map{$os}{stepback} ? ( stepback => $os_map{$os}{stepback} ) : () ),
               );
         }
     }
