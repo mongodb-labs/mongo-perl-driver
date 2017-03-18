@@ -266,6 +266,22 @@ sub start_ssl {
     }
 }
 
+sub client_certificate_subject {
+    my ($self) = @_;
+    return "" unless $self->fh && $self->fh->isa("IO::Socket::SSL");
+
+    my $client_cert = $self->fh->sock_certificate()
+      or return "";
+
+    my $subject_raw = Net::SSLeay::X509_get_subject_name($client_cert)
+      or return "";
+
+    my $subject =
+      Net::SSLeay::X509_NAME_print_ex( $subject_raw, Net::SSLeay::XN_FLAG_RFC2253() );
+
+    return $subject;
+}
+
 sub close {
     my ($self) = @_;
     $self->_close

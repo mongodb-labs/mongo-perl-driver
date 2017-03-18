@@ -1947,19 +1947,9 @@ connection string.
 
 =head2 MONGODB-X509 (for SSL client certificate)
 
-X509 authentication requires SSL support (L<IO::Socket::SSL>) and requires
-that a client certificate be configured and that the username attribute be
-set to the "Subject" field, formatted according to RFC 2253.  To find the
-correct username, run the C<openssl> program as follows:
-
-  $ openssl x509 -in certs/client.pem -inform PEM -subject -nameopt RFC2253
-  subject= CN=XXXXXXXXXXX,OU=XXXXXXXX,O=XXXXXXX,ST=XXXXXXXXXX,C=XX
-
-In this case the C<username> attribute would be
-C<CN=XXXXXXXXXXX,OU=XXXXXXXX,O=XXXXXXX,ST=XXXXXXXXXX,C=XX>.
-
-Configure your client with the correct username and ssl parameters, and
-specify the "MONGODB-X509" authentication mechanism.
+X509 authentication requires SSL support (L<IO::Socket::SSL>), requires
+that a client certificate be configured in the ssl parameters, and requires
+specifying the "MONGODB-X509" authentication mechanism.
 
     my $mc = MongoDB::MongoClient->new(
         host => "mongodb://sslmongo.example.com/",
@@ -1968,7 +1958,6 @@ specify the "MONGODB-X509" authentication mechanism.
             SSL_cert_file => "certs/client.pem",
         },
         auth_mechanism => "MONGODB-X509",
-        username       => "CN=XXXXXXXXXXX,OU=XXXXXXXX,O=XXXXXXX,ST=XXXXXXXXXX,C=XX"
     );
 
 =head2 PLAIN (for LDAP)

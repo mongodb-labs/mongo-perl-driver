@@ -1,0 +1,6 @@
+---
+type: single
+default_args: -v --nojournal --nohttpinterface --enableMajorityReadConcern
+default_version: 3.4
+mongod:
+    - name: host1
