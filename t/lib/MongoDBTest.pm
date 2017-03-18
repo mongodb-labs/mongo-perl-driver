@@ -29,7 +29,7 @@ use version;
 
 our @EXPORT_OK = qw(
   build_client get_test_db server_version server_type clear_testdbs get_capped
-  skip_unless_mongod
+  skip_unless_mongod uri_escape
 );
 
 my @testdbs;
@@ -133,6 +133,17 @@ sub server_type {
         $server_type = 'Unknown';
     }
     return $server_type;
+}
+
+# URI escaping adapted from HTTP::Tiny
+my %escapes = map { chr($_) => sprintf("%%%02X", $_) } 0..255;
+my $unsafe_char = qr/[^A-Za-z0-9\-\._~]/;
+
+sub uri_escape {
+    my ($str) = @_;
+    utf8::encode($str);
+    $str =~ s/($unsafe_char)/$escapes{$1}/ge;
+    return $str;
 }
 
 sub clear_testdbs { @testdbs = () }

@@ -126,7 +126,6 @@ my %CONSTRAINTS = (
         mechanism_properties => sub { !keys %$_ },
     },
     'MONGODB-X509' => {
-        username             => sub { length },
         password             => sub { ! length },
         source               => sub { $_ eq '$external' },
         mechanism_properties => sub { !keys %$_ },
@@ -218,10 +217,17 @@ sub _authenticate_MONGODB_CR {
 sub _authenticate_MONGODB_X509 {
     my ( $self, $link, $bson_codec ) = @_;
 
+    my $username = $self->username;
+
+    if ( !$username && !$link->accepts_wire_version(5) ) {
+        $username = $link->client_certificate_subject
+          or MongoDB::UsageError->throw("Could not extract subject from client SSL certificate");
+    }
+
     my $command = Tie::IxHash->new(
         authenticate => 1,
-        user         => $self->username,
         mechanism    => "MONGODB-X509",
+        ( $username ? ( user => $username ) : () ),
     );
     $self->_send_command( $link, $bson_codec, $self->source, $command );
 
