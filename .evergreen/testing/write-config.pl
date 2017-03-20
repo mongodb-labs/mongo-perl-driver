@@ -15,16 +15,20 @@ use EvergreenConfig;
 # Constants
 #--------------------------------------------------------------------------#
 
-# Limit tasks to certain operating systems
+# $OS_FILTER is a filter definition to allow all operating systems
 my $OS_FILTER =
   { os =>
       [ 'rhel62', 'windows64', 'suse12_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ] };
 
+# This allows only the non-ZAP subset
 my $NON_ZAP_OS_FILTER = { os => [ 'rhel62', 'windows64' ] };
 
 #--------------------------------------------------------------------------#
 # Functions
 #--------------------------------------------------------------------------#
+
+# calc_depends: Given an orchestration configuration, this calculates the
+# tasks that must have run successfully before this one.
 
 sub calc_depends {
     my $args = shift;
@@ -44,45 +48,63 @@ sub calc_depends {
     return @depends ? \@depends : ['check'];
 }
 
+# calc_filter: Given a set of variables defining a orchestrated task's
+# configuration, this generates a filter expression that limits the
+# task to certain variants.
+
 sub calc_filter {
     my $opts = shift;
 
-    # ZAP should only run on 3.4 or latest
+    # ZAP should only run on MongoDB 3.4 or latest
     my $filter =
         $opts->{version} eq 'latest'                             ? {%$OS_FILTER}
       : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$OS_FILTER}
       :                                                            {%$NON_ZAP_OS_FILTER};
 
-    # Server without auth/ssl should run on all perls
-    # on rhel62 and windows
+    # Server without auth/ssl should run on all perls, so in that case,
+    # we return existing filter with only an 'os' key.
     return $filter
       if $opts->{topology} eq 'server'
       && $opts->{auth} eq 'noauth'
       && $opts->{ssl} eq 'nossl';
 
-    # Everything else should run everywhere, but only on 14 and 24
+    # Everything else should run on whatever 'os' subset is defined, but
+    # only on 5.14 and 5.24 (default config).
     $filter->{perl} = [ qr/24\.\d+$/, qr/14\.\d+$/ ];
 
     return $filter;
 }
 
+# generate_test_variations: produce a list of orchestration configuration
+# hashrefs
+
 sub generate_test_variations {
 
+    # We test every topology without auth/ssl and with auth, but without ssl.
+    # For standalone, we also test with ssl but with no auth.
     my @topo_tests = (
         with_topology( server      => [ "noauth nossl", "auth nossl", "noauth ssl" ] ),
         with_topology( replica_set => [ "noauth nossl", "auth nossl" ] ),
         with_topology( sharded_cluster => [ "noauth nossl", "auth nossl" ] ),
     );
 
+    # For the topology specific configs, we repeat the list for each server
+    # version we're testing.
     my @matrix =
       map { with_version( $_ => \@topo_tests ) } qw/v2.4 v2.6 v3.0 v3.2 v3.4 latest/;
 
     return @matrix;
 }
 
+# orch_test: given an orchestration config (e.g. from
+# generate_test_variations), this produces a task hashref to run a test
+# with that configuration.
+
 sub orch_test {
     my $args = shift;
     die 'orch_tests needs a hashref' unless ref $args eq 'HASH';
+
+    # Overwrite defaults with config
     my %opts = (
         version  => 'v3.4',
         topology => 'server',
@@ -90,6 +112,7 @@ sub orch_test {
         auth     => 'noauth',
         %$args,
     );
+
     return test(
         name   => test_name( \%opts ),
         deps   => calc_depends( \%opts ),
@@ -97,6 +120,9 @@ sub orch_test {
         extra  => [ [ 'setupOrchestration' => \%opts ] ],
     );
 }
+
+# test: creates a test task; this extends the 'task' config helper to
+# interpose extra steps before actually testing the driver
 
 sub test {
     my %opts  = @_;
@@ -110,6 +136,9 @@ sub test {
     );
 }
 
+# test_name: given an orchestration config, generates a task name from the
+# config components
+
 sub test_name {
     my $args = shift;
     ( my $version = $args->{version} ) =~ s/^v//;
@@ -122,6 +151,9 @@ sub test_name {
     return join( "_", @parts );
 }
 
+# with_key: given an array ref of hashrefs, returns a list of copies of the
+# input hashrefs but with a key/value prepended.
+
 sub with_key {
     my ( $key, $val, $templates ) = @_;
     return map {
@@ -129,7 +161,15 @@ sub with_key {
     } @$templates;
 }
 
+# with_version: given a 'version' value and an array ref of hashrefs, add
+# the key 'version' and the value to the inputs
+
 sub with_version { return with_key( version => @_ ) }
+
+# with_topology: given a topology and a string with "X Y" where X
+# represents "auth" or "noauth" and Y represents "ssl" or "nossl",
+# constructs hashrefs with those three factors (topo, auth, ssl) as
+# individual keys
 
 sub with_topology {
     my ( $topo, $templates ) = @_;
@@ -142,9 +182,12 @@ sub with_topology {
 }
 
 sub main {
-    # Common tasks for all variants
+    # Common tasks for all variants use this filter
     my $filter = {%$OS_FILTER};
 
+    # repo_directory is replaced later from an Evergreen project variable.
+    # It must go into the config.yml as '${repo_directory}'.  (I.e. this is
+    # not a perl typo that fails to interpolate a variable.)
     my $download = [ 'downloadPerl5Lib' => { target => '${repo_directory}' } ];
 
     my @tasks = (
@@ -154,7 +197,7 @@ sub main {
         test( name => "check", filter => $filter ),
     );
 
-    # Add orchestrated tests
+    # Add orchestrated tests. These will provide their own filter.
     my @test_variations = generate_test_variations();
     push @tasks, map { orch_test($_) } @test_variations;
 

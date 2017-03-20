@@ -56,6 +56,8 @@ die "Manifest failed to decode: $@\n" if $@;
 
 my %url_index;
 
+# Loop the manifest to index latest releases for a perl version
+
 for my $h (@$manifest) {
     next unless $h->{archname} eq $target_arch;
     next unless exists $h->{edition}{portable};

@@ -12,10 +12,19 @@ use EvergreenConfig;
 
 sub main {
 
+    # Define pre and post tasks
+
     my @tasks = (
         pre(qw/dynamicVars cleanUp cleanUpOtherRepos fetchSource fetchOtherRepos/),
         post(qw/cleanUp cleanUpOtherRepos/),
     );
+
+    # We build dependency local-libs separately for each project.  This
+    # loop adds repo-specific tasks.
+    #
+    # We set stepback to false: if deps don't build, it's probably
+    # transient due to upstream errors and there's no reason to walk
+    # back through commit histories hoping it will pass.
 
     for my $dir (qw/mongo-perl-driver mongo-perl-bson mongo-perl-bson-xs/) {
         ( my $name = $dir ) =~ s/mongo-perl-//;

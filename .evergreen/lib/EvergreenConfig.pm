@@ -2,6 +2,19 @@ use 5.008001;
 use strict;
 use warnings;
 
+=head1 NAME
+
+EvergreenConfig
+
+=head1 DESCRIPTION
+
+This module provides helpers for generating 'config.yml' files for
+testing MongoDB Perl projects with the Evergreen CI tool.
+
+Read the comments in the file for documentation.
+
+=cut
+
 package EvergreenConfig;
 
 # This config system assumes the following variables are set at the project
@@ -30,23 +43,53 @@ our @EXPORT = qw(
   timeout
 );
 
+#--------------------------------------------------------------------------#
 # Constants
+#--------------------------------------------------------------------------#
 
 { no warnings 'once'; $YAML::SortKeys = 0; }
 
+# For Unix, we test 5.10.1 to 5.24.0, as this is the full range we support.
+# We test default config, plus threaded ("t") and long-double ("ld")
+# configs.
 my @unix_perls =
   map { $_, "${_}t", "${_}ld" } qw/10.1 12.5 14.4 16.3 18.4 20.3 22.2 24.0/;
+
+# For Windows, we test from 5.14.4 to 5.24.0, as these are available in
+# "portable" format.  There are no configuration suffixes; we just use
+# the standard Strawberry Perl builds (which happen to be threaded).
 my @win_perls = qw/ 14.4 16.3 18.4 20.3 22.2 24.0/;
 
+# MongoDB's Windows Evergreen hosts have a different naming scheme than
+# Unix hosts.  We don't care about the compiler type (as we use the MinGW
+# bundled with Strawberry Perl), so we want to run on as many host-types as
+# possible.
 my @win_dists = (
     ( map { ; "windows-64-$_-compile", "windows-64-$_-test" } qw/vs2010 vs2013/ ),
     ( map { ; "windows-64-vs2015-$_" } qw/compile test large/ )
 );
 
+# For Z series, ARM64 and Power8 (aka ZAP), only more recent perls compile
+# cleanly, so we test a smaller range of Perls.
 my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14.4 16.3 18.4 20.3 22.2 24.0/;
 
+# The %os_map variable provides details of the full range of MongoDB
+# Evergreen operating systems we might run on, plus configuration details
+# build and run on each.
+#
+# Sub-keys include:
+# name: Visible display name in Evergreen web pages
+
+# run_on: the MongoDB Evergreen host names; generally as many as possible
+# as our size need is minimal, but we'd like to minimize the latency of
+# getting tasks running.
+#
 # perlroot: where perls are installed. E.g. /opt/perl or c:/perl
-# binpath: dir under perlroot/$version to find perl binary. E.g. 'bin' or 'perl/bin'
+#
+# perlpath: dir under perlroot/$version to find perl binary. E.g. 'bin' or 'perl/bin'
+#
+# perls: a list of perl "versions" (really version plus an optional
+# configuration suffix) to use on that OS.
 my %os_map = (
     ubuntu1604 => {
         name     => "Ubuntu 16.04",
@@ -96,7 +139,11 @@ my %os_map = (
     },
 );
 
-# Load functions from DATA
+# The %functions variable contains YAML snippets of reusable functions.
+#
+# The DATA section contains a text file of Evergreen 'function' recipes in
+# YAML format.  The DATA section is parsed into individual function
+# snippets that can be included on demand in a config.yml
 my %functions;
 {
     my $current_name;
@@ -113,20 +160,61 @@ my %functions;
     $functions{$current_name} = $current_body if $current_name;
 }
 
+#--------------------------------------------------------------------------#
 # Functions
+#--------------------------------------------------------------------------#
+
+# assemble_yaml: Given a list of either strings or hash references, concatenate them
+# into a single string, converting hash references to YAML.  Effectively,
+# this allow assembling a YAML file in pieces, controlling the order of
+# sections.
 
 sub assemble_yaml {
     return join "\n", map { _yaml_snippet($_) } _default_headers(), @_;
 }
 
+# buildvariants: Given an array reference of 'task' hash refs, return a
+# list of hash references representing sections of a config.yml.
+#
+# Task hash refs allow the following keys:
+#
+# - name: the name of the task, note that optional 'pre' and 'post' names
+# are handled special.  Only one of 'pre' or 'post' can appear. The 'pre'
+# task is broken up and manually appended into other tasks (this works
+# around a problem where an Evergreen 'pre' task failure doesn't halt a
+# task. The 'post' task is provided to Evergreen as a 'post' task there.
+#
+# - commands: an arrayref of function that make up the task.  Functions
+# must either be strings or an array ref with the first value being the
+# function name and the second value being a hash-ref of key/value
+# arguments to pass to the function.
+#
+# - depends_on: a list of task names a given task depends upon.
+#
+# - filter: a hash reference used to determine which tasks are included in
+# which variant
+#
+# - stepback: a boolean, indicating if failures of the task should trigger
+# a stepback through commit history to find the failing commit
+#
+# If a task reference a function not listed in the DATA section, the
+# subroutine throws an error.
+#
+# The hash ref sections returned are the function definitions needed, the
+# task definitions, and the build_variant definition.
+
 sub buildvariants {
     my ($tasks) = @_;
+
+    # Later, we'll capture function names so we know what snippets to
+    # include in the final YAML.
     my (@functions_found);
 
     # Pull out task names for later verification of dependencies.
-    # Also pull out filters for user later in assembly.
     my @task_names = grep { $_ ne 'pre' && $_ ne 'post' } map { $_->{name} } @$tasks;
     my %has_task = map { $_ => 1 } @task_names;
+
+    # Index the filters by task name for later use.
     my %filters;
 
     # verify the tasks are valid
@@ -145,26 +233,35 @@ sub buildvariants {
         die "Unknown dependent task(s): @bad_deps\n" if @bad_deps;
     }
 
-    # pull out task filters
-
-    # assemble the list of functions
     return (
         _assemble_functions(@functions_found),
         _assemble_tasks($tasks), _assemble_variants( \@task_names, \%filters ),
     );
 }
 
+# clone: make a deep copy to avoid references
+
 sub clone { return YAML::Load( YAML::Dump(shift) ) }
 
+# ignore: constructs an 'ignore' section for config.yml
+
 sub ignore { return { ignore => [@_] } }
+
+# post: constructs a "post" task hash ref from a list of functions
 
 sub post {
     return { name => 'post', commands => _func_hash_list(@_) };
 }
 
+# pre: constructs a "pre" task hash ref from a list of functions
+
 sub pre {
     return { name => 'pre', commands => _func_hash_list(@_) };
 }
+
+# task: constructs a task data structure from a name and arrayref of
+# commands.  It takes an optional set of arguments.  See buildvariants
+# comments for details on task structure.
 
 sub task {
     my ( $name, $commands, %opts ) = @_;
@@ -178,6 +275,9 @@ sub task {
     $task->{stepback} = $opts{stepback} if $opts{stepback};
     return $task;
 }
+
+# timeout: constructs a timeout section for evergreen. It has a somewhat
+# pointless command it runs rather than anything more thoughtful/useful.
 
 sub timeout {
     my $timeout = shift;
@@ -195,9 +295,18 @@ sub timeout {
 
 # Private functions
 
+# _assemble_functions: takes a list of function names and constructs a YAML
+# block of just those functions by stitching together snippets parsed from
+# DATA
+
 sub _assemble_functions {
     return join "\n", "functions:", map { $functions{$_} } uniq sort @_;
 }
+
+# _assemble_tasks: takes an array ref of task/pre/post structures and
+# returns a list of hashrefs wrapped in the correct keys for constructing
+# an evergreen config file.  'pre' tasks are copied into each task and then
+# omitted as a separate block.
 
 sub _assemble_tasks {
     my $tasks = shift;
@@ -222,6 +331,10 @@ sub _assemble_tasks {
 
     return ( ( $post ? ( { post => $post } ) : () ), { tasks => [@parts] } );
 }
+
+# _assemble_variants: produces a list of build variants with a denormalized
+# list of tasks for each variant and other variables a variant requires,
+# like variant-specific expansions
 
 sub _assemble_variants {
     my ( $task_names, $filters ) = @_;
@@ -265,9 +378,17 @@ sub _assemble_variants {
     return { buildvariants => \@variants };
 }
 
+# _default_headers: returns a list of hash refs that should be assembled
+# at the top of every config file
+
 sub _default_headers {
     return { stepback => 'true' }, { command_type => 'system' };
 }
+
+# _filter_tasks: given OS and Perl version, a list of task names, and a
+# hashref of filter parameters per task, returns the list of task names where
+# the filters match OS and perl version.  Effectively the filter says "only
+# include me if a variant OS and Perl match what I say I'm eligible for".
 
 sub _filter_tasks {
     my ( $os, $ver, $task_names, $filters ) = @_;
@@ -281,6 +402,9 @@ sub _filter_tasks {
     }
     return @filtered;
 }
+
+# _func_hash_list: given a list of function names or name-variable array refs,
+# nest them in a hashref with the key 'func' while also sorting variables.
 
 sub _func_hash_list {
     my @list;
@@ -296,10 +420,14 @@ sub _func_hash_list {
     return \@list;
 }
 
+# _hashify: syntactic sugar for constructing order-preserving hashrefs
+
 sub _hashify {
     tie my %hash, "Tie::IxHash", @_;
     return \%hash;
 }
+
+# _hashify_sorted: like _hashify, but recursively orders hashref keys
 
 sub _hashify_sorted {
     my %h = @_;
@@ -310,9 +438,14 @@ sub _hashify_sorted {
     return \%hash;
 }
 
+# _name_hash_list: maps names to hashrefs with a 'name' key
+
 sub _name_hash_list {
     return [ map { { name => $_ } } @_ ];
 }
+
+# _yaml_snippet: maps hashrefs to YAML string snippets that can be
+# concatenated but passes through strings unchanged
 
 sub _yaml_snippet {
     my $data = shift;
