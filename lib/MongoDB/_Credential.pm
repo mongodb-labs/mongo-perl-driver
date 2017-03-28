@@ -339,7 +339,7 @@ sub _sasl_start {
     my $command = Tie::IxHash->new(
         saslStart     => 1,
         mechanism     => $mechanism,
-        payload       => $payload ? encode_base64( $payload, "" ) : "",
+        payload       => \$payload,
         autoAuthorize => 1,
     );
 
@@ -352,7 +352,7 @@ sub _sasl_continue {
     my $command = Tie::IxHash->new(
         saslContinue   => 1,
         conversationId => $conv_id,
-        payload        => $payload ? encode_base64( $payload, "" ) : "",
+        payload        => \$payload,
     );
 
     return $self->_sasl_send( $link, $bson_codec, $command );
@@ -362,7 +362,7 @@ sub _sasl_send {
     my ( $self, $link, $bson_codec, $command ) = @_;
     my $output = $self->_send_command( $link, $bson_codec, $self->source, $command )->output;
 
-    my $sasl_resp = $output->{payload} ? decode_base64( $output->{payload} ) : "";
+    my $sasl_resp = $output->{payload} ? $output->{payload}->data : "";
     return ( $sasl_resp, $output->{conversationId}, $output->{done} );
 }
 
