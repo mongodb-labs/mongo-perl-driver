@@ -143,9 +143,9 @@ sub test_name {
     my $args = shift;
     ( my $version = $args->{version} ) =~ s/^v//;
     my @parts = ( "test", $version );
-    push @parts, "DB" if $args->{topology} eq 'server';
-    push @parts, "RS" if $args->{topology} eq 'replica_set';
-    push @parts, "SC" if $args->{topology} eq 'sharded_cluster';
+    push @parts, "DB"   if $args->{topology} eq 'server';
+    push @parts, "RS"   if $args->{topology} eq 'replica_set';
+    push @parts, "SC"   if $args->{topology} eq 'sharded_cluster';
     push @parts, "ssl"  if $args->{ssl} eq 'ssl';
     push @parts, "auth" if $args->{auth} eq 'auth';
     return join( "_", @parts );
@@ -200,6 +200,25 @@ sub main {
     # Add orchestrated tests. These will provide their own filter.
     my @test_variations = generate_test_variations();
     push @tasks, map { orch_test($_) } @test_variations;
+
+    # Add Atlas proxy test (plus build/check deps on Ubuntu)
+    my $atlas_filter = { os => ['ubuntu1604'], perl => [qr/24\.\d+$/] };
+    push @tasks,
+      task(
+        build_for_atlas => [qw/whichPerl buildModule uploadBuildArtifacts/],
+        filter          => $atlas_filter
+      ),
+      test(
+        name   => "check_for_atlas",
+        deps   => ['build_for_atlas'],
+        filter => $atlas_filter
+      ),
+      test(
+        name   => 'test_atlas',
+        filter => $atlas_filter,
+        deps   => ['build_for_atlas'],
+        extra  => [qw/setupAtlasProxy testAtlasProxy/],
+      );
 
     # Generate config
     print assemble_yaml(

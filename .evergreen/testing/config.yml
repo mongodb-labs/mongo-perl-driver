@@ -77,6 +77,13 @@ functions:
           ${prepare_shell}
           mv src ${repo_directory}
 
+  "setupAtlasProxy":
+    command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        $PERL ${repo_directory}/.evergreen/testing/setup-atlas-proxy.pl
+
   "setupOrchestration" :
     - command: shell.exec
       params:
@@ -94,6 +101,17 @@ functions:
       script: |
         ${prepare_shell}
         $PERL ${repo_directory}/.evergreen/testing/teardown-mongo-orchestration.pl
+
+  "testAtlasProxy":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+        ${prepare_shell}
+        export ATLAS_PROXY=1
+        export SSL=ssl
+        export MONGOD="mongodb://user:pencil@host.local.10gen.cc:9900,host.local.10gen.cc:9910,host.local.10gen.cc:9920/admin?replicaSet=eliot1"
+        $PERL ${repo_directory}/.evergreen/testing/test.pl
 
   "testDriver" :
     command: shell.exec
@@ -961,6 +979,45 @@ tasks:
     depends_on:
       - name: test_latest_DB_auth
       - name: test_latest_SC
+  - name: build_for_atlas
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: buildModule
+      - func: uploadBuildArtifacts
+  - name: check_for_atlas
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: testDriver
+    depends_on:
+      - name: build_for_atlas
+  - name: test_atlas
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupAtlasProxy
+      - func: testAtlasProxy
+      - func: testDriver
+    depends_on:
+      - name: build_for_atlas
 
 buildvariants:
   - name: os_rhel62_perl_10.1
@@ -1827,6 +1884,20 @@ buildvariants:
       - test_3.4_DB
       - test_latest_DB
     stepback: false
+  - name: os_ubuntu1604_perl_24.0
+    display_name: Ubuntu 16.04 Perl 24.0
+    expansions:
+      addpaths: /opt/perl/24.0/bin
+      os: ubuntu1604
+      perlpath: /opt/perl/24.0/bin/perl
+      perlver: 24.0
+    run_on:
+      - ubuntu1604-test
+      - ubuntu1604-build
+    tasks:
+      - build_for_atlas
+      - check_for_atlas
+      - test_atlas
   - name: os_ubuntu1604_arm64_perl_14.4
     display_name: Ubuntu 16.04 ARM64 Perl 14.4
     expansions:

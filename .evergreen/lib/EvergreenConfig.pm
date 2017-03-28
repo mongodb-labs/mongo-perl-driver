@@ -610,3 +610,19 @@ __DATA__
       ${prepare_shell}
       rm -rf mongo-perl-bson
       rm -rf mongo-perl-bson-xs
+"setupAtlasProxy":
+  command: shell.exec
+  params:
+    script: |
+      ${prepare_shell}
+      $PERL ${repo_directory}/.evergreen/testing/setup-atlas-proxy.pl
+"testAtlasProxy":
+  command: shell.exec
+  type: test
+  params:
+    script: |
+      ${prepare_shell}
+      export ATLAS_PROXY=1
+      export SSL=ssl
+      export MONGOD="mongodb://user:pencil@host.local.10gen.cc:9900,host.local.10gen.cc:9910,host.local.10gen.cc:9920/admin?replicaSet=eliot1"
+      $PERL ${repo_directory}/.evergreen/testing/test.pl
