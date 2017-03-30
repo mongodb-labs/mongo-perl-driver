@@ -113,6 +113,8 @@ subtest "cooldown" => sub {
 subtest "app name" => sub {
     plan skip_all => "Needs v3.3.11+ for client metadata feature"
       unless $server_version >= v3.3.11;
+    plan skip_all => "currentOp not supported on Atlas Free Tier"
+        if $ENV{ATLAS_PROXY};
 
     my $app_name = 'test_app_name';
     my $conn2 = build_client( app_name => $app_name );

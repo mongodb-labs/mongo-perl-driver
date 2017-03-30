@@ -846,6 +846,9 @@ my $js_obj = MongoDB::Code->new( code => $js_str );
 for my $criteria ( $js_str, $js_obj ) {
     my $type = ref($criteria) || 'string';
     subtest "query with \$where as $type" => sub {
+        plan skip_all => "Not supported on Atlas Free Tier"
+          if $ENV{ATLAS_PROXY};
+
         $coll->drop;
         $coll->insert_one( { a => 1, b => 1, n => 1 } );
         $coll->insert_one( { a => 2, b => 1, n => 2 } );

@@ -162,6 +162,8 @@ subtest "expected behaviors" => sub {
         unless $server_version >= v2.6.0;
         plan skip_all => "Parallel scan not supported on mongos"
         if $server_type eq 'Mongos';
+        plan skip_all => "Not supported on Atlas Free Tier"
+          if $ENV{ATLAS_PROXY};
 
         is(
             exception {

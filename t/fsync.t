@@ -30,6 +30,9 @@ use MongoDBTest qw/skip_unless_mongod build_client server_type server_version/;
 
 skip_unless_mongod();
 
+plan skip_all => "Not supported on Atlas Free Tier"
+    if $ENV{ATLAS_PROXY};
+
 my $conn = build_client();
 my $server_type = server_type( $conn );
 my $server_version = server_version( $conn );

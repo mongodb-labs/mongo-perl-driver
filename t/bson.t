@@ -394,9 +394,14 @@ subtest "MongoDB::BSON::Binary type" => sub {
     is($arr[0]->subtype, MongoDB::BSON::Binary->SUBTYPE_GENERIC);
     is($arr[0]->data, $str);
 
-    for (my $i=1; $i<=$#arr; $i++ ) {
-        is($arr[$i]->subtype, $bin->{'bindata'}->[$i]->subtype);
-        is($arr[$i]->data, $bin->{'bindata'}->[$i]->data);
+    for ( my $i = 1; $i <= $#arr; $i++ ) {
+        my $exp_subtype = $bin->{'bindata'}->[$i]->subtype;
+        # CLOUDP-21534: Atlas Free Tier proxy converts subtype 2 to 0
+        if ( $ENV{ATLAS_PROXY} && $exp_subtype == 2 ) {
+            $exp_subtype = 0;
+        }
+        is( $arr[$i]->subtype, $exp_subtype, "subtype" );
+        is( $arr[$i]->data, $bin->{'bindata'}->[$i]->data, "data" );
     }
 };
 

@@ -86,7 +86,7 @@ subtest 'run_command' => sub {
     else {
         like(
             $err->message,
-            qr/no such cmd|unrecognized command/,
+            qr/no such cmd|unrecognized command|CMD_UNKNOWN/,
             "error from non-existent command"
         );
     }
@@ -125,19 +125,6 @@ subtest "collection names" => sub {
     my @names_of_capped = $testdb->collection_names( { 'options.capped' => true } );
     cmp_deeply( \@names_of_capped, ['test_capped'], "collection_names with filter" );
 };
-
-# reseterror 
-{
-    my $result = $testdb->run_command({reseterror => 1});
-    is($result->{ok}, 1, 'reset error');
-}
-
-# forceerror
-{
-    my $err = exception{ $testdb->run_command({forceerror => 1}) };
-
-    isa_ok( $err, "MongoDB::DatabaseError" );
-}
 
 # tie
 {

@@ -60,7 +60,7 @@ sub build_client {
         {
             ssl                         => $ssl || $ENV{MONGO_SSL},
             socket_timeout_ms           => 60000,
-            server_selection_timeout_ms => 2000,
+            server_selection_timeout_ms => $ENV{ATLAS_PROXY} ? 10000 : 2000,
             server_selection_try_once   => 0,
             %args,
         }

@@ -71,6 +71,11 @@ sub _bulk_write_result {
     );
 }
 
+sub _number_of_servers {
+    return 0 unless $ismaster->{hosts};
+    return @{ $ismaster->{hosts} } + @{ $ismaster->{passives} // [] };
+}
+
 subtest "constructors" => sub {
     my @constructors = qw(
       initialize_ordered_bulk_op initialize_unordered_bulk_op
@@ -1244,10 +1249,10 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 note("QA-477 WTIMEOUT PLUS DUPLICATE KEY ERROR");
 subtest "initialize_unordered_bulk_op: wtimeout plus duplicate keys" => sub {
     plan skip_all => 'needs a replica set'
-      unless $ismaster->{hosts};
+      unless _number_of_servers > 1;
 
     # asking for w more than N hosts will trigger the error we need
-    my $W = @{ $ismaster->{hosts} } + 1;
+    my $W = _number_of_servers() + 1;
 
     $coll->drop;
     my $bulk = $coll->initialize_unordered_bulk_op;
@@ -1286,10 +1291,10 @@ note("WRITE CONCERN ERRORS");
 for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "$method: write concern errors" => sub {
         plan skip_all => 'needs a replica set'
-          unless $ismaster->{hosts};
+          unless _number_of_servers > 1;
 
         # asking for w more than N hosts will trigger the error we need
-        my $W = @{ $ismaster->{hosts} } + 1;
+        my $W = _number_of_servers() + 1;
 
         $coll->drop;
         my $bulk = $coll->$method;
