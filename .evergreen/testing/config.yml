@@ -110,7 +110,7 @@ functions:
         ${prepare_shell}
         export ATLAS_PROXY=1
         export SSL=ssl
-        export MONGOD="mongodb://user:pencil@host.local.10gen.cc:9900,host.local.10gen.cc:9910,host.local.10gen.cc:9920/admin?replicaSet=eliot1"
+        export MONGOD="mongodb://user:pencil@host5.local.10gen.cc:9900/admin?replicaSet=benchmark"
         $PERL ${repo_directory}/.evergreen/testing/test.pl
 
   "testDriver" :
