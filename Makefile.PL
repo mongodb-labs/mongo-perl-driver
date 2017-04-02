@@ -1,6 +1,8 @@
 use strict;
 use warnings;
 
+use lib '.';
+
 BEGIN {
     if ( $^O eq "MSWin32" ) {
         my (undef, $major, undef, undef, $id ) = Win32::GetOSVersion();
