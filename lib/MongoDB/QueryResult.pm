@@ -274,7 +274,15 @@ sub _kill_cursor {
     my ($self) = @_;
     my $cursor_id = $self->_cursor_id;
     return if !defined $cursor_id || $cursor_id == 0;
-    my $op = MongoDB::Op::_KillCursors->_new( cursor_ids => [ $cursor_id ], );
+
+    my ($db_name, $coll_name) = split(/\./, $self->_full_name, 2);
+    my $op = MongoDB::Op::_KillCursors->_new(
+        db_name    => $db_name,
+        coll_name  => $coll_name,
+        full_name  => $self->_full_name,
+        bson_codec => $self->_bson_codec,
+        cursor_ids => [$cursor_id],
+    );
     $self->_client->send_direct_op( $op, $self->_address );
     $self->_set_cursor_id(0);
 }

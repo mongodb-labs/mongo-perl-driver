@@ -33,6 +33,12 @@ use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
 use MongoDBTest::Orchestrator;
 use MongoDBTest qw/build_client get_test_db clear_testdbs server_version/;
 
+sub _open_cursors {
+    my $db = shift;
+    my $res = $db->run_command([serverStatus => 1]);
+    return $res->{metrics}{cursor}{open}{total} // 0;
+}
+
 sub _test_find_getmore {
 
     local $Test::Builder::Level = $Test::Builder::Level + 1;
@@ -80,6 +86,16 @@ sub _test_find_getmore {
         is ( scalar (@batch = $res->batch), 0, "second batch empty" );
     };
 
+    subtest "limit > 0, batchSize > 0, abandoned " => sub {
+        my $res = $coll->find({}, {limit => 4, batchSize => 3});
+        my @batch;
+        is ( scalar (@batch = $res->batch), 3, "first batch 3 of 4" );
+        my $open_before = _open_cursors($testdb);
+        undef $res; # Cursor killed in destructor here
+        my $open_after = _open_cursors($testdb);
+        is( $open_after, $open_before - 1, "cursor was killed" );
+    };
+
 }
 
 subtest "wire protocol 4" => sub {
@@ -95,7 +111,8 @@ subtest "wire protocol 4" => sub {
         "saw find in log" );
     ok( scalar $orc->get_server('host1')->grep_log(qr/command: getMore/),
         "saw getMore in log" );
-
+    ok( scalar $orc->get_server('host1')->grep_log(qr/command: killCursors/),
+        "saw killCursors in log" );
 };
 
 subtest "wire protocol 3" => sub {
@@ -111,6 +128,8 @@ subtest "wire protocol 3" => sub {
         "no find in log" );
     ok( !scalar $orc->get_server('host1')->grep_log(qr/command: getMore/),
         "no getMore in log" );
+    ok( !scalar $orc->get_server('host1')->grep_log(qr/command: killCursors/),
+        "no killCursors in log" );
 };
 
 clear_testdbs;

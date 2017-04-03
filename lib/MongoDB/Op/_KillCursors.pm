@@ -39,13 +39,33 @@ has cursor_ids => (
 );
 
 with $_ for qw(
+  MongoDB::Role::_CollectionOp
+  MongoDB::Role::_DatabaseOp
   MongoDB::Role::_PrivateConstructor
 );
 
 sub execute {
     my ( $self, $link ) = @_;
 
-    $link->write( MongoDB::_Protocol::write_kill_cursors( @{ $self->cursor_ids } ) );
+    if ( $link->accepts_wire_version(4) ) {
+        # Spec says that failures should be ignored: cursor kills often happen
+        # via destructors and users can't do anything about failure anyway.
+        eval {
+            MongoDB::Op::_Command->_new(
+                db_name => $self->db_name,
+                query   => [
+                    killCursors => $self->coll_name,
+                    cursors     => $self->cursor_ids,
+                ],
+                query_flags => {},
+                bson_codec  => $self->bson_codec,
+            )->execute($link);
+        };
+    }
+    else {
+        # Server never sends a reply, so ignoring failure here is automatic.
+        $link->write( MongoDB::_Protocol::write_kill_cursors( @{ $self->cursor_ids } ) );
+    }
 
     return 1;
 }
