@@ -102,12 +102,20 @@ sub mongo {
 
     my $conf = $self->configure_bson;
 
-    if ($conf->{BSON_WITH_OID32_PT} || $conf->{BSON_WITH_OID64_PT}) {
+    if ( $^O ne "MSWin32" ) {
         my $pthread = $^O eq 'solaris' ? " -pthreads " : " -pthread ";
         $ccflags .= $pthread;
-        my $ldflags = $self->makemaker_args->{LDFLAGS};
-        $ldflags = "" unless defined $ldflags;
-        $self->makemaker_args( LDFLAGS => "$ldflags $pthread" );
+
+        if ( $Config{gccversion} =~ /clang/ ) {
+            my $libs = $self->makemaker_args->{LIBS};
+            $libs = "" unless defined $libs;
+            $self->makemaker_args( LIBS => "$libs -lpthread" );
+        }
+        else {
+            my $lddlflags = $self->makemaker_args->{LDDLFLAGS} || $Config{lddlflags};
+            $lddlflags = "" unless defined $lddlflags;
+            $self->makemaker_args( LDDLFLAGS => "$lddlflags $pthread" );
+        }
     }
 
     if ( $conf->{BSON_HAVE_CLOCK_GETTIME} ) {
