@@ -2,6 +2,9 @@
 use strict;
 use warnings;
 
+# This file does preparatory work for launching the driver-evergreen-tools
+# script to start mongo-orchestration and then actually launches it.
+
 use File::Copy 'cp';
 use File::Spec;
 use File::Path 'rmtree';
@@ -11,6 +14,7 @@ use FindBin qw($Bin);
 use lib "$Bin/../lib";
 use EvergreenHelper;
 
+# Constants normalized to unix-style (even on Windows)
 my $tools_dir     = "driver-tools";
 my $abs_tools_dir = fwd_slash( File::Spec->rel2abs($tools_dir) );
 my $abs_orch_dir =

@@ -18,9 +18,17 @@ bootstrap_env();
 # without a mongod that tests can connect with.
 $ENV{EVG_ORCH_TEST} = 1 if $ENV{MONGOD};
 
+# If testing under SSL, we set environment variables that our test helpers
+# will use to set SSL connection parameters.
 if ( $ENV{SSL} eq 'ssl' ) {
-    $ENV{EVG_TEST_SSL_PEM_FILE} = File::Spec->rel2abs("driver-tools/.evergreen/x509gen/client.pem");
-    $ENV{EVG_TEST_SSL_CA_FILE}  = File::Spec->rel2abs("driver-tools/.evergreen/x509gen/ca.pem");
+    if ( $ENV{ATLAS_PROXY} ) {
+      $ENV{EVG_TEST_SSL_PEM_FILE} = "";
+      $ENV{EVG_TEST_SSL_CA_FILE}  = File::Spec->rel2abs("atlasproxy/main/ca.pem");
+    }
+    else {
+      $ENV{EVG_TEST_SSL_PEM_FILE} = File::Spec->rel2abs("driver-tools/.evergreen/x509gen/client.pem");
+      $ENV{EVG_TEST_SSL_CA_FILE}  = File::Spec->rel2abs("driver-tools/.evergreen/x509gen/ca.pem");
+    }
 }
 
 run_in_dir $ENV{REPO_DIR} => sub {
