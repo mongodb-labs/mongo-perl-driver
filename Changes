@@ -2,6 +2,27 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+  - PERL-713 PERL-714 A username parameter no longer required for
+    MONGODB-X509 auth.  The username will be extracted from the client
+    certificate.
+
+  [Bug fixes]
+
+  - PERL-717 Avoid address lookup for localhost to workaround
+    IO::Socket::IP quirks.
+
+  - PERL-763 Fix Makefile.PL for no '.' in @INC.
+
+  [~ Internal Changes ~]
+
+  - PERL-760 Switch to binary SASL payloads for compatibility with MongoDB
+    Atlas Free Tier.
+
+  - PERL-761 Replace OP_KILL_CURSORS with killCursors command for
+    compatibility with MongoDB Atlas Free Tier.
+
 v1.6.1    2017-01-10 09:26:56-05:00 America/New_York
 
   [Bug fixes]
