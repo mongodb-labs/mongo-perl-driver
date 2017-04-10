@@ -13,6 +13,8 @@
   - PERL-717 Avoid address lookup for localhost to workaround
     IO::Socket::IP quirks.
 
+  - PERL-746 Fix GridFS tests on Windows if checked out from the repository
+
   - PERL-763 Fix Makefile.PL for no '.' in @INC.
 
   [~ Internal Changes ~]
