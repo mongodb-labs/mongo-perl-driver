@@ -21,7 +21,7 @@ package MongoDB::InsertOneResult;
 # ABSTRACT: MongoDB single insert result object
 
 use version;
-our $VERSION = 'v1.6.2';
+our $VERSION = 'v1.8.1';
 
 use Moo;
 use namespace::clean;

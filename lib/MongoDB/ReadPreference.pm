@@ -21,7 +21,7 @@ package MongoDB::ReadPreference;
 # ABSTRACT: Encapsulate and validate read preferences
 
 use version;
-our $VERSION = 'v1.6.2';
+our $VERSION = 'v1.8.1';
 
 use Moo;
 use MongoDB::Error;

@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.8.0    2017-04-10 14:05:59-04:00 America/New_York
+
   [Additions]
 
   - PERL-713 PERL-714 A username parameter no longer required for

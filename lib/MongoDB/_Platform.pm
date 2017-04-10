@@ -21,7 +21,7 @@ use warnings;
 package MongoDB::_Platform;
 
 use version;
-our $VERSION = 'v1.6.2';
+our $VERSION = 'v1.8.1';
 
 use Config;
 
