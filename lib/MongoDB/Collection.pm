@@ -1774,7 +1774,7 @@ sub get_collection {
 sub ensure_index {
     my ( $self, $keys, $opts ) = @_;
 
-    $self->_warn_deprecated( 'ensure_index' => "Use 'indexes' to work with a MongoDB::IndexView instead." );
+    $self->_warn_deprecated( 'ensure_index' => "Use a MongoDB::IndexView object instead." );
 
     MongoDB::UsageError->throw("ensure_index options must be a hash reference")
       if $opts && !ref($opts) eq 'HASH';
