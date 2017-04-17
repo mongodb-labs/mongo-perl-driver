@@ -838,6 +838,28 @@ sub find_id {
     return $self->find_one({ _id => $id }, @_);
 }
 
+=method find_id
+
+    $doc = $collection->find_id( $id );
+    $doc = $collection->find_id( $id, $projection );
+    $doc = $collection->find_id( $id, $projection, $options );
+
+Executes a query with a L<filter expression|/Filter expression> of C<< { _id
+=> $id } >> and returns a single document.
+
+See the L<find_one|/find_one> documentation for details on the $projection and $options parameters.
+
+See also core documentation on querying:
+L<http://docs.mongodb.org/manual/core/read/>.
+
+=cut
+
+sub find_id {
+    my $self = shift;
+    my $id = shift;
+    return $self->find_one({ _id => $id }, @_);
+}
+
 =method find_one_and_delete
 
     $doc = $coll->find_one_and_delete( $filter );
