@@ -60,10 +60,10 @@ sub execute {
 sub _command_explain {
     my ( $self, $link, $topology ) = @_;
 
-    my $cmd = Tie::IxHash->new( @{ $self->query->as_command } );
+    my $cmd = Tie::IxHash->new( @{ $self->query->_as_command } );
 
     # XXX need to standardize error here
-    if (defined $self->query->modifiers->{hint}) {
+    if ($self->query->has_hint) {
         # cannot use hint on explain, throw error
         MongoDB::Error->throw(
             message => "cannot use 'hint' with 'explain'",
@@ -89,13 +89,20 @@ sub _command_explain {
 sub _legacy_explain {
     my ( $self, $link, $topology ) = @_;
 
-    my $new_query = $self->query->clone;
-    $new_query->modifiers->{'$explain'} = true;
+    my $orig_query  = $self->query;
+    my $cloned_opts = { %{ $orig_query->options } };
+    $cloned_opts->{explain} = 1;
 
     # per David Storch, drivers *must* send a negative limit to instruct
     # the query planner analysis module to add a LIMIT stage.  For older
     # explain implementations, it also ensures a cursor isn't left open.
-    $new_query->limit( -1 * abs( $new_query->limit ) );
+    $cloned_opts->{limit} = ( -1 * abs( $cloned_opts->{limit} ) );
+
+    my $new_query = MongoDB::Op::_Query->_new(
+        %$orig_query,
+        # override options from original
+        options => $cloned_opts
+    );
 
     return $new_query->execute( $link, $topology )->next;
 }

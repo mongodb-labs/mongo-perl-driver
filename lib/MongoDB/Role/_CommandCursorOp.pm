@@ -43,8 +43,8 @@ sub _build_result_from_cursor {
 
     my $max_time_ms = 0;
     if ($self->isa('MongoDB::Op::_Query') &&
-        $self->cursorType eq 'tailable_await') {
-        $max_time_ms = $self->maxAwaitTimeMS if $self->maxAwaitTimeMS;
+        $self->options->{cursorType} eq 'tailable_await') {
+        $max_time_ms = $self->options->{maxAwaitTimeMS} if $self->options->{maxAwaitTimeMS};
     }
     elsif ($self->isa('MongoDB::Op::_Aggregate')) {
         $max_time_ms = $self->maxAwaitTimeMS if $self->maxAwaitTimeMS;
@@ -52,7 +52,7 @@ sub _build_result_from_cursor {
 
     my $limit = 0;
     if ($self->isa('MongoDB::Op::_Query')) {
-        $limit = $self->limit if $self->limit;
+        $limit = $self->options->{limit} if $self->options->{limit};
     }
 
     my $batch = $c->{firstBatch};

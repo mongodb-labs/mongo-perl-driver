@@ -16,6 +16,7 @@
 
 use strict;
 use warnings;
+
 package MongoDB::Op::_ListIndexes;
 
 # Encapsulate index list operation; returns array ref of index documents
@@ -31,7 +32,7 @@ use MongoDB::Op::_Query;
 use MongoDB::ReadConcern;
 use MongoDB::ReadPreference;
 use Types::Standard qw(
-    InstanceOf
+  InstanceOf
 );
 use Tie::IxHash;
 use Try::Tiny;
@@ -83,7 +84,9 @@ sub _command_list_indexes {
         die $_;
     };
 
-    return $res ? $self->_build_result_from_cursor($res) : $self->_empty_query_result($link);
+    return $res
+      ? $self->_build_result_from_cursor($res)
+      : $self->_empty_query_result($link);
 }
 
 sub _legacy_list_indexes {
@@ -91,30 +94,18 @@ sub _legacy_list_indexes {
 
     my $ns = $self->db_name . "." . $self->coll_name;
     my $op = MongoDB::Op::_Query->_new(
-        modifiers           => {},
-        allowPartialResults => 0,
-        batchSize           => 0,
-        comment             => '',
-        cursorType          => 'non_tailable',
-        limit               => 0,
-        maxAwaitTimeMS      => 0,
-        maxTimeMS           => 0,
-        noCursorTimeout     => 0,
-        oplogReplay         => 0,
-        projection          => undef,
-        skip                => 0,
-        sort                => undef,
-        db_name             => $self->db_name,
-        coll_name           => 'system.indexes',
-        full_name           => $self->db_name . '.system.indexes',
+        filter              => Tie::IxHash->new( ns => $ns ),
+        options             => MongoDB::Op::_Query->precondition_options({}),
         bson_codec          => $self->bson_codec,
         client              => $self->client,
-        read_preference     => MongoDB::ReadPreference->new,
+        coll_name           => 'system.indexes',
+        db_name             => $self->db_name,
+        full_name           => $self->db_name . '.system.indexes',
         read_concern        => MongoDB::ReadConcern->new,
-        filter              => Tie::IxHash->new( ns => $ns ),
+        read_preference     => MongoDB::ReadPreference->new,
         monitoring_callback => $self->monitoring_callback,
     );
-  
+
     return $op->execute( $link, $topology );
 }
 

@@ -35,7 +35,7 @@ with $_ for qw(
   MongoDB::Role::_CommandMonitoring
 );
 
-requires 'as_command';
+requires '_as_command';
 
 # Sends a BSON query/get-more string, then read, parse and validate the reply.
 # Throws various errors if the results indicate a problem.  Returns
@@ -51,7 +51,7 @@ sub _query_and_receive {
 
     my ($result, $doc_bson, $bson_codec, $docs, $len, $i);
 
-    $self->publish_command_started( $link, $self->as_command, $request_id )
+    $self->publish_command_started( $link, $self->_as_command, $request_id )
       if $self->monitoring_callback;
 
     eval {

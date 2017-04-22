@@ -76,7 +76,7 @@ sub _command_get_more {
 
     my $op = MongoDB::Op::_Command->_new(
         db_name             => $self->db_name,
-        query               => $self->as_command,
+        query               => $self->_as_command,
         query_flags         => {},
         bson_codec          => $self->bson_codec,
         session             => $self->session,
@@ -95,7 +95,7 @@ sub _command_get_more {
     };
 }
 
-sub as_command {
+sub _as_command {
     my ($self) = @_;
     return [
         getMore    => $self->cursor_id,

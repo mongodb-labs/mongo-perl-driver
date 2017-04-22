@@ -32,9 +32,10 @@ use MongoDB::QueryResult;
 use MongoDB::ReadPreference;
 use MongoDB::_Protocol;
 use MongoDB::Op::_Explain;
-use MongoDB::_Types -types, 'to_IxHash';
+use MongoDB::_Types -types, qw/to_IxHash is_OrderedDoc/;
 use Types::Standard qw(
     InstanceOf
+    is_Str
 );
 use boolean;
 use Tie::IxHash;
@@ -118,7 +119,7 @@ sub immortal {
     MongoDB::UsageError->throw("cannot set immortal after querying")
         if $self->started_iterating;
 
-    $self->_query->noCursorTimeout(!!$bool);
+    $self->_query->set_noCursorTimeout($bool);
     return $self;
 }
 
@@ -150,7 +151,7 @@ sub fields {
     MongoDB::UsageError->throw("not a hash reference")
       unless ref $f eq 'HASH' || ref $f eq 'Tie::IxHash';
 
-    $self->_query->projection($f);
+    $self->_query->set_projection($f);
     return $self;
 }
 
@@ -172,7 +173,7 @@ sub sort {
     MongoDB::UsageError->throw("cannot set sort after querying")
       if $self->started_iterating;
 
-    $self->_query->sort( to_IxHash($order) );
+    $self->_query->set_sort($order);
     return $self;
 }
 
@@ -191,7 +192,7 @@ sub limit {
     my ( $self, $num ) = @_;
     MongoDB::UsageError->throw("cannot set limit after querying")
       if $self->started_iterating;
-    $self->_query->limit($num);
+    $self->_query->set_limit($num);
     return $self;
 }
 
@@ -217,7 +218,7 @@ sub max_await_time_ms {
     MongoDB::UsageError->throw("can not set max_await_time_ms after querying")
       if $self->started_iterating;
 
-    $self->_query->maxAwaitTimeMS( $num );
+    $self->_query->set_maxAwaitTimeMS( $num );
     return $self;
 }
 
@@ -240,7 +241,7 @@ sub max_time_ms {
     MongoDB::UsageError->throw("can not set max_time_ms after querying")
       if $self->started_iterating;
 
-    $self->_query->maxTimeMS( $num );
+    $self->_query->set_maxTimeMS( $num );
     return $self;
 
 }
@@ -270,7 +271,7 @@ sub tailable {
     MongoDB::UsageError->throw("cannot set tailable after querying")
         if $self->started_iterating;
 
-    $self->_query->cursorType($bool ? 'tailable' : 'non_tailable');
+    $self->_query->set_cursorType($bool ? 'tailable' : 'non_tailable');
     return $self;
 }
 
@@ -294,7 +295,7 @@ sub tailable_await {
     MongoDB::UsageError->throw("cannot set tailable_await after querying")
         if $self->started_iterating;
 
-    $self->_query->cursorType($bool ? 'tailable_await' : 'non_tailable');
+    $self->_query->set_cursorType($bool ? 'tailable_await' : 'non_tailable');
     return $self;
 }
 
@@ -315,7 +316,7 @@ sub skip {
     MongoDB::UsageError->throw("cannot set skip after querying")
       if $self->started_iterating;
 
-    $self->_query->skip($num);
+    $self->_query->set_skip($num);
     return $self;
 }
 
@@ -331,6 +332,9 @@ Hint the query to use index based on individual keys and direction:
 
 Use of a hash reference should be avoided except for single key indexes.
 
+The hint must be a string or L<ordered document|MongoDB::Collection/Ordered
+document>.
+
 Returns this cursor for chaining operations.
 
 =cut
@@ -339,16 +343,11 @@ sub hint {
     my ( $self, $index ) = @_;
     MongoDB::UsageError->throw("cannot set hint after querying")
       if $self->started_iterating;
+    MongoDB::UsageError->throw("hint must be string or ordered document, not '$index'")
+      if ! (is_Str($index) || is_OrderedDoc($index));
 
-    # $index must either be a string or a reference to an array, hash, or IxHash
-    if ( ref $index eq 'ARRAY' ) {
-        $index = Tie::IxHash->new(@$index);
-    }
-    elsif ( ref $index && !( ref $index eq 'HASH' || ref $index eq 'Tie::IxHash' ) ) {
-        MongoDB::UsageError->throw("not a hash reference");
-    }
+    $self->_query->set_hint( $index );
 
-    $self->_query->modifiers->{'$hint'} = $index;
     return $self;
 }
 
@@ -370,7 +369,7 @@ sub partial {
     MongoDB::UsageError->throw("cannot set partial after querying")
       if $self->started_iterating;
 
-    $self->_query->allowPartialResults( !! $value );
+    $self->_query->set_allowPartialResults( $value );
 
     # returning self is an API change but more consistent with other cursor methods
     return $self;
@@ -441,7 +440,7 @@ sub explain {
         coll_name           => $self->_query->coll_name,
         full_name           => $self->_query->full_name,
         bson_codec          => $self->_query->bson_codec,
-        query               => $self->_query->clone,
+        query               => $self->_query,
         read_preference     => $self->_query->read_preference,
         read_concern        => $self->_query->read_concern,
         monitoring_callback => $self->client->monitoring_callback,
@@ -593,12 +592,16 @@ sub count {
     $cmd->Push(query => $self->_query->filter);
 
     if ($limit_skip) {
-        $cmd->Push(limit => $self->_query->limit) if $self->_query->limit;
-        $cmd->Push(skip => $self->_query->skip) if $self->_query->skip;
+        my $limit = $self->_query->options->{limit};
+        my $skip = $self->_query->options->{skip};
+        $cmd->Push(limit => $limit) if $limit;
+        $cmd->Push(skip => $skip) if $skip;
     }
 
-    if (my $hint = $self->_query->modifiers->{'$hint'}) {
-        $cmd->Push(hint => $hint);
+    # XXX Allow this manual use of query internals, as this deprecated
+    # count method will be removed eventually anyway.
+    if ($self->_query->has_hint) {
+        $cmd->Push(hint => $self->_query->options->{hint});
     }
 
     my $result = try {
@@ -652,7 +655,7 @@ sub snapshot {
     MongoDB::UsageError->throw("snapshot requires a defined, boolean argument")
       unless defined $bool;
 
-    $self->_query->modifiers->{'$snapshot'} = $bool;
+    $self->_query->set_snapshot($bool);
     return $self;
 }
 

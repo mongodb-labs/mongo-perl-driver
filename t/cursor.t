@@ -237,24 +237,24 @@ $coll->drop;
     $cursor = $coll->find();
 
     $cursor = $cursor->tailable(1);
-    is($cursor->_query->cursorType, 'tailable', "set tailable");
+    is($cursor->_query->options->{cursorType}, 'tailable', "set tailable");
     $cursor = $cursor->tailable(0);
-    is($cursor->_query->cursorType, 'non_tailable', "clear tailable");
+    is($cursor->_query->options->{cursorType}, 'non_tailable', "clear tailable");
 
     $cursor = $cursor->tailable_await(1);
-    is($cursor->_query->cursorType, 'tailable_await', "set tailable_await");
+    is($cursor->_query->options->{cursorType}, 'tailable_await', "set tailable_await");
     $cursor = $cursor->tailable_await(0);
-    is($cursor->_query->cursorType, 'non_tailable', "clear tailable_await");
+    is($cursor->_query->options->{cursorType}, 'non_tailable', "clear tailable_await");
 
     $cursor = $cursor->tailable(1);
-    is($cursor->_query->cursorType, 'tailable', "set tailable");
+    is($cursor->_query->options->{cursorType}, 'tailable', "set tailable");
     $cursor = $cursor->tailable_await(0);
-    is($cursor->_query->cursorType, 'non_tailable', "clear tailable_await");
+    is($cursor->_query->options->{cursorType}, 'non_tailable', "clear tailable_await");
 
     $cursor = $cursor->tailable_await(1);
-    is($cursor->_query->cursorType, 'tailable_await', "set tailable_await");
+    is($cursor->_query->options->{cursorType}, 'tailable_await', "set tailable_await");
     $cursor = $cursor->tailable(0);
-    is($cursor->_query->cursorType, 'non_tailable', "clear tailable");
+    is($cursor->_query->options->{cursorType}, 'non_tailable', "clear tailable");
 
     #test is actual cursor
     $coll->drop;
@@ -266,9 +266,9 @@ $coll->drop;
     $cursor = $coll->find();
 
     $cursor->immortal(1);
-    ok($cursor->_query->noCursorTimeout, "set immortal");
+    ok($cursor->_query->options->{noCursorTimeout}, "set immortal");
     $cursor->immortal(0);
-    ok(! $cursor->_query->noCursorTimeout, "clear immortal");
+    ok(! $cursor->_query->options->{noCursorTimeout}, "clear immortal");
 }
 
 # explain

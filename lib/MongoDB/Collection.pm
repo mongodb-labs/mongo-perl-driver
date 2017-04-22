@@ -695,36 +695,50 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
-* C<comment> – attaches a comment to the query. If C<$comment> also exists in
-  the C<modifiers> document, the comment field overwrites C<$comment>.
+* C<comment> – attaches a comment to the query.
 * C<cursorType> – indicates the type of cursor to use. It must be one of three
   string values: C<'non_tailable'> (the default), C<'tailable'>, and
   C<'tailable_await'>.
+* C<hint> – L<specify an index to
+  use|http://docs.mongodb.org/manual/reference/command/count/#specify-the-index-to-use>;
+  must be a string, array reference, hash reference or L<Tie::IxHash> object.
 * C<limit> – the maximum number of documents to return.
+* C<max> – L<specify the B<exclusive> upper bound for a specific index|
+  https://docs.mongodb.com/manual/reference/operator/meta/max/>.
 * C<maxAwaitTimeMS> – the maximum amount of time for the server to wait on
   new documents to satisfy a tailable cursor query. This only applies
   to a C<cursorType> of 'tailable_await'; the option is otherwise ignored.
   (Note, this will be ignored for servers before version 3.2.)
-* C<maxTimeMS> – the maximum amount of time to allow the query to run. If
-  C<$maxTimeMS> also exists in the modifiers document, the C<maxTimeMS> field
-  overwrites C<$maxTimeMS>. (Note, this will be ignored for servers before
-  version 2.6.)
-* C<modifiers> – a hash reference of dollar-prefixed L<query
+* C<maxScan> – L<maximum number of documents or index keys to scan|
+  https://docs.mongodb.com/manual/reference/operator/meta/maxScan/>.
+* C<maxTimeMS> – the maximum amount of time to allow the query to run.
+  (Note, this will be ignored for servers before version 2.6.)
+* C<min> – L<specify the B<inclusive> lower bound for a specific index|
+  https://docs.mongodb.com/manual/reference/operator/meta/min/>.
+* C<modifiers> – (DEPRECATED) a hash reference of dollar-prefixed L<query
   modifiers|http://docs.mongodb.org/manual/reference/operator/query-modifier/>
-  modifying the output or behavior of a query.
+  modifying the output or behavior of a query. Top-level options will always
+  take precedence over corresponding modifiers.  Supported modifiers include
+  $comment, $hint, $maxScan, $maxTimeMS, $max, $min, $orderby, $returnKey,
+  $showDiskLoc, and $snapshot.  Some options may not be supported by
+  newer server versions.
 * C<noCursorTimeout> – if true, prevents the server from timing out a cursor
-  after a period of inactivity
+  after a period of inactivity.
 * C<projection> - a hash reference defining fields to return. See "L<limit
-  fields to
-  return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
+  fields to return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
 * C<session> - the session to use for these operations. If not supplied, will
   use an implicit session. For more information see L<MongoDB::ClientSession>
+* C<returnKey> – L<Only return the index field or fields for the results of
+  the query|https://docs.mongodb.com/manual/reference/operator/meta/returnKey/>.
+* C<showRecordId> – modifies the output of a query by adding a field
+  L<$recordId|https://docs.mongodb.com/manual/reference/method/cursor.showRecordId/>
+  that uniquely identifies a document in a collection.
 * C<skip> – the number of documents to skip before returning.
 * C<sort> – an L<ordered document|/Ordered document> defining the order in which
-  to return matching documents. If C<$orderby> also exists in the modifiers
-  document, the sort field overwrites C<$orderby>.  See docs for
-  L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
+  to return matching documents.  See the L<$orderby
+  documentation|https://docs.mongodb.com/manual/reference/operator/meta/orderby/>
+  for examples.
 
 For more information, see the L<Read Operations
 Overview|http://docs.mongodb.org/manual/core/read-operations-introduction/> in
@@ -764,22 +778,9 @@ sub find {
     return MongoDB::Cursor->new(
         client => $self->{_client},
         query => MongoDB::Op::_Query->_new(
-            modifiers           => {},
-            allowPartialResults => 0,
-            batchSize           => 0,
-            comment             => '',
-            cursorType          => 'non_tailable',
-            limit               => 0,
-            maxAwaitTimeMS      => 0,
-            maxTimeMS           => 0,
-            noCursorTimeout     => 0,
-            oplogReplay         => 0,
-            projection          => undef,
-            skip                => 0,
-            sort                => undef,
-            session             => $session,
-            %$options,
-            filter => $filter || {},
+            filter  => $filter || {},
+            options => MongoDB::Op::_Query->precondition_options($options),
+            session => $session,
             %{ $self->_op_args },
         )
     );
@@ -838,28 +839,17 @@ sub find_one {
 
     # coerce to IxHash
     __ixhash( $options, 'sort' );
+    # overide projection and limit
+    $options->{projection} = $projection;
+    $options->{limit} = -1;
 
     return $self->client->send_read_op(
         MongoDB::Op::_Query->_new(
-            modifiers           => {},
-            allowPartialResults => 0,
-            batchSize           => 0,
-            comment             => '',
-            cursorType          => 'non_tailable',
-            limit               => 0,
-            maxAwaitTimeMS      => 0,
-            maxTimeMS           => 0,
-            noCursorTimeout     => 0,
-            oplogReplay         => 0,
-            skip                => 0,
-            sort                => undef,
-            session             => $session,
-            %$options,
-            filter     => $filter     || {},
-            projection => $projection || {},
-            limit      => -1,
+            filter => $filter || {},
+            options => MongoDB::Op::_Query->precondition_options($options),
+            session => $session,
             %{ $self->_op_args },
-        )
+          )
     )->next;
 }
 
