@@ -14,7 +14,7 @@ BEGIN {
 use inc::Module::Install;
 
 name 'MongoDB';
-perl_version '5.8.4';
+perl_version '5.10.1';
 author 'Florian Ragwitz <rafl@debian.org>';
 author 'Kristina Chodorow <kristina@mongodb.com>';
 author 'Mike Friedman <mike.friedman@mongodb.com>';

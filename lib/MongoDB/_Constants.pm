@@ -14,7 +14,6 @@
 #  limitations under the License.
 #
 
-use 5.008;
 use strict;
 use warnings;
 
