@@ -38,6 +38,7 @@ use MongoDB::_Types qw(
     ReadPreference
     ReadConcern
     WriteConcern
+    is_OrderedDoc
 );
 use Types::Standard qw(
     InstanceOf
@@ -385,8 +386,8 @@ sub drop {
 This method runs a database command.  The first argument must be a document
 with the command and its arguments.  It should be given as an array reference
 of key-value pairs or a L<Tie::IxHash> object with the command name as the
-first key.  The use of a hash reference will only reliably work for commands
-without additional parameters.
+first key.  An error will be thrown if the command is not an
+L<ordered document|MongoDB::Collection/Ordered document>.
 
 By default, commands are run with a read preference of 'primary'.  An optional
 second argument may specify an alternative read preference.  If given, it must
@@ -409,6 +410,8 @@ on database commands: L<http://dochub.mongodb.org/core/commands>.
 
 sub run_command {
     my ( $self, $command, $read_pref ) = @_;
+    MongoDB::UsageError->throw("command was not an ordered document")
+       if ! is_OrderedDoc($command);
 
     $read_pref = MongoDB::ReadPreference->new(
         ref($read_pref) ? $read_pref : ( mode => $read_pref ) )

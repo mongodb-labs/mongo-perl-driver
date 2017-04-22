@@ -94,6 +94,8 @@ subtest 'run_command' => sub {
     $err = exception { $testdb->run_command( [ x => "a" x MAX_BSON_WIRE_SIZE ] ) };
     like( $err, qr/command too large/, "error on too large command" );
 
+    $err = exception { $testdb->run_command( { ismaster => 1, other_param => 1 } ) };
+    like( $err, qr/not an ordered document/, "error on multi-key regular hashref" );
 };
 
 # collection_names
