@@ -216,6 +216,10 @@ sub check_write_outcome {
     my ( $label, $res, $outcome ) = @_;
 
     for my $k ( keys %{ $outcome->{result} } ) {
+        # Tests have upsertedCount field, but this is not required by the
+        # CRUD spec itself.  It seems to be there for drivers that return
+        # BulkWriteResults for everything.
+        next if $k eq 'upsertedCount' && $res->isa("MongoDB::UpdateResult");
         ( my $attr = $k ) =~ s{([A-Z])}{_\L$1}g;
         if ( $server_version < v2.6.0 ) {
             $outcome->{result}{$k} = undef    if $k eq 'modifiedCount';
