@@ -644,7 +644,8 @@ sub update_many {
     $cursor = $coll->find({ i => { '$gt' => 42 } }, {limit => 20});
 
 Executes a query with a L<filter expression|/Filter expression> and returns a
-C<MongoDB::Cursor> object.
+B<lazy> C<MongoDB::Cursor> object.  (The query is not immediately
+issued to the server; see below for details.)
 
 The query can be customized using L<MongoDB::Cursor> methods, or with an
 optional hash reference of options.
