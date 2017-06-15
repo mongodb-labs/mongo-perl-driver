@@ -25,6 +25,7 @@ our $VERSION = 'v1.7.0';
 use MongoDB::GridFS::File;
 use Digest::MD5;
 use Moo;
+use Try::Tiny;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
 use MongoDB::_Types qw(
@@ -400,7 +401,13 @@ sub insert {
     $copy{"chunkSize"} = $MongoDB::GridFS::chunk_size;
     $copy{"uploadDate"} = DateTime->now;
     $copy{"length"} = $length;
-    return $files->insert_one(\%copy)->inserted_id;
+    try {
+        return $files->insert_one(\%copy)->inserted_id;
+    } catch {
+        # cleanup and rethrow the error that caused the insert to fail
+        $chunks->delete_many({files_id => $id});
+        die $_;
+    };
 }
 
 =method drop
