@@ -347,10 +347,15 @@ sub snapshot {
 }
 
 =head2 hint
+    
+    Force Mongo query to use a specific index by name:
+    
+        $cursor->hint("index_name");
+    
+    Force Mongo query to use index without specifying the name of the index,
+    but use individual keys, that are part of the index:
 
-    $cursor->hint({'x' => 1});
-    $cursor->hint(['x', 1]);
-    $cursor->hint('x_1');
+        $cursor->hint(["field_1", "field_2", "field_3"]);
 
 Force Mongo to use a specific index for a query.
 
