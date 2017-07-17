@@ -347,17 +347,16 @@ sub snapshot {
 }
 
 =head2 hint
-    
-    Force Mongo query to use a specific index by name:
-    
-        $cursor->hint("index_name");
-    
-    Force Mongo query to use index without specifying the name of the index,
-    but use individual keys, that are part of the index:
 
-        $cursor->hint(["field_1", "field_2", "field_3"]);
+Hint the query to use a specific index by name:
 
-Force Mongo to use a specific index for a query.
+    $cursor->hint("index_name");
+
+Hint the query to use index based on individual keys and direction:
+
+    $cursor->hint([field_1 => 1, field_2 => -1, field_3 => 1]);
+
+Use of a hash reference should be avoided except for single key indexes.
 
 Returns this cursor for chaining operations.
 
