@@ -47,6 +47,8 @@ our @EXPORT = qw(
 # Constants
 #--------------------------------------------------------------------------#
 
+my $WEEK_IN_SECS = 7 * 24 * 3600;
+
 { no warnings 'once'; $YAML::SortKeys = 0; }
 
 # For Unix, we test 5.10.1 to 5.24.0, as this is the full range we support.
@@ -120,6 +122,7 @@ my %os_map = (
         perlpath => 'bin',
         perls    => \@zap_perls,
         stepback => 'false',
+        batchtime => $WEEK_IN_SECS,
     },
     ubuntu1604_arm64 => {
         name     => "Ubuntu 16.04 ARM64",
@@ -128,6 +131,7 @@ my %os_map = (
         perlpath => 'bin',
         perls    => \@zap_perls,
         stepback => 'false',
+        batchtime => $WEEK_IN_SECS,
     },
     ubuntu1604_power8 => {
         name     => "Ubuntu 16.04 Power8",
@@ -136,6 +140,7 @@ my %os_map = (
         perlpath => 'bin',
         perls    => \@zap_perls,
         stepback => 'false',
+        batchtime => $WEEK_IN_SECS,
     },
 );
 
@@ -372,6 +377,7 @@ sub _assemble_variants {
                 run_on => [ @{ $os_map{$os}{run_on} } ],
                 tasks  => [@filtered],
                 ( $os_map{$os}{stepback} ? ( stepback => $os_map{$os}{stepback} ) : () ),
+                ( $os_map{$os}{batchtime} ? ( batchtime => $os_map{$os}{batchtime} ) : () ),
               );
         }
     }
