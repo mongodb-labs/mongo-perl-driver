@@ -575,7 +575,7 @@ __END__
     $stream->close;
 
     # find and download a file
-    $result  = $bucket-find({filename => "foo.txt"});
+    $result  = $bucket->find({filename => "foo.txt"});
     $file_id = $result->next->{_id};
     $stream  = $bucket->open_download_stream($file_id)
     $data    = do { local $/; $stream->readline() };
