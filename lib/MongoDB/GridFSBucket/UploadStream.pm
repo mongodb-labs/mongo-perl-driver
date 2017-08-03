@@ -28,6 +28,7 @@ use DateTime;
 use MongoDB::Error;
 use MongoDB::OID;
 use MongoDB::BSON::Binary;
+use Time::HiRes qw/time/;
 use Types::Standard qw(
   Str
   Bool
@@ -308,7 +309,7 @@ sub close {
         _id        => $self->id,
         length     => $self->_length,
         chunkSize  => $self->chunk_size_bytes,
-        uploadDate => DateTime->now,
+        uploadDate => DateTime->from_epoch( epoch => time ),
         md5        => $self->_md5->hexdigest,
         filename   => $self->filename,
     };
