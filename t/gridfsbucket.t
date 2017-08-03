@@ -22,6 +22,7 @@ use Test::Deep;
 use IO::File;
 use File::Compare;
 use Encode;
+use Time::HiRes qw/usleep/;
 
 use MongoDB;
 use MongoDB::GridFSBucket;
@@ -441,6 +442,20 @@ sub text_is {
         $testlen, 'unicode read length' );
     $str = Encode::decode_utf8($str);
     is( $str, $teststr, 'unicode read content' );
+}
+
+# High resolution upload date
+{
+    setup_gridfs;
+
+    my $bucket = $testdb->get_gridfsbucket;
+    my $upload1 = $bucket->open_upload_stream( 'same.txt' );
+    my $upload2 = $bucket->open_upload_stream( 'same.txt' );
+    $_->print("Hello World") for $upload1, $upload2;
+    $upload1->close ;
+    usleep(1000); # get to next millisecond for unique upload time
+    eval { $upload2->close };
+    is( $@, '', "Uploads >1 ms apart are allowed" );
 }
 
 done_testing;
