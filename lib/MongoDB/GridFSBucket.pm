@@ -609,7 +609,8 @@ Valid file documents typically include the following fields:
 * uploadDate – the date and time this file was added to GridFS, stored as
   a BSON datetime value.
 * md5 – a hash of the contents of the stored file
-* filename – the name of this stored file; this does not need to be unique
+* filename – the name of this stored file; the combination of filename and
+  uploadDate (millisecond resolution) must be unique
 * metadata – any additional application data the user wishes to store
   (optional)
 * contentType – DEPRECATED (store this in C<metadata> if you need it)
