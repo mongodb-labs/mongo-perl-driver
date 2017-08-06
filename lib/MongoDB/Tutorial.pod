@@ -208,7 +208,7 @@ the C<"likes"> array, we write:
     $users->update_one({"_id" => $id}, {'$push' => {'likes' => 'reading'}});
 
 To add a new field or change the type or value of an existing field, we use
-C<$set>.  For example, to change the _id field to a username, we would say:
+C<$set>.  For example, to change the C<name> field to a username, we would say:
 
     $users->update_one({"_id" => $id}, {'$set' => {'name' => 'joe_schmoe'}});
 
@@ -240,7 +240,7 @@ They take the same type of hash queries do:
 
     $users->delete_many({"name" => "Joe"});
 
-It does not delete the collection, though (in that in that it will still appear
+It does not delete the collection, though (in that it will still appear
 if the user lists collections in the database and the indexes will still exist).
 To remove a collection entirely, call C<drop>:
 
@@ -254,7 +254,7 @@ C<drop> can also be used for whole databases:
 
 =head2 Database Commands
 
-There are a large number of useful database commands that can be called
+There is a large number of useful database commands that can be called
 directly on C<$db> with the L<run_command|MongoDB::Database/run_command>
 method.
 
