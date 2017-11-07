@@ -40,7 +40,7 @@ ticket in our issue management tool, JIRA:
    account](https://jira.mongodb.org/secure/Signup!default.jspa) if you
    don't already have one.
  - Navigate to the [JIRA PERL
-   project](https://jira.mongodb.org/browse/PERL>)
+   project](https://jira.mongodb.org/browse/PERL)
  - Click the **Create** button - Please provide as much information as
    possible for a bug and how to reproduce it.
 
@@ -128,4 +128,3 @@ To build and test (after configuration):
 
     $ make
     $ make test
-

@@ -2024,7 +2024,7 @@ that the '@' in the principal name must be encoded as "%40":
 
     my $mc = MongoDB::MongoClient->new(
         host =>
-          'mongodb://johndoe%40EXAMPLE.COM@mongo.examplecom/?authMechanism=GSSAPI',
+          'mongodb://johndoe%40EXAMPLE.COM@mongo.example.com/?authMechanism=GSSAPI',
     );
 
 The default service name is 'mongodb'.  It can be changed with the
@@ -2040,4 +2040,3 @@ You B<MUST> call the L</reconnect> method on any MongoDB::MongoClient objects
 after forking or spawning a thread.
 
 =cut
-
