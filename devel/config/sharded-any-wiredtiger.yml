@@ -1,6 +1,6 @@
 ---
 type: sharded
-default_args: -v --nojournal --nohttpinterface --quiet --storageEngine=wiredTiger
+default_args: -v --nojournal --bind_ip 0.0.0.0 --quiet --storageEngine=wiredTiger
 mongoc:
     - name: config1
 mongos:

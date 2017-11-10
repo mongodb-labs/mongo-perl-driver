@@ -1,5 +1,5 @@
 ---
 type: single
-default_args: -v --nojournal --nohttpinterface --storageEngine=inMemoryExperiment
+default_args: -v --nojournal --bind_ip 0.0.0.0 --storageEngine=inMemoryExperiment
 mongod:
     - name: host1

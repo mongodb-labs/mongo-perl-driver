@@ -1,6 +1,7 @@
 ---
 type: sharded
-default_args: --noprealloc --smallfiles --bind_ip 0.0.0.0 --nssize 6 --quiet
+default_args: -v --quiet
+default_version: 3.6
 mongoc:
     - name: config1
     - name: config2
@@ -12,4 +13,5 @@ shards:
       type: single
       mongod:
           - name: db1
+            args: --enableMajorityReadConcern
 # vim: ts=4 sts=4 sw=4 et:

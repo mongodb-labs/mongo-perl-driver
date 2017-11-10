@@ -1,5 +1,5 @@
 ---
 type: single
-default_args: -v --noprealloc --nojournal --smallfiles --nohttpinterface --nssize 6 --storageEngine=mmapv1
+default_args: -v --noprealloc --nojournal --smallfiles --bind_ip 0.0.0.0 --nssize 6 --storageEngine=mmapv1
 mongod:
     - name: host1

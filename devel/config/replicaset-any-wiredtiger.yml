@@ -1,7 +1,7 @@
 ---
 type: replica
 setName: foo
-default_args: -v --nojournal --nohttpinterface --quiet --storageEngine=wiredTiger
+default_args: -v --nojournal --bind_ip 0.0.0.0 --quiet --storageEngine=wiredTiger
 mongod:
     - name: host1
     - name: host2
