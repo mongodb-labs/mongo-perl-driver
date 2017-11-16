@@ -1,7 +1,7 @@
 ---
 type: replica
 setName: foo
-default_args: -v --nojournal --nohttpinterface --enableMajorityReadConcern --quiet
+default_args: -v --nohttpinterface --enableMajorityReadConcern --quiet
 default_version: 3.4
 mongod:
     - name: host1

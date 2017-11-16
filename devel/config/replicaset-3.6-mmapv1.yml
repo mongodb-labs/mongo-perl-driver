@@ -1,7 +1,7 @@
 ---
 type: replica
 setName: foo
-default_args: -v --bind_ip 0.0.0.0 --enableMajorityReadConcern --quiet
+default_args: -v --bind_ip 0.0.0.0 --enableMajorityReadConcern --quiet --storageEngine=mmapv1
 default_version: 3.6
 mongod:
     - name: host1

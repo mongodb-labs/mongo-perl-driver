@@ -1,6 +1,6 @@
 ---
 type: sharded
-default_args: -v --quiet
+default_args: -v --bind_ip 0.0.0.0 --quiet
 default_version: 3.6
 mongoc:
     - name: config1
