@@ -20,7 +20,7 @@ package MongoDB::GridFSBucket::DownloadStream;
 # ABSTRACT: File handle abstraction for downloading
 
 use version;
-our $VERSION = 'v1.7.0';
+our $VERSION = 'v1.999.0';
 
 use Moo;
 use Types::Standard qw(
