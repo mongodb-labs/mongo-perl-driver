@@ -34,6 +34,7 @@ my @perl_versions = qw(
   5.22.4
   5.24.0
   5.24.3
+  5.26.1
 );
 
 # Build only more recent Perls for ZAP

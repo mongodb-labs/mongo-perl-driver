@@ -38,6 +38,7 @@ my @perl_versions = qw(
   22.4
   24.0
   24.3
+  26.1
 );
 
 my $target_arch = "MSWin32-x64-multi-thread";
