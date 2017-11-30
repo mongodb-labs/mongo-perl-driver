@@ -40,7 +40,7 @@ ok ($server->is_alive, "Server is alive");
 
 my $c = build_client();
 my $coll = get_test_db($c)->get_collection("testc");
-inserted_ok($coll, $coll->insert_one({pre => 'stop'}));
+inserted_ok($coll, $coll->insert_one({pre => 'stop'})->inserted_id);
 
 $server->stop();
 
@@ -50,9 +50,9 @@ $server->start($orig_port);
 
 ok ($server->is_alive, "Server is alive");
 
-my $id;
+my $res;
 like(
-    exception { $id = $coll->insert_one({post => 'reconnect'}) },
+    exception { $res = $coll->insert_one({post => 'reconnect'}) },
     qr/NetworkError/,
     "first attempt to contact server fails",
 );
@@ -61,13 +61,13 @@ diag "waiting for connection cooldown to expire";
 sleep 6; # must outwait the cooldown time
 
 is(
-    exception { $id = $coll->insert_one({post => 'reconnect'}) },
+    exception { $res = $coll->insert_one({post => 'reconnect'}) },
     undef,
     "second attempt to contact server succeeds",
 );
 
 
-inserted_ok($coll, $id );
+inserted_ok($coll, $res->inserted_id );
 
 clear_testdbs;
 
