@@ -35,7 +35,7 @@ use MongoDBTest::Orchestrator;
 use MongoDBTest qw/build_client get_test_db clear_testdbs server_version get_capped/;
 
 subtest "Replica Set with wire version >= 5" => sub {
-    my $config = "replicaset-any.yml";
+    my $config = "replicaset-3.4.yml";
     my $orc    = MongoDBTest::Orchestrator->new(
         config_file => "devel/config/$config",
         log_verbose => 1,
@@ -75,13 +75,15 @@ subtest "Replica Set with wire version >= 5" => sub {
 
         # Hunt log lines for first "deadbeef" insert.
         my $i = 0;
-        while ( $log_lines[$i] !~ /deadbeef/ ) { $i++ }
+        while ( $i <= $#log_lines && $log_lines[$i] !~ /command: insert/ ) { $i++ }
         my $first = $i;
 
         # Hunt for last deadbeef insert.
         $i = $#log_lines;
-        while ( $log_lines[$i] !~ /deadbeef/ ) { $i-- }
+        while ( $i >= 0 && $log_lines[$i] !~ /command: insert/ ) { $i-- }
         my $last = $i;
+
+        ok( $last > $first, "found desired log line range" );
 
         # Count number of isMaster calls between those points.  Over 4 seconds,
         # we should see more than 1 per second and less than 3 per second, even
@@ -152,8 +154,8 @@ subtest "Replica Set with wire version < 5" => sub {
 };
 
 my @sharded_cases = (
-    ["Mongos with Standalone Topology", 'sharded-any.yml'],
-    ["Mongos with Sharded Topology", 'sharded-2mongos.yml'],
+    ["Mongos with Standalone Topology", 'sharded-3.4.yml'],
+    ["Mongos with Sharded Topology", 'sharded-2mongos-3.4.yml'],
 );
 
 for my $case( @sharded_cases ) {
@@ -187,8 +189,7 @@ for my $case( @sharded_cases ) {
           map { $_->logfile->lines } $orc->deployment->routers->all_servers;
 
         ok( $saw_max_stale, "maxStalenessSeconds applied to MongoS" )
-          or diag $orc->get_server('router1')->grep_log(qr/\$readPreference/)
-          and diag $orc->get_server('router2')->grep_log(qr/\$readPreference/);
+            or diag map { $_->logfile->lines } $orc->deployment->routers->all_servers;
 
         note "Shutting down deployment";
     };

@@ -433,6 +433,20 @@ sub as_uri_with_auth {
     return $uri;
 }
 
+sub _filtered_default_args {
+    my ($self) = @_;
+    my @filtered;
+    for my $s ( split ' ', $self->default_args ) {
+        # let verbose logging override default
+        next if $s =~ /^-v/ && $self->log_verbose;
+        # 3.6+ errors on httpinterface
+        next if $s =~ /httpinterface/ && $self->server_version > v3.4.0;
+
+        push @filtered, $s;
+    }
+    return @filtered;
+}
+
 sub _command_args {
     my ($self, $skip_replset ) = @_;
     my @args;
@@ -442,7 +456,7 @@ sub _command_args {
     else {
         push @args, ( $self->log_verbose ? "-vvv" : "-v" );
     }
-    push @args, split ' ', $self->default_args;
+    push @args, $self->_filtered_default_args;
     push @args, split ' ', $self->config->{args} if exists $self->config->{args};
     push @args, split ' ', $self->command_args;
     push @args, '--port', $self->port, '--logpath', $self->logfile, '--logappend';

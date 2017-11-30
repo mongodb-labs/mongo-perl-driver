@@ -42,15 +42,15 @@ sub _test_index_names {
 
     my $coll = $testdb->get_collection('test');
 
-    is_deeply( [ $coll->get_indexes ], [], "no indexes yet" );
+    is_deeply( [ $coll->indexes->list->all ], [], "no indexes yet" );
 
-    ok( $coll->ensure_index( [ name => 1 ] ), "single-field index" );
-    ok( $coll->ensure_index( [ name => 1, age => 1 ] ), "compound index");
-    ok( $coll->ensure_index( [ ssn => 1 ], {unique => 1} ), "unique index");
+    ok( $coll->indexes->create_one( [ name => 1 ] ), "single-field index" );
+    ok( $coll->indexes->create_one( [ name => 1, age => 1 ] ), "compound index");
+    ok( $coll->indexes->create_one( [ ssn => 1 ], {unique => 1} ), "unique index");
 
-    ok( $coll->insert( { name => 'Alice', age => 23, ssn => "999-88-7777" } ), "insert doc" );
+    ok( $coll->insert_one( { name => 'Alice', age => 23, ssn => "999-88-7777" } ), "insert doc" );
 
-    my @indexes = $coll->get_indexes;
+    my @indexes = $coll->indexes->list->all;
     is( scalar @indexes, 4, "right number of indexes" );
     cmp_deeply( $_, $index_spec, "$_->{name} index looks right" ) for @indexes;
 }

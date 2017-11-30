@@ -8,6 +8,7 @@ mongoc:
     - name: config3
 mongos:
     - name: router1
+    - name: router2
 shards:
     - name: sh1
       type: single

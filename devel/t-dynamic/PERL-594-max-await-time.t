@@ -46,7 +46,7 @@ sub _test_max_await {
     note "Server Version: $server_version";
 
     my $coll = get_capped($testdb);
-    $coll->insert({x => $_}) for 1 .. 50;
+    $coll->insert_one({x => $_}) for 1 .. 50;
 
     my $res =
       $coll->find( {}, { cursorType => 'tailable_await', %$find_options } )->result;

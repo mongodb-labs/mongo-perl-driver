@@ -50,7 +50,7 @@ subtest "2.6 Mongos + 2.4, 2.6 shards" => sub {
     my $testdb = get_test_db($conn);
     my $coll   = $testdb->get_collection("test_collection");
 
-    $coll->batch_insert( [ { wanted => 1, score => 56 },
+    $coll->insert_many( [ { wanted => 1, score => 56 },
                            { wanted => 1, score => 72 },
                            { wanted => 1, score => 96 },
                            { wanted => 1, score => 32 },
@@ -123,7 +123,7 @@ subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
     my $testdb = get_test_db($conn)   ;
     my $coll   = $testdb->get_collection("test_collection");
 
-    $coll->batch_insert( [ { wanted => 1, score => 56 },
+    $coll->insert_many( [ { wanted => 1, score => 56 },
                            { wanted => 1, score => 72 },
                            { wanted => 1, score => 96 },
                            { wanted => 1, score => 32 },

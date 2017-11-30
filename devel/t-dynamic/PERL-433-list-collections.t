@@ -44,11 +44,11 @@ sub _test_collection_names {
     $testdb->run_command($cmd);
     my $cap = $testdb->get_collection("test_capped");
 
-    $coll->ensure_index( [ name => 1 ] );
-    $cap->ensure_index( [ name => 1 ] );
+    $coll->indexes->create_one( [ name => 1 ] );
+    $cap->indexes->create_one( [ name => 1 ] );
 
-    ok( $coll->insert( { name => 'Alice' } ), "create test collection" );
-    ok( $cap->insert( { name => 'Bob' } ), "create capped collection" );
+    ok( $coll->insert_one( { name => 'Alice' } ), "create test collection" );
+    ok( $cap->insert_one( { name => 'Bob' } ), "create capped collection" );
 
     my %names    = map {; $_ => 1 } $testdb->collection_names;
     for my $k ( qw/test test_capped/ ) {

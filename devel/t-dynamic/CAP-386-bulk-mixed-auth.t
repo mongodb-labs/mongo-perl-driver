@@ -75,14 +75,14 @@ $ENV{MONGOD} =~ s{mongodb://.*?\@}{mongodb://};
 my $limited = build_client( db_name => $testdb->name, username => 'limited', password => 'limited' );
 my $coll2 = $limited->get_database($testdb->name)->get_collection($coll->name);
 my $bulk = $coll2->initialize_ordered_bulk_op;
-$bulk->insert( { _id => 1 } );
-$bulk->find( { _id => 1 } )->remove( { _id => 1 } );
+$bulk->insert_one( { _id => 1 } );
+$bulk->find( { _id => 1 } )->delete_many( { _id => 1 } );
 
 my ( $result, $err );
 $err = exception { $result = $bulk->execute };
 like( $err->message, qr/not authorized/, "no error on bulk op by limited user" ) or diag explain $err;
 
-is( $coll2->find({})->count, 1, "document inserted but not removed"); 
+is( $coll2->count, 1, "document inserted but not removed"); 
 
 clear_testdbs;
 

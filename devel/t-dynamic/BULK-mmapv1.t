@@ -53,7 +53,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         $coll->drop;
         my $bulk = $coll->$method;
-        $bulk->insert( {} );
+        $bulk->insert_one( {} );
         my $err = exception { $bulk->execute( { j => 1 } ) };
         isa_ok( $err, 'MongoDB::DatabaseError', "executing j:1 on nojournal throws error" );
         like( $err->message, qr/journal/, "error message mentions journal" );

@@ -69,7 +69,7 @@ subtest "connect to RS without primary" => sub {
 
     is( exception { $coll->drop }, undef, "drop collection" );
 
-    $coll->insert( {} );
+    $coll->insert_one( {} );
 
     # stepdown primary
     $orc->deployment->server_set->stepdown_primary(5);

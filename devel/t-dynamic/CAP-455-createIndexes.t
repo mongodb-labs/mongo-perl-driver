@@ -54,7 +54,7 @@ for my $deployment ( sort keys %config_map ) {
         my $testdb = get_test_db($conn);
         my $coll   = $testdb->get_collection("test_collection");
 
-        $coll->insert( { count => $_ } ) for 1 .. 10;
+        $coll->insert_one( { count => $_ } ) for 1 .. 10;
 
         my $logfile =  $orc->get_server( $config_map{$deployment} )->logfile;
 
@@ -91,7 +91,7 @@ subtest "2.6 mongos with mixed-version mongod" => sub {
     eval { $admin->run_command([moveChunk => $coll->full_name, find => { number => 1000}, to => 'sh2']) };
 
     my $bulk=$coll->ordered_bulk;
-    $bulk->insert( { number => $_, rand => int(rand(2**16)) } ) for 1 .. 1000;
+    $bulk->insert_one( { number => $_, rand => int(rand(2**16)) } ) for 1 .. 1000;
     $bulk->execute;
 
     my $res = $coll->indexes->create_one( [ rand => 1 ] );

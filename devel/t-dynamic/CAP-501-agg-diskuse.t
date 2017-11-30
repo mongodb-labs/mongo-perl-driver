@@ -56,7 +56,7 @@ for my $deployment ( sort keys %config_map ) {
         my $testdb = get_test_db($conn);
         my $coll   = $testdb->get_collection("test_collection");
 
-        $coll->insert( { count => $_ } ) for 1 .. 10;
+        $coll->insert_one( { count => $_ } ) for 1 .. 10;
 
         my $logfile =  $orc->get_server( $config_map{$deployment} )->logfile;
 

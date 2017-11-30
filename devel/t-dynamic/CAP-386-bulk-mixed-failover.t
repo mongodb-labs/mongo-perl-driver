@@ -64,7 +64,7 @@ subtest "mixed version stepdown" => sub {
     $conn->topology_status( refresh => 1 );
 
     my $bulk = $coll->initialize_ordered_bulk_op;
-    $bulk->insert( { _id => 1 } );
+    $bulk->insert_one( { _id => 1 } );
 
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
@@ -80,7 +80,7 @@ subtest "mixed version stepdown" => sub {
     $conn->topology_status( refresh => 1 );
 
     $bulk = $coll->initialize_ordered_bulk_op;
-    $bulk->insert( { _id => 2 } );
+    $bulk->insert_one( { _id => 2 } );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on insert" ) or diag explain $err;
 };

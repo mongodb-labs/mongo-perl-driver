@@ -50,7 +50,7 @@ my $coll   = $testdb->get_collection("test_collection");
 $admin->run_command([enableSharding => $testdb->name]);
 $admin->run_command([shardCollection => $coll->full_name, key => { number => 1 }]);
 
-$coll->insert( { number => int(rand(2**31)) } ) for 1 .. 10;
+$coll->insert_one( { number => int(rand(2**31)) } ) for 1 .. 10;
 
 like(
     exception { $coll->aggregate( [ { '$project' => { _id => 1, count => 1 } } ], {explain => 1} ) },

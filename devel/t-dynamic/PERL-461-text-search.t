@@ -44,7 +44,7 @@ my $admin  = $conn->get_database("admin");
 my $testdb = get_test_db($conn);
 my $coll   = $testdb->get_collection("test_collection");
 
-$coll->ensure_index({subject => 'text'});
+$coll->indexes->create_one({subject => 'text'});
 
 my $corpus = <<'HERE';
 America is a country that doesn't know where it is going but is determined to set a speed record getting there.
@@ -58,7 +58,7 @@ A man who thinks he has a higher purpose can do terrible things, even to those h
 Millions long for immortality who don't know what to do with themselves on a rainy Sunday afternoon.
 HERE
 
-$coll->insert( { subject => $_ } ) for split /\n/, $corpus;
+$coll->insert_one( { subject => $_ } ) for split /\n/, $corpus;
 
 my $cur = $coll->find({ '$text' => { '$search' => 'love' } });
 $cur->fields({score => { '$meta' => 'textScore' }});
