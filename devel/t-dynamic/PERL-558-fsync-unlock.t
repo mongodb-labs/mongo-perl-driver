@@ -59,7 +59,7 @@ sub _test_lock_unlock {
     # Unlock
     $ret = $conn->fsync_unlock();
     is($ret->{ok}, 1, "Got 'ok' => 1 from unlock command.");
-    is($ret->{info}, "unlock completed", "Got a successful unlock.");
+    like($ret->{info}, qr/unlock completed/i, "Got a successful unlock.");
 }
 
 subtest "wire protocol 4" => sub {
