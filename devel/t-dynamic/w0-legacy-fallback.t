@@ -35,7 +35,7 @@ use MongoDBTest qw/build_client get_test_db clear_testdbs server_version/;
 
 subtest "w0 doesn't send write commands" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-any.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.0.yml" );
     diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
@@ -59,9 +59,11 @@ subtest "w0 doesn't send write commands" => sub {
     ok( !scalar $orc->get_server('host1')->grep_log(qr/command: delete/), "no delete command in log" );
     is( $coll->count, 0, "no docs left" );
 
-    my @ids = $coll->batch_insert( [ map { { a => $_ } } 2 .. 10 ] );
-    is( scalar @ids, 0, "batch_insert returns no ids" );
-    ok( !scalar $orc->get_server('host1')->grep_log(qr/command: insert/), "no insert command in log" );
+    $res = $coll->insert_many( [ map { { a => $_ } } 2 .. 10 ] );
+    isa_ok( $res, "MongoDB::UnacknowledgedResult", "insert_many" );
+    ok( scalar $orc->get_server('host1')->grep_log(qr/command: insert.*w: 0/), "insert command with w:0 in log" )
+        or diag $orc->get_server('host1')->logfile->lines;
+
     is( $coll->count, 9, "nine docs left" );
 
     ok( !scalar $orc->get_server('host1')->grep_log(qr/getLastError/),

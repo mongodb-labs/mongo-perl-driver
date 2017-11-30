@@ -415,22 +415,29 @@ sub insert_many {
     MongoDB::UsageError->throw("documents argument must be an array reference")
       unless ref( $_[1] ) eq 'ARRAY';
 
-    return MongoDB::InsertManyResult->_new(
-        acknowledged => $_[0]->write_concern->is_acknowledged,
-        inserted     => $_[0]->client->send_write_op(
-            MongoDB::Op::_BulkWrite->_new(
-                # default
-                ordered => 1,
-                # user overrides
-                ( defined $_[2] ? ( %{ $_[2] } ) : () ),
-                # un-overridable
-                queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
-                %{ $_[0]->_op_args },
-            )
-          )->inserted,
+    my $res = $_[0]->client->send_write_op(
+        MongoDB::Op::_BulkWrite->_new(
+            # default
+            ordered => 1,
+            # user overrides
+            ( defined $_[2] ? ( %{ $_[2] } ) : () ),
+            # un-overridable
+            queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
+            %{ $_[0]->_op_args },
+        )
+    );
+
+    return $_[0]->write_concern->is_acknowledged
+      ? MongoDB::InsertManyResult->_new(
+        acknowledged         => 1,
+        inserted             => $res->inserted,
         write_errors         => [],
         write_concern_errors => [],
-    );
+      )
+      : MongoDB::UnacknowledgedResult->_new(
+        write_errors         => [],
+        write_concern_errors => [],
+      );
 }
 
 =method delete_one
