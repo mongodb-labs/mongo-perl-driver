@@ -25,6 +25,7 @@ use Path::Tiny;
 use POSIX qw/SIGTERM SIGKILL/;
 use Proc::Guard;
 use File::Spec;
+use Safe::Isa;
 use Sys::Hostname;
 use Try::Tiny::Retry 0.004 ":all";
 use Net::EmptyPort qw/empty_port wait_port/;
@@ -380,7 +381,12 @@ sub _local_restart {
     eval {
         MongoDB::MongoClient->new( @args )->get_database("admin")->run_command( [ shutdown => 1 ] );
     };
-    $self->_logger->debug("Error on shutdown for localhost:$port: $@") if $@;
+    my $err = $@;
+    # 'shutdown' closes the socket so we don't get a network error instead
+    # of a response.  We can ignore that case.
+    if ( ! $err->$_isa("MongoDB::NetworkError") ) {
+        $self->_logger->debug("Error on shutdown for localhost:$port: $err");
+    }
     $self->stop;
     $self->clear_client;
     $self->start;
