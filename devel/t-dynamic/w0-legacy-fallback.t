@@ -36,7 +36,6 @@ use MongoDBTest qw/build_client get_test_db clear_testdbs server_version/;
 subtest "w0 doesn't send write commands" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.0.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 

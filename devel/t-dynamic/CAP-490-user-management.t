@@ -37,10 +37,8 @@ use MongoDBTest::Orchestrator;
 my $orc =
   MongoDBTest::Orchestrator->new(
     config_file => "devel/config/mongod-2.6-auth.yml" );
-diag "starting server with auth enabled";
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
-diag "MONGOD: $ENV{MONGOD}";
 
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 

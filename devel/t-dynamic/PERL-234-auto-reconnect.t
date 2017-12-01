@@ -29,7 +29,6 @@ use MongoDBTest::Orchestrator;
 my $orc = MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
-diag "$ENV{MONGOD}";
 
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
@@ -57,7 +56,7 @@ like(
     "first attempt to contact server fails",
 );
 
-diag "waiting for connection cooldown to expire";
+note "waiting for connection cooldown to expire";
 sleep 6; # must outwait the cooldown time
 
 is(

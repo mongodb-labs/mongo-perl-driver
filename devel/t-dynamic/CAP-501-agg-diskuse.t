@@ -47,10 +47,8 @@ for my $deployment ( sort keys %config_map ) {
     subtest $deployment => sub {
         my $orc =
           MongoDBTest::Orchestrator->new( config_file => "devel/config/$deployment.yml" );
-        diag "starting deployment";
         $orc->start;
         $ENV{MONGOD} = $orc->as_uri;
-        diag "MONGOD: $ENV{MONGOD}";
 
         my $conn = build_client( dt_type => undef );
         my $testdb = get_test_db($conn);

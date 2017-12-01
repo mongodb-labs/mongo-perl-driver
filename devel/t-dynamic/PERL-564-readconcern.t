@@ -71,7 +71,6 @@ sub _test_read_concern_not_set {
 subtest "wire protocol 4" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.2.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
@@ -83,7 +82,6 @@ subtest "wire protocol 4" => sub {
 subtest "wire protocol 4 (must lower-case)" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.2.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
@@ -95,7 +93,6 @@ subtest "wire protocol 4 (must lower-case)" => sub {
 subtest "wire protocol 4 : readConcern not set" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.2.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
@@ -108,7 +105,6 @@ subtest "wire protocol 4 : readConcern not set" => sub {
 subtest "wire protocol 3" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 

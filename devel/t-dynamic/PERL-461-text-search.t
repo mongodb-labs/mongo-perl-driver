@@ -35,7 +35,6 @@ use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
 
 my $orc =
     MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
-diag "starting cluster";
 $orc->start;
 local $ENV{MONGOD} = $orc->as_uri;
 

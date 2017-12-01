@@ -39,10 +39,8 @@ use MongoDB::_URI;
 my $orc =
   MongoDBTest::Orchestrator->new(
     config_file => "devel/config/mongod-2.6-auth.yml" );
-diag "starting server with auth enabled";
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
-diag "MONGOD: $ENV{MONGOD}";
 
 my $uri = MongoDB::_URI->new( uri => $ENV{MONGOD} );
 my $no_auth_string = "mongodb://" . $uri->hostids->[0];

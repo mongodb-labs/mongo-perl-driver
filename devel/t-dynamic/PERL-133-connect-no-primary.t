@@ -38,10 +38,8 @@ use MongoDBTest::Orchestrator;
 my $orc =
   MongoDBTest::Orchestrator->new(
     config_file => "devel/config/replicaset-any.yml" );
-diag "starting replicaset";
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
-diag "MONGOD: $ENV{MONGOD}";
 
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
@@ -51,7 +49,7 @@ my $testdb = get_test_db($conn);
 my $coll   = $testdb->get_collection("test_collection");
 
 subtest "connect to RS without primary" => sub {
-    diag "waiting for all hosts to be ready";
+    note "waiting for all hosts to be ready";
     $orc->deployment->server_set->wait_for_all_hosts;
 
     retry {

@@ -41,10 +41,8 @@ subtest "2.6 Mongos + 2.4, 2.6 shards" => sub {
     my $orc =
     MongoDBTest::Orchestrator->new(
         config_file => "devel/t-dynamic/sharded-2.6-mixed.yml" );
-    diag "starting deployment";
     $orc->start;
     $ENV{MONGOD} = $orc->as_uri;
-    diag "MONGOD: $ENV{MONGOD}";
 
     my $conn = build_client( dt_type => undef );
     my $testdb = get_test_db($conn);
@@ -113,10 +111,8 @@ subtest "2.4 Mongos + 2.4, 2.6 shards" => sub {
     my $orc =
     MongoDBTest::Orchestrator->new(
         config_file => "devel/t-dynamic/sharded-2.4-mixed.yml" );
-    diag "starting deployment";
     $orc->start;
     $ENV{MONGOD} = $orc->as_uri;
-    diag "MONGOD: $ENV{MONGOD}";
 
     my $conn = build_client( dt_type => undef );
 

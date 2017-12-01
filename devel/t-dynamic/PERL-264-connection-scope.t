@@ -38,7 +38,6 @@ my $orc =
   MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
-diag "MONGOD: $ENV{MONGOD}";
 
 use MongoDBTest qw/build_client/;
 

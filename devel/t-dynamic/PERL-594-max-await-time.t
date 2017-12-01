@@ -79,7 +79,6 @@ sub _maxTimeMS_like {
 subtest "default" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.4.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
@@ -91,7 +90,6 @@ subtest "default" => sub {
 subtest "maxTimeMS nonzero" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.4.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
@@ -104,7 +102,6 @@ subtest "maxTimeMS nonzero" => sub {
 subtest "maxAwaitTimeMS nonzero" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.4.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 

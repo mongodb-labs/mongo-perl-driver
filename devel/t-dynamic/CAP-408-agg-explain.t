@@ -37,10 +37,8 @@ note("CAP-408 aggregation explain");
 
 my $orc =
     MongoDBTest::Orchestrator->new( config_file => "devel/t-dynamic/sharded-2.4-mixed.yml" );
-diag "starting deployment";
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
-diag "MONGOD: $ENV{MONGOD}";
 
 my $conn   = build_client( dt_type => undef );
 my $admin  = $conn->get_database("admin");

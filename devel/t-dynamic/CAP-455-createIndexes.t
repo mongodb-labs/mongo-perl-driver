@@ -45,10 +45,8 @@ for my $deployment ( sort keys %config_map ) {
     subtest "$deployment log check"=> sub {
         my $orc =
           MongoDBTest::Orchestrator->new( config_file => "devel/config/$deployment.yml" );
-        diag "starting deployment";
         $orc->start;
         $ENV{MONGOD} = $orc->as_uri;
-        diag "MONGOD: $ENV{MONGOD}";
 
         my $conn = build_client( dt_type => undef );
         my $testdb = get_test_db($conn);
@@ -72,9 +70,7 @@ subtest "2.6 mongos with mixed-version mongod" => sub {
     my $orc =
         MongoDBTest::Orchestrator->new( config_file => "devel/t-dynamic/sharded-2.6-mixed.yml" );
     $orc->start;
-    diag "starting deployment";
     $ENV{MONGOD} = $orc->as_uri;
-    diag "MONGOD: $ENV{MONGOD}";
 
     my $conn = build_client( dt_type => undef );
     my $admin  = $conn->get_database("admin");

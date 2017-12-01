@@ -37,10 +37,8 @@ use MongoDBTest::Orchestrator;
 my $orc =
   MongoDBTest::Orchestrator->new(
     config_file => "devel/config/replicaset-mixed.yml" );
-diag "starting replicaset";
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
-diag "MONGOD: $ENV{MONGOD}";
 
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
@@ -52,7 +50,7 @@ my $coll   = $testdb->get_collection("test_collection");
 
 note("QA-447 FAILOVER WITH MIXED VERSION");
 subtest "mixed version stepdown" => sub {
-    diag "waiting for all hosts to be ready";
+    note "waiting for all hosts to be ready";
     $orc->deployment->server_set->wait_for_all_hosts;
 
     is( exception { $coll->drop }, undef, "drop collection" );

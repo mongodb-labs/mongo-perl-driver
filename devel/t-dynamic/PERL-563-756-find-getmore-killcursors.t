@@ -101,7 +101,6 @@ sub _test_find_getmore {
 subtest "wire protocol 4" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-any.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
@@ -118,7 +117,6 @@ subtest "wire protocol 4" => sub {
 subtest "wire protocol 3" => sub {
     my $orc =
       MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-2.6.yml" );
-    diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
