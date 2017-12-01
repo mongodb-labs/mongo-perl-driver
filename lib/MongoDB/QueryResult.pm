@@ -83,7 +83,7 @@ has _batch_size => (
 
 has _max_time_ms => (
     is       => 'ro',
-    isa      => Maybe[Num],
+    isa      => Num,
 );
 
 # attributes for tracking progress
@@ -235,14 +235,14 @@ sub _get_more {
     my ($db_name, $coll_name) = split(/\./, $self->_full_name, 2);
 
     my $op = MongoDB::Op::_GetMore->_new(
-        full_name   => $self->_full_name,
-        db_name     => $db_name,
-        coll_name   => $coll_name,
-        client      => $self->_client,
-        bson_codec  => $self->_bson_codec,
-        cursor_id   => $self->_cursor_id,
-        batch_size  => $want,
-        max_time_ms => $self->_max_time_ms,
+        full_name  => $self->_full_name,
+        db_name    => $db_name,
+        coll_name  => $coll_name,
+        client     => $self->_client,
+        bson_codec => $self->_bson_codec,
+        cursor_id  => $self->_cursor_id,
+        batch_size => $want,
+        ( $self->_max_time_ms ? ( max_time_ms => $self->_max_time_ms ) : () ),
     );
 
     my $result = $self->_client->send_direct_op( $op, $self->_address );

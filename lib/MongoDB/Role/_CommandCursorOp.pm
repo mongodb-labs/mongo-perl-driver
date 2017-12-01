@@ -41,7 +41,7 @@ sub _build_result_from_cursor {
         result  => $res,
       );
 
-    my $max_time_ms = undef;
+    my $max_time_ms = 0;
     if ($self->isa('MongoDB::Op::_Query') &&
         $self->cursorType eq 'tailable_await') {
         $max_time_ms = $self->maxAwaitTimeMS if $self->maxAwaitTimeMS;
@@ -61,7 +61,7 @@ sub _build_result_from_cursor {
         _cursor_flags => {},
         _cursor_num   => scalar @$batch,
         _docs         => $batch,
-        defined $max_time_ms ? ( _max_time_ms => $max_time_ms ) : (),
+        _max_time_ms  => $max_time_ms,
     );
 }
 

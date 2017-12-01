@@ -20,6 +20,7 @@ use utf8;
 use Test::More 0.88;
 use Test::Fatal;
 use Test::Deep qw/!blessed/;
+use Regexp::Common qw /balanced/;
 use Time::HiRes qw/time/;
 use boolean;
 
@@ -61,46 +62,54 @@ sub _test_max_await {
 }
 
 sub _maxTimeMS_like {
-    my ($orc, $cmd, $num) = @_;
+    my ( $orc, $cmd, $num ) = @_;
     local $Test::Builder::Level = $Test::Builder::Level + 1;
-    my ($log)     = $orc->get_server('host1')->grep_log(qr/command: $cmd/);
-    like( $log,     qr/maxTimeMS: $num/, "find MaxTimeMS is $num" );
+    my ($log) = $orc->get_server('host1')->grep_log(qr/command: $cmd/);
+    # getMore includes originatingCommand, so grab args we want to check
+    my ($args) = $log =~ m{command: $cmd ($RE{balanced}{-parens=>'{}'})};
+    ok( $args, "found $cmd args" );
+    if ( defined $num ) {
+        like( $args, qr/maxTimeMS: $num/, "$cmd MaxTimeMS is $num" );
+    }
+    else {
+        unlike( $args, qr/maxTimeMS:/, "$cmd MaxTimeMS is unset" );
+    }
 }
 
 subtest "default" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-any.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.4.yml" );
     diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
     my $wait = _test_max_await();
-    _maxTimeMS_like($orc, 'find', 0);
-    _maxTimeMS_like($orc, 'getMore', 0);
+    _maxTimeMS_like($orc, 'find', undef);
+    _maxTimeMS_like($orc, 'getMore', undef);
 };
 
 subtest "maxTimeMS nonzero" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-any.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.4.yml" );
     diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
     my $wait = _test_max_await({maxTimeMS => 5000});
     _maxTimeMS_like($orc, 'find', 5000);
-    _maxTimeMS_like($orc, 'getMore', 0);
+    _maxTimeMS_like($orc, 'getMore', undef);
     ok( $wait < 5, "await was not as long as maxTimeMS on find()" );
 };
 
 subtest "maxAwaitTimeMS nonzero" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-any.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.4.yml" );
     diag "starting deployment";
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
     my $wait = _test_max_await({maxAwaitTimeMS => 2000});
-    _maxTimeMS_like($orc, 'find', 0);
+    _maxTimeMS_like($orc, 'find', undef);
     _maxTimeMS_like($orc, 'getMore', 2000);
     ok( $wait > 2, "await was longer than maxAwaitTimeMS on find()" );
 };
