@@ -220,10 +220,17 @@ sub main {
         extra  => [qw/setupAtlasProxy testAtlasProxy/],
       );
 
+    # Build filter to avoid "ld" Perls on Z-series
+    my $variant_filter = sub {
+        my ($os, $ver) = @_;
+        return 0 if $os eq 'suse12_z' && $ver =~ m/ld$/;
+        return 1;
+    };
+
     # Generate config
     print assemble_yaml(
         ignore( "/.evergreen/dependencies", "/.evergreen/toolchain" ),
-        timeout(1800), buildvariants( \@tasks ),
+        timeout(1800), buildvariants( \@tasks, $variant_filter ),
     );
 
     return 0;
