@@ -220,6 +220,12 @@ has servers => (
     isa => HashRef[InstanceOf['MongoDB::_Server']],
 );
 
+has _incompatible_servers => (
+    is => 'rw',
+    default => sub { [] },
+    isa => ArrayRef[InstanceOf['MongoDB::_Server']],
+);
+
 has links => (
     is      => 'ro',
     default => sub { {} },
@@ -525,9 +531,11 @@ sub _check_wire_versions {
         $server_max_wire_version = 0 unless defined $server_max_wire_version; 
         $server_min_wire_version = 0 unless defined $server_min_wire_version; 
 
-        $compat = 0
-          if $server_min_wire_version > $self->max_wire_version
-          || $server_max_wire_version < $self->min_wire_version;
+        if ( $server_min_wire_version > $self->max_wire_version
+          || $server_max_wire_version < $self->min_wire_version ) {
+            $compat = 0;
+            push @{ $self->_incompatible_servers }, $server;
+        }
 
         $min_seen = $server_max_wire_version if $server_max_wire_version < $min_seen;
     }
@@ -854,9 +862,30 @@ sub _selection_timeout {
 
         unless ( $self->is_compatible ) {
             $self->_set_stale(1);
-            MongoDB::ProtocolError->throw(
-                "Incompatible wire protocol version. This version of the MongoDB driver is not compatible with the server. You probably need to upgrade this library."
-            );
+            my $error_string = '';
+            for my $server ( @{ $self->_incompatible_servers } ) {
+                $min_wire_ver = $server->is_master->{minWireVersion};
+                $max_wire_ver = $server->is_master->{maxWireVersion};
+                $host         = $server->address;
+                if ( $min_wire_ver > $self->max_wire_version ) {
+                    $error_string .= sprintf(
+                        "Server at %s requires wire version %d, but this version of %s only supports up to %d.\n",
+                        $host,
+                        $min_wire_ver,
+                        'Perl MongoDB Driver',
+                        $self->max_wire_version
+                    );
+                } else {
+                    $error_string .= sprintf(
+                        "Server at %s reports wire version %d, but this version of %s requires at least %d (MongoDB x.x).\n",
+                        $host,
+                        $max_wire_ver,
+                        'Perl MongoDB Driver',
+                        $self->min_wire_version
+                    );
+                }
+            }
+            MongoDB::ProtocolError->throw( $error_string );
         }
 
         my $server = $self->$method($read_pref);
