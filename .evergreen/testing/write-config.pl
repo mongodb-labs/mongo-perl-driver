@@ -91,7 +91,7 @@ sub generate_test_variations {
     # For the topology specific configs, we repeat the list for each server
     # version we're testing.
     my @matrix =
-      map { with_version( $_ => \@topo_tests ) } qw/v2.4 v2.6 v3.0 v3.2 v3.4 latest/;
+      map { with_version( $_ => \@topo_tests ) } qw/v2.4 v2.6 v3.0 v3.2 v3.4 v3.6 latest/;
 
     return @matrix;
 }
@@ -220,10 +220,17 @@ sub main {
         extra  => [qw/setupAtlasProxy testAtlasProxy/],
       );
 
+    # Build filter to avoid "ld" Perls on Z-series
+    my $variant_filter = sub {
+        my ($os, $ver) = @_;
+        return 0 if $os eq 'suse12_z' && $ver =~ m/ld$/;
+        return 1;
+    };
+
     # Generate config
     print assemble_yaml(
         ignore( "/.evergreen/dependencies", "/.evergreen/toolchain" ),
-        timeout(1800), buildvariants( \@tasks ),
+        timeout(1800), buildvariants( \@tasks, $variant_filter ),
     );
 
     return 0;

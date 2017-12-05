@@ -47,6 +47,8 @@ our @EXPORT = qw(
 # Constants
 #--------------------------------------------------------------------------#
 
+my $WEEK_IN_SECS = 7 * 24 * 3600;
+
 { no warnings 'once'; $YAML::SortKeys = 0; }
 
 # For Unix, we test 5.10.1 to 5.24.0, as this is the full range we support.
@@ -120,6 +122,7 @@ my %os_map = (
         perlpath => 'bin',
         perls    => \@zap_perls,
         stepback => 'false',
+        batchtime => $WEEK_IN_SECS,
     },
     ubuntu1604_arm64 => {
         name     => "Ubuntu 16.04 ARM64",
@@ -128,6 +131,7 @@ my %os_map = (
         perlpath => 'bin',
         perls    => \@zap_perls,
         stepback => 'false',
+        batchtime => $WEEK_IN_SECS,
     },
     ubuntu1604_power8 => {
         name     => "Ubuntu 16.04 Power8",
@@ -136,6 +140,7 @@ my %os_map = (
         perlpath => 'bin',
         perls    => \@zap_perls,
         stepback => 'false',
+        batchtime => $WEEK_IN_SECS,
     },
 );
 
@@ -204,7 +209,7 @@ sub assemble_yaml {
 # task definitions, and the build_variant definition.
 
 sub buildvariants {
-    my ($tasks) = @_;
+    my ($tasks, $variant_filter_fcn) = @_;
 
     # Later, we'll capture function names so we know what snippets to
     # include in the final YAML.
@@ -235,7 +240,7 @@ sub buildvariants {
 
     return (
         _assemble_functions(@functions_found),
-        _assemble_tasks($tasks), _assemble_variants( \@task_names, \%filters ),
+        _assemble_tasks($tasks), _assemble_variants( \@task_names, \%filters, $variant_filter_fcn ),
     );
 }
 
@@ -337,12 +342,15 @@ sub _assemble_tasks {
 # like variant-specific expansions
 
 sub _assemble_variants {
-    my ( $task_names, $filters ) = @_;
+    my ( $task_names, $filters, $variant_filter_fcn ) = @_;
 
     my @variants;
     for my $os ( sort keys %os_map ) {
         my $os_map = $os_map{$os};
         for my $ver ( @{ $os_map{$os}{perls} } ) {
+
+            next if $variant_filter_fcn && ! $variant_filter_fcn->($os, $ver);
+
             # OS specific path to a perl version's PREFIX
             my $prefix_path = "$os_map{$os}{perlroot}/$ver";
 
@@ -372,6 +380,7 @@ sub _assemble_variants {
                 run_on => [ @{ $os_map{$os}{run_on} } ],
                 tasks  => [@filtered],
                 ( $os_map{$os}{stepback} ? ( stepback => $os_map{$os}{stepback} ) : () ),
+                ( $os_map{$os}{batchtime} ? ( batchtime => $os_map{$os}{batchtime} ) : () ),
               );
         }
     }

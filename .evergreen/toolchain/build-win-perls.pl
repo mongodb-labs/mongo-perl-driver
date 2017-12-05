@@ -30,12 +30,13 @@ my $unzip_dir    = "$orig_dir/perl";
 my $manifest_url = "http://strawberryperl.com/releases.json";
 
 my @perl_versions = qw(
-  14.4
-  16.3
-  18.4
-  20.3
-  22.2
-  24.0
+  5.14.4
+  5.16.3
+  5.18.4
+  5.20.3
+  5.22.3
+  5.24.3
+  5.26.1
 );
 
 my $target_arch = "MSWin32-x64-multi-thread";
@@ -80,31 +81,32 @@ for my $h (@$manifest) {
 mkdir $unzip_dir or die $!;
 chdir $unzip_dir or die $!;
 
-for my $ver (@perl_versions) {
+for my $version (@perl_versions) {
+    my ($short_ver) = $version =~ m/^5\.(\d+)\.\d+$/;
     # Download
-    my $url  = $url_index{"5.$ver"}{url};
-    my $file = "$ver.zip";
+    my $url  = $url_index{$version}{url};
+    my $file = "$short_ver.zip";
     say "Downloading: $url";
     my $response = $ht->mirror( $url, $file );
     if ( !$response->{success} ) {
-        die "Failed to mirror 5.$ver: $response->{status} $response->{reason}\n";
+        die "Failed to mirror $version: $response->{status} $response->{reason}\n";
     }
 
     # Unzip
-    try_system( "unzip", "-q", "-d", "$unzip_dir/$ver", $file );
+    try_system( "unzip", "-q", "-d", "$unzip_dir/$short_ver", $file );
 
     # Remove zip
     unlink $file or die $!;
 
     # Fix portable.perl on old Strawberries
-    my $portable = "$unzip_dir/$ver/portable.perl";
+    my $portable = "$unzip_dir/$short_ver/portable.perl";
     chmod 0644, $portable;
     my $yaml = CPAN::Meta::YAML->read($portable);
     $yaml->write($portable);
     chmod 0444, $portable;
 
     # Fix executable bit permissions
-    find( \&fix_permissions, map { "$unzip_dir/$ver/$_/bin" } qw/perl c/ );
+    find( \&fix_permissions, map { "$unzip_dir/$short_ver/$_/bin" } qw/perl c/ );
 }
 
 chdir $orig_dir;

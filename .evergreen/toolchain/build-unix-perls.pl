@@ -29,9 +29,9 @@ my @perl_versions = qw(
   5.14.4
   5.16.3
   5.18.4
-  5.20.3
-  5.22.2
-  5.24.0
+  5.22.4
+  5.24.3
+  5.26.1
 );
 
 # Build only more recent Perls for ZAP
@@ -59,7 +59,7 @@ my @logs;
 for my $version (reverse @perl_versions) {
     for my $config ( keys %config_flags ) {
         # prepare arguments
-        ( my $short_ver = $version ) =~ s/^5\.//;
+        my ($short_ver) = $version =~ m/^5\.(\d+)\.\d+$/;
         my $dest = "$prefix_prefix/$short_ver$config";
         my @args = ( @default_args, $version, $dest );
         unshift @args, $config_flags{$config} if length $config_flags{$config};
