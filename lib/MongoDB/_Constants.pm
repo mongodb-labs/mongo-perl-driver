@@ -44,6 +44,7 @@ BEGIN {
         MIN_HEARTBEAT_FREQUENCY_SEC  => .5,
         MIN_HEARTBEAT_FREQUENCY_USEC => 500_000,                    # 500ms, not configurable
         MIN_KEYED_DOC_LENGTH         => 8,
+        MIN_SERVER_VERSION           => "2.4.0",
         MIN_WIRE_VERSION             => 0,
         NO_JOURNAL_RE                => qr/^journaling not enabled/,
         NO_REPLICATION_RE          => qr/^no replication has been enabled/,
