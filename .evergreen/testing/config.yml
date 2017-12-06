@@ -169,141 +169,6 @@ tasks:
       - func: testDriver
     depends_on:
       - name: build
-  - name: test_2.4_DB
-    commands:
-      - func: dynamicVars
-      - func: cleanUp
-      - func: fetchSource
-      - func: downloadPerl5Lib
-        vars:
-          target: '${repo_directory}'
-      - func: whichPerl
-      - func: downloadBuildArtifacts
-      - func: setupOrchestration
-        vars:
-          auth: noauth
-          ssl: nossl
-          topology: server
-          version: v2.4
-      - func: testDriver
-    depends_on:
-      - name: check
-  - name: test_2.4_DB_auth
-    commands:
-      - func: dynamicVars
-      - func: cleanUp
-      - func: fetchSource
-      - func: downloadPerl5Lib
-        vars:
-          target: '${repo_directory}'
-      - func: whichPerl
-      - func: downloadBuildArtifacts
-      - func: setupOrchestration
-        vars:
-          auth: auth
-          ssl: nossl
-          topology: server
-          version: v2.4
-      - func: testDriver
-    depends_on:
-      - name: test_2.4_DB
-  - name: test_2.4_DB_ssl
-    commands:
-      - func: dynamicVars
-      - func: cleanUp
-      - func: fetchSource
-      - func: downloadPerl5Lib
-        vars:
-          target: '${repo_directory}'
-      - func: whichPerl
-      - func: downloadBuildArtifacts
-      - func: setupOrchestration
-        vars:
-          auth: noauth
-          ssl: ssl
-          topology: server
-          version: v2.4
-      - func: testDriver
-    depends_on:
-      - name: test_2.4_DB
-  - name: test_2.4_RS
-    commands:
-      - func: dynamicVars
-      - func: cleanUp
-      - func: fetchSource
-      - func: downloadPerl5Lib
-        vars:
-          target: '${repo_directory}'
-      - func: whichPerl
-      - func: downloadBuildArtifacts
-      - func: setupOrchestration
-        vars:
-          auth: noauth
-          ssl: nossl
-          topology: replica_set
-          version: v2.4
-      - func: testDriver
-    depends_on:
-      - name: test_2.4_DB
-  - name: test_2.4_RS_auth
-    commands:
-      - func: dynamicVars
-      - func: cleanUp
-      - func: fetchSource
-      - func: downloadPerl5Lib
-        vars:
-          target: '${repo_directory}'
-      - func: whichPerl
-      - func: downloadBuildArtifacts
-      - func: setupOrchestration
-        vars:
-          auth: auth
-          ssl: nossl
-          topology: replica_set
-          version: v2.4
-      - func: testDriver
-    depends_on:
-      - name: test_2.4_DB_auth
-      - name: test_2.4_RS
-  - name: test_2.4_SC
-    commands:
-      - func: dynamicVars
-      - func: cleanUp
-      - func: fetchSource
-      - func: downloadPerl5Lib
-        vars:
-          target: '${repo_directory}'
-      - func: whichPerl
-      - func: downloadBuildArtifacts
-      - func: setupOrchestration
-        vars:
-          auth: noauth
-          ssl: nossl
-          topology: sharded_cluster
-          version: v2.4
-      - func: testDriver
-    depends_on:
-      - name: test_2.4_DB
-  - name: test_2.4_SC_auth
-    commands:
-      - func: dynamicVars
-      - func: cleanUp
-      - func: fetchSource
-      - func: downloadPerl5Lib
-        vars:
-          target: '${repo_directory}'
-      - func: whichPerl
-      - func: downloadBuildArtifacts
-      - func: setupOrchestration
-        vars:
-          auth: auth
-          ssl: nossl
-          topology: sharded_cluster
-          version: v2.4
-      - func: testDriver
-    depends_on:
-      - name: test_2.4_DB_auth
-      - name: test_2.4_SC
   - name: test_2.6_DB
     commands:
       - func: dynamicVars
@@ -1169,7 +1034,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1190,7 +1054,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1211,7 +1074,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1232,7 +1094,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1253,7 +1114,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1274,7 +1134,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1295,13 +1154,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
-      - test_2.4_DB_auth
-      - test_2.4_DB_ssl
-      - test_2.4_RS
-      - test_2.4_RS_auth
-      - test_2.4_SC
-      - test_2.4_SC_auth
       - test_2.6_DB
       - test_2.6_DB_auth
       - test_2.6_DB_ssl
@@ -1358,7 +1210,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1379,7 +1230,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1400,7 +1250,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1421,7 +1270,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1442,7 +1290,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1463,7 +1310,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1484,7 +1330,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1505,7 +1350,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1526,7 +1370,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1547,7 +1390,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1568,7 +1410,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1589,7 +1430,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1610,7 +1450,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1631,7 +1470,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1652,13 +1490,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
-      - test_2.4_DB_auth
-      - test_2.4_DB_ssl
-      - test_2.4_RS
-      - test_2.4_RS_auth
-      - test_2.4_SC
-      - test_2.4_SC_auth
       - test_2.6_DB
       - test_2.6_DB_auth
       - test_2.6_DB_ssl
@@ -1715,7 +1546,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -1736,7 +1566,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -2747,13 +2576,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
-      - test_2.4_DB_auth
-      - test_2.4_DB_ssl
-      - test_2.4_RS
-      - test_2.4_RS_auth
-      - test_2.4_SC
-      - test_2.4_SC_auth
       - test_2.6_DB
       - test_2.6_DB_auth
       - test_2.6_DB_ssl
@@ -2814,7 +2636,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -2839,7 +2660,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -2864,7 +2684,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -2889,7 +2708,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
       - test_2.6_DB
       - test_3.0_DB
       - test_3.2_DB
@@ -2914,13 +2732,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_2.4_DB
-      - test_2.4_DB_auth
-      - test_2.4_DB_ssl
-      - test_2.4_RS
-      - test_2.4_RS_auth
-      - test_2.4_SC
-      - test_2.4_SC_auth
       - test_2.6_DB
       - test_2.6_DB_auth
       - test_2.6_DB_ssl
