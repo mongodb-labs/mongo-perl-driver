@@ -63,6 +63,12 @@ has uri => (
     isa => InstanceOf['MongoDB::_URI'],
 );
 
+has min_server_version => (
+    is       => 'ro',
+    required => 1,
+    isa => Str,
+);
+
 has max_wire_version => (
     is       => 'ro',
     required => 1,
@@ -877,11 +883,12 @@ sub _selection_timeout {
                     );
                 } else {
                     $error_string .= sprintf(
-                        "Server at %s reports wire version %d, but this version of %s requires at least %d (MongoDB x.x).\n",
+                        "Server at %s reports wire version %d, but this version of %s requires at least %d (MongoDB %s).\n",
                         $host,
                         $max_wire_ver,
                         'Perl MongoDB Driver',
-                        $self->min_wire_version
+                        $self->min_wire_version,
+                        $self->min_server_version,
                     );
                 }
             }

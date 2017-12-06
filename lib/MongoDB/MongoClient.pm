@@ -1156,6 +1156,7 @@ sub _build__topology {
         server_selection_try_once    => $self->server_selection_try_once,
         local_threshold_sec          => $self->local_threshold_ms / 1000,
         heartbeat_frequency_sec      => $self->heartbeat_frequency_ms / 1000,
+        min_server_version          => MIN_SERVER_VERSION,
         max_wire_version            => MAX_WIRE_VERSION,
         min_wire_version            => MIN_WIRE_VERSION,
         credential                  => $self->_credential,
