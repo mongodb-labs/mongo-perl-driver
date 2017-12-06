@@ -426,6 +426,7 @@ sub read {
         }
 
         if ( !defined $len ) {
+            next if length($msg) < 4;
             $len = unpack( P_INT32, $msg );
             MongoDB::ProtocolError->throw(
                 qq/Server reply of size $len exceeds maximum of / . $self->{max_message_size_bytes} )
