@@ -64,7 +64,11 @@ $col->drop;
         threads->create(sub {
             $conn->reconnect;
             my $col = $conn->get_database($testdb->name)->get_collection('kooh');
-            map { $col->insert_one({ foo => threads->self->tid })->inserted_id } 1 .. $n_inserts;
+            my @ids = map { $col->insert_one({ foo => threads->self->tid })->inserted_id } 1 .. $n_inserts;
+            # reading our writes while still in the thread should ensure
+            # inserts are globally visible before the thread exits
+            $col->find_one({ _id => $_}) for @ids;
+            return @ids;
         })
     } 1 .. $n_threads;
 
