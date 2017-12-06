@@ -453,7 +453,7 @@ sub text_is {
     my $upload2 = $bucket->open_upload_stream( 'same.txt' );
     $_->print("Hello World") for $upload1, $upload2;
     $upload1->close ;
-    usleep(1000); # get to next millisecond for unique upload time
+    usleep(2000); # get past next millisecond for unique upload time
     eval { $upload2->close };
     is( $@, '', "Uploads >1 ms apart are allowed" );
 }
