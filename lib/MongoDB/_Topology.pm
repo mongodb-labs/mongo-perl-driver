@@ -39,6 +39,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     Bool
     HashRef
+    ArrayRef
     InstanceOf
     Num
     Str
@@ -870,9 +871,9 @@ sub _selection_timeout {
             $self->_set_stale(1);
             my $error_string = '';
             for my $server ( @{ $self->_incompatible_servers } ) {
-                $min_wire_ver = $server->is_master->{minWireVersion};
-                $max_wire_ver = $server->is_master->{maxWireVersion};
-                $host         = $server->address;
+                my $min_wire_ver = $server->is_master->{minWireVersion};
+                my $max_wire_ver = $server->is_master->{maxWireVersion};
+                my $host         = $server->address;
                 if ( $min_wire_ver > $self->max_wire_version ) {
                     $error_string .= sprintf(
                         "Server at %s requires wire version %d, but this version of %s only supports up to %d.\n",
