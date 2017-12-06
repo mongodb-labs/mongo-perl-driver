@@ -122,7 +122,8 @@ subtest "app name" => sub {
     my $num_ops_found = @{ $ret->{output}{inprog} };
     # Sharded cluster could find more than 1
     ok( $num_ops_found >= 1,
-        "expected to see app name in client doc from currentOp output" );
+        "expected to see app name in client doc from currentOp output" )
+        or diag explain $ret->{output};
 };
 
 subtest "localhost translated to 127.0.0.1" => sub {
