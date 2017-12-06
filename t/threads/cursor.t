@@ -29,11 +29,21 @@ use MongoDB;
 use Try::Tiny;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
+use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
 
 skip_unless_mongod();
 
-my $testdb = get_test_db(build_client());
+my $client = build_client();
+my $server_version = server_version($client);
+
+if (   $^O eq 'MSWin32'
+    && $client->auth_mechanism ne 'NONE'
+    && $server_version >= v3.0 )
+{
+    plan skip_all => "SASL-based auth on Win32 under threads gives flaky test results";
+}
+
+my $testdb = get_test_db($client);
 
 my $col = $testdb->get_collection('tiger');
 $col->drop;
