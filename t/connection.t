@@ -77,7 +77,7 @@ subtest "wire protocol versions" => sub {
 
     like(
         exception { $conn2->send_admin_command( [ is_master => 1 ] ) },
-        qr/Incompatible wire protocol/i,
+        qr/Server at .*:\d* reports wire version/i,
         'exception on wire protocol'
     );
 
