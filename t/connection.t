@@ -24,13 +24,15 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
+use MongoDBTest
+  qw/skip_unless_mongod build_client get_test_db server_version server_type/;
 
 skip_unless_mongod();
 
 my $conn           = build_client();
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
+my $server_type    = server_type($conn);
 
 ok( $conn->connected, "client is connected" );
 isa_ok( $conn, 'MongoDB::MongoClient' );
@@ -113,9 +115,14 @@ subtest "cooldown" => sub {
 subtest "app name" => sub {
     plan skip_all => "Needs v3.3.11+ for client metadata feature"
       unless $server_version >= v3.3.11;
+    plan skip_all => "currentOp not supported on Atlas Free Tier"
+        if $ENV{ATLAS_PROXY};
+    plan skip_all => "currentOp with appName not supported on mongos before v3.6.0"
+      if $server_type eq 'Mongos' && $server_version < v3.6.0;
 
     my $app_name = 'test_app_name';
     my $conn2 = build_client( app_name => $app_name );
+
     my $ret = $conn2->send_admin_command( [ currentOp => 1, appName => $app_name ] );
     my $num_ops_found = @{ $ret->{output}{inprog} };
     # Sharded cluster could find more than 1
