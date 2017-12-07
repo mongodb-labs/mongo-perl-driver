@@ -1026,6 +1026,9 @@ A hash reference of options may be provided. Valid keys include:
 * C<explain> – if true, return a single document with execution information.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
+* C<hint> - An index to use for this aggregation. (Only compatible with servers
+  above version 3.6.) For more information, see the other aggregate options here:
+  L<https://docs.mongodb.com/manual/reference/command/aggregate/index.html>
 
 B<Note> MongoDB 2.6+ added the '$out' pipeline operator.  If this operator is
 used to write aggregation results directly to a collection, an empty result
