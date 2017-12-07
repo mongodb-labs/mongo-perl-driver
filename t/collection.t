@@ -682,6 +682,111 @@ subtest "aggregation explain" => sub {
     $coll->drop;
 };
 
+# aggregation index hints
+subtest "aggregation index hint string" => sub {
+    plan skip_all => "Aggregation index hints unsupported on MongoDB $server_version"
+        unless $server_version >= v3.6.0;
+
+
+    $coll->insert_many( [ { _id => 1, category => "cake", type => "chocolate", qty => 10 },
+                          { _id => 2, category => "cake", type => "ice cream", qty => 25 },
+                          { _id => 3, category => "pie", type => "boston cream", qty => 20 },
+                          { _id => 4, category => "pie", type => "blueberry", qty => 15 } ] );
+
+    # creating two indicies to give the planner a choice
+    $coll->indexes->create_one( [ qty => 1, type => 1 ] );
+    my $index_name = $coll->indexes->create_one( [ qty => 1, category => 1 ] );
+
+    my $cursor_no_hint = $coll->aggregate(
+        [
+            { '$sort' => { qty => 1 } },
+            { '$match' => { category => 'cake', qty => 10 } },
+            { '$sort' => { type => -1 } }
+        ],
+        { explain => 1 }
+    );
+
+    my $cursor_with_hint = $coll->aggregate(
+        [
+            { '$sort' => { qty => 1 } },
+            { '$match' => { category => 'cake', qty => 10 } },
+            { '$sort' => { type => -1 } } ],
+        { hint => $index_name, explain => 1 }
+    );
+
+    my $result_no_hint = $cursor_no_hint->next;
+
+    is( ref( $result_no_hint ), 'HASH', "aggregate with explain returns a hashref" );
+
+    ok(
+        scalar( @{ $result_no_hint->{stages}->[0]->{'$cursor'}->{queryPlanner}->{rejectedPlans} } ) > 0,
+        "aggregate with no hint had rejectedPlans",
+    );
+
+    my $result_with_hint = $cursor_with_hint->next;
+
+    is( ref( $result_with_hint ), 'HASH', "aggregate with explain returns a hashref" );
+
+    ok(
+        scalar( @{ $result_with_hint->{stages}->[0]->{'$cursor'}->{queryPlanner}->{rejectedPlans} } ) == 0,
+        "aggregate with hint had no rejectedPlans",
+    );
+
+    $coll->drop;
+};
+
+subtest "aggregation index hint object" => sub {
+    plan skip_all => "Aggregation index hints unsupported on MongoDB $server_version"
+        unless $server_version >= v3.6.0;
+
+
+    $coll->insert_many( [ { _id => 1, category => "cake", type => "chocolate", qty => 10 },
+                          { _id => 2, category => "cake", type => "ice cream", qty => 25 },
+                          { _id => 3, category => "pie", type => "boston cream", qty => 20 },
+                          { _id => 4, category => "pie", type => "blueberry", qty => 15 } ] );
+
+    # creating two indicies to give the planner a choice
+    $coll->indexes->create_one( [ qty => 1, type => 1 ] );
+    $coll->indexes->create_one( [ qty => 1, category => 1 ] );
+
+    my $cursor_no_hint = $coll->aggregate(
+        [
+            { '$sort' => { qty => 1 } },
+            { '$match' => { category => 'cake', qty => 10 } },
+            { '$sort' => { type => -1 } }
+        ],
+        { explain => 1 }
+    );
+
+    my $cursor_with_hint = $coll->aggregate(
+        [
+            { '$sort' => { qty => 1 } },
+            { '$match' => { category => 'cake', qty => 10 } },
+            { '$sort' => { type => -1 } } ],
+        { hint => { qty => 1, category => 1 }, explain => 1 }
+    );
+
+    my $result_no_hint = $cursor_no_hint->next;
+
+    is( ref( $result_no_hint ), 'HASH', "aggregate with explain returns a hashref" );
+
+    ok(
+        scalar( @{ $result_no_hint->{stages}->[0]->{'$cursor'}->{queryPlanner}->{rejectedPlans} } ) > 0,
+        "aggregate with no hint had rejectedPlans",
+    );
+
+    my $result_with_hint = $cursor_with_hint->next;
+
+    is( ref( $result_with_hint ), 'HASH', "aggregate with explain returns a hashref" );
+
+    ok(
+        scalar( @{ $result_with_hint->{stages}->[0]->{'$cursor'}->{queryPlanner}->{rejectedPlans} } ) == 0,
+        "aggregate with hint had no rejectedPlans",
+    );
+
+    $coll->drop;
+};
+
 subtest "aggregation with collation" => sub {
     $coll->insert_one( { _id => "foo" } );
 
