@@ -29,7 +29,7 @@ use version;
 
 our @EXPORT_OK = qw(
   build_client get_test_db server_version server_type clear_testdbs get_capped
-  skip_unless_mongod uri_escape
+  skip_unless_mongod uri_escape get_unique_collection
 );
 
 my @testdbs;
@@ -74,6 +74,13 @@ sub get_test_db {
     my $db = $conn->get_database($testdb) or die "Can't get database\n";
     push(@testdbs, $db);
     return  $db;
+}
+
+sub get_unique_collection {
+    my ( $db, $prefix ) = @_;
+    return $db->get_collection(
+        sprintf( '%s_%d_%d', $prefix, time(), int(rand(999999)) )
+    );
 }
 
 sub get_capped {

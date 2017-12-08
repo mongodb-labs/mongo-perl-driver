@@ -682,59 +682,6 @@ subtest "aggregation explain" => sub {
     $coll->drop;
 };
 
-subtest "aggregation comment" => sub {
-    plan skip_all => "Aggregation comments unsupported on MongoDB $server_version"
-        unless $server_version >= v3.6.0;
-
-    $coll->insert_many( [ { _id => 1, category => "cake", type => "chocolate", qty => 10 },
-                          { _id => 2, category => "cake", type => "ice cream", qty => 25 },
-                          { _id => 3, category => "pie", type => "boston cream", qty => 20 },
-                          { _id => 4, category => "pie", type => "blueberry", qty => 15 } ] );
-
-    # turn on profiling after insert for less data to sift through
-    my $previous_profile_setting = $testdb->run_command( { profile => -1 } )->{was};
-    $testdb->run_command( { profile => 2 } );
-
-    my $profile_coll = $testdb->get_collection('system.profile');
-
-    my $cursor_no_comment = $coll->aggregate(
-        [
-            { '$sort' => { qty => 1 } },
-            { '$match' => { category => 'cake', qty => 10 } },
-            { '$sort' => { type => -1 } }
-        ],
-        { explain => 1 }
-    );
-
-    my $cursor_with_comment = $coll->aggregate(
-        [
-            { '$sort' => { qty => 1 } },
-            { '$match' => { category => 'cake', qty => 10 } },
-            { '$sort' => { type => -1 } }
-        ],
-        { explain => 1, comment => "This is only a test" }
-    );
-
-    my $result_no_comment = $cursor_no_comment->next;
-    my $result_with_comment = $cursor_with_comment->next;
-
-    is( ref( $result_no_comment ), 'HASH', "aggregate with explain returns a hashref" );
-    is( ref( $result_with_comment ), 'HASH', "aggregate with explain returns a hashref" );
-
-    # pull out all profiling bits, but we only care about the last two
-    my @all_profiles = $profile_coll->find()->all;
-
-    is( $all_profiles[-2]->{command}->{aggregate}, "test_collection", "Found aggregate command" );
-    ok( ! exists $all_profiles[-2]->{command}->{comment}, "No comment on first aggregate" );
-
-    is( $all_profiles[-1]->{command}->{aggregate}, "test_collection", "Found second aggregate command" );
-    is( $all_profiles[-1]->{command}->{comment}, "This is only a test", "Found comment on second aggregate" );
-
-    $testdb->run_command( { profile => $previous_profile_setting } );
-
-    $coll->drop;
-};
-
 subtest "aggregation with collation" => sub {
     $coll->insert_one( { _id => "foo" } );
 
