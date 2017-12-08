@@ -45,6 +45,9 @@ my $testdb = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type = server_type($conn);
 
+plan skip_all => "Profiler doesn't work on mongos"
+    if $server_type eq 'Mongos';
+
 my $supports_collation = $server_version >= 3.3.9;
 my $case_insensitive_collation = { locale => "en_US", strength => 2 };
 
