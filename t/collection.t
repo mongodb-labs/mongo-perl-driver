@@ -763,7 +763,7 @@ subtest "aggregation index hint object" => sub {
             { '$sort' => { qty => 1 } },
             { '$match' => { category => 'cake', qty => 10 } },
             { '$sort' => { type => -1 } } ],
-        { hint => { qty => 1, category => 1 }, explain => 1 }
+        { hint => Tie::IxHash->new( qty => 1, category => 1 ), explain => 1 }
     );
 
     my $result_no_hint = $cursor_no_hint->next;
