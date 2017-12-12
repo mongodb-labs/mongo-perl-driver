@@ -1516,24 +1516,35 @@ sub send_read_op {
 # database helper methods
 #--------------------------------------------------------------------------#
 
-=method database_names
+=method list_databases
 
-    my @dbs = $client->database_names;
+    # get all information on all databases
+    my @dbs = $client->list_databases;
 
-Lists all databases on the MongoDB server.
+    # get only the foo databases
+    my @foo_dbs = $client->list_databases({ filter => { name => qr/^foo/ } });
+
+Lists all databases with information on each database. Supports filtering by
+any of the output fields under the C<filter> argument, such as:
+
+=for :list
+* C<name>
+* C<sizeOnDisk>
+* C<empty>
+* C<shards>
 
 =cut
 
-sub database_names {
-    my ($self) = @_;
+sub list_databases {
+    my ( $self, $args ) = @_;
 
     my @databases;
     my $max_tries = 3;
     for my $try ( 1 .. $max_tries ) {
         last if try {
-            my $output = $self->send_admin_command([ listDatabases => 1 ])->output;
+            my $output = $self->send_admin_command([ listDatabases => 1, ( $args ? %$args : () ) ])->output;
             if (ref($output) eq 'HASH' && exists $output->{databases}) {
-                @databases = map { $_->{name} } @{ $output->{databases} };
+                @databases = @{ $output->{databases} };
             }
             return 1;
         } catch {
@@ -1543,6 +1554,27 @@ sub database_names {
             die $_;
         };
     }
+
+    return @databases;
+}
+
+=method database_names
+
+    my @dbs = $client->database_names;
+
+List of all database names on the MongoDB server. Supports filters in the same
+way as L</"list_databases">.
+
+=cut
+
+sub database_names {
+    my ( $self, $args ) = @_;
+
+    $args ||= {};
+    $args->{nameOnly} = 1;
+    my @output = $self->list_databases($args);
+
+    my @databases = map { $_->{name} } @output;
 
     return @databases;
 }
