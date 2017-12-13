@@ -1562,6 +1562,9 @@ sub list_databases {
 
     my @dbs = $client->database_names;
 
+    # get only the foo database names
+    my @foo_dbs = $client->database_names({ filter => { name => qr/^foo/ } });
+
 List of all database names on the MongoDB server. Supports filters in the same
 way as L</"list_databases">.
 
