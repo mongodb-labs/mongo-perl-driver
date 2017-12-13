@@ -68,9 +68,9 @@ sub build_client {
 }
 
 sub get_test_db {
-
     my $conn = shift;
-    my $testdb = 'testdb' . int(rand(2**31));
+    my $prefix = shift || 'testdb';
+    my $testdb = $prefix . int(rand(2**31));
     my $db = $conn->get_database($testdb) or die "Can't get database\n";
     push(@testdbs, $db);
     return  $db;

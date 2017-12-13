@@ -50,8 +50,8 @@ subtest 'list databases' => sub {
     my $time_prefix = time();
 
     for my $prefix ( qw/ foo bar baz / ) {
-        my $db1 = $conn->get_database( $prefix . $time_prefix . int(rand(99999)) ) or die "Can't get database\n";
-        my $db2 = $conn->get_database( $prefix . $time_prefix . int(rand(99999)) ) or die "Can't get database\n";
+        my $db1 = get_test_db( $conn, $prefix . $time_prefix );
+        my $db2 = get_test_db( $conn, $prefix . $time_prefix );
         # getting a new db is not enough, must insert something into them first
         get_unique_collection( $db1, 'test' )->insert_one({ _id => 1 });
         get_unique_collection( $db2, 'test' )->insert_one({ _id => 1 });
@@ -59,7 +59,7 @@ subtest 'list databases' => sub {
     }
     my @all_dbs = $conn->list_databases;
 
-    ok( scalar( @all_dbs ) > 6, "Found at least 6 databases" );
+    ok( scalar( @all_dbs ) >= 6, "Found at least 6 databases" );
 
     my @foo_dbs = $conn->list_databases({ filter => { name => qr/^foo${\$time_prefix}/ } });
 
@@ -82,8 +82,8 @@ subtest 'list database names' => sub {
     my $time_prefix = time();
 
     for my $prefix ( qw/ foo bar baz / ) {
-        my $db1 = $conn->get_database( $prefix . $time_prefix . int(rand(99999)) ) or die "Can't get database\n";
-        my $db2 = $conn->get_database( $prefix . $time_prefix . int(rand(99999)) ) or die "Can't get database\n";
+        my $db1 = get_test_db( $conn, $prefix . $time_prefix );
+        my $db2 = get_test_db( $conn, $prefix . $time_prefix );
         # getting a new db is not enough, must insert something into them first
         get_unique_collection( $db1, 'test' )->insert_one({ _id => 1 });
         get_unique_collection( $db2, 'test' )->insert_one({ _id => 1 });
