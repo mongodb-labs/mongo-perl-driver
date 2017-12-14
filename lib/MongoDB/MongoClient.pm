@@ -784,11 +784,16 @@ has ssl => (
 
 sub _build_ssl {
     my ($self) = @_;
-    return $self->__uri_or_else(
+    my $ssl = $self->__uri_or_else(
         u => 'ssl',
         e => 'ssl',
         d => 0,
     );
+    # allow optional arguments to override as long as SSL is already enabled
+    if ( $ssl && exists $self->_deferred->{ssl} ) {
+        return $self->_deferred->{ssl};
+    }
+    return $ssl;
 }
 
 =attr username
@@ -1198,7 +1203,7 @@ has _uri => (
 
 sub _build__uri {
     my ($self) = @_;
-    if ( $self->host =~ m{^\w+://} ) {
+    if ( $self->host =~ m{^[\w\+]+://} ) {
         return MongoDB::_URI->new( uri => $self->host );
     }
     else {
