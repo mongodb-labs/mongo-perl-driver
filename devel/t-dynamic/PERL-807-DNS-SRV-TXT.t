@@ -16,6 +16,8 @@
 
 use strict;
 use warnings;
+use JSON::MaybeXS;
+use Path::Tiny 0.054; # basename with suffix
 use Test::More 0.88;
 use Test::Fatal;
 
@@ -40,17 +42,48 @@ my $orc =
   MongoDBTest::Orchestrator->new(
     config_file => "devel/config/replicaset-any-27017.yml" );
 $orc->start;
-$ENV{MONGOD} = $orc->as_uri;
 
-my $client         = build_client( server_selection_timeout_ms => 5000 );
-my $testdb         = get_test_db($client);
-my $server_version = server_version($client);
-my $server_type    = server_type($client);
-my $coll           = $testdb->get_collection('test_collection');
+sub run_test {
+    my $test = shift;
 
-subtest "Add tests here" => sub {
-    ok( $coll->insert_one( {} ), "We can insert" );
-};
+    if ( $test->{error} ) {
+        # This test should error the parsing step at some point
+        isnt( exception { MongoDB->connect( $test->{uri} ) }, undef,
+            "invalid uri" );
+        return;
+    }
+
+    use Devel::Dwarn;
+    Dwarn $test;
+    my $mongo = MongoDB->connect( $test->{uri} );
+    isa_ok( $mongo, 'MongoDB::MongoClient' );
+    my $uri = $mongo->_uri;
+
+    my $lc_opts = { map { lc $_ => $test->{options}->{$_} } keys %{ $test->{options} } };
+    # force ssl JSON boolean to perlish
+    $lc_opts->{ssl} = $lc_opts->{ssl} ? 1 : 0;
+    is_deeply( $uri->options, $lc_opts, "options are correct" );
+    is_deeply( [ sort @{ $uri->hostids } ], [ sort @{ $test->{seeds} } ], "seeds are correct" );
+    Dwarn $mongo->topology_status( refresh => 1 );
+}
+
+my $dir      = path("t/data/initial_dns_seedlist_discovery");
+my $iterator = $dir->iterator;
+while ( my $path = $iterator->() ) {
+    next unless $path =~ /\.json$/;
+    my $plan = eval { decode_json( $path->slurp_utf8 ) };
+    if ($@) {
+        die "Error decoding $path: $@";
+    }
+    subtest $path => sub {
+        my $description = $plan->{comment};
+        subtest $description => sub {
+            run_test( $plan );
+        }
+    };
+    last;
+}
+
 
 clear_testdbs;
 done_testing;

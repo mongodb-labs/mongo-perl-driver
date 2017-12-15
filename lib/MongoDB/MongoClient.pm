@@ -1198,7 +1198,7 @@ has _uri => (
 
 sub _build__uri {
     my ($self) = @_;
-    if ( $self->host =~ m{^\w+://} ) {
+    if ( $self->host =~ m{^[\w\+]+://} ) {
         return MongoDB::_URI->new( uri => $self->host );
     }
     else {
