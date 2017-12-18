@@ -17,9 +17,12 @@
 use strict;
 use warnings;
 use JSON::MaybeXS;
+use YAML::XS qw/LoadFile DumpFile/;
 use Path::Tiny 0.054; # basename with suffix
 use Test::More 0.88;
 use Test::Fatal;
+use Try::Tiny;
+use Devel::Dwarn;
 
 use lib "t/lib";
 use lib "devel/lib";
@@ -38,25 +41,69 @@ for my $port ( 27017, 27018, 27019 ) {
     skip_if_mongod();
 }
 
+my $cert_dir = $ENV{MONGO_TEST_CERT_PATH} || 'devel/certs';
+my $cert_user = $ENV{MONGO_TEST_CERT_USER}
+  || "CN=client,OU=Drivers,O=MongoDB,L=New York,ST=New York,C=US";
+my $server_cn = "CN=localhost,OU=Server,O=MongoDB,L=New York,ST=New York,C=US";
+
+my %certs = (
+    client    => "$cert_dir/client.pem",
+    ca        => "$cert_dir/ca.pem",
+    server    => "$cert_dir/server.pem",
+);
+
+my $config  = LoadFile("devel/config/replicaset-any-27017.yml");
+$config->{ssl_config} = {
+    mode     => 'requireSSL',
+    username => $cert_user,
+    servercn => $server_cn,
+    certs    => { map { $_ => $certs{$_} } qw/server ca client/ },
+};
+my $config_path = Path::Tiny->tempfile;
+DumpFile( "$config_path", $config );
+Dwarn $config;
+
+Dwarn "Before orc";
 my $orc =
   MongoDBTest::Orchestrator->new(
-    config_file => "devel/config/replicaset-any-27017.yml" );
+    config_file => "$config_path" );
 $orc->start;
+
+Dwarn "after orc";
+
+sub new_client {
+    my $host = shift;
+    return build_client(
+        host    => $host,
+        dt_type => undef,
+        username => $cert_user,
+        auth_mechanism => 'MONGODB-X509',
+        ssl            => {
+            SSL_cert_file       => $certs{client},
+            SSL_ca_file         => $certs{ca},
+            SSL_verifycn_scheme => 'none',
+        },
+    );
+}
 
 sub run_test {
     my $test = shift;
 
     if ( $test->{error} ) {
         # This test should error the parsing step at some point
-        isnt( exception { MongoDB->connect( $test->{uri} ) }, undef,
+        isnt( exception { new_client( $test->{uri} ) }, undef,
             "invalid uri" );
         return;
     }
 
-    use Devel::Dwarn;
     Dwarn $test;
-    my $mongo = MongoDB->connect( $test->{uri} );
+    my $mongo;
+    try {
+      $mongo = new_client( $test->{uri} );
+    };
     isa_ok( $mongo, 'MongoDB::MongoClient' );
+    # drop out of test to save on undef errors - its already failed
+    return unless defined $mongo;
     my $uri = $mongo->_uri;
 
     my $lc_opts = { map { lc $_ => $test->{options}->{$_} } keys %{ $test->{options} } };
@@ -84,6 +131,6 @@ while ( my $path = $iterator->() ) {
     last;
 }
 
-
 clear_testdbs;
+
 done_testing;
