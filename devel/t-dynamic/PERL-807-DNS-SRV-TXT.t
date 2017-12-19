@@ -55,7 +55,6 @@ my %certs = (
 my $config  = LoadFile("devel/config/replicaset-any-27017.yml");
 $config->{ssl_config} = {
     mode     => 'requireSSL',
-    username => $cert_user,
     servercn => $server_cn,
     certs    => { map { $_ => $certs{$_} } qw/server ca client/ },
 };
@@ -76,10 +75,7 @@ sub new_client {
     return build_client(
         host    => $host,
         dt_type => undef,
-        username => $cert_user,
-        auth_mechanism => 'MONGODB-X509',
         ssl            => {
-            SSL_cert_file       => $certs{client},
             SSL_ca_file         => $certs{ca},
             SSL_verifycn_scheme => 'none',
         },
