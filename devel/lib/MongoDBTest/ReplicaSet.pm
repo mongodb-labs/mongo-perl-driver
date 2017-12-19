@@ -43,7 +43,7 @@ has client => (
 
 sub _build_client {
     my ($self) = @_;
-    return MongoDB::MongoClient->new( host => $self->as_uri, dt_type => undef );
+    return $self->get_client;
 }
 
 has 'keyfile' => (
@@ -62,6 +62,7 @@ sub _build_keyfile {
 after 'start' => sub {
     my ($self) = @_;
     $self->rs_initiate;
+    $self->wait_for_primary;
 };
 
 # override to only set up auth on the first server
@@ -123,15 +124,12 @@ sub rs_initiate {
 
     # not $self->client because this needs to be a direct connection, i.e. one
     # seed and no replicaSet URI option
-    my $uri = $first->as_uri_with_auth;
 
-    my $client = MongoDB::MongoClient->new( host => $uri, dt_type => undef, );
+    my $client = $first->get_direct_client;
 
     $client->get_database("admin")->run_command({ismaster => 1});
 
     $client->get_database("admin")->run_command({replSetInitiate => $rs_config});
-
-    $self->_logger->debug("waiting for primary");
 
     $self->wait_for_primary;
 
@@ -142,7 +140,7 @@ sub wait_for_all_hosts {
     my ($self) = @_;
     my ($first) = $self->all_servers;
     retry {
-        my $client = MongoDB::MongoClient->new( host => $first->as_uri_with_auth, dt_type => undef );
+        my $client = $first->get_direct_client;
         my $admin = $client->get_database("admin");
         if ( my $status = eval { $admin->run_command({replSetGetStatus => 1}) } ) {
             my @member_states = map { $_->{state} } @{ $status->{members} };
@@ -164,12 +162,14 @@ sub wait_for_all_hosts {
 }
 
 sub wait_for_primary {
-    my ($self) = @_;
+    my ($self)  = @_;
     my ($first) = $self->all_servers;
+    my $uri = $first->as_uri_with_auth;
+    $self->_logger->debug("Waiting from primary on URI: $uri");
     retry {
-        my $client = MongoDB::MongoClient->new( host => $first->as_uri_with_auth, dt_type => undef );
-        my $admin = $client->get_database("admin");
-        if ( my $status = eval { $admin->run_command({replSetGetStatus => 1}) } ) {
+        my $client = $first->get_direct_client;
+        my $admin  = $client->get_database("admin");
+        if ( my $status = eval { $admin->run_command( { replSetGetStatus => 1 } ) } ) {
             my @member_states = map { $_->{state} } @{ $status->{members} };
             $self->_logger->debug("host states: @member_states");
             die "No PRIMARY\n"
