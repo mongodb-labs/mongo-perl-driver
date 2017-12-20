@@ -212,7 +212,6 @@ sub _parse_srv_uri {
         $result{db_name},  $result{options}
     ) = ( $1, $2, $3, $4, $5 );
 
-    Dwarn \%result;
     if ( defined $result{username} ) {
         MongoDB::Error->throw("URI '$self' cannot have a username if using an SRV connection string");
     }
@@ -233,14 +232,14 @@ sub _parse_srv_uri {
         MongoDB::Error->throw("URI '$self' cannot contain a comma or multiple host names if using an SRV connection string");
     }
 
+    if ( $result{hostids} =~ /:\d+$/ ) {
+        MongoDB::Error->throw("URI '$self' cannot contain port number if using an SRV connection string");
+    }
+
     if ( defined $result{options} ) {
         my $valid = $self->valid_options;
         $result{options} = $self->_parse_options( $valid, \%result );
     }
-
-    # TODO error on invalid domains
-
-    Dwarn \%result;
 
     require Net::DNS;
 
@@ -249,29 +248,37 @@ sub _parse_srv_uri {
 
     my @hosts;
     my $options = {};
-
+    my @split_name = split( '\.', $result{hostids} );
+    my $domain_name = join( '.', @split_name[1..$#split_name] );
     if ( $srv_data ) {
         foreach my $rr ( $srv_data->answer ) {
             next unless $rr->type eq 'SRV';
-            # TODO check url is correct?
+            my $target = $rr->target;
+            # search for dot before domain name for a valid hostname - can have sub-subdomain
+            unless ( $target =~ /\.${\$domain_name}$/ ) {
+                MongoDB::Error->throw(
+                    "URI '$self' SRV record returns FQDN '$target'"
+                    . " which does not match domain name '${$domain_name}'"
+                );
+            }
             push @hosts, {
-              target => $rr->target,
+              target => $target,
               port   => $rr->port,
             };
         }
         my $txt_data = $res->query( $result{hostids}, 'TXT' );
-        my @txt_answers;
-        foreach my $rr ( $txt_data->answer ) {
-            next unless $rr->type eq 'TXT';
-            push @txt_answers, $rr;
-        }
-        if ( scalar( @txt_answers ) > 1 ) {
-            MongoDB::Error->throw("URI '$self' returned more than one TXT result");
-        } elsif ( scalar( @txt_answers ) == 1 ) {
-            my @txt_data = $txt_answers[0]->txtdata;
-            my $txt_opt_string = join ( '', @txt_data );
-            Dwarn $txt_opt_string;
-            $options = $self->_parse_options( $self->valid_srv_options, { options => $txt_opt_string }, 1 );
+        if ( defined $txt_data ) {
+            my @txt_answers;
+            foreach my $rr ( $txt_data->answer ) {
+                next unless $rr->type eq 'TXT';
+                push @txt_answers, $rr;
+            }
+            if ( scalar( @txt_answers ) > 1 ) {
+                MongoDB::Error->throw("URI '$self' returned more than one TXT result");
+            } elsif ( scalar( @txt_answers ) == 1 ) {
+                my $txt_opt_string = join ( '', $txt_answers[0]->txtdata );
+                $options = $self->_parse_options( $self->valid_srv_options, { options => $txt_opt_string }, 1 );
+            }
         }
     } else {
         MongoDB::Error->throw("URI '$self' does not return any SRV results");
@@ -284,6 +291,11 @@ sub _parse_srv_uri {
       %{ $result{options} || {} },
     };
 
+    # must force string false instead of boolean
+    if ( ! $options->{ssl} && $options->{ssl} == 0 ) {
+      $options->{ssl} = 'false';
+    }
+
     my $new_uri = sprintf(
         'mongodb://%s/%s%s',
         join( ',', map { sprintf( '%s:%s', $_->{target}, $_->{port} ) } @hosts ),
@@ -291,7 +303,6 @@ sub _parse_srv_uri {
         join( '&', map { sprintf( '%s=%s', $_, $options->{$_} ) } keys %$options ),
     );
 
-    Dwarn $new_uri;
     return $new_uri;
 }
 

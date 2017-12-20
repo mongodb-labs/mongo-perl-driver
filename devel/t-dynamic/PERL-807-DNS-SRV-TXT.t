@@ -22,7 +22,7 @@ use Path::Tiny 0.054; # basename with suffix
 use Test::More 0.88;
 use Test::Fatal;
 use Try::Tiny;
-use Devel::Dwarn;
+use Sys::Hostname;
 
 use lib "t/lib";
 use lib "devel/lib";
@@ -54,21 +54,18 @@ my %certs = (
 
 my $config  = LoadFile("devel/config/replicaset-any-27017.yml");
 $config->{ssl_config} = {
-    mode     => 'requireSSL',
+    # not require, as need to connect without SSL for one of the tests
+    mode     => 'preferSSL',
     servercn => $server_cn,
     certs    => { map { $_ => $certs{$_} } qw/server ca client/ },
 };
 my $config_path = Path::Tiny->tempfile;
 DumpFile( "$config_path", $config );
-Dwarn $config;
 
-Dwarn "Before orc";
 my $orc =
   MongoDBTest::Orchestrator->new(
     config_file => "$config_path" );
 $orc->start;
-
-Dwarn "after orc";
 
 sub new_client {
     my $host = shift;
@@ -92,7 +89,6 @@ sub run_test {
         return;
     }
 
-    Dwarn $test;
     my $mongo;
     try {
       $mongo = new_client( $test->{uri} );
@@ -107,7 +103,11 @@ sub run_test {
     $lc_opts->{ssl} = $lc_opts->{ssl} ? 1 : 0;
     is_deeply( $uri->options, $lc_opts, "options are correct" );
     is_deeply( [ sort @{ $uri->hostids } ], [ sort @{ $test->{seeds} } ], "seeds are correct" );
-    Dwarn $mongo->topology_status( refresh => 1 );
+    my $topology = $mongo->topology_status( refresh => 1 );
+    my @found_servers = map { $_->{address} } @{ $topology->{servers} };
+    my $hostname = hostname();
+    my @wanted_servers = map { ( my $h = $_ ) =~ s/localhost/$hostname/; $h } @{ $test->{hosts} };
+    is_deeply( [ sort @found_servers ], [ sort @wanted_servers ], "hosts are correct" );
 }
 
 my $dir      = path("t/data/initial_dns_seedlist_discovery");
@@ -124,7 +124,6 @@ while ( my $path = $iterator->() ) {
             run_test( $plan );
         }
     };
-    last;
 }
 
 clear_testdbs;
