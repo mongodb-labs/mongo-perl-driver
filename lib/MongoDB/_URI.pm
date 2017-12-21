@@ -275,6 +275,8 @@ sub _parse_srv_uri {
         MongoDB::Error->throw("URI '$self' cannot have a database name if using an SRV connection string");
     }
 
+    $result{hostids} = lc _unescape_all( $result{hostids} );
+
     if ( !defined $result{hostids} || !length $result{hostids} ) {
         MongoDB::Error->throw("URI '$self' cannot be empty if using an SRV connection string");
     }
@@ -309,7 +311,7 @@ sub _parse_srv_uri {
         'mongodb://%s/%s%s',
         join( ',', map { sprintf( '%s:%s', $_->{target}, $_->{port} ) } @$hosts ),
         scalar( keys %$options ) ? '?' : '',
-        join( '&', map { sprintf( '%s=%s', $_, $options->{$_} ) } keys %$options ),
+        join( '&', map { sprintf( '%s=%s', $_, __uri_escape( $options->{$_} ) ) } keys %$options ),
     );
 
     return $new_uri;
