@@ -156,9 +156,8 @@ sub _parse_doc {
     return $set;
 }
 
-use Devel::Dwarn;
 sub _parse_options {
-    my ( $self, $valid, $result, $err_unsupported ) = @_;
+    my ( $self, $valid, $result, $txt_record ) = @_;
 
     my %parsed;
     for my $opt ( split '&', $result->{options} ) {
@@ -168,15 +167,15 @@ sub _parse_options {
         # connection string spec calls for case normalization
         ( my $lc_k = $k ) =~ tr[A-Z][a-z];
         if ( !$valid->{$lc_k} ) {
-            if ( $err_unsupported ) {
-                MongoDB::Error->throw("Unsupported option '$k' in URI $self\n");
+            if ( $txt_record ) {
+                MongoDB::Error->throw("Unsupported option '$k' in URI $self for TXT record $txt_record\n");
             } else {
                 warn "Unsupported option '$k' in URI $self\n";
             }
             next;
         }
         if ( exists $parsed{$lc_k} && !exists $options_with_list_type{$lc_k} ) {
-            warn "Multiple options were found for the same value '$lc_k'\n";
+            warn "Multiple options were found for the same value '$lc_k'. The first occurrence will be used\n";
             next;
         }
         if ( $lc_k eq 'authmechanismproperties' ) {
@@ -198,6 +197,58 @@ sub _parse_options {
         }
     }
     return \%parsed;
+}
+
+sub _fetch_dns_seedlist {
+    my ( $self, $host_name ) = @_;
+
+    my @split_name = split( '\.', $host_name );
+    MongoDB::Error->throw("URI '$self' must contain domain name and hostname")
+        unless scalar( @split_name ) > 2;
+
+    require Net::DNS;
+
+    my $res = Net::DNS::Resolver->new;
+    my $srv_data = $res->query( sprintf( '_mongodb._tcp.%s', $host_name ), 'SRV' );
+
+    my @hosts;
+    my $options = {};
+    my $domain_name = join( '.', @split_name[1..$#split_name] );
+    if ( $srv_data ) {
+        foreach my $rr ( $srv_data->answer ) {
+            next unless $rr->type eq 'SRV';
+            my $target = $rr->target;
+            # search for dot before domain name for a valid hostname - can have sub-subdomain
+            unless ( $target =~ /\.\Q$domain_name\E$/ ) {
+                MongoDB::Error->throw(
+                    "URI '$self' SRV record returns FQDN '$target'"
+                    . " which does not match domain name '${$domain_name}'"
+                );
+            }
+            push @hosts, {
+              target => $target,
+              port   => $rr->port,
+            };
+        }
+        my $txt_data = $res->query( $host_name, 'TXT' );
+        if ( defined $txt_data ) {
+            my @txt_answers;
+            foreach my $rr ( $txt_data->answer ) {
+                next unless $rr->type eq 'TXT';
+                push @txt_answers, $rr;
+            }
+            if ( scalar( @txt_answers ) > 1 ) {
+                MongoDB::Error->throw("URI '$self' returned more than one TXT result");
+            } elsif ( scalar( @txt_answers ) == 1 ) {
+                my $txt_opt_string = join ( '', $txt_answers[0]->txtdata );
+                $options = $self->_parse_options( $self->valid_srv_options, { options => $txt_opt_string }, $txt_opt_string );
+            }
+        }
+    } else {
+        MongoDB::Error->throw("URI '$self' does not return any SRV results");
+    }
+
+    return ( \@hosts, $options );
 }
 
 sub _parse_srv_uri {
@@ -237,52 +288,10 @@ sub _parse_srv_uri {
     }
 
     if ( defined $result{options} ) {
-        my $valid = $self->valid_options;
-        $result{options} = $self->_parse_options( $valid, \%result );
+        $result{options} = $self->_parse_options( $self->valid_options, \%result );
     }
 
-    require Net::DNS;
-
-    my $res = Net::DNS::Resolver->new;
-    my $srv_data = $res->query( sprintf( '_mongodb._tcp.%s', $result{hostids} ), 'SRV' );
-
-    my @hosts;
-    my $options = {};
-    my @split_name = split( '\.', $result{hostids} );
-    my $domain_name = join( '.', @split_name[1..$#split_name] );
-    if ( $srv_data ) {
-        foreach my $rr ( $srv_data->answer ) {
-            next unless $rr->type eq 'SRV';
-            my $target = $rr->target;
-            # search for dot before domain name for a valid hostname - can have sub-subdomain
-            unless ( $target =~ /\.${\$domain_name}$/ ) {
-                MongoDB::Error->throw(
-                    "URI '$self' SRV record returns FQDN '$target'"
-                    . " which does not match domain name '${$domain_name}'"
-                );
-            }
-            push @hosts, {
-              target => $target,
-              port   => $rr->port,
-            };
-        }
-        my $txt_data = $res->query( $result{hostids}, 'TXT' );
-        if ( defined $txt_data ) {
-            my @txt_answers;
-            foreach my $rr ( $txt_data->answer ) {
-                next unless $rr->type eq 'TXT';
-                push @txt_answers, $rr;
-            }
-            if ( scalar( @txt_answers ) > 1 ) {
-                MongoDB::Error->throw("URI '$self' returned more than one TXT result");
-            } elsif ( scalar( @txt_answers ) == 1 ) {
-                my $txt_opt_string = join ( '', $txt_answers[0]->txtdata );
-                $options = $self->_parse_options( $self->valid_srv_options, { options => $txt_opt_string }, 1 );
-            }
-        }
-    } else {
-        MongoDB::Error->throw("URI '$self' does not return any SRV results");
-    }
+    my ( $hosts, $options ) = $self->_fetch_dns_seedlist( $result{hostids} );
 
     # Default to SSL on unless specified in conn string options
     $options = {
@@ -291,14 +300,14 @@ sub _parse_srv_uri {
       %{ $result{options} || {} },
     };
 
-    # must force string false instead of boolean
+    # URI requires string based booleans for re-constructing the URI
     if ( ! $options->{ssl} && $options->{ssl} == 0 ) {
       $options->{ssl} = 'false';
     }
 
     my $new_uri = sprintf(
         'mongodb://%s/%s%s',
-        join( ',', map { sprintf( '%s:%s', $_->{target}, $_->{port} ) } @hosts ),
+        join( ',', map { sprintf( '%s:%s', $_->{target}, $_->{port} ) } @$hosts ),
         scalar( keys %$options ) ? '?' : '',
         join( '&', map { sprintf( '%s=%s', $_, $options->{$_} ) } keys %$options ),
     );
@@ -372,8 +381,7 @@ sub BUILD {
     }
 
     if ( defined $result{options} ) {
-        my $valid = $self->valid_options;
-        $result{options} = $self->_parse_options( $valid, \%result );
+        $result{options} = $self->_parse_options( $self->valid_options, \%result );
     }
 
     for my $attr (qw/username password db_name options hostids/) {
@@ -391,6 +399,25 @@ sub __str_to_bool {
     my $ret = $str eq "true" ? 1 : $str eq "false" ? 0 : undef;
     return $ret if defined $ret;
     MongoDB::UsageError->throw("expected boolean string 'true' or 'false' for key '$k' but instead received '$str'");
+}
+
+# uri_escape borrowed from HTTP::Tiny 0.070
+my %escapes = map { chr($_) => sprintf("%%%02X", $_) } 0..255;
+$escapes{' '}="+";
+my $unsafe_char = qr/[^A-Za-z0-9\-\._~]/;
+
+sub __uri_escape {
+    my ($str) = @_;
+    if ( $] ge '5.008' ) {
+        utf8::encode($str);
+    }
+    else {
+        $str = pack("U*", unpack("C*", $str)) # UTF-8 encode a byte string
+            if ( length $str == do { use bytes; length $str } );
+        $str = pack("C*", unpack("C*", $str)); # clear UTF-8 flag
+    }
+    $str =~ s/($unsafe_char)/$escapes{$1}/ge;
+    return $str;
 }
 
 # redact user credentials when stringifying
