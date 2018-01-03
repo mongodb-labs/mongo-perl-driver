@@ -26,7 +26,14 @@ use version;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type get_capped/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    server_type
+    get_feature_compat_version
+/;
 
 skip_unless_mongod();
 
@@ -34,7 +41,9 @@ my $conn           = build_client();
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
+my $feat_compat_ver = get_feature_compat_version($conn);
 my $coll           = $testdb->get_collection('test_collection');
+
 
 for my $dir ( map { path("t/data/CRUD/$_") } qw/read write/ ) {
     my $iterator = $dir->iterator( { recurse => 1 } );
@@ -48,6 +57,9 @@ for my $dir ( map { path("t/data/CRUD/$_") } qw/read write/ ) {
         my $name = $path->relative($dir)->basename(".json");
 
         subtest $name => sub {
+            if ( $name =~ 'arrayFilter' && $feat_compat_ver < 3.6 ) {
+                plan skip_all => "arrayFilters requires featureCompatibilityVersion 3.6 - got $feat_compat_ver";
+            }
             if ( exists $plan->{minServerVersion} ) {
                 my $min_version = $plan->{minServerVersion};
                 $min_version = "v$min_version" unless $min_version =~ /^v/;
@@ -69,7 +81,6 @@ for my $dir ( map { path("t/data/CRUD/$_") } qw/read write/ ) {
         };
     }
 }
-
 #--------------------------------------------------------------------------#
 # generic tests
 #--------------------------------------------------------------------------#
@@ -165,6 +176,35 @@ BEGIN {
 #--------------------------------------------------------------------------#
 # method-specific tests
 #--------------------------------------------------------------------------#
+
+sub test_bulk_write {
+    my ( $class, $label, $method, $args, $outcome ) = @_;
+
+    my $bulk;
+
+    if ( $args->{options}->{ordered} ) {
+        $bulk = $coll->initialize_ordered_bulk_op;
+    } else {
+        $bulk = $coll->initialize_unordered_bulk_op;
+    }
+
+    for my $request ( @{ $args->{requests} } ) {
+        my $req_method = $request->{name};
+        my $arg = $request->{arguments};
+        $req_method =~ s{([A-Z])}{_\L$1}g;
+        my $filter = delete $arg->{filter};
+        my $update = delete $arg->{update};
+        my $arr_filters = delete $arg->{arrayFilters};
+        my $bulk_view = $bulk->find( $filter );
+        if ( scalar( @$arr_filters ) ) {
+          $bulk_view = $bulk_view->arrayFilters( $arr_filters );
+        }
+        $bulk_view->$req_method( $update );
+    }
+    my $res = $bulk->execute;
+
+    check_write_outcome( $label, $res, $outcome );
+}
 
 sub test_aggregate {
     my ( $class, $label, $method, $args, $outcome ) = @_;

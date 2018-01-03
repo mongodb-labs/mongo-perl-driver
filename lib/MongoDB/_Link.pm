@@ -129,6 +129,12 @@ has supports_collation => (
     isa => Bool,
 );
 
+has supports_arrayFilters => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
 my @connection_state_fields = qw(
     fh connected rcvbuf last_used fdset is_ssl
 );
@@ -235,6 +241,7 @@ sub set_metadata {
 
     $self->_set_does_write_commands( $self->accepts_wire_version(2) );
     $self->_set_supports_collation( $self->accepts_wire_version(5) );
+    $self->_set_supports_arrayFilters( $self->accepts_wire_version(6) );
 
     return;
 }
