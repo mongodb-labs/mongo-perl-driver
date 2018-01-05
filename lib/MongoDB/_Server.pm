@@ -34,6 +34,7 @@ use Types::Standard qw(
     HashRef
     Str
     Num
+    Maybe
 );
 use List::Util qw/first/;
 use Time::HiRes qw/time/;
@@ -249,6 +250,30 @@ sub _build_is_writable {
     my ($self) = @_;
     my $type = $self->type;
     return !! grep { $type eq $_ } qw/Standalone RSPrimary Mongos/;
+}
+
+has is_data_bearing => (
+    is => 'lazy',
+    isa => Bool,
+    builder => "_build_is_data_bearing",
+);
+
+sub _build_is_data_bearing {
+    my ( $self ) = @_;
+    my $type = $self->type;
+    return !! grep { $type eq $_ } qw/Standalone RSPrimary RSSecondary Mongos/;
+}
+
+# logicalSessionTimeoutMinutes can be not set by a client
+has logical_session_timeout_minutes => (
+    is => 'lazy',
+    isa => Maybe [NonNegNum],
+    builder => "_build_logical_session_timeout_minutes",
+);
+
+sub _build_logical_session_timeout_minutes {
+    my ( $self ) = @_;
+    return $self->is_master->{logicalSessionTimeoutMinutes} || undef;
 }
 
 sub updated_since {

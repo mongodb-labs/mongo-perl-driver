@@ -47,7 +47,7 @@ use Types::Standard qw(
 );
 use MongoDB::_Server;
 use Config;
-use List::Util qw/first max/;
+use List::Util qw/first max min/;
 use Safe::Isa;
 use Time::HiRes qw/time usleep/;
 use Try::Tiny;
@@ -125,6 +125,13 @@ has local_threshold_sec => (
     is      => 'ro',
     default => 0.015,
     isa => Num,
+);
+
+has logical_session_timeout_minutes => (
+    is => 'ro',
+    default => undef,
+    writer => '_set_logical_session_timeout_minutes',
+    isa => Maybe [NonNegNum],
 );
 
 has next_scan_time => (
@@ -549,6 +556,24 @@ sub _check_wire_versions {
     $self->_set_is_compatible($compat);
     $self->_set_wire_version_floor($min_seen);
 
+    return;
+}
+
+sub _update_ls_timeout_minutes {
+    my ( $self, $new_server ) = @_;
+
+    my @data_bearing_servers = grep { $_->is_data_bearing } $self->all_servers;
+    my $timeout = min map {
+        # use -1 as a flag to prevent undefined warnings
+        defined $_->logical_session_timeout_minutes
+          ? $_->logical_session_timeout_minutes
+          : -1
+    } @data_bearing_servers;
+    # min will return undef if the array is empty
+    if ( defined $timeout && $timeout < 0 ) {
+        $timeout = undef;
+    }
+    $self->_set_logical_session_timeout_minutes( $timeout );
     return;
 }
 
@@ -996,6 +1021,8 @@ sub _update_topology_from_server_desc {
 
     # if link is still around, tag it with server specifics
     $self->_update_link_metadata( $address, $new_server );
+
+    $self->_update_ls_timeout_minutes( $new_server );
 
     return $new_server;
 }
