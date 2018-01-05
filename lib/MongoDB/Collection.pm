@@ -570,6 +570,9 @@ A hash reference of options may be provided.
 Valid options include:
 
 =for :list
+* C<arrayFilters> - An array of filter documents that determines which array
+  elements to modify for an update operation on an array field. Only available
+  for MongoDB servers of version 3.6+.
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
@@ -615,6 +618,9 @@ A hash reference of options may be provided.
 Valid options include:
 
 =for :list
+* C<arrayFilters> - An array of filter documents that determines which array
+  elements to modify for an update operation on an array field. Only available
+  for MongoDB servers of version 3.6+.
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
@@ -959,6 +965,9 @@ The update document must contain only field-update operators (e.g. C<$set>).
 A hash reference of options may be provided. Valid keys include:
 
 =for :list
+* C<arrayFilters> - An array of filter documents that determines which array
+  elements to modify for an update operation on an array field. Only available
+  for MongoDB servers of version 3.6+.
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
 * C<collation> - a L<document|/Document> defining the collation for this operation.
