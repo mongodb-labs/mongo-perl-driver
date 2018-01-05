@@ -251,6 +251,17 @@ sub _build_is_writable {
     return !! grep { $type eq $_ } qw/Standalone RSPrimary Mongos/;
 }
 
+has logical_session_timeout_minutes => (
+  is => 'lazy',
+  isa => NonNegNum,
+  builder => "_build_logical_session_timeout_minutes",
+);
+
+sub _build_logical_session_timeout_minutes {
+    my ( $self ) = @_;
+   return $self->is_master->{localLogicalSessionTimeoutMinutes} || 0;
+}
+
 sub updated_since {
     my ( $self, $time ) = @_;
     return( ($self->last_update_time - $time) > 0 );
