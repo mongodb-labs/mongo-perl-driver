@@ -65,7 +65,7 @@ sub run_test {
     $name =~ s/\.json$//;
 
     # TODO: Fix issue with PossiblePrimary and MongoDB::_Topology::_update_rs_without_primary
-    next if $name eq 'rs/primary_hint_from_secondary_with_mismatched_me';
+    return if $name eq 'rs/primary_hint_from_secondary_with_mismatched_me';
 
     subtest "$name" => sub {
 
@@ -125,6 +125,7 @@ sub check_outcome {
     my $expected_set_name = defined $outcome->{'setName'} ? $outcome->{'setName'} : "";
     is($topology->replica_set_name, $expected_set_name, 'correct setName for topology');
     is($topology->type, $outcome->{'topologyType'}, 'correct topology type');
+    is($topology->logical_session_timeout_minutes, $outcome->{'logicalSessionTimeoutMinutes'}, 'correct ls timeout');
 }
 
 done_testing;

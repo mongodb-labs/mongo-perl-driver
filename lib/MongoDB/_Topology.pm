@@ -127,6 +127,13 @@ has local_threshold_sec => (
     isa => Num,
 );
 
+has logical_session_timeout_minutes => (
+    is => 'ro',
+    default => undef,
+    writer => '_set_logical_session_timeout_minutes',
+    isa => Maybe [NonNegNum],
+);
+
 has next_scan_time => (
     is      => 'ro',
     default => sub { time() },
@@ -549,6 +556,29 @@ sub _check_wire_versions {
     $self->_set_is_compatible($compat);
     $self->_set_wire_version_floor($min_seen);
 
+    return;
+}
+
+sub _update_ls_timeout_minutes {
+    my ( $self, $new_server ) = @_;
+
+    my $timeout = $self->logical_session_timeout_minutes;
+    my $server_timeout = $new_server->logical_session_timeout_minutes;
+    # dont bother modifying ls timeout if the new server doesnt define it, unless its an RS Primary
+    if ( $new_server->defined_ls_timeout_minutes
+      && $new_server->is_available
+      # RSOthers should also be ignored for this
+      && $new_server->type ne 'RSOther' ) {
+        unless ( defined $server_timeout ) {
+            $timeout = undef;
+        } elsif ( ! defined $timeout ) {
+            # it timeout hasnt actually been set yet
+            $timeout = $server_timeout;
+        } elsif ( $server_timeout < $timeout ) {
+            $timeout = $server_timeout;
+        }
+        $self->_set_logical_session_timeout_minutes( $timeout );
+    }
     return;
 }
 
@@ -996,6 +1026,8 @@ sub _update_topology_from_server_desc {
 
     # if link is still around, tag it with server specifics
     $self->_update_link_metadata( $address, $new_server );
+
+    $self->_update_ls_timeout_minutes( $new_server );
 
     return $new_server;
 }

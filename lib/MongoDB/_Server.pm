@@ -34,6 +34,7 @@ use Types::Standard qw(
     HashRef
     Str
     Num
+    Maybe
 );
 use List::Util qw/first/;
 use Time::HiRes qw/time/;
@@ -251,15 +252,34 @@ sub _build_is_writable {
     return !! grep { $type eq $_ } qw/Standalone RSPrimary Mongos/;
 }
 
+# logicalSessionTimeoutMinutes can be not set by a client
+
+has defined_ls_timeout_minutes => (
+    is => 'lazy',
+    isa => Bool,
+    builder => "_build_defined_ls_timeout_minutes",
+);
+
+sub _build_defined_ls_timeout_minutes {
+    my ( $self ) = @_;
+
+    if ( exists $self->is_master->{logicalSessionTimeoutMinutes}
+      || $self->type eq 'RSPrimary'
+      || $self->type eq 'Mongos' ) {
+        return 1;
+    }
+    return;
+}
+
 has logical_session_timeout_minutes => (
-  is => 'lazy',
-  isa => NonNegNum,
-  builder => "_build_logical_session_timeout_minutes",
+    is => 'lazy',
+    isa => Maybe [NonNegNum],
+    builder => "_build_logical_session_timeout_minutes",
 );
 
 sub _build_logical_session_timeout_minutes {
     my ( $self ) = @_;
-   return $self->is_master->{localLogicalSessionTimeoutMinutes} || 0;
+    return $self->is_master->{logicalSessionTimeoutMinutes} || undef;
 }
 
 sub updated_since {
