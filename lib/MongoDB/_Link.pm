@@ -51,7 +51,7 @@ use Types::Standard qw(
 use namespace::clean;
 
 my $SOCKET_CLASS =
-  eval { require IO::Socket::IP; IO::Socket::IP->VERSION(0.25) }
+  eval { require IO::Socket::IP; IO::Socket::IP->VERSION(0.32) }
   ? 'IO::Socket::IP'
   : 'IO::Socket::INET';
 

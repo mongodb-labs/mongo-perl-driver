@@ -6,6 +6,10 @@
 
   - PERL-671 Update CRUD testing data files
 
+  [Prerequisites]
+
+  - PERL-843 Bump IO::Socket::IP prereq to 0.32 for Timeout support
+
 v1.6.1    2017-01-10 09:26:56-05:00 America/New_York
 
   [Bug fixes]
