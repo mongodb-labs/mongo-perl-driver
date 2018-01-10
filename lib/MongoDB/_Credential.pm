@@ -16,6 +16,7 @@
 
 use strict;
 use warnings;
+
 package MongoDB::_Credential;
 
 use version;
@@ -25,8 +26,8 @@ use Moo;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Types qw(
-    AuthMechanism
-    NonEmptyStr
+  AuthMechanism
+  NonEmptyStr
 );
 
 use Digest::MD5 qw/md5_hex/;
@@ -35,10 +36,10 @@ use MIME::Base64 qw/encode_base64 decode_base64/;
 use Tie::IxHash;
 use Try::Tiny;
 use Types::Standard qw(
-    Bool
-    HashRef
-    InstanceOf
-    Str
+  Bool
+  HashRef
+  InstanceOf
+  Str
 );
 
 use namespace::clean -except => 'meta';
@@ -86,7 +87,7 @@ has _digested_password => (
 
 has _scram_client => (
     is      => 'lazy',
-    isa     => InstanceOf['Authen::SCRAM::Client'],
+    isa     => InstanceOf ['Authen::SCRAM::Client'],
     builder => '_build__scram_client',
 );
 
@@ -112,7 +113,8 @@ sub _build__digested_password {
 sub _build_source {
     my ($self) = @_;
     my $mech = $self->mechanism;
-    return $mech eq 'DEFAULT' || $mech eq 'MONGODB-CR' || $mech eq 'SCRAM-SHA-1'
+    return
+      $mech eq 'DEFAULT' || $mech eq 'MONGODB-CR' || $mech eq 'SCRAM-SHA-1'
       ? 'admin'
       : '$external';
 }
@@ -187,7 +189,7 @@ sub authenticate {
     my $method = "_authenticate_$mech";
     $method =~ s/-/_/g;
 
-    return $self->$method($link, $bson_codec);
+    return $self->$method( $link, $bson_codec );
 }
 
 #--------------------------------------------------------------------------#
@@ -199,7 +201,8 @@ sub _authenticate_NONE () { 1 }
 sub _authenticate_MONGODB_CR {
     my ( $self, $link, $bson_codec ) = @_;
 
-    my $nonce = $self->_send_command( $link, $bson_codec, 'admin', { getnonce => 1 } )->output->{nonce};
+    my $nonce = $self->_send_command( $link, $bson_codec, 'admin', { getnonce => 1 } )
+      ->output->{nonce};
     my $key =
       md5_hex( encode( "UTF-8", $nonce . $self->username . $self->_digested_password ) );
 
@@ -221,7 +224,8 @@ sub _authenticate_MONGODB_X509 {
 
     if ( !$username && !$link->accepts_wire_version(5) ) {
         $username = $link->client_certificate_subject
-          or MongoDB::UsageError->throw("Could not extract subject from client SSL certificate");
+          or MongoDB::UsageError->throw(
+            "Could not extract subject from client SSL certificate");
     }
 
     my $command = Tie::IxHash->new(
@@ -274,14 +278,16 @@ sub _authenticate_GSSAPI {
         my $step = $client->client_start;
         $self->_assert_gssapi( $client,
             "Could not start GSSAPI. Did you run kinit?  Error was: " );
-        my ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $bson_codec, $step, 'GSSAPI' );
+        my ( $sasl_resp, $conv_id, $done ) =
+          $self->_sasl_start( $link, $bson_codec, $step, 'GSSAPI' );
 
         # iterate, but with maximum number of exchanges to prevent endless loop
         for my $i ( 1 .. 10 ) {
             last if $done;
             $step = $client->client_step($sasl_resp);
             $self->_assert_gssapi( $client, "GSSAPI step error: " );
-            ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $bson_codec, $step, $conv_id );
+            ( $sasl_resp, $conv_id, $done ) =
+              $self->_sasl_continue( $link, $bson_codec, $step, $conv_id );
         }
     }
     catch {
@@ -299,9 +305,11 @@ sub _authenticate_SCRAM_SHA_1 {
     my ( $msg, $sasl_resp, $conv_id, $done );
     try {
         $msg = $client->first_msg;
-        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_start( $link, $bson_codec, $msg, 'SCRAM-SHA-1' );
+        ( $sasl_resp, $conv_id, $done ) =
+          $self->_sasl_start( $link, $bson_codec, $msg, 'SCRAM-SHA-1' );
         $msg = $client->final_msg($sasl_resp);
-        ( $sasl_resp, $conv_id, $done ) = $self->_sasl_continue( $link, $bson_codec, $msg, $conv_id );
+        ( $sasl_resp, $conv_id, $done ) =
+          $self->_sasl_continue( $link, $bson_codec, $msg, $conv_id );
         $client->validate($sasl_resp);
         # might require an empty payload to complete SASL conversation
         $self->_sasl_continue( $link, $bson_codec, "", $conv_id ) if !$done;
@@ -382,7 +390,8 @@ sub _sasl_continue {
 
 sub _sasl_send {
     my ( $self, $link, $bson_codec, $command ) = @_;
-    my $output = $self->_send_command( $link, $bson_codec, $self->source, $command )->output;
+    my $output =
+      $self->_send_command( $link, $bson_codec, $self->source, $command )->output;
 
     return (
         $self->_sasl_decode_payload( $output->{payload} ),
@@ -392,17 +401,16 @@ sub _sasl_send {
 }
 
 sub _send_command {
-    my ($self, $link, $bson_codec, $db_name, $command) = @_;
+    my ( $self, $link, $bson_codec, $db_name, $command ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name => $db_name,
-        query => $command,
+        db_name     => $db_name,
+        query       => $command,
         query_flags => {},
-        bson_codec => $bson_codec,
+        bson_codec  => $bson_codec,
     );
-    my $res = $op->execute( $link );
+    my $res = $op->execute($link);
     return $res;
 }
-
 
 1;
