@@ -36,6 +36,7 @@ use MongoDB::Op::_FSyncUnlock;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
 use MongoDB::ReadConcern;
+use MongoDB::ClientSession;
 use MongoDB::_Topology;
 use MongoDB::_Constants;
 use MongoDB::_Credential;
@@ -62,6 +63,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     Bool
     HashRef
+    ArrayRef
     InstanceOf
     Undef
     Int
@@ -1214,6 +1216,13 @@ sub _build__uri {
     }
 }
 
+has _server_session_pool => (
+    is => 'lazy',
+    isa => ArrayRef[InstanceOf['MongoDB::ServerSession']],
+    init_arg => undef,
+    builder => sub { [] },
+);
+
 #--------------------------------------------------------------------------#
 # Constructor customization
 #--------------------------------------------------------------------------#
@@ -1415,6 +1424,18 @@ sub topology_status {
     return $self->_topology->status_struct;
 }
 
+sub start_session {
+  my ( $self, %opts ) = @_;
+
+  my $session = $self->get_server_session;
+  return MongoDB::ClientSession->new(
+      client => $self,
+      options => \%opts,
+      is_explicit => 1,
+      ( defined $session ? ( server_session => $session ) : () ),
+  );
+}
+
 #--------------------------------------------------------------------------#
 # semi-private methods; these are public but undocumented and their
 # semantics might change in future releases
@@ -1515,6 +1536,25 @@ sub send_read_op {
           }
       ),
       return $result;
+}
+
+sub get_server_session {
+    my ( $self ) = @_;
+
+    if ( scalar( @{ $self->_server_session_pool } ) > 0 ) {
+        my $session = shift @{ $self->_server_session_pool };
+        return $session;
+    }
+    return;
+}
+
+sub retire_server_session {
+    my ( $self, $server_session ) = @_;
+
+    # TODO expire old sessions
+    # TODO expire this session if old
+    unshift @{ $self->_server_session_pool }, $server_session;
+    return;
 }
 
 #--------------------------------------------------------------------------#
