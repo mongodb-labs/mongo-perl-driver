@@ -361,6 +361,8 @@ Valid options include:
 =for :list
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -371,6 +373,7 @@ sub insert_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_InsertOne->_new(
+            session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
             document => $_[1],
             %{ $_[0]->_op_args },
@@ -399,6 +402,8 @@ Valid options include:
 =for :list
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<ordered> – when true, the server will halt insertions after the first
   error (if any).  When false, all documents will be processed and any
   error will only be thrown after all insertions are attempted.  The
@@ -421,6 +426,7 @@ sub insert_many {
             # default
             ordered => 1,
             # user overrides
+            session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? ( %{ $_[2] } ) : () ),
             # un-overridable
             queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
@@ -458,6 +464,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -468,6 +476,7 @@ sub delete_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Delete->_new(
+            session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
             filter   => $_[1],
             just_one => 1,
@@ -492,6 +501,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -502,6 +513,7 @@ sub delete_many {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Delete->_new(
+            session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
             filter   => $_[1],
             just_one => 0,
@@ -532,6 +544,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<upsert> – defaults to false; if true, a new document will be added if one
   is not found
 
@@ -544,6 +558,7 @@ sub replace_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
+            session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
@@ -579,6 +594,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<upsert> – defaults to false; if true, a new document will be added if
   one is not found by taking the filter expression and applying the update
   document operations to it prior to insertion.
@@ -592,6 +609,7 @@ sub update_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
+            session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
@@ -627,6 +645,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<upsert> – defaults to false; if true, a new document will be added if
   one is not found by taking the filter expression and applying the update
   document operations to it prior to insertion.
@@ -640,6 +660,7 @@ sub update_many {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
+            session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
@@ -696,6 +717,8 @@ Valid options include:
   fields to
   return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<skip> – the number of documents to skip before returning.
 * C<sort> – an L<ordered document|/Ordered document> defining the order in which
   to return matching documents. If C<$orderby> also exists in the modifiers
@@ -732,6 +755,8 @@ sub find {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     # coerce to IxHash
     __ixhash( $options, 'sort' );
 
@@ -751,6 +776,7 @@ sub find {
             projection          => undef,
             skip                => 0,
             sort                => undef,
+            session             => $session,
             %$options,
             filter => $filter || {},
             %{ $self->_op_args },
@@ -786,6 +812,8 @@ include:
   L<https://docs.mongodb.com/master/reference/collation/>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<sort> – an L<ordered document|/Ordered document> defining the order in which
   to return matching documents. If C<$orderby> also exists in the modifiers
   document, the sort field overwrites C<$orderby>.  See docs for
@@ -805,6 +833,8 @@ sub find_one {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     # coerce to IxHash
     __ixhash( $options, 'sort' );
 
@@ -822,6 +852,7 @@ sub find_one {
             oplogReplay         => 0,
             skip                => 0,
             sort                => undef,
+            session             => $session,
             %$options,
             filter     => $filter     || {},
             projection => $projection || {},
@@ -873,6 +904,8 @@ A hash reference of options may be provided. Valid keys include:
   fields to
   return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<sort> – an L<ordered document|/Ordered document> defining the order in
   which to return matching documents.  See docs for
   L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
@@ -894,6 +927,8 @@ sub find_one_and_delete {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     # coerce to IxHash
     __ixhash($options, 'sort');
 
@@ -901,6 +936,7 @@ sub find_one_and_delete {
         %{ $_[0]->_op_args },
         filter        => $filter,
         options       => $options,
+        session       => $session,
     );
 
     return $self->client->send_write_op($op);
@@ -935,6 +971,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<returnDocument> – either the string C<'before'> or C<'after'>, to indicate
   whether the returned document should be the one before or after replacement.
   The default is C<'before'>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<sort> – an L<ordered document|/Ordered document> defining the order in
   which to return matching documents.  See docs for
   L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
@@ -983,6 +1021,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<returnDocument> – either the string C<'before'> or C<'after'>, to indicate
   whether the returned document should be the one before or after replacement.
   The default is C<'before'>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<sort> – an L<ordered document|/Ordered document> defining the order in
   which to return matching documents.  See docs for
   L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
@@ -1118,6 +1158,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<hint> - An index to use for this aggregation. (Only compatible with servers
   above version 3.6.) For more information, see the other aggregate options here:
   L<https://docs.mongodb.com/manual/reference/command/aggregate/index.html>
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 B<Note> MongoDB 2.6+ added the '$out' pipeline operator.  If this operator is
 used to write aggregation results directly to a collection, an empty result
@@ -1144,6 +1186,8 @@ sub aggregate {
     my ( $self, $pipeline, $options ) = @_;
     $options ||= {};
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     # boolify some options
     for my $k (qw/allowDiskUse explain/) {
         $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
@@ -1162,12 +1206,7 @@ sub aggregate {
         options      => $options,
         read_concern => $self->read_concern,
         has_out      => $last_op eq '$out',
-        exists($options->{cursorType})
-            ? (cursorType => delete $options->{cursorType})
-            : (cursorType => 'non_tailable'),
-        exists($options->{maxAwaitTimeMS})
-            ? (maxAwaitTimeMS => delete $options->{maxAwaitTimeMS})
-            : (),
+        session      => $session,
         %{ $self->_op_args },
     );
 
@@ -1194,6 +1233,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<skip> – the number of documents to skip before counting documents.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 B<NOTE>: On a sharded cluster, C<count> can result in an inaccurate count if
 orphaned documents exist or if a chunk migration is in progress.  See L<count
@@ -1213,12 +1254,15 @@ sub count {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     # string is OK so we check ref, not just exists
     __ixhash($options, 'hint') if ref $options->{hint};
 
     my $op = MongoDB::Op::_Count->_new(
         options         => $options,
         filter          => $filter,
+        session         => $session,
         %{ $self->_op_args },
     );
 
@@ -1247,6 +1291,8 @@ A hash reference of options may be provided. Valid keys include:
   L<https://docs.mongodb.com/master/reference/collation/>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 See documentation for the L<distinct
 command|http://docs.mongodb.org/manual/reference/command/distinct/> for
@@ -1269,10 +1315,13 @@ sub distinct {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     my $op = MongoDB::Op::_Distinct->_new(
         fieldname       => $fieldname,
         filter          => $filter,
         options         => $options,
+        session         => $session,
         %{ $self->_op_args },
     );
 
@@ -1300,6 +1349,8 @@ A hash reference of options may be provided. Valid keys include:
 =for :list
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 3.4.)
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -1312,10 +1363,14 @@ sub parallel_scan {
     }
     $options = ref $options eq 'HASH' ? $options : { };
 
+    my $session = $self->_get_session_from_hashref( $options );
+
+    # TODO Implicit sessions expire when???
     my $op = MongoDB::Op::_ParallelScan->_new(
         %{ $self->_op_args },
         num_cursors     => $num_cursors,
         options         => $options,
+        session         => $session,
     );
 
     my $result = $self->client->send_read_op( $op );
@@ -1354,17 +1409,29 @@ sub parallel_scan {
 Renames the collection.  If a collection already exists with the new collection
 name, this method will throw an exception.
 
+A hashref of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
+
 It returns a new L<MongoDB::Collection> object corresponding to the renamed
 collection.
 
 =cut
 
 sub rename {
-    my ( $self, $new_name ) = @_;
+    my ( $self, $new_name, $options ) = @_;
+
+    my $session = $self->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_RenameCollection->_new(
         src_ns => $self->full_name,
         dst_ns => join( ".", $self->database->name, $new_name ),
+        options => $options,
+        session => $session,
         %{ $self->_op_args },
     );
 
@@ -1382,9 +1449,17 @@ Deletes a collection as well as all of its indexes.
 =cut
 
 sub drop {
-    my ($self) = @_;
+    my ( $self, $options ) = @_;
 
-    $self->client->send_write_op( MongoDB::Op::_DropCollection->_new( %{ $self->_op_args } ) );
+    my $session = $self->_get_session_from_hashref( $options );
+
+    $self->client->send_write_op(
+        MongoDB::Op::_DropCollection->_new(
+            options => $options,
+            session => $session,
+            %{ $self->_op_args },
+        )
+    );
 
     return;
 }
@@ -1496,6 +1571,8 @@ Valid options include:
 * C<ordered> – when true, the bulk operation is executed like
   L</initialize_ordered_bulk>. When false, the bulk operation is executed
   like L</initialize_unordered_bulk>.  The default is true.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 See L<MongoDB::BulkWrite> for more details on bulk writes.  Be advised that
 the legacy Bulk API method names differ slightly from MongoDB::Collection
@@ -1515,6 +1592,8 @@ sub bulk_write {
     $options ||= {};
 
     my $ordered = exists $options->{ordered} ? delete $options->{ordered} : 1;
+
+    my $session = $self->_get_session_from_hashref( $options );
 
     my $bulk =
       $ordered ? $self->ordered_bulk($options) : $self->unordered_bulk($options);
@@ -1590,7 +1669,7 @@ sub bulk_write {
         }
     }
 
-    return $bulk->execute;
+    return $bulk->execute( undef, { session => $session } );
 }
 
 BEGIN {
@@ -1640,15 +1719,36 @@ sub _find_one_and_update_or_replace {
     # pass separately for MongoDB::Role::_BypassValidation
     my $bypass = delete $options->{bypassDocumentValidation};
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     my $op = MongoDB::Op::_FindAndUpdate->_new(
         filter         => $filter,
         modifier       => $modifier,
         options        => $options,
         bypassDocumentValidation => $bypass,
+        session        => $session,
         %{ $self->_op_args },
     );
 
     return $self->client->send_write_op($op);
+}
+
+# Extracts a session from a provided hashref, or returns an implicit session
+sub _get_session_from_hashref {
+    my ( $self, $hashref ) = @_;
+
+    my $session = delete $hashref->{session};
+
+    if ( defined $session ) {
+        MongoDB::UsageError->throw( "Cannot use session from another client" )
+            if ( $session->client->_id ne $self->client->_id );
+        MongoDB::UsageError->throw( "Cannot use session which has ended" )
+            if $session->_has_ended;
+    } else {
+        $session = $self->client->_maybe_get_implicit_session;
+    }
+
+    return $session;
 }
 
 #--------------------------------------------------------------------------#

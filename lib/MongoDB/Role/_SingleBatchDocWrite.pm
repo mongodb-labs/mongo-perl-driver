@@ -38,6 +38,7 @@ use namespace::clean;
 
 with $_ for qw(
   MongoDB::Role::_WriteOp
+  MongoDB::Role::_SessionSupport
 );
 
 requires qw/db_name write_concern _parse_cmd _parse_gle/;
@@ -140,6 +141,8 @@ sub _send_legacy_op_noreply {
 sub _send_write_command {
     my ( $self, $link, $cmd, $op_doc, $result_class ) = @_;
 
+    $self->_apply_session_and_cluster_time( $link, \$cmd );
+
     # send command and get response document
     my $command = $self->bson_codec->encode_one( $cmd );
 
@@ -159,6 +162,8 @@ sub _send_write_command {
     ( my $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
 
     my $res = $self->bson_codec->decode_one( $result->{docs} );
+
+    $self->_update_session_and_cluster_time($res);
 
     # Error checking depends on write concern
 

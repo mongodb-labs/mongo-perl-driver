@@ -258,6 +258,11 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::Error';
 
+package MongoDB::ConfigurationError;
+use Moo;
+use namespace::clean;
+extends 'MongoDB::Error';
+
 package MongoDB::CursorNotFoundError;
 use Moo;
 use namespace::clean;
@@ -365,6 +370,8 @@ To retry failures automatically, consider using L<Try::Tiny::Retry>.
         |   |
         |   |->MongoDB::NetworkError
         |
+        |->MongoDB::ConfigurationError
+        |
         |->MongoDB::DatabaseError
         |   |
         |   |->MongoDB::CursorNotFoundError
@@ -424,6 +431,12 @@ handshakes fail.
 
 This error is thrown when a socket error occurs, when the wrong number of bytes
 are read, or other wire-related errors occur.
+
+=head2 MongoDB::ConfigurationError
+
+This error is thrown when there is a configuration error between the MongoDB
+deployment and the configuration of the client, such as when trying to use
+explicit sessions on a MongoDB < 3.6
 
 =head2 MongoDB::CursorNotFoundError
 

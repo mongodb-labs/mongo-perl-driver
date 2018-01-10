@@ -59,6 +59,7 @@ sub execute {
                 ],
                 query_flags => {},
                 bson_codec  => $self->bson_codec,
+                session     => $self->session,
             )->execute($link);
         };
     }

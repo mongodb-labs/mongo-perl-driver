@@ -30,7 +30,7 @@ use MongoDB::QueryResult;
 
 use namespace::clean;
 
-requires qw/client bson_codec/;
+requires qw/session client bson_codec/;
 
 sub _build_result_from_cursor {
     my ( $self, $res ) = @_;
@@ -65,6 +65,7 @@ sub _build_result_from_cursor {
         _cursor_num   => scalar @$batch,
         _docs         => $batch,
         _max_time_ms  => $max_time_ms,
+        _session       => $self->session,
     );
 }
 

@@ -198,6 +198,7 @@ sub _command_query {
         query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
+        session         => $self->session,
     );
     my $res = $op->execute( $link, $topology );
 

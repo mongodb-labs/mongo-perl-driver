@@ -49,6 +49,7 @@ requires 'Type::Tiny' => '1';
 requires 'Type::Tiny::XS' if $] ge '5.010001';
 requires 'Type::Utils';
 requires 'Types::Standard';
+requires 'UUID::URandom';
 requires 'XSLoader';
 requires 'boolean' => 0.25;
 requires 'constant';

@@ -86,6 +86,7 @@ sub _command_get_more {
         query       => $cmd,
         query_flags => {},
         bson_codec  => $self->bson_codec,
+        session     => $self->session,
     );
 
     my $c = $op->execute($link)->output->{cursor};

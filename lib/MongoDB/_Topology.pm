@@ -214,6 +214,12 @@ has wire_version_floor => (
     default => 0,
 );
 
+has wire_version_ceil => (
+    is => 'ro',
+    writer => '_set_wire_version_ceil',
+    default => 0,
+);
+
 has current_primary => (
     is => 'rwp',
     clearer => '_clear_current_primary',
@@ -321,6 +327,8 @@ sub BUILD {
 #--------------------------------------------------------------------------#
 
 sub all_servers { return values %{ $_[0]->servers } }
+
+sub all_data_bearing_servers { return grep { $_->is_data_bearing } $_[0]->all_servers }
 
 sub check_address {
     my ( $self, $address ) = @_;
@@ -538,6 +546,7 @@ sub _check_wire_versions {
 
     my $compat = 1;
     my $min_seen = $max_int32;
+    my $max_seen = 0;
     for my $server ( grep { $_->is_available } $self->all_servers ) {
         my ( $server_min_wire_version, $server_max_wire_version ) =
           @{ $server->is_master }{qw/minWireVersion maxWireVersion/};
@@ -552,9 +561,11 @@ sub _check_wire_versions {
         }
 
         $min_seen = $server_max_wire_version if $server_max_wire_version < $min_seen;
+        $max_seen = $server_max_wire_version if $server_max_wire_version > $max_seen;
     }
     $self->_set_is_compatible($compat);
     $self->_set_wire_version_floor($min_seen);
+    $self->_set_wire_version_ceil($max_seen);
 
     return;
 }
@@ -574,6 +585,29 @@ sub _update_ls_timeout_minutes {
         $timeout = undef;
     }
     $self->_set_logical_session_timeout_minutes( $timeout );
+    return;
+}
+
+sub _supports_sessions {
+    my ( $self ) = @_;
+
+    # Sessions arent supported in standalone servers
+    return if $self->type eq 'Single';
+
+    # If we havent got any servers... find some?
+    # Scan for data bearing first as it implies there are some servers
+    if ( scalar( $self->all_data_bearing_servers ) == 0
+      || scalar( $self->all_servers ) == 0 )
+    {
+        # Will call _update_ls_timeout_minutes as part of the check_address
+        # calls
+        $self->scan_all_servers;
+
+        # Could end up discovering its a single server again
+        return if $self->type eq 'Single';
+    }
+
+    return 1 if defined $self->logical_session_timeout_minutes;
     return;
 }
 

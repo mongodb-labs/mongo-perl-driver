@@ -39,6 +39,7 @@ our @EXPORT_OK = qw(
     uri_escape
     get_unique_collection
     get_feature_compat_version
+    uuid_to_string
 );
 
 my @testdbs;
@@ -199,6 +200,11 @@ sub uri_escape {
     utf8::encode($str);
     $str =~ s/($unsafe_char)/$escapes{$1}/ge;
     return $str;
+}
+
+sub uuid_to_string {
+    my $uuid = shift;
+    return join "-", unpack( "H8H4H4H4H12", $uuid );
 }
 
 sub clear_testdbs { @testdbs = () }

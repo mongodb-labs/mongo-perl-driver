@@ -126,6 +126,12 @@ sub execute {
 
     my $has_out = $self->has_out;
 
+    if ( $link->server->is_master->{maxWireVersion} < 6
+      && $self->coll_name eq 1 ) {
+        MongoDB::Error->throw(
+            "Calling aggregate with a collection name of '1' is not supported on Wire Version < 6" );
+    }
+
     my @command = (
         aggregate => $self->coll_name,
         pipeline  => $self->pipeline,
@@ -144,6 +150,7 @@ sub execute {
         query_flags     => {},
         bson_codec      => $self->bson_codec,
         ( $has_out ? () : ( read_preference => $self->read_preference ) ),
+        session         => $self->session,
     );
 
     my $res = $op->execute( $link, $topology );

@@ -70,6 +70,7 @@ sub execute {
         query_flags     => {},
         bson_codec      => $self->bson_codec,
         read_preference => $self->read_preference,
+        session         => $self->session,
     );
 
     return $op->execute( $link, $topology );
