@@ -339,13 +339,29 @@ sub _assert_gssapi {
     return 1;
 }
 
+# PERL-801: GSSAPI broke in some cases after switching to binary
+# payloads, so fall back to base64 encoding for that mechanism.
+sub _sasl_encode_payload {
+    my ( $self, $payload ) = @_;
+    $payload = "" unless defined $payload;
+    return encode_base64( $payload, "" ) if $self->mechanism eq 'GSSAPI';
+    return \$payload;
+}
+
+sub _sasl_decode_payload {
+    my ( $self, $payload ) = @_;
+    return "" unless defined $payload && length $payload;
+    return $payload->data if ref $payload;
+    return decode_base64($payload);
+}
+
 sub _sasl_start {
     my ( $self, $link, $bson_codec, $payload, $mechanism ) = @_;
 
     my $command = Tie::IxHash->new(
         saslStart     => 1,
         mechanism     => $mechanism,
-        payload       => \$payload,
+        payload       => $self->_sasl_encode_payload($payload),
         autoAuthorize => 1,
     );
 
@@ -358,7 +374,7 @@ sub _sasl_continue {
     my $command = Tie::IxHash->new(
         saslContinue   => 1,
         conversationId => $conv_id,
-        payload        => \$payload,
+        payload        => $self->_sasl_encode_payload($payload),
     );
 
     return $self->_sasl_send( $link, $bson_codec, $command );
@@ -368,8 +384,11 @@ sub _sasl_send {
     my ( $self, $link, $bson_codec, $command ) = @_;
     my $output = $self->_send_command( $link, $bson_codec, $self->source, $command )->output;
 
-    my $sasl_resp = $output->{payload} ? $output->{payload}->data : "";
-    return ( $sasl_resp, $output->{conversationId}, $output->{done} );
+    return (
+        $self->_sasl_decode_payload( $output->{payload} ),
+        $output->{conversationId},
+        $output->{done}
+    );
 }
 
 sub _send_command {
