@@ -214,6 +214,12 @@ has wire_version_floor => (
     default => 0,
 );
 
+has wire_version_ceil => (
+    is => 'ro',
+    writer => '_set_wire_version_ceil',
+    default => 0,
+);
+
 has current_primary => (
     is => 'rwp',
     clearer => '_clear_current_primary',
@@ -538,6 +544,7 @@ sub _check_wire_versions {
 
     my $compat = 1;
     my $min_seen = $max_int32;
+    my $max_seen = 0;
     for my $server ( grep { $_->is_available } $self->all_servers ) {
         my ( $server_min_wire_version, $server_max_wire_version ) =
           @{ $server->is_master }{qw/minWireVersion maxWireVersion/};
@@ -552,9 +559,11 @@ sub _check_wire_versions {
         }
 
         $min_seen = $server_max_wire_version if $server_max_wire_version < $min_seen;
+        $max_seen = $server_max_wire_version if $server_max_wire_version > $max_seen;
     }
     $self->_set_is_compatible($compat);
     $self->_set_wire_version_floor($min_seen);
+    $self->_set_wire_version_ceil($max_seen);
 
     return;
 }

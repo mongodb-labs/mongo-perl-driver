@@ -67,4 +67,38 @@ subtest 'LIFO Pool' => sub {
     is $session_d->session_id->{id}, $id_a->{id}, 'Session D same ID as Session A';
 };
 
+subtest 'clusterTime in commands' => sub {
+    # Need a new client with high heartbeatFrequencyMS
+    my $local_client = build_client(
+        # You want big number? we give you big number
+        heartbeat_frequency_ms => 9_000_000_000,
+    );
+
+    use Test::Role::CommandDebug;
+
+    Role::Tiny->apply_roles_to_package(
+        'MongoDB::Op::_Command', 'Test::Role::CommandDebug',
+    );
+
+    use Devel::Dwarn;
+
+    #Dwarn $local_client;
+
+    subtest 'ping' => sub {
+        my $ping_result = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
+
+        my $command = shift @Test::Role::CommandDebug::COMMAND_QUEUE;
+
+        ok $command->query->EXISTS('ping'), 'ping in sent command';
+
+        # TODO check maxWireVersion
+        ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        Dwarn $ping_result;
+
+        my $ping_result2 = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
+        Dwarn $ping_result2;
+    };
+
+};
+
 done_testing;

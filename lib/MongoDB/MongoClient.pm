@@ -54,6 +54,7 @@ use MongoDB::_Types qw(
     ArrayOfHashRef
     AuthMechanism
     BSONCodec
+    Document
     HeartbeatFreq
     MaxStalenessNum
     NonNegNum
@@ -1222,6 +1223,22 @@ has _server_session_pool => (
     init_arg => undef,
     builder => sub { [] },
 );
+use Digest::SHA qw/ hmac_sha1 /;
+has cluster_time => (
+    is => 'rwp',
+    isa => Document,
+    init_arg => undef,
+    default => sub {
+        return Tie::IxHash->new(
+            clusterTime => MongoDB::Timestamp->new( sec => 0, inc => 0 ),
+            signature => {
+              # Seriously? Need to hash something without knowing how to do so? what?
+                hash => MongoDB::BSON::Binary->new( data => hmac_sha1('') ),
+                keyId => 0,
+            },
+        )
+    },
+);
 
 #--------------------------------------------------------------------------#
 # Constructor customization
@@ -1461,6 +1478,7 @@ sub send_admin_command {
         query_flags => {},
         bson_codec  => $self->bson_codec,
         read_preference => $read_pref,
+        client      => $self,
     );
 
     return $self->send_read_op( $op );
