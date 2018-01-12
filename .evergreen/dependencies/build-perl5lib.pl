@@ -15,6 +15,17 @@ bootstrap_env();
 
 run_perl5_cpanm(qw/Path::Tiny Config::AutoConf/);
 
+# Type-Tiny sometimes causes weird segfaults in one, non-functional
+# test on Windows, so if it fails, install without testing.
+if ($^O eq 'MSWin32') {
+    # try normally first
+    eval { run_perl5_cpanm("Type::Tiny") };
+    # install without tests
+    if ( $@ ) {
+        run_perl5_cpanm("-n", "Type::Tiny");
+    }
+}
+
 # Install repo dependencies
 
 my $repo = $ENV{TARGET};
