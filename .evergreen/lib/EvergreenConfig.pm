@@ -370,7 +370,7 @@ sub _assemble_variants {
             push @variants,
               _hashify(
                 name         => "os_${os}_perl_${ver}",
-                display_name => "$os_map{$os}{name} Perl $ver",
+                display_name => "$os_map{$os}{name} Perl 5.$ver",
                 expansions   => _hashify_sorted(
                     os       => $os,
                     perlver  => $ver,
