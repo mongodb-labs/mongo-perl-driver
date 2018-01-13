@@ -5,6 +5,7 @@ use warnings;
 package EvergreenHelper;
 
 use Config;
+use Carp 'croak';
 use Cwd 'getcwd';
 use File::Find qw/find/;
 use File::Path qw/mkpath rmtree/;
@@ -109,7 +110,7 @@ sub fix_shell_files_in {
     my $fixer = sub {
         return unless -f && /\.sh$/;
         filter_file( $_, sub { s/\r//g } );
-        chmod 0755, $_ or die chmod "$_: $!";
+        chmod 0755, $_ or croak chmod "$_: $!";
     };
     find( $fixer, $dir );
 }
@@ -162,7 +163,7 @@ sub run_in_dir {
     my ( $dir, $code ) = @_;
     my $start_dir = getcwd();
     my $guard = Local::TinyGuard->new( sub { chdir $start_dir } );
-    chdir $dir or die "chdir $dir: $!\n";
+    chdir $dir or croak "chdir $dir: $!\n";
     $code->();
 }
 
@@ -190,7 +191,7 @@ sub run_perl5_cpanm {
 
 sub slurp {
     my ($file) = @_;
-    open my $fh, "<:raw", $file or die "$file: $!";
+    open my $fh, "<:raw", $file or croak "$file: $!";
     return scalar do { local $/; <$fh> };
 }
 
@@ -198,18 +199,18 @@ sub slurp {
 
 sub spew {
     my ( $file, @data ) = @_;
-    open my $fh, ">:raw", $file or die "$file: $!";
+    open my $fh, ">:raw", $file or croak "$file: $!";
     print {$fh} $_ for @data;
-    close $fh or die "closing $file: $!";
+    close $fh or croak "closing $file: $!";
     return 1;
 }
 
-# try_system: print and run a command and die if exit code is non-zero
+# try_system: print and run a command and croak if exit code is non-zero
 
 sub try_system {
     my @command = @_;
     print "\nRunning: @command\n\n";
-    system(@command) and die "Aborting: '@command' failed";
+    system(@command) and croak "Aborting: '@command' failed";
 }
 
 # Local::TinyGuard -- an object that runs a closure on destruction

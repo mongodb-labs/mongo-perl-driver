@@ -202,7 +202,7 @@ sub main {
     push @tasks, map { orch_test($_) } @test_variations;
 
     # Add Atlas proxy test (plus build/check deps on Ubuntu)
-    my $atlas_filter = { os => ['ubuntu1604'], perl => [qr/24\.\d+$/] };
+    my $atlas_filter = { os => ['ubuntu1604'], perl => [qr/^24$/] };
     push @tasks,
       task(
         build_for_atlas => [qw/whichPerl buildModule uploadBuildArtifacts/],

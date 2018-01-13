@@ -55,12 +55,12 @@ my $WEEK_IN_SECS = 7 * 24 * 3600;
 # We test default config, plus threaded ("t") and long-double ("ld")
 # configs.
 my @unix_perls =
-  map { $_, "${_}t", "${_}ld" } qw/10.1 12.5 14.4 16.3 18.4 20.3 22.2 24.0/;
+  map { $_, "${_}t", "${_}ld" } qw/10 12 14 16 18 20 22 24 26/;
 
 # For Windows, we test from 5.14.4 to 5.24.0, as these are available in
 # "portable" format.  There are no configuration suffixes; we just use
 # the standard Strawberry Perl builds (which happen to be threaded).
-my @win_perls = qw/ 14.4 16.3 18.4 20.3 22.2 24.0/;
+my @win_perls = qw/14 16 18 20 22 24 26/;
 
 # MongoDB's Windows Evergreen hosts have a different naming scheme than
 # Unix hosts.  We don't care about the compiler type (as we use the MinGW
@@ -73,7 +73,7 @@ my @win_dists = (
 
 # For Z series, ARM64 and Power8 (aka ZAP), only more recent perls compile
 # cleanly, so we test a smaller range of Perls.
-my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14.4 16.3 18.4 20.3 22.2 24.0/;
+my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
 
 # The %os_map variable provides details of the full range of MongoDB
 # Evergreen operating systems we might run on, plus configuration details
@@ -370,7 +370,7 @@ sub _assemble_variants {
             push @variants,
               _hashify(
                 name         => "os_${os}_perl_${ver}",
-                display_name => "$os_map{$os}{name} Perl $ver",
+                display_name => "$os_map{$os}{name} Perl 5.$ver",
                 expansions   => _hashify_sorted(
                     os       => $os,
                     perlver  => $ver,

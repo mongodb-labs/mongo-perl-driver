@@ -29,13 +29,16 @@ my @perl_versions = qw(
   5.14.4
   5.16.3
   5.18.4
+  5.20.3
   5.22.4
   5.24.3
   5.26.1
 );
 
-# Build only more recent Perls for ZAP
-if ( $Config{archname} =~ /aarch64|s390x|ppc64le/ ) {
+# Build only more recent Perls for ZAP.  Debian/Ubuntu set a custom
+# archname with "powerpc64le" instead of Perl standard "ppc64le" so
+# we check both.
+if ( $Config{archname} =~ /aarch64|s390x|ppc64le|powerpc64le/ ) {
     splice @perl_versions, 0, 3;
 }
 
