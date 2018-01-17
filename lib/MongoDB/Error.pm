@@ -44,6 +44,7 @@ BEGIN {
         BAD_VALUE                 => 2,
         UNKNOWN_ERROR             => 8,
         NAMESPACE_NOT_FOUND       => 26,
+        INDEX_NOT_FOUND           => 27,
         EXCEEDED_TIME_LIMIT       => 50,
         COMMAND_NOT_FOUND         => 59,
         WRITE_CONCERN_ERROR       => 64,

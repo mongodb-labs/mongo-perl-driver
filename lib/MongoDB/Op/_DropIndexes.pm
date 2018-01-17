@@ -25,7 +25,9 @@ our $VERSION = 'v1.999.0';
 
 use Moo;
 
+use MongoDB::Error;
 use MongoDB::Op::_Command;
+use Safe::Isa;
 use Types::Standard qw(
   Str
 );
@@ -58,8 +60,20 @@ sub execute {
         bson_codec  => $self->bson_codec,
     );
 
-    my $res = $op->execute($link);
-    $res->assert_no_write_concern_error;
+    my $res;
+    eval {
+        $res = $op->execute($link);
+        $res->assert_no_write_concern_error;
+    };
+    if ( my $err = $@ ) {
+        if ( $err->$_isa("MongoDB::DatabaseError") ) {
+            # 2.6 and 3.0 don't have the code, so we fallback to string
+            # matching on the error message
+            return $err->result
+              if $err->code == INDEX_NOT_FOUND() || $err->message =~ /index not found with name/;
+        }
+        die $err;
+    }
 
     return $res;
 }

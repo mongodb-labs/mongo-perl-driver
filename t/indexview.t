@@ -196,6 +196,10 @@ subtest "drop_one" => sub {
     my $found = grep { $_->{name} eq 'x_1' } $iv->list->all;
     ok( !$found, "dropped index on x" );
 
+    # Dropping non-existing index must not error
+    $res = $iv->drop_one("z_3");
+    ok( !$res->{ok}, "result of drop_one is a database result document with false, but no exception" );
+
     # exception on index drop
     like(
         exception { $iv->drop_one("*") },

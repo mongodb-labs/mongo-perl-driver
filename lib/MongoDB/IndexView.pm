@@ -274,7 +274,9 @@ sub create_many {
 
 This method takes the name of an index and drops it.  It returns the output
 of the dropIndexes command (a hash reference) on success or throws a
-exception if the command fails.
+exception if the command errors.  However, if the index does not exist, the
+command output will have the C<ok> field as a false value, but no exception
+will e thrown.
 
 =cut
 
