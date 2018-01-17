@@ -21,6 +21,7 @@ package MongoDBTest::Role::ServerSet;
 use MongoDBTest::Mongod;
 use MongoDBTest::Mongos;
 
+use JSON;
 use Moo::Role;
 use Types::Standard -types;
 use namespace::clean;
@@ -111,6 +112,30 @@ sub get_server {
         return $server if $name eq $server->name;
     }
     return;
+}
+
+sub get_client {
+    my ($self) = @_;
+    my $config = { host => $self->as_uri, dt_type => undef };
+    if ( my $ssl = $self->ssl_config ) {
+        my $ssl_arg = {};
+        $ssl_arg->{SSL_verifycn_scheme} = 'none';
+        $ssl_arg->{SSL_ca_file}         = $ssl->{certs}{ca}
+          if $ssl->{certs}{ca};
+        $ssl_arg->{SSL_verifycn_name} = $ssl->{servercn}
+          if $ssl->{servercn};
+        $ssl_arg->{SSL_hostname} = $ssl->{servercn}
+          if $ssl->{servercn};
+        if ($ssl->{username}) {
+            $config->{username}       = $ssl->{username};
+            $config->{auth_mechanism} = 'MONGODB-X509';
+            $ssl_arg->{SSL_cert_file} = $ssl->{certs}{client};
+        }
+        $config->{ssl} = $ssl_arg;
+    }
+    $self->_logger->debug("connecting to server with: " . to_json($config));
+
+    return MongoDB::MongoClient->new($config);
 }
 
 sub start {

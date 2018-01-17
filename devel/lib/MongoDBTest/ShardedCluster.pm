@@ -23,6 +23,7 @@ use MongoDBTest::Deployment;
 use MongoDBTest::ServerSet;
 use MongoDBTest::Mongod;
 
+use JSON;
 use Moo;
 use Try::Tiny::Retry qw/:all/;
 use Types::Standard -types;
@@ -119,7 +120,12 @@ sub start {
     my $uri = $self->routers->as_uri;
     $self->_logger->debug("connecting to mongos at $uri");
     my $client =
-        retry { MongoDB::MongoClient->new( host => $uri ) }
+        retry {
+            my $client = $self->get_client;
+            $client->db("admin")->run_command({ismaster => 1});
+            $client
+        }
+        on_retry { $self->_logger->debug($_) }
         delay_exp { 15, 1e4 }
         catch { chomp; die "$_. Giving up!\n" };
 
@@ -171,6 +177,30 @@ sub get_server {
         return $server if $server->name eq $name;
     }
     return;
+}
+
+sub get_client {
+    my ($self) = @_;
+    my $config = { host => $self->as_uri, dt_type => undef };
+    if ( my $ssl = $self->ssl_config ) {
+        my $ssl_arg = {};
+        $ssl_arg->{SSL_verifycn_scheme} = 'none';
+        $ssl_arg->{SSL_ca_file}         = $ssl->{certs}{ca}
+          if $ssl->{certs}{ca};
+        $ssl_arg->{SSL_verifycn_name} = $ssl->{servercn}
+          if $ssl->{servercn};
+        $ssl_arg->{SSL_hostname} = $ssl->{servercn}
+          if $ssl->{servercn};
+        if ($ssl->{username}) {
+            $config->{username}       = $ssl->{username};
+            $config->{auth_mechanism} = 'MONGODB-X509';
+            $ssl_arg->{SSL_cert_file} = $ssl->{certs}{client};
+        }
+        $config->{ssl} = $ssl_arg;
+    }
+    $self->_logger->debug("connecting to server with: " . to_json($config));
+
+    return MongoDB::MongoClient->new($config);
 }
 
 with 'MooseX::Role::Logger', 'MongoDBTest::Role::Deployment';

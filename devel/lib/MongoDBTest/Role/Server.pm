@@ -21,6 +21,7 @@ package MongoDBTest::Role::Server;
 use MongoDB;
 
 use CPAN::Meta::Requirements;
+use JSON;
 use Path::Tiny;
 use POSIX qw/SIGTERM SIGKILL/;
 use Proc::Guard;
@@ -364,22 +365,10 @@ sub _local_restart {
     my ($self) = @_;
     my $port = $self->port;
     # must be localhost for shutdown command
-    my @args = (
-        host    => "mongodb://localhost:$port",
-        connect_type => 'direct',
-        dt_type => undef,
-    );
-    if ( my $ssl = $self->ssl_config ) {
-        my $ssl_arg = {};
-        $ssl_arg->{SSL_verifycn_scheme} = 'none';
-        $ssl_arg->{SSL_ca_file} = $ssl->{certs}{ca}
-          if $ssl->{certs}{ca};
-        $ssl_arg->{SSL_verifycn_name} = $ssl->{servercn}
-          if $ssl->{servercn};
-        push @args, ssl => $ssl_arg;
-    }
+    my $uri = "mongodb://localhost:$port";
     eval {
-        MongoDB::MongoClient->new( @args )->get_database("admin")->run_command( [ shutdown => 1 ] );
+        my $client = $self->get_direct_client($uri, connect_type => 'direct');
+        $client->get_database("admin")->run_command( [ shutdown => 1 ] );
     };
     my $err = $@;
     # 'shutdown' closes the socket so we don't get a network error instead
@@ -412,6 +401,29 @@ sub stop {
     $self->clear_port;
     $self->clear_client;
     $self->_logger->debug("cleared guard and client for " . $self->name);
+}
+
+sub get_direct_client {
+    my ($self, $uri, @args) = @_;
+    $uri //= $self->as_uri_with_auth;
+    my $config = { host => $uri, dt_type => undef, @args };
+    if ( my $ssl = $self->ssl_config ) {
+        my $ssl_arg = {};
+        $ssl_arg->{SSL_verifycn_scheme} = 'none';
+        $ssl_arg->{SSL_ca_file}         = $ssl->{certs}{ca}
+          if $ssl->{certs}{ca};
+        $ssl_arg->{SSL_verifycn_name} = $ssl->{servercn}
+          if $ssl->{servercn};
+        $ssl_arg->{SSL_hostname} = $ssl->{servercn}
+          if $ssl->{servercn};
+        if ( $self->did_ssl_auth_setup ) {
+            $config->{username}       = $ssl->{username};
+            $config->{auth_mechanism} = 'MONGODB-X509';
+            $ssl_arg->{SSL_cert_file} = $ssl->{certs}{client};
+        }
+        $config->{ssl} = $ssl_arg;
+    }
+    return MongoDB::MongoClient->new($config);
 }
 
 sub is_alive {

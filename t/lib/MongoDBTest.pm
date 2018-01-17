@@ -29,7 +29,7 @@ use version;
 
 our @EXPORT_OK = qw(
   build_client get_test_db server_version server_type clear_testdbs get_capped
-  skip_unless_mongod uri_escape get_unique_collection
+  skip_unless_mongod skip_if_mongod uri_escape get_unique_collection
 );
 
 my @testdbs;
@@ -120,6 +120,19 @@ sub skip_unless_mongod {
             $err .= ' and $ENV{MONGOD} not set' unless $ENV{MONGOD};
         }
         plan skip_all => "$err";
+    }
+}
+
+sub skip_if_mongod {
+    eval {
+        my $conn = build_client( server_selection_timeout_ms => 1000 );
+        my $topo = $conn->_topology;
+        $topo->scan_all_servers;
+        # will throw if no servers available
+        $topo->get_readable_link(MongoDB::ReadPreference->new({mode => 'nearest'}));
+    };
+    if ( ! $@ ) {
+        plan skip_all => "Test can't start with a running mongod";
     }
 }
 
