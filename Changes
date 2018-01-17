@@ -2,6 +2,38 @@
 
 {{ $NEXT }}
 
+  [Bug fixes]
+
+  - PERL-770 Repeated find_one queries sometime result in
+    MongoDB::ProtocolError on short network reads.
+
+  - PERL-796 Improve resolution of GridFS uploadDate.
+
+  - PERL-803 Kerberos authentication not working in 1.8.0 version
+    using some SASL backends.
+
+  - PERL-825 Unacknowledged insert_many throws an error.
+
+  - PERL-828 maxTimeMS incorrectly sent on tailable await cursors.
+
+  [Testing]
+
+  - PERL-800 CI testing no longer tests against EOL MongoDB 2.4.
+
+  - PERL-832 Skip Windows thread tests with SASL to avoid wrong pool in
+    global destruction test failures.
+
+  [Documentation]
+
+  - PERL-795 Document that GridFS filename+uploadDate must be unique.
+
+  - PERL-798 Fix typos in Tutorial.pod.
+
+  [Prerequisites]
+
+  - PERL-844 Timeout configs not supported for older IO::Socket::IP,
+    so minimum version bumped to 0.32.
+
 v1.8.0    2017-04-10 14:05:59-04:00 America/New_York
 
   [Additions]
