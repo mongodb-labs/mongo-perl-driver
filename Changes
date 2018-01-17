@@ -1,10 +1,73 @@
 # Change history for the MongoDB Perl driver:
 
 {{ $NEXT }}
-  
+
   [Testing]
 
   - PERL-671 Update CRUD testing data files
+
+  [Prerequisites]
+
+  - PERL-843 Bump IO::Socket::IP prereq to 0.32 for Timeout support
+
+v1.8.1    2018-01-17 10:44:22-05:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-770 Repeated find_one queries sometime result in
+    MongoDB::ProtocolError on short network reads.
+
+  - PERL-796 Improve resolution of GridFS uploadDate.
+
+  - PERL-803 Kerberos authentication not working in 1.8.0 version
+    using some SASL backends.
+
+  - PERL-825 Unacknowledged insert_many throws an error.
+
+  - PERL-828 maxTimeMS incorrectly sent on tailable await cursors.
+
+  [Testing]
+
+  - PERL-800 CI testing no longer tests against EOL MongoDB 2.4.
+
+  - PERL-832 Skip Windows thread tests with SASL to avoid wrong pool in
+    global destruction test failures.
+
+  [Documentation]
+
+  - PERL-795 Document that GridFS filename+uploadDate must be unique.
+
+  - PERL-798 Fix typos in Tutorial.pod.
+
+  [Prerequisites]
+
+  - PERL-844 Timeout configs not supported for older IO::Socket::IP,
+    so minimum version bumped to 0.32.
+
+v1.8.0    2017-04-10 14:05:59-04:00 America/New_York
+
+  [Additions]
+
+  - PERL-713 PERL-714 A username parameter no longer required for
+    MONGODB-X509 auth.  The username will be extracted from the client
+    certificate.
+
+  [Bug fixes]
+
+  - PERL-717 Avoid address lookup for localhost to workaround
+    IO::Socket::IP quirks.
+
+  - PERL-746 Fix GridFS tests on Windows if checked out from the repository
+
+  - PERL-763 Fix Makefile.PL for no '.' in @INC.
+
+  [~ Internal Changes ~]
+
+  - PERL-760 Switch to binary SASL payloads for compatibility with MongoDB
+    Atlas Free Tier.
+
+  - PERL-761 Replace OP_KILL_CURSORS with killCursors command for
+    compatibility with MongoDB Atlas Free Tier.
 
   [Prerequisites]
 
