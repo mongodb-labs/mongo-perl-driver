@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.8.1    2018-01-17 10:44:22-05:00 America/New_York
+
   [Bug fixes]
 
   - PERL-770 Repeated find_one queries sometime result in

@@ -22,7 +22,7 @@ package MongoDB::Role::_DatabaseOp;
 # and a BSON codec.  This is likely a "base role" for all operations.
 
 use version;
-our $VERSION = 'v1.8.1';
+our $VERSION = 'v1.8.2';
 
 use Moo::Role;
 

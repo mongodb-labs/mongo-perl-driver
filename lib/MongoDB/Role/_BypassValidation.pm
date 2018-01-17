@@ -22,7 +22,7 @@ package MongoDB::Role::_BypassValidation;
 # to a command
 
 use version;
-our $VERSION = 'v1.8.1';
+our $VERSION = 'v1.8.2';
 
 use Moo::Role;
 

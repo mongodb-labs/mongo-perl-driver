@@ -21,7 +21,7 @@ package MongoDB::Op::_DropIndexes;
 # Implements index drops; returns a MongoDB::CommandResult
 
 use version;
-our $VERSION = 'v1.8.1';
+our $VERSION = 'v1.8.2';
 
 use Moo;
 

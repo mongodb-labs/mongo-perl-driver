@@ -21,7 +21,7 @@ package MongoDB::BulkWriteResult;
 # ABSTRACT: MongoDB bulk write result document
 
 use version;
-our $VERSION = 'v1.8.1';
+our $VERSION = 'v1.8.2';
 
 # empty superclass for backcompatibility; add a variable to the
 # package namespace so Perl thinks it's a real package
