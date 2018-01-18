@@ -71,7 +71,7 @@ sub calc_filter {
 
     # Everything else should run on whatever 'os' subset is defined, but
     # only on 5.14 and 5.24 (default config).
-    $filter->{perl} = [ qr/24\.\d+$/, qr/14\.\d+$/ ];
+    $filter->{perl} = [ qr/^24$/, qr/^14$/ ];
 
     return $filter;
 }

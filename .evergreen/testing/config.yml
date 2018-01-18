@@ -1155,11 +1155,47 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_auth
+      - test_2.6_DB_ssl
+      - test_2.6_RS
+      - test_2.6_RS_auth
+      - test_2.6_SC
+      - test_2.6_SC_auth
       - test_3.0_DB
+      - test_3.0_DB_auth
+      - test_3.0_DB_ssl
+      - test_3.0_RS
+      - test_3.0_RS_auth
+      - test_3.0_SC
+      - test_3.0_SC_auth
       - test_3.2_DB
+      - test_3.2_DB_auth
+      - test_3.2_DB_ssl
+      - test_3.2_RS
+      - test_3.2_RS_auth
+      - test_3.2_SC
+      - test_3.2_SC_auth
       - test_3.4_DB
+      - test_3.4_DB_auth
+      - test_3.4_DB_ssl
+      - test_3.4_RS
+      - test_3.4_RS_auth
+      - test_3.4_SC
+      - test_3.4_SC_auth
       - test_3.6_DB
+      - test_3.6_DB_auth
+      - test_3.6_DB_ssl
+      - test_3.6_RS
+      - test_3.6_RS_auth
+      - test_3.6_SC
+      - test_3.6_SC_auth
       - test_latest_DB
+      - test_latest_DB_auth
+      - test_latest_DB_ssl
+      - test_latest_RS
+      - test_latest_RS_auth
+      - test_latest_SC
+      - test_latest_SC_auth
   - name: os_rhel62_perl_14t
     display_name: RHEL 6.2 Perl 5.14t
     expansions:
@@ -1455,11 +1491,47 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_auth
+      - test_2.6_DB_ssl
+      - test_2.6_RS
+      - test_2.6_RS_auth
+      - test_2.6_SC
+      - test_2.6_SC_auth
       - test_3.0_DB
+      - test_3.0_DB_auth
+      - test_3.0_DB_ssl
+      - test_3.0_RS
+      - test_3.0_RS_auth
+      - test_3.0_SC
+      - test_3.0_SC_auth
       - test_3.2_DB
+      - test_3.2_DB_auth
+      - test_3.2_DB_ssl
+      - test_3.2_RS
+      - test_3.2_RS_auth
+      - test_3.2_SC
+      - test_3.2_SC_auth
       - test_3.4_DB
+      - test_3.4_DB_auth
+      - test_3.4_DB_ssl
+      - test_3.4_RS
+      - test_3.4_RS_auth
+      - test_3.4_SC
+      - test_3.4_SC_auth
       - test_3.6_DB
+      - test_3.6_DB_auth
+      - test_3.6_DB_ssl
+      - test_3.6_RS
+      - test_3.6_RS_auth
+      - test_3.6_SC
+      - test_3.6_SC_auth
       - test_latest_DB
+      - test_latest_DB_auth
+      - test_latest_DB_ssl
+      - test_latest_RS
+      - test_latest_RS_auth
+      - test_latest_SC
+      - test_latest_SC_auth
   - name: os_rhel62_perl_24t
     display_name: RHEL 6.2 Perl 5.24t
     expansions:
@@ -1574,8 +1646,26 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_auth
+      - test_3.4_DB_ssl
+      - test_3.4_RS
+      - test_3.4_RS_auth
+      - test_3.4_SC
+      - test_3.4_SC_auth
       - test_3.6_DB
+      - test_3.6_DB_auth
+      - test_3.6_DB_ssl
+      - test_3.6_RS
+      - test_3.6_RS_auth
+      - test_3.6_SC
+      - test_3.6_SC_auth
       - test_latest_DB
+      - test_latest_DB_auth
+      - test_latest_DB_ssl
+      - test_latest_RS
+      - test_latest_RS_auth
+      - test_latest_SC
+      - test_latest_SC_auth
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_14t
@@ -1754,8 +1844,26 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_auth
+      - test_3.4_DB_ssl
+      - test_3.4_RS
+      - test_3.4_RS_auth
+      - test_3.4_SC
+      - test_3.4_SC_auth
       - test_3.6_DB
+      - test_3.6_DB_auth
+      - test_3.6_DB_ssl
+      - test_3.6_RS
+      - test_3.6_RS_auth
+      - test_3.6_SC
+      - test_3.6_SC_auth
       - test_latest_DB
+      - test_latest_DB_auth
+      - test_latest_DB_ssl
+      - test_latest_RS
+      - test_latest_RS_auth
+      - test_latest_SC
+      - test_latest_SC_auth
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_24t
@@ -1840,8 +1948,26 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_auth
+      - test_3.4_DB_ssl
+      - test_3.4_RS
+      - test_3.4_RS_auth
+      - test_3.4_SC
+      - test_3.4_SC_auth
       - test_3.6_DB
+      - test_3.6_DB_auth
+      - test_3.6_DB_ssl
+      - test_3.6_RS
+      - test_3.6_RS_auth
+      - test_3.6_SC
+      - test_3.6_SC_auth
       - test_latest_DB
+      - test_latest_DB_auth
+      - test_latest_DB_ssl
+      - test_latest_RS
+      - test_latest_RS_auth
+      - test_latest_SC
+      - test_latest_SC_auth
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_14t
@@ -2110,8 +2236,26 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_auth
+      - test_3.4_DB_ssl
+      - test_3.4_RS
+      - test_3.4_RS_auth
+      - test_3.4_SC
+      - test_3.4_SC_auth
       - test_3.6_DB
+      - test_3.6_DB_auth
+      - test_3.6_DB_ssl
+      - test_3.6_RS
+      - test_3.6_RS_auth
+      - test_3.6_SC
+      - test_3.6_SC_auth
       - test_latest_DB
+      - test_latest_DB_auth
+      - test_latest_DB_ssl
+      - test_latest_RS
+      - test_latest_RS_auth
+      - test_latest_SC
+      - test_latest_SC_auth
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_24t
@@ -2223,11 +2367,47 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_auth
+      - test_2.6_DB_ssl
+      - test_2.6_RS
+      - test_2.6_RS_auth
+      - test_2.6_SC
+      - test_2.6_SC_auth
       - test_3.0_DB
+      - test_3.0_DB_auth
+      - test_3.0_DB_ssl
+      - test_3.0_RS
+      - test_3.0_RS_auth
+      - test_3.0_SC
+      - test_3.0_SC_auth
       - test_3.2_DB
+      - test_3.2_DB_auth
+      - test_3.2_DB_ssl
+      - test_3.2_RS
+      - test_3.2_RS_auth
+      - test_3.2_SC
+      - test_3.2_SC_auth
       - test_3.4_DB
+      - test_3.4_DB_auth
+      - test_3.4_DB_ssl
+      - test_3.4_RS
+      - test_3.4_RS_auth
+      - test_3.4_SC
+      - test_3.4_SC_auth
       - test_3.6_DB
+      - test_3.6_DB_auth
+      - test_3.6_DB_ssl
+      - test_3.6_RS
+      - test_3.6_RS_auth
+      - test_3.6_SC
+      - test_3.6_SC_auth
       - test_latest_DB
+      - test_latest_DB_auth
+      - test_latest_DB_ssl
+      - test_latest_RS
+      - test_latest_RS_auth
+      - test_latest_SC
+      - test_latest_SC_auth
   - name: os_windows64_perl_16
     display_name: Win64 Perl 5.16
     expansions:
@@ -2343,11 +2523,47 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_auth
+      - test_2.6_DB_ssl
+      - test_2.6_RS
+      - test_2.6_RS_auth
+      - test_2.6_SC
+      - test_2.6_SC_auth
       - test_3.0_DB
+      - test_3.0_DB_auth
+      - test_3.0_DB_ssl
+      - test_3.0_RS
+      - test_3.0_RS_auth
+      - test_3.0_SC
+      - test_3.0_SC_auth
       - test_3.2_DB
+      - test_3.2_DB_auth
+      - test_3.2_DB_ssl
+      - test_3.2_RS
+      - test_3.2_RS_auth
+      - test_3.2_SC
+      - test_3.2_SC_auth
       - test_3.4_DB
+      - test_3.4_DB_auth
+      - test_3.4_DB_ssl
+      - test_3.4_RS
+      - test_3.4_RS_auth
+      - test_3.4_SC
+      - test_3.4_SC_auth
       - test_3.6_DB
+      - test_3.6_DB_auth
+      - test_3.6_DB_ssl
+      - test_3.6_RS
+      - test_3.6_RS_auth
+      - test_3.6_SC
+      - test_3.6_SC_auth
       - test_latest_DB
+      - test_latest_DB_auth
+      - test_latest_DB_ssl
+      - test_latest_RS
+      - test_latest_RS_auth
+      - test_latest_SC
+      - test_latest_SC_auth
   - name: os_windows64_perl_26
     display_name: Win64 Perl 5.26
     expansions:
