@@ -339,15 +339,15 @@ sub BUILD {
 
     if ( defined $result{username} ) {
         MongoDB::Error->throw(
-            "URI '$self' could not be parsed (username must be URL encoded, found unescaped '\@'"
-        ) if $result{username} =~ /@/;
+            "URI '$self' could not be parsed (username must be URL encoded)"
+        ) if __has_unescaped_characters($result{username});
         $result{username} = _unescape_all( $result{username} );
     }
 
     if ( defined $result{password} ) {
         MongoDB::Error->throw(
-            "URI '$self' could not be parsed (password must be URL encoded, found unescaped ':'")
-          if $result{password} =~ /:/;
+            "URI '$self' could not be parsed (password must be URL encoded)"
+        ) if __has_unescaped_characters($result{password});
         $result{password} = _unescape_all( $result{password} );
     }
 
@@ -420,6 +420,12 @@ sub __uri_escape {
     }
     $str =~ s/($unsafe_char)/$escapes{$1}/ge;
     return $str;
+}
+
+# Check if should have been escaped; allow safe chars plus '+' and '%'
+sub __has_unescaped_characters {
+    my ($str) = @_;
+    return $str =~ m{[^WA-Za-z0-9._~+%-]};
 }
 
 # redact user credentials when stringifying

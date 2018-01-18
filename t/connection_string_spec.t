@@ -80,9 +80,10 @@ sub run_test {
 
 my $dir      = path("t/data/connection_string");
 my $iterator = $dir->iterator;
+my $json = JSON::MaybeXS->new;
 while ( my $path = $iterator->() ) {
     next unless $path =~ /\.json$/;
-    my $plan = eval { decode_json( $path->slurp_utf8 ) };
+    my $plan = eval { $json->decode( $path->slurp_utf8 ) };
     if ($@) {
         die "Error decoding $path: $@";
     }
