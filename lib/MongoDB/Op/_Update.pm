@@ -33,6 +33,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     Bool
     Maybe
+    ArrayRef
 );
 use Tie::IxHash;
 use boolean;
@@ -71,6 +72,11 @@ has collation => (
     isa      => Maybe( [Document] ),
 );
 
+has arrayFilters => (
+  is => 'ro',
+  isa => Maybe( [ArrayRef[Document]] ),
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
@@ -104,6 +110,7 @@ sub execute {
         multi  => $self->multi ? $true : $false,
         upsert => $self->upsert ? $true : $false,
         ( defined $self->collation ? ( collation => $self->collation ) : () ),
+        ( defined $self->arrayFilters ? ( arrayFilters => $self->arrayFilters ) : () ),
     };
 
     return ! $self->write_concern->is_acknowledged

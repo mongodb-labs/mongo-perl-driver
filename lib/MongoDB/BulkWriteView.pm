@@ -33,6 +33,7 @@ use MongoDB::_Types qw(
 );
 use Types::Standard qw(
     Maybe
+    ArrayRef
     InstanceOf
 );
 use boolean;
@@ -59,6 +60,11 @@ has _collation => (
     isa => Maybe [Document],
 );
 
+has _array_filters => (
+    is => 'ro',
+    isa => Maybe [ArrayRef[Document]],
+);
+
 has _upsert => (
     is      => 'ro',
     isa     => Booleanpm,
@@ -72,6 +78,11 @@ with $_ for qw(
 sub collation {
     my ($self, $collation) = @_;
     return $self->new( %$self, _collation => $collation );
+}
+
+sub arrayFilters {
+  my ( $self, $array_filters ) = @_;
+  return $self->new( %$self, _array_filters => $array_filters );
 }
 
 sub upsert {
@@ -122,6 +133,7 @@ sub _update {
         upsert => boolean( $self->_upsert ),
         is_replace => $method eq 'replace_one',
         (defined $self->_collation ? (collation => $self->_collation) : ()),
+        (defined $self->_array_filters ? (arrayFilters => $self->_array_filters) : ()),
     };
 
     $self->_enqueue_write( [ update => $update ] );
@@ -137,6 +149,7 @@ sub delete_many {
                 q     => $self->_query,
                 limit => 0,
                 ( defined $self->_collation ? ( collation => $self->_collation ) : () ),
+                (defined $self->_array_filters ? (arrayFilters => $self->_array_filters) : ()),
             }
         ]
     );
@@ -151,6 +164,7 @@ sub delete_one {
                 q     => $self->_query,
                 limit => 1,
                 ( defined $self->_collation ? ( collation => $self->_collation ) : () ),
+                (defined $self->_array_filters ? (arrayFilters => $self->_array_filters) : ()),
             }
         ]
     );
@@ -224,6 +238,9 @@ __END__
     # Remove all documents matching the selector
     bulk->find( { a => 5 } )->delete_many();
 
+    # Update any arrays with the matching filter
+    bulk->find( {} )->arrayFilters([ { 'i.b' => 1 } ])->update_many( { '$set' => { 'y.$[i].b' => 2 } } );
+
     # Remove all documents matching the selector, with respect to a collation
     bulk->find( { a => { '$gte' => 'F' } )->collation($collation)->delete_many();
 
@@ -238,8 +255,16 @@ document.
 To instantiate a C<MongoDB::BulkWriteView>, use the L<find|MongoDB::BulkWrite/find>
 method from L<MongoDB::BulkWrite>.
 
-Except for L</collation> and L</upsert>, all methods have an empty return on
-success; an exception will be thrown on error.
+Except for L</arrayFilters>, L</collation> and L</upsert>, all methods have an
+empty return on success; an exception will be thrown on error.
+
+=method arrayFilters
+
+    $bulk->arrayFilters( $array_filters )->update_many( $modification );
+
+Returns a new C<MongoDB::BulkWriteView> object, where the specified arrayFilter
+will be used to determine which array elements to modify for an update
+operation on an array field.
 
 =method collation
 
