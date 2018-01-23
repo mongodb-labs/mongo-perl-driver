@@ -28,8 +28,16 @@ use boolean;
 use version;
 
 our @EXPORT_OK = qw(
-  build_client get_test_db server_version server_type clear_testdbs get_capped
-  skip_unless_mongod uri_escape get_unique_collection
+    build_client
+    get_test_db
+    server_version
+    server_type
+    clear_testdbs
+    get_capped
+    skip_unless_mongod
+    uri_escape
+    get_unique_collection
+    get_feature_compat_version
 );
 
 my @testdbs;
@@ -151,6 +159,18 @@ sub server_type {
         $server_type = 'Unknown';
     }
     return $server_type;
+}
+
+sub get_feature_compat_version {
+    my $conn = shift;
+
+    my $feature_comp = $conn->send_admin_command(
+        Tie::IxHash->new( getParameter => 1, featureCompatibilityVersion => 1 )
+    );
+
+    my $ver = $feature_comp->output->{featureCompatibilityVersion};
+    $ver = $ver->{version} if ref($ver) eq 'HASH';
+    return $ver;
 }
 
 # URI escaping adapted from HTTP::Tiny
