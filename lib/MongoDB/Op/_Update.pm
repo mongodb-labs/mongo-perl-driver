@@ -100,6 +100,15 @@ sub execute {
           if !$self->write_concern->is_acknowledged;
     }
 
+    if ( defined $self->arrayFilters ) {
+        MongoDB::UsageError->throw(
+            "MongoDB host '" . $link->address . "' doesn't support arrayFilters" )
+          if !$link->supports_arrayFilters;
+        MongoDB::UsageError->throw(
+            "Unacknowledged updates that specify arrayFilters are not allowed")
+          if !$self->write_concern->is_acknowledged;
+    }
+
     my $orig_op = {
         q => (
             ref( $self->filter ) eq 'ARRAY'
