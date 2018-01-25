@@ -569,6 +569,7 @@ sub _update_ls_timeout_minutes {
           ? $_->logical_session_timeout_minutes
           : -1
     } @data_bearing_servers;
+    # min will return undef if the array is empty
     if ( defined $timeout && $timeout < 0 ) {
         $timeout = undef;
     }
