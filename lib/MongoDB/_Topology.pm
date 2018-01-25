@@ -47,7 +47,7 @@ use Types::Standard qw(
 );
 use MongoDB::_Server;
 use Config;
-use List::Util qw/first max/;
+use List::Util qw/first max min/;
 use Safe::Isa;
 use Time::HiRes qw/time usleep/;
 use Try::Tiny;
@@ -562,23 +562,17 @@ sub _check_wire_versions {
 sub _update_ls_timeout_minutes {
     my ( $self, $new_server ) = @_;
 
-    my $timeout = $self->logical_session_timeout_minutes;
-    my $server_timeout = $new_server->logical_session_timeout_minutes;
-    # dont bother modifying ls timeout if the new server doesnt define it, unless its an RS Primary
-    if ( $new_server->defined_ls_timeout_minutes
-      && $new_server->is_available
-      # RSOthers should also be ignored for this
-      && $new_server->type ne 'RSOther' ) {
-        unless ( defined $server_timeout ) {
-            $timeout = undef;
-        } elsif ( ! defined $timeout ) {
-            # it timeout hasnt actually been set yet
-            $timeout = $server_timeout;
-        } elsif ( $server_timeout < $timeout ) {
-            $timeout = $server_timeout;
-        }
-        $self->_set_logical_session_timeout_minutes( $timeout );
+    my @data_bearing_servers = grep { $_->is_data_bearing } $self->all_servers;
+    my $timeout = min map {
+        # use -1 as a flag to prevent undefined warnings
+        defined $_->logical_session_timeout_minutes
+          ? $_->logical_session_timeout_minutes
+          : -1
+    } @data_bearing_servers;
+    if ( defined $timeout && $timeout < 0 ) {
+        $timeout = undef;
     }
+    $self->_set_logical_session_timeout_minutes( $timeout );
     return;
 }
 

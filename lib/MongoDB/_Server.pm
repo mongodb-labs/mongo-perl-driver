@@ -252,25 +252,19 @@ sub _build_is_writable {
     return !! grep { $type eq $_ } qw/Standalone RSPrimary Mongos/;
 }
 
-# logicalSessionTimeoutMinutes can be not set by a client
-
-has defined_ls_timeout_minutes => (
+has is_data_bearing => (
     is => 'lazy',
     isa => Bool,
-    builder => "_build_defined_ls_timeout_minutes",
+    builder => "_build_is_data_bearing",
 );
 
-sub _build_defined_ls_timeout_minutes {
+sub _build_is_data_bearing {
     my ( $self ) = @_;
-
-    if ( exists $self->is_master->{logicalSessionTimeoutMinutes}
-      || $self->type eq 'RSPrimary'
-      || $self->type eq 'Mongos' ) {
-        return 1;
-    }
-    return;
+    my $type = $self->type;
+    return !! grep { $type eq $_ } qw/Standalone RSPrimary RSSecondary Mongos/;
 }
 
+# logicalSessionTimeoutMinutes can be not set by a client
 has logical_session_timeout_minutes => (
     is => 'lazy',
     isa => Maybe [NonNegNum],
