@@ -24,12 +24,12 @@ use Moo::Role;
 
 use MongoDB::Error;
 use MongoDB::_Types -types, 'to_IxHash';
+use Devel::Dwarn;
 
 use namespace::clean;
 
 requires qw/client/;
 
-use Devel::Dwarn;
 sub _apply_cluster_time {
     my ( $self, $link, $query_ref ) = @_;
 
@@ -37,14 +37,22 @@ sub _apply_cluster_time {
     return unless defined $self->client;
     return unless defined $self->client->cluster_time;
 
-    Dwarn $self->client->cluster_time;
-    Dwarn $link->server->is_master->{maxWireVersion};
-
     if ( $link->server->is_master->{maxWireVersion} >= 6 ) {
         $$query_ref = to_IxHash( $$query_ref );
         ($$query_ref)->Push( '$clusterTime' => $self->client->cluster_time );
     }
 
+    return;
+}
+
+sub _read_cluster_time {
+    my ( $self, $response ) = @_;
+
+    return unless defined $self->client;
+
+    return unless defined $response->output->{'$clusterTime'};
+
+    $self->client->_update_cluster_time( $response->output->{'$clusterTime'} );
     return;
 }
 

@@ -12,4 +12,12 @@ around _new => sub {
     return $ret;
 };
 
+sub CLEAR_COMMAND_QUEUE {
+    @COMMAND_QUEUE = ();
+}
+
+sub GET_LAST_COMMAND {
+    return pop @COMMAND_QUEUE;
+}
+
 1;

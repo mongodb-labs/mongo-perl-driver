@@ -27,9 +27,25 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type get_capped/;
+use lib "devel/lib";
 
-skip_unless_mongod();
+use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
+
+use MongoDBTest::Orchestrator; 
+
+use MongoDBTest qw/build_client get_test_db server_version server_type clear_testdbs/;
+
+# This test starts servers on localhost ports 27017, 27018 and 27019. We skip if
+# these aren't available.
+
+my $orc =
+MongoDBTest::Orchestrator->new(
+  config_file => "devel/config/replicaset-single-3.6.yml" );
+$orc->start;
+
+$ENV{MONGOD} = $orc->as_uri;
+
+print $ENV{MONGOD};
 
 my $conn           = build_client();
 my $testdb         = get_test_db($conn);
@@ -67,6 +83,7 @@ subtest 'LIFO Pool' => sub {
     is $session_d->session_id->{id}, $id_a->{id}, 'Session D same ID as Session A';
 };
 
+use Devel::Dwarn;
 subtest 'clusterTime in commands' => sub {
     # Need a new client with high heartbeatFrequencyMS
     my $local_client = build_client(
@@ -80,25 +97,30 @@ subtest 'clusterTime in commands' => sub {
         'MongoDB::Op::_Command', 'Test::Role::CommandDebug',
     );
 
-    use Devel::Dwarn;
-
-    #Dwarn $local_client;
+    # Make sure we have clusterTime already populated
+    $local_client->send_admin_command(Tie::IxHash->new('ismaster' => 1));
 
     subtest 'ping' => sub {
         my $ping_result = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
 
-        my $command = shift @Test::Role::CommandDebug::COMMAND_QUEUE;
+        my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
 
         ok $command->query->EXISTS('ping'), 'ping in sent command';
 
-        # TODO check maxWireVersion
-        ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
-        Dwarn $ping_result;
+        if ( $command->client->_topology->wire_version_ceil >= 6 ) {
+          ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
 
-        my $ping_result2 = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
-        Dwarn $ping_result2;
+          my $ping_result2 = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
+          my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
+
+          is $command->query->FETCH('$clusterTime')->{clusterTime}->{sec},
+             $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
+             "clusterTime matches";
+        }
     };
 
 };
+
+clear_testdbs;
 
 done_testing;

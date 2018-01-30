@@ -68,17 +68,13 @@ with $_ for qw(
   MongoDB::Role::_ReadPrefModifier
   MongoDB::Role::_ClusterTimeModifier
 );
-use Devel::Dwarn;
+
 sub execute {
     my ( $self, $link, $topology_type ) = @_;
     $topology_type ||= 'Single'; # if not specified, assume direct
 
-    Dwarn "Pre Query";
-    Dwarn $self->{query};
     $self->_apply_cluster_time( $link, \$self->{query} );
 
-    Dwarn "Post Query";
-    Dwarn $self->{query};
     # $query is passed as a reference because it *may* be replaced
     $self->_apply_read_prefs( $link, $topology_type, $self->{query_flags}, \$self->{query});
 
@@ -97,14 +93,14 @@ sub execute {
     $link->write( $op_bson ),
     ( my $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
 
-    Dwarn $result;
     my $res = MongoDB::CommandResult->_new(
         output => $self->{bson_codec}->decode_one( $result->{docs} ),
         address => $link->address,
     );
-    Dwarn $res;
 
     $res->assert;
+
+    $self->_read_cluster_time($res);
 
     return $res;
 }

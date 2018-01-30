@@ -1108,6 +1108,35 @@ sub _build__read_concern {
     );
 }
 
+=method cluster_time
+
+Returns the latest $clusterTime returned from a replicaset or sharded cluster,
+or undef if not supported or not seen.
+
+=cut
+
+has cluster_time => (
+    is => 'rwp',
+    isa => Maybe[Document],
+    init_arg => undef,
+    default => undef,
+);
+
+sub _update_cluster_time {
+    my ( $self, $cluster_time ) = @_;
+
+    # Only update the cluster time if it is more recent than the current entry
+    if ( ! defined $self->cluster_time ) {
+        $self->_set_cluster_time( $cluster_time );
+    } else {
+        if ( $cluster_time->{'clusterTime'}->sec
+           > $self->cluster_time->{'clusterTime'} ) {
+            $self->_set_cluster_time( $cluster_time );
+        }
+    }
+    return;
+}
+
 #--------------------------------------------------------------------------#
 # private attributes
 #--------------------------------------------------------------------------#
@@ -1223,22 +1252,7 @@ has _server_session_pool => (
     init_arg => undef,
     builder => sub { [] },
 );
-use Digest::SHA qw/ hmac_sha1 /;
-has cluster_time => (
-    is => 'rwp',
-    isa => Document,
-    init_arg => undef,
-    default => sub {
-        return Tie::IxHash->new(
-            clusterTime => MongoDB::Timestamp->new( sec => 0, inc => 0 ),
-            signature => {
-              # Seriously? Need to hash something without knowing how to do so? what?
-                hash => MongoDB::BSON::Binary->new( data => hmac_sha1('') ),
-                keyId => 0,
-            },
-        )
-    },
-);
+
 
 #--------------------------------------------------------------------------#
 # Constructor customization
