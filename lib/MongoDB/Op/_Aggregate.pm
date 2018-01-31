@@ -133,6 +133,7 @@ sub execute {
     );
 
     my $op = MongoDB::Op::_Command->_new(
+        client          => $self->client,
         db_name         => $self->db_name,
         query           => Tie::IxHash->new(@command),
         query_flags     => {},

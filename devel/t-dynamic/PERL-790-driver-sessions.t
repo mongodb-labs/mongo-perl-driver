@@ -33,7 +33,14 @@ use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
 
 use MongoDBTest::Orchestrator; 
 
-use MongoDBTest qw/build_client get_test_db server_version server_type clear_testdbs/;
+use MongoDBTest qw/
+    build_client
+    get_test_db
+    server_version
+    server_type
+    clear_testdbs
+    get_unique_collection
+/;
 
 # This test starts servers on localhost ports 27017, 27018 and 27019. We skip if
 # these aren't available.
@@ -85,22 +92,15 @@ subtest 'LIFO Pool' => sub {
 
 use Devel::Dwarn;
 subtest 'clusterTime in commands' => sub {
-    # Need a new client with high heartbeatFrequencyMS
-    my $local_client = build_client(
-        # You want big number? we give you big number
-        heartbeat_frequency_ms => 9_000_000_000,
-    );
-
     use Test::Role::CommandDebug;
 
     Role::Tiny->apply_roles_to_package(
         'MongoDB::Op::_Command', 'Test::Role::CommandDebug',
     );
 
-    # Make sure we have clusterTime already populated
-    $local_client->send_admin_command(Tie::IxHash->new('ismaster' => 1));
-
     subtest 'ping' => sub {
+        my $local_client = get_high_heartbeat_client();
+
         my $ping_result = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
 
         my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
@@ -108,18 +108,67 @@ subtest 'clusterTime in commands' => sub {
         ok $command->query->EXISTS('ping'), 'ping in sent command';
 
         if ( $command->client->_topology->wire_version_ceil >= 6 ) {
-          ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
+            ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
 
-          my $ping_result2 = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
-          my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
+            my $ping_result2 = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
+            my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
 
-          is $command->query->FETCH('$clusterTime')->{clusterTime}->{sec},
-             $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
-             "clusterTime matches";
+            is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
+               $ping_result->output->{'$clusterTime'}->{clusterTime}->{sec},
+               "clusterTime matches";
         }
     };
 
+    Test::Role::CommandDebug::CLEAR_COMMAND_QUEUE;
+
+    subtest 'aggregate' => sub {
+        my $local_client = get_high_heartbeat_client();
+        my $local_db = get_test_db($local_client);
+        my $local_coll = get_unique_collection($local_db, 'cluster_agg');
+
+        $local_coll->insert_many( [ { wanted => 1, score => 56 },
+                              { wanted => 1, score => 72 },
+                              { wanted => 1, score => 96 },
+                              { wanted => 1, score => 32 },
+                              { wanted => 1, score => 61 },
+                              { wanted => 1, score => 33 },
+                              { wanted => 0, score => 1000 } ] );
+
+        my $agg_result = $local_coll->aggregate( [
+            { '$match'   => { wanted => 1 } },
+            { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } }
+        ], { explain => 1 } );
+
+        my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
+
+        ok $command->query->EXISTS('aggregate'), 'aggregate in sent command';
+
+        if ( $command->client->_topology->wire_version_ceil >= 6 ) {
+            ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
+
+            my $agg_result2 = $local_coll->aggregate( [ { '$match'   => { wanted => 1 } },
+                { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
+
+            my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
+
+            is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
+               $agg_result->_docs->[0]->{'$clusterTime'}->{clusterTime}->{sec},
+               "clusterTime matches";
+        }
+    };
 };
+
+sub get_high_heartbeat_client {
+    my $local_client = build_client(
+        # You want big number? we give you big number
+        heartbeat_frequency_ms => 9_000_000_000,
+    );
+
+    # Make sure we have clusterTime already populated
+    $local_client->send_admin_command(Tie::IxHash->new('ismaster' => 1));
+
+    return $local_client;
+}
 
 clear_testdbs;
 
