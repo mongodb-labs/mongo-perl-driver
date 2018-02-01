@@ -104,6 +104,7 @@ subtest 'clusterTime in commands' => sub {
         my $ping_result = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
 
         my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
+        my $result = Test::Role::CommandDebug::GET_LAST_EXECUTE;
 
         ok $command->query->EXISTS('ping'), 'ping in sent command';
 
@@ -114,12 +115,13 @@ subtest 'clusterTime in commands' => sub {
             my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
 
             is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
-               $ping_result->output->{'$clusterTime'}->{clusterTime}->{sec},
+               $result->output->{'$clusterTime'}->{clusterTime}->{sec},
                "clusterTime matches";
         }
     };
 
     Test::Role::CommandDebug::CLEAR_COMMAND_QUEUE;
+    Test::Role::CommandDebug::CLEAR_EXECUTE_QUEUE;
 
     subtest 'aggregate' => sub {
         my $local_client = get_high_heartbeat_client();
@@ -137,9 +139,10 @@ subtest 'clusterTime in commands' => sub {
         my $agg_result = $local_coll->aggregate( [
             { '$match'   => { wanted => 1 } },
             { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } }
-        ], { explain => 1 } );
+        ] );
 
         my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
+        my $result = Test::Role::CommandDebug::GET_LAST_EXECUTE;
 
         ok $command->query->EXISTS('aggregate'), 'aggregate in sent command';
 
@@ -152,10 +155,79 @@ subtest 'clusterTime in commands' => sub {
             my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
 
             is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
-               $agg_result->_docs->[0]->{'$clusterTime'}->{clusterTime}->{sec},
+               $result->output->{'$clusterTime'}->{clusterTime}->{sec},
                "clusterTime matches";
         }
     };
+
+    Test::Role::CommandDebug::CLEAR_COMMAND_QUEUE;
+    Test::Role::CommandDebug::CLEAR_EXECUTE_QUEUE;
+
+    subtest 'find' => sub {
+        my $local_client = get_high_heartbeat_client();
+        my $local_db = get_test_db($local_client);
+        my $local_coll = get_unique_collection($local_db, 'cluster_find');
+
+        $local_coll->insert_one({_id => 1});
+
+        # need to actually call ->result to make it touch the database, and
+        # explain 1 to get it to show the whole returned result
+        my $find_result = $local_coll->find({_id => 1})->result;
+
+        my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
+        my $result = Test::Role::CommandDebug::GET_LAST_EXECUTE;
+
+        ok $command->query->EXISTS('find'), 'find in sent command';
+
+        if ( $command->client->_topology->wire_version_ceil >= 6 ) {
+            ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
+
+            my $find_result2 = $local_coll->find({_id => 1})->result;
+
+            my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
+
+            is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
+               $result->output->{'$clusterTime'}->{clusterTime}->{sec},
+               "clusterTime matches";
+        }
+    };
+
+    Test::Role::CommandDebug::CLEAR_COMMAND_QUEUE;
+    Test::Role::CommandDebug::CLEAR_EXECUTE_QUEUE;
+
+#    subtest 'insert_one' => sub {
+#        my $local_client = get_high_heartbeat_client();
+#        my $local_db = get_test_db($local_client);
+#        my $local_coll = get_unique_collection($local_db, 'cluster_find');
+#
+#        my $insert_result = $local_coll->insert_one({_id => 1});
+#
+#        my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
+#        my $result = Test::Role::CommandDebug::GET_LAST_EXECUTE;
+#
+#        Dwarn "Command";
+#        Dwarn $command;
+#        Dwarn "Result";
+#        Dwarn $result;
+#
+#        ok $command->query->EXISTS('find'), 'find in sent command';
+#
+#        if ( $command->client->_topology->wire_version_ceil >= 6 ) {
+#            ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
+#
+#            my $insert_result2 = $local_coll->insert_one({_id => 2});
+#
+#            my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
+#
+#            is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
+#               $result->output->{'$clusterTime'}->{clusterTime}->{sec},
+#               "clusterTime matches";
+#        }
+#    };
+#
+#    Test::Role::CommandDebug::CLEAR_COMMAND_QUEUE;
+#    Test::Role::CommandDebug::CLEAR_EXECUTE_QUEUE;
+
 };
 
 sub get_high_heartbeat_client {

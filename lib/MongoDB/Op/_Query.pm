@@ -193,6 +193,7 @@ sub _command_query {
     my ( $self, $link, $topology ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
+        client          => $self->client,
         db_name         => $self->db_name,
         query           => $self->as_command,
         query_flags     => {},

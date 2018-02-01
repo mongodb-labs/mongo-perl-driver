@@ -24,6 +24,7 @@ use Moo::Role;
 
 use MongoDB::Error;
 use MongoDB::_Types -types, 'to_IxHash';
+use Scalar::Util qw/ blessed /;
 use Devel::Dwarn;
 
 use namespace::clean;
@@ -50,9 +51,16 @@ sub _read_cluster_time {
 
     return unless defined $self->client;
 
-    return unless defined $response->output->{'$clusterTime'};
+    my $cluster_time;
+    if ( blessed( $response ) && $response->isa( 'MongoDB::CommandResult' ) ) {
+        $cluster_time = $response->output->{'$clusterTime'};
+    } else {
+        $cluster_time = $response->{'$clusterTime'};
+    }
 
-    $self->client->_update_cluster_time( $response->output->{'$clusterTime'} );
+    return unless defined $cluster_time;
+
+    $self->client->_update_cluster_time( $cluster_time );
     return;
 }
 
