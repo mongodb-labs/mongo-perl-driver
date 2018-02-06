@@ -92,10 +92,11 @@ subtest 'LIFO Pool' => sub {
 
 use Devel::Dwarn;
 subtest 'clusterTime in commands' => sub {
-    use Test::Role::CommandDebug;
+
+    use Test::Role::BSONDebug;
 
     Role::Tiny->apply_roles_to_package(
-        'MongoDB::Op::_Command', 'Test::Role::CommandDebug',
+        'MongoDB::BSON', 'Test::Role::BSONDebug',
     );
 
     subtest 'ping' => sub {
@@ -103,25 +104,26 @@ subtest 'clusterTime in commands' => sub {
 
         my $ping_result = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
 
-        my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
-        my $result = Test::Role::CommandDebug::GET_LAST_EXECUTE;
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $result = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
 
-        ok $command->query->EXISTS('ping'), 'ping in sent command';
+        ok $command->EXISTS('ping'), 'ping in sent command';
 
-        if ( $command->client->_topology->wire_version_ceil >= 6 ) {
-            ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        if ( $local_client->_topology->wire_version_ceil >= 6 ) {
+            ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
 
             my $ping_result2 = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
-            my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
 
-            is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
-               $result->output->{'$clusterTime'}->{clusterTime}->{sec},
+            my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+            is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
+               $result->{'$clusterTime'}->{clusterTime}->{sec},
                "clusterTime matches";
         }
     };
 
-    Test::Role::CommandDebug::CLEAR_COMMAND_QUEUE;
-    Test::Role::CommandDebug::CLEAR_EXECUTE_QUEUE;
+    Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+    Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 
     subtest 'aggregate' => sub {
         my $local_client = get_high_heartbeat_client();
@@ -141,27 +143,27 @@ subtest 'clusterTime in commands' => sub {
             { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } }
         ] );
 
-        my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
-        my $result = Test::Role::CommandDebug::GET_LAST_EXECUTE;
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $result = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
 
-        ok $command->query->EXISTS('aggregate'), 'aggregate in sent command';
+        ok $command->EXISTS('aggregate'), 'aggregate in sent command';
 
-        if ( $command->client->_topology->wire_version_ceil >= 6 ) {
-            ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        if ( $local_client->_topology->wire_version_ceil >= 6 ) {
+            ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
 
             my $agg_result2 = $local_coll->aggregate( [ { '$match'   => { wanted => 1 } },
                 { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
 
-            my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
+            my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 
-            is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
-               $result->output->{'$clusterTime'}->{clusterTime}->{sec},
+            is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
+               $result->{'$clusterTime'}->{clusterTime}->{sec},
                "clusterTime matches";
         }
     };
 
-    Test::Role::CommandDebug::CLEAR_COMMAND_QUEUE;
-    Test::Role::CommandDebug::CLEAR_EXECUTE_QUEUE;
+    Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+    Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 
     subtest 'find' => sub {
         my $local_client = get_high_heartbeat_client();
@@ -174,60 +176,54 @@ subtest 'clusterTime in commands' => sub {
         # explain 1 to get it to show the whole returned result
         my $find_result = $local_coll->find({_id => 1})->result;
 
-        my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
-        my $result = Test::Role::CommandDebug::GET_LAST_EXECUTE;
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $result = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
 
-        ok $command->query->EXISTS('find'), 'find in sent command';
+        ok $command->EXISTS('find'), 'find in sent command';
 
-        if ( $command->client->_topology->wire_version_ceil >= 6 ) {
-            ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        if ( $local_client->_topology->wire_version_ceil >= 6 ) {
+            ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
 
             my $find_result2 = $local_coll->find({_id => 1})->result;
 
-            my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
+            my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 
-            is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
-               $result->output->{'$clusterTime'}->{clusterTime}->{sec},
+            is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
+               $result->{'$clusterTime'}->{clusterTime}->{sec},
                "clusterTime matches";
         }
     };
 
-    Test::Role::CommandDebug::CLEAR_COMMAND_QUEUE;
-    Test::Role::CommandDebug::CLEAR_EXECUTE_QUEUE;
+    Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+    Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 
-#    subtest 'insert_one' => sub {
-#        my $local_client = get_high_heartbeat_client();
-#        my $local_db = get_test_db($local_client);
-#        my $local_coll = get_unique_collection($local_db, 'cluster_find');
-#
-#        my $insert_result = $local_coll->insert_one({_id => 1});
-#
-#        my $command = Test::Role::CommandDebug::GET_LAST_COMMAND;
-#        my $result = Test::Role::CommandDebug::GET_LAST_EXECUTE;
-#
-#        Dwarn "Command";
-#        Dwarn $command;
-#        Dwarn "Result";
-#        Dwarn $result;
-#
-#        ok $command->query->EXISTS('find'), 'find in sent command';
-#
-#        if ( $command->client->_topology->wire_version_ceil >= 6 ) {
-#            ok $command->query->EXISTS('$clusterTime'), 'clusterTime in sent command';
-#
-#            my $insert_result2 = $local_coll->insert_one({_id => 2});
-#
-#            my $command2 = Test::Role::CommandDebug::GET_LAST_COMMAND;
-#
-#            is $command2->query->FETCH('$clusterTime')->{clusterTime}->{sec},
-#               $result->output->{'$clusterTime'}->{clusterTime}->{sec},
-#               "clusterTime matches";
-#        }
-#    };
-#
-#    Test::Role::CommandDebug::CLEAR_COMMAND_QUEUE;
-#    Test::Role::CommandDebug::CLEAR_EXECUTE_QUEUE;
+    subtest 'insert_one' => sub {
+        my $local_client = get_high_heartbeat_client();
+        my $local_db = get_test_db($local_client);
+        my $local_coll = get_unique_collection($local_db, 'cluster_find');
 
+        my $insert_result = $local_coll->insert_one({_id => 1});
+
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $result = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
+
+        ok $command->EXISTS('insert'), 'insert in sent command';
+
+        if ( $local_client->_topology->wire_version_ceil >= 6 ) {
+            ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
+
+            my $insert_result2 = $local_coll->insert_one({_id => 2});
+
+            my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+            is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
+               $result->{'$clusterTime'}->{clusterTime}->{sec},
+               "clusterTime matches";
+        }
+    };
+
+    Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+    Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 };
 
 sub get_high_heartbeat_client {
