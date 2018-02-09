@@ -155,7 +155,7 @@ sub run_ss_test {
             $address,
             $s->{avg_rtt_ms}/1000,
             type => $s->{type},
-            tags => $s->{tags},
+            tags => $s->{tags} || {},
         );
         $topo->servers->{$server->address} = $server;
         $topo->_update_ewma( $server->address, $server );
@@ -165,7 +165,7 @@ sub run_ss_test {
     if ( $plan->{operation} eq 'read' ) {
         my $read_pref = MongoDB::ReadPreference->new(
             mode     => $plan->{read_preference}{mode},
-            tag_sets => $plan->{read_preference}{tag_sets},
+            tag_sets => $plan->{read_preference}{tag_sets} || {},
         );
         my $mode = $read_pref ? lc $read_pref->mode : 'primary';
         my $method =
