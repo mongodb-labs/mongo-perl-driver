@@ -142,6 +142,7 @@ sub _send_legacy_op_noreply {
 sub _send_write_command {
     my ( $self, $link, $cmd, $op_doc, $result_class ) = @_;
 
+    $self->_apply_session( \$cmd );
     $self->_apply_cluster_time( $link, \$cmd );
 
     # send command and get response document
@@ -165,6 +166,8 @@ sub _send_write_command {
     my $res = $self->bson_codec->decode_one( $result->{docs} );
 
     $self->_read_cluster_time($res);
+    $self->_retire_implicit_session;
+
     # Error checking depends on write concern
 
     if ( $self->write_concern->is_acknowledged ) {

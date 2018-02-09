@@ -42,6 +42,7 @@ use MongoDB::_Constants;
 use MongoDB::_Credential;
 use MongoDB::_URI;
 use Digest::MD5;
+use UUID::Tiny ':std'; # Use newer interface
 use Tie::IxHash;
 use Time::HiRes qw/usleep/;
 use Carp 'carp', 'croak', 'confess';
@@ -1141,6 +1142,14 @@ sub _update_cluster_time {
 # private attributes
 #--------------------------------------------------------------------------#
 
+# used for a more accurate 'is this client the same one' for sessions, instead
+# of memory location which just feels... yucky
+has _id => (
+    is  => 'ro',
+    init_arg => undef,
+    default => sub { create_uuid_as_string(UUID_V4) },
+);
+
 # collects constructor options and defer them so precedence can be resolved
 # against the _uri options; unlike other private args, this needs a valid
 # init argument
@@ -1456,15 +1465,35 @@ sub topology_status {
 }
 
 sub start_session {
-  my ( $self, %opts ) = @_;
+    my ( $self, %opts ) = @_;
 
-  my $session = $self->get_server_session;
-  return MongoDB::ClientSession->new(
-      client => $self,
-      options => \%opts,
-      is_explicit => 1,
-      ( defined $session ? ( server_session => $session ) : () ),
-  );
+    unless ( $self->_topology->_supports_sessions ) {
+        # TODO Is there a specific error message needed?
+        MongoDB::Error->throw( "Connected Server(s) do not support sessions" );
+    }
+
+    return $self->_start_session( 1, %opts );
+}
+
+sub _start_implicit_session {
+    my ( $self, %opts ) = @_;
+
+    # Dont return an error as implicit sessions need to be backwards compatible
+    return unless $self->_topology->_supports_sessions;
+
+    return $self->_start_session( 0, %opts );
+}
+
+sub _start_session {
+    my ( $self, $is_explicit, %opts ) = @_;
+
+    my $session = $self->get_server_session;
+    return MongoDB::ClientSession->new(
+        client => $self,
+        options => \%opts,
+        is_explicit => $is_explicit,
+        ( defined $session ? ( server_session => $session ) : () ),
+    );
 }
 
 #--------------------------------------------------------------------------#

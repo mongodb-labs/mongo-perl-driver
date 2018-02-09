@@ -328,6 +328,8 @@ sub BUILD {
 
 sub all_servers { return values %{ $_[0]->servers } }
 
+sub all_data_bearing_servers { return grep { $_->is_data_bearing } $_[0]->all_servers }
+
 sub check_address {
     my ( $self, $address ) = @_;
 
@@ -585,6 +587,30 @@ sub _update_ls_timeout_minutes {
     $self->_set_logical_session_timeout_minutes( $timeout );
     return;
 }
+
+sub _supports_sessions {
+    my ( $self ) = @_;
+
+    # Sessions arent supported in standalone servers
+    return if $self->type eq 'Single';
+
+    # If we havent got any servers... find some?
+    # Scan for data bearing first as it implies there are some servers
+    if ( scalar( $self->all_data_bearing_servers ) == 0
+      || scalar( $self->all_servers ) == 0 )
+    {
+        # Will call _update_ls_timeout_minutes as part of the check_address
+        # calls
+        $self->scan_all_servers;
+
+        # Could end up discovering its a single server again
+        return if $self->type eq 'Single';
+    }
+
+    return 1 if defined $self->logical_session_timeout_minutes;
+    return;
+}
+
 
 sub _check_staleness_compatibility {
     my ($self, $read_pref) = @_;

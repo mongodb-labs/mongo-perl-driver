@@ -44,7 +44,7 @@ has session_id => (
 sub _build_session_id {
     my ( $self ) = @_;
     my $uuid = MongoDB::BSON::Binary->new(
-        data => create_uuid_as_string(UUID_V4),
+        data => create_uuid(UUID_V4),
         subtype => MongoDB::BSON::Binary->SUBTYPE_UUID,
     );
     return { id => $uuid };
@@ -58,7 +58,7 @@ has last_use => (
 
 sub update_last_use {
     my ( $self ) = @_;
-    $self->set_last_use( DateTime->now );
+    $self->_set_last_use( DateTime->now );
 }
 
 1;

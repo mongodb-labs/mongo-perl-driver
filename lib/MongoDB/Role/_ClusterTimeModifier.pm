@@ -25,20 +25,39 @@ use Moo::Role;
 use MongoDB::Error;
 use MongoDB::_Types -types, 'to_IxHash';
 use Scalar::Util qw/ blessed /;
-use Devel::Dwarn;
 
 use namespace::clean;
 
-requires qw/client/;
+# As cluster time and sessions are hand in hand, makes sense to apply them here
+with $_ for qw(
+  MongoDB::Role::_SessionModifier
+);
+
+requires qw/client session/;
 
 sub _apply_cluster_time {
     my ( $self, $link, $query_ref ) = @_;
 
+    my $cluster_time;
     # TODO Check all consumers actually pass client
-    return unless defined $self->client;
-    return unless defined $self->client->cluster_time;
+    if ( defined $self->client ) {
+        $cluster_time = $self->client->cluster_time;
+        if ( defined $self->session
+          && defined $self->session->cluster_time
+          && ( $cluster_time->{'clusterTime'}->sec
+             < $self->session->cluster_time->{'clusterTime'}->sec ) )
+        {
+            $cluster_time = $self->session->cluster_time;
+        }
+    } elsif ( defined $self->session ) {
+        $cluster_time = $self->session->cluster_time;
+    }
+
+    # No cluster time in either session or client
+    return unless defined $cluster_time;
 
     if ( $link->server->is_master->{maxWireVersion} >= 6 ) {
+        # Gossip the clusterTime
         $$query_ref = to_IxHash( $$query_ref );
         ($$query_ref)->Push( '$clusterTime' => $self->client->cluster_time );
     }
@@ -49,8 +68,6 @@ sub _apply_cluster_time {
 sub _read_cluster_time {
     my ( $self, $response ) = @_;
 
-    return unless defined $self->client;
-
     my $cluster_time;
     if ( blessed( $response ) && $response->isa( 'MongoDB::CommandResult' ) ) {
         $cluster_time = $response->output->{'$clusterTime'};
@@ -60,7 +77,10 @@ sub _read_cluster_time {
 
     return unless defined $cluster_time;
 
-    $self->client->_update_cluster_time( $cluster_time );
+    $self->client->_update_cluster_time( $cluster_time ) if defined $self->client;
+
+    $self->session->advance_cluster_time( $cluster_time ) if defined $self->session;
+
     return;
 }
 

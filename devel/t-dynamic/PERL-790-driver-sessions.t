@@ -90,7 +90,6 @@ subtest 'LIFO Pool' => sub {
     is $session_d->session_id->{id}, $id_a->{id}, 'Session D same ID as Session A';
 };
 
-use Devel::Dwarn;
 subtest 'clusterTime in commands' => sub {
 
     use Test::Role::BSONDebug;
@@ -237,6 +236,41 @@ sub get_high_heartbeat_client {
 
     return $local_client;
 }
+
+subtest 'correct session for client' => sub {
+    my $client1 = build_client();
+    my $client2 = build_client();
+
+    ok $client1->_id ne $client2->_id, 'client id is different';
+
+    my $db1 = get_test_db($client1);
+    my $coll1 = get_unique_collection($db1, 'cross_session');
+
+    my $session = $client2->start_session;
+
+    like
+        exception { $coll1->insert_one( { _id => 1 }, { session => $session } ) },
+        qr/session from another client/i,
+        "Session from another client fails (insert_one)";
+
+    $coll1->insert_one( { _id => 2, foo => 'bar' } );
+
+    like
+        exception { $coll1->update_one( { _id => 1 }, { '$set' => { foo => 'qux' } }, { session => $session } ) },
+        qr/session from another client/i,
+        "Session from another client fails (update_one)";
+
+    like
+        exception { $coll1->delete_one( { _id => 1 }, { session => $session } ) },
+        qr/session from another client/i,
+        "Session from another client fails (delete_one)";
+
+    like
+        exception { $coll1->replace_one( { _id => 1 }, { _id => 2, foo => 'qux' }, { session => $session } ) },
+        qr/session from another client/i,
+        "Session from another client fails (replace_one)";
+
+};
 
 clear_testdbs;
 

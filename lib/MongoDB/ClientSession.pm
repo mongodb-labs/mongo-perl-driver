@@ -44,8 +44,10 @@ has client => (
 );
 
 has cluster_time => (
-    is => 'ro',
+    is => 'rwp',
     isa => Maybe[Document],
+    init_arg => undef,
+    default => undef,
 );
 
 has options => (
@@ -79,6 +81,17 @@ sub session_id {
 
 sub advance_cluster_time {
     my ( $self, $cluster_time ) = @_;
+
+    # Only update the cluster time if it is more recent than the current entry
+    if ( ! defined $self->cluster_time ) {
+        $self->_set_cluster_time( $cluster_time );
+    } else {
+        if ( $cluster_time->{'clusterTime'}->sec
+           > $self->cluster_time->{'clusterTime'} ) {
+            $self->_set_cluster_time( $cluster_time );
+        }
+    }
+    return;
 
 }
 

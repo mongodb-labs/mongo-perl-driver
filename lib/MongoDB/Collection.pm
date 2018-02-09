@@ -737,7 +737,6 @@ sub find {
     return MongoDB::Cursor->new(
         client => $self->{_client},
         query => MongoDB::Op::_Query->_new(
-            client              => $self->{_client},
             modifiers           => {},
             allowPartialResults => 0,
             batchSize           => 0,

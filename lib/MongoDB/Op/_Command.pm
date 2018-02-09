@@ -73,6 +73,7 @@ sub execute {
     my ( $self, $link, $topology_type ) = @_;
     $topology_type ||= 'Single'; # if not specified, assume direct
 
+    $self->_apply_session( \$self->{query} );
     $self->_apply_cluster_time( $link, \$self->{query} );
 
     # $query is passed as a reference because it *may* be replaced
@@ -101,6 +102,7 @@ sub execute {
     $res->assert;
 
     $self->_read_cluster_time($res);
+    $self->_retire_implicit_session;
 
     return $res;
 }
