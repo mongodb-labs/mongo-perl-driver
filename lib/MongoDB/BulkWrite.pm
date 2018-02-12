@@ -113,6 +113,7 @@ sub _build__database {
 
 has '_client' => (
     is         => 'lazy',
+    handles    => [ 'client' ],
     isa        => InstanceOf['MongoDB::MongoClient'],
 );
 
@@ -123,6 +124,7 @@ sub _build__client {
 
 with $_ for qw(
   MongoDB::Role::_DeprecationWarner
+  MongoDB::Role::_MaybeClientSession
 );
 
 =method find
@@ -259,6 +261,8 @@ sub execute {
         bypassDocumentValidation => $self->bypassDocumentValidation,
         bson_codec               => $self->collection->bson_codec,
         write_concern            => $write_concern,
+        client                   => $self->_client,
+        ( defined $self->session ? ( session => $self->session ) : () ),
     );
 
     return $self->_client->send_write_op( $op );

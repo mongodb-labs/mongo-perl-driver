@@ -391,8 +391,34 @@ subtest 'correct session for client' => sub {
             qr/session from another client/i,
             "Session from another client fails (drop)";
 
+        like
+            exception { my $bulk = $coll->ordered_bulk( { session => $session } );
+                            $bulk->insert_one( { _id => 1 } );
+                            $bulk->insert_one( { _id => 2 } );
+                            $bulk->execute;
+                      },
+            qr/session from another client/i,
+            "Session from another client fails (ordered_bulk)";
 
+        like
+            exception { my $bulk = $coll->unordered_bulk( { session => $session } );
+                            $bulk->insert_one( { _id => 1 } );
+                            $bulk->insert_one( { _id => 2 } );
+                            $bulk->execute;
+                      },
+            qr/session from another client/i,
+            "Session from another client fails (unordered_bulk)";
 
+        like
+            exception { my $bulk = $coll->bulk_write(
+                            [
+                                insert_one => [ { _id => 1 } ],
+                                insert_one => [ { _id => 2 } ],
+                            ],
+                            { session => $session } );
+                      },
+            qr/session from another client/i,
+            "Session from another client fails (bulk_write)";
 
     };
 };
