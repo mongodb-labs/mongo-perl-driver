@@ -248,28 +248,153 @@ subtest 'correct session for client' => sub {
 
     my $session = $client2->start_session;
 
-    like
-        exception { $coll1->insert_one( { _id => 1 }, { session => $session } ) },
-        qr/session from another client/i,
-        "Session from another client fails (insert_one)";
+    subtest 'collection sessions' => sub {
+        # Done in order of listings in METHODS in pod
 
-    $coll1->insert_one( { _id => 2, foo => 'bar' } );
+        # indexes?
 
-    like
-        exception { $coll1->update_one( { _id => 1 }, { '$set' => { foo => 'qux' } }, { session => $session } ) },
-        qr/session from another client/i,
-        "Session from another client fails (update_one)";
+        like
+            exception { $coll1->insert_one( { _id => 1 }, { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (insert_one)";
 
-    like
-        exception { $coll1->delete_one( { _id => 1 }, { session => $session } ) },
-        qr/session from another client/i,
-        "Session from another client fails (delete_one)";
+        like
+            exception { $coll1->insert_many( [
+                { _id => 1 },
+                { _id => 2 },
+                { _id => 3 },
+                { _id => 4 },
+              ], { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (insert_many)";
 
-    like
-        exception { $coll1->replace_one( { _id => 1 }, { _id => 2, foo => 'qux' }, { session => $session } ) },
-        qr/session from another client/i,
-        "Session from another client fails (replace_one)";
+        like
+            exception { $coll1->delete_one(
+                            { _id => 1 },
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (delete_one)";
 
+        like
+            exception { $coll1->delete_many(
+                            { _id => { '$in' => [1,2,3,4] } },
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (delete_many)";
+
+        like
+            exception { $coll1->replace_one(
+                            { _id => 1 },
+                            { _id => 1, foo => 'qux' },
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (replace_one)";
+
+        like
+            exception { $coll1->update_one(
+                            { _id => 1 },
+                            { '$set' => { foo => 'qux' } },
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (update_one)";
+
+        like
+            exception { $coll1->update_many(
+                            { _id => { '$in' => [1,2,3,4] } },
+                            { '$set' => { foo => 'qux' } },
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (update_many)";
+
+        # Most call result to get it to touch the database
+        like
+            exception { $coll1->find(
+                            { _id => { '$in' => [1,2,3,4] } },
+                            { session => $session }
+                          )->result },
+            qr/session from another client/i,
+            "Session from another client fails (find)";
+
+        like
+            exception { $coll1->find_one(
+                            { _id => 1 },
+                            {},
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (find_one)";
+
+        like
+            exception { $coll1->find_id(
+                            1,
+                            {},
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (find_id)";
+
+        like
+            exception { $coll1->find_one_and_delete(
+                            { _id => 1 },
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (find_one_and_delete)";
+
+        like
+            exception { $coll1->find_one_and_replace(
+                            { _id => 1 },
+                            { _id => 1, foo => 'qux' },
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (find_one_and_replace)";
+
+        like
+            exception { $coll1->find_one_and_update(
+                            { _id => 1 },
+                            { '$set' => { foo => 'qux' } },
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (find_one_and_update)";
+
+        like
+            exception { $coll1->aggregate(
+                            [
+                              { '$match'   => { wanted => 1 } },
+                              { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } }
+                            ],
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (aggregate)";
+
+        like
+            exception { $coll1->count(
+                            { _id => 1 },
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (count)";
+
+        like
+            exception { $coll1->parallel_scan(
+                            10,
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (parallel_scan)";
+
+        like
+            exception { $coll1->rename(
+                            "another_collection_name",
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (rename)";
+
+        like
+            exception { $coll1->drop(
+                            { session => $session } ) },
+            qr/session from another client/i,
+            "Session from another client fails (drop)";
+
+
+
+
+    };
 };
 
 clear_testdbs;

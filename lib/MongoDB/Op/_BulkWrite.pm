@@ -64,6 +64,8 @@ with $_ for qw(
   MongoDB::Role::_UpdatePreEncoder
   MongoDB::Role::_InsertPreEncoder
   MongoDB::Role::_BypassValidation
+  MongoDB::Role::_MaybeMongoClient
+  MongoDB::Role::_MaybeClientSession
 );
 
 sub has_collation {
@@ -203,6 +205,8 @@ sub _execute_write_command_batch {
             query       => $cmd_doc,
             query_flags => {},
             bson_codec  => $self->bson_codec,
+            client      => $self->client,
+            ( defined $self->session ? ( session => $self->session ) : () ),
         );
 
         my $cmd_result = try {

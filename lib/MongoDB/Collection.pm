@@ -1274,11 +1274,12 @@ collection.
 =cut
 
 sub rename {
-    my ( $self, $new_name ) = @_;
+    my ( $self, $new_name, $options ) = @_;
 
     my $op = MongoDB::Op::_RenameCollection->_new(
         src_ns => $self->full_name,
         dst_ns => join( ".", $self->database->name, $new_name ),
+        options => $options,
         %{ $self->_op_args },
     );
 
@@ -1296,9 +1297,14 @@ Deletes a collection as well as all of its indexes.
 =cut
 
 sub drop {
-    my ($self) = @_;
+    my ( $self, $options ) = @_;
 
-    $self->client->send_write_op( MongoDB::Op::_DropCollection->_new( %{ $self->_op_args } ) );
+    $self->client->send_write_op(
+        MongoDB::Op::_DropCollection->_new(
+            options => $options,
+            %{ $self->_op_args },
+        )
+    );
 
     return;
 }

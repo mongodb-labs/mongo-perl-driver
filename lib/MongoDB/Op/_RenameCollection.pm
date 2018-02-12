@@ -42,12 +42,17 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
   MongoDB::Role::_WriteOp
+  MongoDB::Role::_MaybeMongoClient
+  MongoDB::Role::_MaybeOptionsHash
 );
 
 sub execute {
     my ( $self, $link ) = @_;
 
+    my $session = delete $self->options->{session};
+
     my $op = MongoDB::Op::_Command->_new(
+        client  => $self->client,
         db_name => 'admin', # special for this command -- not the db_name attribute
         query   => [
             renameCollection => $self->src_ns,
@@ -56,6 +61,7 @@ sub execute {
         ],
         query_flags => {},
         bson_codec  => $self->bson_codec,
+        ( defined $session ? ( session => $session ) : () ),
     );
 
     my $res = $op->execute($link);

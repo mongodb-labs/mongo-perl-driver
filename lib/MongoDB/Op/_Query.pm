@@ -171,6 +171,7 @@ with $_ for qw(
   MongoDB::Role::_CommandCursorOp
   MongoDB::Role::_OpReplyParser
   MongoDB::Role::_ReadPrefModifier
+  MongoDB::Role::_MaybeClientSession
 );
 
 sub execute {
@@ -199,6 +200,7 @@ sub _command_query {
         query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
+        ( defined $self->session ? ( session => $self->session ) : () ),
     );
     my $res = $op->execute( $link, $topology );
 

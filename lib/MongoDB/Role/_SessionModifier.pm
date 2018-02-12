@@ -28,20 +28,9 @@ use namespace::clean;
 
 requires qw/client/;
 
-has session => (
-    is => 'lazy',
-    builder => '_build_session',
+with $_ for qw(
+  MongoDB::Role::_MaybeClientSession
 );
-
-# Should only be called when making an implicit session
-sub _build_session {
-    my ( $self ) = @_;
-
-    # Cant create a session without a client
-    return unless defined $self->client;
-
-    return $self->client->_start_implicit_session;
-}
 
 sub _apply_session {
     my ( $self, $query_ref ) = @_;

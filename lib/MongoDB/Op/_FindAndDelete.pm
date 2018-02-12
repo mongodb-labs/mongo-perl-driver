@@ -51,6 +51,7 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_WriteOp
+  MongoDB::Role::_MaybeMongoClient
 );
 
 sub execute {
@@ -60,6 +61,8 @@ sub execute {
         MongoDB::UsageError->throw(
             "MongoDB host '" . $link->address . "' doesn't support collation" );
     }
+
+    my $session = delete $self->options->{session};
 
     my $command = [
         findAndModify   => $self->coll_name,
@@ -72,10 +75,12 @@ sub execute {
     ];
 
     my $op = MongoDB::Op::_Command->_new(
+        client          => $self->client,
         db_name         => $self->db_name,
         query           => $command,
         query_flags     => {},
         bson_codec      => $self->bson_codec,
+        ( defined $session ? ( session => $session ) : () ),
     );
 
     my $result;
