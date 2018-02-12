@@ -49,7 +49,7 @@ with $_ for qw(
 sub execute {
     my ( $self, $link ) = @_;
 
-    my $session = delete $self->options->{session};
+    my $session = defined $self->options ? delete $self->options->{session} : undef;
 
     my $op = MongoDB::Op::_Command->_new(
         client  => $self->client,

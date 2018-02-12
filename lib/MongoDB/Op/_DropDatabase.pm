@@ -33,12 +33,16 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
   MongoDB::Role::_WriteOp
+  MongoDB::Role::_MaybeMongoClient
+  MongoDB::Role::_MaybeOptionsHash
 );
 
 sub execute {
     my ( $self, $link ) = @_;
 
+    my $session = defined $self->options ? delete $self->options->{session} : undef;
     my $op = MongoDB::Op::_Command->_new(
+        client => $self->client,
         db_name => $self->db_name,
         query   => [
             dropDatabase => 1,
@@ -46,6 +50,7 @@ sub execute {
         ],
         query_flags => {},
         bson_codec  => $self->bson_codec,
+        ( defined $session ? ( session => $session ) : () ),
     );
 
     my $res = $op->execute($link);

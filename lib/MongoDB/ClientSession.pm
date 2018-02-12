@@ -69,6 +69,12 @@ has is_explicit => (
     default => 0,
 );
 
+has _has_ended => (
+    is => 'rwp',
+    isa => Bool,
+    default => 0,
+);
+
 sub _build_server_session {
     my ( $self ) = @_;
     return MongoDB::ServerSession->new;
@@ -101,6 +107,7 @@ sub end_session {
     if ( defined $self->server_session ) {
         $self->client->retire_server_session( $self->server_session );
         $self->_set_server_session( undef );
+        $self->_set__has_ended( 1 );
     }
 }
 

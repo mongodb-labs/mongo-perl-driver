@@ -85,6 +85,8 @@ sub _command_list_colls {
     # batchSize is not a command parameter itself like other options
     my $batchSize = delete $options->{batchSize};
 
+    my $session = delete $options->{session};
+
     if ( defined $batchSize ) {
         $options->{cursor} = { batchSize => $batchSize };
     }
@@ -104,10 +106,12 @@ sub _command_list_colls {
     );
 
     my $op = MongoDB::Op::_Command->_new(
+        client          => $self->client,
         db_name         => $self->db_name,
         query           => $cmd,
         query_flags     => {},
         bson_codec      => $self->bson_codec,
+        ( defined $session ? ( session => $session ) : () ),
     );
 
     my $res = $op->execute( $link, $topology );

@@ -232,15 +232,16 @@ L</list_collections> to iterate over collections instead.
 =cut
 
 sub collection_names {
-    my ( $self, $filter ) = @_;
+    my ( $self, $filter, $options ) = @_;
     $filter ||= {};
+    $options ||= {};
 
     my $op = MongoDB::Op::_ListCollections->_new(
         db_name    => $self->name,
         client     => $self->_client,
         bson_codec => $self->bson_codec,
         filter     => $filter,
-        options    => {},
+        options    => $options,
     );
 
     my $res = $self->_client->send_primary_op($op);
@@ -364,12 +365,14 @@ Deletes the database.
 =cut
 
 sub drop {
-    my ($self) = @_;
+    my ( $self, $options ) = @_;
     return $self->_client->send_write_op(
         MongoDB::Op::_DropDatabase->_new(
+            client        => $self->_client,
             db_name       => $self->name,
             bson_codec    => $self->bson_codec,
             write_concern => $self->write_concern,
+            ( defined $options ? ( options => $options ) : () ),
         )
     )->output;
 }
@@ -409,7 +412,7 @@ on database commands: L<http://dochub.mongodb.org/core/commands>.
 =cut
 
 sub run_command {
-    my ( $self, $command, $read_pref ) = @_;
+    my ( $self, $command, $read_pref, $options ) = @_;
     MongoDB::UsageError->throw("command was not an ordered document")
        if ! is_OrderedDoc($command);
 
@@ -417,12 +420,16 @@ sub run_command {
         ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
       if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
 
+    $options ||= {};
+
     my $op = MongoDB::Op::_Command->_new(
+        client      => $self->_client,
         db_name     => $self->name,
         query       => $command,
         query_flags => {},
         bson_codec  => $self->bson_codec,
         read_preference => $read_pref,
+        ( defined $options->{session} ? ( session => $options->{session} ) : () ),
     );
 
     my $obj = $self->_client->send_read_op($op);

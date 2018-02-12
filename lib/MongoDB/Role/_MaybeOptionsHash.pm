@@ -27,6 +27,7 @@ use Types::Standard qw(
 
 use namespace::clean;
 
+# TODO Private constructor ignores defaults...
 has options => (
     is      => 'ro',
     default => sub { {} },

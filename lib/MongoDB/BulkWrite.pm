@@ -113,7 +113,6 @@ sub _build__database {
 
 has '_client' => (
     is         => 'lazy',
-    handles    => [ 'client' ],
     isa        => InstanceOf['MongoDB::MongoClient'],
 );
 
@@ -121,6 +120,9 @@ sub _build__client {
     my ($self) = @_;
     return $self->_database->_client;
 }
+
+# TODO required for sessions...
+sub client { return shift->_client }
 
 with $_ for qw(
   MongoDB::Role::_DeprecationWarner

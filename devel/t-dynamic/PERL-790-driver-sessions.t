@@ -249,179 +249,253 @@ subtest 'correct session for client' => sub {
     my $session = $client2->start_session;
 
     subtest 'collection sessions' => sub {
-        # Done in order of listings in METHODS in pod
-
-        # indexes?
-
-        like
-            exception { $coll1->insert_one( { _id => 1 }, { session => $session } ) },
+        test_collection_session_exceptions(
+            $coll1,
+            $session,
             qr/session from another client/i,
-            "Session from another client fails (insert_one)";
+            "Session from another client fails (%s)",
+        );
+    };
 
-        like
-            exception { $coll1->insert_many( [
-                { _id => 1 },
-                { _id => 2 },
-                { _id => 3 },
-                { _id => 4 },
-              ], { session => $session } ) },
+    subtest 'database sessions' => sub {
+        test_db_session_exceptions(
+            $db1,
+            $session,
             qr/session from another client/i,
-            "Session from another client fails (insert_many)";
-
-        like
-            exception { $coll1->delete_one(
-                            { _id => 1 },
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (delete_one)";
-
-        like
-            exception { $coll1->delete_many(
-                            { _id => { '$in' => [1,2,3,4] } },
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (delete_many)";
-
-        like
-            exception { $coll1->replace_one(
-                            { _id => 1 },
-                            { _id => 1, foo => 'qux' },
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (replace_one)";
-
-        like
-            exception { $coll1->update_one(
-                            { _id => 1 },
-                            { '$set' => { foo => 'qux' } },
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (update_one)";
-
-        like
-            exception { $coll1->update_many(
-                            { _id => { '$in' => [1,2,3,4] } },
-                            { '$set' => { foo => 'qux' } },
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (update_many)";
-
-        # Most call result to get it to touch the database
-        like
-            exception { $coll1->find(
-                            { _id => { '$in' => [1,2,3,4] } },
-                            { session => $session }
-                          )->result },
-            qr/session from another client/i,
-            "Session from another client fails (find)";
-
-        like
-            exception { $coll1->find_one(
-                            { _id => 1 },
-                            {},
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (find_one)";
-
-        like
-            exception { $coll1->find_id(
-                            1,
-                            {},
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (find_id)";
-
-        like
-            exception { $coll1->find_one_and_delete(
-                            { _id => 1 },
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (find_one_and_delete)";
-
-        like
-            exception { $coll1->find_one_and_replace(
-                            { _id => 1 },
-                            { _id => 1, foo => 'qux' },
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (find_one_and_replace)";
-
-        like
-            exception { $coll1->find_one_and_update(
-                            { _id => 1 },
-                            { '$set' => { foo => 'qux' } },
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (find_one_and_update)";
-
-        like
-            exception { $coll1->aggregate(
-                            [
-                              { '$match'   => { wanted => 1 } },
-                              { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } }
-                            ],
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (aggregate)";
-
-        like
-            exception { $coll1->count(
-                            { _id => 1 },
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (count)";
-
-        like
-            exception { $coll1->parallel_scan(
-                            10,
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (parallel_scan)";
-
-        like
-            exception { $coll1->rename(
-                            "another_collection_name",
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (rename)";
-
-        like
-            exception { $coll1->drop(
-                            { session => $session } ) },
-            qr/session from another client/i,
-            "Session from another client fails (drop)";
-
-        like
-            exception { my $bulk = $coll->ordered_bulk( { session => $session } );
-                            $bulk->insert_one( { _id => 1 } );
-                            $bulk->insert_one( { _id => 2 } );
-                            $bulk->execute;
-                      },
-            qr/session from another client/i,
-            "Session from another client fails (ordered_bulk)";
-
-        like
-            exception { my $bulk = $coll->unordered_bulk( { session => $session } );
-                            $bulk->insert_one( { _id => 1 } );
-                            $bulk->insert_one( { _id => 2 } );
-                            $bulk->execute;
-                      },
-            qr/session from another client/i,
-            "Session from another client fails (unordered_bulk)";
-
-        like
-            exception { my $bulk = $coll->bulk_write(
-                            [
-                                insert_one => [ { _id => 1 } ],
-                                insert_one => [ { _id => 2 } ],
-                            ],
-                            { session => $session } );
-                      },
-            qr/session from another client/i,
-            "Session from another client fails (bulk_write)";
-
+            "Session from another client fails (%s)",
+        );
     };
 };
+
+subtest 'ended session unusable' => sub {
+    my $client1 = build_client();
+    my $db1 = get_test_db($client1);
+    my $coll1 = get_unique_collection($db1, 'end_session');
+
+    my $session = $client1->start_session;
+    $session->end_session;
+
+    subtest 'collection sessions' => sub {
+        test_collection_session_exceptions(
+            $coll1,
+            $session,
+            qr/session which has ended/i,
+            "Ended session is unusable (%s)",
+        );
+    };
+
+    subtest 'database sessions' => sub {
+        test_db_session_exceptions(
+            $db1,
+            $session,
+            qr/session which has ended/i,
+            "Ended session is unusable (%s)",
+        );
+    };
+};
+
+sub test_collection_session_exceptions {
+    my ( $coll, $session, $error_regex, $message_string )  = @_;
+
+    # Done in order of listings in METHODS in pod
+
+    # indexes?
+
+    like
+        exception { $coll->insert_one( { _id => 1 }, { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'insert_one' );
+
+    like
+        exception { $coll->insert_many( [
+            { _id => 1 },
+            { _id => 2 },
+            { _id => 3 },
+            { _id => 4 },
+          ], { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'insert_many' );
+
+    like
+        exception { $coll->delete_one(
+                        { _id => 1 },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'delete_one' );
+
+    like
+        exception { $coll->delete_many(
+                        { _id => { '$in' => [1,2,3,4] } },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'delete_many' );
+
+    like
+        exception { $coll->replace_one(
+                        { _id => 1 },
+                        { _id => 1, foo => 'qux' },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'replace_one' );
+
+    like
+        exception { $coll->update_one(
+                        { _id => 1 },
+                        { '$set' => { foo => 'qux' } },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'update_one' );
+
+    like
+        exception { $coll->update_many(
+                        { _id => { '$in' => [1,2,3,4] } },
+                        { '$set' => { foo => 'qux' } },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'update_many' );
+
+    # Must call result to get it to touch the database
+    like
+        exception { $coll->find(
+                        { _id => { '$in' => [1,2,3,4] } },
+                        { session => $session }
+                      )->result },
+        $error_regex,
+        sprintf( $message_string, 'find' );
+
+    like
+        exception { $coll->find_one(
+                        { _id => 1 },
+                        {},
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'find_one' );
+
+    like
+        exception { $coll->find_id(
+                        1,
+                        {},
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'find_id' );
+
+    like
+        exception { $coll->find_one_and_delete(
+                        { _id => 1 },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'find_one_and_delete' );
+
+    like
+        exception { $coll->find_one_and_replace(
+                        { _id => 1 },
+                        { _id => 1, foo => 'qux' },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'find_one_and_replace' );
+
+    like
+        exception { $coll->find_one_and_update(
+                        { _id => 1 },
+                        { '$set' => { foo => 'qux' } },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'find_one_and_update' );
+
+    like
+        exception { $coll->aggregate(
+                        [
+                          { '$match'   => { wanted => 1 } },
+                          { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } }
+                        ],
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'aggregate' );
+
+    like
+        exception { $coll->count(
+                        { _id => 1 },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'count' );
+
+    like
+        exception { $coll->parallel_scan(
+                        10,
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'parallel_scan' );
+
+    like
+        exception { $coll->rename(
+                        "another_collection_name",
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'rename' );
+
+    like
+        exception { $coll->drop(
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'drop' );
+
+    like
+        exception {
+            my $bulk = $coll->ordered_bulk( { session => $session } );
+            $bulk->insert_one( { _id => 1 } );
+            $bulk->insert_one( { _id => 2 } );
+            $bulk->execute;
+        },
+        $error_regex,
+        sprintf( $message_string, 'ordered_bulk' );
+
+    like
+        exception {
+            my $bulk = $coll->unordered_bulk( { session => $session } );
+            $bulk->insert_one( { _id => 1 } );
+            $bulk->insert_one( { _id => 2 } );
+            $bulk->execute;
+        },
+        $error_regex,
+        sprintf( $message_string, 'unordered_bulk' );
+
+    like
+        exception { $coll->bulk_write(
+                        [
+                            insert_one => [ { _id => 1 } ],
+                            insert_one => [ { _id => 2 } ],
+                        ],
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'bulk_write' );
+}
+
+sub test_db_session_exceptions {
+    my ( $db, $session, $error_regex, $message_string )  = @_;
+
+    like
+        exception { $db->list_collections( {}, { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'list_collections' );
+
+    like
+        exception { $db->collection_names( {}, { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'collection_names' );
+
+    # get_collection makes no sense and I dont think ontacts the database until later
+    # same for get_gridfsbucket ?
+
+    like
+        exception { $db->drop( { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'drop' );
+
+    like
+        exception { $db->run_command( [ is_master => 1 ], undef, { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'run_command' );
+}
 
 clear_testdbs;
 

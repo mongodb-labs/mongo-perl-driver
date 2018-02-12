@@ -47,6 +47,11 @@ sub _apply_session {
         MongoDB::Error->throw( "Cannot use session from another client" );
     }    
 
+    if ( $self->session->_has_ended ) {
+        # TODO Is there a specific error message?
+        MongoDB::Error->throw( "Cannot use session which has ended" );
+    }
+
     $$query_ref = to_IxHash( $$query_ref );
     ($$query_ref)->Push( 'lsid' => $self->session->server_session->session_id );
     
