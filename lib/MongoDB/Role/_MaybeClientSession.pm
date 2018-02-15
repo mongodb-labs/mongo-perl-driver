@@ -18,7 +18,7 @@ use strict;
 use warnings;
 package MongoDB::Role::_MaybeClientSession;
 
-# MongoDB role to manage clusterTime commands
+# MongoDB role to hold Op sessions and create implicit ones
 
 use Moo::Role;
 

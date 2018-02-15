@@ -611,7 +611,6 @@ sub _supports_sessions {
     return;
 }
 
-
 sub _check_staleness_compatibility {
     my ($self, $read_pref) = @_;
     my $max_staleness_sec = $read_pref ? $read_pref->max_staleness_seconds : -1;

@@ -1464,33 +1464,36 @@ sub topology_status {
     return $self->_topology->status_struct;
 }
 
+# TODO Documentation
 sub start_session {
-    my ( $self, %opts ) = @_;
+    my ( $self, $opts ) = @_;
 
     unless ( $self->_topology->_supports_sessions ) {
         # TODO Is there a specific error message needed?
         MongoDB::Error->throw( "Connected Server(s) do not support sessions" );
     }
 
-    return $self->_start_session( 1, %opts );
+    return $self->_start_session( 1, $opts );
 }
 
 sub _start_implicit_session {
-    my ( $self, %opts ) = @_;
+    my ( $self, $opts ) = @_;
 
     # Dont return an error as implicit sessions need to be backwards compatible
     return unless $self->_topology->_supports_sessions;
 
-    return $self->_start_session( 0, %opts );
+    return $self->_start_session( 0, $opts );
 }
 
 sub _start_session {
-    my ( $self, $is_explicit, %opts ) = @_;
+    my ( $self, $is_explicit, $opts ) = @_;
+
+    $opts ||= {};
 
     my $session = $self->get_server_session;
     return MongoDB::ClientSession->new(
         client => $self,
-        options => \%opts,
+        options => $opts,
         is_explicit => $is_explicit,
         ( defined $session ? ( server_session => $session ) : () ),
     );
