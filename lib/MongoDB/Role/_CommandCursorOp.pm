@@ -33,7 +33,9 @@ use namespace::clean;
 requires qw/client bson_codec/;
 
 sub _build_result_from_cursor {
-    my ( $self, $res ) = @_;
+    my ( $self, $res, $extra_options ) = @_;
+
+    $extra_options ||= {};
 
     my $c = $res->output->{cursor}
       or MongoDB::DatabaseError->throw(
@@ -62,6 +64,7 @@ sub _build_result_from_cursor {
         _cursor_num   => scalar @$batch,
         _docs         => $batch,
         _max_time_ms  => $max_time_ms,
+        ( defined $self->session ? ( session => $self->session ) : () ),
     );
 }
 

@@ -47,6 +47,7 @@ use namespace::clean;
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CursorAPI
+  MongoDB::Role::_MaybeClientSession
 );
 
 # attributes needed for get more
@@ -56,6 +57,9 @@ has _client => (
     required => 1,
     isa => InstanceOf['MongoDB::MongoClient'],
 );
+
+# is there a better way of doing this?
+sub client { return shift->_client }
 
 has _address => (
     is       => 'ro',
@@ -243,6 +247,7 @@ sub _get_more {
         cursor_id  => $self->_cursor_id,
         batch_size => $want,
         ( $self->_max_time_ms ? ( max_time_ms => $self->_max_time_ms ) : () ),
+        ( defined $self->session ? ( session => $self->session ) : () ),
     );
 
     my $result = $self->_client->send_direct_op( $op, $self->_address );
