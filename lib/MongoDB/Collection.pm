@@ -1064,6 +1064,8 @@ sub aggregate {
     my ( $self, $pipeline, $options ) = @_;
     $options ||= {};
 
+    my $session = delete $options->{session};
+
     # boolify some options
     for my $k (qw/allowDiskUse explain/) {
         $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
@@ -1082,6 +1084,7 @@ sub aggregate {
         options      => $options,
         read_concern => $self->read_concern,
         has_out      => $last_op eq '$out',
+        ( defined $session ? ( session => $session ) : () ),
         %{ $self->_op_args },
     );
 

@@ -67,6 +67,7 @@ with $_ for qw(
   MongoDB::Role::_ReadOp
   MongoDB::Role::_WriteOp
   MongoDB::Role::_CommandCursorOp
+  MongoDB::Role::_MaybeClientSession
 );
 
 sub execute {
@@ -120,8 +121,6 @@ sub execute {
 
     my $has_out = $self->has_out;
 
-    my $session = delete $self->options->{session};
-
     my @command = (
         aggregate => $self->coll_name,
         pipeline  => $self->pipeline,
@@ -141,7 +140,7 @@ sub execute {
         query_flags     => {},
         bson_codec      => $self->bson_codec,
         ( $has_out ? () : ( read_preference => $self->read_preference ) ),
-        ( defined $session ? ( session => $session ) : () ),
+        ( defined $self->session ? ( session => $self->session ) : () ),
     );
 
     my $res = $op->execute( $link, $topology );
