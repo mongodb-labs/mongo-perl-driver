@@ -41,7 +41,7 @@ sub _apply_cluster_time {
     my $cluster_time;
     # TODO Check all consumers actually pass client
     if ( defined $self->client ) {
-        $cluster_time = $self->client->cluster_time;
+        $cluster_time = $self->client->_cluster_time;
         if ( defined $self->session
           && defined $self->session->cluster_time
           && ( $cluster_time->{'clusterTime'}->sec
@@ -59,7 +59,7 @@ sub _apply_cluster_time {
     if ( $link->server->is_master->{maxWireVersion} >= 6 ) {
         # Gossip the clusterTime
         $$query_ref = to_IxHash( $$query_ref );
-        ($$query_ref)->Push( '$clusterTime' => $self->client->cluster_time );
+        ($$query_ref)->Push( '$clusterTime' => $cluster_time );
     }
 
     return;

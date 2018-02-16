@@ -1116,7 +1116,7 @@ or undef if not supported or not seen.
 
 =cut
 
-has cluster_time => (
+has _cluster_time => (
     is => 'rwp',
     isa => Maybe[Document],
     init_arg => undef,
@@ -1127,12 +1127,12 @@ sub _update_cluster_time {
     my ( $self, $cluster_time ) = @_;
 
     # Only update the cluster time if it is more recent than the current entry
-    if ( ! defined $self->cluster_time ) {
-        $self->_set_cluster_time( $cluster_time );
+    if ( ! defined $self->_cluster_time ) {
+        $self->_set__cluster_time( $cluster_time );
     } else {
         if ( $cluster_time->{'clusterTime'}->sec
-           > $self->cluster_time->{'clusterTime'} ) {
-            $self->_set_cluster_time( $cluster_time );
+           > $self->_cluster_time->{'clusterTime'}->sec ) {
+            $self->_set__cluster_time( $cluster_time );
         }
     }
     return;
