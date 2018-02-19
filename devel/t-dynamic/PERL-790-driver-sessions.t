@@ -420,6 +420,14 @@ sub test_collection_session_exceptions {
         sprintf( $message_string, 'count' );
 
     like
+        exception { $coll->distinct(
+                        "id_",
+                        { _id => 1 },
+                        { session => $session } ) },
+        $error_regex,
+        sprintf( $message_string, 'distinct' );
+
+    like
         exception { $coll->parallel_scan(
                         10,
                         { session => $session } ) },

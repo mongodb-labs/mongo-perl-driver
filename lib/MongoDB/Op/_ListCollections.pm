@@ -63,6 +63,7 @@ has options => (
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
+  MongoDB::Role::_MaybeClientSession
   MongoDB::Role::_CommandCursorOp
 );
 

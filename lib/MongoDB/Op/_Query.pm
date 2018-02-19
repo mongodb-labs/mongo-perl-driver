@@ -168,10 +168,10 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
+  MongoDB::Role::_MaybeClientSession
   MongoDB::Role::_CommandCursorOp
   MongoDB::Role::_OpReplyParser
   MongoDB::Role::_ReadPrefModifier
-  MongoDB::Role::_MaybeClientSession
 );
 
 sub execute {

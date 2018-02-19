@@ -1186,10 +1186,13 @@ sub distinct {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = delete $options->{session};
+
     my $op = MongoDB::Op::_Distinct->_new(
         fieldname       => $fieldname,
         filter          => $filter,
         options         => $options,
+        ( defined $session ? ( session => $session ) : () ),
         %{ $self->_op_args },
     );
 

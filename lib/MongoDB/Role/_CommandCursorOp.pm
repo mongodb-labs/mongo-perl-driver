@@ -30,12 +30,10 @@ use MongoDB::QueryResult;
 
 use namespace::clean;
 
-requires qw/client bson_codec/;
+requires qw/session client bson_codec/;
 
 sub _build_result_from_cursor {
-    my ( $self, $res, $extra_options ) = @_;
-
-    $extra_options ||= {};
+    my ( $self, $res ) = @_;
 
     my $c = $res->output->{cursor}
       or MongoDB::DatabaseError->throw(

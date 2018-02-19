@@ -45,6 +45,14 @@ has client => (
     isa      => InstanceOf ['MongoDB::MongoClient'],
 );
 
+# Indexes make no sense with sessions, stub session for compatibility with
+# CommandCursorOp
+has session => (
+    is       => 'ro',
+    init_arg => undef,
+    default => undef,
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp

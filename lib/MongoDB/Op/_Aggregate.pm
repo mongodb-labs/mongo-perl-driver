@@ -66,8 +66,8 @@ with $_ for qw(
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
   MongoDB::Role::_WriteOp
-  MongoDB::Role::_CommandCursorOp
   MongoDB::Role::_MaybeClientSession
+  MongoDB::Role::_CommandCursorOp
 );
 
 sub execute {
