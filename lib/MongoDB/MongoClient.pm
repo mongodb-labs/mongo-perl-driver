@@ -1348,6 +1348,12 @@ sub BUILD {
     return;
 }
 
+sub DEMOLISH {
+    my ( $self, $in_global_destruction ) = @_;
+
+    $self->_end_all_sessions;
+}
+
 #--------------------------------------------------------------------------#
 # helper functions
 #--------------------------------------------------------------------------#
@@ -1619,6 +1625,28 @@ sub retire_server_session {
     # TODO expire this session if old
     unshift @{ $self->_server_session_pool }, $server_session;
     return;
+}
+
+# Called during cleanup to notify server to end all sessions
+sub _end_all_sessions {
+    my ( $self ) = @_;
+
+    my @batches;
+    push @batches,
+        [ splice @{ $self->_server_session_pool }, 0, 10_000 ]
+            while @{ $self->_server_session_pool };
+
+    for my $batch ( @batches ) {
+        my $sessions = [
+            map { $_->session_id } @$batch
+        ];
+        # Ignore any errors generated from this
+        try {
+            $self->send_admin_command([
+                endSessions => $sessions,
+            ]);
+        };
+    }
 }
 
 #--------------------------------------------------------------------------#

@@ -437,6 +437,43 @@ sub run_command {
     return $obj->output;
 }
 
+sub _aggregate {
+    MongoDB::UsageError->throw("pipeline argument must be an array reference")
+      unless ref( $_[1] ) eq 'ARRAY';
+
+    my ( $self, $pipeline, $options ) = @_;
+    $options ||= {};
+
+    my $session = delete $options->{session};
+
+    # boolify some options
+    for my $k (qw/allowDiskUse explain/) {
+        $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
+    }
+
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
+
+    # read preferences are ignored if the last stage is $out
+    my ($last_op) = keys %{ $pipeline->[-1] };
+
+    my $op = MongoDB::Op::_Aggregate->_new(
+        pipeline     => $pipeline,
+        options      => $options,
+        read_concern => $self->read_concern,
+        has_out      => $last_op eq '$out',
+        client       => $self->_client,
+        bson_codec   => $self->bson_codec,
+        db_name      => $self->name,
+        coll_name    => 1, # Magic not-an-actual-collection number
+        ( defined $session ? ( session => $session ) : () ),
+    );
+
+    return $self->_client->send_read_op($op);
+}
+
 #--------------------------------------------------------------------------#
 # deprecated methods
 #--------------------------------------------------------------------------#
