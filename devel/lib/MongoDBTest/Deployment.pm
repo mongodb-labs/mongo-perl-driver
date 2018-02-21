@@ -40,6 +40,7 @@ sub _build_server_set {
     return $class->new(
         default_args => $self->default_args,
         default_version => $self->default_version,
+        default_fcv => $self->default_fcv,
         timeout => $self->timeout,
         auth_config => $self->auth_config,
         ssl_config => $self->ssl_config,

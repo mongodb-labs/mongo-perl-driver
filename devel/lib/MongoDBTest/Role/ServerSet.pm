@@ -44,6 +44,12 @@ has default_version => (
     required => 1,
 );
 
+has default_fcv => (
+    is => 'ro',
+    isa => Str,
+    required => 1,
+);
+
 has timeout => (
     is => 'ro',
     isa => Maybe[Num],
@@ -89,6 +95,7 @@ sub _build__servers {
             config => $server,
             default_args => $self->default_args,
             default_version => $self->default_version,
+            default_fcv => $self->default_fcv,
             auth_config => $self->auth_config,
             ssl_config => $self->ssl_config,
             ( $self->timeout ? ( timeout => $self->timeout ) : () ),

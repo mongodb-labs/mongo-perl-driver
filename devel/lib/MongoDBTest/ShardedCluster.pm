@@ -43,6 +43,7 @@ sub _build_with_CSRS {
     my $temp_server = MongoDBTest::Mongod->new(
         config => { name => "temp" },
         default_version => $self->config->{default_version} // 0,
+        default_fcv => $self->config->{default_fcv} // "",
     );
     return -x $temp_server->executable && $temp_server->server_version >= v3.2.0;
 }
@@ -59,6 +60,7 @@ sub _build_config_servers {
         # don't pass default args from config file
         default_args => "--configsvr --bind_ip 0.0.0.0",
         default_version => $self->default_version,
+        default_fcv => $self->default_fcv,
         server_config_list => $self->config->{mongoc},
         ( $self->with_CSRS ? ( set_name => "configReplSet" ) : () ),
         verbose => $self->verbose,
@@ -80,6 +82,7 @@ sub _build_routers {
         # don't pass default args from config file
         default_args => "--configdb $config_names --bind_ip 0.0.0.0",
         default_version => $self->default_version,
+        default_fcv => $self->default_fcv,
         server_config_list => $self->config->{mongos},
         server_type => 'mongos',
         verbose => $self->verbose,
@@ -102,6 +105,7 @@ sub _build_shard_sets {
         # args are additive, version is not
         $shard->{default_args} = "--shardsvr " . $self->default_args . ($shard->{default_args} // "");
         $shard->{default_version} //= $self->default_version,
+        $shard->{default_fcv} //= $self->default_fcv,
 
         $set->{$name} = MongoDBTest::Deployment->new( config => $shard );
     }

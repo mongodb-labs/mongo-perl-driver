@@ -77,6 +77,7 @@ sub _build__servers {
             config          => $server,
             default_args    => $self->default_args,
             default_version => $self->default_version,
+            default_fcv => $self->default_fcv,
             ( $did_first ? () : ( auth_config => $self->auth_config ) ),
             ssl_config => $self->ssl_config,
             ( $self->timeout ? ( timeout => $self->timeout ) : () ),

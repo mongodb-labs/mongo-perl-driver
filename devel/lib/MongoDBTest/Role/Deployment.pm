@@ -50,6 +50,11 @@ has default_version => (
     isa => Str,
 );
 
+has default_fcv => (
+    is => 'lazy',
+    isa => Str,
+);
+
 has timeout => (
     is => 'lazy',
     isa => Maybe[Num],
@@ -63,6 +68,11 @@ sub _build_timeout {
 sub _build_default_version {
     my ($self) = @_;
     return $self->config->{default_version} // '';
+}
+
+sub _build_default_fcv {
+    my ($self) = @_;
+    return $self->config->{default_fcv} // '';
 }
 
 has auth_config => (

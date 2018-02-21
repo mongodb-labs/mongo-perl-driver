@@ -96,6 +96,12 @@ has default_version => (
     default => '',
 );
 
+has default_fcv => (
+    is => 'ro',
+    isa => Str,
+    default => '',
+);
+
 has timeout => (
     is => 'lazy',
     isa => Str,
@@ -123,9 +129,20 @@ has version_wanted => (
     isa => Str,
 );
 
+has fcv_wanted => (
+    is => 'lazy',
+    isa => Str,
+);
+
 sub _build_version_wanted {
     my ($self) = @_;
     my $target = ($self->config->{version} // $self->default_version) || 0;
+    return $target;
+}
+
+sub _build_fcv_wanted {
+    my ($self) = @_;
+    my $target = ($self->config->{fcv} // $self->default_fcv) || "";
     return $target;
 }
 
@@ -340,6 +357,11 @@ sub start {
     }
     catch { chomp; s/at \S+ line \d+//; die "Caught error:$_. Giving up!\n" };
 
+    if ( my $fcv = $self->fcv_wanted ) {
+        $self->_logger->debug("Setting featureCompatibilityVersion $fcv");
+        $self->client->get_database("admin")->run_command( [ setFeatureCompatibilityVersion => $fcv ] );
+    }
+
     if ( $self->auth_config && !$self->did_auth_setup ) {
         my ( $user, $password ) = @{ $self->auth_config }{qw/user password/};
         $self->add_user( "admin", $user, $password, [ {role => 'root', db => 'admin' } ] );
@@ -521,7 +543,7 @@ sub _command_args {
 sub add_user {
     my ($self, $db, $user, $password, $roles) = @_;
     return unless $user;
-    $self->_logger->debug("Adding authorized user");
+    $self->_logger->debug("Adding authorized user '$user'");
     my $doc = Tie::IxHash->new(
         ( $password ? ( pwd => $password ) : () ),
         roles => $roles,
