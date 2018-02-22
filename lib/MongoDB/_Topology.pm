@@ -808,8 +808,9 @@ sub _initialize_link {
         }
         catch {
             my $err = $_;
+            my $msg = $err->$_isa("MongoDB::Error") ? $err->message : "$err";
             $self->_reset_address_to_unknown( $_->address, $err ) for $self->all_servers;
-            MongoDB::AuthError->throw("Authentication to $address failed: $err");
+            MongoDB::AuthError->throw("Authentication to $address failed: $msg");
         };
     }
 

@@ -33,6 +33,7 @@ use MongoDB::_Types qw(
 use Digest::MD5 qw/md5_hex/;
 use Encode qw/encode/;
 use MIME::Base64 qw/encode_base64 decode_base64/;
+use Safe::Isa;
 use Tie::IxHash;
 use Try::Tiny;
 use Types::Standard qw(
@@ -319,7 +320,8 @@ sub _authenticate_GSSAPI {
         }
     }
     catch {
-        MongoDB::AuthError->throw("GSSAPI error: $_");
+        my $msg = $_->$_isa("MongoDB::Error") ? $_->message : "$_";
+        MongoDB::AuthError->throw("GSSAPI error: $msg");
     };
 
     return 1;
@@ -454,7 +456,8 @@ sub _scram_auth {
         $self->_sasl_continue( $link, $bson_codec, "", $conv_id ) if !$done;
     }
     catch {
-        MongoDB::AuthError->throw("$mech error: $_");
+        my $msg = $_->$_isa("MongoDB::Error") ? $_->message : "$_";
+        MongoDB::AuthError->throw("$mech error: $msg");
     };
 }
 
