@@ -85,22 +85,44 @@ has _digested_password => (
     builder => '_build__digested_password',
 );
 
-has _scram_client => (
+has _scram_sha1_client => (
     is      => 'lazy',
     isa     => InstanceOf ['Authen::SCRAM::Client'],
-    builder => '_build__scram_client',
+    builder => '_build__scram_sha1_client',
 );
 
-sub _build__scram_client {
+has _scram_sha256_client => (
+    is      => 'lazy',
+    isa     => InstanceOf ['Authen::SCRAM::Client'],
+    builder => '_build__scram_sha256_client',
+);
+
+sub _build__scram_sha1_client {
     my ($self) = @_;
     # loaded only demand as it has a long load time relative to other
     # modules
     require Authen::SCRAM::Client;
-    Authen::SCRAM::Client->VERSION(0.006);
+    Authen::SCRAM::Client->VERSION(0.007);
     return Authen::SCRAM::Client->new(
-        username      => $self->username,
-        password      => $self->_digested_password,
-        skip_saslprep => 1,
+        username                => $self->username,
+        password                => $self->_digested_password,
+        digest                  => 'SHA-1',
+        minimum_iteration_count => 4096,
+        skip_saslprep           => 1,
+    );
+}
+
+sub _build__scram_sha256_client {
+    my ($self) = @_;
+    # loaded only demand as it has a long load time relative to other
+    # modules
+    require Authen::SCRAM::Client;
+    Authen::SCRAM::Client->VERSION(0.007);
+    return Authen::SCRAM::Client->new(
+        username                => $self->username,
+        password                => $self->password,
+        digest                  => 'SHA-256',
+        minimum_iteration_count => 4096,
     );
 }
 
@@ -148,6 +170,12 @@ my %CONSTRAINTS = (
         source               => sub { length },
         mechanism_properties => sub { !keys %$_ },
     },
+    'SCRAM-SHA-256' => {
+        username             => sub { length },
+        password             => sub { length },
+        source               => sub { length },
+        mechanism_properties => sub { !keys %$_ },
+    },
     'DEFAULT' => {
         username             => sub { length },
         password             => sub { length },
@@ -180,11 +208,11 @@ sub BUILD {
 }
 
 sub authenticate {
-    my ( $self, $link, $bson_codec ) = @_;
+    my ( $self, $server, $link, $bson_codec ) = @_;
 
     my $mech = $self->mechanism;
     if ( $mech eq 'DEFAULT' ) {
-        $mech = $link->accepts_wire_version(3) ? 'SCRAM-SHA-1' : 'MONGODB-CR';
+        $mech = $self->_get_default_mechanism($server, $link);
     }
     my $method = "_authenticate_$mech";
     $method =~ s/-/_/g;
@@ -298,27 +326,36 @@ sub _authenticate_GSSAPI {
 }
 
 sub _authenticate_SCRAM_SHA_1 {
-    my ( $self, $link, $bson_codec ) = @_;
+    my $self = shift;
 
-    my $client = $self->_scram_client;
-
-    my ( $msg, $sasl_resp, $conv_id, $done );
-    try {
-        $msg = $client->first_msg;
-        ( $sasl_resp, $conv_id, $done ) =
-          $self->_sasl_start( $link, $bson_codec, $msg, 'SCRAM-SHA-1' );
-        $msg = $client->final_msg($sasl_resp);
-        ( $sasl_resp, $conv_id, $done ) =
-          $self->_sasl_continue( $link, $bson_codec, $msg, $conv_id );
-        $client->validate($sasl_resp);
-        # might require an empty payload to complete SASL conversation
-        $self->_sasl_continue( $link, $bson_codec, "", $conv_id ) if !$done;
-    }
-    catch {
-        MongoDB::AuthError->throw("SCRAM-SHA-1 error: $_");
-    };
+    $self->_scram_auth(@_, $self->_scram_sha1_client, 'SCRAM-SHA-1');
 
     return 1;
+}
+
+sub _authenticate_SCRAM_SHA_256 {
+    my $self = shift;
+
+    $self->_scram_auth(@_, $self->_scram_sha256_client, 'SCRAM-SHA-256');
+
+    return 1;
+}
+
+sub _get_default_mechanism {
+    my ( $self, $server, $link ) = @_;
+
+    if ( my $supported = $server->is_master->{saslSupportedMechs} ) {
+        if ( grep { $_ eq 'SCRAM-SHA-256' } @$supported ) {
+            return 'SCRAM-SHA-256';
+        }
+        return 'SCRAM-SHA-1';
+    }
+
+    if ( $link->accepts_wire_version(3) ) {
+        return 'SCRAM-SHA-1';
+    }
+
+    return 'MONGODB-CR';
 }
 
 #--------------------------------------------------------------------------#
@@ -399,6 +436,26 @@ sub _sasl_send {
         $output->{conversationId},
         $output->{done}
     );
+}
+
+sub _scram_auth {
+    my ( $self, $link, $bson_codec, $client, $mech ) = @_;
+
+    my ( $msg, $sasl_resp, $conv_id, $done );
+    try {
+        $msg = $client->first_msg;
+        ( $sasl_resp, $conv_id, $done ) =
+          $self->_sasl_start( $link, $bson_codec, $msg, $mech );
+        $msg = $client->final_msg($sasl_resp);
+        ( $sasl_resp, $conv_id, $done ) =
+          $self->_sasl_continue( $link, $bson_codec, $msg, $conv_id );
+        $client->validate($sasl_resp);
+        # might require an empty payload to complete SASL conversation
+        $self->_sasl_continue( $link, $bson_codec, "", $conv_id ) if !$done;
+    }
+    catch {
+        MongoDB::AuthError->throw("$mech error: $_");
+    };
 }
 
 sub _send_command {

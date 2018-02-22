@@ -804,7 +804,7 @@ sub _initialize_link {
     # servers are considered invalid and we throw an error
     if ( $self->type eq 'Single' || first { $_ eq $server->type } qw/Standalone Mongos RSPrimary RSSecondary/ ) {
         try {
-            $self->credential->authenticate($link, $self->bson_codec);
+            $self->credential->authenticate($server, $link, $self->bson_codec);
         }
         catch {
             my $err = $_;
@@ -942,11 +942,16 @@ sub _selection_timeout {
 my $PRIMARY = MongoDB::ReadPreference->new;
 
 sub _generate_ismaster_request {
-    my ($self, $should_perform_handshake) = @_;
-    return [
-        ismaster => 1,
-        ($should_perform_handshake ? (client => $self->handshake_document) : ()),
-    ];
+    my ( $self, $should_perform_handshake ) = @_;
+    my @opts;
+    if ($should_perform_handshake) {
+        push @opts, client => $self->handshake_document;
+        if ( $self->credential->mechanism eq 'DEFAULT' ) {
+            my $db_user = join( ".", map { $self->credential->$_ } qw/source username/ );
+            push @opts, saslSupportedMechs => $db_user;
+        }
+    }
+    return [ ismaster => 1, @opts ];
 }
 
 sub _update_topology_from_link {
@@ -967,13 +972,15 @@ sub _update_topology_from_link {
         local $link->{socket_timeout} = $link->{connect_timeout};
         $op->execute( $link )->output;
     };
-    if ( $@ ) {
-        local $_ = $@;
-        warn "During MongoDB topology update for @{[$link->address]}: $_"
+    if ( my $e = $@ ) {
+        if ($e->$_isa("MongoDB::DatabaseError") && $e->code == USER_NOT_FOUND ) {
+            MongoDB::AuthError->throw("mechanism negotiation error: $e");
+        }
+        warn "During MongoDB topology update for @{[$link->address]}: $e"
             if WITH_ASSERTS;
-        $self->_reset_address_to_unknown( $link->address, $_ );
+        $self->_reset_address_to_unknown( $link->address, $e );
         # retry a network error if server was previously known to us
-        if (    $_->$_isa("MongoDB::NetworkError")
+        if (    $e->$_isa("MongoDB::NetworkError")
             and $link->server
             and $link->server->type ne 'Unknown'
             and $link->server->type ne 'PossiblePrimary' )

@@ -88,7 +88,7 @@ require Tie::IxHash;
 declare ArrayOfHashRef, as ArrayRef [HashRef];
 
 enum AuthMechanism,
-  [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1/];
+  [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1 SCRAM-SHA-256/];
 
 class_type Booleanpm, { class => 'boolean' };
 

@@ -23,6 +23,7 @@ our $VERSION = 'v1.999.0';
 
 use Moo;
 use MongoDB::Error;
+use Encode ();
 use Types::Standard qw(
     Any
     ArrayRef

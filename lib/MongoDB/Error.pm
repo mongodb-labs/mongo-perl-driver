@@ -43,6 +43,7 @@ BEGIN {
     $ERROR_CODES = {
         BAD_VALUE                 => 2,
         UNKNOWN_ERROR             => 8,
+        USER_NOT_FOUND            => 11,
         NAMESPACE_NOT_FOUND       => 26,
         INDEX_NOT_FOUND           => 27,
         EXCEEDED_TIME_LIMIT       => 50,
