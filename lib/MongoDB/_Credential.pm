@@ -353,6 +353,7 @@ sub _sasl_encode_payload {
     my ( $self, $payload ) = @_;
     $payload = "" unless defined $payload;
     return encode_base64( $payload, "" ) if $self->mechanism eq 'GSSAPI';
+    $payload = encode( "UTF-8", $payload );
     return \$payload;
 }
 

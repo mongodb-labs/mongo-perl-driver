@@ -138,7 +138,9 @@ sub _build_valid_srv_options {
 sub _unescape_all {
     my $str = shift;
     return '' unless defined $str;
-    $str =~ s/%([0-9a-f]{2})/chr(hex($1))/ieg;
+    if ( $str =~ s/%([0-9a-f]{2})/chr(hex($1))/ieg ) {
+        $str = Encode::decode('UTF-8', $str);
+    }
     return $str;
 }
 

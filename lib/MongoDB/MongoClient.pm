@@ -1802,6 +1802,9 @@ and direct discovery communicating with servers in the deployment.
 MongoDB uses a pseudo-URI connection string to specify one or more servers to
 connect to, along with configuration options.
 
+NOTE: any non-printable ASCII characters should be UTF-8 encoded and converted
+URL-escaped characters.
+
 To connect to more than one database server, provide host or host:port pairs
 as a comma separated list:
 
