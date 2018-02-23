@@ -1615,11 +1615,8 @@ sub get_server_session {
         my $session_timeout = $self->_topology->logical_session_timeout_minutes;
         # if undefined, sessions not actually supported so drop out here
         return unless defined $session_timeout;
-        my $timeout = DateTime->now;
-        $timeout->subtract( minutes => $session_timeout - 1 );
         while ( my $session = shift @{ $self->_server_session_pool } ) {
-            # Undefined last_use means its never actually been used on the server
-            next unless defined $session->last_use && $session->last_use > $timeout;
+            next if $session->_is_expiring( $session_timeout );
             return $session;
         }
     }
@@ -1629,9 +1626,17 @@ sub get_server_session {
 sub retire_server_session {
     my ( $self, $server_session ) = @_;
 
-    # TODO expire old sessions
-    # TODO expire this session if old
-    unshift @{ $self->_server_session_pool }, $server_session;
+    my $session_timeout = $self->_topology->logical_session_timeout_minutes;
+
+    # Expire old sessions from back of queue
+    while ( my $session = $self->_server_session_pool->[-1] ) {
+        last unless $session->_is_expiring( $session_timeout );
+        pop @{ $self->_server_session_pool };
+    }
+
+    unless ( $server_session->_is_expiring( $session_timeout ) ) {
+        unshift @{ $self->_server_session_pool }, $server_session;
+    }
     return;
 }
 

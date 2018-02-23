@@ -61,4 +61,15 @@ sub update_last_use {
     $self->_set_last_use( DateTime->now );
 }
 
+sub _is_expiring {
+    my ( $self, $session_timeout ) = @_;
+
+    my $timeout = DateTime->now;
+    $timeout->subtract( minutes => $session_timeout - 1 );
+
+    # Undefined last_use means its never actually been used on the server
+    return 1 if defined $self->last_use && $self->last_use > $timeout;
+    return;
+}
+
 1;
