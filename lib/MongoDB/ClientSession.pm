@@ -69,6 +69,12 @@ has is_explicit => (
     default => 0,
 );
 
+has _in_cursor => (
+    is => 'rw',
+    isa => Bool,
+    default => 0,
+);
+
 has _has_ended => (
     is => 'rwp',
     isa => Bool,
@@ -78,6 +84,16 @@ has _has_ended => (
 sub _build_server_session {
     my ( $self ) = @_;
     return MongoDB::ServerSession->new;
+}
+
+# Check if this should be ended as an implicit session. Returns truthy if this
+# session should be ended as an implicit session.
+sub _should_end_implicit {
+    my ( $self ) = @_;
+
+    return if $self->_in_cursor;
+    return if $self->is_explicit;
+    return 1;
 }
 
 sub session_id {

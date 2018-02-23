@@ -65,7 +65,7 @@ sub _retire_implicit_session {
 
     return unless defined $self->session;
 
-    $self->session->end_session unless $self->session->is_explicit;
+    $self->session->end_session if $self->session->_should_end_implicit;
     return;
 }
 

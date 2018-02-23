@@ -287,6 +287,8 @@ sub _kill_cursor {
         full_name  => $self->_full_name,
         bson_codec => $self->_bson_codec,
         cursor_ids => [$cursor_id],
+        client     => $self->_client,
+        ( defined $self->session ? ( session => $self->session ) : () ),
     );
     $self->_client->send_direct_op( $op, $self->_address );
     $self->_set_cursor_id(0);

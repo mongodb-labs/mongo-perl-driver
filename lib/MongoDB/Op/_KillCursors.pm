@@ -42,6 +42,8 @@ with $_ for qw(
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_DatabaseOp
   MongoDB::Role::_PrivateConstructor
+  MongoDB::Role::_MaybeMongoClient
+  MongoDB::Role::_MaybeClientSession
 );
 
 sub execute {
@@ -51,6 +53,10 @@ sub execute {
         # Spec says that failures should be ignored: cursor kills often happen
         # via destructors and users can't do anything about failure anyway.
         eval {
+            if ( defined $self->session ) {
+                # causes implicit cursors to be ended after the command
+                $self->session->_in_cursor(0);
+            }
             MongoDB::Op::_Command->_new(
                 db_name => $self->db_name,
                 query   => [
@@ -59,6 +65,8 @@ sub execute {
                 ],
                 query_flags => {},
                 bson_codec  => $self->bson_codec,
+                client => $self->client,
+                ( defined $self->session ? ( session => $self->session ) : () ),
             )->execute($link);
         };
     }

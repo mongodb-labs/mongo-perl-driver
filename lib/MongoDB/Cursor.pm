@@ -80,6 +80,11 @@ has result => (
 # this does the query if it hasn't been done yet
 sub _build_result {
     my ($self) = @_;
+
+    # cursor sessions MUST last until the cursor is ended when using implicit sessions
+    if ( defined $self->_query->session ) {
+        $self->_query->session->_in_cursor(1);
+    }
     return $self->{client}->send_read_op( $self->_query );
 }
 

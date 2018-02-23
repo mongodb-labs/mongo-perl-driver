@@ -64,17 +64,17 @@ my $coll           = $testdb->get_collection('test_collection');
 plan skip_all => "Requires MongoDB 3.6"
     if $server_version < v3.6.0;
 
-subtest 'Shared session in cursor' => sub {
+use Test::Role::BSONDebug;
 
-    use Test::Role::BSONDebug;
+Role::Tiny->apply_roles_to_package(
+    'MongoDB::BSON', 'Test::Role::BSONDebug',
+);
 
-    Role::Tiny->apply_roles_to_package(
-        'MongoDB::BSON', 'Test::Role::BSONDebug',
-    );
+$coll->insert_many( [ map { { wanted => 1, score => $_ } } 0 .. 400 ] );
 
-    $coll->insert_many( [ map { { wanted => 1, score => $_ } } 0 .. 400 ] );
+Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
 
-    Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+subtest 'Shared session in explicit cursor' => sub {
 
     my $session = $conn->start_session;
 
@@ -106,6 +106,50 @@ subtest 'Shared session in cursor' => sub {
         }
     };
 
+    $session->end_session;
+
+    my $retired_session_id = defined $conn->_server_session_pool->[0]
+        ? uuid_to_string( $conn->_server_session_pool->[0]->session_id->{id}->data )
+        : '';
+
+    is $retired_session_id, $lsid, "Session returned to pool";
+
+};
+
+Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+
+subtest 'Shared session in implicit cursor' => sub {
+
+    my $cursor = $coll->find({ wanted => 1 })->result;
+
+    # pull out implicit session
+    my $lsid = uuid_to_string( $cursor->session->session_id->{id}->data );
+
+    my $cursor_command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+    my $cursor_command_sid = uuid_to_string( $cursor_command->FETCH('lsid')->{id}->data );
+
+    is $cursor_command_sid, $lsid, "Cursor sent with correct lsid";
+
+    subtest 'All cursor calls in same session' => sub {
+        # Call first batch run outside of loop as doesnt fetch intially
+        my @items = $cursor->batch;
+        while ( @items = $cursor->batch ) {
+            my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+            ok $command->EXISTS('lsid'), "cursor has session";
+            my $cursor_session_id = uuid_to_string( $command->FETCH('lsid')->{id}->data );
+            is $cursor_session_id, $lsid, "Cursor is using given session";
+        }
+    };
+
+    # Force retiring the cursor
+    $cursor = undef;
+
+    my $retired_session_id = defined $conn->_server_session_pool->[0]
+        ? uuid_to_string( $conn->_server_session_pool->[0]->session_id->{id}->data )
+        : '';
+
+    is $retired_session_id, $lsid, "Session returned to pool at end of cursor";
 };
 
 clear_testdbs;
