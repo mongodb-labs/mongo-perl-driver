@@ -101,7 +101,7 @@ sub _test_write_commands {
 
 subtest "wire protocol 5" => sub {
     my $orc =
-      MongoDBTest::Orchestrator->new( config_file => "devel/config/replicaset-single-any.yml" );
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/replicaset-single-3.4.yml" );
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
