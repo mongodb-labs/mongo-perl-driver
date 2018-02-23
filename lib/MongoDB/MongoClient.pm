@@ -1612,8 +1612,16 @@ sub get_server_session {
     my ( $self ) = @_;
 
     if ( scalar( @{ $self->_server_session_pool } ) > 0 ) {
-        my $session = shift @{ $self->_server_session_pool };
-        return $session;
+        my $session_timeout = $self->_topology->logical_session_timeout_minutes;
+        # if undefined, sessions not actually supported so drop out here
+        return unless defined $session_timeout;
+        my $timeout = DateTime->now;
+        $timeout->subtract( minutes => $session_timeout - 1 );
+        while ( my $session = shift @{ $self->_server_session_pool } ) {
+            # Undefined last_use means its never actually been used on the server
+            next unless defined $session->last_use && $session->last_use > $timeout;
+            return $session;
+        }
     }
     return;
 }
