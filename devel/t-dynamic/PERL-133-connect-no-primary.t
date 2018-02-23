@@ -37,7 +37,7 @@ use MongoDBTest::Orchestrator;
 
 my $orc =
   MongoDBTest::Orchestrator->new(
-    config_file => "devel/config/replicaset-any.yml" );
+    config_file => "devel/config/replicaset-3.0.yml" );
 $orc->start;
 $ENV{MONGOD} = $orc->as_uri;
 
