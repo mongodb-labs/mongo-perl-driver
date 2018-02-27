@@ -1657,7 +1657,7 @@ sub _end_all_sessions {
         try {
             $self->send_admin_command([
                 endSessions => $sessions,
-            ]);
+            ], 'primaryPreferred');
         };
     }
 }
