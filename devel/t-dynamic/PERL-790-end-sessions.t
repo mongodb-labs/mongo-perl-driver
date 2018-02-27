@@ -44,9 +44,6 @@ use MongoDBTest qw/
     get_unique_collection
 /;
 
-# This test starts servers on localhost ports 27017, 27018 and 27019. We skip if
-# these aren't available.
-
 my $orc =
 MongoDBTest::Orchestrator->new(
   config_file => "devel/config/replicaset-single-3.6.yml" );
@@ -65,7 +62,6 @@ my $coll           = $testdb->get_collection('test_collection');
 plan skip_all => "Requires MongoDB 3.6"
     if $server_version < v3.6.0;
 
-use Devel::Dwarn;
 subtest 'endSession closes sessions on server' => sub {
     my $session_count = 10;
     my @sessions;
