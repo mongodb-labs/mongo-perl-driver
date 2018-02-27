@@ -43,9 +43,6 @@ use MongoDBTest qw/
     get_unique_collection
 /;
 
-# This test starts servers on localhost ports 27017, 27018 and 27019. We skip if
-# these aren't available.
-
 my $orc =
 MongoDBTest::Orchestrator->new(
   config_file => "devel/config/replicaset-single-3.6.yml" );
@@ -141,9 +138,6 @@ subtest 'Shared session in implicit cursor' => sub {
             is $cursor_session_id, $lsid, "Cursor is using given session";
         }
     };
-
-    # Force retiring the cursor
-    $cursor = undef;
 
     my $retired_session_id = defined $conn->_server_session_pool->[0]
         ? uuid_to_string( $conn->_server_session_pool->[0]->session_id->{id}->data )

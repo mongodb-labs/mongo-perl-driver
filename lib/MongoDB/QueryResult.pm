@@ -113,8 +113,26 @@ has _cursor_id => (
     is       => 'ro',
     required => 1,
     writer   => '_set_cursor_id',
+    trigger  => \&_trigger_cursor_id,
     isa => Any,
 );
+
+sub _trigger_cursor_id {
+    my ( $self, $val ) = @_;
+
+    return unless defined $val;
+    if  ($val == 0 && defined $self->session ) {
+        # Cursor is closed when 0, so should remove implicit session
+        $self->session->_in_cursor( 0 );
+        if ( $self->session->_should_end_implicit ) {
+            $self->session->end_session;
+            # force undef to remove session from usage in this cursor for a
+            # kill_cursor command, as that would cause an error from already
+            # being ended - and its an implicit session already.
+            $self->_set_session( undef );
+        }
+    }
+}
 
 has _cursor_start => (
     is       => 'ro',

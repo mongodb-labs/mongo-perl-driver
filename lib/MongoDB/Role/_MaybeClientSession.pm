@@ -27,7 +27,8 @@ use namespace::clean;
 requires qw/client/;
 
 has session => (
-    is => 'lazy',
+    is => 'rwp',
+    lazy => 1,
     builder => '_build_session',
 );
 
