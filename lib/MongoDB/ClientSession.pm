@@ -56,7 +56,9 @@ has options => (
     required => 1,
     # Shallow copy to prevent action at a distance.
     # Upgrade to use Storable::dclone if a more complex option is required
-    coerce => sub { $_[0] = { %$_[0] } },
+    coerce => sub {
+      $_[0] = { %{ $_[0] } };
+    },
 );
 
 has server_session => (

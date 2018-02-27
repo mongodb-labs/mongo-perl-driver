@@ -68,7 +68,7 @@ sub _is_expiring {
     $timeout->subtract( minutes => $session_timeout - 1 );
 
     # Undefined last_use means its never actually been used on the server
-    return 1 if defined $self->last_use && $self->last_use > $timeout;
+    return 1 if defined $self->last_use && $self->last_use < $timeout;
     return;
 }
 
