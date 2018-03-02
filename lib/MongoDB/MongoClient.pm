@@ -1474,7 +1474,7 @@ sub start_session {
         MongoDB::Error->throw( "Connected Server(s) do not support sessions" );
     }
 
-    return $self->_start_session( 1, $opts );
+    return $self->_start_client_session( 1, $opts );
 }
 
 sub _start_implicit_session {
@@ -1483,10 +1483,10 @@ sub _start_implicit_session {
     # Dont return an error as implicit sessions need to be backwards compatible
     return unless $self->_topology->_supports_sessions;
 
-    return $self->_start_session( 0, $opts );
+    return $self->_start_client_session( 0, $opts );
 }
 
-sub _start_session {
+sub _start_client_session {
     my ( $self, $is_explicit, $opts ) = @_;
 
     $opts ||= {};
