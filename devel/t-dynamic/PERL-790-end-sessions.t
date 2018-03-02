@@ -159,7 +159,7 @@ subtest 'expiry of old sessions on retire' => sub {
     # modify and move all known sessions from highest index to lowest
     for my $i ( @to_reorganise ) {
         my $move_sess = splice @{ $conn->_server_session_pool->_server_session_pool }, $i, 1;
-        $move_sess->last_use->subtract( minutes => 40 );
+        $move_sess->_set_last_use( $move_sess->last_use - ( 40 * 60 ) );
         # send this session to the end of the array
         push @{ $conn->_server_session_pool->_server_session_pool }, $move_sess;
     }

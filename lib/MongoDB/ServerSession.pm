@@ -23,7 +23,6 @@ package MongoDB::ServerSession;
 use MongoDB::Error;
 
 use Moo;
-use DateTime;
 use UUID::Tiny ':std'; # Use newer interface
 use MongoDB::BSON::Binary;
 use MongoDB::_Types qw(
@@ -32,6 +31,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     Maybe
     InstanceOf
+    Int
 );
 use namespace::clean -except => 'meta';
 
@@ -53,12 +53,12 @@ sub _build_session_id {
 has last_use => (
     is => 'rwp',
     init_arg => undef,
-    isa => Maybe[InstanceOf['DateTime']],
+    isa => Maybe[Int],
 );
 
 sub update_last_use {
     my ( $self ) = @_;
-    $self->_set_last_use( DateTime->now );
+    $self->_set_last_use( time() );
 }
 
 sub _is_expiring {
@@ -68,8 +68,7 @@ sub _is_expiring {
     # value should be from logical_session_timeout_minutes).
     return 1 unless defined $session_timeout;
 
-    my $timeout = DateTime->now;
-    $timeout->subtract( minutes => $session_timeout - 1 );
+    my $timeout = time() - ( ( $session_timeout - 1 ) * 60 );
 
     # Undefined last_use means its never actually been used on the server
     return 1 if defined $self->last_use && $self->last_use < $timeout;
