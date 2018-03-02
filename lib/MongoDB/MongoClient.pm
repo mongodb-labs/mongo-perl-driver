@@ -37,6 +37,7 @@ use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
 use MongoDB::ReadConcern;
 use MongoDB::ClientSession;
+use MongoDB::_SessionPool;
 use MongoDB::_Topology;
 use MongoDB::_Constants;
 use MongoDB::_Credential;
@@ -1257,9 +1258,9 @@ sub _build__uri {
 
 has _server_session_pool => (
     is => 'lazy',
-    isa => ArrayRef[InstanceOf['MongoDB::ServerSession']],
+    isa => InstanceOf['MongoDB::_SessionPool'],
     init_arg => undef,
-    builder => sub { [] },
+    builder => sub { return MongoDB::_SessionPool->new( client => $_[0] ) },
 );
 
 
@@ -1346,12 +1347,6 @@ sub BUILD {
     $self->_topology;
 
     return;
-}
-
-sub DEMOLISH {
-    my ( $self, $in_global_destruction ) = @_;
-
-    $self->_end_all_sessions;
 }
 
 #--------------------------------------------------------------------------#
@@ -1496,7 +1491,7 @@ sub _start_session {
 
     $opts ||= {};
 
-    my $session = $self->get_server_session;
+    my $session = $self->_server_session_pool->get_server_session;
     return MongoDB::ClientSession->new(
         client => $self,
         options => $opts,
@@ -1606,60 +1601,6 @@ sub send_read_op {
           }
       ),
       return $result;
-}
-
-sub get_server_session {
-    my ( $self ) = @_;
-
-    if ( scalar( @{ $self->_server_session_pool } ) > 0 ) {
-        my $session_timeout = $self->_topology->logical_session_timeout_minutes;
-        # if undefined, sessions not actually supported so drop out here
-        return unless defined $session_timeout;
-        while ( my $session = shift @{ $self->_server_session_pool } ) {
-            next if $session->_is_expiring( $session_timeout );
-            return $session;
-        }
-    }
-    return;
-}
-
-sub retire_server_session {
-    my ( $self, $server_session ) = @_;
-
-    my $session_timeout = $self->_topology->logical_session_timeout_minutes;
-
-    # Expire old sessions from back of queue
-    while ( my $session = $self->_server_session_pool->[-1] ) {
-        last unless $session->_is_expiring( $session_timeout );
-        pop @{ $self->_server_session_pool };
-    }
-
-    unless ( $server_session->_is_expiring( $session_timeout ) ) {
-        unshift @{ $self->_server_session_pool }, $server_session;
-    }
-    return;
-}
-
-# Called during cleanup to notify server to end all sessions
-sub _end_all_sessions {
-    my ( $self ) = @_;
-
-    my @batches;
-    push @batches,
-        [ splice @{ $self->_server_session_pool }, 0, 10_000 ]
-            while @{ $self->_server_session_pool };
-
-    for my $batch ( @batches ) {
-        my $sessions = [
-            map { $_->session_id } @$batch
-        ];
-        # Ignore any errors generated from this
-        try {
-            $self->send_admin_command([
-                endSessions => $sessions,
-            ], 'primaryPreferred');
-        };
-    }
 }
 
 #--------------------------------------------------------------------------#

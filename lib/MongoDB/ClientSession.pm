@@ -126,7 +126,7 @@ sub end_session {
     my ( $self ) = @_;
 
     if ( defined $self->server_session ) {
-        $self->client->retire_server_session( $self->server_session );
+        $self->client->_server_session_pool->retire_server_session( $self->server_session );
         $self->_set_server_session( undef );
         $self->_set__has_ended( 1 );
     }

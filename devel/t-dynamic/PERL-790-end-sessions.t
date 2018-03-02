@@ -95,13 +95,13 @@ subtest 'endSession closes sessions on server' => sub {
     $_->end_session for @sessions;
 
     $s_count = count_sessions_in_hash (
-        [ map { $_->session_id } @{ $conn->_server_session_pool } ],
+        [ map { $_->session_id } @{ $conn->_server_session_pool->_server_session_pool } ],
         \%session_ids,
     );
     is $s_count, $session_count, 'All sessions in pool';
 
     # called in destruction of client normally
-    $conn->_end_all_sessions;
+    $conn->_server_session_pool->end_all_sessions;
 
     my $after_end_agg_result = $testdb->_aggregate(
         [ { '$listLocalSessions' => {} } ],
@@ -138,7 +138,7 @@ subtest 'expiry of old sessions on retire' => sub {
     }
 
     my $before_retire_count = count_sessions_in_hash (
-        [ map { $_->session_id } @{ $conn->_server_session_pool } ],
+        [ map { $_->session_id } @{ $conn->_server_session_pool->_server_session_pool } ],
         \%session_ids,
     );
     is $before_retire_count, $session_count, 'All sessions in pool';
@@ -146,8 +146,8 @@ subtest 'expiry of old sessions on retire' => sub {
     my @to_reorganise;
 
     # find all sessions to modify
-    for my $i ( 0 .. $#{ $conn->_server_session_pool } ) {
-        my $uuid = uuid_to_string( $conn->_server_session_pool->[$i]->session_id->{id}->data );
+    for my $i ( 0 .. $#{ $conn->_server_session_pool->_server_session_pool } ) {
+        my $uuid = uuid_to_string( $conn->_server_session_pool->_server_session_pool->[$i]->session_id->{id}->data );
         if ( $session_ids{ $uuid } ) {
             push @to_reorganise, $i;
         }
@@ -158,10 +158,10 @@ subtest 'expiry of old sessions on retire' => sub {
 
     # modify and move all known sessions from highest index to lowest
     for my $i ( @to_reorganise ) {
-        my $move_sess = splice @{ $conn->_server_session_pool }, $i, 1;
+        my $move_sess = splice @{ $conn->_server_session_pool->_server_session_pool }, $i, 1;
         $move_sess->last_use->subtract( minutes => 40 );
         # send this session to the end of the array
-        push @{ $conn->_server_session_pool }, $move_sess;
+        push @{ $conn->_server_session_pool->_server_session_pool }, $move_sess;
     }
 
     my $new_session = $conn->start_session;
@@ -169,7 +169,7 @@ subtest 'expiry of old sessions on retire' => sub {
     $new_session->end_session;
 
     my $after_retire_count = count_sessions_in_hash (
-        [ map { $_->session_id } @{ $conn->_server_session_pool } ],
+        [ map { $_->session_id } @{ $conn->_server_session_pool->_server_session_pool } ],
         \%session_ids,
     );
     is $after_retire_count, 0, 'All sessions retired from pool';
