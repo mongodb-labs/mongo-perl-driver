@@ -64,6 +64,10 @@ sub update_last_use {
 sub _is_expiring {
     my ( $self, $session_timeout ) = @_;
 
+    # if session_timeout is undef, then sessions arent actually supported (this
+    # value should be from logical_session_timeout_minutes).
+    return 1 unless defined $session_timeout;
+
     my $timeout = DateTime->now;
     $timeout->subtract( minutes => $session_timeout - 1 );
 

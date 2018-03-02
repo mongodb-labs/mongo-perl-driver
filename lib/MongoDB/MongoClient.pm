@@ -1496,7 +1496,7 @@ sub _start_client_session {
         client => $self,
         options => $opts,
         is_explicit => $is_explicit,
-        ( defined $session ? ( server_session => $session ) : () ),
+        server_session => $session,
     );
 }
 

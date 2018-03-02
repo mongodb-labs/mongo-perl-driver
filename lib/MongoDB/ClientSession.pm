@@ -64,8 +64,7 @@ has options => (
 has server_session => (
     is => 'rwp',
     isa => Maybe[InstanceOf['MongoDB::ServerSession']],
-    lazy => 1,
-    builder => '_build_server_session',
+    required => 1,
 );
 
 has is_explicit => (
@@ -85,11 +84,6 @@ has _has_ended => (
     isa => Bool,
     default => 0,
 );
-
-sub _build_server_session {
-    my ( $self ) = @_;
-    return MongoDB::ServerSession->new;
-}
 
 # Check if this should be ended as an implicit session. Returns truthy if this
 # session should be ended as an implicit session.

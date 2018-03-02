@@ -19,6 +19,7 @@ use warnings;
 package MongoDB::_SessionPool;
 
 use Moo;
+use MongoDB::ServerSession;
 use Types::Standard qw(
     ArrayRef
     InstanceOf
@@ -52,13 +53,12 @@ sub get_server_session {
     if ( scalar( @{ $self->_server_session_pool } ) > 0 ) {
         my $session_timeout = $self->client->_topology->logical_session_timeout_minutes;
         # if undefined, sessions not actually supported so drop out here
-        return unless defined $session_timeout;
         while ( my $session = shift @{ $self->_server_session_pool } ) {
             next if $session->_is_expiring( $session_timeout );
             return $session;
         }
     }
-    return;
+    return MongoDB::ServerSession->new;
 }
 
 =method retire_server_session
