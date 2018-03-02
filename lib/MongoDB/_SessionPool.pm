@@ -25,9 +25,11 @@ use Types::Standard qw(
     InstanceOf
 );
 
-with $_ for qw/
-    MongoDB::Role::_MaybeMongoClient
-/;
+has client => (
+    is => 'ro',
+    required => 1,
+    isa => InstanceOf['MongoDB::MongoClient'],
+);
 
 has _server_session_pool => (
     is => 'lazy',
