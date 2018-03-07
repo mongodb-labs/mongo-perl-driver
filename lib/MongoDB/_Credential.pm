@@ -137,9 +137,9 @@ sub _build_source {
     my ($self) = @_;
     my $mech = $self->mechanism;
     return
-      $mech eq 'DEFAULT' || $mech eq 'MONGODB-CR' || $mech eq 'SCRAM-SHA-1'
-      ? 'admin'
-      : '$external';
+      $mech eq 'MONGODB-X509' || $mech eq 'PLAIN' || $mech eq 'GSSAPI'
+      ? '$external'
+      : 'admin';
 }
 
 #<<< No perltidy
