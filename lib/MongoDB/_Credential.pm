@@ -163,7 +163,8 @@ sub BUILD {
     my $mech = $self->mechanism;
 
     # validate attributes for given mechanism
-    while ( my ( $key, $validator ) = each %{ $CONSTRAINTS{$mech} } ) {
+    for my $key ( sort keys %{ $CONSTRAINTS{$mech} } ) {
+        my $validator = $CONSTRAINTS{$mech}{$key};
         local $_ = $self->$key;
         unless ( $validator->() ) {
             MongoDB::UsageError->throw("invalid field $key in $mech credential");
