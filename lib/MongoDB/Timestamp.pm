@@ -28,6 +28,22 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
+use overload (
+    q{<=>} => \&_compare,
+    fallback => 1
+);
+
+sub _compare {
+    my ( $self, $target, @args ) = @_;
+
+    my $sec_sm = $self->sec <=> $target->sec;
+    if ( $sec_sm == 0 ) {
+      return $self->inc <=> $target->inc;
+    }
+    return $sec_sm;
+}
+
+
 =attr sec
 
 Seconds since epoch.
@@ -51,7 +67,6 @@ has inc => (
     isa      => Int,
     required => 1,
 );
-
 
 1;
 
