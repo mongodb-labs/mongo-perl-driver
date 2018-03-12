@@ -1131,8 +1131,8 @@ sub _update_cluster_time {
     if ( ! defined $self->_cluster_time ) {
         $self->_set__cluster_time( $cluster_time );
     } else {
-        if ( $cluster_time->{'clusterTime'}->sec
-           > $self->_cluster_time->{'clusterTime'}->sec ) {
+        if ( $cluster_time->{'clusterTime'}
+           > $self->_cluster_time->{'clusterTime'} ) {
             $self->_set__cluster_time( $cluster_time );
         }
     }

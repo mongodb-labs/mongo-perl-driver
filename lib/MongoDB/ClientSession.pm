@@ -150,13 +150,12 @@ sub advance_cluster_time {
     if ( ! defined $self->cluster_time ) {
         $self->_set_cluster_time( $cluster_time );
     } else {
-        if ( $cluster_time->{'clusterTime'}->sec
-           > $self->cluster_time->{'clusterTime'} ) {
+        if ( $cluster_time->{'clusterTime'}
+          > $self->cluster_time->{'clusterTime'} ) {
             $self->_set_cluster_time( $cluster_time );
         }
     }
     return;
-
 }
 
 =method end_session
