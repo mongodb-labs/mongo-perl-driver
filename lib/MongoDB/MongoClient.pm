@@ -1495,7 +1495,7 @@ sub _start_client_session {
     return MongoDB::ClientSession->new(
         client => $self,
         options => $opts,
-        is_explicit => $is_explicit,
+        _is_explicit => $is_explicit,
         server_session => $session,
     );
 }

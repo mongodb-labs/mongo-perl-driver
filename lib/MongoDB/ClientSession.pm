@@ -67,7 +67,7 @@ has server_session => (
     required => 1,
 );
 
-has is_explicit => (
+has _is_explicit => (
     is => 'ro',
     isa => Bool,
     default => 0,
@@ -91,7 +91,7 @@ sub _should_end_implicit {
     my ( $self ) = @_;
 
     return if $self->_in_cursor;
-    return if $self->is_explicit;
+    return if $self->_is_explicit;
     return 1;
 }
 
