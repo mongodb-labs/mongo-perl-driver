@@ -37,11 +37,24 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
+=method client
+
+The client this session was created using. The server session will be returned
+to the pool of this client when this Client Session is closed.
+
+=cut
+
 has client => (
     is => 'ro',
     isa => InstanceOf['MongoDB::MongoClient'],
     required => 1,
 );
+
+=method cluster_time
+
+Stores the last received C<$clusterTime> for the client session.
+
+=cut
 
 has cluster_time => (
     is => 'rwp',
@@ -49,6 +62,12 @@ has cluster_time => (
     init_arg => undef,
     default => undef,
 );
+
+=method options
+
+Options provided for this particular session.
+
+=cut
 
 has options => (
     is => 'ro',
@@ -60,6 +79,13 @@ has options => (
       $_[0] = { %{ $_[0] } };
     },
 );
+
+=method server_session
+
+The server session containing the unique id for this session. See
+L<MongoDB::ServerSession> for more information.
+
+=cut
 
 has server_session => (
     is => 'rwp',
@@ -95,10 +121,27 @@ sub _should_end_implicit {
     return 1;
 }
 
+=method session_id
+
+The session id for this particular session. See
+L<MongoDB::ServerSession/session_id> for more information.
+
+=cut
+
 sub session_id {
     my ( $self ) = @_;
     return $self->server_session->session_id;
 }
+
+=method advance_cluser_time
+
+    $session->advance_cluster_time( $cluster_time );
+
+Update the C<$clusterTime> for this session. If the cluster time provided is
+more recent than the sessions current cluster time, then the session will be
+updated to this provided value.
+
+=cut
 
 sub advance_cluster_time {
     my ( $self, $cluster_time ) = @_;
@@ -115,6 +158,15 @@ sub advance_cluster_time {
     return;
 
 }
+
+=method end_session
+
+    $session->end_session;
+
+Close this particular session and return the Server Session back to the
+client's session pool. Has no effect after calling for the first time.
+
+=cut
 
 sub end_session {
     my ( $self ) = @_;
