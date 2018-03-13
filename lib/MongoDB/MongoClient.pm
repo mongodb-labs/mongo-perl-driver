@@ -1470,8 +1470,7 @@ sub start_session {
     my ( $self, $opts ) = @_;
 
     unless ( $self->_topology->_supports_sessions ) {
-        # TODO Is there a specific error message needed?
-        MongoDB::Error->throw( "Connected Server(s) do not support sessions" );
+        MongoDB::ConfigurationError->throw( "Sessions are not supported by this MongoDB deployment" );
     }
 
     return $self->_start_client_session( 1, $opts );

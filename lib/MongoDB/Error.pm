@@ -247,6 +247,11 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::Error';
 
+package MongoDB::ConfigurationError;
+use Moo;
+use namespace::clean;
+extends 'MongoDB::Error';
+
 package MongoDB::CursorNotFoundError;
 use Moo;
 use namespace::clean;
