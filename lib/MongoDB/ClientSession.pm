@@ -133,7 +133,40 @@ sub session_id {
     return $self->server_session->session_id;
 }
 
-=method advance_cluser_time
+=method get_latest_cluster_time
+
+    my $cluster_time = $session->get_latest_cluster_time;
+
+Returns the latest cluster time, when compared with this session's recorded
+cluster time and the main client cluster time. If neither is defined, returns
+undef.
+
+=cut
+
+sub get_latest_cluster_time {
+    my ( $self ) = @_;
+
+    # default to the client cluster time - may still be undef
+    if ( ! defined $self->cluster_time ) {
+        return $self->client->_cluster_time;
+    }
+
+    if ( defined $self->client->_cluster_time ) {
+        # Both must be defined here so can just compare
+        if ( $self->cluster_time->{'clusterTime'}
+           > $self->client->_cluster_time->{'clusterTime'} ) {
+            return $self->cluster_time;
+        } else {
+            return $self->client->_cluster_time;
+        }
+    }
+
+    # Could happen that this cluster_time is updated manually before the client
+    return $self->cluster_time;
+}
+
+
+=method advance_cluster_time
 
     $session->advance_cluster_time( $cluster_time );
 

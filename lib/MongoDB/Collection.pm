@@ -893,6 +893,8 @@ sub find_one_and_delete {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     # coerce to IxHash
     __ixhash($options, 'sort');
 
@@ -900,6 +902,7 @@ sub find_one_and_delete {
         %{ $_[0]->_op_args },
         filter        => $filter,
         options       => $options,
+        session       => $session,
     );
 
     return $self->client->send_write_op($op);
@@ -1064,7 +1067,7 @@ sub aggregate {
     my ( $self, $pipeline, $options ) = @_;
     $options ||= {};
 
-    my $session = delete $options->{session};
+    my $session = $self->_get_session_from_hashref( $options );
 
     # boolify some options
     for my $k (qw/allowDiskUse explain/) {
@@ -1084,7 +1087,7 @@ sub aggregate {
         options      => $options,
         read_concern => $self->read_concern,
         has_out      => $last_op eq '$out',
-        ( defined $session ? ( session => $session ) : () ),
+        session      => $session,
         %{ $self->_op_args },
     );
 
@@ -1130,12 +1133,15 @@ sub count {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     # string is OK so we check ref, not just exists
     __ixhash($options, 'hint') if ref $options->{hint};
 
     my $op = MongoDB::Op::_Count->_new(
         options         => $options,
         filter          => $filter,
+        session         => $session,
         %{ $self->_op_args },
     );
 
@@ -1186,13 +1192,13 @@ sub distinct {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $session = delete $options->{session};
+    my $session = $self->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_Distinct->_new(
         fieldname       => $fieldname,
         filter          => $filter,
         options         => $options,
-        ( defined $session ? ( session => $session ) : () ),
+        session         => $session,
         %{ $self->_op_args },
     );
 
@@ -1232,10 +1238,13 @@ sub parallel_scan {
     }
     $options = ref $options eq 'HASH' ? $options : { };
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     my $op = MongoDB::Op::_ParallelScan->_new(
         %{ $self->_op_args },
         num_cursors     => $num_cursors,
         options         => $options,
+        session         => $session,
     );
 
     my $result = $self->client->send_read_op( $op );
@@ -1282,10 +1291,13 @@ collection.
 sub rename {
     my ( $self, $new_name, $options ) = @_;
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     my $op = MongoDB::Op::_RenameCollection->_new(
         src_ns => $self->full_name,
         dst_ns => join( ".", $self->database->name, $new_name ),
         options => $options,
+        session => $session,
         %{ $self->_op_args },
     );
 
@@ -1305,9 +1317,12 @@ Deletes a collection as well as all of its indexes.
 sub drop {
     my ( $self, $options ) = @_;
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     $self->client->send_write_op(
         MongoDB::Op::_DropCollection->_new(
             options => $options,
+            session => $session,
             %{ $self->_op_args },
         )
     );
@@ -1566,15 +1581,34 @@ sub _find_one_and_update_or_replace {
     # pass separately for MongoDB::Role::_BypassValidation
     my $bypass = delete $options->{bypassDocumentValidation};
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     my $op = MongoDB::Op::_FindAndUpdate->_new(
         filter         => $filter,
         modifier       => $modifier,
         options        => $options,
         bypassDocumentValidation => $bypass,
+        session        => $session,
         %{ $self->_op_args },
     );
 
     return $self->client->send_write_op($op);
+}
+
+# Extracts a session from a provided hashref, or returns an implicit session
+sub _get_session_from_hashref {
+    my ( $self, $hashref ) = @_;
+
+    my $session = delete $hashref->{session};
+
+    if ( defined $session ) {
+        MongoDB::Error->throw( "Cannot use session from another client" )
+            if ( $session->client->_id ne $self->client->_id )
+    } else {
+        $session = $self->client->_start_implicit_session;
+    }
+
+    return $session;
 }
 
 #--------------------------------------------------------------------------#

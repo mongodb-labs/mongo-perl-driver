@@ -63,7 +63,6 @@ has options => (
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
-  MongoDB::Role::_MaybeClientSession
   MongoDB::Role::_CommandCursorOp
 );
 
@@ -86,8 +85,6 @@ sub _command_list_colls {
     # batchSize is not a command parameter itself like other options
     my $batchSize = delete $options->{batchSize};
 
-    my $session = delete $options->{session};
-
     if ( defined $batchSize ) {
         $options->{cursor} = { batchSize => $batchSize };
     }
@@ -107,12 +104,11 @@ sub _command_list_colls {
     );
 
     my $op = MongoDB::Op::_Command->_new(
-        client          => $self->client,
         db_name         => $self->db_name,
         query           => $cmd,
         query_flags     => {},
         bson_codec      => $self->bson_codec,
-        ( defined $session ? ( session => $session ) : () ),
+        session         => $self->session,
     );
 
     my $res = $op->execute( $link, $topology );

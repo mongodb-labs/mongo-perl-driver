@@ -56,25 +56,18 @@ has read_preference => (
     isa => Maybe [ReadPreference],
 );
 
-has client => (
-    is => 'ro',
-    required => 0,
-    isa => Maybe [InstanceOf['MongoDB::MongoClient']],
-);
-
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
   MongoDB::Role::_ReadPrefModifier
-  MongoDB::Role::_ClusterTimeModifier
+  MongoDB::Role::_SessionSupport
 );
 
 sub execute {
     my ( $self, $link, $topology_type ) = @_;
     $topology_type ||= 'Single'; # if not specified, assume direct
 
-    $self->_apply_session( \$self->{query} );
-    $self->_apply_cluster_time( $link, \$self->{query} );
+    $self->_apply_session_and_cluster_time( $link, \$self->{query} );
 
     # $query is passed as a reference because it *may* be replaced
     $self->_apply_read_prefs( $link, $topology_type, $self->{query_flags}, \$self->{query});
@@ -101,8 +94,7 @@ sub execute {
 
     $res->assert;
 
-    $self->_read_cluster_time($res);
-    $self->_retire_implicit_session;
+    $self->_update_session_and_cluster_time($res);
 
     return $res;
 }

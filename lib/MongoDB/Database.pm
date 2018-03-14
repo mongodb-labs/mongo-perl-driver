@@ -201,12 +201,15 @@ sub list_collections {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     my $op = MongoDB::Op::_ListCollections->_new(
         db_name    => $self->name,
         client     => $self->_client,
         bson_codec => $self->bson_codec,
         filter     => $filter,
         options    => $options,
+        session    => $session,
     );
 
     return $self->_client->send_primary_op($op);
@@ -231,10 +234,13 @@ L</list_collections> to iterate over collections instead.
 
 =cut
 
+# TODO why does this not call list_collections and iterate through that?
 sub collection_names {
     my ( $self, $filter, $options ) = @_;
     $filter ||= {};
     $options ||= {};
+
+    my $session = $self->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_ListCollections->_new(
         db_name    => $self->name,
@@ -242,6 +248,7 @@ sub collection_names {
         bson_codec => $self->bson_codec,
         filter     => $filter,
         options    => $options,
+        session    => $session,
     );
 
     my $res = $self->_client->send_primary_op($op);
@@ -366,13 +373,16 @@ Deletes the database.
 
 sub drop {
     my ( $self, $options ) = @_;
+
+    my $session = $self->_get_session_from_hashref( $options );
+
     return $self->_client->send_write_op(
         MongoDB::Op::_DropDatabase->_new(
             client        => $self->_client,
             db_name       => $self->name,
             bson_codec    => $self->bson_codec,
             write_concern => $self->write_concern,
-            ( defined $options ? ( options => $options ) : () ),
+            session       => $session,
         )
     )->output;
 }
@@ -472,6 +482,24 @@ sub _aggregate {
     );
 
     return $self->_client->send_read_op($op);
+}
+
+# Extracts a session from a provided hashref, or returns an implicit session
+# Almost identical to same subroutine in Collection, however in Database the
+# client attribute is private. 
+sub _get_session_from_hashref {
+    my ( $self, $hashref ) = @_;
+
+    my $session = delete $hashref->{session};
+
+    if ( defined $session ) {
+        MongoDB::Error->throw( "Cannot use session from another client" )
+            if ( $session->client->_id ne $self->_client->_id )
+    } else {
+        $session = $self->_client->_start_implicit_session;
+    }
+
+    return $session;
 }
 
 #--------------------------------------------------------------------------#

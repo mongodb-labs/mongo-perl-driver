@@ -1110,13 +1110,6 @@ sub _build__read_concern {
     );
 }
 
-=method cluster_time
-
-Returns the latest $clusterTime returned from a replicaset or sharded cluster,
-or undef if not supported or not seen.
-
-=cut
-
 has _cluster_time => (
     is => 'rwp',
     isa => Maybe[Document],

@@ -21,13 +21,17 @@ package MongoDB::Role::_MaybeClientSession;
 # MongoDB role to hold Op sessions and create implicit ones
 
 use Moo::Role;
-
+use Types::Standard qw(
+    Maybe
+    InstanceOf
+);
 use namespace::clean;
 
 requires qw/client/;
 
 has session => (
     is => 'rwp',
+    isa => Maybe[InstanceOf['MongoDB::ClientSession']],
     lazy => 1,
     builder => '_build_session',
 );

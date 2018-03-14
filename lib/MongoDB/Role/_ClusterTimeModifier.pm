@@ -44,8 +44,8 @@ sub _apply_cluster_time {
         $cluster_time = $self->client->_cluster_time;
         if ( defined $self->session
           && defined $self->session->cluster_time
-          && ( $cluster_time->{'clusterTime'}->sec
-             < $self->session->cluster_time->{'clusterTime'}->sec ) )
+          && ( $cluster_time->{'clusterTime'}
+             < $self->session->cluster_time->{'clusterTime'} ) )
         {
             $cluster_time = $self->session->cluster_time;
         }

@@ -31,6 +31,8 @@ use MongoDB::_Types qw(
 );
 use Types::Standard qw(
     Str
+    Maybe
+    InstanceOf
 );
 
 use namespace::clean;
@@ -45,6 +47,12 @@ has db_name => (
     is       => 'ro',
     required => 1,
     isa      => Str,
+);
+
+has session => (
+    is => 'ro',
+    required => 0,
+    isa => Maybe[InstanceOf['MongoDB::ClientSession']],
 );
 
 1;
