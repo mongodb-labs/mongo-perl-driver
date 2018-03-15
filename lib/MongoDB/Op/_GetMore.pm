@@ -58,8 +58,6 @@ with $_ for qw(
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_OpReplyParser
   MongoDB::Role::_DatabaseOp
-  MongoDB::Role::_MaybeMongoClient
-  MongoDB::Role::_MaybeClientSession
 );
 
 sub execute {
@@ -84,12 +82,11 @@ sub _command_get_more {
     ];
 
     my $op = MongoDB::Op::_Command->_new(
-        client      => $self->client,
         db_name     => $self->db_name,
         query       => $cmd,
         query_flags => {},
         bson_codec  => $self->bson_codec,
-        ( defined $self->session ? ( session => $self->session ) : () ),
+        session     => $self->session,
     );
 
     my $c = $op->execute($link)->output->{cursor};

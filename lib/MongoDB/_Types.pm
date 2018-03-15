@@ -30,6 +30,7 @@ use Type::Library
   AuthMechanism
   Booleanpm
   BSONCodec
+  ClientSession
   ConnectType
   CursorType
   DBRefColl
@@ -93,6 +94,8 @@ enum AuthMechanism,
 class_type Booleanpm, { class => 'boolean' };
 
 duck_type BSONCodec, [ qw/encode_one decode_one/ ];
+
+class_type ClientSession, { class => 'MongoDB::ClientSession' };
 
 enum ConnectType, [qw/replicaSet direct none/];
 

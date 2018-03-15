@@ -1473,7 +1473,7 @@ sub _start_implicit_session {
     my ( $self, $opts ) = @_;
 
     # Dont return an error as implicit sessions need to be backwards compatible
-    return unless $self->_topology->_supports_sessions;
+    return undef unless $self->_topology->_supports_sessions;
 
     return $self->_start_client_session( 0, $opts );
 }

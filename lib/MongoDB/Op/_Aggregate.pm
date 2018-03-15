@@ -66,7 +66,6 @@ with $_ for qw(
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
   MongoDB::Role::_WriteOp
-  MongoDB::Role::_MaybeClientSession
   MongoDB::Role::_CommandCursorOp
 );
 
@@ -134,13 +133,12 @@ sub execute {
     );
 
     my $op = MongoDB::Op::_Command->_new(
-        client          => $self->client,
         db_name         => $self->db_name,
         query           => Tie::IxHash->new(@command),
         query_flags     => {},
         bson_codec      => $self->bson_codec,
         ( $has_out ? () : ( read_preference => $self->read_preference ) ),
-        ( defined $self->session ? ( session => $self->session ) : () ),
+        session         => $self->session,
     );
 
     my $res = $op->execute( $link, $topology );

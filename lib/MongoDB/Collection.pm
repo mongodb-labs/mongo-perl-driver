@@ -469,6 +469,7 @@ sub delete_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Delete->_new(
+            session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
             filter   => $_[1],
             just_one => 1,
@@ -503,6 +504,7 @@ sub delete_many {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Delete->_new(
+            session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
             filter   => $_[1],
             just_one => 0,
@@ -545,6 +547,7 @@ sub replace_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
+            session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
@@ -593,6 +596,7 @@ sub update_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
+            session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
@@ -641,6 +645,7 @@ sub update_many {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
+            session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
@@ -1248,6 +1253,7 @@ sub parallel_scan {
 
     my $session = $self->_get_session_from_hashref( $options );
 
+    # TODO Implicit sessions expire when???
     my $op = MongoDB::Op::_ParallelScan->_new(
         %{ $self->_op_args },
         num_cursors     => $num_cursors,

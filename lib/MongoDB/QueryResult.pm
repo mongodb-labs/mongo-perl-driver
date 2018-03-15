@@ -30,6 +30,7 @@ use MongoDB::Op::_GetMore;
 use MongoDB::Op::_KillCursors;
 use MongoDB::_Types qw(
     BSONCodec
+    ClientSession
     HostAddress
 );
 use Types::Standard qw(
@@ -47,7 +48,6 @@ use namespace::clean;
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CursorAPI
-  MongoDB::Role::_MaybeClientSession
 );
 
 # attributes needed for get more
@@ -58,8 +58,11 @@ has _client => (
     isa => InstanceOf['MongoDB::MongoClient'],
 );
 
-# is there a better way of doing this?
-sub client { return shift->_client }
+has _session => (
+    is => 'rwp',
+    required => 1,
+    isa => Maybe[ClientSession],
+);
 
 has _address => (
     is       => 'ro',
@@ -121,15 +124,15 @@ sub _trigger_cursor_id {
     my ( $self, $val ) = @_;
 
     return unless defined $val;
-    if  ($val == 0 && defined $self->session ) {
+    if  ($val == 0 && defined $self->_session ) {
         # Cursor is closed when 0, so should remove implicit session
-        $self->session->_in_cursor( 0 );
-        if ( $self->session->_should_end_implicit ) {
-            $self->session->end_session;
+        $self->_session->_in_cursor( 0 );
+        if ( $self->_session->_should_end_implicit ) {
+            $self->_session->end_session;
             # force undef to remove session from usage in this cursor for a
             # kill_cursor command, as that would cause an error from already
             # being ended - and its an implicit session already.
-            $self->_set_session( undef );
+            $self->_set__session( undef );
         }
     }
 }
@@ -265,7 +268,7 @@ sub _get_more {
         cursor_id  => $self->_cursor_id,
         batch_size => $want,
         ( $self->_max_time_ms ? ( max_time_ms => $self->_max_time_ms ) : () ),
-        ( defined $self->session ? ( session => $self->session ) : () ),
+        session => $self->_session,
     );
 
     my $result = $self->_client->send_direct_op( $op, $self->_address );
@@ -306,7 +309,7 @@ sub _kill_cursor {
         bson_codec => $self->_bson_codec,
         cursor_ids => [$cursor_id],
         client     => $self->_client,
-        ( defined $self->session ? ( session => $self->session ) : () ),
+        session    => $self->_session,
     );
     $self->_client->send_direct_op( $op, $self->_address );
     $self->_set_cursor_id(0);

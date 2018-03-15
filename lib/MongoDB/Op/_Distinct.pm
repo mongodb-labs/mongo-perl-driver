@@ -65,7 +65,6 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
-  MongoDB::Role::_MaybeClientSession
   MongoDB::Role::_CommandCursorOp
 );
 
@@ -99,8 +98,7 @@ sub execute {
         query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
-        client          => $self->client,
-        ( defined $self->session ? ( session => $self->session ) : () ),
+        session         => $self->session,
     );
 
     my $res = $op->execute( $link, $topology );

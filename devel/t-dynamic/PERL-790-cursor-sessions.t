@@ -88,7 +88,7 @@ subtest 'Shared session in explicit cursor' => sub {
 
     is $cursor_command_sid, $lsid, "Cursor sent with correct lsid";
 
-    my $result_sid = uuid_to_string( $cursor->session->session_id->{id}->data );
+    my $result_sid = uuid_to_string( $cursor->_session->session_id->{id}->data );
 
     is $result_sid, $lsid, "Query Result contains correct session";
 
@@ -120,7 +120,7 @@ subtest 'Shared session in implicit cursor' => sub {
     my $cursor = $coll->find({ wanted => 1 })->result;
 
     # pull out implicit session
-    my $lsid = uuid_to_string( $cursor->session->session_id->{id}->data );
+    my $lsid = uuid_to_string( $cursor->_session->session_id->{id}->data );
 
     my $cursor_command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 

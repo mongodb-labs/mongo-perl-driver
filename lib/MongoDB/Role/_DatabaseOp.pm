@@ -28,6 +28,7 @@ use Moo::Role;
 
 use MongoDB::_Types qw(
     BSONCodec
+    ClientSession
 );
 use Types::Standard qw(
     Str
@@ -52,7 +53,7 @@ has db_name => (
 has session => (
     is => 'ro',
     required => 0,
-    isa => Maybe[InstanceOf['MongoDB::ClientSession']],
+    isa => Maybe[ClientSession],
 );
 
 1;

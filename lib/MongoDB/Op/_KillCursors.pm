@@ -42,8 +42,6 @@ with $_ for qw(
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_DatabaseOp
   MongoDB::Role::_PrivateConstructor
-  MongoDB::Role::_MaybeMongoClient
-  MongoDB::Role::_MaybeClientSession
 );
 
 sub execute {
@@ -61,8 +59,7 @@ sub execute {
                 ],
                 query_flags => {},
                 bson_codec  => $self->bson_codec,
-                client => $self->client,
-                ( defined $self->session ? ( session => $self->session ) : () ),
+                session     => $self->session,
             )->execute($link);
         };
     }
