@@ -449,20 +449,20 @@ sub test_collection_session_exceptions {
 
     like
         exception {
-            my $bulk = $coll->ordered_bulk( { session => $session } );
+            my $bulk = $coll->ordered_bulk;
             $bulk->insert_one( { _id => 1 } );
             $bulk->insert_one( { _id => 2 } );
-            $bulk->execute;
+            $bulk->execute( undef, { session => $session } );
         },
         $error_regex,
         sprintf( $message_string, 'ordered_bulk' );
 
     like
         exception {
-            my $bulk = $coll->unordered_bulk( { session => $session } );
+            my $bulk = $coll->unordered_bulk;
             $bulk->insert_one( { _id => 1 } );
             $bulk->insert_one( { _id => 2 } );
-            $bulk->execute;
+            $bulk->execute( undef, { session => $session } );
         },
         $error_regex,
         sprintf( $message_string, 'unordered_bulk' );
