@@ -1517,7 +1517,7 @@ sub send_admin_command {
         query_flags => {},
         bson_codec  => $self->bson_codec,
         read_preference => $read_pref,
-        client      => $self,
+        session     => $self->_start_implicit_session,
     );
 
     return $self->send_read_op( $op );

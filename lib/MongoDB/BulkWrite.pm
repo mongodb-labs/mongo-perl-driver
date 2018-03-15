@@ -121,12 +121,8 @@ sub _build__client {
     return $self->_database->_client;
 }
 
-# TODO required for sessions...
-sub client { return shift->_client }
-
 with $_ for qw(
   MongoDB::Role::_DeprecationWarner
-  MongoDB::Role::_MaybeClientSession
 );
 
 =method find
@@ -236,7 +232,7 @@ to call C<execute> more than once on the same bulk object.
 =cut
 
 sub execute {
-    my ( $self, $write_concern  ) = @_;
+    my ( $self, $write_concern, $options ) = @_;
     $write_concern = to_WriteConcern($write_concern)
         if defined($write_concern) && ref($write_concern) ne 'MongoDB::WriteConcern';
 
@@ -253,6 +249,7 @@ sub execute {
 
     $write_concern ||= $self->collection->write_concern;
 
+    my $session = $self->collection->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_BulkWrite->_new(
         db_name                  => $self->_database->name,
@@ -263,8 +260,7 @@ sub execute {
         bypassDocumentValidation => $self->bypassDocumentValidation,
         bson_codec               => $self->collection->bson_codec,
         write_concern            => $write_concern,
-        client                   => $self->_client,
-        ( defined $self->session ? ( session => $self->session ) : () ),
+        session                  => $session,
     );
 
     return $self->_client->send_write_op( $op );

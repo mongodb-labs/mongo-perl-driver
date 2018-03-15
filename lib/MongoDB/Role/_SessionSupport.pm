@@ -46,7 +46,7 @@ sub _apply_session_and_cluster_time {
     # checked further up the call chain
 
     $$query_ref = to_IxHash( $$query_ref );
-    ($$query_ref)->Push( 'lsid' => $self->session->server_session->session_id );
+    ($$query_ref)->Push( 'lsid' => $self->session->session_id );
 
     $self->session->server_session->update_last_use;
 

@@ -430,7 +430,7 @@ sub run_command {
         ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
       if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
 
-    $options ||= {};
+    my $session = $self->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_Command->_new(
         client      => $self->_client,
@@ -439,7 +439,7 @@ sub run_command {
         query_flags => {},
         bson_codec  => $self->bson_codec,
         read_preference => $read_pref,
-        ( defined $options->{session} ? ( session => $options->{session} ) : () ),
+        session     => $session,
     );
 
     my $obj = $self->_client->send_read_op($op);
@@ -494,7 +494,9 @@ sub _get_session_from_hashref {
 
     if ( defined $session ) {
         MongoDB::Error->throw( "Cannot use session from another client" )
-            if ( $session->client->_id ne $self->_client->_id )
+            if ( $session->client->_id ne $self->_client->_id );
+        MongoDB::Error->throw( "Cannot use session which has ended" )
+            if $session->_has_ended;
     } else {
         $session = $self->_client->_start_implicit_session;
     }

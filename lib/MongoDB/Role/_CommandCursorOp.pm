@@ -62,7 +62,7 @@ sub _build_result_from_cursor {
         _cursor_num   => scalar @$batch,
         _docs         => $batch,
         _max_time_ms  => $max_time_ms,
-        ( defined $self->session ? ( session => $self->session ) : () ),
+        session       => $self->session,
     );
 }
 

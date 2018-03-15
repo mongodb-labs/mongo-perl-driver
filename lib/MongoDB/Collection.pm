@@ -370,6 +370,7 @@ sub insert_one {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_InsertOne->_new(
+            session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
             document => $_[1],
             %{ $_[0]->_op_args },
@@ -420,6 +421,7 @@ sub insert_many {
             # default
             ordered => 1,
             # user overrides
+            session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? ( %{ $_[2] } ) : () ),
             # un-overridable
             queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
@@ -731,6 +733,8 @@ sub find {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     # coerce to IxHash
     __ixhash( $options, 'sort' );
 
@@ -750,6 +754,7 @@ sub find {
             projection          => undef,
             skip                => 0,
             sort                => undef,
+            session             => $session,
             %$options,
             filter => $filter || {},
             %{ $self->_op_args },
@@ -804,6 +809,8 @@ sub find_one {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     # coerce to IxHash
     __ixhash( $options, 'sort' );
 
@@ -821,6 +828,7 @@ sub find_one {
             oplogReplay         => 0,
             skip                => 0,
             sort                => undef,
+            session             => $session,
             %$options,
             filter     => $filter     || {},
             projection => $projection || {},
@@ -1457,6 +1465,8 @@ sub bulk_write {
 
     my $ordered = exists $options->{ordered} ? delete $options->{ordered} : 1;
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     my $bulk =
       $ordered ? $self->ordered_bulk($options) : $self->unordered_bulk($options);
 
@@ -1531,7 +1541,7 @@ sub bulk_write {
         }
     }
 
-    return $bulk->execute;
+    return $bulk->execute( undef, { session => $session } );
 }
 
 BEGIN {
@@ -1603,7 +1613,9 @@ sub _get_session_from_hashref {
 
     if ( defined $session ) {
         MongoDB::Error->throw( "Cannot use session from another client" )
-            if ( $session->client->_id ne $self->client->_id )
+            if ( $session->client->_id ne $self->client->_id );
+        MongoDB::Error->throw( "Cannot use session which has ended" )
+            if $session->_has_ended;
     } else {
         $session = $self->client->_start_implicit_session;
     }

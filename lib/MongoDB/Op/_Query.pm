@@ -168,7 +168,6 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_ReadOp
-  MongoDB::Role::_MaybeClientSession
   MongoDB::Role::_CommandCursorOp
   MongoDB::Role::_OpReplyParser
   MongoDB::Role::_ReadPrefModifier
@@ -194,13 +193,12 @@ sub _command_query {
     my ( $self, $link, $topology ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
-        client          => $self->client,
         db_name         => $self->db_name,
         query           => $self->as_command,
         query_flags     => {},
         read_preference => $self->read_preference,
         bson_codec      => $self->bson_codec,
-        ( defined $self->session ? ( session => $self->session ) : () ),
+        session         => $self->session,
     );
     my $res = $op->execute( $link, $topology );
 
