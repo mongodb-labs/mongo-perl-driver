@@ -120,6 +120,12 @@ sub execute {
 
     my $has_out = $self->has_out;
 
+    if ( $link->server->is_master->{maxWireVersion} < 6
+      && $self->coll_name eq 1 ) {
+        MongoDB::Error->throw(
+            "Cannot use MongoDB::Database::_aggregate (db.aggregate) function on Wire Version < 6" );
+    }
+
     my @command = (
         aggregate => $self->coll_name,
         pipeline  => $self->pipeline,
