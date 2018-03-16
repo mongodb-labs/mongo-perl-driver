@@ -20,7 +20,6 @@ variables = $DB::single
 [-RegularExpressions::RequireExtendedFormatting]
 [-InputOutput::ProhibitTwoArgOpen]
 [-Modules::ProhibitEvilModules]
-[-Subroutines::ProhibitExplicitReturnUndef]
 
 # Turn this on
 [Lax::ProhibitStringyEval::ExceptForRequire]
