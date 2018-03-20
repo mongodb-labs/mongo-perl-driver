@@ -77,4 +77,9 @@ times, or timestamps in the traditional sense.  Unless you are looking to mess
 with MongoDB's replication internals, the class you are probably looking for is
 L<DateTime>.  See L<MongoDB::DataTypes> for more information.
 
+=head2 Overrides
+
+this class overrides numerical comparisons to allow for comparing two
+C<MongoDB::Timestamp>s.
+
 =cut
