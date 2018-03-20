@@ -20,8 +20,6 @@ package MongoDB::ClientSession;
 
 # ABSTRACT: MongoDB session management
 
-# TODO Documentation
-
 use MongoDB::Error;
 
 use Moo;
@@ -40,7 +38,7 @@ use namespace::clean -except => 'meta';
 =method client
 
 The client this session was created using. The server session will be returned
-to the pool of this client when this Client Session is closed.
+to the pool of this client when this client session is closed.
 
 =cut
 
@@ -92,6 +90,10 @@ has server_session => (
     isa => Maybe[InstanceOf['MongoDB::ServerSession']],
     required => 1,
 );
+
+#--------------------------------------------------------------------------#
+# private attributes for internal use
+#--------------------------------------------------------------------------#
 
 has _is_explicit => (
     is => 'ro',
@@ -217,3 +219,47 @@ sub DEMOLISH {
 }
 
 1;
+
+__END__
+
+=pod
+
+=head1 SYNOPSIS
+
+    my $session = $client->start_session( $options );
+
+    # use session in operations
+    my $result = $collection->find( { id => 1 }, { session => $session } );
+
+=head1 DESCRIPTION
+
+This class encapsulates an active session for use with the current client.
+Sessions support is new with MongoDB 3.6, and can be used in replica set and
+sharded MongoDB clusters.
+
+=head2 Explicit and Implicit Sessions
+
+If you specifically apply a session to an operation, then the operation will be
+performed with that session id. If you do not provide a session for an
+operation, and the server supports sessions, then an implicit session will be
+created and used for this operation.
+
+The only exception to this is for unacknowledged writes - the driver will not
+provide an implicit session for this, and if you provide a session then the
+driver will raise an error.
+
+=head2 Cursors
+
+During cursors, if a session is not provided then an implicit session will be
+created which is then used for the lifetime of the cursor. If you provide a
+session, then note that ending the session and then continuing to use the
+cursor will raise an error.
+
+=head2 Thread Safety
+
+Sessions are NOT thread safe, and should only be used by one thread at a time.
+Using a session across multiple threads is unsupported and unexpected issues
+and errors may occur. Note that the driver does not check for multi-threaded
+use.
+
+=cut

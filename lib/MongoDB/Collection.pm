@@ -360,6 +360,8 @@ Valid options include:
 =for :list
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -399,6 +401,8 @@ Valid options include:
 =for :list
 * C<bypassDocumentValidation> - skips document validation, if enabled; this
   is ignored for MongoDB servers older than version 3.2.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<ordered> – when true, the server will halt insertions after the first
   error (if any).  When false, all documents will be processed and any
   error will only be thrown after all insertions are attempted.  The
@@ -459,6 +463,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -494,6 +500,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -535,6 +543,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<upsert> – defaults to false; if true, a new document will be added if one
   is not found
 
@@ -583,6 +593,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<upsert> – defaults to false; if true, a new document will be added if
   one is not found by taking the filter expression and applying the update
   document operations to it prior to insertion.
@@ -632,6 +644,8 @@ Valid options include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<upsert> – defaults to false; if true, a new document will be added if
   one is not found by taking the filter expression and applying the update
   document operations to it prior to insertion.
@@ -702,6 +716,8 @@ Valid options include:
   fields to
   return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<skip> – the number of documents to skip before returning.
 * C<sort> – an L<ordered document|/Ordered document> defining the order in which
   to return matching documents. If C<$orderby> also exists in the modifiers
@@ -795,6 +811,8 @@ include:
   L<https://docs.mongodb.com/master/reference/collation/>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<sort> – an L<ordered document|/Ordered document> defining the order in which
   to return matching documents. If C<$orderby> also exists in the modifiers
   document, the sort field overwrites C<$orderby>.  See docs for
@@ -885,6 +903,8 @@ A hash reference of options may be provided. Valid keys include:
   fields to
   return|http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/>"
   in the MongoDB documentation for details.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<sort> – an L<ordered document|/Ordered document> defining the order in
   which to return matching documents.  See docs for
   L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
@@ -950,6 +970,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<returnDocument> – either the string C<'before'> or C<'after'>, to indicate
   whether the returned document should be the one before or after replacement.
   The default is C<'before'>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<sort> – an L<ordered document|/Ordered document> defining the order in
   which to return matching documents.  See docs for
   L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
@@ -998,6 +1020,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<returnDocument> – either the string C<'before'> or C<'after'>, to indicate
   whether the returned document should be the one before or after replacement.
   The default is C<'before'>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 * C<sort> – an L<ordered document|/Ordered document> defining the order in
   which to return matching documents.  See docs for
   L<$orderby|http://docs.mongodb.org/manual/reference/operator/meta/orderby/>.
@@ -1054,6 +1078,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<hint> - An index to use for this aggregation. (Only compatible with servers
   above version 3.6.) For more information, see the other aggregate options here:
   L<https://docs.mongodb.com/manual/reference/command/aggregate/index.html>
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 B<Note> MongoDB 2.6+ added the '$out' pipeline operator.  If this operator is
 used to write aggregation results directly to a collection, an empty result
@@ -1127,6 +1153,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
 * C<skip> – the number of documents to skip before counting documents.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 B<NOTE>: On a sharded cluster, C<count> can result in an inaccurate count if
 orphaned documents exist or if a chunk migration is in progress.  See L<count
@@ -1183,6 +1211,8 @@ A hash reference of options may be provided. Valid keys include:
   L<https://docs.mongodb.com/master/reference/collation/>.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 See documentation for the L<distinct
 command|http://docs.mongodb.org/manual/reference/command/distinct/> for
@@ -1239,6 +1269,8 @@ A hash reference of options may be provided. Valid keys include:
 =for :list
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 3.4.)
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -1296,6 +1328,14 @@ sub parallel_scan {
 
 Renames the collection.  If a collection already exists with the new collection
 name, this method will throw an exception.
+
+A hashref of options may be provided.
+
+Valid options include:
+
+=for :list
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 It returns a new L<MongoDB::Collection> object corresponding to the renamed
 collection.
@@ -1451,6 +1491,8 @@ Valid options include:
 * C<ordered> – when true, the bulk operation is executed like
   L</initialize_ordered_bulk>. When false, the bulk operation is executed
   like L</initialize_unordered_bulk>.  The default is true.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 See L<MongoDB::BulkWrite> for more details on bulk writes.  Be advised that
 the legacy Bulk API method names differ slightly from MongoDB::Collection
