@@ -454,7 +454,7 @@ sub _aggregate {
     my ( $self, $pipeline, $options ) = @_;
     $options ||= {};
 
-    my $session = delete $options->{session};
+    my $session = $self->_get_session_from_hashref( $options );
 
     # boolify some options
     for my $k (qw/allowDiskUse explain/) {
@@ -478,7 +478,7 @@ sub _aggregate {
         bson_codec   => $self->bson_codec,
         db_name      => $self->name,
         coll_name    => 1, # Magic not-an-actual-collection number
-        ( defined $session ? ( session => $session ) : () ),
+        session      => $session,
     );
 
     return $self->_client->send_read_op($op);
