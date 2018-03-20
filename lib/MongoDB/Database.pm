@@ -186,6 +186,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<batchSize> – the number of documents to return per batch.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -227,6 +229,14 @@ description documents matching a filter expression to be returned.  See the
 L<listCollections command
 documentation|http://docs.mongodb.org/manual/reference/command/listCollections/>
 for more details on filtering for specific collections.
+
+A hashref of options may also be provided.
+
+Valid options include:
+
+=for :list
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 B<Warning:> if the number of collections is very large, this may return
 a very large result.  Either pass an appropriate filter, or use
@@ -369,6 +379,14 @@ sub get_gridfs {
 
 Deletes the database.
 
+A hashref of options may also be provided.
+
+Valid options include:
+
+=for :list
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
+
 =cut
 
 sub drop {
@@ -396,6 +414,12 @@ sub drop {
         { mode => 'secondaryPreferred' }
     );
 
+    my $output = $database->run_command(
+        [ some_command => 1 ],
+        $read_preference,
+        $options
+    );
+
 This method runs a database command.  The first argument must be a document
 with the command and its arguments.  It should be given as an array reference
 of key-value pairs or a L<Tie::IxHash> object with the command name as the
@@ -406,6 +430,14 @@ By default, commands are run with a read preference of 'primary'.  An optional
 second argument may specify an alternative read preference.  If given, it must
 be a L<MongoDB::ReadPreference> object or a hash reference that can be used to
 construct one.
+
+A hashref of options may also be provided.
+
+Valid options include:
+
+=for :list
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 It returns the output of the command (a hash reference) on success or throws a
 L<MongoDB::DatabaseError|MongoDB::Error/MongoDB::DatabaseError> exception if

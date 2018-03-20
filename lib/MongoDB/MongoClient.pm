@@ -1458,7 +1458,18 @@ sub topology_status {
     return $self->_topology->status_struct;
 }
 
-# TODO Documentation
+=method start_session
+
+    $client->start_session;
+    $client->start_session( $options );
+
+Returns a new L<MongoDB::ClientSession> with the supplied options.
+
+will throw a C<MongoDB::ConfigurationError> if sessions are not supported by
+the connected MongoDB deployment.
+
+=cut
+
 sub start_session {
     my ( $self, $opts ) = @_;
 
