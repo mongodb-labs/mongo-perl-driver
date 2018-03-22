@@ -516,7 +516,7 @@ sub _get_session_from_hashref {
         MongoDB::UsageError->throw( "Cannot use session which has ended" )
             if $session->_has_ended;
     } else {
-        $session = $self->_client->_start_implicit_session;
+        $session = $self->_client->_maybe_get_implicit_session;
     }
 
     return $session;

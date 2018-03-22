@@ -1480,11 +1480,11 @@ sub start_session {
     return $self->_start_client_session( 1, $opts );
 }
 
-sub _start_implicit_session {
+sub _maybe_get_implicit_session {
     my ( $self, $opts ) = @_;
 
     # Dont return an error as implicit sessions need to be backwards compatible
-    return unless $self->_topology->_supports_sessions;
+    return undef unless $self->_topology->_supports_sessions; ## no critic
 
     return $self->_start_client_session( 0, $opts );
 }
@@ -1522,18 +1522,13 @@ sub send_admin_command {
         ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
       if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
 
-    # explicitly called as scalar. Calling inside a hash(ref) causes list
-    # context, giving an empty list and an odd length of array. Provided so can
-    # get the latest $clusterTime
-    my $session = $self->_start_implicit_session;
-
     my $op = MongoDB::Op::_Command->_new(
         db_name     => 'admin',
         query       => $command,
         query_flags => {},
         bson_codec  => $self->bson_codec,
         read_preference => $read_pref,
-        session     => $session,
+        session     => $self->_maybe_get_implicit_session,
     );
 
     return $self->send_read_op( $op );
