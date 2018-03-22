@@ -244,24 +244,10 @@ L</list_collections> to iterate over collections instead.
 
 =cut
 
-# TODO why does this not call list_collections and iterate through that?
 sub collection_names {
-    my ( $self, $filter, $options ) = @_;
-    $filter ||= {};
-    $options ||= {};
+    my $self = shift;
 
-    my $session = $self->_get_session_from_hashref( $options );
-
-    my $op = MongoDB::Op::_ListCollections->_new(
-        db_name    => $self->name,
-        client     => $self->_client,
-        bson_codec => $self->bson_codec,
-        filter     => $filter,
-        options    => $options,
-        session    => $session,
-    );
-
-    my $res = $self->_client->send_primary_op($op);
+    my $res = $self->list_collections( @_ );
 
     return map { $_->{name} } $res->all;
 }
