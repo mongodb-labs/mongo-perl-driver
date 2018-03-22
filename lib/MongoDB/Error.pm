@@ -277,6 +277,11 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::Error';
 
+package MongoDB::InvalidOperationError;
+use Moo;
+use namespace::clean;
+extends 'MongoDB::Error';
+
 #--------------------------------------------------------------------------#
 # Private error classes
 #--------------------------------------------------------------------------#
