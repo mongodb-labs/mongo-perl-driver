@@ -22,7 +22,7 @@ package MongoDB::Role::_SessionSupport;
 
 use Moo::Role;
 use MongoDB::_Types -types, 'to_IxHash';
-use Scalar::Util qw/ blessed /;
+use Safe::Isa;
 use Types::Standard qw(
     Maybe
     InstanceOf
@@ -78,7 +78,7 @@ sub _update_session_and_cluster_time {
     $self->session->end_session if $self->session->_should_end_implicit;
 
     my $cluster_time;
-    if ( blessed( $response ) && $response->isa( 'MongoDB::CommandResult' ) ) {
+    if ( $response->$_isa( 'MongoDB::CommandResult' ) ) {
         $cluster_time = $response->output->{'$clusterTime'};
     } else {
         $cluster_time = $response->{'$clusterTime'};
