@@ -33,6 +33,7 @@ use Types::Standard qw(
     Bool
     HashRef
     InstanceOf
+    Num
 );
 
 use namespace::clean;
@@ -59,6 +60,11 @@ has has_out => (
     is       => 'ro',
     required => 1,
     isa      => Bool,
+);
+
+has maxAwaitTimeMS => (
+    is       => 'rw',
+    isa      => Num,
 );
 
 with $_ for qw(

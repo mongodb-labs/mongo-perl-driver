@@ -24,6 +24,7 @@ package MongoDB::Collection;
 use version;
 our $VERSION = 'v1.999.0';
 
+use MongoDB::ChangeStream;
 use MongoDB::Error;
 use MongoDB::IndexView;
 use MongoDB::InsertManyResult;
@@ -1000,6 +1001,85 @@ sub find_one_and_update {
     return $self->_find_one_and_update_or_replace($filter, $update, $options);
 }
 
+=method watch
+
+Watches for changes on this collection-
+
+Perform an aggregation with an implicit initial C<$changeStream> stage
+and returns a L<MongoDB::ChangeStream> result which can be used to
+iterate over the changes in the collection. This functionality is
+available since MongoDB 3.6.
+
+    my $stream = $collection->watch();
+    my $stream = $collection->watch( \@pipeline );
+    my $stream = $collection->watch( \@pipeline, \%options );
+
+    while (1) {
+
+        # This inner loop will only run until no more changes are
+        # available.
+        while (my $change = $stream->next) {
+            # process $change
+        }
+    }
+
+The returned stream will not block forever waiting for changes. If you
+want to respond to changes over a longer time use C<maxAwaitTimeMS> and
+regularly call C<next> in a loop.
+
+B<Note>: Using this helper method is preferred to manually aggregating
+with a C<$changeStream> stage, since it will automatically resume when
+the connection was terminated.
+
+The optional first argument must be an array-ref of
+L<aggregation pipeline|http://docs.mongodb.org/manual/core/aggregation-pipeline/>
+documents. Each pipeline document must be a hash reference. Not all
+pipeline stages are supported after C<$changeStream>.
+
+The optional second argument is a hash reference with options:
+
+=for :list
+* C<fullDocument> - The fullDocument to pass as an option to the
+  C<$changeStream> stage. Allowed values: C<default>, C<updateLookup>.
+  Defaults to C<default>.  When set to C<updateLookup>, the change
+  notification for partial updates will include both a delta describing the
+  changes to the document, as well as a copy of the entire document that
+  was changed from some time after the change occurred.
+* C<resumeAfter> - The logical starting point for this change stream.
+  This value can be obtained from the C<_id> field of a document returned
+  by L<MongoDB::ChangeStream/next>.
+* C<maxAwaitTimeMS> - The maximum number of milliseconds for the server
+  to wait before responding.
+
+See L</aggregate> for more available options.
+
+See the L<manual section on Change Streams|https://docs.mongodb.com/manual/changeStreams/>
+for general usage information on change streams.
+
+See the L<Change Streams specification|https://github.com/mongodb/specifications/blob/master/source/change-streams.rst>
+for details on change streams.
+
+=cut
+
+sub watch {
+    my ( $self, $pipeline, $options ) = @_;
+
+    $pipeline ||= [];
+    $options ||= {};
+
+    return MongoDB::ChangeStream->new(
+        exists($options->{fullDocument})
+            ? (full_document => delete $options->{fullDocument})
+            : (full_document => 'default'),
+        exists($options->{resumeAfter})
+            ? (resume_after => delete $options->{resumeAfter})
+            : (),
+        collection => $self,
+        pipeline => $pipeline,
+        aggregation_options => $options,
+    );
+}
+
 =method aggregate
 
     @pipeline = (
@@ -1082,6 +1162,12 @@ sub aggregate {
         options      => $options,
         read_concern => $self->read_concern,
         has_out      => $last_op eq '$out',
+        exists($options->{cursorType})
+            ? (cursorType => delete $options->{cursorType})
+            : (cursorType => 'non_tailable'),
+        exists($options->{maxAwaitTimeMS})
+            ? (maxAwaitTimeMS => delete $options->{maxAwaitTimeMS})
+            : (),
         %{ $self->_op_args },
     );
 

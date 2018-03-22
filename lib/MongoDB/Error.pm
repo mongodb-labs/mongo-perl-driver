@@ -46,6 +46,7 @@ BEGIN {
         USER_NOT_FOUND            => 11,
         NAMESPACE_NOT_FOUND       => 26,
         INDEX_NOT_FOUND           => 27,
+        CURSOR_NOT_FOUND          => 43,
         EXCEEDED_TIME_LIMIT       => 50,
         COMMAND_NOT_FOUND         => 59,
         WRITE_CONCERN_ERROR       => 64,
@@ -110,6 +111,10 @@ sub throw {
   die $throwable;
 }
 
+# internal flag indicating if an operation should be retried when
+# an error occurs.
+sub _is_resumable { 1 }
+
 #--------------------------------------------------------------------------#
 # Subclasses with attributes included inline below
 #--------------------------------------------------------------------------#
@@ -134,6 +139,8 @@ has code => (
 );
 
 sub _build_code { return MongoDB::Error::UNKNOWN_ERROR() }
+
+sub _is_resumable { 0 }
 
 package MongoDB::DocumentError;
 
@@ -192,6 +199,8 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::Error';
 
+sub _is_resumable { 1 }
+
 package MongoDB::HandshakeError;
 use Moo;
 use namespace::clean;
@@ -230,6 +239,7 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::DatabaseError';
 sub _build_code { return MongoDB::Error::NOT_MASTER() }
+sub _is_resumable { 1 }
 
 package MongoDB::WriteError;
 use Moo;
@@ -251,7 +261,9 @@ extends 'MongoDB::Error';
 package MongoDB::CursorNotFoundError;
 use Moo;
 use namespace::clean;
-extends 'MongoDB::Error';
+extends 'MongoDB::DatabaseError';
+sub _build_code { return MongoDB::Error::CURSOR_NOT_FOUND() }
+sub _is_resumable { 1 }
 
 package MongoDB::DecodingError;
 use Moo;
@@ -274,6 +286,11 @@ use namespace::clean;
 extends 'MongoDB::Error';
 
 package MongoDB::SelectionError;
+use Moo;
+use namespace::clean;
+extends 'MongoDB::Error';
+
+package MongoDB::InvalidOperationError;
 use Moo;
 use namespace::clean;
 extends 'MongoDB::Error';
@@ -348,9 +365,9 @@ To retry failures automatically, consider using L<Try::Tiny::Retry>.
         |   |
         |   |->MongoDB::NetworkError
         |
-        |->MongoDB::CursorNotFoundError
-        |
         |->MongoDB::DatabaseError
+        |   |
+        |   |->MongoDB::CursorNotFoundError
         |   |
         |   |->MongoDB::DuplicateKeyError
         |   |
@@ -367,6 +384,8 @@ To retry failures automatically, consider using L<Try::Tiny::Retry>.
         |->MongoDB::GridFSError
         |
         |->MongoDB::InternalError
+        |
+        |->MongoDB::InvalidOperationError
         |
         |->MongoDB::ProtocolError
         |
