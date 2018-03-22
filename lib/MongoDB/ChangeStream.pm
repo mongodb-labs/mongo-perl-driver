@@ -25,6 +25,7 @@ use Try::Tiny;
 use MongoDB::Cursor;
 use MongoDB::Op::_Aggregate;
 use MongoDB::Error;
+use Safe::Isa;
 
 use namespace::clean -except => 'meta';
 
@@ -127,9 +128,9 @@ sub next {
         catch {
             my $error = $_;
             if (
-                $error->isa('MongoDB::ConnectionError')
+                $error->$_isa('MongoDB::ConnectionError')
                 or
-                $error->isa('MongoDB::CursorNotFoundError')
+                $error->$_isa('MongoDB::CursorNotFoundError')
             ) {
                 $self->_cursor($self->_build_cursor);
             }
