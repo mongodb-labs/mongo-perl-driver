@@ -112,9 +112,9 @@ __END__
 
 =head1 SYNOPSIS
 
-    use MongoDB::ServerSession;
+    use MongoDB::_ServerSession;
 
-    my $server_session = MongoDB::ServerSession->new;
+    my $server_session = MongoDB::_ServerSession->new;
 
 =head1 DESCRIPTION
 

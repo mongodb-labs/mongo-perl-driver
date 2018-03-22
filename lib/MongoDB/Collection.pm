@@ -1660,9 +1660,9 @@ sub _get_session_from_hashref {
     my $session = delete $hashref->{session};
 
     if ( defined $session ) {
-        MongoDB::Error->throw( "Cannot use session from another client" )
+        MongoDB::UsageError->throw( "Cannot use session from another client" )
             if ( $session->client->_id ne $self->client->_id );
-        MongoDB::Error->throw( "Cannot use session which has ended" )
+        MongoDB::UsageError->throw( "Cannot use session which has ended" )
             if $session->_has_ended;
     } else {
         $session = $self->client->_start_implicit_session;

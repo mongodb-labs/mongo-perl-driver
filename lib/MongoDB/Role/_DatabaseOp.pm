@@ -33,7 +33,6 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     Str
     Maybe
-    InstanceOf
 );
 
 use namespace::clean;

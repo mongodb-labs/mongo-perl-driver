@@ -49,7 +49,8 @@ has client => (
 
 =method cluster_time
 
-Stores the last received C<$clusterTime> for the client session.
+Stores the last received C<$clusterTime> for the client session. This is an
+opaque value, to set it use the L<advance_cluster_time> function.
 
 =cut
 
@@ -171,9 +172,13 @@ sub get_latest_cluster_time {
 
     $session->advance_cluster_time( $cluster_time );
 
-Update the C<$clusterTime> for this session. If the cluster time provided is
-more recent than the sessions current cluster time, then the session will be
-updated to this provided value.
+Update the C<$clusterTime> for this session. Stores the value in
+L</cluster_time>. If the cluster time provided is more recent than the sessions
+current cluster time, then the session will be updated to this provided value.
+
+Setting the C<$clusterTime> with a manually crafted value may cause a server
+error. It is reccomended to only use C<$clusterTime> values retreived from
+database calls.
 
 =cut
 

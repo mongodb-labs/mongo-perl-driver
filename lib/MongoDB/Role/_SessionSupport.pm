@@ -23,16 +23,10 @@ package MongoDB::Role::_SessionSupport;
 use Moo::Role;
 use MongoDB::_Types -types, 'to_IxHash';
 use Safe::Isa;
-use Types::Standard qw(
-    Maybe
-    InstanceOf
-);
 use namespace::clean;
 
 requires qw/ session /;
 
-# If theres no session, but there is a cluster time, how do we get it from the
-# client?
 sub _apply_session_and_cluster_time {
     my ( $self, $link, $query_ref ) = @_;
 
