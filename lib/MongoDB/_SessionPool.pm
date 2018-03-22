@@ -19,7 +19,7 @@ use warnings;
 package MongoDB::_SessionPool;
 
 use Moo;
-use MongoDB::ServerSession;
+use MongoDB::_ServerSession;
 use Types::Standard qw(
     ArrayRef
     InstanceOf
@@ -33,7 +33,7 @@ has client => (
 
 has _server_session_pool => (
     is => 'lazy',
-    isa => ArrayRef[InstanceOf['MongoDB::ServerSession']],
+    isa => ArrayRef[InstanceOf['MongoDB::_ServerSession']],
     init_arg => undef,
     builder => sub { [] },
 );
@@ -60,7 +60,7 @@ sub get_server_session {
             return $session;
         }
     }
-    return MongoDB::ServerSession->new;
+    return MongoDB::_ServerSession->new;
 }
 
 =method retire_server_session

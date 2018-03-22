@@ -23,7 +23,6 @@ package MongoDB::ClientSession;
 use MongoDB::Error;
 
 use Moo;
-use MongoDB::ServerSession;
 use MongoDB::_Types qw(
     Document
 );
@@ -87,7 +86,7 @@ L<MongoDB::ServerSession> for more information.
 
 has server_session => (
     is => 'rwp',
-    isa => Maybe[InstanceOf['MongoDB::ServerSession']],
+    isa => Maybe[InstanceOf['MongoDB::_ServerSession']],
     required => 1,
 );
 

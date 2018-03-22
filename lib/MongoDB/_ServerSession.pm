@@ -16,7 +16,7 @@
 
 use strict;
 use warnings;
-package MongoDB::ServerSession;
+package MongoDB::_ServerSession;
 
 # ABSTRACT: MongoDB Server Session object
 
