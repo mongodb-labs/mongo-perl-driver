@@ -148,7 +148,7 @@ sub next {
     # this differs from drivers that block indefinitely. we have to
     # deal with the situation where no results are available.
     if (not defined $change) {
-        return undef;
+        return;
     }
 
     if (exists $change->{_id}) {
