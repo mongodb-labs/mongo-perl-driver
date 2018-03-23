@@ -1035,6 +1035,31 @@ subtest 'change streams w/ resumeAfter' => sub {
     };
 };
 
+subtest 'change streams w/ CursorNotFound reconnection' => sub {
+    plan skip_all => 'MongoDB version 3.6 or higher required'
+        unless $server_version >= version->parse('v3.6.0');
+    plan skip_all => 'MongoDB replica set required'
+        unless $server_type eq 'RSPrimary';
+
+    $coll->drop;
+
+    my $change_stream = $coll->watch;
+    $coll->insert_one({ value => 301 });
+    my $change = $change_stream->next;
+    ok $change, 'change received';
+    is $change->{fullDocument}{value}, 301, 'correct change';
+
+    $testdb->run_command([
+        killCursors => $coll->name,
+        cursors => [$change_stream->_cursor->_cursor_id],
+    ]);
+
+    $coll->insert_one({ value => 302 });
+    $change = $change_stream->next;
+    ok $change, 'change received after reconnect';
+    is $change->{fullDocument}{value}, 302, 'correct change';
+};
+
 my $js_str = 'function() { return this.a > this.b }';
 my $js_obj = MongoDB::Code->new( code => $js_str );
 
