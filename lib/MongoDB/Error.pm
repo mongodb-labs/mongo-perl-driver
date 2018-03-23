@@ -354,9 +354,9 @@ To retry failures automatically, consider using L<Try::Tiny::Retry>.
         |   |
         |   |->MongoDB::NetworkError
         |
-        |->MongoDB::CursorNotFoundError
-        |
         |->MongoDB::DatabaseError
+        |   |
+        |   |->MongoDB::CursorNotFoundError
         |   |
         |   |->MongoDB::DuplicateKeyError
         |   |
@@ -373,6 +373,8 @@ To retry failures automatically, consider using L<Try::Tiny::Retry>.
         |->MongoDB::GridFSError
         |
         |->MongoDB::InternalError
+        |
+        |->MongoDB::InvalidOperationError
         |
         |->MongoDB::ProtocolError
         |
