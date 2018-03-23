@@ -20,6 +20,9 @@ package MongoDB::ChangeStream;
 
 # ABSTRACT: A stream providing update information for collections.
 
+use version;
+our $VERSION = 'v1.999.0';
+
 use Moo;
 use Try::Tiny;
 use MongoDB::Cursor;
