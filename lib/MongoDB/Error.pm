@@ -45,6 +45,7 @@ BEGIN {
         UNKNOWN_ERROR             => 8,
         NAMESPACE_NOT_FOUND       => 26,
         INDEX_NOT_FOUND           => 27,
+        CURSOR_NOT_FOUND          => 43,
         EXCEEDED_TIME_LIMIT       => 50,
         COMMAND_NOT_FOUND         => 59,
         WRITE_CONCERN_ERROR       => 64,
@@ -250,7 +251,8 @@ extends 'MongoDB::Error';
 package MongoDB::CursorNotFoundError;
 use Moo;
 use namespace::clean;
-extends 'MongoDB::Error';
+extends 'MongoDB::DatabaseError';
+sub _build_code { return MongoDB::Error::CURSOR_NOT_FOUND() }
 
 package MongoDB::DecodingError;
 use Moo;

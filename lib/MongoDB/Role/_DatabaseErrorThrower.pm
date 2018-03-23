@@ -49,6 +49,9 @@ sub _throw_database_error {
     elsif ( grep { $code == $_ } @$ANY_DUP_KEY ) {
         $error_class = "MongoDB::DuplicateKeyError";
     }
+    elsif ( $code == CURSOR_NOT_FOUND ) {
+        $error_class = "MongoDB::CursorNotFoundError";
+    }
     elsif ( $self->last_wtimeout ) {
         $error_class = "MongoDB::WriteConcernError";
     }
