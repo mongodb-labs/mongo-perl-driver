@@ -123,18 +123,20 @@ sub next {
     my ($self) = @_;
 
     my $change;
+    my $retried;
     while (1) {
-        my $success = try {
+        last if try {
             $change = $self->_cursor->next;
             1 # successfully fetched result
         }
         catch {
             my $error = $_;
             if (
-                $error->$_isa('MongoDB::ConnectionError')
-                or
-                $error->$_isa('MongoDB::CursorNotFoundError')
+                not($retried)
+                and $error->$_isa('MongoDB::Error')
+                and $error->_is_resumable
             ) {
+                $retried = 1;
                 $self->_cursor($self->_build_cursor);
             }
             else {
@@ -142,7 +144,6 @@ sub next {
             }
             0 # failed, cursor was rebuilt
         };
-        last if $success;
     }
 
     # this differs from drivers that block indefinitely. we have to
