@@ -110,6 +110,10 @@ sub throw {
   die $throwable;
 }
 
+# internal flag indicating if an operation should be retried when
+# an error occurs.
+sub _is_resumable { 1 }
+
 #--------------------------------------------------------------------------#
 # Subclasses with attributes included inline below
 #--------------------------------------------------------------------------#
@@ -134,6 +138,8 @@ has code => (
 );
 
 sub _build_code { return MongoDB::Error::UNKNOWN_ERROR() }
+
+sub _is_resumable { 0 }
 
 package MongoDB::DocumentError;
 
@@ -192,6 +198,8 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::Error';
 
+sub _is_resumable { 1 }
+
 package MongoDB::HandshakeError;
 use Moo;
 use namespace::clean;
@@ -230,6 +238,7 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::DatabaseError';
 sub _build_code { return MongoDB::Error::NOT_MASTER() }
+sub _is_resumable { 1 }
 
 package MongoDB::WriteError;
 use Moo;
@@ -253,6 +262,7 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::DatabaseError';
 sub _build_code { return MongoDB::Error::CURSOR_NOT_FOUND() }
+sub _is_resumable { 1 }
 
 package MongoDB::DecodingError;
 use Moo;
