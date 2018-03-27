@@ -96,7 +96,7 @@ sub _build__scram_client {
     # loaded only demand as it has a long load time relative to other
     # modules
     require Authen::SCRAM::Client;
-    Authen::SCRAM::Client->VERSION(0.003);
+    Authen::SCRAM::Client->VERSION(0.009);
     return Authen::SCRAM::Client->new(
         username      => $self->username,
         password      => $self->_digested_password,

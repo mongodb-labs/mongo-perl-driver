@@ -22,7 +22,7 @@ author 'David.Golden <david.golden@mongodb.com>';
 license 'Apache';
 all_from 'lib/MongoDB.pm';
 
-requires 'Authen::SCRAM::Client' => '0.003';
+requires 'Authen::SCRAM::Client' => '0.009';
 requires 'BSON::Decimal128' => '1';
 requires 'Carp';
 requires 'Class::XSAccessor';
