@@ -318,34 +318,6 @@ sub skip {
     return $self;
 }
 
-=head2 snapshot
-
-    $cursor->snapshot(1);
-
-Uses snapshot mode for the query.  Snapshot mode assures no duplicates are
-returned due an intervening write relocating a document.  Note that if an
-object is inserted, updated or deleted during the query, it may or may not
-be returned when snapshot mode is enabled. Short query responses (less than
-1MB) are always effectively snapshotted.  Currently, snapshot mode may not
-be used with sorting or explicit hints.
-
-Returns this cursor for chaining operations.
-
-=cut
-
-sub snapshot {
-    my ($self, $bool) = @_;
-
-    MongoDB::UsageError->throw("cannot set snapshot after querying")
-      if $self->started_iterating;
-
-    MongoDB::UsageError->throw("snapshot requires a defined, boolean argument")
-      unless defined $bool;
-
-    $self->_query->modifiers->{'$snapshot'} = $bool;
-    return $self;
-}
-
 =head2 hint
 
 Hint the query to use a specific index by name:
@@ -666,6 +638,21 @@ sub slave_okay {
     return $self;
 }
 
+sub snapshot {
+    my ($self, $bool) = @_;
+
+    $self->_warn_deprecated(
+        'snapshot' => "Snapshot is deprecated as of MongoDB 3.6" );
+
+    MongoDB::UsageError->throw("cannot set snapshot after querying")
+      if $self->started_iterating;
+
+    MongoDB::UsageError->throw("snapshot requires a defined, boolean argument")
+      unless defined $bool;
+
+    $self->_query->modifiers->{'$snapshot'} = $bool;
+    return $self;
+}
 
 1;
 
