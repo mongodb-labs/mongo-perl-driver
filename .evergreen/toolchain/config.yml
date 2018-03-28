@@ -180,7 +180,6 @@ buildvariants:
   display_name: SUSE 12 Z Series
   run_on:
     - suse12-zseries-build
-    - suse12-zseries-test
   tasks:
     - build-unix-perls
     - validate-unix-perls

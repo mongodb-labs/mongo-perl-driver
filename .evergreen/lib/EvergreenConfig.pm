@@ -71,6 +71,8 @@ my @win_dists = (
     ( map { ; "windows-64-vs2015-$_" } qw/compile test large/ )
 );
 
+
+
 # For Z series, ARM64 and Power8 (aka ZAP), only more recent perls compile
 # cleanly, so we test a smaller range of Perls.
 my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
@@ -82,9 +84,8 @@ my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
 # Sub-keys include:
 # name: Visible display name in Evergreen web pages
 
-# run_on: the MongoDB Evergreen host names; generally as many as possible
-# as our size need is minimal, but we'd like to minimize the latency of
-# getting tasks running.
+# run_on: the MongoDB Evergreen host names; for historical reasons this
+# must be an arrayref but must only have a single entry
 #
 # perlroot: where perls are installed. E.g. /opt/perl or c:/perl
 #
@@ -95,21 +96,21 @@ my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
 my %os_map = (
     ubuntu1604 => {
         name     => "Ubuntu 16.04",
-        run_on   => [ 'ubuntu1604-test', 'ubuntu1604-build' ],
+        run_on   => [ 'ubuntu1604-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@unix_perls,
     },
     rhel62 => {
         name     => "RHEL 6.2",
-        run_on   => [ 'rhel62-test', 'rhel62-build', 'rhel62-large' ],
+        run_on   => [ 'rhel62-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@unix_perls,
     },
     windows64 => {
         name     => "Win64",
-        run_on   => \@win_dists,
+        run_on   => [ 'windows-64-vs2015-test' ],
         perlroot => '/cygdrive/c/perl',
         perlpath => 'perl/bin',
         ccpath   => 'c/bin',
@@ -117,7 +118,7 @@ my %os_map = (
     },
     suse12_z => {
         name     => "SUSE 12 Z Series",
-        run_on   => [ 'suse12-zseries-build', 'suse12-zseries-test' ],
+        run_on   => [ 'suse12-zseries-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@zap_perls,
@@ -126,7 +127,7 @@ my %os_map = (
     },
     ubuntu1604_arm64 => {
         name     => "Ubuntu 16.04 ARM64",
-        run_on   => [ 'ubuntu1604-arm64-large', 'ubuntu1604-arm64-small' ],
+        run_on   => [ 'ubuntu1604-arm64-large' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@zap_perls,
@@ -135,7 +136,7 @@ my %os_map = (
     },
     ubuntu1604_power8 => {
         name     => "Ubuntu 16.04 Power8",
-        run_on   => [ 'ubuntu1604-power8-build', 'ubuntu1604-power8-test' ],
+        run_on   => [ 'ubuntu1604-power8-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@zap_perls,
