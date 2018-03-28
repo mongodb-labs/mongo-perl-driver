@@ -86,9 +86,10 @@ L<MongoDB::ServerSession> for more information.
 =cut
 
 has server_session => (
-    is => 'rwp',
-    isa => Maybe[InstanceOf['MongoDB::_ServerSession']],
+    is => 'ro',
+    isa => InstanceOf['MongoDB::_ServerSession'],
     required => 1,
+    clearer => '_clear_server_session',
 );
 
 #--------------------------------------------------------------------------#
@@ -211,7 +212,7 @@ sub end_session {
 
     if ( defined $self->server_session ) {
         $self->client->_server_session_pool->retire_server_session( $self->server_session );
-        $self->_set_server_session( undef );
+        $self->_clear_server_session;
         $self->_set__has_ended( 1 );
     }
 }
