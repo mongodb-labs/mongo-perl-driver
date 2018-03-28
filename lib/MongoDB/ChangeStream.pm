@@ -29,11 +29,21 @@ use MongoDB::Cursor;
 use MongoDB::Op::_Aggregate;
 use MongoDB::Error;
 use Safe::Isa;
+use MongoDB::_Types qw(
+    MongoDBCollection
+    ArrayOfHashRef
+);
+use Types::Standard qw(
+    InstanceOf
+    HashRef
+    Str
+);
 
 use namespace::clean -except => 'meta';
 
 has _cursor => (
     is => 'rw',
+    isa => InstanceOf['MongoDB::QueryResult'],
     lazy => 1,
     builder => '_build_cursor',
     clearer => '_clear_cursor',
@@ -41,20 +51,24 @@ has _cursor => (
 
 has collection => (
     is => 'ro',
+    isa => MongoDBCollection,
     required => 1,
 );
 
 has options => (
     is => 'ro',
+    isa => HashRef,
 );
 
 has pipeline => (
     is => 'ro',
+    isa => ArrayOfHashRef,
     required => 1,
 );
 
 has full_document => (
     is => 'ro',
+    isa => Str,
     predicate => '_has_full_document',
 );
 
