@@ -28,6 +28,22 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
+use overload (
+    q{<=>} => \&_compare,
+    fallback => 1
+);
+
+sub _compare {
+    my ( $self, $target, @args ) = @_;
+
+    my $sec_sm = $self->sec <=> $target->sec;
+    if ( $sec_sm == 0 ) {
+      return $self->inc <=> $target->inc;
+    }
+    return $sec_sm;
+}
+
+
 =attr sec
 
 Seconds since epoch.
@@ -52,7 +68,6 @@ has inc => (
     required => 1,
 );
 
-
 1;
 
 =head1 DESCRIPTION
@@ -61,5 +76,10 @@ This is an internal type used for replication.  It is not for storing dates,
 times, or timestamps in the traditional sense.  Unless you are looking to mess
 with MongoDB's replication internals, the class you are probably looking for is
 L<DateTime>.  See L<MongoDB::DataTypes> for more information.
+
+=head2 Overrides
+
+this class overrides numerical comparisons to allow for comparing two
+C<MongoDB::Timestamp>s.
 
 =cut

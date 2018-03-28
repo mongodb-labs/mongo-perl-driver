@@ -203,6 +203,7 @@ sub _execute_write_command_batch {
             query       => $cmd_doc,
             query_flags => {},
             bson_codec  => $self->bson_codec,
+            session     => $self->session,
         );
 
         my $cmd_result = try {

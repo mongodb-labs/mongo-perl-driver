@@ -28,9 +28,11 @@ use Moo::Role;
 
 use MongoDB::_Types qw(
     BSONCodec
+    ClientSession
 );
 use Types::Standard qw(
     Str
+    Maybe
 );
 
 use namespace::clean;
@@ -45,6 +47,12 @@ has db_name => (
     is       => 'ro',
     required => 1,
     isa      => Str,
+);
+
+has session => (
+    is => 'ro',
+    required => 0,
+    isa => Maybe[ClientSession],
 );
 
 1;

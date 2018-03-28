@@ -33,6 +33,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     HashRef
     Maybe
+    InstanceOf
 );
 
 use namespace::clean;
@@ -59,11 +60,14 @@ with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_DatabaseOp
   MongoDB::Role::_ReadPrefModifier
+  MongoDB::Role::_SessionSupport
 );
 
 sub execute {
     my ( $self, $link, $topology_type ) = @_;
     $topology_type ||= 'Single'; # if not specified, assume direct
+
+    $self->_apply_session_and_cluster_time( $link, \$self->{query} );
 
     # $query is passed as a reference because it *may* be replaced
     $self->_apply_read_prefs( $link, $topology_type, $self->{query_flags}, \$self->{query});
@@ -89,6 +93,8 @@ sub execute {
     );
 
     $res->assert;
+
+    $self->_update_session_and_cluster_time($res);
 
     return $res;
 }

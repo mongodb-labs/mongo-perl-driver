@@ -186,6 +186,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<batchSize> – the number of documents to return per batch.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -201,12 +203,15 @@ sub list_collections {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     my $op = MongoDB::Op::_ListCollections->_new(
         db_name    => $self->name,
         client     => $self->_client,
         bson_codec => $self->bson_codec,
         filter     => $filter,
         options    => $options,
+        session    => $session,
     );
 
     return $self->_client->send_primary_op($op);
@@ -225,6 +230,14 @@ L<listCollections command
 documentation|http://docs.mongodb.org/manual/reference/command/listCollections/>
 for more details on filtering for specific collections.
 
+A hashref of options may also be provided.
+
+Valid options include:
+
+=for :list
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
+
 B<Warning:> if the number of collections is very large, this may return
 a very large result.  Either pass an appropriate filter, or use
 L</list_collections> to iterate over collections instead.
@@ -232,18 +245,9 @@ L</list_collections> to iterate over collections instead.
 =cut
 
 sub collection_names {
-    my ( $self, $filter ) = @_;
-    $filter ||= {};
+    my $self = shift;
 
-    my $op = MongoDB::Op::_ListCollections->_new(
-        db_name    => $self->name,
-        client     => $self->_client,
-        bson_codec => $self->bson_codec,
-        filter     => $filter,
-        options    => {},
-    );
-
-    my $res = $self->_client->send_primary_op($op);
+    my $res = $self->list_collections( @_ );
 
     return map { $_->{name} } $res->all;
 }
@@ -361,15 +365,28 @@ sub get_gridfs {
 
 Deletes the database.
 
+A hashref of options may also be provided.
+
+Valid options include:
+
+=for :list
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
+
 =cut
 
 sub drop {
-    my ($self) = @_;
+    my ( $self, $options ) = @_;
+
+    my $session = $self->_get_session_from_hashref( $options );
+
     return $self->_client->send_write_op(
         MongoDB::Op::_DropDatabase->_new(
+            client        => $self->_client,
             db_name       => $self->name,
             bson_codec    => $self->bson_codec,
             write_concern => $self->write_concern,
+            session       => $session,
         )
     )->output;
 }
@@ -383,6 +400,12 @@ sub drop {
         { mode => 'secondaryPreferred' }
     );
 
+    my $output = $database->run_command(
+        [ some_command => 1 ],
+        $read_preference,
+        $options
+    );
+
 This method runs a database command.  The first argument must be a document
 with the command and its arguments.  It should be given as an array reference
 of key-value pairs or a L<Tie::IxHash> object with the command name as the
@@ -393,6 +416,14 @@ By default, commands are run with a read preference of 'primary'.  An optional
 second argument may specify an alternative read preference.  If given, it must
 be a L<MongoDB::ReadPreference> object or a hash reference that can be used to
 construct one.
+
+A hashref of options may also be provided.
+
+Valid options include:
+
+=for :list
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 It returns the output of the command (a hash reference) on success or throws a
 L<MongoDB::DatabaseError|MongoDB::Error/MongoDB::DatabaseError> exception if
@@ -409,7 +440,7 @@ on database commands: L<http://dochub.mongodb.org/core/commands>.
 =cut
 
 sub run_command {
-    my ( $self, $command, $read_pref ) = @_;
+    my ( $self, $command, $read_pref, $options ) = @_;
     MongoDB::UsageError->throw("command was not an ordered document")
        if ! is_OrderedDoc($command);
 
@@ -417,17 +448,78 @@ sub run_command {
         ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
       if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
 
+    my $session = $self->_get_session_from_hashref( $options );
+
     my $op = MongoDB::Op::_Command->_new(
+        client      => $self->_client,
         db_name     => $self->name,
         query       => $command,
         query_flags => {},
         bson_codec  => $self->bson_codec,
         read_preference => $read_pref,
+        session     => $session,
     );
 
     my $obj = $self->_client->send_read_op($op);
 
     return $obj->output;
+}
+
+sub _aggregate {
+    MongoDB::UsageError->throw("pipeline argument must be an array reference")
+      unless ref( $_[1] ) eq 'ARRAY';
+
+    my ( $self, $pipeline, $options ) = @_;
+    $options ||= {};
+
+    my $session = $self->_get_session_from_hashref( $options );
+
+    # boolify some options
+    for my $k (qw/allowDiskUse explain/) {
+        $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
+    }
+
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
+
+    # read preferences are ignored if the last stage is $out
+    my ($last_op) = keys %{ $pipeline->[-1] };
+
+    my $op = MongoDB::Op::_Aggregate->_new(
+        pipeline     => $pipeline,
+        options      => $options,
+        read_concern => $self->read_concern,
+        has_out      => $last_op eq '$out',
+        client       => $self->_client,
+        bson_codec   => $self->bson_codec,
+        db_name      => $self->name,
+        coll_name    => 1, # Magic not-an-actual-collection number
+        session      => $session,
+    );
+
+    return $self->_client->send_read_op($op);
+}
+
+# Extracts a session from a provided hashref, or returns an implicit session
+# Almost identical to same subroutine in Collection, however in Database the
+# client attribute is private. 
+sub _get_session_from_hashref {
+    my ( $self, $hashref ) = @_;
+
+    my $session = delete $hashref->{session};
+
+    if ( defined $session ) {
+        MongoDB::UsageError->throw( "Cannot use session from another client" )
+            if ( $session->client->_id ne $self->_client->_id );
+        MongoDB::UsageError->throw( "Cannot use session which has ended" )
+            if $session->_has_ended;
+    } else {
+        $session = $self->_client->_maybe_get_implicit_session;
+    }
+
+    return $session;
 }
 
 #--------------------------------------------------------------------------#

@@ -196,6 +196,10 @@ sub insert_one {
 =method execute
 
     my $result = $bulk->execute;
+    # Optional write concern:
+    my $result = $bulk->execute( $concern );
+    # With options
+    my $result = $bulk->execute( $concern, $options );
 
 Executes the queued operations.  The order and semantics depend on
 whether the bulk object is ordered or unordered:
@@ -213,6 +217,17 @@ When grouping operations of a type, operations will be sent to the server in
 batches not exceeding 16MiB or 1000 items (for a version 2.6 or later server)
 or individually (for legacy servers without write command support).
 
+A write concern is optional, and can either take a pre-constructed WriteConcern
+object, or the arguments to construct one.  For information on write concerns,
+see L<MongoDB::WriteConcern>.
+
+The options argument is an optional hashref which can contain the following
+values:
+
+=for :list
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
+
 This method returns a L<MongoDB::BulkWriteResult> object if the bulk operation
 executes successfully.
 
@@ -229,10 +244,11 @@ See L<MongoDB::Error> for more on error handling.
 B<NOTE>: it is an error to call C<execute> without any operations or
 to call C<execute> more than once on the same bulk object.
 
+
 =cut
 
 sub execute {
-    my ( $self, $write_concern  ) = @_;
+    my ( $self, $write_concern, $options ) = @_;
     $write_concern = to_WriteConcern($write_concern)
         if defined($write_concern) && ref($write_concern) ne 'MongoDB::WriteConcern';
 
@@ -249,6 +265,7 @@ sub execute {
 
     $write_concern ||= $self->collection->write_concern;
 
+    my $session = $self->collection->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_BulkWrite->_new(
         db_name                  => $self->_database->name,
@@ -259,6 +276,7 @@ sub execute {
         bypassDocumentValidation => $self->bypassDocumentValidation,
         bson_codec               => $self->collection->bson_codec,
         write_concern            => $write_concern,
+        session                  => $session,
     );
 
     return $self->_client->send_write_op( $op );

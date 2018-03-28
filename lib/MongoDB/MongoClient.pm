@@ -36,11 +36,14 @@ use MongoDB::Op::_FSyncUnlock;
 use MongoDB::ReadPreference;
 use MongoDB::WriteConcern;
 use MongoDB::ReadConcern;
+use MongoDB::ClientSession;
+use MongoDB::_SessionPool;
 use MongoDB::_Topology;
 use MongoDB::_Constants;
 use MongoDB::_Credential;
 use MongoDB::_URI;
 use Digest::MD5;
+use UUID::Tiny ':std'; # Use newer interface
 use Tie::IxHash;
 use Time::HiRes qw/usleep/;
 use Carp 'carp', 'croak', 'confess';
@@ -53,6 +56,7 @@ use MongoDB::_Types qw(
     ArrayOfHashRef
     AuthMechanism
     BSONCodec
+    Document
     HeartbeatFreq
     MaxStalenessNum
     NonNegNum
@@ -62,6 +66,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     Bool
     HashRef
+    ArrayRef
     InstanceOf
     Undef
     Int
@@ -1105,9 +1110,39 @@ sub _build__read_concern {
     );
 }
 
+has _cluster_time => (
+    is => 'rwp',
+    isa => Maybe[Document],
+    init_arg => undef,
+    default => undef,
+);
+
+sub _update_cluster_time {
+    my ( $self, $cluster_time ) = @_;
+
+    # Only update the cluster time if it is more recent than the current entry
+    if ( ! defined $self->_cluster_time ) {
+        $self->_set__cluster_time( $cluster_time );
+    } else {
+        if ( $cluster_time->{'clusterTime'}
+           > $self->_cluster_time->{'clusterTime'} ) {
+            $self->_set__cluster_time( $cluster_time );
+        }
+    }
+    return;
+}
+
 #--------------------------------------------------------------------------#
 # private attributes
 #--------------------------------------------------------------------------#
+
+# used for a more accurate 'is this client the same one' for sessions, instead
+# of memory location which just feels... yucky
+has _id => (
+    is  => 'ro',
+    init_arg => undef,
+    default => sub { create_uuid_as_string(UUID_V4) },
+);
 
 # collects constructor options and defer them so precedence can be resolved
 # against the _uri options; unlike other private args, this needs a valid
@@ -1213,6 +1248,14 @@ sub _build__uri {
         return MongoDB::_URI->new( uri => ("mongodb://$uri") );
     }
 }
+
+has _server_session_pool => (
+    is => 'lazy',
+    isa => InstanceOf['MongoDB::_SessionPool'],
+    init_arg => undef,
+    builder => sub { return MongoDB::_SessionPool->new( client => $_[0] ) },
+);
+
 
 #--------------------------------------------------------------------------#
 # Constructor customization
@@ -1415,6 +1458,51 @@ sub topology_status {
     return $self->_topology->status_struct;
 }
 
+=method start_session
+
+    $client->start_session;
+    $client->start_session( $options );
+
+Returns a new L<MongoDB::ClientSession> with the supplied options.
+
+will throw a C<MongoDB::ConfigurationError> if sessions are not supported by
+the connected MongoDB deployment.
+
+=cut
+
+sub start_session {
+    my ( $self, $opts ) = @_;
+
+    unless ( $self->_topology->_supports_sessions ) {
+        MongoDB::ConfigurationError->throw( "Sessions are not supported by this MongoDB deployment" );
+    }
+
+    return $self->_start_client_session( 1, $opts );
+}
+
+sub _maybe_get_implicit_session {
+    my ( $self, $opts ) = @_;
+
+    # Dont return an error as implicit sessions need to be backwards compatible
+    return undef unless $self->_topology->_supports_sessions; ## no critic
+
+    return $self->_start_client_session( 0, $opts );
+}
+
+sub _start_client_session {
+    my ( $self, $is_explicit, $opts ) = @_;
+
+    $opts ||= {};
+
+    my $session = $self->_server_session_pool->get_server_session;
+    return MongoDB::ClientSession->new(
+        client => $self,
+        options => $opts,
+        _is_explicit => $is_explicit,
+        server_session => $session,
+    );
+}
+
 #--------------------------------------------------------------------------#
 # semi-private methods; these are public but undocumented and their
 # semantics might change in future releases
@@ -1440,6 +1528,7 @@ sub send_admin_command {
         query_flags => {},
         bson_codec  => $self->bson_codec,
         read_preference => $read_pref,
+        session     => $self->_maybe_get_implicit_session,
     );
 
     return $self->send_read_op( $op );
