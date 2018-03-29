@@ -28,7 +28,6 @@ use Moo;
 use MongoDB::Op::_Command;
 use MongoDB::_Types qw(
     ArrayOfHashRef
-    CursorType
 );
 use Types::Standard qw(
     Bool
@@ -68,12 +67,6 @@ has maxAwaitTimeMS => (
     isa      => Num,
 );
 
-has cursorType => (
-    is       => 'rw',
-    isa      => CursorType,
-    required => 1,
-);
-
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
@@ -87,11 +80,6 @@ sub execute {
 
     my $options = $self->options;
     my $is_2_6 = $link->does_write_commands;
-
-    my $query_flags = {
-        tailable => ( $self->cursorType =~ /^tailable/ ? 1 : 0 ),
-        await_data => $self->cursorType eq 'tailable_await',
-    };
 
     # maxTimeMS isn't available until 2.6 and the aggregate command
     # will reject it as unrecognized

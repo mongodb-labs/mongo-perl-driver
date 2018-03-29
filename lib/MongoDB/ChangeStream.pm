@@ -106,10 +106,7 @@ sub _build_result {
 
     return $self->collection->aggregate(
         \@pipeline,
-        {
-            %{ $self->aggregation_options },
-            cursorType => 'tailable_await',
-        },
+        $self->aggregation_options,
     );
 }
 
