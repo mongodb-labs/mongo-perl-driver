@@ -161,8 +161,7 @@ sub next {
     }
 
     if (exists $change->{_id}) {
-        my $resume_token = $change->{_id};
-        $self->_resume_token($resume_token);
+        $self->_resume_token($change->{_id});
         return $change;
     }
     else {
