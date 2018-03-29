@@ -122,8 +122,8 @@ sub _build_result {
 Waits for the next change in the collection and returns it.
 
 B<Note>: This method will wait for the amount of milliseconds passed
-as C<maxAwaitTimeMS> o L<MongoDB::Collection/watch> or the default. It
-will not wait indefinitely.
+as C<maxAwaitTimeMS> to L<MongoDB::Collection/watch> or the server's
+default wait-time. It will not wait indefinitely.
 
 =cut
 
