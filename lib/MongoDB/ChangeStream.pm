@@ -89,7 +89,7 @@ sub BUILD {
 sub _build_result {
     my ($self) = @_;
 
-    my @pipeline = @{ $self->pipeline || [] };
+    my @pipeline = @{ $self->pipeline };
     @pipeline = (
         {'$changeStream' => {
             ($self->_has_full_document
@@ -107,7 +107,7 @@ sub _build_result {
     return $self->collection->aggregate(
         \@pipeline,
         {
-            %{ $self->aggregation_options || {} },
+            %{ $self->aggregation_options },
             cursorType => 'tailable_await',
         },
     );
