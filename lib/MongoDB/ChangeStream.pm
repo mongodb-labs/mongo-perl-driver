@@ -77,7 +77,6 @@ has _resume_token => (
     init_arg => 'resume_after',
     predicate => '_has_resume_token',
     lazy => 1,
-    builder => '_build_resume_token',
 );
 
 sub BUILD {
