@@ -1051,7 +1051,7 @@ subtest 'change streams w/ CursorNotFound reconnection' => sub {
 
     $testdb->run_command([
         killCursors => $coll->name,
-        cursors => [$change_stream->_cursor->_cursor_id],
+        cursors => [$change_stream->_result->_cursor_id],
     ]);
 
     $coll->insert_one({ value => 302 });

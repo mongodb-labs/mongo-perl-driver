@@ -41,12 +41,12 @@ use Types::Standard qw(
 
 use namespace::clean -except => 'meta';
 
-has _cursor => (
+has _result => (
     is => 'rw',
     isa => InstanceOf['MongoDB::QueryResult'],
     lazy => 1,
-    builder => '_build_cursor',
-    clearer => '_clear_cursor',
+    builder => '_build_result',
+    clearer => '_clear_result',
 );
 
 has collection => (
@@ -84,10 +84,10 @@ sub BUILD {
     my ($self) = @_;
 
     # starting point is construction time instead of first next call
-    $self->_cursor;
+    $self->_result;
 }
 
-sub _build_cursor {
+sub _build_result {
     my ($self) = @_;
 
     my $pipeline = $self->pipeline;
@@ -140,7 +140,7 @@ sub next {
     my $retried;
     while (1) {
         last if try {
-            $change = $self->_cursor->next;
+            $change = $self->_result->next;
             1 # successfully fetched result
         }
         catch {
@@ -151,7 +151,7 @@ sub next {
                 and $error->_is_resumable
             ) {
                 $retried = 1;
-                $self->_cursor($self->_build_cursor);
+                $self->_result($self->_build_result);
             }
             else {
                 die $error;
