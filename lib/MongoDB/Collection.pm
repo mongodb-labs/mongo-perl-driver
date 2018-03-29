@@ -1068,7 +1068,6 @@ sub watch {
             ? (resume_after => delete $options->{resumeAfter})
             : (),
         collection => $self,
-        client => $self->client,
         pipeline => $pipeline,
         aggregation_options => $options,
     );
