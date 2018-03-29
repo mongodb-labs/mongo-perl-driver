@@ -176,8 +176,13 @@ sub next {
 =head1 SYNOPSIS
 
     $stream = $collection->watch( $pipeline, $options );
-    while (my $change = $stream->next) {
-        ...
+    while(1) {
+
+        # This inner loop will only iterate until there are no more
+        # changes available.
+        while (my $change = $stream->next) {
+            ...
+        }
     }
 
 =head1 DESCRIPTION
