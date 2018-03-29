@@ -89,8 +89,6 @@ sub BUILD {
 sub _build_result {
     my ($self) = @_;
 
-    my $pipeline = $self->pipeline;
-
     my @pipeline = @{ $self->pipeline || [] };
     @pipeline = (
         {'$changeStream' => {
