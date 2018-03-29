@@ -1014,8 +1014,13 @@ available since MongoDB 3.6.
     my $stream = $collection->watch( \@pipeline );
     my $stream = $collection->watch( \@pipeline, \%options );
 
-    while (my $change = $stream->next) {
-        # process $change
+    while (1) {
+
+        # This inner loop will only run until no more changes are
+        # available.
+        while (my $change = $stream->next) {
+            # process $change
+        }
     }
 
 The returned stream will not block forever waiting for changes. If you
