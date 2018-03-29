@@ -1046,6 +1046,8 @@ The optional second argument is a hash reference with options:
   changes to the document, as well as a copy of the entire document that
   was changed from some time after the change occurred.
 * C<resumeAfter> - The logical starting point for this change stream.
+  This value can be obtained from the C<_id> field of a document returned
+  by L<MongoDB::ChangeStream/next>.
 * C<maxAwaitTimeMS> - The maximum number of milliseconds for the server
   to wait before responding.
 
