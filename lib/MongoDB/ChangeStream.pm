@@ -55,7 +55,7 @@ has collection => (
     required => 1,
 );
 
-has options => (
+has aggregation_options => (
     is => 'ro',
     isa => HashRef,
 );
@@ -109,7 +109,7 @@ sub _build_result {
     return $self->collection->aggregate(
         \@pipeline,
         {
-            %{ $self->options || {} },
+            %{ $self->aggregation_options || {} },
             cursorType => 'tailable_await',
         },
     );

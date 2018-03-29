@@ -1070,7 +1070,7 @@ sub watch {
         collection => $self,
         client => $self->client,
         pipeline => $pipeline,
-        options => $options,
+        aggregation_options => $options,
     );
 }
 
