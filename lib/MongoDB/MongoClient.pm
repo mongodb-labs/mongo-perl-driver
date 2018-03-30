@@ -1936,6 +1936,25 @@ application should retry an operation based on the specific operation
 attempted and other use-case-specific considerations.  For automating
 retries despite exceptions, consider using the L<Try::Tiny::Retry> module.
 
+=head1 TRANSPORT LAYER SECURITY
+
+B<Warning>: industry best practices, and some regulations, require the use
+of TLS 1.1 or newer.
+
+Some operating systems or versions may not provide an OpenSSL version new
+enough to support the latest TLS protocols.  If your OpenSSL library
+version number is less than 1.0.1, then support for TLS 1.1 or newer is not
+available. Contact your operating system vendor for a solution or upgrade
+to a newer operating system distribution.
+
+See also the documentation for L<Net::SSLeay> for details on installing and
+compiling against OpenSSL.
+
+TLS connnections in the driver rely on the default settings provided by
+L<IO::Socket::SSL>, but allow you to pass custom configuration to it.
+Please read its documentation carefully to see how to control your TLS
+configuration.
+
 =head1 AUTHENTICATION
 
 The MongoDB server provides several authentication mechanisms, though some
