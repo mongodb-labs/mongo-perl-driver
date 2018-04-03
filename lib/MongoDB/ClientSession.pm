@@ -34,7 +34,7 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
-=method client
+=attr client
 
 The client this session was created using. The server session will be returned
 to the pool of this client when this client session is closed.
@@ -47,7 +47,7 @@ has client => (
     required => 1,
 );
 
-=method cluster_time
+=attr cluster_time
 
 Stores the last received C<$clusterTime> for the client session. This is an
 opaque value, to set it use the L<advance_cluster_time> function.
@@ -61,7 +61,7 @@ has cluster_time => (
     default => undef,
 );
 
-=method options
+=attr options
 
 Options provided for this particular session.
 
@@ -78,7 +78,7 @@ has options => (
     },
 );
 
-=method server_session
+=attr server_session
 
 The server session containing the unique id for this session. See
 L<MongoDB::ServerSession> for more information.
