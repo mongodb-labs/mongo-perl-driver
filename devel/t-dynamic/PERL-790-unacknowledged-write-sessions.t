@@ -44,8 +44,10 @@ use MongoDBTest qw/
     get_unique_collection
 /;
 
-# This test starts servers on localhost ports 27017, 27018 and 27019. We skip if
-# these aren't available.
+use Test::Role::BSONDebug;
+Role::Tiny->apply_roles_to_package(
+    'MongoDB::BSON', 'Test::Role::BSONDebug',
+);
 
 my $orc =
 MongoDBTest::Orchestrator->new(
@@ -65,11 +67,6 @@ plan skip_all => "Requires MongoDB 3.6"
     if $server_version < v3.6.0;
 
 subtest 'Session for ack writes' => sub {
-    use Test::Role::BSONDebug;
-
-    Role::Tiny->apply_roles_to_package(
-        'MongoDB::BSON', 'Test::Role::BSONDebug',
-    );
 
     my $coll = $testdb->get_collection( 'test_collection', { write_concern => { w => 1 } } );
 

@@ -78,7 +78,7 @@ subtest 'Shared session in explicit cursor' => sub {
     # Cursor passes the session through from the return of result, which is the
     # return of passing the query to send_*_op, which is created in find in
     # ::Collection.
-    my $cursor = $coll->find({ wanted => 1 }, { session => $session })->result;
+    my $cursor = $coll->find({ wanted => 1 }, { batchSize => 100, session => $session })->result;
 
     my $lsid = uuid_to_string( $session->server_session->session_id->{id}->data );
 

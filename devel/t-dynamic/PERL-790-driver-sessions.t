@@ -108,17 +108,15 @@ subtest 'clusterTime in commands' => sub {
 
         ok $command->EXISTS('ping'), 'ping in sent command';
 
-        if ( $local_client->_topology->wire_version_ceil >= 6 ) {
-            ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
 
-            my $ping_result2 = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
+        my $ping_result2 = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
 
-            my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 
-            is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
-               $result->{'$clusterTime'}->{clusterTime}->{sec},
-               "clusterTime matches";
-        }
+        is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
+           $result->{'$clusterTime'}->{clusterTime}->{sec},
+           "clusterTime matches";
     };
 
     Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
@@ -147,18 +145,16 @@ subtest 'clusterTime in commands' => sub {
 
         ok $command->EXISTS('aggregate'), 'aggregate in sent command';
 
-        if ( $local_client->_topology->wire_version_ceil >= 6 ) {
-            ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
 
-            my $agg_result2 = $local_coll->aggregate( [ { '$match'   => { wanted => 1 } },
-                { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
+        my $agg_result2 = $local_coll->aggregate( [ { '$match'   => { wanted => 1 } },
+            { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
 
-            my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 
-            is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
-               $result->{'$clusterTime'}->{clusterTime}->{sec},
-               "clusterTime matches";
-        }
+        is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
+           $result->{'$clusterTime'}->{clusterTime}->{sec},
+           "clusterTime matches";
     };
 
     Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
@@ -180,17 +176,15 @@ subtest 'clusterTime in commands' => sub {
 
         ok $command->EXISTS('find'), 'find in sent command';
 
-        if ( $local_client->_topology->wire_version_ceil >= 6 ) {
-            ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
 
-            my $find_result2 = $local_coll->find({_id => 1})->result;
+        my $find_result2 = $local_coll->find({_id => 1})->result;
 
-            my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 
-            is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
-               $result->{'$clusterTime'}->{clusterTime}->{sec},
-               "clusterTime matches";
-        }
+        is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
+           $result->{'$clusterTime'}->{clusterTime}->{sec},
+           "clusterTime matches";
     };
 
     Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
@@ -208,17 +202,15 @@ subtest 'clusterTime in commands' => sub {
 
         ok $command->EXISTS('insert'), 'insert in sent command';
 
-        if ( $local_client->_topology->wire_version_ceil >= 6 ) {
-            ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
 
-            my $insert_result2 = $local_coll->insert_one({_id => 2});
+        my $insert_result2 = $local_coll->insert_one({_id => 2});
 
-            my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 
-            is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
-               $result->{'$clusterTime'}->{clusterTime}->{sec},
-               "clusterTime matches";
-        }
+        is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
+           $result->{'$clusterTime'}->{clusterTime}->{sec},
+           "clusterTime matches";
     };
 
     Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
