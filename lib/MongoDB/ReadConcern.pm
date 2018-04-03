@@ -58,13 +58,6 @@ has level => (
     predicate => 'has_level',
 );
 
-has _as_args => (
-    is        => 'lazy',
-    isa       => ArrayRef,
-    reader    => 'as_args',
-    builder   => '_build_as_args',
-);
-
 sub BUILD {
     my $self = shift;
     if ( defined $self->{level} ) {
@@ -72,16 +65,30 @@ sub BUILD {
     }
 }
 
-sub _build_as_args {
-    my ($self) = @_;
+# public interface for compatibility, but undocumented
+sub as_args {
+    my ( $self, $session ) = @_;
 
+    # if session is defined and operation_time is not, then either the
+    # operation_time was not sent on the response from the server for this
+    # session or the session has causal consistency disabled.
     if ( $self->{level} ) {
         return [
-            readConcern => { level => $self->{level} }
+            readConcern => {
+              level => $self->{level},
+              ( defined $session && defined $session->operation_time
+                ? ( afterClusterTime => $session->operation_time )
+                : () ),
+            }
         ];
     }
     else {
-        return [];
+        return [
+            ( defined $session && defined $session->operation_time
+              ? ( readConcern => { afterClusterTime => $session->operation_time } )
+              : ()
+            )
+        ];
     }
 }
 

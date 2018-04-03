@@ -88,7 +88,7 @@ sub execute {
         key      => $self->fieldname,
         query    => $filter,
         ($link->accepts_wire_version(4) ?
-            @{ $self->read_concern->as_args } : ()),
+            @{ $self->read_concern->as_args( $self->session ) } : ()),
         %$options
     );
 

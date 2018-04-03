@@ -48,6 +48,7 @@ use Type::Library
   MaybeHashRef
   MongoDBCollection
   MongoDBDatabase
+  MongoDBTimestamp
   NonEmptyStr
   NonNegNum
   OID
@@ -127,6 +128,8 @@ declare MaybeHashRef, as Maybe[ HashRef ];
 class_type MongoDBCollection, { class => 'MongoDB::Collection' };
 
 class_type MongoDBDatabase, { class => 'MongoDB::Database' };
+
+class_type MongoDBTimestamp, { class => 'MongoDB::Timestamp' };
 
 declare NonEmptyStr, as Str, where { defined $_ && length $_ };
 

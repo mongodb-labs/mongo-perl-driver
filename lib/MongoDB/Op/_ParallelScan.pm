@@ -60,7 +60,7 @@ sub execute {
         parallelCollectionScan => $self->coll_name,
         numCursors             => $self->num_cursors,
         ($link->accepts_wire_version(4) ?
-            @{ $self->read_concern->as_args } : () ),
+            @{ $self->read_concern->as_args( $self->session ) } : () ),
         %{$self->options},
     ];
 

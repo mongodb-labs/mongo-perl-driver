@@ -47,12 +47,12 @@ sub _apply_session_and_cluster_time {
     my $cluster_time = $self->session->get_latest_cluster_time;
 
     # No cluster time in either session or client
-    return unless defined $cluster_time;
-
-    if ( $link->server->is_master->{maxWireVersion} >= 6 ) {
-        # Gossip the clusterTime
-        $$query_ref = to_IxHash( $$query_ref );
-        ($$query_ref)->Push( '$clusterTime' => $cluster_time );
+    if ( defined $cluster_time ) {
+        if ( $link->server->is_master->{maxWireVersion} >= 6 ) {
+            # Gossip the clusterTime
+            $$query_ref = to_IxHash( $$query_ref );
+            ($$query_ref)->Push( '$clusterTime' => $cluster_time );
+        }
     }
 
     return;
@@ -69,19 +69,35 @@ sub _update_session_and_cluster_time {
     # No point continuing as theres nothing to do even if clusterTime is returned
     return unless defined $self->session;
 
-    my $cluster_time;
-    if ( $response->$_isa( 'MongoDB::CommandResult' ) ) {
-        $cluster_time = $response->output->{'$clusterTime'};
-    } else {
-        $cluster_time = $response->{'$clusterTime'};
+    my $cluster_time = $self->__extract_from( $response, '$clusterTime' );
+
+    if ( defined $cluster_time ) {
+        $self->session->client->_update_cluster_time( $cluster_time );
+        $self->session->advance_cluster_time( $cluster_time );
     }
 
-    return unless defined $cluster_time;
+    return;
+}
 
-    $self->session->client->_update_cluster_time( $cluster_time );
-    $self->session->advance_cluster_time( $cluster_time );
+sub _update_operation_time {
+    my ( $self, $response ) = @_;
+
+    return unless defined $self->session;
+
+    my $operation_time = $self->__extract_from( $response, 'operationTime' );
+    $self->session->advance_operation_time( $operation_time ) if defined $operation_time;
 
     return;
+}
+
+sub __extract_from {
+    my ( $self, $response, $key ) = @_;
+
+    if ( $response->$_isa( 'MongoDB::CommandResult' ) ) {
+        return $response->output->{ $key };
+    } else {
+        return $response->{ $key };
+    }
 }
 
 1;
