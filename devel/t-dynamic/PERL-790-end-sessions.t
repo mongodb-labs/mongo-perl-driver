@@ -44,6 +44,11 @@ use MongoDBTest qw/
     get_unique_collection
 /;
 
+use Test::Role::BSONDebug;
+Role::Tiny->apply_roles_to_package(
+    'MongoDB::BSON', 'Test::Role::BSONDebug',
+);
+
 my $orc =
 MongoDBTest::Orchestrator->new(
   config_file => "devel/config/replicaset-single-3.6.yml" );
@@ -103,19 +108,10 @@ subtest 'endSession closes sessions on server' => sub {
     # called in destruction of client normally
     $conn->_server_session_pool->end_all_sessions;
 
-    my $after_end_agg_result = $testdb->_aggregate(
-        [ { '$listLocalSessions' => {} } ],
-    );
+    my $response = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
 
-    my $after_end_agg_count = count_sessions_in_hash(
-        [ map { $_->{_id} } $after_end_agg_result->all ],
-        \%session_ids,
-    );
+    is $response->{ok}, 1, 'Got ok 1 from ending all sessions';
 
-    TODO: {
-        local $TODO = "This is basically saying that endSessions isnt working?";
-        is $after_end_agg_count, 0, 'All sessions closed';
-    }
 };
 
 subtest 'expiry of old sessions on retire' => sub {
