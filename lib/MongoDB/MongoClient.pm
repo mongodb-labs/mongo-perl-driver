@@ -1128,7 +1128,7 @@ the type will be 'Single' if there is only one server in the list of hosts, and
 N.B. A single mongos will have a topology type of 'Single', as that mongos will
 be used for all reads and writes, just like a standalone mongod.  The 'Sharded'
 type indicates a sharded cluster with multiple mongos servers, and reads/writes
-will be distributed acc
+will be distributed across them.
 
 =cut
 
@@ -1146,8 +1146,8 @@ sub _build__topology {
 
     my $type =
         length( $self->replica_set_name ) ? 'ReplicaSetNoPrimary'
-      : @{ $self->_uri->hostids } > 1   ? 'Sharded'
-      :                                     'Single';
+      : @{ $self->_uri->hostids } > 1     ? 'Sharded'
+      :                                     'Unknown';
 
     MongoDB::_Topology->new(
         uri                          => $self->_uri,
@@ -1434,6 +1434,14 @@ Returns a new L<MongoDB::ClientSession> with the supplied options.
 
 will throw a C<MongoDB::ConfigurationError> if sessions are not supported by
 the connected MongoDB deployment.
+
+the options hash is an optional hash which can have the following keys:
+
+=for :list
+* C<causalConsistency> - Enable Causally Consistent reads for this session.
+  Defaults to true.
+
+for more information see L<MongoDB::ClientSession/options>.
 
 =cut
 

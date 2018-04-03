@@ -88,7 +88,7 @@ sub execute {
         key      => $self->fieldname,
         query    => $filter,
         ($link->supports_read_concern ?
-            @{ $self->read_concern->as_args } : ()),
+            @{ $self->read_concern->as_args( $self->session) } : ()),
         %$options
     );
 

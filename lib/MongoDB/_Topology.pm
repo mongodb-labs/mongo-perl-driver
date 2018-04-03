@@ -600,21 +600,10 @@ sub _update_ls_timeout_minutes {
 sub _supports_sessions {
     my ( $self ) = @_;
 
+    $self->scan_all_servers if $self->stale;
+
     # Sessions arent supported in standalone servers
     return if $self->type eq 'Single';
-
-    # If we havent got any servers... find some?
-    # Scan for data bearing first as it implies there are some servers
-    if ( scalar( $self->all_data_bearing_servers ) == 0
-      || scalar( $self->all_servers ) == 0 )
-    {
-        # Will call _update_ls_timeout_minutes as part of the check_address
-        # calls
-        $self->scan_all_servers;
-
-        # Could end up discovering its a single server again
-        return if $self->type eq 'Single';
-    }
 
     return 1 if defined $self->logical_session_timeout_minutes;
     return;
@@ -1325,21 +1314,25 @@ sub _update_Unknown {
 
     my $server_type = $new_server->type;
 
+    # Starting from topology type 'unknown', a standalone server when we
+    # were given multiple seeds must be a replica set member in maintenance
+    # mode so we drop it and will rediscover it later.
     if ( $server_type eq 'Standalone' ) {
-        if ( $self->number_of_seeds == 1 ) {
-            $self->_set_type('Single');
-        }
-        else {
-            # a standalone server with multiple seeds is a replica set member
-            # in maintenance mode; we drop it and may pick it up later if it
-            # rejoins the replica set.
+        if ( $self->number_of_seeds > 1 ) {
             $self->_remove_address($address);
         }
+        else {
+            $self->_set_type('Single');
+        }
+        return;
     }
-    elsif ( $server_type eq 'Mongos' ) {
+
+    if ( $server_type eq 'Mongos' ) {
         $self->_set_type('Sharded');
+        return;
     }
-    elsif ( $server_type eq 'RSPrimary' ) {
+
+    if ( $server_type eq 'RSPrimary' ) {
         $self->_set_type('ReplicaSetWithPrimary');
         $self->_update_rs_with_primary_from_primary($new_server);
         # topology changes might have removed all primaries
