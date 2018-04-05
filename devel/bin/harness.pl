@@ -31,10 +31,16 @@ GetOptions(
     \%opts,
     'verbose|v',
     'preserve=s',
+    'logdir=s',
 );
 
 if ( $opts{verbose} ) {
     Log::Any::Adapter->set('Stderr');
+}
+
+if ( $opts{logdir} ) {
+    path($opts{logdir})->mkpath;
+    $ENV{MONGOLOGDIR} = $opts{logdir};
 }
 
 my ($config_file, @command) = @ARGV;
@@ -68,6 +74,10 @@ catch {
 
 $ENV{MONGOD} = $orc->as_uri;
 say "MONGOD=".$ENV{MONGOD};
+
+for my $server ( $orc->deployment->all_servers ) {
+    printf("Log for %s (%d): %s\n", $server->name, $server->port, $server->logfile);
+}
 
 say "@command";
 my $exit_val = system(@command);
