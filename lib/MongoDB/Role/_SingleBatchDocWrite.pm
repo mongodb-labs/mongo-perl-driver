@@ -202,6 +202,8 @@ sub _send_write_command {
 
     my $res = $self->bson_codec->decode_one( $result->{docs} );
 
+    $self->_update_operation_time( $res );
+
     $self->_update_session_and_cluster_time($res);
 
     # Error checking depends on write concern

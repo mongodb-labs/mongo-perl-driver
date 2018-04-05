@@ -99,19 +99,341 @@ subtest 'update operation_time' => sub {
 
     my $bson = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
 
-    is $session->operation_time, $bson->{operation_time}, 'response has operation time and is updated in session';
+    is $session->operation_time, $bson->{operationTime}, 'response has operation time and is updated in session';
 
     $session->end_session;
 
     $session = $conn->start_session({ causalConsistency => 1 });
 
+    is $session->operation_time, undef, 'Empty operation time';
+
+    # Try inserting the same thing again (_id must be unique in a collection afaik)
     my $err = exception { $coll->insert_one({ _id => 1 }, { session => $session }) };
 
     isa_ok( $err, 'MongoDB::DatabaseError', "duplicate insert error" );
 
     my $error_bson = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
 
-    is $session->operation_time, $error_bson->{operation_time}, 'response has operation time and is updated in session';
+    is $session->operation_time, $error_bson->{operationTime}, 'response has operation time and is updated in session';
+};
+
+Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+
+subtest 'find_one then read includes operationtime' => sub {
+    # run for all read ops:
+    # * find
+    # * find_one
+    # * find_id
+    # * aggregate
+    # * count
+    # * distinct
+
+    subtest 'find' => sub {
+        my $session = find_one_and_get_session();
+        my $op_time = $session->operation_time;
+
+        $coll->find({ _id => 1 }, { session => $session })->result;
+
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+    };
+
+    subtest 'find_one' => sub {
+        my $session = find_one_and_get_session();
+        my $op_time = $session->operation_time;
+
+        $coll->find_one({ _id => 1 }, {}, { session => $session });
+
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+    };
+
+    subtest 'find_id' => sub {
+        my $session = find_one_and_get_session();
+        my $op_time = $session->operation_time;
+
+        $coll->find_id(1, {}, { session => $session });
+
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+    };
+
+
+    subtest 'aggregate' => sub {
+        my $session = find_one_and_get_session();
+        my $op_time = $session->operation_time;
+
+        $coll->aggregate([ { '$match' => { count => { '$gt' => 0 } } } ], { session => $session });
+
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+    };
+
+
+    subtest 'count' => sub {
+        my $session = find_one_and_get_session();
+        my $op_time = $session->operation_time;
+
+        $coll->count({ _id => 1 }, { session => $session });
+
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+    };
+
+
+    subtest 'distinct' => sub {
+        my $session = find_one_and_get_session();
+        my $op_time = $session->operation_time;
+
+        $coll->distinct("id_", { _id => 1 }, { session => $session });
+
+        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+    };
+};
+
+sub find_one_and_get_session {
+    my $session = $conn->start_session({ causalConsistency => 1 });
+
+    my $find = $coll->find_one({ _id => 1 }, {}, { session => $session });
+
+    return $session;
+}
+
+Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+
+subtest 'write then find_one includes operationTime' => sub {
+    # repeat for all write ops:
+    # * insert_one
+    # * insert_many
+    # * delete_one
+    # * delete_many
+    # * replace_one
+    # * update_one
+    # * update_many
+    # * find_one_and_delete
+    # * find_one_and_replace
+    # * find_one_and_update
+    # * ordered_bulk
+    # * unordered_bulk
+
+    subtest 'insert_one' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->insert_one({ _id => 100 }, { session => $session });
+
+        find_one_and_assert( $session );
+
+        $session->end_session;
+
+        $session = $conn->start_session({ causalConsistency => 1 });
+
+        my $err = exception { $coll->insert_one({ _id => 100 }, { session => $session }) };
+        isa_ok( $err, 'MongoDB::DatabaseError' );
+
+        find_one_and_assert( $session );
+    };
+
+    subtest 'insert_many' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->insert_many( [
+            { _id => 101 },
+            { _id => 102 },
+            { _id => 103 },
+            { _id => 104 },
+            { _id => 105 },
+            { _id => 106 },
+            { _id => 107 },
+            { _id => 108 },
+            { _id => 109 },
+            { _id => 110 },
+            { _id => 111 },
+          ], { session => $session });
+
+        find_one_and_assert( $session );
+
+        $session->end_session;
+
+        $session = $conn->start_session({ causalConsistency => 1 });
+
+        my $err = exception {
+            $coll->insert_many( [
+                { _id => 101 },
+                { _id => 102 },
+                { _id => 103 },
+                { _id => 104 },
+                { _id => 105 },
+                { _id => 106 },
+                { _id => 107 },
+                { _id => 108 },
+                { _id => 109 },
+                { _id => 110 },
+                { _id => 111 },
+              ], { session => $session })
+        };
+        isa_ok( $err, 'MongoDB::DatabaseError' );
+
+        find_one_and_assert( $session );
+   };
+
+    subtest 'delete_one' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->delete_one({ _id => 100 }, { session => $session });
+
+        find_one_and_assert( $session );
+        # dont think theres a way to make delete exception?
+    };
+
+    subtest 'delete_many' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->delete_many({ _id => { '$in' => [101,102] } }, { session => $session });
+
+        find_one_and_assert( $session );
+        # dont think theres a way to make delete exception?
+    };
+
+    subtest 'replace_one' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->replace_one({ _id => 103 }, { _id => 103, foo => 'qux' }, { session => $session });
+
+        find_one_and_assert( $session );
+        # cant figure way to cause error?
+    };
+
+    subtest 'update_one' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->update_one({ _id => 104 }, { '$set' => { bar => 'baz' } }, { session => $session });
+
+        find_one_and_assert( $session );
+        # cant figure way to cause error?
+    };
+
+    subtest 'update_many' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->update_many({ _id => { '$in' => [105,106] } }, { '$set' => { bar => 'baz' } }, { session => $session });
+
+        find_one_and_assert( $session );
+        # cant figure way to cause error?
+    };
+
+    subtest 'find_one_and_delete' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->find_one_and_delete({ _id => 107 }, { session => $session });
+
+        find_one_and_assert( $session );
+        # cant figure way to cause error?
+    };
+
+    subtest 'find_one_and_replace' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->find_one_and_replace({ _id => 108 }, { _id => 108, bar => 'baz' }, { session => $session });
+
+        find_one_and_assert( $session );
+        # cant figure way to cause error?
+    };
+
+    subtest 'find_one_and_update' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        $coll->find_one_and_update({ _id => 109 }, { '$set' => { foo => 'qux' } }, { session => $session });
+
+        find_one_and_assert( $session );
+        # cant figure way to cause error?
+    };
+
+    subtest 'ordered_bulk' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        my $bulk = $coll->ordered_bulk;
+        $bulk->insert_one({ _id => 120 });
+        $bulk->insert_one({ _id => 121 });
+        $bulk->execute(undef, { session => $session });
+
+        find_one_and_assert( $session );
+
+        $session->end_session;
+
+        $session = $conn->start_session({ causalConsistency => 1 });
+
+        my $err = exception {
+            my $bulk2 = $coll->ordered_bulk;
+            $bulk2->insert_one({ _id => 120 });
+            $bulk2->insert_one({ _id => 121 });
+            $bulk2->execute(undef, { session => $session });
+        };
+        isa_ok( $err, 'MongoDB::DatabaseError' );
+
+        find_one_and_assert( $session );
+    };
+
+    subtest 'unordered_bulk' => sub {
+        my $session = $conn->start_session({ causalConsistency => 1 });
+
+        my $bulk = $coll->unordered_bulk;
+        $bulk->insert_one({ _id => 123 });
+        $bulk->insert_one({ _id => 124 });
+        $bulk->execute(undef, { session => $session });
+
+        find_one_and_assert( $session );
+
+        $session->end_session;
+
+        $session = $conn->start_session({ causalConsistency => 1 });
+
+        my $err = exception {
+            my $bulk2 = $coll->unordered_bulk;
+            $bulk2->insert_one({ _id => 123 });
+            $bulk2->insert_one({ _id => 124 });
+            $bulk2->execute(undef, { session => $session });
+        };
+        isa_ok( $err, 'MongoDB::DatabaseError' );
+
+        find_one_and_assert( $session );
+    };
+};
+
+sub find_one_and_assert {
+    my $session = shift;
+    my $op_time = $session->operation_time;
+
+    ok defined $op_time, 'got operationTime in session';
+
+    $coll->find_one({ _id => 1 }, {}, { session => $session });
+
+    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+    is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+}
+
+Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+
+subtest 'turn off causalConsistency' => sub {
+    my $session = $conn->start_session({ causalConsistency => 0 });
+
+    $coll->find_one({ _id => 1 }, {}, { session => $session });
+
+    $coll->find_one({ _id => 1 }, {}, { session => $session });
+
+    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+    ok ! $command->EXISTS('readConcern'), 'no readconcern';
 };
 
 clear_testdbs;
