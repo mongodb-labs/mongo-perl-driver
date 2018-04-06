@@ -956,6 +956,34 @@ sub _build_read_concern_level {
     );
 }
 
+=attr retry_writes
+
+Whether the client should use retryable writes for supported commands. The
+default value is false, which means that no write commands will be retried.
+
+If this is set to a true value, then commands which support retryable writes
+will be retried on certain errors, such as C<not master> and C<node is
+recovering> errors.
+
+This may be set in a connection string with the C<retryWrites> option.
+
+=cut
+
+has retry_writes => (
+    is      => 'lazy',
+    isa     => Bool,
+    builder => '_build_retry_writes',
+);
+
+sub _build_retry_writes {
+    my ( $self ) = @_;
+    return $self->__uri_or_else(
+        u => 'retrywrites',
+        e => 'retry_writes',
+        d => 0,
+    );
+}
+
 #--------------------------------------------------------------------------#
 # deprecated public attributes
 #--------------------------------------------------------------------------#
@@ -1294,6 +1322,7 @@ my @deferred_options = qw(
   read_pref_mode
   read_pref_tag_sets
   replica_set_name
+  retry_writes
   server_selection_timeout_ms
   server_selection_try_once
   socket_check_interval_ms
