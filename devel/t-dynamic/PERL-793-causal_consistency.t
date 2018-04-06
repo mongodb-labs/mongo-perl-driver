@@ -69,6 +69,7 @@ plan skip_all => "Requires MongoDB 3.6"
 Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
 Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 
+# spec test 1
 subtest 'session operation_time undef on init' => sub {
     my $session = $conn->start_session;
     is $session->operation_time, undef, 'is undef';
@@ -77,6 +78,7 @@ subtest 'session operation_time undef on init' => sub {
 Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
 Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 
+# spec test 2
 subtest 'first read' => sub {
     my $session = $conn->start_session({ causalConsistency => 1 });
 
@@ -90,6 +92,7 @@ subtest 'first read' => sub {
 Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
 Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 
+# spec test 3
 subtest 'update operation_time' => sub {
     my $session = $conn->start_session({ causalConsistency => 1 });
 
@@ -120,6 +123,7 @@ subtest 'update operation_time' => sub {
 Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
 Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 
+# spec test 4
 subtest 'find_one then read includes operationtime' => sub {
     # run for all read ops:
     # * find
@@ -210,6 +214,7 @@ sub find_one_and_get_session {
 Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
 Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 
+# spec test 5
 subtest 'write then find_one includes operationTime' => sub {
     # repeat for all write ops:
     # * insert_one
@@ -424,6 +429,7 @@ sub find_one_and_assert {
 Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
 Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 
+# spec test 6
 subtest 'turn off causalConsistency' => sub {
     my $session = $conn->start_session({ causalConsistency => 0 });
 
@@ -433,7 +439,60 @@ subtest 'turn off causalConsistency' => sub {
 
     my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 
-    ok ! $command->EXISTS('readConcern'), 'no readconcern';
+    ok ! $command->EXISTS('readConcern'), 'no readconcern, so no afterClusterTime';
+};
+
+Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+
+# spec test 8
+subtest 'using default readConcern' => sub {
+    my $session = $conn->start_session({ causalConsistency => 1 });
+
+    # collection uses server ReadConcern by default
+    $coll->find_one({ _id => 1 }, {}, { session => $session });
+
+    my $op_time = $session->operation_time;
+
+    $coll->find_one({ _id => 1 }, {}, { session => $session });
+
+    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+    ok ! defined $command->FETCH('readConcern')->{level}, 'no read concern level with default value';
+};
+
+Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+
+# spec test 9
+subtest 'using custom readConcern' => sub {
+    my $session = $conn->start_session({ causalConsistency => 1 });
+
+    my $custom_coll = get_unique_collection( $testdb, 'custom_readconcern', { read_concern => { level => 'local' } } );
+    # collection uses server ReadConcern by default
+    $custom_coll->find_one({ _id => 1 }, {}, { session => $session });
+
+    my $op_time = $session->operation_time;
+
+    $custom_coll->find_one({ _id => 1 }, {}, { session => $session });
+
+    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+
+    my $read_concern = $command->FETCH('readConcern');
+
+    is $read_concern->{level}, 'local', 'read concern level with custom value';
+    is $read_concern->{afterClusterTime}, $op_time, 'read concern afterClusterTime present';
+};
+
+#spec test 10
+subtest 'unacknowledged writes' => sub {
+    my $session = $conn->start_session({ causalConsistency => 1 });
+
+    my $custom_coll = get_unique_collection( $testdb, 'unac_write', { write_concern => { w => 0 } } );
+
+    $custom_coll->update_one({ _id => 1 }, { '$set' => { 'manamana' => 'doo dooo doo doodoo' } }, { session => $session });
+
+    ok ! defined $session->operation_time, 'no operation time set from unac write';
 };
 
 clear_testdbs;
