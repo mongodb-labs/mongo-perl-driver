@@ -510,6 +510,9 @@ sub _command_args {
         push @args, '--sslCAFile', $ssl->{certs}{ca};
         push @args, '--sslCRLFile', $ssl->{certs}{crl}
             if $ssl->{certs}{crl};
+        if ( $ssl->{disabled_protocols} ) {
+            push @args, '--sslDisabledProtocols', join(",", @{$ssl->{disabled_protocols}});
+        }
         if (! $self->did_ssl_auth_setup) {
             push @args,
                 $self->server_version >= v3.0.0
