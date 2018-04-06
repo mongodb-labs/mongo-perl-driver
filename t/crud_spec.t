@@ -32,7 +32,7 @@ use MongoDBTest qw/
     get_test_db
     server_version
     server_type
-    get_feature_compat_version
+    get_features
 /;
 
 skip_unless_mongod();
@@ -41,7 +41,7 @@ my $conn           = build_client();
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
-my $feat_compat_ver = get_feature_compat_version($conn);
+my $features       = get_features($conn);
 my $coll           = $testdb->get_collection('test_collection');
 
 
@@ -57,8 +57,8 @@ for my $dir ( map { path("t/data/CRUD/$_") } qw/read write/ ) {
         my $name = $path->relative($dir)->basename(".json");
 
         subtest $name => sub {
-            if ( $name =~ 'arrayFilter' && $feat_compat_ver < 3.6 ) {
-                plan skip_all => "arrayFilters requires featureCompatibilityVersion 3.6 - got $feat_compat_ver";
+            if ( $name =~ 'arrayFilter' && ! $features->supports_arrayFilters ) {
+                plan skip_all => "arrayFilters not supported on this mongod";
             }
             if ( exists $plan->{minServerVersion} ) {
                 my $min_version = $plan->{minServerVersion};

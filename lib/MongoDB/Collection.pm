@@ -372,7 +372,7 @@ sub insert_one {
     MongoDB::UsageError->throw("document argument must be a reference")
       unless ref( $_[1] );
 
-    return $_[0]->client->send_write_op(
+    return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_InsertOne->_new(
             session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
@@ -422,6 +422,7 @@ sub insert_many {
     MongoDB::UsageError->throw("documents argument must be an array reference")
       unless ref( $_[1] ) eq 'ARRAY';
 
+    # internally ends up performing a retryable write if possible, see OP::_BulkWrite
     my $res = $_[0]->client->send_write_op(
         MongoDB::Op::_BulkWrite->_new(
             # default
@@ -431,6 +432,8 @@ sub insert_many {
             ( defined $_[2] ? ( %{ $_[2] } ) : () ),
             # un-overridable
             queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
+            # insert_many is specifically retryable (PERL-792)
+            _retryable => 1,
             %{ $_[0]->_op_args },
         )
     );
@@ -475,7 +478,7 @@ sub delete_one {
     MongoDB::UsageError->throw("filter argument must be a reference")
       unless ref( $_[1] );
 
-    return $_[0]->client->send_write_op(
+    return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_Delete->_new(
             session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
@@ -557,7 +560,7 @@ sub replace_one {
     MongoDB::UsageError->throw("filter and replace arguments must be references")
       unless ref( $_[1] ) && ref( $_[2] );
 
-    return $_[0]->client->send_write_op(
+    return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_Update->_new(
             session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
@@ -608,7 +611,7 @@ sub update_one {
     MongoDB::UsageError->throw("filter and update arguments must be references")
       unless ref( $_[1] ) && ref( $_[2] );
 
-    return $_[0]->client->send_write_op(
+    return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_Update->_new(
             session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
@@ -930,7 +933,9 @@ sub find_one_and_delete {
         session       => $session,
     );
 
-    return $self->client->send_write_op($op);
+    return $self->write_concern->is_acknowledged
+      ? $self->client->send_retryable_write_op( $op )
+      : $self->client->send_write_op( $op );
 }
 
 =method find_one_and_replace
@@ -1637,6 +1642,7 @@ sub bulk_write {
             }
             elsif ( $method eq 'delete_many' ) {
                 $view->delete_many;
+                $bulk->_retryable( 0 );
                 next;
             }
 
@@ -1652,6 +1658,7 @@ sub bulk_write {
             }
             elsif ( $method eq 'update_many' ) {
                 $view->update_many($update_doc);
+                $bulk->_retryable( 0 );
             }
             else {
                 MongoDB::UsageError->throw("unknown bulk operation '$method'");
@@ -1723,7 +1730,9 @@ sub _find_one_and_update_or_replace {
         %{ $self->_op_args },
     );
 
-    return $self->client->send_write_op($op);
+    return $self->write_concern->is_acknowledged
+      ? $self->client->send_retryable_write_op( $op )
+      : $self->client->send_write_op( $op );
 }
 
 # Extracts a session from a provided hashref, or returns an implicit session

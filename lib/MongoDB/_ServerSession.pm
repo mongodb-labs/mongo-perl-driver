@@ -24,6 +24,7 @@ use MongoDB::Error;
 
 use Moo;
 use UUID::URandom;
+use Math::BigInt;
 use MongoDB::BSON::Binary;
 use MongoDB::_Types qw(
     Document
@@ -35,7 +36,7 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
-=method session_id
+=attr session_id
 
     $server_session->session_id;
 
@@ -61,9 +62,9 @@ sub _build_session_id {
     return { id => $uuid };
 }
 
-=method last_use
+=attr last_use
 
-    $sever_session->last_use;
+    $server_session->last_use;
 
 Returns the unix time that this server session was last used. Used for checking
 expiry of a server session. If undefined, then the session has (probably) not
@@ -75,6 +76,22 @@ has last_use => (
     is => 'rwp',
     init_arg => undef,
     isa => Maybe[Int],
+);
+
+=attr transaction_id
+
+    $server_session->transaction_id
+
+Returns the current transaction id for this server session. This is a ratcheted
+incrementing ID number, which when combined with the session id allows for
+retrying transactions in the correct order.
+
+=cut
+
+has transaction_id => (
+    is => 'rwp',
+    init_arg => undef,
+    default => sub { Math::BigInt->new('0') },
 );
 
 =method update_last_use
@@ -102,6 +119,11 @@ sub _is_expiring {
     # Undefined last_use means its never actually been used on the server
     return 1 if defined $self->last_use && $self->last_use < $timeout;
     return;
+}
+
+sub _increment_transaction_id {
+    my $self = shift;
+    $self->transaction_id->binc();
 }
 
 1;

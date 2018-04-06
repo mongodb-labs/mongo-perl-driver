@@ -32,7 +32,6 @@ use MongoDBTest qw/
     get_test_db
     server_version
     server_type
-    get_feature_compat_version
 /;
 
 skip_unless_mongod();
@@ -53,7 +52,6 @@ my $conn           = build_client( monitoring_callback => \&event_cb );
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
-my $feat_compat_ver = get_feature_compat_version($conn);
 my $coll           = $testdb->get_collection('test_collection');
 
 # defines which argument hash fields become positional arguments

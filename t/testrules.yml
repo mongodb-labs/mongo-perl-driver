@@ -5,4 +5,6 @@ seq:
     - seq: t/using_profiler.t
     - seq: t/changestreams.t
     - seq: t/examples/changestream.t
+    - seq: t/retryable-writes-spec.t
+    - seq: t/retryable-writes-split-batch.t
     - par: **

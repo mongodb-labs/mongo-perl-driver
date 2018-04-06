@@ -109,6 +109,7 @@ sub _build_valid_options {
             readPreference
             readPreferenceTags
             replicaSet
+            retryWrites
             serverSelectionTimeoutMS
             serverSelectionTryOnce
             socketCheckIntervalMS

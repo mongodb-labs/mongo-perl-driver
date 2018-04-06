@@ -67,8 +67,8 @@ sub execute {
             "MongoDB host '" . $link->address . "' doesn't support collation" );
     }
 
-    my ( undef, $command ) = $self->_maybe_bypass(
-        $link,
+    my $command = $self->_maybe_bypass(
+        $link->supports_document_validation,
         [
             findAndModify => $self->coll_name,
             query         => $self->filter,
@@ -88,6 +88,7 @@ sub execute {
         query_flags         => {},
         bson_codec          => $self->bson_codec,
         session             => $self->session,
+        retryable_write     => $self->retryable_write,
         monitoring_callback => $self->monitoring_callback,
     );
 

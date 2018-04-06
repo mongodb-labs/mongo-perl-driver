@@ -33,6 +33,7 @@ use MongoDB::_Types qw(
 use Types::Standard qw(
     CodeRef
     Str
+    Bool
     Maybe
 );
 
@@ -62,6 +63,13 @@ has session => (
     is => 'ro',
     required => 0,
     isa => Maybe[ClientSession],
+);
+
+# set during retryable writes on supported operations
+has retryable_write => (
+    is      => 'rw',
+    isa     => Bool,
+    default => 0,
 );
 
 1;

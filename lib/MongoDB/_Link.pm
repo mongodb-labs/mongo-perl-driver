@@ -210,6 +210,12 @@ has supports_db_aggregation => (
     isa => Bool,
 );
 
+has supports_retryWrites => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
 my @connection_state_fields = qw(
     fh connected rcvbuf last_used fdset is_ssl
 );
@@ -338,6 +344,12 @@ sub set_metadata {
         $self->_set_supports_arrayFilters(1);
         $self->_set_supports_clusterTime(1);
         $self->_set_supports_db_aggregation(1);
+        $self->_set_supports_retryWrites(
+            defined( $server->logical_session_timeout_minutes )
+              && ( $server->type ne 'Standalone' )
+            ? 1
+            : 0
+        );
     }
 
     return;

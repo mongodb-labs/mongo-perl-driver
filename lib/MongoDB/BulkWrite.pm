@@ -121,6 +121,12 @@ sub _build__client {
     return $self->_database->_client;
 }
 
+has _retryable => (
+    is => 'rw',
+    isa => Bool,
+    default => 1,
+);
+
 with $_ for qw(
   MongoDB::Role::_DeprecationWarner
 );
@@ -268,6 +274,7 @@ sub execute {
     my $session = $self->collection->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_BulkWrite->_new(
+        client                   => $self->_client,
         db_name                  => $self->_database->name,
         coll_name                => $self->collection->name,
         full_name                => $self->collection->full_name,
@@ -278,8 +285,10 @@ sub execute {
         write_concern            => $write_concern,
         session                  => $session,
         monitoring_callback      => $self->_client->monitoring_callback,
+        _retryable               => $self->_retryable,
     );
 
+    # Op::_BulkWrite internally does retryable writes
     return $self->_client->send_write_op( $op );
 }
 

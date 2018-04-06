@@ -79,7 +79,7 @@ sub execute {
 
     my $last_idx = $#$documents;
     for ( my $i = 0; $i <= $last_idx; $i++ ) {
-        push @insert_docs, $self->_pre_encode_insert( $link, $documents->[$i], $invalid_chars );
+        push @insert_docs, $self->_pre_encode_insert( $link->max_bson_object_size, $documents->[$i], $invalid_chars );
         push @ids, $insert_docs[-1]{metadata}{_id};
     }
 

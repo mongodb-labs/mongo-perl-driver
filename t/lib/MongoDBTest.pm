@@ -38,7 +38,8 @@ our @EXPORT_OK = qw(
     skip_unless_mongod
     uri_escape
     get_unique_collection
-    get_feature_compat_version
+    get_features
+    check_min_server_version
     uuid_to_string
 );
 
@@ -155,6 +156,18 @@ sub server_version {
     return version->parse("v$version_str");
 }
 
+sub check_min_server_version {
+    my ( $conn, $min_version ) = @_;
+    $min_version = "v$min_version" unless $min_version =~ /^v/;
+    $min_version .= ".0" unless $min_version =~ /^v\d+\.\d+.\d+$/;
+    $min_version = version->new($min_version);
+    my $server_version = server_version( $conn );
+    if ( $min_version > $server_version ) {
+        return 1;
+    }
+    return 0;
+}
+
 sub server_type {
 
     my $conn = shift;
@@ -177,19 +190,13 @@ sub server_type {
     return $server_type;
 }
 
-sub get_feature_compat_version {
+sub get_features {
     my $conn = shift;
-
-    my $feature_comp = eval {
-        $conn->send_admin_command(
-            Tie::IxHash->new( getParameter => 1, featureCompatibilityVersion => 1 )
-        );
-    };
-    return 0 if $@;
-
-    my $ver = $feature_comp->output->{featureCompatibilityVersion};
-    $ver = $ver->{version} if ref($ver) eq 'HASH';
-    return $ver || 0;
+    my $topo = $conn->_topology;
+    $topo->scan_all_servers;
+    my $link;
+    eval { $link = $topo->get_writable_link };
+    return $link // MongoDB::_Link->new( address => "0:0" );
 }
 
 # URI escaping adapted from HTTP::Tiny
