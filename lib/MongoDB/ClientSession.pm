@@ -64,7 +64,14 @@ has cluster_time => (
 
 =attr options
 
-Options provided for this particular session.
+Options provided for this particular session. Available options include:
+
+=for :list 
+* C<causalConsistency> - If true, will enable causalConsistency for
+  this session. For more information, see L<MongoDB documentation on Causal
+  Consistency|https://docs.mongodb.com/manual/core/read-isolation-consistency-recency/#causal-consistency>.
+  Defaults to true.
+
 
 =cut
 
