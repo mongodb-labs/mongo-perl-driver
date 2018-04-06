@@ -70,6 +70,7 @@ Options provided for this particular session. Available options include:
 * C<causalConsistency> - If true, will enable causalConsistency for
   this session. For more information, see L<MongoDB documentation on Causal
   Consistency|https://docs.mongodb.com/manual/core/read-isolation-consistency-recency/#causal-consistency>.
+  Note that causalConsistency does not apply for unacknowledged writes.
   Defaults to true.
 
 
