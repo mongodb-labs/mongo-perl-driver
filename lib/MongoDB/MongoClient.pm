@@ -967,6 +967,33 @@ recovering> errors.
 
 This may be set in a connection string with the C<retryWrites> option.
 
+Note that this is only supported on MongoDB > 3.6 in Replica Set or Shard
+Clusters, and will be ignored on other deployments.
+
+Unacknowledged write operations also do not support retryable writes, even when
+retry_writes has been enabled.
+
+The supported single statement write operations are currently as follows:
+
+=for :list
+* C<insert_one>
+* C<update_one>
+* C<replace_one>
+* C<delete_one>
+* C<find_one_and_delete>
+* C<find_one_and_replace>
+* C<find_one_and_update>
+
+The supported multi statement write operations are as follows:
+
+=for :list
+* C<insert_many>
+* C<bulk_write>
+
+The multi statment operations may be ether ordered or unordered. Note that for
+C<bulk_write> operations, the request may not include update_many or
+delete_many operations.
+
 =cut
 
 has retry_writes => (
