@@ -77,6 +77,23 @@ has last_use => (
     isa => Maybe[Int],
 );
 
+=attr transaction_id
+
+    $server_session->transaction_id
+
+Returns the current transaction id for this server session. This is a ratcheted
+incrementing ID number, which when combined with the session id allows for
+retrying transactions in the correct order.
+
+=cut
+
+has transaction_id => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Int,
+    default => sub { 0 },
+);
+
 =method update_last_use
 
     $server_session->update_last_use;
@@ -102,6 +119,11 @@ sub _is_expiring {
     # Undefined last_use means its never actually been used on the server
     return 1 if defined $self->last_use && $self->last_use < $timeout;
     return;
+}
+
+sub _increment_transaction_id {
+    my $self = shift;
+    $self->_set_transaction_id( $self->transaction_id + 1 );
 }
 
 1;
