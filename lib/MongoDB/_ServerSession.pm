@@ -35,7 +35,7 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
-=method session_id
+=attr session_id
 
     $server_session->session_id;
 
@@ -61,9 +61,9 @@ sub _build_session_id {
     return { id => $uuid };
 }
 
-=method last_use
+=attr last_use
 
-    $sever_session->last_use;
+    $server_session->last_use;
 
 Returns the unix time that this server session was last used. Used for checking
 expiry of a server session. If undefined, then the session has (probably) not
