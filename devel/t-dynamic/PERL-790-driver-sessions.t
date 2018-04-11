@@ -420,13 +420,6 @@ sub test_collection_session_exceptions {
         sprintf( $message_string, 'distinct' );
 
     like
-        exception { $coll->parallel_scan(
-                        10,
-                        { session => $session } ) },
-        $error_regex,
-        sprintf( $message_string, 'parallel_scan' );
-
-    like
         exception { $coll->rename(
                         "another_collection_name",
                         { session => $session } ) },

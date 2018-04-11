@@ -1352,8 +1352,6 @@ A hash reference of options may be provided. Valid keys include:
 =for :list
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 3.4.)
-* C<session> - the session to use for these operations. If not supplied, will
-  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
 
@@ -1366,14 +1364,12 @@ sub parallel_scan {
     }
     $options = ref $options eq 'HASH' ? $options : { };
 
-    my $session = $self->_get_session_from_hashref( $options );
-
     # TODO Implicit sessions expire when???
     my $op = MongoDB::Op::_ParallelScan->_new(
         %{ $self->_op_args },
         num_cursors     => $num_cursors,
         options         => $options,
-        session         => $session,
+        session         => undef, # SERVER-33998 not fully supported
     );
 
     my $result = $self->client->send_read_op( $op );
