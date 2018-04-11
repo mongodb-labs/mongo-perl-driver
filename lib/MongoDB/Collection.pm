@@ -1746,7 +1746,7 @@ sub _get_session_from_hashref {
         MongoDB::UsageError->throw( "Cannot use session from another client" )
             if ( $session->client->_id ne $self->client->_id );
         MongoDB::UsageError->throw( "Cannot use session which has ended" )
-            if $session->_has_ended;
+            if ! defined $session->session_id;
     } else {
         $session = $self->client->_maybe_get_implicit_session;
     }

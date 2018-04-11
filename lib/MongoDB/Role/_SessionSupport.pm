@@ -42,7 +42,7 @@ sub _apply_session_and_cluster_time {
     $$query_ref = to_IxHash( $$query_ref );
     ($$query_ref)->Push( 'lsid' => $self->session->session_id );
 
-    $self->session->server_session->update_last_use;
+    $self->session->_server_session->update_last_use;
 
     my $cluster_time = $self->session->get_latest_cluster_time;
 
@@ -68,8 +68,6 @@ sub _update_session_and_cluster_time {
 
     # No point continuing as theres nothing to do even if clusterTime is returned
     return unless defined $self->session;
-
-    $self->session->end_session if $self->session->_should_end_implicit;
 
     my $cluster_time;
     if ( $response->$_isa( 'MongoDB::CommandResult' ) ) {

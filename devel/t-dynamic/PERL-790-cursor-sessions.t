@@ -81,7 +81,7 @@ subtest 'Shared session in explicit cursor' => sub {
     # ::Collection.
     my $cursor = $coll->find({ wanted => 1 }, { batchSize => 100, session => $session })->result;
 
-    my $lsid = uuid_to_string( $session->server_session->session_id->{id}->data );
+    my $lsid = uuid_to_string( $session->_server_session->session_id->{id}->data );
 
     my $cursor_command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 
@@ -140,11 +140,14 @@ subtest 'Shared session in implicit cursor' => sub {
         }
     };
 
+    # implicit session goes out of scope when cursor does
+    undef $cursor;
+
     my $retired_session_id = defined $conn->_server_session_pool->_server_session_pool->[0]
         ? uuid_to_string( $conn->_server_session_pool->_server_session_pool->[0]->session_id->{id}->data )
         : '';
 
-    is $retired_session_id, $lsid, "Session returned to pool at end of cursor";
+    is $retired_session_id, $lsid, "Session returned to pool at end of cursor lifetime";
 };
 
 clear_testdbs;

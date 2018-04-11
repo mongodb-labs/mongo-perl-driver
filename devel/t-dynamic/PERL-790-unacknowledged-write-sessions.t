@@ -80,7 +80,7 @@ subtest 'Session for ack writes' => sub {
     ok $command->EXISTS('lsid'), 'Session found';
 
     is uuid_to_string( $command->FETCH('lsid')->{id}->data ),
-    uuid_to_string( $session->server_session->session_id->{id}->data ),
+    uuid_to_string( $session->_server_session->session_id->{id}->data ),
     "Session matches";
 
     my $result2 = $coll->insert_one( { _id => 2 } );

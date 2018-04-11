@@ -78,8 +78,8 @@ subtest 'LIFO Pool' => sub {
     $session_b->end_session;
 
     # Internal only check, not part of spec
-    is $session_a->server_session, undef, 'Session A has been returned';
-    is $session_b->server_session, undef, 'Session B has been returned';
+    is $session_a->_server_session, undef, 'Session A has been returned';
+    is $session_b->_server_session, undef, 'Session B has been returned';
 
     my $session_c = $conn->start_session;
     ok defined $session_c->session_id->{id}, 'Session C ID defined';

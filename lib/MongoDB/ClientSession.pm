@@ -36,8 +36,8 @@ use namespace::clean -except => 'meta';
 
 =attr client
 
-The client this session was created using. The server session will be returned
-to the pool of this client when this client session is closed.
+The client this session was created using.  Sessions may only be used
+with the client that created them.
 
 =cut
 
@@ -78,62 +78,24 @@ has options => (
     },
 );
 
-=attr server_session
-
-The server session containing the unique id for this session. See
-L<MongoDB::ServerSession> for more information.
-
-=cut
-
-has server_session => (
+has _server_session => (
     is => 'ro',
     isa => InstanceOf['MongoDB::_ServerSession'],
+    init_arg => 'server_session',
     required => 1,
-    clearer => '_clear_server_session',
+    clearer => '__clear_server_session',
 );
-
-#--------------------------------------------------------------------------#
-# private attributes for internal use
-#--------------------------------------------------------------------------#
-
-has _is_explicit => (
-    is => 'ro',
-    isa => Bool,
-    default => 0,
-);
-
-has _in_cursor => (
-    is => 'rw',
-    isa => Bool,
-    default => 0,
-);
-
-has _has_ended => (
-    is => 'rwp',
-    isa => Bool,
-    default => 0,
-);
-
-# Check if this should be ended as an implicit session. Returns truthy if this
-# session should be ended as an implicit session.
-sub _should_end_implicit {
-    my ( $self ) = @_;
-
-    return if $self->_in_cursor;
-    return if $self->_is_explicit;
-    return 1;
-}
 
 =method session_id
 
-The session id for this particular session. See
-L<MongoDB::ServerSession/session_id> for more information.
+The session id for this particular session.  This should be considered
+an opaque value.  If C<end_session> has been called, this returns C<undef>.
 
 =cut
 
 sub session_id {
-    my ( $self ) = @_;
-    return $self->server_session->session_id;
+    my ($self) = @_;
+    return defined $self->_server_session ? $self->_server_session->session_id : undef;
 }
 
 =method get_latest_cluster_time
@@ -202,18 +164,17 @@ sub advance_cluster_time {
 
     $session->end_session;
 
-Close this particular session and return the Server Session back to the
-client's session pool. Has no effect after calling for the first time.
+Close this particular session and release the session ID for reuse or
+recycling.  Has no effect after calling for the first time.
 
 =cut
 
 sub end_session {
     my ( $self ) = @_;
 
-    if ( defined $self->server_session ) {
-        $self->client->_server_session_pool->retire_server_session( $self->server_session );
-        $self->_clear_server_session;
-        $self->_set__has_ended( 1 );
+    if ( defined $self->_server_session ) {
+        $self->client->_server_session_pool->retire_server_session( $self->_server_session );
+        $self->__clear_server_session;
     }
 }
 

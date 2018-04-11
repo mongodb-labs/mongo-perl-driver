@@ -79,7 +79,7 @@ subtest 'endSession closes sessions on server' => sub {
     # pool
     for ( 0 .. $session_count - 1 ) {
         my $session = $conn->start_session;
-        $session_ids{ uuid_to_string( $session->server_session->session_id->{id}->data ) } = 1;
+        $session_ids{ uuid_to_string( $session->_server_session->session_id->{id}->data ) } = 1;
         push @sessions, $session;
     }
 
@@ -122,7 +122,7 @@ subtest 'expiry of old sessions on retire' => sub {
 
     for ( 0 .. $session_count - 1 ) {
         my $session = $conn->start_session;
-        $session_ids{ uuid_to_string( $session->server_session->session_id->{id}->data ) } = 1;
+        $session_ids{ uuid_to_string( $session->_server_session->session_id->{id}->data ) } = 1;
         push @sessions, $session;
     }
 
@@ -130,7 +130,7 @@ subtest 'expiry of old sessions on retire' => sub {
 
     for my $i ( 0 .. $session_count - 1 ) {
         # force last used to actually be set
-        $sessions[$i]->server_session->update_last_use;
+        $sessions[$i]->_server_session->update_last_use;
         $sessions[$i]->end_session;
     }
 
