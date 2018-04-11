@@ -266,18 +266,6 @@ sub _parse_srv_uri {
         $result{db_name},  $result{options}
     ) = ( $1, $2, $3, $4, $5 );
 
-    if ( defined $result{username} ) {
-        MongoDB::Error->throw("URI '$self' cannot have a username if using an SRV connection string");
-    }
-
-    if ( defined $result{password} ) {
-        MongoDB::Error->throw("URI '$self' cannot have a password if using an SRV connection string");
-    }
-
-    if ( defined $result{db_name} && length $result{db_name} ) {
-        MongoDB::Error->throw("URI '$self' cannot have a database name if using an SRV connection string");
-    }
-
     $result{hostids} = lc _unescape_all( $result{hostids} );
 
     if ( !defined $result{hostids} || !length $result{hostids} ) {
@@ -310,9 +298,17 @@ sub _parse_srv_uri {
       $options->{ssl} = 'false';
     }
 
+    my $auth = "";
+    if ( defined $result{username} || defined $result{password} )  {
+        $auth = join(":", map { $_ // "" } $result{username}, $result{password});
+        $auth .= "@";
+    }
+
     my $new_uri = sprintf(
-        'mongodb://%s/%s%s',
+        'mongodb://%s%s/%s%s%s',
+        $auth,
         join( ',', map { sprintf( '%s:%s', $_->{target}, $_->{port} ) } @$hosts ),
+        ($result{db_name} // ""),
         scalar( keys %$options ) ? '?' : '',
         join( '&', map { sprintf( '%s=%s', $_, __uri_escape( $options->{$_} ) ) } keys %$options ),
     );
