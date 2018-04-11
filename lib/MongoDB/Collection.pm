@@ -1206,6 +1206,9 @@ sub aggregate {
         options      => $options,
         read_concern => $self->read_concern,
         has_out      => $last_op eq '$out',
+        exists($options->{maxAwaitTimeMS})
+            ? (maxAwaitTimeMS => delete $options->{maxAwaitTimeMS})
+            : (),
         session      => $session,
         %{ $self->_op_args },
     );
