@@ -176,16 +176,16 @@ buildvariants:
     - build-unix-perls
     - validate-unix-perls
     - push-unix-perls
-- name: suse12-zseries
-  display_name: SUSE 12 Z Series
+- name: rhel67-zseries
+  display_name: RedHat 6.7 Z Series
   run_on:
-    - suse12-zseries-build
+    - rhel67-zseries-test
   tasks:
     - build-unix-perls
     - validate-unix-perls
     - push-unix-perls
 - name: rhel62
-  display_name: RedHat 6.2
+  display_name: RedHat 6.2 x86_64
   run_on:
     - rhel62-build
   tasks:
