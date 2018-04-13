@@ -6,6 +6,7 @@ ignore:
   - '*'
   - '!/.evergreen/dependencies/*'
   - '!/.evergreen/lib/*'
+  - '!/Makefile.PL'
 
 exec_timeout_secs: 3600
 

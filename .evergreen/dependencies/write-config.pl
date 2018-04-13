@@ -51,7 +51,7 @@ sub main {
 
     print assemble_yaml(
         # Ignore everything except changes to the dependencies files
-        ignore( "*", "!/.evergreen/dependencies/*", "!/.evergreen/lib/*" ),
+        ignore( "*", "!/.evergreen/dependencies/*", "!/.evergreen/lib/*", "!/Makefile.PL" ),
         timeout(3600),
         buildvariants( \@tasks ),
     );
