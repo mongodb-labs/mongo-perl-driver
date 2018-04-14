@@ -74,19 +74,13 @@ sub execute {
 sub _command_get_more {
     my ( $self, $link ) = @_;
 
-    my $cmd = [
-        getMore    => $self->cursor_id,
-        collection => $self->coll_name,
-        ( $self->batch_size > 0 ? ( batchSize => $self->batch_size )  : () ),
-        ( $self->max_time_ms    ? ( maxTimeMS => $self->max_time_ms ) : () ),
-    ];
-
     my $op = MongoDB::Op::_Command->_new(
-        db_name     => $self->db_name,
-        query       => $cmd,
-        query_flags => {},
-        bson_codec  => $self->bson_codec,
-        session     => $self->session,
+        db_name             => $self->db_name,
+        query               => $self->as_command,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        session             => $self->session,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     my $c = $op->execute($link)->output->{cursor};
@@ -99,6 +93,16 @@ sub _command_get_more {
         number_returned => scalar @$batch,
         docs            => $batch,
     };
+}
+
+sub as_command {
+    my ($self) = @_;
+    return [
+        getMore    => $self->cursor_id,
+        collection => $self->coll_name,
+        ( $self->batch_size > 0 ? ( batchSize => $self->batch_size )  : () ),
+        ( $self->max_time_ms    ? ( maxTimeMS => $self->max_time_ms ) : () ),
+    ];
 }
 
 sub _legacy_get_more {

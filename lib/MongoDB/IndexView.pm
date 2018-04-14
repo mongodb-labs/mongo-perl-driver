@@ -146,11 +146,12 @@ sub list {
     my ($self) = @_;
 
     my $op = MongoDB::Op::_ListIndexes->_new(
-        client     => $self->_client,
-        db_name    => $self->_db_name,
-        full_name  => '', # unused
-        coll_name  => $self->_coll_name,
-        bson_codec => $self->_bson_codec,
+        client              => $self->_client,
+        db_name             => $self->_db_name,
+        full_name           => '',                                # unused
+        coll_name           => $self->_coll_name,
+        bson_codec          => $self->_bson_codec,
+        monitoring_callback => $self->_client->monitoring_callback,
     );
 
     return $self->_client->send_primary_op($op);
@@ -254,12 +255,13 @@ sub create_many {
 
     my $indexes = [ map __flatten_index_model($_), @models ];
     my $op = MongoDB::Op::_CreateIndexes->_new(
-        db_name       => $self->_db_name,
-        coll_name     => $self->_coll_name,
-        full_name     => '', # unused
-        bson_codec    => $self->_bson_codec,
-        indexes       => $indexes,
-        write_concern => $self->_write_concern,
+        db_name             => $self->_db_name,
+        coll_name           => $self->_coll_name,
+        full_name           => '',                                # unused
+        bson_codec          => $self->_bson_codec,
+        indexes             => $indexes,
+        write_concern       => $self->_write_concern,
+        monitoring_callback => $self->_client->monitoring_callback,
     );
 
     # succeed or die; we don't care about response document
@@ -293,12 +295,13 @@ sub drop_one {
     }
 
     my $op = MongoDB::Op::_DropIndexes->_new(
-        db_name       => $self->_db_name,
-        coll_name     => $self->_coll_name,
-        full_name     => '',                   # unused
-        bson_codec    => $self->_bson_codec,
-        write_concern => $self->_write_concern,
-        index_name    => $name,
+        db_name             => $self->_db_name,
+        coll_name           => $self->_coll_name,
+        full_name           => '',                                 # unused
+        bson_codec          => $self->_bson_codec,
+        write_concern       => $self->_write_concern,
+        index_name          => $name,
+        monitoring_callback => $self->_client->monitoring_callback,
     );
 
     $self->_client->send_write_op($op)->output;
@@ -320,12 +323,13 @@ sub drop_all {
     my ($self) = @_;
 
     my $op = MongoDB::Op::_DropIndexes->_new(
-        db_name       => $self->_db_name,
-        coll_name     => $self->_coll_name,
-        full_name     => '',                   # unused
-        bson_codec    => $self->_bson_codec,
-        write_concern => $self->_write_concern,
-        index_name    => '*',
+        db_name             => $self->_db_name,
+        coll_name           => $self->_coll_name,
+        full_name           => '',                                 # unused
+        bson_codec          => $self->_bson_codec,
+        write_concern       => $self->_write_concern,
+        index_name          => '*',
+        monitoring_callback => $self->_client->monitoring_callback,
     );
 
     $self->_client->send_write_op($op)->output;

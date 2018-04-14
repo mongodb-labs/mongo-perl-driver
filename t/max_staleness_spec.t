@@ -43,18 +43,22 @@ sub create_mock_topology {
     $type ||= 'Single';
 
     return MongoDB::_Topology->new(
-        uri              => MongoDB::_URI->new( uri              => $uri ),
-        type             => $type,
+        uri                => MongoDB::_URI->new( uri => $uri ),
+        type               => $type,
         min_server_version => "0.0.0",
-        max_wire_version => 3,
-        min_wire_version => 0,
-        last_scan_time   => time + 60,
-        credential       => MongoDB::_Credential->new( mechanism => 'NONE' ),
+        max_wire_version   => 3,
+        min_wire_version   => 0,
+        last_scan_time     => time + 60,
+        credential         => MongoDB::_Credential->new(
+            mechanism           => 'NONE',
+            monitoring_callback => undef
+        ),
         (
             defined $heartbeat_frequency_ms
             ? ( heartbeat_frequency_sec => $heartbeat_frequency_ms / 1000 )
             : ()
         ),
+        monitoring_callback => undef,
     );
 }
 

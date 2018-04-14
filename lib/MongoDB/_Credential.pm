@@ -38,12 +38,22 @@ use Tie::IxHash;
 use Try::Tiny;
 use Types::Standard qw(
   Bool
+  CodeRef
   HashRef
   InstanceOf
+  Maybe
   Str
 );
 
 use namespace::clean -except => 'meta';
+
+# Required so we're sure it's passed explicitly, even if undef, so we don't
+# miss wiring it up.
+has monitoring_callback => (
+    is => 'ro',
+    required => 1,
+    isa => Maybe[CodeRef],
+);
 
 has mechanism => (
     is       => 'ro',
@@ -466,10 +476,11 @@ sub _send_command {
     my ( $self, $link, $bson_codec, $db_name, $command ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name     => $db_name,
-        query       => $command,
-        query_flags => {},
-        bson_codec  => $bson_codec,
+        db_name             => $db_name,
+        query               => $command,
+        query_flags         => {},
+        bson_codec          => $bson_codec,
+        monitoring_callback => $self->monitoring_callback,
     );
     my $res = $op->execute($link);
     return $res;

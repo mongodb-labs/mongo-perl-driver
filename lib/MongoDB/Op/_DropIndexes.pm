@@ -56,8 +56,9 @@ sub execute {
             index       => $self->index_name,
             ( $link->accepts_wire_version(5) ? ( @{ $self->write_concern->as_args } ) : () ),
         ],
-        query_flags => {},
-        bson_codec  => $self->bson_codec,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     my $res;
@@ -65,6 +66,8 @@ sub execute {
         $res = $op->execute($link);
         $res->assert_no_write_concern_error;
     };
+    # XXX This logic will be a problem for command monitoring - may need to
+    # move into Op::_Command as an 'error_filter' callback or something.
     if ( my $err = $@ ) {
         if ( $err->$_isa("MongoDB::DatabaseError") ) {
             # 2.6 and 3.0 don't have the code, so we fallback to string

@@ -145,12 +145,13 @@ sub execute {
     );
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name         => $self->db_name,
-        query           => Tie::IxHash->new(@command),
-        query_flags     => {},
-        bson_codec      => $self->bson_codec,
+        db_name     => $self->db_name,
+        query       => Tie::IxHash->new(@command),
+        query_flags => {},
+        bson_codec  => $self->bson_codec,
         ( $has_out ? () : ( read_preference => $self->read_preference ) ),
-        session         => $self->session,
+        session             => $self->session,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     my $res = $op->execute( $link, $topology );

@@ -1,0 +1,108 @@
+#
+#  Copyright 2018-present MongoDB, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+
+
+# PODNAME: MongoDB::Monitoring
+# ABSTRACT: Internal event monitoring API for instrumentation
+
+=pod
+
+=encoding UTF-8
+
+=head1 DESCRIPTION
+
+The L<MongoDB::MongoClient> takes an optional C<monitoring_callback>
+attribute, which can be used to monitor events that occur during the
+operation of the driver.
+
+The API is very simple: given a code reference, a hashref for each event
+is passed to the code reference.  Here is a simple example that just
+accumulates events in an array:
+
+    our @events;
+    my $cb = sub { push @events, $_[0] };
+
+    MongoDB->connect( $uri, { monitoring_callback => $cb } );
+
+=head1 EVENT TYPES
+
+Every event is a hash reference, with a C<type> field indicating the type,
+e.g. C<command_started>.  Each type is described below.
+
+=head2 command_started
+
+This event is sent just before a command is put one the wire.  It will be
+followed by either a C<command_succeeded> or C<command_failed> event.
+
+Fields:
+
+=for :list
+* type: "command_started"
+* databaseName: the name of the database to which the command applies
+* commandName: the name of the command being excuted; for legacy operations
+  that don't use commands, the driver will convert them to appear as if
+  they are in command form.
+* command: a hash reference representing the full command to be sent
+* requestId: the request identifier sent to the server
+* connectionId: address and port of the destination server
+
+=head2 command_succeeded
+
+This event is sent just after a command reply is received, but only if the
+database reply document contains a non-false C<ok> field.  NOTE: write
+errors will have C<ok:1> even though they have write errors; for writes,
+success indicates that the write attempt was valid, not that the write
+succeeded.
+
+Fields:
+
+=for :list
+* type: "command_succeeded"
+* commandName: the name of the command being excuted
+* durationSecs: the elapsed time in seconds since the C<command_started>
+  event.
+* reply: a hash reference representing the full database reply
+* requestId: the request identifier sent to the server
+* connectionId: address and port of the destination server
+
+=head2 command_failed
+
+This event is sent just after a command reply is received, but only if the
+database reply document contains a false C<ok> field or if an exception
+occurred during send or receive operations.
+
+Fields:
+
+=for :list
+* type: "command_failed"
+* commandName: the name of the command being excuted
+* durationSecs: the elapsed time in seconds since the C<command_started>
+  event.
+* failure: a string with a error message about the failure
+* eval_error: if an exception occurs, this contains the value of C<$@>
+  when the exception was caught
+* reply: a hash reference representing the full database reply or an empty
+  hashref if the failure is due to an exception
+* requestId: the request identifier sent to the server
+* connectionId: address and port of the destination server
+
+=head1 REDACTION
+
+TODO: describe redaction rules
+
+=cut
+
+# vim: set ts=4 sts=4 sw=4 et tw=75:

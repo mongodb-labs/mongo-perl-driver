@@ -173,7 +173,7 @@ sub _execute_write_command_batch {
             for ( my $i = 0; $i <= $#$chunk; $i++ ) {
                 next if ref( $chunk->[$i]{u} ) eq 'MongoDB::BSON::_EncodedDoc';
                 my $is_replace = delete $chunk->[$i]{is_replace};
-                $chunk->[$i]{u} = $self->_pre_encode_update( $link, $chunk->[$i]{u}, $is_replace );
+                $chunk->[$i]{u} = $self->_pre_encode_update( $link->max_bson_object_size, $chunk->[$i]{u}, $is_replace );
             }
         }
         elsif ( $cmd eq 'insert' ) {
@@ -199,11 +199,12 @@ sub _execute_write_command_batch {
         }
 
         my $op = MongoDB::Op::_Command->_new(
-            db_name     => $db_name,
-            query       => $cmd_doc,
-            query_flags => {},
-            bson_codec  => $self->bson_codec,
-            session     => $self->session,
+            db_name             => $db_name,
+            query               => $cmd_doc,
+            query_flags         => {},
+            bson_codec          => $self->bson_codec,
+            session             => $self->session,
+            monitoring_callback => $self->monitoring_callback,
         );
 
         my $cmd_result = try {
@@ -339,37 +340,40 @@ sub _execute_legacy_batch {
         my $op;
         if ( $type eq 'insert' ) {
             $op = MongoDB::Op::_InsertOne->_new(
-                db_name       => $self->db_name,
-                coll_name     => $self->coll_name,
-                full_name     => $self->db_name . "." . $self->coll_name,
-                document      => $doc,
-                write_concern => $wc,
-                bson_codec    => $self->bson_codec,
+                db_name             => $self->db_name,
+                coll_name           => $self->coll_name,
+                full_name           => $self->db_name . "." . $self->coll_name,
+                document            => $doc,
+                write_concern       => $wc,
+                bson_codec          => $self->bson_codec,
+                monitoring_callback => $self->monitoring_callback,
             );
         }
         elsif ( $type eq 'update' ) {
             $op = MongoDB::Op::_Update->_new(
-                db_name       => $self->db_name,
-                coll_name     => $self->coll_name,
-                full_name     => $self->db_name . "." . $self->coll_name,
-                filter        => $doc->{q},
-                update        => $doc->{u},
-                multi         => $doc->{multi},
-                upsert        => $doc->{upsert},
-                write_concern => $wc,
-                is_replace    => $doc->{is_replace},
-                bson_codec    => $self->bson_codec,
+                db_name             => $self->db_name,
+                coll_name           => $self->coll_name,
+                full_name           => $self->db_name . "." . $self->coll_name,
+                filter              => $doc->{q},
+                update              => $doc->{u},
+                multi               => $doc->{multi},
+                upsert              => $doc->{upsert},
+                write_concern       => $wc,
+                is_replace          => $doc->{is_replace},
+                bson_codec          => $self->bson_codec,
+                monitoring_callback => $self->monitoring_callback,
             );
         }
         elsif ( $type eq 'delete' ) {
             $op = MongoDB::Op::_Delete->_new(
-                db_name       => $self->db_name,
-                coll_name     => $self->coll_name,
-                full_name     => $self->db_name . "." . $self->coll_name,
-                filter        => $doc->{q},
-                just_one      => !!$doc->{limit},
-                write_concern => $wc,
-                bson_codec    => $self->bson_codec,
+                db_name             => $self->db_name,
+                coll_name           => $self->coll_name,
+                full_name           => $self->db_name . "." . $self->coll_name,
+                filter              => $doc->{q},
+                just_one            => !!$doc->{limit},
+                write_concern       => $wc,
+                bson_codec          => $self->bson_codec,
+                monitoring_callback => $self->monitoring_callback,
             );
         }
 

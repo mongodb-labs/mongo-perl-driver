@@ -95,6 +95,8 @@ sub write_update {
     my ( $ns, $selector, $update, $flags ) = @_;
     utf8::encode($ns);
 
+    my $request_id = int( rand( MAX_REQUEST_ID ) );
+
     my $bitflags = 0;
     if ($flags) {
         $bitflags =
@@ -103,11 +105,11 @@ sub write_update {
     }
 
     my $msg =
-        pack( P_UPDATE, 0, int( rand( 2**32 - 1 ) ), 0, OP_UPDATE, 0, $ns, $bitflags )
+        pack( P_UPDATE, 0, $request_id, 0, OP_UPDATE, 0, $ns, $bitflags )
       . $selector
       . $update;
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
-    return $msg;
+    return $msg, $request_id;
 }
 
 # struct OP_INSERT {
@@ -123,16 +125,18 @@ sub write_insert {
     my ( $ns, $bson_docs, $flags ) = @_;
     utf8::encode($ns);
 
+    my $request_id = int( rand( MAX_REQUEST_ID ) );
+
     my $bitflags = 0;
     if ($flags) {
         $bitflags = ( $flags->{continue_on_error} ? 1 << I_CONTINUE_ON_ERROR : 0 );
     }
 
     my $msg =
-      pack( P_INSERT, 0, int( rand( 2**32 - 1 ) ), 0, OP_INSERT, $bitflags, $ns )
+      pack( P_INSERT, 0, $request_id, 0, OP_INSERT, $bitflags, $ns )
       . $bson_docs;
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
-    return $msg;
+    return $msg, $request_id;
 }
 
 # struct OP_QUERY {
@@ -217,16 +221,18 @@ sub write_delete {
     my ( $ns, $selector, $flags ) = @_;
     utf8::encode($ns);
 
+    my $request_id = int( rand( MAX_REQUEST_ID ) );
+
     my $bitflags = 0;
     if ($flags) {
         $bitflags = ( $flags->{just_one} ? 1 << D_SINGLE_REMOVE : 0 );
     }
 
     my $msg =
-      pack( P_DELETE, 0, int( rand( 2**32 - 1 ) ), 0, OP_DELETE, 0, $ns, $bitflags )
+      pack( P_DELETE, 0, $request_id, 0, OP_DELETE, 0, $ns, $bitflags )
       . $selector;
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
-    return $msg;
+    return $msg, $request_id;
 }
 
 # legacy alias
@@ -244,11 +250,14 @@ sub write_delete {
 
 sub write_kill_cursors {
     my (@cursors) = map _pack_cursor_id($_), @_;
+
+    my $request_id = int( rand( MAX_REQUEST_ID ) );
+
     my $msg = pack( P_KILL_CURSORS,
-        0, int( rand( 2**32 - 1 ) ),
+        0, $request_id,
         0, OP_KILL_CURSORS, 0, scalar(@cursors), @cursors );
     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
-    return $msg;
+    return $msg, $request_id;
 }
 
 # struct {

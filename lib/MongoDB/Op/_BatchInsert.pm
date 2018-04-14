@@ -91,8 +91,9 @@ sub execute {
       ? (
         $self->_send_legacy_op_noreply( $link,
             MongoDB::_Protocol::write_insert( $self->full_name, join( "", map { $_->{bson} } @insert_docs ) ),
-            undef,
-            "MongoDB::UnacknowledgedResult"
+            \@insert_docs,
+            "MongoDB::UnacknowledgedResult",
+            "insert",
         )
       )
       : $link->does_write_commands
@@ -110,8 +111,9 @@ sub execute {
       : (
         $self->_send_legacy_op_with_gle( $link,
             MongoDB::_Protocol::write_insert( $self->full_name, join( "", map { $_->{bson} } @insert_docs ) ),
-            undef,
-            "MongoDB::InsertManyResult"
+            \@insert_docs,
+            "MongoDB::InsertManyResult",
+            "insert",
         )->assert
       );
 }

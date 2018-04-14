@@ -95,6 +95,7 @@ sub execute {
                 ),
                 $op_doc,
                 "MongoDB::DeleteResult",
+                "delete",
             )
         )
         : $link->does_write_commands
@@ -120,6 +121,7 @@ sub execute {
                 ),
                 $op_doc,
                 "MongoDB::DeleteResult",
+                "delete",
             )->assert
         )
     );

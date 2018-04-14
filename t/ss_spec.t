@@ -103,14 +103,18 @@ sub create_mock_topology {
     $type ||= 'Single';
 
     return MongoDB::_Topology->new(
-        uri                    => MongoDB::_URI->new( uri => $uri ),
+        uri                    => MongoDB::_URI->new( uri              => $uri ),
         type                   => $type,
-        min_server_version => "0.0.0",
+        min_server_version     => "0.0.0",
         max_wire_version       => 3,
         min_wire_version       => 0,
         heartbeat_frequency_ms => 3600000,
-        last_scan_time => time + 60,
-        credential => MongoDB::_Credential->new( mechanism => 'NONE' ),
+        last_scan_time         => time + 60,
+        credential             => MongoDB::_Credential->new(
+            mechanism => 'NONE',
+            monitoring_callback => undef,
+        ),
+        monitoring_callback    => undef,
     );
 }
 

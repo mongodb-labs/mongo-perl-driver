@@ -33,13 +33,13 @@ use namespace::clean;
 requires qw/bson_codec/;
 
 sub _pre_encode_update {
-    my ( $self, $link, $doc, $is_replace ) = @_;
+    my ( $self, $max_bson_object_size, $doc, $is_replace ) = @_;
 
     my $bson_doc = $self->bson_codec->encode_one(
         $doc,
         {
             invalid_chars => $is_replace ? '.' : '',
-            max_length => $is_replace ? $link->max_bson_object_size : undef,
+            max_length => $is_replace ? $max_bson_object_size : undef,
         }
     );
 
