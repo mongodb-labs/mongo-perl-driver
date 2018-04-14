@@ -83,13 +83,16 @@ sub execute {
     );
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name         => $self->db_name,
-        query           => $command,
-        query_flags     => {},
-        bson_codec      => $self->bson_codec,
-        session         => $self->session,
+        db_name             => $self->db_name,
+        query               => $command,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        session             => $self->session,
+        monitoring_callback => $self->monitoring_callback,
     );
 
+    # XXX more special error handling that will be a problem for
+    # command monitoring
     my $result;
     try {
         $result = $op->execute( $link, $topology );

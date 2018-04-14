@@ -31,6 +31,7 @@ use MongoDB::_Types qw(
     ReadPreference
 );
 use Types::Standard qw(
+    CodeRef
     HashRef
     Maybe
     InstanceOf
@@ -61,6 +62,7 @@ with $_ for qw(
   MongoDB::Role::_DatabaseOp
   MongoDB::Role::_ReadPrefModifier
   MongoDB::Role::_SessionSupport
+  MongoDB::Role::_CommandMonitoring
 );
 
 sub execute {
@@ -84,8 +86,21 @@ sub execute {
         );
     }
 
-    $link->write( $op_bson ),
-    ( my $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
+    $self->publish_command_started( $link, $self->{query}, $request_id )
+      if $self->monitoring_callback;
+
+    my $result;
+    eval {
+        $link->write( $op_bson ),
+        ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
+    };
+    my $err = $@;
+
+    $self->publish_command_exception($err)
+      if $err && $self->monitoring_callback;
+
+    $self->publish_command_reply( $result->{docs} )
+      if $self->monitoring_callback;
 
     my $res = MongoDB::CommandResult->_new(
         output => $self->{bson_codec}->decode_one( $result->{docs} ),

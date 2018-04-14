@@ -70,11 +70,12 @@ sub _command_fsync_unlock {
     );
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name         => $self->db_name,
-        query           => $cmd,
-        query_flags     => {},
-        read_preference => MongoDB::ReadPreference->new,
-        bson_codec      => $self->bson_codec,
+        db_name             => $self->db_name,
+        query               => $cmd,
+        query_flags         => {},
+        read_preference     => MongoDB::ReadPreference->new,
+        bson_codec          => $self->bson_codec,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     my $res = $op->execute( $link, $topology );
@@ -107,6 +108,7 @@ sub _legacy_fsync_unlock {
         client              => $self->client,
         read_preference     => MongoDB::ReadPreference->new,
         read_concern        => MongoDB::ReadConcern->new,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     return $op->execute( $link, $topology )->next;

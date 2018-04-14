@@ -69,12 +69,13 @@ sub execute {
     ];
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name         => $self->db_name,
-        query           => $command,
-        query_flags     => {},
-        bson_codec      => $self->bson_codec,
-        read_preference => $self->read_preference,
-        session         => $self->session,
+        db_name             => $self->db_name,
+        query               => $command,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        read_preference     => $self->read_preference,
+        session             => $self->session,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     my $res = $op->execute( $link, $topology );

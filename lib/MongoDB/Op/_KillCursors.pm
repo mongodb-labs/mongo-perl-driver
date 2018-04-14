@@ -57,9 +57,10 @@ sub execute {
                     killCursors => $self->coll_name,
                     cursors     => $self->cursor_ids,
                 ],
-                query_flags => {},
-                bson_codec  => $self->bson_codec,
-                session     => $self->session,
+                query_flags         => {},
+                bson_codec          => $self->bson_codec,
+                session             => $self->session,
+                monitoring_callback => $self->monitoring_callback,
             )->execute($link);
         };
     }

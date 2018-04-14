@@ -54,9 +54,10 @@ sub execute {
             to               => $self->dst_ns,
             ( $link->accepts_wire_version(5) ? ( @{ $self->write_concern->as_args } ) : () ),
         ],
-        query_flags => {},
-        bson_codec  => $self->bson_codec,
-        session     => $self->session,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        session             => $self->session,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     my $res = $op->execute($link);

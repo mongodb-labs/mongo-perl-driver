@@ -48,13 +48,17 @@ sub create_mock_topology {
     my $type = ( $name =~ /^single/ && $seed_count == 1 ) ? 'Single' : "Unknown";
 
     return MongoDB::_Topology->new(
-        uri => $uri,
-        type => $type,
-        replica_set_name => $uri->options->{replicaset} || '',
-        min_server_version => "0.0.0",
-        max_wire_version => 2,
-        min_wire_version => 0,
-        credential => MongoDB::_Credential->new( mechanism => 'NONE' ),
+        uri                 => $uri,
+        type                => $type,
+        replica_set_name    => $uri->options->{replicaset} || '',
+        min_server_version  => "0.0.0",
+        max_wire_version    => 2,
+        min_wire_version    => 0,
+        credential          => MongoDB::_Credential->new(
+            mechanism => 'NONE',
+            monitoring_callback => undef,
+        ),
+        monitoring_callback => undef,
     );
 }
 

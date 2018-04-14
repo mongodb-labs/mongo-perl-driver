@@ -65,6 +65,7 @@ use MongoDB::_Types qw(
 );
 use Types::Standard qw(
     Bool
+    CodeRef
     HashRef
     ArrayRef
     InstanceOf
@@ -473,6 +474,18 @@ sub _build_max_time_ms {
         d => 0,
     );
 }
+
+=attr monitoring_callback
+
+Specifies a code reference used to receive monitoring events.  See
+L<MongoDB::Monitoring> for more details.
+
+=cut
+
+has monitoring_callback => (
+    is  => 'ro',
+    isa => Maybe [CodeRef],
+);
 
 =attr password
 
@@ -1187,25 +1200,28 @@ sub _build__topology {
       :                                     'Single';
 
     MongoDB::_Topology->new(
-        uri                         => $self->_uri,
-        bson_codec                  => $self->bson_codec,
-        type                        => $type,
-        app_name                    => $self->app_name,
-        replica_set_name            => $self->replica_set_name,
+        uri                          => $self->_uri,
+        bson_codec                   => $self->bson_codec,
+        type                         => $type,
+        app_name                     => $self->app_name,
+        replica_set_name             => $self->replica_set_name,
         server_selection_timeout_sec => $self->server_selection_timeout_ms / 1000,
         server_selection_try_once    => $self->server_selection_try_once,
         local_threshold_sec          => $self->local_threshold_ms / 1000,
         heartbeat_frequency_sec      => $self->heartbeat_frequency_ms / 1000,
-        min_server_version          => MIN_SERVER_VERSION,
-        max_wire_version            => MAX_WIRE_VERSION,
-        min_wire_version            => MIN_WIRE_VERSION,
-        credential                  => $self->_credential,
-        link_options                => {
-            connect_timeout => $self->connect_timeout_ms >= 0 ? $self->connect_timeout_ms / 1000 : undef,
-            socket_timeout  => $self->socket_timeout_ms  >= 0 ? $self->socket_timeout_ms  / 1000 : undef,
-            with_ssl   => !!$self->ssl,
+        min_server_version           => MIN_SERVER_VERSION,
+        max_wire_version             => MAX_WIRE_VERSION,
+        min_wire_version             => MIN_WIRE_VERSION,
+        credential                   => $self->_credential,
+        link_options                 => {
+            connect_timeout => $self->connect_timeout_ms >= 0 ? $self->connect_timeout_ms / 1000
+            : undef,
+            socket_timeout => $self->socket_timeout_ms >= 0 ? $self->socket_timeout_ms / 1000
+            : undef,
+            with_ssl => !!$self->ssl,
             ( ref( $self->ssl ) eq 'HASH' ? ( SSL_options => $self->ssl ) : () ),
         },
+        monitoring_callback => $self->monitoring_callback,
     );
 }
 
@@ -1220,6 +1236,7 @@ sub _build__credential {
     my ($self) = @_;
     my $mechanism = $self->auth_mechanism;
     my $cred = MongoDB::_Credential->new(
+        monitoring_callback  => $self->monitoring_callback,
         mechanism            => $mechanism,
         mechanism_properties => $self->auth_mechanism_properties,
         ( $self->username ? ( username => $self->username ) : () ),
@@ -1523,12 +1540,13 @@ sub send_admin_command {
       if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name     => 'admin',
-        query       => $command,
-        query_flags => {},
-        bson_codec  => $self->bson_codec,
-        read_preference => $read_pref,
-        session     => $self->_maybe_get_implicit_session,
+        db_name             => 'admin',
+        query               => $command,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        read_preference     => $read_pref,
+        session             => $self->_maybe_get_implicit_session,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     return $self->send_read_op( $op );
@@ -1779,9 +1797,10 @@ sub fsync_unlock {
     my ($self) = @_;
 
     my $op = MongoDB::Op::_FSyncUnlock->_new(
-        db_name    => 'admin',
-        client     => $self,
-        bson_codec => $self->bson_codec,
+        db_name             => 'admin',
+        client              => $self,
+        bson_codec          => $self->bson_codec,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     return $self->send_primary_op($op);

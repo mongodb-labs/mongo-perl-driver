@@ -115,10 +115,11 @@ sub execute {
             ? { @{ $self->filter } }
             : $self->filter
         ),
-        u      => $self->update,
-        multi  => $self->multi ? $true : $false,
+        u => $self->_pre_encode_update( $link->max_bson_object_size,
+            $self->update, $self->is_replace ),
+        multi  => $self->multi  ? $true : $false,
         upsert => $self->upsert ? $true : $false,
-        ( defined $self->collation ? ( collation => $self->collation ) : () ),
+        ( defined $self->collation    ? ( collation    => $self->collation )    : () ),
         ( defined $self->arrayFilters ? ( arrayFilters => $self->arrayFilters ) : () ),
     };
 
@@ -129,14 +130,15 @@ sub execute {
             MongoDB::_Protocol::write_update(
                 $self->full_name,
                 $self->bson_codec->encode_one( $orig_op->{q}, { invalid_chars => '' } ),
-                $self->_pre_encode_update( $link, $orig_op->{u}, $self->is_replace )->{bson},
+                $orig_op->{u}->{bson},
                 {
                     upsert => $orig_op->{upsert},
                     multi  => $orig_op->{multi},
                 },
             ),
             $orig_op,
-            "MongoDB::UpdateResult"
+            "MongoDB::UpdateResult",
+            "update",
         )
       )
       : $link->does_write_commands
@@ -146,11 +148,7 @@ sub execute {
                 $link,
                 [
                     update  => $self->coll_name,
-                    updates => [
-                        {
-                            %$orig_op, u => $self->_pre_encode_update( $link, $orig_op->{u}, $self->is_replace ),
-                        }
-                    ],
+                    updates => [ $orig_op ],
                     @{ $self->write_concern->as_args },
                 ],
             ),
@@ -164,14 +162,15 @@ sub execute {
             MongoDB::_Protocol::write_update(
                 $self->full_name,
                 $self->bson_codec->encode_one( $orig_op->{q}, { invalid_chars => '' } ),
-                $self->_pre_encode_update( $link, $orig_op->{u}, $self->is_replace )->{bson},
+                $orig_op->{u}->{bson},
                 {
                     upsert => $orig_op->{upsert},
                     multi  => $orig_op->{multi},
                 },
             ),
             $orig_op,
-            "MongoDB::UpdateResult"
+            "MongoDB::UpdateResult",
+            "update",
         )->assert
       );
 }
@@ -200,8 +199,8 @@ sub _parse_gle {
         && !$res->{updatedExisting}
         && $res->{n} == 1 )
     {
-        $upserted = _find_id( $orig_doc->{u} );
-        $upserted = _find_id( $orig_doc->{q} ) unless defined $upserted;
+        $upserted = $self->_find_id( $orig_doc->{u} );
+        $upserted = $self->_find_id( $orig_doc->{q} ) unless defined $upserted;
     }
 
     return (
@@ -212,7 +211,10 @@ sub _parse_gle {
 }
 
 sub _find_id {
-    my ($doc) = @_;
+    my ($self, $doc) = @_;
+    if (ref($doc) eq "MongoDB::BSON::_EncodedDoc") {
+       $doc = $self->bson_codec->decode_one($doc);
+    }
     my $type = ref($doc);
     return (
           $type eq 'HASH' ? $doc->{_id}

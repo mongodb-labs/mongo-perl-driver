@@ -263,14 +263,15 @@ has _op_args => (
 sub _build__op_args {
     my ($self) = @_;
     return {
-        client          => $self->client,
-        db_name         => $self->database->name,
-        bson_codec      => $self->bson_codec,
-        coll_name       => $self->name,
-        write_concern   => $self->write_concern,
-        read_concern    => $self->read_concern,
-        read_preference => $self->read_preference,
-        full_name       => join( ".", $self->database->name, $self->name ),
+        client              => $self->client,
+        db_name             => $self->database->name,
+        bson_codec          => $self->bson_codec,
+        coll_name           => $self->name,
+        write_concern       => $self->write_concern,
+        read_concern        => $self->read_concern,
+        read_preference     => $self->read_preference,
+        full_name           => join( ".", $self->database->name, $self->name ),
+        monitoring_callback => $self->client->monitoring_callback,
     };
 }
 
@@ -1998,12 +1999,13 @@ sub ensure_index {
       : MongoDB::WriteConcern->new;
 
     my $op = MongoDB::Op::_CreateIndexes->_new(
-        db_name       => $self->database->name,
-        coll_name     => $self->name,
-        full_name     => $self->full_name,
-        bson_codec    => $self->bson_codec,
-        indexes       => [ { key => $keys, %$opts } ],
-        write_concern => $wc,
+        db_name             => $self->database->name,
+        coll_name           => $self->name,
+        full_name           => $self->full_name,
+        bson_codec          => $self->bson_codec,
+        indexes             => [ { key => $keys, %$opts } ],
+        write_concern       => $wc,
+        monitoring_callback => $self->client->monitoring_callback,
     );
 
     $self->client->send_write_op($op);
@@ -2117,10 +2119,11 @@ sub _run_command {
     my ( $self, $command ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name     => $self->database->name,
-        query       => $command,
-        query_flags => {},
-        bson_codec  => $self->bson_codec,
+        db_name             => $self->database->name,
+        query               => $command,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        monitoring_callback => $self->client->monitoring_callback,
     );
 
     my $obj = $self->client->send_read_op($op);

@@ -38,6 +38,7 @@ use MongoDB::_Types qw(
 );
 use Types::Standard qw(
     Bool
+    CodeRef
     HashRef
     ArrayRef
     InstanceOf
@@ -86,6 +87,14 @@ has credential => (
     is       => 'ro',
     required => 1,
     isa => InstanceOf['MongoDB::_Credential'],
+);
+
+# Required so it's passed explicitly, even if undef, to ensure it's wired
+# up correctly.
+has monitoring_callback => (
+    is => 'ro',
+    required => 1,
+    isa => Maybe[CodeRef],
 );
 
 has type => (
@@ -995,11 +1004,12 @@ sub _update_topology_from_link {
     my $start_time = time;
     my $is_master = eval {
         my $op = MongoDB::Op::_Command->_new(
-            db_name         => 'admin',
-            query           => $self->_generate_ismaster_request( $opts{with_handshake} ),
-            query_flags     => {},
-            bson_codec      => $self->bson_codec,
-            read_preference => $PRIMARY,
+            db_name             => 'admin',
+            query               => $self->_generate_ismaster_request( $opts{with_handshake} ),
+            query_flags         => {},
+            bson_codec          => $self->bson_codec,
+            read_preference     => $PRIMARY,
+            monitoring_callback => $self->monitoring_callback,
         );
         # just for this command, use connect timeout as socket timeout;
         # this violates encapsulation, but requires less API modification

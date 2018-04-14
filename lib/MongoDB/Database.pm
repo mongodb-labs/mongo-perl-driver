@@ -206,12 +206,13 @@ sub list_collections {
     my $session = $self->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_ListCollections->_new(
-        db_name    => $self->name,
-        client     => $self->_client,
-        bson_codec => $self->bson_codec,
-        filter     => $filter,
-        options    => $options,
-        session    => $session,
+        db_name             => $self->name,
+        client              => $self->_client,
+        bson_codec          => $self->bson_codec,
+        filter              => $filter,
+        options             => $options,
+        session             => $session,
+        monitoring_callback => $self->_client->monitoring_callback,
     );
 
     return $self->_client->send_primary_op($op);
@@ -382,11 +383,12 @@ sub drop {
 
     return $self->_client->send_write_op(
         MongoDB::Op::_DropDatabase->_new(
-            client        => $self->_client,
-            db_name       => $self->name,
-            bson_codec    => $self->bson_codec,
-            write_concern => $self->write_concern,
-            session       => $session,
+            client              => $self->_client,
+            db_name             => $self->name,
+            bson_codec          => $self->bson_codec,
+            write_concern       => $self->write_concern,
+            session             => $session,
+            monitoring_callback => $self->_client->monitoring_callback,
         )
     )->output;
 }
@@ -451,13 +453,14 @@ sub run_command {
     my $session = $self->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_Command->_new(
-        client      => $self->_client,
-        db_name     => $self->name,
-        query       => $command,
-        query_flags => {},
-        bson_codec  => $self->bson_codec,
-        read_preference => $read_pref,
-        session     => $session,
+        client              => $self->_client,
+        db_name             => $self->name,
+        query               => $command,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        read_preference     => $read_pref,
+        session             => $session,
+        monitoring_callback => $self->_client->monitoring_callback,
     );
 
     my $obj = $self->_client->send_read_op($op);
@@ -500,6 +503,7 @@ sub _aggregate {
         read_preference => $self->read_preference,
         write_concern   => $self->write_concern,
         session         => $session,
+        monitoring_callback => $self->_client->monitoring_callback,
     );
 
     return $self->_client->send_read_op($op);

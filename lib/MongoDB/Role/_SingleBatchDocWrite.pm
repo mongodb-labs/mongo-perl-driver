@@ -39,18 +39,19 @@ use namespace::clean;
 with $_ for qw(
   MongoDB::Role::_WriteOp
   MongoDB::Role::_SessionSupport
+  MongoDB::Role::_CommandMonitoring
 );
 
 requires qw/db_name write_concern _parse_cmd _parse_gle/;
 
 sub _send_legacy_op_with_gle {
-    my ( $self, $link, $op_bson, $op_doc, $result_class ) = @_;
+    my ( $self, $link, $op_bson, $request_id, $op_doc, $result_class, $cmd_name ) = @_;
 
     my $wc_args = $self->write_concern->as_args();
     my @write_concern = scalar @$wc_args ? %{ $wc_args->[1] } : ();
 
     my $gle = $self->bson_codec->encode_one( [ getlasterror => 1, @write_concern ] );
-    my ( $gle_bson, $request_id ) =
+    my ( $gle_bson, $gle_request_id ) =
         MongoDB::_Protocol::write_query( $self->db_name . '.$cmd', $gle, undef, 0, -1 );
 
     # write op sent as a unit with GLE command to ensure GLE applies to the
@@ -65,8 +66,21 @@ sub _send_legacy_op_with_gle {
         );
     }
 
-    $link->write( $op_bson ),
-    ( my $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
+    $self->publish_legacy_write_started( $link, $cmd_name, $op_doc, $request_id )
+      if $self->monitoring_callback;
+
+    my $result;
+    eval {
+        $link->write( $op_bson ),
+        ( $result = MongoDB::_Protocol::parse_reply( $link->read, $gle_request_id ) );
+    };
+    my $err = $@;
+
+    $self->publish_command_exception($err)
+      if $err && $self->monitoring_callback;
+
+    $self->publish_command_reply( $result->{docs} )
+      if $self->monitoring_callback;
 
     my $res = $self->bson_codec->decode_one( $result->{docs} );
 
@@ -128,12 +142,24 @@ sub _send_legacy_op_with_gle {
 }
 
 sub _send_legacy_op_noreply {
-    my ( $self, $link, $op_bson, $op_doc, $result_class ) = @_;
-    $link->write($op_bson);
+    my ( $self, $link, $op_bson, $request_id, $op_doc, $result_class, $cmd_name) = @_;
+
+    $self->publish_legacy_write_started( $link, $cmd_name, $op_doc, $request_id )
+      if $self->monitoring_callback;
+
+    eval { $link->write($op_bson) };
+    my $err = $@;
+
+    $self->publish_command_exception($err)
+      if $err && $self->monitoring_callback;
+
+    $self->publish_command_reply( { ok => 1 } )
+      if $self->monitoring_callback;
+
     return MongoDB::UnacknowledgedResult->_new(
         $self->_parse_gle( {}, $op_doc ),
-        acknowledged => 0,
-        write_errors => [],
+        acknowledged         => 0,
+        write_errors         => [],
         write_concern_errors => [],
     );
 }
@@ -158,8 +184,21 @@ sub _send_write_command {
         );
     }
 
-    $link->write( $op_bson ),
-    ( my $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
+    $self->publish_command_started( $link, $cmd, $request_id )
+      if $self->monitoring_callback;
+
+    my $result;
+    eval {
+        $link->write( $op_bson ),
+        ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
+    };
+    my $err = $@;
+
+    $self->publish_command_exception($err)
+      if $err && $self->monitoring_callback;
+
+    $self->publish_command_reply( $result->{docs} )
+      if $self->monitoring_callback;
 
     my $res = $self->bson_codec->decode_one( $result->{docs} );
 

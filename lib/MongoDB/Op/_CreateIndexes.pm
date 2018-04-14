@@ -78,8 +78,9 @@ sub _command_create_indexes {
             indexes       => $self->indexes,
             ( $link->accepts_wire_version(5) ? ( @{ $self->write_concern->as_args } ) : () )
         ],
-        query_flags => {},
-        bson_codec  => $self->bson_codec,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     my $res = $op->execute( $link );
@@ -100,14 +101,15 @@ sub _legacy_index_insert {
     ];
 
     my $op = MongoDB::Op::_BatchInsert->_new(
-        db_name       => $self->db_name,
-        coll_name     => "system.indexes",
-        full_name     => (join ".", $self->db_name, "system.indexes"),
-        documents     => $indexes,
-        write_concern => $self->write_concern,
-        bson_codec    => $self->bson_codec,
-        check_keys    => 0,
-        ordered       => 1,
+        db_name             => $self->db_name,
+        coll_name           => "system.indexes",
+        full_name           => ( join ".", $self->db_name, "system.indexes" ),
+        documents           => $indexes,
+        write_concern       => $self->write_concern,
+        bson_codec          => $self->bson_codec,
+        check_keys          => 0,
+        ordered             => 1,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     return $op->execute($link);

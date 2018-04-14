@@ -193,12 +193,13 @@ sub _command_query {
     my ( $self, $link, $topology ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name         => $self->db_name,
-        query           => $self->as_command,
-        query_flags     => {},
-        read_preference => $self->read_preference,
-        bson_codec      => $self->bson_codec,
-        session         => $self->session,
+        db_name             => $self->db_name,
+        query               => $self->as_command,
+        query_flags         => {},
+        read_preference     => $self->read_preference,
+        bson_codec          => $self->bson_codec,
+        session             => $self->session,
+        monitoring_callback => $self->monitoring_callback,
     );
     my $res = $op->execute( $link, $topology );
 

@@ -66,10 +66,11 @@ sub _command_list_indexes {
     my ( $self, $link, $topology ) = @_;
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name         => $self->db_name,
-        query           => Tie::IxHash->new( listIndexes => $self->coll_name, cursor => {} ),
+        db_name     => $self->db_name,
+        query       => Tie::IxHash->new( listIndexes => $self->coll_name, cursor => {} ),
         query_flags => {},
-        bson_codec      => $self->bson_codec,
+        bson_codec  => $self->bson_codec,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     my $res = try {
@@ -111,6 +112,7 @@ sub _legacy_list_indexes {
         read_preference     => MongoDB::ReadPreference->new,
         read_concern        => MongoDB::ReadConcern->new,
         filter              => Tie::IxHash->new( ns => $ns ),
+        monitoring_callback => $self->monitoring_callback,
     );
   
     return $op->execute( $link, $topology );

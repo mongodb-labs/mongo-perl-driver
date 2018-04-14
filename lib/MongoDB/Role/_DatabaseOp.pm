@@ -31,6 +31,7 @@ use MongoDB::_Types qw(
     ClientSession
 );
 use Types::Standard qw(
+    CodeRef
     Str
     Maybe
 );
@@ -47,6 +48,14 @@ has db_name => (
     is       => 'ro',
     required => 1,
     isa      => Str,
+);
+
+# required, but allowed to be undef so we're sure this gets wired up
+# correctly through all database ops.
+has monitoring_callback => (
+    is       => 'ro',
+    required => 1,
+    isa      => Maybe[CodeRef],
 );
 
 has session => (

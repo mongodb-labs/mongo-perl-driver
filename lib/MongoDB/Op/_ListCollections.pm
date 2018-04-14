@@ -104,11 +104,12 @@ sub _command_list_colls {
     );
 
     my $op = MongoDB::Op::_Command->_new(
-        db_name         => $self->db_name,
-        query           => $cmd,
-        query_flags     => {},
-        bson_codec      => $self->bson_codec,
-        session         => $self->session,
+        db_name             => $self->db_name,
+        query               => $cmd,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        session             => $self->session,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     my $res = $op->execute( $link, $topology );
@@ -133,16 +134,17 @@ sub _legacy_list_colls {
         projection          => undef,
         skip                => 0,
         sort                => undef,
-        %{$self->options},
-        db_name         => $self->db_name,
-        coll_name       => 'system.namespaces',
-        full_name       => $self->db_name . ".system.namespaces",
-        bson_codec      => $self->bson_codec,
-        client          => $self->client,
-        read_preference => MongoDB::ReadPreference->new,
-        read_concern    => MongoDB::ReadConcern->new,
-        filter          => $self->filter,
-        post_filter => \&__filter_legacy_names
+        %{ $self->options },
+        db_name             => $self->db_name,
+        coll_name           => 'system.namespaces',
+        full_name           => $self->db_name . ".system.namespaces",
+        bson_codec          => $self->bson_codec,
+        client              => $self->client,
+        read_preference     => MongoDB::ReadPreference->new,
+        read_concern        => MongoDB::ReadConcern->new,
+        filter              => $self->filter,
+        post_filter         => \&__filter_legacy_names,
+        monitoring_callback => $self->monitoring_callback,
     );
 
     return $op->execute( $link, $topology );

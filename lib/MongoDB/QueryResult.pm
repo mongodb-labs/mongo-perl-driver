@@ -249,7 +249,8 @@ sub _get_more {
         cursor_id  => $self->_cursor_id,
         batch_size => $want,
         ( $self->_max_time_ms ? ( max_time_ms => $self->_max_time_ms ) : () ),
-        session => $self->_session,
+        session             => $self->_session,
+        monitoring_callback => $self->_client->monitoring_callback,
     );
 
     my $result = $self->_client->send_direct_op( $op, $self->_address );
@@ -284,13 +285,14 @@ sub _kill_cursor {
 
     my ($db_name, $coll_name) = split(/\./, $self->_full_name, 2);
     my $op = MongoDB::Op::_KillCursors->_new(
-        db_name    => $db_name,
-        coll_name  => $coll_name,
-        full_name  => $self->_full_name,
-        bson_codec => $self->_bson_codec,
-        cursor_ids => [$cursor_id],
-        client     => $self->_client,
-        session    => $self->_session,
+        db_name             => $db_name,
+        coll_name           => $coll_name,
+        full_name           => $self->_full_name,
+        bson_codec          => $self->_bson_codec,
+        cursor_ids          => [$cursor_id],
+        client              => $self->_client,
+        session             => $self->_session,
+        monitoring_callback => $self->_client->monitoring_callback,
     );
     $self->_client->send_direct_op( $op, $self->_address );
     $self->_set_cursor_id(0);

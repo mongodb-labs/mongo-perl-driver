@@ -277,6 +277,7 @@ sub execute {
         bson_codec               => $self->collection->bson_codec,
         write_concern            => $write_concern,
         session                  => $session,
+        monitoring_callback      => $self->_client->monitoring_callback,
     );
 
     return $self->_client->send_write_op( $op );
