@@ -372,7 +372,7 @@ sub insert_one {
     MongoDB::UsageError->throw("document argument must be a reference")
       unless ref( $_[1] );
 
-    return $_[0]->client->send_write_op(
+    return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_InsertOne->_new(
             session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),

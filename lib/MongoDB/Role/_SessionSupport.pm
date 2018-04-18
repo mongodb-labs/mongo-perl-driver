@@ -25,7 +25,18 @@ use MongoDB::_Types -types, 'to_IxHash';
 use Safe::Isa;
 use namespace::clean;
 
+use Types::Standard qw(
+    Bool
+);
+
 requires qw/ session /;
+
+# set during retryable writes on supported operations
+has retryable_write => (
+    is      => 'rw',
+    isa     => Bool,
+    default => 0,
+);
 
 sub _apply_session_and_cluster_time {
     my ( $self, $link, $query_ref ) = @_;
@@ -41,6 +52,10 @@ sub _apply_session_and_cluster_time {
 
     $$query_ref = to_IxHash( $$query_ref );
     ($$query_ref)->Push( 'lsid' => $self->session->session_id );
+
+    if ( $self->retryable_write ) {
+        ($$query_ref)->Push( 'txnNumber' => $self->session->_server_session->transaction_id );
+    }
 
     $self->session->_server_session->update_last_use;
 

@@ -1658,6 +1658,78 @@ BEGIN {
     *send_primary_op = \&send_write_op;
 }
 
+sub send_retryable_write_op {
+    my ( $self, $op ) = @_;
+
+    return $self->send_write_op( $op ) unless $self->retry_writes;
+
+    my $result;
+    my $link = $self->{_topology}->get_writable_link;
+
+    # If server doesnt support retryable writes, pretend its not enabled
+    unless ( $link->is_retry_write_supported ) {
+        eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
+            my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+        };
+        return $result;
+    }
+
+    # If we get this far and there is no session, then somethings gone really
+    # wrong, so probably not worth worrying about.
+    #
+    # increment transaction id before write, but otherwise is the same for both attempts
+    $op->session->_server_session->_increment_transaction_id;
+    $op->retryable_write( 1 );
+
+    # attempt the op the first time
+    eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
+        my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+        my $retry_link = $self->{_topology}->get_writable_link;
+
+        # Rare chance that the new link is not retryable
+        unless ( $retry_link->is_retry_write_supported ) {
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+        }
+
+        # Second attempt
+        eval { ($result) = $self->_try_write_op_for_link( $retry_link, $op ); 1 } or do {
+            my $retry_err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+            # Only network or not_master errors should propogate on second attempt
+            if ( $retry_err->$_isa("MongoDB::ConnectionError")
+              || $retry_err->$_isa("MongoDB::NotMasterError") ) {
+                WITH_ASSERTS ? ( confess $retry_err ) : ( die $retry_err );
+            }
+            # die with original error otherwise
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+        };
+    };
+    # just in case this gets reused for some reason
+    $op->retryable_write( 0 );
+    return $result;
+}
+
+# op dispatcher written in highly optimized style
+sub _try_write_op_for_link {
+    my ( $self, $link, $op ) = @_;
+    my $result;
+    (
+        eval { ($result) = $op->execute($link, $self->{_topology}->type); 1 } or do {
+            my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+            if ( $err->$_isa("MongoDB::ConnectionError") ) {
+                $self->{_topology}->mark_server_unknown( $link->server, $err );
+            }
+            elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
+                $self->{_topology}->mark_server_unknown( $link->server, $err );
+                $self->{_topology}->mark_stale;
+            }
+            # normal die here instead of assert, which is used later
+            die $err;
+        }
+    ),
+    return $result;
+}
+
 # op dispatcher written in highly optimized style
 sub send_read_op {
     my ( $self, $op ) = @_;
