@@ -30,6 +30,7 @@ use MongoDB::Op::_Command;
 use Safe::Isa;
 use Types::Standard qw(
   Str
+  Num
 );
 
 use namespace::clean;
@@ -38,6 +39,11 @@ has index_name => (
     is       => 'ro',
     required => 1,
     isa      => Str,
+);
+
+has max_time_ms => (
+    is => 'ro',
+    isa => Num,
 );
 
 with $_ for qw(
@@ -55,6 +61,10 @@ sub execute {
             dropIndexes => $self->coll_name,
             index       => $self->index_name,
             ( $link->accepts_wire_version(5) ? ( @{ $self->write_concern->as_args } ) : () ),
+            (defined($self->max_time_ms)
+                ? (maxTimeMS => $self->max_time_ms)
+                : ()
+            ),
         ],
         query_flags         => {},
         bson_codec          => $self->bson_codec,

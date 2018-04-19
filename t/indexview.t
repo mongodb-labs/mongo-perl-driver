@@ -35,6 +35,7 @@ my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 my $coll           = $testdb->get_collection('test_collection');
+my $admin          = $conn->get_database("admin");
 
 my $supports_collation = $server_version >= 3.3.9;
 my $valid_collation           = { locale => "en_US", strength => 2 };
