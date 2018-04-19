@@ -183,8 +183,15 @@ sub create_one {
     MongoDB::UsageError->throw("Argument to create_one must be an ordered document")
       unless is_OrderedDoc($keys);
 
-    my ($name) =
-      $self->create_many( { keys => $keys, ( $opts ? ( options => $opts ) : () ) } );
+    my $global_opts = {};
+    if (exists $opts->{maxTimeMS}) {
+        $global_opts->{maxTimeMS} = delete $opts->{maxTimeMS};
+    }
+
+    my ($name) = $self->create_many(
+        { keys => $keys, ( $opts ? ( options => $opts ) : () ) },
+        $global_opts,
+    );
     return $name;
 }
 
@@ -195,9 +202,19 @@ sub create_one {
         { keys => [ z => 1 ], options => { unique => 1 } }
     );
 
+    @names = $indexes->create_many(
+        { keys => [ x => 1, y => 1 ] },
+        { keys => [ z => 1 ], options => { unique => 1 } }
+        \%global_options,
+    );
+
 This method takes a list of index models (given as hash references)
 and returns a list of index names created.  It will throw an exception
 on error.
+
+If the last value is a hash reference without a C<keys> entry, it will
+be assumed to be a set of global options. See below for a list of
+accepted global options.
 
 Each index module is described by the following fields:
 
@@ -242,12 +259,24 @@ Some of the more commonly used options include:
 * C<name> — a name (string) for the index; one will be generated if this is
   omitted.
 
+Global options specified as the last value can contain the following
+keys:
+
+=for :list
+* C<maxTimeMS> — maximum time in milliseconds before the operation will
+  time out.
+
 =cut
 
 my $create_many_args;
 
 sub create_many {
     my ( $self, @models ) = @_;
+
+    my $opts;
+    if (@models and ref $models[-1] eq 'HASH' and not exists $models[-1]{keys}) {
+        $opts = pop @models;
+    }
 
     MongoDB::UsageError->throw("Argument to create_many must be a list of index models")
       unless is_IndexModelList(\@models);
@@ -260,6 +289,7 @@ sub create_many {
         bson_codec    => $self->_bson_codec,
         indexes       => $indexes,
         write_concern => $self->_write_concern,
+        max_time_ms   => $opts->{maxTimeMS},
     );
 
     # succeed or die; we don't care about response document
@@ -271,6 +301,7 @@ sub create_many {
 =method drop_one
 
     $output = $indexes->drop_one( $name );
+    $output = $indexes->drop_one( $name, \%options );
 
 This method takes the name of an index and drops it.  It returns the output
 of the dropIndexes command (a hash reference) on success or throws a
@@ -278,12 +309,18 @@ exception if the command errors.  However, if the index does not exist, the
 command output will have the C<ok> field as a false value, but no exception
 will e thrown.
 
+Valid options are:
+
+=for :list
+* C<maxTimeMS> — maximum time in milliseconds before the operation will
+  time out.
+
 =cut
 
 my $drop_one_args;
 
 sub drop_one {
-    my ( $self, $name ) = @_;
+    my ( $self, $name, $opts ) = @_;
 
     MongoDB::UsageError->throw("Argument to drop_one must be a string")
       unless is_Str($name);
@@ -299,6 +336,7 @@ sub drop_one {
         bson_codec    => $self->_bson_codec,
         write_concern => $self->_write_concern,
         index_name    => $name,
+        max_time_ms   => $opts->{maxTimeMS},
     );
 
     $self->_client->send_write_op($op)->output;
@@ -307,17 +345,24 @@ sub drop_one {
 =method drop_all
 
     $output = $indexes->drop_all;
+    $output = $indexes->drop_all(\%options);
 
 This method drops all indexes (except the one on the C<_id> field).  It
 returns the output of the dropIndexes command (a hash reference) on success
 or throws a exception if the command fails.
+
+Valid options are:
+
+=for :list
+* C<maxTimeMS> — maximum time in milliseconds before the operation will
+  time out.
 
 =cut
 
 my $drop_all_args;
 
 sub drop_all {
-    my ($self) = @_;
+    my ($self, $opts) = @_;
 
     my $op = MongoDB::Op::_DropIndexes->_new(
         db_name       => $self->_db_name,
@@ -326,6 +371,7 @@ sub drop_all {
         bson_codec    => $self->_bson_codec,
         write_concern => $self->_write_concern,
         index_name    => '*',
+        max_time_ms   => $opts->{maxTimeMS},
     );
 
     $self->_client->send_write_op($op)->output;
