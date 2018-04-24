@@ -115,6 +115,9 @@ subtest "create_many" => sub {
 };
 
 subtest "create_many w/ maxTimeMS" => sub {
+    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false"
+      unless $ENV{FAILPOINT_TESTING};
+
     plan skip_all => "maxTimeMS not available before 3.6"
       unless $server_version >= v3.6.0;
 
@@ -265,6 +268,9 @@ subtest "create_one" => sub {
 };
 
 subtest "create_one w/ maxTimeMS" => sub {
+    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false"
+      unless $ENV{FAILPOINT_TESTING};
+
     plan skip_all => "maxTimeMS not available before 3.6"
       unless $server_version >= v3.6.0;
 
@@ -363,6 +369,9 @@ subtest "drop_one" => sub {
 };
 
 subtest "drop_one w/ maxTimeMS" => sub {
+    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false"
+      unless $ENV{FAILPOINT_TESTING};
+
     plan skip_all => "maxTimeMS not available before 3.6"
       unless $server_version >= v3.6.0;
 
@@ -444,6 +453,9 @@ subtest "drop_all" => sub {
 };
 
 subtest "drop_all w/ maxTimeMS" => sub {
+    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false"
+      unless $ENV{FAILPOINT_TESTING};
+
     plan skip_all => "maxTimeMS not available before 3.6"
       unless $server_version >= v3.6.0;
 
