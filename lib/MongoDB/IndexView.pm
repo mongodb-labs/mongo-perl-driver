@@ -289,7 +289,10 @@ sub create_many {
         bson_codec    => $self->_bson_codec,
         indexes       => $indexes,
         write_concern => $self->_write_concern,
-        max_time_ms   => $opts->{maxTimeMS},
+        (defined($opts->{maxTimeMS})
+            ? (max_time_ms   => $opts->{maxTimeMS})
+            : ()
+        ),
     );
 
     # succeed or die; we don't care about response document
@@ -336,7 +339,10 @@ sub drop_one {
         bson_codec    => $self->_bson_codec,
         write_concern => $self->_write_concern,
         index_name    => $name,
-        max_time_ms   => $opts->{maxTimeMS},
+        (defined($opts->{maxTimeMS})
+            ? (max_time_ms   => $opts->{maxTimeMS})
+            : ()
+        ),
     );
 
     $self->_client->send_write_op($op)->output;
@@ -371,7 +377,10 @@ sub drop_all {
         bson_codec    => $self->_bson_codec,
         write_concern => $self->_write_concern,
         index_name    => '*',
-        max_time_ms   => $opts->{maxTimeMS},
+        (defined($opts->{maxTimeMS})
+            ? (max_time_ms   => $opts->{maxTimeMS})
+            : ()
+        ),
     );
 
     $self->_client->send_write_op($op)->output;
