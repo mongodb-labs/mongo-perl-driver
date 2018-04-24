@@ -291,7 +291,10 @@ sub create_many {
         indexes             => $indexes,
         write_concern       => $self->_write_concern,
         monitoring_callback => $self->_client->monitoring_callback,
-        max_time_ms         => $opts->{maxTimeMS},
+        (defined($opts->{maxTimeMS})
+            ? (max_time_ms   => $opts->{maxTimeMS})
+            : ()
+        ),
     );
 
     # succeed or die; we don't care about response document
@@ -339,7 +342,10 @@ sub drop_one {
         write_concern       => $self->_write_concern,
         index_name          => $name,
         monitoring_callback => $self->_client->monitoring_callback,
-        max_time_ms         => $opts->{maxTimeMS},
+        (defined($opts->{maxTimeMS})
+            ? (max_time_ms   => $opts->{maxTimeMS})
+            : ()
+        ),
     );
 
     $self->_client->send_write_op($op)->output;
@@ -375,7 +381,10 @@ sub drop_all {
         write_concern       => $self->_write_concern,
         index_name          => '*',
         monitoring_callback => $self->_client->monitoring_callback,
-        max_time_ms         => $opts->{maxTimeMS},
+        (defined($opts->{maxTimeMS})
+            ? (max_time_ms   => $opts->{maxTimeMS})
+            : ()
+        ),
     );
 
     $self->_client->send_write_op($op)->output;
