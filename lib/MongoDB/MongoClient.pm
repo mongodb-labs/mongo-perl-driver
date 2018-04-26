@@ -1454,7 +1454,7 @@ to update server data before returning the hash reference.
 
 sub topology_status {
     my ($self, %opts) = @_;
-    $self->_topology->scan_all_servers if $opts{refresh};
+    $self->_topology->scan_all_servers(1) if $opts{refresh};
     return $self->_topology->status_struct;
 }
 

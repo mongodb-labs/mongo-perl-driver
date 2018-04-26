@@ -436,11 +436,11 @@ sub mark_stale {
 }
 
 sub scan_all_servers {
-    my ($self) = @_;
+    my ($self, $force) = @_;
 
     my ( $next, @ordinary, @to_check );
     my $start_time = time;
-    my $cooldown_time = $start_time - COOLDOWN_SECS;
+    my $cooldown_time = $force ? $start_time : $start_time - COOLDOWN_SECS;
 
     # anything not updated since scan start is eligible for a check; when all servers
     # are updated, the loop terminates; Unknown servers aren't checked if
