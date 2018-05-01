@@ -116,37 +116,51 @@ while ( my $path = $iterator->() ) {
 # generic tests
 #--------------------------------------------------------------------------#
 
+# runs the collection method and dispatches event tests
 sub test_dispatch {
     my ($method, $args, $events) = @_;
+
     my @call_args = _adjust_arguments($method, $args);
     my $res = eval {
         my $res = $coll->$method(@call_args);
+
+        # special case 'find' so commands are actually emitted
         $res->all
             if $method eq 'find';
+
         $res;
     };
+
     my $err = $@;
     diag "error from '$method': $err"
         if $err;
+
     check_event_expectations($method, _adjust_types($events));
 }
 
+# prepare collection method arguments
+# adjusts data structures and extracts leading positional arguments
 sub _adjust_arguments {
     my ($method, $args) = @_;
+
     $args = _adjust_types($args);
     my @fields = @{ $method_args{$method} };
     my @field_values = map {
         my $val = delete $args->{$_};
+        # bulk write is special cased to reuse argument extraction
         ($method eq 'bulk_write' and $_ eq 'requests')
             ? _adjust_bulk_write_requests($val)
             : $val;
     } @fields;
+
     return(
         (grep { defined } @field_values),
         scalar(keys %$args) ? $args : (),
     );
 }
 
+# some type transformations
+# currenetly only turns { '$numberLong' => $n } into 0+$n
 sub _adjust_types {
     my ($value) = @_;
     if (ref $value eq 'HASH') {
@@ -169,6 +183,7 @@ sub _adjust_types {
     }
 }
 
+# prepare bulk write requests for use as argument to ->bulk_write
 sub _adjust_bulk_write_requests {
     my ($requests) = @_;
     return [map {
@@ -178,107 +193,7 @@ sub _adjust_bulk_write_requests {
     } @$requests];
 }
 
-sub check_command_started_event {
-    my ($exp, $event) = @_;
-    check_event($exp, $event);
-}
-
-sub check_command_succeeded_event {
-    my ($exp, $event) = @_;
-    check_event($exp, $event);
-}
-
-sub check_command_failed_event {
-    my ($exp, $event) = @_;
-    check_event($exp, $event);
-}
-
-sub _verify_is_positive_num {
-    my $value = shift;
-    return(0, "error code is not defined")
-        unless defined $value;
-    return(0, "error code is not positive")
-        unless $value > 1;
-    return 1;
-}
-
-sub _verify_is_nonempty_str {
-    my $value = shift;
-    return(0, "error message is not defined")
-        unless defined $value;
-    return(0, "error message is empty")
-        unless length $value;
-    return 1;
-}
-
-sub check_database_name_field {
-    my ($exp_name, $event) = @_;
-    ok defined($event->{databaseName}), "database_name defined";
-    ok length($event->{databaseName}), "database_name non-empty";
-}
-
-sub check_command_name_field {
-    my ($exp_name, $event) = @_;
-    is $event->{commandName}, $exp_name, "command name";
-}
-
-sub check_reply_field {
-    my ($exp_reply, $event) = @_;
-    my $event_reply = $event->{reply};
-    if (exists $exp_reply->{cursor}) {
-        if (exists $exp_reply->{cursor}{id}) {
-            $exp_reply->{cursor}{id} = code(\&_verify_is_positive_num)
-                if $exp_reply->{cursor}{id} eq '42';
-        }
-    }
-    if (exists $exp_reply->{writeErrors}) {
-        for my $error (@{ $exp_reply->{writeErrors} }) {
-            if (exists $error->{code} and $error->{code} eq 42) {
-                $error->{code} = code(\&_verify_is_positive_num);
-            }
-            if (exists $error->{errmsg} and $error->{errmsg} eq '') {
-                $error->{errmsg} = code(\&_verify_is_nonempty_str);
-            }
-        }
-    }
-    for my $exp_key (sort keys %$exp_reply) {
-        cmp_deeply
-            $event_reply->{$exp_key},
-            prepare_data_spec($exp_reply->{$exp_key}),
-            "reply field $exp_key";
-    }
-}
-
-sub check_command_field {
-    my ($exp_command, $event) = @_;
-
-    # ordered defaults to true
-    delete $exp_command->{ordered};
-
-    my $event_command = $event->{command};
-    if (exists $exp_command->{getMore}) {
-        $exp_command->{getMore} = code(\&_verify_is_positive_num)
-            if $exp_command->{getMore} eq '42';
-    }
-
-    for my $exp_key (sort keys %$exp_command) {
-        my $event_value = $event_command->{$exp_key};
-        my $exp_value = prepare_data_spec($exp_command->{$exp_key});
-        my $label = "command field '$exp_key'";
-
-        if (grep { $exp_key eq $_ } qw( comment maxTimeMS )) {
-            TODO: {
-                local $TODO =
-                    "Command field '$exp_key' requires other fixes";
-                cmp_deeply $event_value, $exp_value, $label;
-            }
-        }
-        else {
-            cmp_deeply $event_value, $exp_value, $label;
-        }
-    }
-}
-
+# common overrides for event data expectations
 sub prepare_data_spec {
     my ($spec) = @_;
     if (not ref $spec) {
@@ -344,6 +259,129 @@ sub check_event {
     for my $key (sort keys %$exp) {
         my $check = "check_${key}_field";
         main->can($check)->($exp->{$key}, $event);
+    }
+}
+
+#
+# per-event type test handlers
+#
+
+sub check_command_started_event {
+    my ($exp, $event) = @_;
+    check_event($exp, $event);
+}
+
+sub check_command_succeeded_event {
+    my ($exp, $event) = @_;
+    check_event($exp, $event);
+}
+
+sub check_command_failed_event {
+    my ($exp, $event) = @_;
+    check_event($exp, $event);
+}
+
+#
+# verificationi subs for use with Test::Deep::code
+#
+
+sub _verify_is_positive_num {
+    my $value = shift;
+    return(0, "error code is not defined")
+        unless defined $value;
+    return(0, "error code is not positive")
+        unless $value > 1;
+    return 1;
+}
+
+sub _verify_is_nonempty_str {
+    my $value = shift;
+    return(0, "error message is not defined")
+        unless defined $value;
+    return(0, "error message is empty")
+        unless length $value;
+    return 1;
+}
+
+#
+# event field test handlers
+#
+
+# $event.database_name
+sub check_database_name_field {
+    my ($exp_name, $event) = @_;
+    ok defined($event->{databaseName}), "database_name defined";
+    ok length($event->{databaseName}), "database_name non-empty";
+}
+
+# $event.command_name
+sub check_command_name_field {
+    my ($exp_name, $event) = @_;
+    is $event->{commandName}, $exp_name, "command name";
+}
+
+# $event.reply
+sub check_reply_field {
+    my ($exp_reply, $event) = @_;
+    my $event_reply = $event->{reply};
+
+    # special case for $event.reply.cursor.id
+    if (exists $exp_reply->{cursor}) {
+        if (exists $exp_reply->{cursor}{id}) {
+            $exp_reply->{cursor}{id} = code(\&_verify_is_positive_num)
+                if $exp_reply->{cursor}{id} eq '42';
+        }
+    }
+
+    # special case for $event.reply.writeErrors
+    if (exists $exp_reply->{writeErrors}) {
+        for my $error (@{ $exp_reply->{writeErrors} }) {
+            if (exists $error->{code} and $error->{code} eq 42) {
+                $error->{code} = code(\&_verify_is_positive_num);
+            }
+            if (exists $error->{errmsg} and $error->{errmsg} eq '') {
+                $error->{errmsg} = code(\&_verify_is_nonempty_str);
+            }
+        }
+    }
+
+    for my $exp_key (sort keys %$exp_reply) {
+        cmp_deeply
+            $event_reply->{$exp_key},
+            prepare_data_spec($exp_reply->{$exp_key}),
+            "reply field $exp_key";
+    }
+}
+
+# $event.command
+sub check_command_field {
+    my ($exp_command, $event) = @_;
+    my $event_command = $event->{command};
+
+    # ordered defaults to true
+    delete $exp_command->{ordered};
+
+    # special case for $event.command.getMore
+    if (exists $exp_command->{getMore}) {
+        $exp_command->{getMore} = code(\&_verify_is_positive_num)
+            if $exp_command->{getMore} eq '42';
+    }
+
+    for my $exp_key (sort keys %$exp_command) {
+        my $event_value = $event_command->{$exp_key};
+        my $exp_value = prepare_data_spec($exp_command->{$exp_key});
+        my $label = "command field '$exp_key'";
+
+        if (grep { $exp_key eq $_ } qw( comment maxTimeMS )) {
+            TODO: {
+                local $TODO =
+                    "Command field '$exp_key' requires other fixes";
+                cmp_deeply $event_value, $exp_value, $label;
+            }
+        }
+        else {
+            cmp_deeply $event_value, $exp_value, $label;
+        }
     }
 }
 
