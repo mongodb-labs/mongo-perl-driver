@@ -1668,7 +1668,10 @@ sub bulk_write {
         }
     }
 
-    return $bulk->execute( undef, { session => $session } );
+    return $bulk->execute(
+        $options->{writeConcern},
+        { session => $session },
+    );
 }
 
 BEGIN {
