@@ -50,6 +50,11 @@ sub _build_result_from_cursor {
         $max_time_ms = $self->maxAwaitTimeMS if $self->maxAwaitTimeMS;
     }
 
+    my $limit = 0;
+    if ($self->isa('MongoDB::Op::_Query')) {
+        $limit = $self->limit if $self->limit;
+    }
+
     my $batch = $c->{firstBatch};
     my $qr = MongoDB::QueryResult->_new(
         _client       => $self->client,
@@ -58,7 +63,7 @@ sub _build_result_from_cursor {
         _bson_codec   => $self->bson_codec,
         _batch_size   => scalar @$batch,
         _cursor_at    => 0,
-        _limit        => 0,
+        _limit        => $limit,
         _cursor_id    => $c->{id},
         _cursor_start => 0,
         _cursor_flags => {},
