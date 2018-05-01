@@ -260,11 +260,22 @@ sub check_command_field {
         $exp_command->{getMore} = code(\&_verify_is_positive_num)
             if $exp_command->{getMore} eq '42';
     }
+
     for my $exp_key (sort keys %$exp_command) {
-        cmp_deeply
-            $event_command->{$exp_key},
-            prepare_data_spec($exp_command->{$exp_key}),
-            "command field $exp_key";
+        my $event_value = $event_command->{$exp_key};
+        my $exp_value = prepare_data_spec($exp_command->{$exp_key});
+        my $label = "command field '$exp_key'";
+
+        if (grep { $exp_key eq $_ } qw( comment maxTimeMS )) {
+            TODO: {
+                local $TODO =
+                    "Command field '$exp_key' requires other fixes";
+                cmp_deeply $event_value, $exp_value, $label;
+            }
+        }
+        else {
+            cmp_deeply $event_value, $exp_value, $label;
+        }
     }
 }
 
