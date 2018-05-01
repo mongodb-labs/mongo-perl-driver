@@ -37,12 +37,17 @@ sub publish_command_started {
     return unless $self->monitoring_callback;
 
     $command = _to_tied_ixhash($command);
+    my $command_name = tied(%$command)->Keys(0);
 
     my $event = {
         type         => 'command_started',
         databaseName => $self->db_name,
-        commandName  => tied(%$command)->Keys(0),
-        command      => $command,
+        commandName  => $command_name,
+        command      => (
+            _needs_redaction($command_name)
+                ? _to_tied_ixhash([])
+                : $command,
+        ),
         requestId    => $request_id,
         connectionId => $link->address,
     };
@@ -79,7 +84,11 @@ sub publish_command_reply {
         requestId    => $start_event->{requestId},
         connectionId => $start_event->{connectionId},
         durationSecs => $duration,
-        reply        => $reply,
+        reply        => (
+            _needs_redaction($start_event->{commandName})
+                ? {}
+                : $reply,
+        ),
     };
 
     if ( $reply->{ok} ) {
@@ -156,6 +165,22 @@ sub publish_legacy_query_error {
     };
 
     return $self->publish_command_reply($reply);
+}
+
+sub _needs_redaction {
+    my ($name) = @_;
+    return 1 if grep { $name eq $_ } qw(
+        authenticate
+        saslStart
+        saslContinue
+        getnonce
+        createUser
+        updateUser
+        copydbgetnonce
+        copydbsaslstart
+        copydb
+    );
+    return 0;
 }
 
 sub _convert_legacy_insert {
