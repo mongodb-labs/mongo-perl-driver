@@ -86,6 +86,7 @@ while ( my $path = $iterator->() ) {
 
                 my $max_ver = $test->{ignore_if_server_version_greater_than};
                 my $min_ver = $test->{ignore_if_server_version_less_than};
+                my $ignore_topologies = $test->{ignore_if_topology_type};
 
                 plan skip_all => "Ignored for versions above $max_ver"
                     if defined $max_ver
@@ -93,6 +94,14 @@ while ( my $path = $iterator->() ) {
                 plan skip_all => "Ignored for versions below $min_ver"
                     if defined $min_ver
                     and $server_version < version->parse("$min_ver");
+
+                for my $topology (@{ $ignore_topologies || [] }) {
+                    my %to_server_type = (sharded => 'Mongos');
+                    my $ignore_server_type = $to_server_type{$topology}
+                        or die "Unknown topology type '$topology'";
+                    plan skip_all => "Ignored for '$topology' topology"
+                        if $ignore_server_type eq $server_type;
+                }
 
                 $coll->drop;
                 $coll->insert_many( $plan->{data} );
