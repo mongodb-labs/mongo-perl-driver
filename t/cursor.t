@@ -89,6 +89,12 @@ my @values;
     is ($values[2]->{foo}, 4);
 }
 
+# limit propagation to result
+{
+    my $c = $coll->query({}, { limit => 3, sort_by => { foo => 1 } });
+    is($c->result->_limit, 3, 'query limit was propagated');
+}
+
 # skip
 {
     @values = $coll->query({}, { limit => 3, skip => 1, sort_by => { foo => 1 } })->all;
