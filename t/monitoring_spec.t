@@ -251,6 +251,10 @@ sub check_reply_field {
 
 sub check_command_field {
     my ($exp_command, $event) = @_;
+
+    # ordered defaults to true
+    delete $exp_command->{ordered};
+
     my $event_command = $event->{command};
     if (exists $exp_command->{getMore}) {
         $exp_command->{getMore} = code(\&_verify_is_positive_num)
