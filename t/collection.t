@@ -946,6 +946,9 @@ subtest "querying w/ collation" => sub {
 };
 
 subtest "bulk_write writeConcern used" => sub {
+    plan skip_all => "Test requires ReplicaSet"
+        unless $server_type eq 'RSPrimary';
+
     $coll->drop;
 
     like exception {
