@@ -90,10 +90,10 @@ while ( my $path = $iterator->() ) {
 
                 plan skip_all => "Ignored for versions above $max_ver"
                     if defined $max_ver
-                    and $server_version > version->parse("$max_ver");
+                    and $server_version > version->parse("v$max_ver");
                 plan skip_all => "Ignored for versions below $min_ver"
                     if defined $min_ver
-                    and $server_version < version->parse("$min_ver");
+                    and $server_version < version->parse("v$min_ver");
 
                 for my $topology (@{ $ignore_topologies || [] }) {
                     my %to_server_type = (sharded => 'Mongos');
