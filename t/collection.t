@@ -945,6 +945,20 @@ subtest "querying w/ collation" => sub {
     }
 };
 
+subtest "bulk_write writeConcern used" => sub {
+    plan skip_all => "Test requires ReplicaSet"
+        unless $server_type eq 'RSPrimary';
+
+    $coll->drop;
+
+    like exception {
+        $coll->bulk_write(
+            [insert_one => [{ x => 3 }]],
+            { writeConcern => { w => 999 } },
+        );
+    }, qr/WriteConcernError/, 'write concern is taken into account';
+};
+
 my $js_str = 'function() { return this.a > this.b }';
 my $js_obj = MongoDB::Code->new( code => $js_str );
 
