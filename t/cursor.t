@@ -305,6 +305,7 @@ $coll->drop;
     $cursor->all;
     $info = $cursor->info;
     is($info->{at}, 1000);
+    is($info->{num}, 1000, 'cursor_num after ->all');
 }
 
 # sort_by

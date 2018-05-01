@@ -138,7 +138,7 @@ has _cursor_num => (
     isa      => Num,
 );
 
-sub _inc_cursor_num { $_[0]{_cursor_num}++ }
+sub _inc_cursor_num { $_[0]{_cursor_num} += $_[1] }
 
 has _docs => (
     is       => 'ro',
