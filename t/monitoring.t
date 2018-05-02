@@ -253,6 +253,25 @@ subtest "exceptions are command_failed" => sub {
     };
 };
 
+subtest 'redactions' => sub {
+    clear_events();
+    my $mc     = build_client( monitoring_callback => \&event_cb );
+    my $testdb = get_test_db($mc);
+
+    $testdb->run_command([getnonce => 1]);
+    my ($started, $succeeded) =
+        grep { $_->{commandName} eq 'getnonce' }
+        @events;
+
+    is $started->{type}, 'command_started', 'start event';
+    is $succeeded->{type}, 'command_succeeded', 'success event';
+
+    ok defined($started->{command}), 'command not empty';
+    ok defined($succeeded->{reply}), 'reply not empty';
+    is scalar(keys %{ $started->{command} }), 0, 'no command fields';
+    is scalar(keys %{ $succeeded->{reply} }), 0, 'no reply fields';
+};
+
 sub _coll_with_monitor {
     my $mc     = build_client( monitoring_callback => \&event_cb );
     my $testdb = get_test_db($mc);
