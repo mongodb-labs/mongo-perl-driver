@@ -386,7 +386,11 @@ sub check_command_field {
         my $exp_value = prepare_data_spec($exp_command->{$exp_key});
         my $label = "command field '$exp_key'";
 
-        if (grep { $exp_key eq $_ } qw( comment maxTimeMS )) {
+        if (
+            (grep { $exp_key eq $_ } qw( comment maxTimeMS writeConcern ))
+            or
+            ($event->{commandName} eq 'getMore' and $exp_key eq 'batchSize')
+        ) {
             TODO: {
                 local $TODO =
                     "Command field '$exp_key' requires other fixes";
