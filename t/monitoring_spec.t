@@ -376,6 +376,11 @@ sub check_command_field {
             if $exp_command->{getMore} eq '42';
     }
 
+    # special case for $event.command.writeConcern.wtimeout
+    if (exists $exp_command->{writeConcern}) {
+        $exp_command->{writeConcern}{wtimeout} = ignore();
+    }
+
     for my $exp_key (sort keys %$exp_command) {
         my $event_value = $event_command->{$exp_key};
         my $exp_value = prepare_data_spec($exp_command->{$exp_key});
