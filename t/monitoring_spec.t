@@ -141,7 +141,7 @@ sub test_dispatch {
     };
 
     my $err = $@;
-    diag "error from '$method': $err"
+    note "error from '$method': $err"
         if $err;
 
     check_event_expectations($method, _adjust_types($events));
