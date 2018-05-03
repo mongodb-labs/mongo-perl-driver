@@ -64,6 +64,8 @@ $bulk->insert_one( { _id => $_ } ) for 1 .. 20;
 my $err = exception { $bulk->execute };
 is( $err, undef, "inserted 20 documents for testing" );
 
+my $iv = $coll->indexes;
+
 subtest "expected behaviors" => sub {
 
     is( exception { $coll->find->max_time_ms()->next },  undef, "find->max_time_ms()" );
@@ -426,6 +428,256 @@ subtest "force maxTimeMS failures" => sub {
         },
         undef,
         "turned off maxTimeAlwaysTimeOut fail point"
+    );
+};
+
+subtest "create_many w/ maxTimeMS" => sub {
+    plan skip_all => "maxTimeMS not available before 3.6"
+      unless $server_version >= v3.6.0;
+
+    plan skip_all => "enableTestCommands is off"
+      unless $param && $param->{enableTestCommands};
+
+    plan skip_all => "fail points not supported via mongos"
+      if $server_type eq 'Mongos';
+
+    $coll->drop;
+
+    is(
+        exception {
+            $admin->run_command([
+                configureFailPoint => 'maxTimeAlwaysTimeOut',
+                mode => 'alwaysOn',
+            ]);
+        },
+        undef,
+        'max time failpoint on',
+    );
+
+    like(
+        exception {
+            $iv->create_many(
+                { keys => [ x => 1 ] }, { keys => [ y => -1 ] },
+                { maxTimeMS => 10 },
+            );
+        },
+        qr/exceeded time limit/,
+        'timeout for index creation',
+    );
+
+    is(
+        exception {
+            $iv->create_many(
+                { keys => [ x => 1 ] }, { keys => [ y => -1 ] },
+            );
+        },
+        undef,
+        'no timeout without max time',
+    );
+
+    is(
+        exception {
+            $admin->run_command([
+                configureFailPoint => 'maxTimeAlwaysTimeOut',
+                mode => 'off',
+            ]);
+        },
+        undef,
+        'max time failpoint off',
+    );
+
+    is(
+        exception {
+            $iv->create_many(
+                { keys => [ x => 1 ] }, { keys => [ y => -1 ] },
+                { maxTimeMS => 5000 },
+            );
+        },
+        undef,
+        'no timeout for index creation',
+    );
+};
+
+subtest "create_one w/ maxTimeMS" => sub {
+    plan skip_all => "maxTimeMS not available before 3.6"
+      unless $server_version >= v3.6.0;
+
+    plan skip_all => "enableTestCommands is off"
+      unless $param && $param->{enableTestCommands};
+
+    plan skip_all => "fail points not supported via mongos"
+      if $server_type eq 'Mongos';
+
+    $coll->drop;
+
+    is(
+        exception {
+            $admin->run_command([
+                configureFailPoint => 'maxTimeAlwaysTimeOut',
+                mode => 'alwaysOn',
+            ]);
+        },
+        undef,
+        'max time failpoint on',
+    );
+
+    is(
+        exception {
+            $iv->create_one([ x => 1 ]);
+        },
+        undef,
+        'no timeout without max time',
+    );
+
+    like(
+        exception {
+            $iv->create_one([ x => 1 ], { maxTimeMS => 10 });
+        },
+        qr/exceeded time limit/,
+        'timeout for index creation',
+    );
+
+    is(
+        exception {
+            $admin->run_command([
+                configureFailPoint => 'maxTimeAlwaysTimeOut',
+                mode => 'off',
+            ]);
+        },
+        undef,
+        'max time failpoint off',
+    );
+
+    is(
+        exception {
+            $iv->create_one([ x => 1 ], { maxTimeMS => 5000 });
+        },
+        undef,
+        'no timeout for index creation',
+    );
+};
+
+subtest "drop_one w/ maxTimeMS" => sub {
+    plan skip_all => "maxTimeMS not available before 3.6"
+      unless $server_version >= v3.6.0;
+
+    plan skip_all => "enableTestCommands is off"
+      unless $param && $param->{enableTestCommands};
+
+    plan skip_all => "fail points not supported via mongos"
+      if $server_type eq 'Mongos';
+
+    $coll->drop;
+
+    is(
+        exception {
+            $admin->run_command([
+                configureFailPoint => 'maxTimeAlwaysTimeOut',
+                mode => 'alwaysOn',
+            ]);
+        },
+        undef,
+        'max time failpoint on',
+    );
+
+    is(
+        exception {
+            my $name = $iv->create_one([ x => 1 ]);
+            $iv->drop_one($name);
+        },
+        undef,
+        'no timeout without max time',
+    );
+
+    like(
+        exception {
+            my $name = $iv->create_one([ x => 1 ]);
+            $iv->drop_one($name, { maxTimeMS => 10 });
+        },
+        qr/exceeded time limit/,
+        'timeout for index drop',
+    );
+
+    is(
+        exception {
+            $admin->run_command([
+                configureFailPoint => 'maxTimeAlwaysTimeOut',
+                mode => 'off',
+            ]);
+        },
+        undef,
+        'max time failpoint off',
+    );
+
+    is(
+        exception {
+            my $name = $iv->create_one([ x => 1 ]);
+            $iv->drop_one($name, { maxTimeMS => 5000 });
+        },
+        undef,
+        'no timeout for index drop',
+    );
+};
+
+subtest "drop_all w/ maxTimeMS" => sub {
+    plan skip_all => "maxTimeMS not available before 3.6"
+      unless $server_version >= v3.6.0;
+
+    plan skip_all => "enableTestCommands is off"
+      unless $param && $param->{enableTestCommands};
+
+    plan skip_all => "fail points not supported via mongos"
+      if $server_type eq 'Mongos';
+
+    $coll->drop;
+
+    is(
+        exception {
+            $admin->run_command([
+                configureFailPoint => 'maxTimeAlwaysTimeOut',
+                mode => 'alwaysOn',
+            ]);
+        },
+        undef,
+        'max time failpoint on',
+    );
+
+    is(
+        exception {
+            $iv->create_many( map { { keys => $_ } }[ x => 1 ], [ y => 1 ], [ z => 1 ] );
+            $iv->drop_all();
+        },
+        undef,
+        'no timeout without max time',
+    );
+
+    like(
+        exception {
+            $iv->create_many( map { { keys => $_ } }[ x => 1 ], [ y => 1 ], [ z => 1 ] );
+            $iv->drop_all({ maxTimeMS => 10 });
+        },
+        qr/exceeded time limit/,
+        'timeout for index drop',
+    );
+
+    is(
+        exception {
+            $admin->run_command([
+                configureFailPoint => 'maxTimeAlwaysTimeOut',
+                mode => 'off',
+            ]);
+        },
+        undef,
+        'max time failpoint off',
+    );
+
+    is(
+        exception {
+            $iv->create_many( map { { keys => $_ } }[ x => 1 ], [ y => 1 ], [ z => 1 ] );
+            $iv->drop_all({ maxTimeMS => 5000 });
+        },
+        undef,
+        'no timeout for index drop',
     );
 };
 
