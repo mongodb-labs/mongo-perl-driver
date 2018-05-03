@@ -130,8 +130,7 @@ sub publish_command_exception {
     # Guard against exceptions in the callback
     eval { $self->monitoring_callback->($event) };
 
-    # Propagate erro
-    die $err;
+    return;
 }
 
 sub publish_legacy_write_started {

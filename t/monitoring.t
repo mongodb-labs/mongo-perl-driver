@@ -174,7 +174,7 @@ subtest "exceptions are command_failed" => sub {
         $coll->insert_one({}); # force topology discovery
         my $err;
         {
-            local *MongoDB::_Link::read = \&_throw_mock_network_error;
+            local *MongoDB::_Link::write = \&_throw_mock_network_error;
             clear_events();
             eval {$coll->insert_one({})};
             $err = $@;
@@ -230,7 +230,7 @@ subtest "exceptions are command_failed" => sub {
         $coll->insert_one({}); # force topology discovery
         my $err;
         {
-            local *MongoDB::_Link::read = \&_throw_mock_network_error;
+            local *MongoDB::_Link::write = \&_throw_mock_network_error;
             clear_events();
             eval {$coll->find({})->all};
             $err = $@;

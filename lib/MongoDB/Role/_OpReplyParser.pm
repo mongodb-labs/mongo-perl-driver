@@ -86,10 +86,10 @@ sub _query_and_receive {
             )
         ) if scalar @$docs != $result->{number_returned};
     };
-    my $err = $@;
-
-    $self->publish_command_exception($err)
-      if $err && $self->monitoring_callback;
+    if ( my $err = $@ ) {
+        $self->publish_command_exception($err) if $self->monitoring_callback;
+        die $err;
+    }
 
     if ($result->{flags}{query_failure}) {
         $self->publish_legacy_query_error( $result->{docs}[0] )

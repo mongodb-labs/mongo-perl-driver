@@ -94,10 +94,10 @@ sub execute {
         $link->write( $op_bson ),
         ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
     };
-    my $err = $@;
-
-    $self->publish_command_exception($err)
-      if $err && $self->monitoring_callback;
+    if ( my $err = $@ ) {
+        $self->publish_command_exception($err) if $self->monitoring_callback;
+        die $err;
+    }
 
     $self->publish_command_reply( $result->{docs} )
       if $self->monitoring_callback;

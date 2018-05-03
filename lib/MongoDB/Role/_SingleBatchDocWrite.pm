@@ -74,10 +74,10 @@ sub _send_legacy_op_with_gle {
         $link->write( $op_bson ),
         ( $result = MongoDB::_Protocol::parse_reply( $link->read, $gle_request_id ) );
     };
-    my $err = $@;
-
-    $self->publish_command_exception($err)
-      if $err && $self->monitoring_callback;
+    if ( my $err = $@ ) {
+        $self->publish_command_exception($err) if $self->monitoring_callback;
+        die $err;
+    }
 
     $self->publish_command_reply( $result->{docs} )
       if $self->monitoring_callback;
@@ -148,10 +148,10 @@ sub _send_legacy_op_noreply {
       if $self->monitoring_callback;
 
     eval { $link->write($op_bson) };
-    my $err = $@;
-
-    $self->publish_command_exception($err)
-      if $err && $self->monitoring_callback;
+    if ( my $err = $@ ) {
+        $self->publish_command_exception($err) if $self->monitoring_callback;
+        die $err;
+    }
 
     $self->publish_command_reply( { ok => 1 } )
       if $self->monitoring_callback;
@@ -192,10 +192,10 @@ sub _send_write_command {
         $link->write( $op_bson ),
         ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
     };
-    my $err = $@;
-
-    $self->publish_command_exception($err)
-      if $err && $self->monitoring_callback;
+    if ( my $err = $@ ) {
+        $self->publish_command_exception($err) if $self->monitoring_callback;
+        die $err;
+    }
 
     $self->publish_command_reply( $result->{docs} )
       if $self->monitoring_callback;
