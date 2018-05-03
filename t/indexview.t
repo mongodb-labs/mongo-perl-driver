@@ -42,11 +42,6 @@ my $valid_collation           = { locale => "en_US", strength => 2 };
 my $valid_collation_alternate = { locale => "fr_CA" };
 my $invalid_collation         = { locale => "en_US", blah => 5 };
 
-my $param = eval {
-    $conn->get_database('admin')
-      ->run_command( [ getParameter => 1, enableTestCommands => 1 ] );
-};
-
 my ($iv);
 
 # XXX work around SERVER-18062; create collection to initialize DB for
@@ -112,79 +107,6 @@ subtest "create_many" => sub {
             "create_many w/ collation returns error if unsupported"
         );
     }
-};
-
-subtest "create_many w/ maxTimeMS" => sub {
-    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false"
-      unless $ENV{FAILPOINT_TESTING};
-
-    plan skip_all => "maxTimeMS not available before 3.6"
-      unless $server_version >= v3.6.0;
-
-    plan skip_all => "enableTestCommands is off"
-      unless $param && $param->{enableTestCommands};
-
-    plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
-
-    plan skip_all => "not safe to run fail points before Test::Harness 3.31"
-      if version->parse($ENV{HARNESS_VERSION}) < version->parse(3.31);
-
-    $coll->drop;
-
-    is(
-        exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'alwaysOn',
-            ]);
-        },
-        undef,
-        'max time failpoint on',
-    );
-
-    like(
-        exception {
-            $iv->create_many(
-                { keys => [ x => 1 ] }, { keys => [ y => -1 ] },
-                { maxTimeMS => 10 },
-            );
-        },
-        qr/exceeded time limit/,
-        'timeout for index creation',
-    );
-
-    is(
-        exception {
-            $iv->create_many(
-                { keys => [ x => 1 ] }, { keys => [ y => -1 ] },
-            );
-        },
-        undef,
-        'no timeout without max time',
-    );
-
-    is(
-        exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'off',
-            ]);
-        },
-        undef,
-        'max time failpoint off',
-    );
-
-    is(
-        exception {
-            $iv->create_many(
-                { keys => [ x => 1 ] }, { keys => [ y => -1 ] },
-                { maxTimeMS => 5000 },
-            );
-        },
-        undef,
-        'no timeout for index creation',
-    );
 };
 
 subtest "list indexes" => sub {
@@ -267,71 +189,6 @@ subtest "create_one" => sub {
     }
 };
 
-subtest "create_one w/ maxTimeMS" => sub {
-    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false"
-      unless $ENV{FAILPOINT_TESTING};
-
-    plan skip_all => "maxTimeMS not available before 3.6"
-      unless $server_version >= v3.6.0;
-
-    plan skip_all => "enableTestCommands is off"
-      unless $param && $param->{enableTestCommands};
-
-    plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
-
-    plan skip_all => "not safe to run fail points before Test::Harness 3.31"
-      if version->parse($ENV{HARNESS_VERSION}) < version->parse(3.31);
-
-    $coll->drop;
-
-    is(
-        exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'alwaysOn',
-            ]);
-        },
-        undef,
-        'max time failpoint on',
-    );
-
-    is(
-        exception {
-            $iv->create_one([ x => 1 ]);
-        },
-        undef,
-        'no timeout without max time',
-    );
-
-    like(
-        exception {
-            $iv->create_one([ x => 1 ], { maxTimeMS => 10 });
-        },
-        qr/exceeded time limit/,
-        'timeout for index creation',
-    );
-
-    is(
-        exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'off',
-            ]);
-        },
-        undef,
-        'max time failpoint off',
-    );
-
-    is(
-        exception {
-            $iv->create_one([ x => 1 ], { maxTimeMS => 5000 });
-        },
-        undef,
-        'no timeout for index creation',
-    );
-};
-
 subtest "drop_one" => sub {
     $coll->drop;
     ok( my $name = $iv->create_one( [ x => 1 ] ), "created index on x" );
@@ -368,74 +225,6 @@ subtest "drop_one" => sub {
     );
 };
 
-subtest "drop_one w/ maxTimeMS" => sub {
-    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false"
-      unless $ENV{FAILPOINT_TESTING};
-
-    plan skip_all => "maxTimeMS not available before 3.6"
-      unless $server_version >= v3.6.0;
-
-    plan skip_all => "enableTestCommands is off"
-      unless $param && $param->{enableTestCommands};
-
-    plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
-
-    plan skip_all => "not safe to run fail points before Test::Harness 3.31"
-      if version->parse($ENV{HARNESS_VERSION}) < version->parse(3.31);
-
-    $coll->drop;
-
-    is(
-        exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'alwaysOn',
-            ]);
-        },
-        undef,
-        'max time failpoint on',
-    );
-
-    is(
-        exception {
-            my $name = $iv->create_one([ x => 1 ]);
-            $iv->drop_one($name);
-        },
-        undef,
-        'no timeout without max time',
-    );
-
-    like(
-        exception {
-            my $name = $iv->create_one([ x => 1 ]);
-            $iv->drop_one($name, { maxTimeMS => 10 });
-        },
-        qr/exceeded time limit/,
-        'timeout for index drop',
-    );
-
-    is(
-        exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'off',
-            ]);
-        },
-        undef,
-        'max time failpoint off',
-    );
-
-    is(
-        exception {
-            my $name = $iv->create_one([ x => 1 ]);
-            $iv->drop_one($name, { maxTimeMS => 5000 });
-        },
-        undef,
-        'no timeout for index drop',
-    );
-};
-
 subtest "drop_all" => sub {
     $coll->drop;
     $iv->create_many( map { { keys => $_ } }[ x => 1 ], [ y => 1 ], [ z => 1 ] );
@@ -450,74 +239,6 @@ subtest "drop_all" => sub {
     is_deeply( [ sort map $_->{name}, $iv->list->all ],
         [qw/_id_/], "dropped all but _id index" );
 
-};
-
-subtest "drop_all w/ maxTimeMS" => sub {
-    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false"
-      unless $ENV{FAILPOINT_TESTING};
-
-    plan skip_all => "maxTimeMS not available before 3.6"
-      unless $server_version >= v3.6.0;
-
-    plan skip_all => "enableTestCommands is off"
-      unless $param && $param->{enableTestCommands};
-
-    plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
-
-    plan skip_all => "not safe to run fail points before Test::Harness 3.31"
-      if version->parse($ENV{HARNESS_VERSION}) < version->parse(3.31);
-
-    $coll->drop;
-
-    is(
-        exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'alwaysOn',
-            ]);
-        },
-        undef,
-        'max time failpoint on',
-    );
-
-    is(
-        exception {
-            $iv->create_many( map { { keys => $_ } }[ x => 1 ], [ y => 1 ], [ z => 1 ] );
-            $iv->drop_all();
-        },
-        undef,
-        'no timeout without max time',
-    );
-
-    like(
-        exception {
-            $iv->create_many( map { { keys => $_ } }[ x => 1 ], [ y => 1 ], [ z => 1 ] );
-            $iv->drop_all({ maxTimeMS => 10 });
-        },
-        qr/exceeded time limit/,
-        'timeout for index drop',
-    );
-
-    is(
-        exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'off',
-            ]);
-        },
-        undef,
-        'max time failpoint off',
-    );
-
-    is(
-        exception {
-            $iv->create_many( map { { keys => $_ } }[ x => 1 ], [ y => 1 ], [ z => 1 ] );
-            $iv->drop_all({ maxTimeMS => 5000 });
-        },
-        undef,
-        'no timeout for index drop',
-    );
 };
 
 subtest 'handling duplicates' => sub {
