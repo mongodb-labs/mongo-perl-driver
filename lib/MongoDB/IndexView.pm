@@ -173,6 +173,12 @@ direction/type.
 See L</create_many> for important information about index specifications
 and options.
 
+The following additional options are recognized:
+
+=for :list
+* C<maxTimeMS> — maximum time in milliseconds before the operation will
+  time out.
+
 =cut
 
 my $create_one_args;
