@@ -252,17 +252,6 @@ sub _build_is_writable {
     return !! grep { $type eq $_ } qw/Standalone RSPrimary Mongos/;
 }
 
-# using a sub instead of attribute, as the timeout can change during runtime
-sub is_retry_write_supported {
-    my ( $self ) = @_;
-
-    # shortcut return using boolean logic
-    return 0 unless ( $self->is_master->{maxWireVersion} >= 6 )
-                   && defined( $self->logical_session_timeout_minutes )
-                   && ( $self->type ne 'Standalone' );
-    return 1;
-}
-
 has is_data_bearing => (
     is => 'lazy',
     isa => Bool,

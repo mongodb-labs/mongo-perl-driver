@@ -24,6 +24,7 @@ use MongoDB::Error;
 
 use Moo;
 use UUID::URandom;
+use Math::BigInt;
 use MongoDB::BSON::Binary;
 use MongoDB::_Types qw(
     Document
@@ -91,7 +92,7 @@ has transaction_id => (
     is => 'rwp',
     init_arg => undef,
     isa => Int,
-    default => sub { 0 },
+    default => sub { Math::BigInt->new('0') },
 );
 
 =method update_last_use

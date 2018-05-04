@@ -422,7 +422,7 @@ sub insert_many {
     MongoDB::UsageError->throw("documents argument must be an array reference")
       unless ref( $_[1] ) eq 'ARRAY';
 
-    my $res = $_[0]->client->send_write_op(
+    my $res = $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_BulkWrite->_new(
             # default
             ordered => 1,
@@ -475,7 +475,7 @@ sub delete_one {
     MongoDB::UsageError->throw("filter argument must be a reference")
       unless ref( $_[1] );
 
-    return $_[0]->client->send_write_op(
+    return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_Delete->_new(
             session => $_[0]->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
@@ -557,7 +557,7 @@ sub replace_one {
     MongoDB::UsageError->throw("filter and replace arguments must be references")
       unless ref( $_[1] ) && ref( $_[2] );
 
-    return $_[0]->client->send_write_op(
+    return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_Update->_new(
             session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
@@ -608,7 +608,7 @@ sub update_one {
     MongoDB::UsageError->throw("filter and update arguments must be references")
       unless ref( $_[1] ) && ref( $_[2] );
 
-    return $_[0]->client->send_write_op(
+    return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_Update->_new(
             session => $_[0]->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
@@ -940,7 +940,7 @@ sub find_one_and_delete {
         session       => $session,
     );
 
-    return $self->client->send_write_op($op);
+    return $self->client->send_retryable_write_op($op);
 }
 
 =method find_one_and_replace
@@ -1733,7 +1733,7 @@ sub _find_one_and_update_or_replace {
         %{ $self->_op_args },
     );
 
-    return $self->client->send_write_op($op);
+    return $self->client->send_retryable_write_op($op);
 }
 
 # Extracts a session from a provided hashref, or returns an implicit session

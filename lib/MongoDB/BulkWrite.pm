@@ -280,7 +280,7 @@ sub execute {
         monitoring_callback      => $self->_client->monitoring_callback,
     );
 
-    return $self->_client->send_write_op( $op );
+    return $self->_client->send_retryable_write_op( $op );
 }
 
 #--------------------------------------------------------------------------#

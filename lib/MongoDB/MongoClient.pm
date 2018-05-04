@@ -1667,7 +1667,7 @@ sub send_retryable_write_op {
     my $link = $self->{_topology}->get_writable_link;
 
     # If server doesnt support retryable writes, pretend its not enabled
-    unless ( $link->is_retry_write_supported ) {
+    unless ( $link->supports_retryWrites ) {
         eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
             WITH_ASSERTS ? ( confess $err ) : ( die $err );
@@ -1688,7 +1688,7 @@ sub send_retryable_write_op {
         my $retry_link = $self->{_topology}->get_writable_link;
 
         # Rare chance that the new link is not retryable
-        unless ( $retry_link->is_retry_write_supported ) {
+        unless ( $retry_link->supports_retryWrites ) {
             WITH_ASSERTS ? ( confess $err ) : ( die $err );
         }
 

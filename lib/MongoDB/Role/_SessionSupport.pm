@@ -25,18 +25,7 @@ use MongoDB::_Types -types, 'to_IxHash';
 use Safe::Isa;
 use namespace::clean;
 
-use Types::Standard qw(
-    Bool
-);
-
-requires qw/ session /;
-
-# set during retryable writes on supported operations
-has retryable_write => (
-    is      => 'rw',
-    isa     => Bool,
-    default => 0,
-);
+requires qw/ session retryable_write /;
 
 sub _apply_session_and_cluster_time {
     my ( $self, $link, $query_ref ) = @_;
