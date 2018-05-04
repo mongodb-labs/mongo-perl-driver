@@ -204,6 +204,7 @@ sub _execute_write_command_batch {
             query_flags         => {},
             bson_codec          => $self->bson_codec,
             session             => $self->session,
+            retryable_write     => $self->retryable_write,
             monitoring_callback => $self->monitoring_callback,
         );
 
