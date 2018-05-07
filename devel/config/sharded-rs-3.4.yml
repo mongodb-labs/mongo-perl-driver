@@ -1,0 +1,18 @@
+---
+type: sharded
+default_args: -v --bind_ip 0.0.0.0 --quiet
+default_version: 3.4
+mongoc:
+    - name: config1
+    - name: config2
+    - name: config3
+mongos:
+    - name: router1
+shards:
+    - name: sh1
+      type: replica
+      mongod:
+        - name: host1
+        - name: host2
+        - name: host3
+# vim: ts=4 sts=4 sw=4 et:
