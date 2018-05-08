@@ -422,7 +422,8 @@ sub insert_many {
     MongoDB::UsageError->throw("documents argument must be an array reference")
       unless ref( $_[1] ) eq 'ARRAY';
 
-    my $res = $_[0]->client->send_retryable_write_op(
+    # internally ends up performing a retryable write if possible, see OP::_BulkWrite
+    my $res = $_[0]->client->send_write_op(
         MongoDB::Op::_BulkWrite->_new(
             # default
             ordered => 1,

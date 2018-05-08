@@ -38,6 +38,7 @@ use MongoDB::_Constants;
 use Types::Standard qw(
     ArrayRef
     Bool
+    InstanceOf
 );
 use Safe::Isa;
 use Try::Tiny;
@@ -57,6 +58,12 @@ has ordered => (
     isa      => Bool,
 );
 
+has client => (
+    is => 'ro',
+    required => 1,
+    isa => InstanceOf['MongoDB::MongoClient'],
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
@@ -73,6 +80,46 @@ sub has_collation {
         ( $type eq "update" || $type eq "delete" ) && defined $doc->{collation};
     } @{ $self->queue };
 }
+
+## Encapsulate the write loop for this
+#sub execute {
+#    my ( $self, $link ) = @_;
+#
+#    my $client = $self->client;
+#    # XXX Should I just do the actual write op call in here instead of
+#    # externally for everything? would stop having nested do loops etc....
+#
+#    # If maxWireVersion is >= 6, logicalSessionTimeoutMinutes is present, and
+#    # server is not standalone, we can attempt retryable writes. If not,
+#    # then revert to original method. Also shortcut if retry_writes are
+#    # actually disabled for this client
+#    unless ( $client->retry_writes && $client->_topology->_supports_retry_writes ) {
+#        return $self->_legacy_execute( $link );
+#    }
+#    return $self->_legacy_execute( $link );
+#    # So the original usage method for this is to do $op->execute, however this
+#    # has its own looping thing, and we need to be able to encapsulate all that
+#    # in a retryable write. So, move the looping part up a level (to this sub
+#    # for now) and then see if everything doesnt explode. As execute et.al
+#    # still requires a link, this will be looped here instead of in
+#    # _execute_write_command_batch, or legacy_batch.
+#
+#    my $result = MongoDB::BulkWriteResult->_new(
+#        modified_count       => 0,
+#        write_errors         => [],
+#        write_concern_errors => [],
+#        op_count             => 0,
+#        batch_count          => 0,
+#        inserted_count       => 0,
+#        upserted_count       => 0,
+#        matched_count        => 0,
+#        deleted_count        => 0,
+#        upserted             => [],
+#        inserted             => [],
+#    );
+#
+#
+#}
 
 sub execute {
     my ( $self, $link ) = @_;
@@ -165,7 +212,6 @@ sub _execute_write_command_batch {
 
     while (@left_to_send) {
         my $chunk = shift @left_to_send;
-
         # for update/insert, pre-encode docs as they need custom BSON handling
         # that can't be applied to an entire write command at once
         if ( $cmd eq 'update' ) {
@@ -215,6 +261,7 @@ sub _execute_write_command_batch {
             $self->client->send_retryable_write_op( $op );
         }
         catch {
+          # This error never touches the database!.... so is before any retryable writes errors etc.
             if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
                 if ( @$chunk == 1 ) {
                     MongoDB::DocumentError->throw(
@@ -226,6 +273,7 @@ sub _execute_write_command_batch {
                     unshift @left_to_send, $self->_split_chunk( $chunk, $_->size );
                 }
             }
+            # Put retryable writes catches... no not here... damn... ermm...  oh. Could increment transaction id at the beginning before the loop, then after the redo increment again. Then it wont get caught? hmm.... food
             else {
                 die $_;
             }

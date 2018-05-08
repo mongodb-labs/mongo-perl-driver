@@ -268,6 +268,7 @@ sub execute {
     my $session = $self->collection->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_BulkWrite->_new(
+        client                   => $self->_client,
         db_name                  => $self->_database->name,
         coll_name                => $self->collection->name,
         full_name                => $self->collection->full_name,
@@ -280,7 +281,8 @@ sub execute {
         monitoring_callback      => $self->_client->monitoring_callback,
     );
 
-    return $self->_client->send_retryable_write_op( $op );
+    # Op::_BulkWrite internally does retryable writes
+    return $self->_client->send_write_op( $op );
 }
 
 #--------------------------------------------------------------------------#

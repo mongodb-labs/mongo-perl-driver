@@ -59,11 +59,17 @@ sub run_test {
 
     my $func_name = 'do_' . $method;
 
-    if ( exists $test->{outcome}->{result} ) {
-        my $ret = main->$func_name( $coll, $op->{arguments} );
+    my $ret = eval { main->$func_name( $coll, $op->{arguments} ) };
+    my $err = $@;
 
-        Dwarn $ret;
-        Dwarn $test->{outcome};
+    if ( exists $test->{outcome}->{error} && $test->{outcome}->{error} ) {
+        ok $err, 'Exception occured';
+    }
+
+    if ( !exists $test->{outcome}{error} && exists $test->{outcome}->{result} ) {
+
+        #Dwarn $ret;
+        #Dwarn $test->{outcome};
         for my $res_key ( keys %{ $test->{outcome}->{result} } ) {
             next if $res_key eq 'upsertedCount' && ! $ret->can('upserted_count'); # Driver does not parse this value on all things?
             # next if $res_key eq 'upsertedId' && ! defined $ret->upserted_id; # upserted id is always present
@@ -90,10 +96,6 @@ sub run_test {
 
             is $ret->{$ret_key}, $res, "$res_key correct in result";
         }
-    }
-
-    if ( exists $test->{outcome}->{error} && $test->{outcome}->{error} ) {
-        ok exception { main->$func_name( $coll, $op->{arguments} ) }, 'Exception occured';
     }
 
     my @coll_outcome = $coll->find()->all;
@@ -157,7 +159,6 @@ sub do_find_one_and_delete {
 
 sub do_bulk_write {
     my ( $self, $coll, $args ) = @_;
-    #DwarnN $args;
     my $options = {
       (  defined $args->{options}
       && defined $args->{options}->{ordered}
@@ -187,7 +188,6 @@ sub do_bulk_write {
             ] };
         }
     }
-    DwarnN \@arguments;
     return $coll->bulk_write( \@arguments, $options );
 }
 

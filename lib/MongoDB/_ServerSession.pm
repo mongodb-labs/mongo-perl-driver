@@ -91,7 +91,6 @@ retrying transactions in the correct order.
 has transaction_id => (
     is => 'rwp',
     init_arg => undef,
-    isa => Int,
     default => sub { Math::BigInt->new('0') },
 );
 
@@ -124,7 +123,7 @@ sub _is_expiring {
 
 sub _increment_transaction_id {
     my $self = shift;
-    $self->_set_transaction_id( $self->transaction_id + 1 );
+    $self->transaction_id->binc();
 }
 
 1;
