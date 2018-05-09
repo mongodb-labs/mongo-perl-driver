@@ -38,13 +38,13 @@ has bypassDocumentValidation => (
     isa => Bool
 );
 
-# args not unpacked for efficiency; args are self, link, command;
-# returns (unmodified) link and command
+# args not unpacked for efficiency; args are self, validation supported
+# flag, original command; returns (possibly modified) command
 sub _maybe_bypass {
     push @{ $_[2] },
       bypassDocumentValidation => ( $_[0]->bypassDocumentValidation ? true : false )
-      if defined $_[0]->bypassDocumentValidation && $_[1]->accepts_wire_version(4);
-    return $_[1], $_[2];
+      if $_[1] && defined $_[0]->bypassDocumentValidation;
+    return $_[2];
 }
 
 1;

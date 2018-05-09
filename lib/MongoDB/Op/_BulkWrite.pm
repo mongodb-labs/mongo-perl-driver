@@ -160,6 +160,9 @@ sub _execute_write_command_batch {
 
     my @left_to_send = ($docs);
 
+    my $max_bson_size = $link->max_bson_object_size;
+    my $supports_doc_validation = $link->supports_doc_validation;
+
     while (@left_to_send) {
         my $chunk = shift @left_to_send;
 
@@ -173,7 +176,7 @@ sub _execute_write_command_batch {
             for ( my $i = 0; $i <= $#$chunk; $i++ ) {
                 next if ref( $chunk->[$i]{u} ) eq 'MongoDB::BSON::_EncodedDoc';
                 my $is_replace = delete $chunk->[$i]{is_replace};
-                $chunk->[$i]{u} = $self->_pre_encode_update( $link->max_bson_object_size, $chunk->[$i]{u}, $is_replace );
+                $chunk->[$i]{u} = $self->_pre_encode_update( $max_bson_size, $chunk->[$i]{u}, $is_replace );
             }
         }
         elsif ( $cmd eq 'insert' ) {
@@ -182,7 +185,7 @@ sub _execute_write_command_batch {
             # split, check if the doc is already encoded
             for ( my $i = 0; $i <= $#$chunk; $i++ ) {
                 unless ( ref( $chunk->[$i] ) eq 'MongoDB::BSON::_EncodedDoc' ) {
-                    $chunk->[$i] = $self->_pre_encode_insert( $link, $chunk->[$i], '.' );
+                    $chunk->[$i] = $self->_pre_encode_insert( $max_bson_size, $chunk->[$i], '.' );
                 };
             }
         }
@@ -195,7 +198,7 @@ sub _execute_write_command_batch {
         ];
 
         if ( $cmd eq 'insert' || $cmd eq 'update' ) {
-            (undef, $cmd_doc) = $self->_maybe_bypass($link, $cmd_doc);
+            $cmd_doc = $self->_maybe_bypass( $supports_doc_validation, $cmd_doc );
         }
 
         my $op = MongoDB::Op::_Command->_new(

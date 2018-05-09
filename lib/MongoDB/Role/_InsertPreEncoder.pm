@@ -35,7 +35,7 @@ requires qw/bson_codec/;
 # takes MongoDB::_Link and ref of type Document; returns
 # blessed BSON encode doc and the original/generated _id
 sub _pre_encode_insert {
-    my ( $self, $link, $doc, $invalid_chars ) = @_;
+    my ( $self, $max_bson_size, $doc, $invalid_chars ) = @_;
 
     my $type = ref($doc);
 
@@ -60,7 +60,7 @@ sub _pre_encode_insert {
         $doc,
         {
             invalid_chars => $invalid_chars,
-            max_length    => $link->max_bson_object_size,
+            max_length    => $max_bson_size,
             first_key     => '_id',
             first_value   => $id,
         }
