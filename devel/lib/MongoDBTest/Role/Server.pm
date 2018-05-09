@@ -214,6 +214,7 @@ sub _build_tempdir {
     return Path::Tiny->tempdir(
         TEMPLATE => $self->name . "-XXXXXX",
         ($ENV{DATA_DIR} ? (DIR => $ENV{DATA_DIR}) : ()),
+        ($ENV{MONGO_PRESERVE} ? (CLEANUP => 0) : ()),
     );
 }
 
