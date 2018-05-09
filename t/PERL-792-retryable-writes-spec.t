@@ -22,32 +22,29 @@ use Test::More 0.88;
 use Test::Fatal;
 
 use lib "t/lib";
-use lib "devel/lib";
-
-use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
-
-use MongoDBTest::Orchestrator;
 
 use MongoDBTest qw/
     build_client
     get_test_db
     clear_testdbs
     get_unique_collection
+    server_version
+    server_type
     check_min_server_version
+    get_feature_compat_version
 /;
-
-my $orc =
-MongoDBTest::Orchestrator->new(
-  config_file => "devel/config/replicaset-multi-3.6.yml" );
-$orc->start;
-
-$ENV{MONGOD} = $orc->as_uri;
-diag $ENV{MONGOD};
 
 my $conn           = build_client(retry_writes => 1);
 my $testdb         = get_test_db($conn);
+my $server_version = server_version($conn);
+my $server_type    = server_type($conn);
+my $feat_compat_ver = get_feature_compat_version($conn);
 
-use Devel::Dwarn;
+plan skip_all => "standalone servers dont support retryableWrites"
+    if $server_type eq 'Standalone';
+
+plan skip_all => "retryableWrites requires featureCompatibilityVersion 3.6 - got $feat_compat_ver"
+    if ( $feat_compat_ver < 3.6 );
 
 sub run_test {
     my ( $coll, $test ) = @_;
@@ -223,8 +220,6 @@ while ( my $path = $iterator->() ) {
     if ($@) {
         die "Error decoding $path: $@";
     }
-
-    next unless $path =~ /bulkWrite/;
 
     subtest $path => sub {
         if ( exists $plan->{minServerVersion} ) {

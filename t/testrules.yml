@@ -5,4 +5,5 @@ seq:
     - seq: t/using_profiler.t
     - seq: t/changestreams.t
     - seq: t/examples/changestream.t
+    - seq: t/PERL-792-retryable-writes-spec.t
     - par: **
