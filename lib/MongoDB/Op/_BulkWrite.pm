@@ -212,7 +212,7 @@ sub _execute_write_command_batch {
         );
 
         my $cmd_result = try {
-            $op->execute($link)
+            $self->client->send_retryable_write_op( $op );
         }
         catch {
             if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
@@ -223,7 +223,7 @@ sub _execute_write_command_batch {
                     );
                 }
                 else {
-                    unshift @left_to_send, $self->_split_chunk( $link, $chunk, $_->size );
+                    unshift @left_to_send, $self->_split_chunk( $chunk, $_->size );
                 }
             }
             else {
@@ -256,7 +256,7 @@ sub _execute_write_command_batch {
 }
 
 sub _split_chunk {
-    my ( $self, $link, $chunk, $size ) = @_;
+    my ( $self, $chunk, $size ) = @_;
 
     my $avg_cmd_size       = $size / @$chunk;
     my $new_cmds_per_chunk = int( MAX_BSON_WIRE_SIZE / $avg_cmd_size );
