@@ -107,7 +107,7 @@ subtest "run_command" => sub {
         $ok &&= ok( defined $last_failure->{requestId}, "requestId" );
         $ok &&= ok( $last_failure->{durationSecs} > 0, "duration" );
         $ok &&= like( $last_failure->{connectionId}, qr/^[^:]+:\d+$/, "connectionId" );
-        $ok &&= like( $last_failure->{failure}, qr/no such command/i, "failure" );
+        $ok &&= like( $last_failure->{failure}, qr/no such (?:command|cmd)|command not found/i, "failure" );
         $ok &&= isa_ok( $last_failure->{reply}, 'HASH', "reply");
         diag explain $last_failure unless $ok;
     };
