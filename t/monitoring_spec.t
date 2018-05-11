@@ -354,6 +354,17 @@ sub check_reply_field {
         }
     }
 
+    # special case for $event.command.cursorsUnknown on killCursors
+    if ($event->{commandName} eq 'killCursors'
+        and defined $exp_reply->{cursorsUnknown}
+    ) {
+        for my $index (0 .. $#{ $exp_reply->{cursorsUnknown} }) {
+            $exp_reply->{cursorsUnknown}[$index]
+                = code(\&_verify_is_positive_num)
+                if $exp_reply->{cursorsUnknown}[$index] eq 42;
+        }
+    }
+
     for my $exp_key (sort keys %$exp_reply) {
         cmp_deeply
             $event_reply->{$exp_key},
@@ -379,6 +390,17 @@ sub check_command_field {
     # special case for $event.command.writeConcern.wtimeout
     if (exists $exp_command->{writeConcern}) {
         $exp_command->{writeConcern}{wtimeout} = ignore();
+    }
+
+    # special case for $event.command.cursors on killCursors
+    if ($event->{commandName} eq 'killCursors'
+        and defined $exp_command->{cursors}
+    ) {
+        for my $index (0 .. $#{ $exp_command->{cursors} }) {
+            $exp_command->{cursors}[$index]
+                = code(\&_verify_is_positive_num)
+                if $exp_command->{cursors}[$index] eq 42;
+        }
     }
 
     for my $exp_key (sort keys %$exp_command) {
