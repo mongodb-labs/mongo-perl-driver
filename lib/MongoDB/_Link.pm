@@ -257,7 +257,7 @@ sub set_metadata {
     $self->_set_supports_collation( $self->accepts_wire_version(5) );
     $self->_set_supports_arrayFilters( $self->accepts_wire_version(6) );
     $self->_set_supports_retryWrites(
-        ( $server->is_master->{maxWireVersion} >= 6 )
+        $self->accepts_wire_version(6)
      && defined( $server->logical_session_timeout_minutes )
      && ( $server->type ne 'Standalone' )
         ? 1
