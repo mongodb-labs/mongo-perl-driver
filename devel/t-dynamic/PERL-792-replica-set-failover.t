@@ -37,12 +37,19 @@ use MongoDBTest qw/
     get_feature_compat_version
 /;
 
+my @events;
+
+sub clear_events { @events = () }
+sub event_count { scalar @events }
+sub event_cb { push @events, $_[0] }
+
 my $conn = build_client(
     retry_writes => 1,
     heartbeat_frequency_ms => 60 * 1000,
     # build client modifies this so we set it explicitly to the default
     server_selection_timeout_ms => 30 * 1000,
     server_selection_try_once => 0,
+    monitoring_callback => \&event_cb,
 );
 my $testdb         = get_test_db($conn);
 my $coll = get_unique_collection( $testdb, 'retry_failover' );
@@ -55,8 +62,6 @@ plan skip_all => "standalone servers dont support retryableWrites"
 
 plan skip_all => "retryableWrites requires featureCompatibilityVersion 3.6 - got $feat_compat_ver"
     if ( $feat_compat_ver < 3.6 );
-
-use Devel::Dwarn;
 
 my $primary = $conn->_topology->current_primary;
 
@@ -87,10 +92,45 @@ eval {
 my $err = $@;
 isa_ok( $err, 'MongoDB::NetworkError', 'Step down successfully errored' );
 
-# TODO assert that it failed once first
+clear_events();
+
 my $post_stepdown_ret = $coll->insert_one( { _id => 2, test => 'again' } );
 
 is $post_stepdown_ret->inserted_id, 2, 'write succeeded';
+
+# All this is to make sure we dont make assumptions on position of the actual
+# event, just that the failed one comes first.
+my $first_insert_index;
+
+for my $f_idx ( 0 .. $#events ) {
+    my $event = $events[ $f_idx ];
+    if ( $event->{ commandName } eq 'insert'
+      && $event->{ type } eq 'command_started' ) {
+        my $next_event = $events[ $f_idx + 1 ];
+        is $next_event->{ commandName }, 'insert', 'found insert reply';
+        is $next_event->{ type }, 'command_failed', 'found failed reply';
+        $first_insert_index = $f_idx;
+        last;
+    }
+}
+
+ok defined( $first_insert_index ), 'found first command';
+
+my $second_insert_index;
+
+for my $s_idx ( $first_insert_index + 2 .. $#events ) {
+    my $event = $events[ $s_idx ];
+    if ( $event->{ commandName } eq 'insert'
+      && $event->{ type } eq 'command_started' ) {
+        my $next_event = $events[ $s_idx + 1 ];
+        is $next_event->{ commandName }, 'insert', 'found insert reply';
+        is $next_event->{ type }, 'command_succeeded', 'found success reply';
+        $second_insert_index = $s_idx;
+        last;
+    }
+}
+
+ok defined( $second_insert_index ), 'found second command';
 
 $fail_conn->send_admin_command([
     configureFailPoint => 'onPrimaryTransactionalWrite',
