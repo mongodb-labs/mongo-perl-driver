@@ -26,7 +26,6 @@ use boolean;
 
 use MongoDB;
 use MongoDB::Error;
-use Authen::SASL::SASLprep qw/saslprep/;
 
 use lib "t/lib";
 use lib "devel/lib";
@@ -97,7 +96,8 @@ $ENV{MONGOD} = $orc->as_uri;
 
 my $uri = MongoDB::_URI->new( uri => $ENV{MONGOD} );
 my $no_auth_string = "mongodb://" . $uri->hostids->[0];
-my $unprepped_string = "\x{2168}";    # ROMAN NUMERAL NINE -> prepped is "IX"
+my $roman_four = "\x{2163}"; # ROMAN NUMERAL FOUR -> prepped is "IV"
+my $roman_nine = "\x{2168}"; # ROMAN NUMERAL NINE -> prepped is "IX"
 my $admin_client     = build_client();
 my $testdb = get_test_db($admin_client);
 
@@ -113,14 +113,18 @@ sub _options_to_uri {
 }
 
 my %users = (
-    sha1              => [ 'pwd',             ['SCRAM-SHA-1'] ],
-    $unprepped_string => [ $unprepped_string, ['SCRAM-SHA-256'] ],
-    both              => [ 'pwd',             [ 'SCRAM-SHA-1', 'SCRAM-SHA-256' ] ],
+    # Test steps 1-3
+    sha1        => [ 'sha1',      ['SCRAM-SHA-1'] ],
+    sha256      => [ 'sha256',    ['SCRAM-SHA-256'] ],
+    both        => [ 'both',      [ 'SCRAM-SHA-1', 'SCRAM-SHA-256' ] ],
+    # Test step 4 ( extra array ref are alternate passwd forms )
+    IX          => [ 'IX',        ['SCRAM-SHA-256'], ["I\x{00AD}X"] ],
+    $roman_nine => [ $roman_four, ['SCRAM-SHA-256'], ["I\x{00AD}V"] ],
 );
 
 for my $user ( sort keys %users ) {
-    my ( $pwd, $mechs ) = @{ $users{$user} };
-    create_user( $testdb, saslprep($user), $pwd, $mechs );
+    my ( $pwd, $mechs, undef ) = @{ $users{$user} };
+    create_user( $testdb, $user, $pwd, $mechs );
 }
 
 subtest "no authentication" => sub {
@@ -152,36 +156,42 @@ subtest "invalid user" => sub {
 };
 
 for my $user ( sort keys %users ) {
-    subtest "auth user $user" => sub {
-        my @options = (
-            host     => $no_auth_string,
-            username => $user,
-            password => $users{$user}[0],
-            db_name  => $testdb->name,
-            dt_type  => undef,
-        );
+    my @pwds = ( $users{$user}[0] );
+    push @pwds, @{$users{$user}[2]}
+        if $users{$user}[2];
 
-        my $user_has_mech = { map { $_ => 1 } @{ $users{$user}[1] } };
+    for my $pass ( @pwds ) {
+        subtest "auth user $user, pwd $pass" => sub {
+            my @options = (
+                host     => $no_auth_string,
+                username => $user,
+                password => $pass,
+                db_name  => $testdb->name,
+                dt_type  => undef,
+            );
 
-        # auth with explicit mechanisms
-        for my $mech (qw/SCRAM-SHA-1 SCRAM-SHA-256/) {
-            if ( $user_has_mech->{$mech} ) {
-                auth_ok( "auth via $mech", $testdb->name, @options, auth_mechanism => $mech );
-                is( $scram_args[-1], $mech, "correct internal call for $mech" );
+            my $user_has_mech = { map { $_ => 1 } @{ $users{$user}[1] } };
+
+            # auth with explicit mechanisms
+            for my $mech (qw/SCRAM-SHA-1 SCRAM-SHA-256/) {
+                if ( $user_has_mech->{$mech} ) {
+                    auth_ok( "auth via $mech", $testdb->name, @options, auth_mechanism => $mech );
+                    is( $scram_args[-1], $mech, "correct internal call for $mech" );
+                }
+                else {
+                    auth_not_ok( "auth via $mech", $testdb->name, @options, auth_mechanism => $mech );
+                }
             }
-            else {
-                auth_not_ok( "auth via $mech", $testdb->name, @options, auth_mechanism => $mech );
-            }
-        }
 
-        # auth with negotiation
-        auth_ok( "auth via negotiation", $testdb->name, @options );
-        my $expected_mech =
-          ( grep { $_ eq 'SCRAM-SHA-256' } @{ $users{$user}[1] } )
-          ? 'SCRAM-SHA-256'
-          : 'SCRAM-SHA-1';
-        is( $scram_args[-1], $expected_mech, "correct internal call for negotiated mech" );
-    };
+            # auth with negotiation
+            auth_ok( "auth via negotiation", $testdb->name, @options );
+            my $expected_mech =
+            ( grep { $_ eq 'SCRAM-SHA-256' } @{ $users{$user}[1] } )
+            ? 'SCRAM-SHA-256'
+            : 'SCRAM-SHA-1';
+            is( $scram_args[-1], $expected_mech, "correct internal call for negotiated mech" );
+        };
+    }
 }
 
 clear_testdbs;

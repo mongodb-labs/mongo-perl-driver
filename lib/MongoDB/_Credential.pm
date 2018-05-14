@@ -129,11 +129,13 @@ sub _build__scram_sha256_client {
     # modules
     require Authen::SCRAM::Client;
     Authen::SCRAM::Client->VERSION(0.007);
+    require Authen::SASL::SASLprep;
     return Authen::SCRAM::Client->new(
         username                => $self->username,
-        password                => $self->password,
+        password                => Authen::SASL::SASLprep::saslprep($self->password),
         digest                  => 'SHA-256',
         minimum_iteration_count => 4096,
+        skip_saslprep           => 1,
     );
 }
 
