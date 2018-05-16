@@ -25,6 +25,9 @@ use Test::Fatal;
 use boolean;
 
 use lib "t/lib";
+use lib "devel/lib";
+
+use MongoDBTest::Orchestrator; 
 
 use MongoDBTest qw/
     build_client
@@ -36,6 +39,13 @@ use MongoDBTest qw/
     check_min_server_version
     get_feature_compat_version
 /;
+
+my $orc =
+MongoDBTest::Orchestrator->new(
+  config_file => "devel/config/replicaset-multi-3.6.yml" );
+$orc->start;
+
+$ENV{MONGOD} = $orc->as_uri;
 
 my @events;
 
@@ -136,5 +146,7 @@ $fail_conn->send_admin_command([
     configureFailPoint => 'onPrimaryTransactionalWrite',
     mode => 'off',
 ]);
+
+clear_testdbs;
 
 done_testing;
