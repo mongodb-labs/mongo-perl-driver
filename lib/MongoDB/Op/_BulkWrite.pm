@@ -71,7 +71,13 @@ with $_ for qw(
   MongoDB::Role::_UpdatePreEncoder
   MongoDB::Role::_InsertPreEncoder
   MongoDB::Role::_BypassValidation
+  MongoDB::Role::_RetryableBulk
 );
+
+sub _is_retryable {
+    my $self = shift;
+    return $self->write_concern->is_acknowledged && $self->_retryable;
+}
 
 sub has_collation {
     my $self = shift;
@@ -258,7 +264,9 @@ sub _execute_write_command_batch {
         );
 
         my $cmd_result = try {
-            $self->client->send_retryable_write_op( $op );
+            $self->_is_retryable
+              ? $self->client->send_retryable_write_op( $op )
+              : $self->client->send_write_op( $op );
         }
         catch {
           # This error never touches the database!.... so is before any retryable writes errors etc.

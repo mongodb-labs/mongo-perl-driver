@@ -432,6 +432,8 @@ sub insert_many {
             ( defined $_[2] ? ( %{ $_[2] } ) : () ),
             # un-overridable
             queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
+            # insert_many is specifically retryable (PERL-792)
+            _retryable => 1,
             %{ $_[0]->_op_args },
         )
     );
@@ -941,7 +943,9 @@ sub find_one_and_delete {
         session       => $session,
     );
 
-    return $self->client->send_retryable_write_op($op);
+    return $self->write_concern->is_acknowledged
+      ? $self->client->send_retryable_write_op( $op )
+      : $self->client->send_write_op( $op );
 }
 
 =method find_one_and_replace
@@ -1648,6 +1652,7 @@ sub bulk_write {
             }
             elsif ( $method eq 'delete_many' ) {
                 $view->delete_many;
+                $bulk->_retryable( 0 );
                 next;
             }
 
@@ -1663,6 +1668,7 @@ sub bulk_write {
             }
             elsif ( $method eq 'update_many' ) {
                 $view->update_many($update_doc);
+                $bulk->_retryable( 0 );
             }
             else {
                 MongoDB::UsageError->throw("unknown bulk operation '$method'");
@@ -1734,7 +1740,9 @@ sub _find_one_and_update_or_replace {
         %{ $self->_op_args },
     );
 
-    return $self->client->send_retryable_write_op($op);
+    return $self->write_concern->is_acknowledged
+      ? $self->client->send_retryable_write_op( $op )
+      : $self->client->send_write_op( $op );
 }
 
 # Extracts a session from a provided hashref, or returns an implicit session

@@ -126,6 +126,9 @@ sub _update {
         $doc = Tie::IxHash->new(%$doc);
     }
 
+    $self->_bulk->_retryable( 0 ) if $method eq 'update_many';
+    $self->_bulk->_retryable( 0 ) if $method eq 'delete_many';
+
     my $update = {
         q      => $self->_query,
         u      => $doc,

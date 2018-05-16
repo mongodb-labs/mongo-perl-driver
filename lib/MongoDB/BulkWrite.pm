@@ -123,6 +123,7 @@ sub _build__client {
 
 with $_ for qw(
   MongoDB::Role::_DeprecationWarner
+  MongoDB::Role::_RetryableBulk
 );
 
 =method find
@@ -279,6 +280,7 @@ sub execute {
         write_concern            => $write_concern,
         session                  => $session,
         monitoring_callback      => $self->_client->monitoring_callback,
+        _retryable               => $self->_retryable,
     );
 
     # Op::_BulkWrite internally does retryable writes

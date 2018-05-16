@@ -88,9 +88,10 @@ sub get_test_db {
 }
 
 sub get_unique_collection {
-    my ( $db, $prefix ) = @_;
+    my ( $db, $prefix, $opts ) = @_;
     return $db->get_collection(
-        sprintf( '%s_%d_%d', $prefix, time(), int(rand(999999)) )
+        sprintf( '%s_%d_%d', $prefix, time(), int(rand(999999)) ),
+        $opts
     );
 }
 
