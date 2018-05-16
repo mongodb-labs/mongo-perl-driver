@@ -122,6 +122,13 @@ has does_write_commands => (
     isa => Bool,
 );
 
+# wire version 4
+has supports_doc_validation => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
 # for caching wire version >= 5
 has supports_collation => (
     is => 'rwp',
@@ -130,6 +137,12 @@ has supports_collation => (
 );
 
 has supports_arrayFilters => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_retryWrites => (
     is => 'rwp',
     init_arg => undef,
     isa => Bool,
@@ -240,8 +253,16 @@ sub set_metadata {
           || 2 * $self->max_bson_object_size );
 
     $self->_set_does_write_commands( $self->accepts_wire_version(2) );
+    $self->_set_supports_doc_validation( $self->accepts_wire_version(4) );
     $self->_set_supports_collation( $self->accepts_wire_version(5) );
     $self->_set_supports_arrayFilters( $self->accepts_wire_version(6) );
+    $self->_set_supports_retryWrites(
+        $self->accepts_wire_version(6)
+     && defined( $server->logical_session_timeout_minutes )
+     && ( $server->type ne 'Standalone' )
+        ? 1
+        : 0
+    );
 
     return;
 }

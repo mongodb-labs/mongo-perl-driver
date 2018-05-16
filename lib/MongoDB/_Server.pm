@@ -138,7 +138,7 @@ for my $s (qw/hosts passives arbiters/) {
         builder => "_build_$s",
     );
 
-    no strict 'refs';
+    no strict 'refs'; ## no critic
     *{"_build_$s"} = sub {
         [ map { lc $_ } ( @{ $_[0]->is_master->{$s} || [] } ) ];
     };

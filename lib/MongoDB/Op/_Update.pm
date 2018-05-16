@@ -123,56 +123,62 @@ sub execute {
         ( defined $self->arrayFilters ? ( arrayFilters => $self->arrayFilters ) : () ),
     };
 
-    return ! $self->write_concern->is_acknowledged
-      ? (
-        $self->_send_legacy_op_noreply(
-            $link,
-            MongoDB::_Protocol::write_update(
-                $self->full_name,
-                $self->bson_codec->encode_one( $orig_op->{q}, { invalid_chars => '' } ),
-                $orig_op->{u}->{bson},
-                {
-                    upsert => $orig_op->{upsert},
-                    multi  => $orig_op->{multi},
-                },
-            ),
-            $orig_op,
-            "MongoDB::UpdateResult",
-            "update",
-        )
-      )
-      : $link->does_write_commands
-      ? (
-        $self->_send_write_command(
-            $self->_maybe_bypass(
-                $link,
-                [
-                    update  => $self->coll_name,
-                    updates => [ $orig_op ],
-                    @{ $self->write_concern->as_args },
+    return $self->_send_legacy_op_noreply(
+        $link,
+        MongoDB::_Protocol::write_update(
+            $self->full_name,
+            $self->bson_codec->encode_one( $orig_op->{q}, { invalid_chars => '' } ),
+            $self->_pre_encode_update( $link->max_bson_object_size,
+                $orig_op->{u}, $self->is_replace )->{bson},
+            {
+                upsert => $orig_op->{upsert},
+                multi  => $orig_op->{multi},
+            },
+        ),
+        $orig_op,
+        "MongoDB::UpdateResult",
+        "update",
+    ) if !$self->write_concern->is_acknowledged;
+
+    return $self->_send_write_command(
+        $link,
+        $self->_maybe_bypass(
+            $link->supports_doc_validation,
+            [
+                update  => $self->coll_name,
+                updates => [
+                    {
+                        %$orig_op,
+                        u => $self->_pre_encode_update(
+                            $link->max_bson_object_size,
+                            $orig_op->{u}, $self->is_replace
+                        ),
+                    }
                 ],
-            ),
-            $orig_op,
-            "MongoDB::UpdateResult"
-        )->assert
-      )
-      : (
-        $self->_send_legacy_op_with_gle(
-            $link,
-            MongoDB::_Protocol::write_update(
-                $self->full_name,
-                $self->bson_codec->encode_one( $orig_op->{q}, { invalid_chars => '' } ),
-                $orig_op->{u}->{bson},
-                {
-                    upsert => $orig_op->{upsert},
-                    multi  => $orig_op->{multi},
-                },
-            ),
-            $orig_op,
-            "MongoDB::UpdateResult",
-            "update",
-        )->assert
-      );
+                @{ $self->write_concern->as_args },
+            ],
+        ),
+        $orig_op,
+        "MongoDB::UpdateResult"
+      )->assert
+      if $link->does_write_commands;
+
+    return $self->_send_legacy_op_with_gle(
+        $link,
+        MongoDB::_Protocol::write_update(
+            $self->full_name,
+            $self->bson_codec->encode_one( $orig_op->{q}, { invalid_chars => '' } ),
+            $self->_pre_encode_update( $link->max_bson_object_size,
+                $orig_op->{u}, $self->is_replace )->{bson},
+            {
+                upsert => $orig_op->{upsert},
+                multi  => $orig_op->{multi},
+            },
+        ),
+        $orig_op,
+        "MongoDB::UpdateResult",
+        "update",
+    )->assert;
 }
 
 sub _parse_cmd {

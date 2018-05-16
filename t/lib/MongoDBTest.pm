@@ -39,6 +39,7 @@ our @EXPORT_OK = qw(
     uri_escape
     get_unique_collection
     get_feature_compat_version
+    check_min_server_version
     uuid_to_string
 );
 
@@ -87,9 +88,10 @@ sub get_test_db {
 }
 
 sub get_unique_collection {
-    my ( $db, $prefix ) = @_;
+    my ( $db, $prefix, $opts ) = @_;
     return $db->get_collection(
-        sprintf( '%s_%d_%d', $prefix, time(), int(rand(999999)) )
+        sprintf( '%s_%d_%d', $prefix, time(), int(rand(999999)) ),
+        $opts
     );
 }
 
@@ -152,6 +154,18 @@ sub server_version {
     my $build = $conn->send_admin_command( [ buildInfo => 1 ] )->output;
     my ($version_str) = $build->{version} =~ m{^([0-9.]+)};
     return version->parse("v$version_str");
+}
+
+sub check_min_server_version {
+    my ( $conn, $min_version ) = @_;
+    $min_version = "v$min_version" unless $min_version =~ /^v/;
+    $min_version .= ".0" unless $min_version =~ /^v\d+\.\d+.\d+$/;
+    $min_version = version->new($min_version);
+    my $server_version = server_version( $conn );
+    if ( $min_version > $server_version ) {
+        return 1;
+    }
+    return 0;
 }
 
 sub server_type {

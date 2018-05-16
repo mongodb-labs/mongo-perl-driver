@@ -1,5 +1,5 @@
 #
-#  Copyright 2015 MongoDB, Inc.
+#  Copyright 2016 MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 use strict;
 use warnings;
-package MongoDB::Role::_BypassValidation;
+package MongoDB::Role::_RetryableBulk;
 
-# MongoDB interface for optionally applying bypassDocumentValidation
-# to a command
+# MongoDB role for retryable bulk commands. Stores a flag, and things that operate on collections and need
+# collection name (and possibly full-name for legacy operation)
 
 use version;
 our $VERSION = 'v1.999.0';
@@ -27,24 +27,13 @@ our $VERSION = 'v1.999.0';
 use Moo::Role;
 
 use Types::Standard qw(
-  Bool
-);
-use boolean;
-
-use namespace::clean;
-
-has bypassDocumentValidation => (
-    is  => 'ro',
-    isa => Bool
+    Bool
 );
 
-# args not unpacked for efficiency; args are self, validation supported
-# flag, original command; returns (possibly modified) command
-sub _maybe_bypass {
-    push @{ $_[2] },
-      bypassDocumentValidation => ( $_[0]->bypassDocumentValidation ? true : false )
-      if $_[1] && defined $_[0]->bypassDocumentValidation;
-    return $_[2];
-}
+has _retryable => (
+    is => 'rw',
+    isa => Bool,
+    default => 1,
+);
 
 1;

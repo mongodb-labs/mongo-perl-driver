@@ -38,6 +38,7 @@ use MongoDB::_Constants;
 use Types::Standard qw(
     ArrayRef
     Bool
+    InstanceOf
 );
 use Safe::Isa;
 use Try::Tiny;
@@ -57,6 +58,12 @@ has ordered => (
     isa      => Bool,
 );
 
+has client => (
+    is => 'ro',
+    required => 1,
+    isa => InstanceOf['MongoDB::MongoClient'],
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
@@ -64,7 +71,13 @@ with $_ for qw(
   MongoDB::Role::_UpdatePreEncoder
   MongoDB::Role::_InsertPreEncoder
   MongoDB::Role::_BypassValidation
+  MongoDB::Role::_RetryableBulk
 );
+
+sub _is_retryable {
+    my $self = shift;
+    return $self->write_concern->is_acknowledged && $self->_retryable;
+}
 
 sub has_collation {
     my $self = shift;
@@ -73,6 +86,46 @@ sub has_collation {
         ( $type eq "update" || $type eq "delete" ) && defined $doc->{collation};
     } @{ $self->queue };
 }
+
+## Encapsulate the write loop for this
+#sub execute {
+#    my ( $self, $link ) = @_;
+#
+#    my $client = $self->client;
+#    # XXX Should I just do the actual write op call in here instead of
+#    # externally for everything? would stop having nested do loops etc....
+#
+#    # If maxWireVersion is >= 6, logicalSessionTimeoutMinutes is present, and
+#    # server is not standalone, we can attempt retryable writes. If not,
+#    # then revert to original method. Also shortcut if retry_writes are
+#    # actually disabled for this client
+#    unless ( $client->retry_writes && $client->_topology->_supports_retry_writes ) {
+#        return $self->_legacy_execute( $link );
+#    }
+#    return $self->_legacy_execute( $link );
+#    # So the original usage method for this is to do $op->execute, however this
+#    # has its own looping thing, and we need to be able to encapsulate all that
+#    # in a retryable write. So, move the looping part up a level (to this sub
+#    # for now) and then see if everything doesnt explode. As execute et.al
+#    # still requires a link, this will be looped here instead of in
+#    # _execute_write_command_batch, or legacy_batch.
+#
+#    my $result = MongoDB::BulkWriteResult->_new(
+#        modified_count       => 0,
+#        write_errors         => [],
+#        write_concern_errors => [],
+#        op_count             => 0,
+#        batch_count          => 0,
+#        inserted_count       => 0,
+#        upserted_count       => 0,
+#        matched_count        => 0,
+#        deleted_count        => 0,
+#        upserted             => [],
+#        inserted             => [],
+#    );
+#
+#
+#}
 
 sub execute {
     my ( $self, $link ) = @_;
@@ -160,9 +213,11 @@ sub _execute_write_command_batch {
 
     my @left_to_send = ($docs);
 
+    my $max_bson_size = $link->max_bson_object_size;
+    my $supports_doc_validation = $link->supports_doc_validation;
+
     while (@left_to_send) {
         my $chunk = shift @left_to_send;
-
         # for update/insert, pre-encode docs as they need custom BSON handling
         # that can't be applied to an entire write command at once
         if ( $cmd eq 'update' ) {
@@ -173,7 +228,7 @@ sub _execute_write_command_batch {
             for ( my $i = 0; $i <= $#$chunk; $i++ ) {
                 next if ref( $chunk->[$i]{u} ) eq 'MongoDB::BSON::_EncodedDoc';
                 my $is_replace = delete $chunk->[$i]{is_replace};
-                $chunk->[$i]{u} = $self->_pre_encode_update( $link->max_bson_object_size, $chunk->[$i]{u}, $is_replace );
+                $chunk->[$i]{u} = $self->_pre_encode_update( $max_bson_size, $chunk->[$i]{u}, $is_replace );
             }
         }
         elsif ( $cmd eq 'insert' ) {
@@ -182,7 +237,7 @@ sub _execute_write_command_batch {
             # split, check if the doc is already encoded
             for ( my $i = 0; $i <= $#$chunk; $i++ ) {
                 unless ( ref( $chunk->[$i] ) eq 'MongoDB::BSON::_EncodedDoc' ) {
-                    $chunk->[$i] = $self->_pre_encode_insert( $link, $chunk->[$i], '.' );
+                    $chunk->[$i] = $self->_pre_encode_insert( $max_bson_size, $chunk->[$i], '.' );
                 };
             }
         }
@@ -195,7 +250,7 @@ sub _execute_write_command_batch {
         ];
 
         if ( $cmd eq 'insert' || $cmd eq 'update' ) {
-            (undef, $cmd_doc) = $self->_maybe_bypass($link, $cmd_doc);
+            $cmd_doc = $self->_maybe_bypass( $supports_doc_validation, $cmd_doc );
         }
 
         my $op = MongoDB::Op::_Command->_new(
@@ -204,13 +259,17 @@ sub _execute_write_command_batch {
             query_flags         => {},
             bson_codec          => $self->bson_codec,
             session             => $self->session,
+            retryable_write     => $self->retryable_write,
             monitoring_callback => $self->monitoring_callback,
         );
 
         my $cmd_result = try {
-            $op->execute($link)
+            $self->_is_retryable
+              ? $self->client->send_retryable_write_op( $op )
+              : $self->client->send_write_op( $op );
         }
         catch {
+          # This error never touches the database!.... so is before any retryable writes errors etc.
             if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
                 if ( @$chunk == 1 ) {
                     MongoDB::DocumentError->throw(
@@ -219,9 +278,10 @@ sub _execute_write_command_batch {
                     );
                 }
                 else {
-                    unshift @left_to_send, $self->_split_chunk( $link, $chunk, $_->size );
+                    unshift @left_to_send, $self->_split_chunk( $chunk, $_->size );
                 }
             }
+            # Put retryable writes catches... no not here... damn... ermm...  oh. Could increment transaction id at the beginning before the loop, then after the redo increment again. Then it wont get caught? hmm.... food
             else {
                 die $_;
             }
@@ -252,7 +312,7 @@ sub _execute_write_command_batch {
 }
 
 sub _split_chunk {
-    my ( $self, $link, $chunk, $size ) = @_;
+    my ( $self, $chunk, $size ) = @_;
 
     my $avg_cmd_size       = $size / @$chunk;
     my $new_cmds_per_chunk = int( MAX_BSON_WIRE_SIZE / $avg_cmd_size );

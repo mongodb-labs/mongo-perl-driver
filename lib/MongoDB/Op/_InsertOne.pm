@@ -56,35 +56,32 @@ sub execute {
     my ( $self,     $link )       = @_;
     my ( $orig_doc, $insert_doc ) = ( $self->document );
 
-    ( $insert_doc = $self->_pre_encode_insert( $link, $orig_doc, '.' ) ),
+    ( $insert_doc = $self->_pre_encode_insert( $link->max_bson_object_size, $orig_doc, '.' ) ),
       ( $self->_set_doc_id( $insert_doc->{metadata}{_id} ) );
 
-    return ! $self->write_concern->is_acknowledged
-      ? (
-        $self->_send_legacy_op_noreply( $link,
-            MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
-            $insert_doc, "MongoDB::UnacknowledgedResult", "insert" )
-      )
-      : $link->does_write_commands
-      ? (
-        $self->_send_write_command(
-            $self->_maybe_bypass(
-                $link,
-                [
-                    insert    => $self->coll_name,
-                    documents => [$insert_doc],
-                    @{ $self->write_concern->as_args },
-                ],
-            ),
-            $orig_doc,
-            "MongoDB::InsertOneResult",
-        )->assert
-      )
-      : (
-        $self->_send_legacy_op_with_gle( $link,
-            MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
-            $insert_doc, "MongoDB::InsertOneResult", "insert" )->assert
-      );
+    return $self->_send_legacy_op_noreply( $link,
+        MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
+        $orig_doc, "MongoDB::UnacknowledgedResult", "insert" )
+      if ! $self->write_concern->is_acknowledged;
+
+    return $self->_send_write_command(
+        $link,
+        $self->_maybe_bypass(
+            $link->supports_doc_validation,
+            [
+                insert    => $self->coll_name,
+                documents => [$insert_doc],
+                @{ $self->write_concern->as_args },
+            ]
+        ),
+        $orig_doc,
+        "MongoDB::InsertOneResult"
+      )->assert
+      if $link->does_write_commands;
+
+    return $self->_send_legacy_op_with_gle( $link,
+        MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
+        $orig_doc, "MongoDB::InsertOneResult", "insert" )->assert;
 }
 
 sub _parse_cmd {
