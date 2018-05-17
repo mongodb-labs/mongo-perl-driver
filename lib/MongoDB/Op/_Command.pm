@@ -107,6 +107,9 @@ sub execute {
         address => $link->address,
     );
 
+    # Must happen even on an error (ie. the command fails)
+    $self->_update_operation_time( $res );
+
     $res->assert;
 
     $self->_update_session_and_cluster_time($res);

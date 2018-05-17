@@ -263,7 +263,7 @@ sub _as_command {
         tailable    => $tailable,
         awaitData   => $await_data,
         singleBatch => ( $single_batch ? $TRUE : $FALSE ),
-        @{ $self->{read_concern}->as_args },
+        @{ $self->{read_concern}->as_args( $self->session ) },
 
         ( $limit      ? ( limit     => $limit )      : () ),
         ( $batch_size ? ( batchSize => $batch_size ) : () ),

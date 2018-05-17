@@ -74,11 +74,12 @@ sub _command_explain {
         db_name => $self->db_name,
         query   => [
             explain => $cmd,
-            @{ $self->read_concern->as_args }
+            @{ $self->read_concern->as_args( $self->session ) }
         ],
         query_flags         => {},
         read_preference     => $self->read_preference,
         bson_codec          => $self->bson_codec,
+        session             => $self->session,
         monitoring_callback => $self->monitoring_callback,
     );
     my $res = $op->execute( $link, $topology );

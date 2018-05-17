@@ -1485,6 +1485,14 @@ Returns a new L<MongoDB::ClientSession> with the supplied options.
 will throw a C<MongoDB::ConfigurationError> if sessions are not supported by
 the connected MongoDB deployment.
 
+the options hash is an optional hash which can have the following keys:
+
+=for :list
+* C<causalConsistency> - Enable Causally Consistent reads for this session.
+  Defaults to true.
+
+for more information see L<MongoDB::ClientSession/options>.
+
 =cut
 
 sub start_session {

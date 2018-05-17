@@ -63,7 +63,7 @@ sub execute {
         query => $self->filter,
 
         ($link->accepts_wire_version(4) ?
-            @{ $self->read_concern->as_args } : () ),
+            @{ $self->read_concern->as_args( $self->session ) } : () ),
 
         %{ $self->options },
     ];

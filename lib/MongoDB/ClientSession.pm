@@ -25,6 +25,7 @@ use MongoDB::Error;
 use Moo;
 use MongoDB::_Types qw(
     Document
+    MongoDBTimestamp
 );
 use Types::Standard qw(
     Bool
@@ -63,7 +64,15 @@ has cluster_time => (
 
 =attr options
 
-Options provided for this particular session.
+Options provided for this particular session. Available options include:
+
+=for :list 
+* C<causalConsistency> - If true, will enable causalConsistency for
+  this session. For more information, see L<MongoDB documentation on Causal
+  Consistency|https://docs.mongodb.com/manual/core/read-isolation-consistency-recency/#causal-consistency>.
+  Note that causalConsistency does not apply for unacknowledged writes.
+  Defaults to true.
+
 
 =cut
 
@@ -74,7 +83,10 @@ has options => (
     # Shallow copy to prevent action at a distance.
     # Upgrade to use Storable::dclone if a more complex option is required
     coerce => sub {
-      $_[0] = { %{ $_[0] } };
+      $_[0] = {
+        causalConsistency => 1,
+        %{ $_[0] }
+      };
     },
 );
 
@@ -84,6 +96,21 @@ has _server_session => (
     init_arg => 'server_session',
     required => 1,
     clearer => '__clear_server_session',
+);
+
+=attr operation_time
+
+The last operation time. This is updated when an operation is performed during
+this session, or when L</advance_operation_time> is called. Used for causal
+consistency.
+
+=cut
+
+has operation_time => (
+    is => 'rwp',
+    isa => Maybe[MongoDBTimestamp],
+    init_arg => undef,
+    default => undef,
 );
 
 =method session_id
@@ -119,7 +146,7 @@ sub get_latest_cluster_time {
     if ( defined $self->client->_cluster_time ) {
         # Both must be defined here so can just compare
         if ( $self->cluster_time->{'clusterTime'}
-           > $self->client->_cluster_time->{'clusterTime'} ) {
+          > $self->client->_cluster_time->{'clusterTime'} ) {
             return $self->cluster_time;
         } else {
             return $self->client->_cluster_time;
@@ -156,6 +183,34 @@ sub advance_cluster_time {
           > $self->cluster_time->{'clusterTime'} ) {
             $self->_set_cluster_time( $cluster_time );
         }
+    }
+    return;
+}
+
+=method advance_operation_time
+
+    $session->advance_operation_time( $operation_time );
+
+Update the L</operation_time> for this session. If the value provided is more
+recent than the sessions current operation time, then the session will be
+updated to this provided value.
+
+Setting C<operation_time> with a manually crafted value may cause a server
+error. It is recommended to only use an C<operation_time> retreived from
+another session or directly from a database call.
+
+=cut
+
+sub advance_operation_time {
+    my ( $self, $operation_time ) = @_;
+
+    # Just dont update operation_time if they've denied this, as it'l stop
+    # everywhere else that updates based on this value from the session
+    return unless $self->options->{causalConsistency};
+
+    if ( !defined( $self->operation_time )
+      || ( $operation_time > $self->operation_time ) ) {
+        $self->_set_operation_time( $operation_time );
     }
     return;
 }

@@ -137,7 +137,7 @@ sub execute {
         pipeline  => $self->pipeline,
         %$options,
         (
-            !$has_out && $link->accepts_wire_version(4) ? @{ $self->read_concern->as_args } : ()
+            !$has_out && $link->accepts_wire_version(4) ? @{ $self->read_concern->as_args( $self->session ) } : ()
         ),
         (
             $has_out && $link->accepts_wire_version(5) ? @{ $self->write_concern->as_args } : ()

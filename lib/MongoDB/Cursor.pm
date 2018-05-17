@@ -443,6 +443,7 @@ sub explain {
         query               => $self->_query,
         read_preference     => $self->_query->read_preference,
         read_concern        => $self->_query->read_concern,
+        session             => $self->_query->session,
         monitoring_callback => $self->client->monitoring_callback,
     );
 
