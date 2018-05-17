@@ -20,20 +20,13 @@ use utf8;
 use Test::More 0.88;
 
 use lib "t/lib";
+use MongoDB;
 use MongoDBTest qw/skip_unless_mongod build_client server_version server_type/;
 use BSON;
 
-skip_unless_mongod();
-
-my $conn = build_client();
-my $server_version = server_version($conn);
-my $server_type = server_type($conn);
-
 diag "Checking MongoDB test environment";
 
-diag "\$ENV{MONGOD}=".$ENV{MONGOD} if $ENV{MONGOD};
-
-diag "MongoDB version $server_version ($server_type)";
+diag sprintf("%s version %s", "MongoDB driver", MongoDB->VERSION);
 
 if ( -d ".git" or -d "../.git" ) {
     my $desc = qx/git describe --dirty/;
@@ -44,7 +37,16 @@ if ( -d ".git" or -d "../.git" ) {
 }
 
 my $bc = BSON->_backend_class;
-diag "BSON Backend " . sprintf("%s version %s", $bc, $bc->VERSION);
+diag sprintf("%s codec version %s", $bc, $bc->VERSION);
+
+skip_unless_mongod();
+
+my $conn = build_client();
+my $server_version = server_version($conn);
+my $server_type = server_type($conn);
+
+diag "\$ENV{MONGOD}=".$ENV{MONGOD} if $ENV{MONGOD};
+diag "MongoDB server version $server_version ($server_type)";
 
 pass("checked MongoDB test environment");
 
