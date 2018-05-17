@@ -133,74 +133,34 @@ subtest 'find_one then read includes operationtime' => sub {
     # * count
     # * distinct
 
-    subtest 'find' => sub {
-        my $session = find_one_and_get_session();
-        my $op_time = $session->operation_time;
-
-        $coll->find({ _id => 1 }, { session => $session })->result;
-
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-
-        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+    my $tests = {
+        find      => [ {_id => 1 } ],
+        find_one  => [ { _id => 1 }, {} ],
+        find_id   => [ 1, {} ],
+        aggregate => [ [ { '$match' => { count => { '$gt' => 0 } } } ] ],
+        count     => [ { _id => 1 } ],
+        distinct  => [ "id_", { _id => 1 } ],
     };
 
-    subtest 'find_one' => sub {
-        my $session = find_one_and_get_session();
-        my $op_time = $session->operation_time;
+    for my $key ( qw/
+      find
+      find_one
+      find_id
+      aggregate
+      count
+      distinct / ) {
+        subtest $key => sub {
+            my $session = find_one_and_get_session();
+            my $op_time = $session->operation_time;
 
-        $coll->find_one({ _id => 1 }, {}, { session => $session });
+            my $ret = $coll->$key(@{ $tests->{$key} }, { session => $session });
+            if ( $key eq 'find' ) { $ret->result }
 
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+            my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
 
-        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
-    };
-
-    subtest 'find_id' => sub {
-        my $session = find_one_and_get_session();
-        my $op_time = $session->operation_time;
-
-        $coll->find_id(1, {}, { session => $session });
-
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-
-        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
-    };
-
-
-    subtest 'aggregate' => sub {
-        my $session = find_one_and_get_session();
-        my $op_time = $session->operation_time;
-
-        $coll->aggregate([ { '$match' => { count => { '$gt' => 0 } } } ], { session => $session });
-
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-
-        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
-    };
-
-
-    subtest 'count' => sub {
-        my $session = find_one_and_get_session();
-        my $op_time = $session->operation_time;
-
-        $coll->count({ _id => 1 }, { session => $session });
-
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-
-        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
-    };
-
-
-    subtest 'distinct' => sub {
-        my $session = find_one_and_get_session();
-        my $op_time = $session->operation_time;
-
-        $coll->distinct("id_", { _id => 1 }, { session => $session });
-
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-
-        is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
-    };
+            is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+        };
+    }
 };
 
 sub find_one_and_get_session {
@@ -230,137 +190,84 @@ subtest 'write then find_one includes operationTime' => sub {
     # * ordered_bulk
     # * unordered_bulk
 
-    subtest 'insert_one' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
-
-        $coll->insert_one({ _id => 100 }, { session => $session });
-
-        find_one_and_assert( $session );
-
-        $session->end_session;
-
-        $session = $conn->start_session({ causalConsistency => 1 });
-
-        my $err = exception { $coll->insert_one({ _id => 100 }, { session => $session }) };
-        isa_ok( $err, 'MongoDB::DatabaseError' );
-
-        find_one_and_assert( $session );
+    # Undef exceptions are only due to not knowing how to cause one
+    my $tests = {
+        insert_one => {
+            success => [ { _id => 100 } ],
+            exception => [ { _id => 100 } ],
+        },
+        insert_many => {
+            success => [ [ map { { _id => $_ } } 101..111 ] ],
+            exception => [ [ map { { _id => $_ } } 101..111 ] ],
+        },
+        delete_one => {
+            success => [ { _id => 100 } ],
+            exception => undef,
+        },
+        delete_many => {
+            success => [ { _id => { '$in' => [101,102] } } ],
+            exception => undef,
+        },
+        replace_one => {
+            success => [ { _id => 103 }, { _id => 103, foo => 'qux' } ],
+            exception => undef,
+        },
+        update_one => {
+            success => [ { _id => 104 }, { '$set' => { bar => 'baz' } } ],
+            exception => undef,
+        },
+        update_many => {
+            success => [ { _id => { '$in' => [105,106] } }, { '$set' => { bar => 'baz' } } ],
+            exception => undef,
+        },
+        find_one_and_delete => {
+            success => [ { _id => 107 } ],
+            exception => undef,
+        },
+        find_one_and_replace => {
+            success => [ { _id => 108 }, { _id => 108, bar => 'baz' } ],
+            exception => undef,
+        },
+        find_one_and_update => {
+            success => [ { _id => 109 }, { '$set' => { foo => 'qux' } } ],
+            exception => undef,
+        },
     };
 
-    subtest 'insert_many' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
+    # Order of these actually matters - the insert_one and insert_many must go first
+    for my $key ( qw/
+      insert_one
+      insert_many
+      delete_one
+      delete_many
+      replace_one
+      update_one
+      update_many
+      find_one_and_delete
+      find_one_and_replace
+      find_one_and_update / ) {
+        subtest $key => sub {
+            my $session = $conn->start_session({ causalConsistency => 1 });
 
-        $coll->insert_many( [
-            { _id => 101 },
-            { _id => 102 },
-            { _id => 103 },
-            { _id => 104 },
-            { _id => 105 },
-            { _id => 106 },
-            { _id => 107 },
-            { _id => 108 },
-            { _id => 109 },
-            { _id => 110 },
-            { _id => 111 },
-          ], { session => $session });
+            $coll->$key( @{ $tests->{ $key }->{ success } }, { session => $session });
 
-        find_one_and_assert( $session );
+            find_one_and_assert( $session );
 
-        $session->end_session;
+            return unless defined $tests->{ $key }->{ exception };
 
-        $session = $conn->start_session({ causalConsistency => 1 });
+            $session->end_session;
 
-        my $err = exception {
-            $coll->insert_many( [
-                { _id => 101 },
-                { _id => 102 },
-                { _id => 103 },
-                { _id => 104 },
-                { _id => 105 },
-                { _id => 106 },
-                { _id => 107 },
-                { _id => 108 },
-                { _id => 109 },
-                { _id => 110 },
-                { _id => 111 },
-              ], { session => $session })
+            $session = $conn->start_session({ causalConsistency => 1 });
+
+            my $err = exception {
+                $coll->$key( @{ $tests->{ $key }->{ exception } }, { session => $session })
+            };
+
+            isa_ok( $err, 'MongoDB::DatabaseError' );
+
+            find_one_and_assert( $session );
         };
-        isa_ok( $err, 'MongoDB::DatabaseError' );
-
-        find_one_and_assert( $session );
-   };
-
-    subtest 'delete_one' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
-
-        $coll->delete_one({ _id => 100 }, { session => $session });
-
-        find_one_and_assert( $session );
-        # dont think theres a way to make delete exception?
-    };
-
-    subtest 'delete_many' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
-
-        $coll->delete_many({ _id => { '$in' => [101,102] } }, { session => $session });
-
-        find_one_and_assert( $session );
-        # dont think theres a way to make delete exception?
-    };
-
-    subtest 'replace_one' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
-
-        $coll->replace_one({ _id => 103 }, { _id => 103, foo => 'qux' }, { session => $session });
-
-        find_one_and_assert( $session );
-        # cant figure way to cause error?
-    };
-
-    subtest 'update_one' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
-
-        $coll->update_one({ _id => 104 }, { '$set' => { bar => 'baz' } }, { session => $session });
-
-        find_one_and_assert( $session );
-        # cant figure way to cause error?
-    };
-
-    subtest 'update_many' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
-
-        $coll->update_many({ _id => { '$in' => [105,106] } }, { '$set' => { bar => 'baz' } }, { session => $session });
-
-        find_one_and_assert( $session );
-        # cant figure way to cause error?
-    };
-
-    subtest 'find_one_and_delete' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
-
-        $coll->find_one_and_delete({ _id => 107 }, { session => $session });
-
-        find_one_and_assert( $session );
-        # cant figure way to cause error?
-    };
-
-    subtest 'find_one_and_replace' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
-
-        $coll->find_one_and_replace({ _id => 108 }, { _id => 108, bar => 'baz' }, { session => $session });
-
-        find_one_and_assert( $session );
-        # cant figure way to cause error?
-    };
-
-    subtest 'find_one_and_update' => sub {
-        my $session = $conn->start_session({ causalConsistency => 1 });
-
-        $coll->find_one_and_update({ _id => 109 }, { '$set' => { foo => 'qux' } }, { session => $session });
-
-        find_one_and_assert( $session );
-        # cant figure way to cause error?
-    };
+    }
 
     subtest 'ordered_bulk' => sub {
         my $session = $conn->start_session({ causalConsistency => 1 });
