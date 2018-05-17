@@ -264,7 +264,7 @@ sub _authenticate_MONGODB_X509 {
 
     my $username = $self->username;
 
-    if ( !$username && !$link->accepts_wire_version(5) ) {
+    if ( !$username && !$link->supports_x509_user_from_cert ) {
         $username = $link->client_certificate_subject
           or MongoDB::UsageError->throw(
             "Could not extract subject from client SSL certificate");
@@ -366,7 +366,7 @@ sub _get_default_mechanism {
         return 'SCRAM-SHA-1';
     }
 
-    if ( $link->accepts_wire_version(3) ) {
+    if ( $link->supports_scram_sha1 ) {
         return 'SCRAM-SHA-1';
     }
 

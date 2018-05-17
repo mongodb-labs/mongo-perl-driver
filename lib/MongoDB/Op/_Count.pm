@@ -62,7 +62,7 @@ sub execute {
         count => $self->coll_name,
         query => $self->filter,
 
-        ($link->accepts_wire_version(4) ?
+        ($link->supports_read_concern ?
             @{ $self->read_concern->as_args } : () ),
 
         %{ $self->options },

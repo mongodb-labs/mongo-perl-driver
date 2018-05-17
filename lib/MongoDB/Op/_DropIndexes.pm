@@ -60,7 +60,7 @@ sub execute {
         query   => [
             dropIndexes => $self->coll_name,
             index       => $self->index_name,
-            ( $link->accepts_wire_version(5) ? ( @{ $self->write_concern->as_args } ) : () ),
+            ( $link->supports_helper_write_concern ? ( @{ $self->write_concern->as_args } ) : () ),
             (defined($self->max_time_ms)
                 ? (maxTimeMS => $self->max_time_ms)
                 : ()

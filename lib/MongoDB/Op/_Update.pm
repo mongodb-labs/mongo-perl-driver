@@ -141,7 +141,7 @@ sub execute {
             "update",
         )
       )
-      : $link->does_write_commands
+      : $link->supports_write_commands
       ? (
         $self->_send_write_command(
             $self->_maybe_bypass(

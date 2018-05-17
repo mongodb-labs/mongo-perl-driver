@@ -55,7 +55,7 @@ sub execute {
     my ( $self, $link, $topology ) = @_;
 
     my $res =
-        $link->accepts_wire_version(4)
+        $link->supports_fsync_command
       ? $self->_command_fsync_unlock( $link, $topology )
       : $self->_legacy_fsync_unlock( $link, $topology );
 

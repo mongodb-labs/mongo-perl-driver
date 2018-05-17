@@ -65,7 +65,7 @@ sub execute {
             MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
             $insert_doc, "MongoDB::UnacknowledgedResult", "insert" )
       )
-      : $link->does_write_commands
+      : $link->supports_write_commands
       ? (
         $self->_send_write_command(
             $self->_maybe_bypass(

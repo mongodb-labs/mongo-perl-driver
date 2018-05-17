@@ -43,7 +43,7 @@ has bypassDocumentValidation => (
 sub _maybe_bypass {
     push @{ $_[2] },
       bypassDocumentValidation => ( $_[0]->bypassDocumentValidation ? true : false )
-      if defined $_[0]->bypassDocumentValidation && $_[1]->accepts_wire_version(4);
+      if defined $_[0]->bypassDocumentValidation && $_[1]->supports_document_validation;
     return $_[1], $_[2];
 }
 

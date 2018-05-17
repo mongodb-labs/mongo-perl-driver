@@ -49,7 +49,7 @@ sub _apply_session_and_cluster_time {
     # No cluster time in either session or client
     return unless defined $cluster_time;
 
-    if ( $link->server->is_master->{maxWireVersion} >= 6 ) {
+    if ( $link->supports_clusterTime ) {
         # Gossip the clusterTime
         $$query_ref = to_IxHash( $$query_ref );
         ($$query_ref)->Push( '$clusterTime' => $cluster_time );

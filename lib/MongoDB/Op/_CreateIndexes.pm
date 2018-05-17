@@ -67,7 +67,7 @@ sub execute {
     }
 
     my $res =
-        $link->does_write_commands
+        $link->supports_write_commands
       ? $self->_command_create_indexes($link)
       : $self->_legacy_index_insert($link);
 
@@ -82,7 +82,7 @@ sub _command_create_indexes {
         query   => [
             createIndexes => $self->coll_name,
             indexes       => $self->indexes,
-            ( $link->accepts_wire_version(5) ? ( @{ $self->write_concern->as_args } ) : () ),
+            ( $link->supports_helper_write_concern ? ( @{ $self->write_concern->as_args } ) : () ),
             (defined($self->max_time_ms)
                 ? (maxTimeMS => $self->max_time_ms)
                 : ()

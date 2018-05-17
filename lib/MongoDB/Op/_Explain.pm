@@ -50,7 +50,7 @@ sub execute {
     my ( $self, $link, $topology ) = @_;
 
     my $res =
-        $link->accepts_wire_version(4)
+        $link->supports_explain_command
       ? $self->_command_explain( $link, $topology )
       : $self->_legacy_explain( $link, $topology );
 

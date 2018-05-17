@@ -61,7 +61,7 @@ sub execute {
     my $command = [
         parallelCollectionScan => $self->coll_name,
         numCursors             => bson_int64($self->num_cursors),
-        ($link->accepts_wire_version(4) ?
+        ($link->supports_read_concern ?
             @{ $self->read_concern->as_args } : () ),
         %{$self->options},
     ];

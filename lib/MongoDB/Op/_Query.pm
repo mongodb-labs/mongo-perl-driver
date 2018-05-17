@@ -104,7 +104,7 @@ sub execute {
     }
 
     my $res =
-        $link->accepts_wire_version(4)
+        $link->supports_query_commands
       ? $self->_command_query( $link, $topology )
       : $self->_legacy_query( $link, $topology );
 

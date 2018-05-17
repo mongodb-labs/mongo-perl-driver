@@ -47,7 +47,7 @@ with $_ for qw(
 sub execute {
     my ( $self, $link ) = @_;
 
-    if ( $link->accepts_wire_version(4) ) {
+    if ( $link->supports_query_commands ) {
         # Spec says that failures should be ignored: cursor kills often happen
         # via destructors and users can't do anything about failure anyway.
         eval {

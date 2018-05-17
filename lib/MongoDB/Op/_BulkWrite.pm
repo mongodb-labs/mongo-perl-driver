@@ -88,7 +88,7 @@ sub execute {
           if !$self->write_concern->is_acknowledged;
     }
 
-    my $use_write_cmd = $link->does_write_commands;
+    my $use_write_cmd = $link->supports_write_commands;
 
     # If using legacy write ops, then there will never be a valid modified_count
     # result so we set that to undef in the constructor; otherwise, we set it

@@ -115,21 +115,96 @@ for my $f ( @is_master_fields ) {
     );
 }
 
-# for caching wire version >= 2
-has does_write_commands => (
+# wire version >= 2
+has supports_write_commands => (
     is => 'rwp',
     init_arg => undef,
     isa => Bool,
 );
 
-# for caching wire version >= 5
+# wire version >= 3
+has supports_list_commands => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_scram_sha1 => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+# wire version >= 4
+has supports_document_validation => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_explain_command => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_query_commands => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_find_modify_write_concern => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_fsync_command => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_read_concern => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+# wire version >= 5
 has supports_collation => (
     is => 'rwp',
     init_arg => undef,
     isa => Bool,
 );
 
+has supports_helper_write_concern => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_x509_user_from_cert => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+# for caching wire version >=6
 has supports_arrayFilters => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_clusterTime => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Bool,
+);
+
+has supports_db_aggregation => (
     is => 'rwp',
     init_arg => undef,
     isa => Bool,
@@ -239,9 +314,31 @@ sub set_metadata {
     $self->_set_max_message_size_bytes( $server->is_master->{maxMessageSizeBytes}
           || 2 * $self->max_bson_object_size );
 
-    $self->_set_does_write_commands( $self->accepts_wire_version(2) );
-    $self->_set_supports_collation( $self->accepts_wire_version(5) );
-    $self->_set_supports_arrayFilters( $self->accepts_wire_version(6) );
+    if ( $self->accepts_wire_version(2) ) {
+        $self->_set_supports_write_commands(1);
+    }
+    if ( $self->accepts_wire_version(3) ) {
+        $self->_set_supports_list_commands(1);
+        $self->_set_supports_scram_sha1(1);
+    }
+    if ( $self->accepts_wire_version(4) ) {
+        $self->_set_supports_document_validation(1);
+        $self->_set_supports_explain_command(1);
+        $self->_set_supports_query_commands(1);
+        $self->_set_supports_find_modify_write_concern(1);
+        $self->_set_supports_fsync_command(1);
+        $self->_set_supports_read_concern(1);
+    }
+    if ( $self->accepts_wire_version(5) ) {
+        $self->_set_supports_collation(1);
+        $self->_set_supports_helper_write_concern(1);
+        $self->_set_supports_x509_user_from_cert(1);
+    }
+    if ( $self->accepts_wire_version(6) ) {
+        $self->_set_supports_arrayFilters(1);
+        $self->_set_supports_clusterTime(1);
+        $self->_set_supports_db_aggregation(1);
+    }
 
     return;
 }

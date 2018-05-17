@@ -42,7 +42,7 @@ sub execute {
         db_name => $self->db_name,
         query   => [
             dropDatabase => 1,
-            ( $link->accepts_wire_version(5) ? ( @{ $self->write_concern->as_args } ) : () ),
+            ( $link->supports_helper_write_concern ? ( @{ $self->write_concern->as_args } ) : () ),
         ],
         query_flags         => {},
         bson_codec          => $self->bson_codec,

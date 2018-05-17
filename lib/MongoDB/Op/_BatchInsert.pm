@@ -96,7 +96,7 @@ sub execute {
             "insert",
         )
       )
-      : $link->does_write_commands
+      : $link->supports_write_commands
       ? (
         $self->_send_write_command( $link,
             Tie::IxHash->new(

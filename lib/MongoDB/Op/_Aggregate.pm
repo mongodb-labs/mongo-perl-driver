@@ -79,14 +79,14 @@ sub execute {
     my ( $self, $link, $topology ) = @_;
 
     my $options = $self->options;
-    my $is_2_6 = $link->does_write_commands;
+    my $is_2_6 = $link->supports_write_commands;
 
     # maxTimeMS isn't available until 2.6 and the aggregate command
     # will reject it as unrecognized
     delete $options->{maxTimeMS} unless $is_2_6;
 
     # bypassDocumentValidation isn't available until 3.2 (wire version 4)
-    delete $options->{bypassDocumentValidation} unless $link->accepts_wire_version(4);
+    delete $options->{bypassDocumentValidation} unless $link->supports_document_validation;
 
     if ( defined $options->{collation} and !$link->supports_collation ) {
         MongoDB::UsageError->throw(
@@ -126,8 +126,7 @@ sub execute {
 
     my $has_out = $self->has_out;
 
-    if ( $link->server->is_master->{maxWireVersion} < 6
-      && $self->coll_name eq 1 ) {
+    if ( $self->coll_name eq 1 && ! $link->supports_db_aggregation ) {
         MongoDB::Error->throw(
             "Calling aggregate with a collection name of '1' is not supported on Wire Version < 6" );
     }
@@ -137,10 +136,10 @@ sub execute {
         pipeline  => $self->pipeline,
         %$options,
         (
-            !$has_out && $link->accepts_wire_version(4) ? @{ $self->read_concern->as_args } : ()
+            !$has_out && $link->supports_read_concern ? @{ $self->read_concern->as_args } : ()
         ),
         (
-            $has_out && $link->accepts_wire_version(5) ? @{ $self->write_concern->as_args } : ()
+            $has_out && $link->supports_helper_write_concern ? @{ $self->write_concern->as_args } : ()
         ),
     );
 

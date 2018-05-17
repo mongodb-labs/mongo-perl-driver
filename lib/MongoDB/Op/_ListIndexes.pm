@@ -56,7 +56,7 @@ sub execute {
     my ( $self, $link, $topology ) = @_;
 
     my $res =
-        $link->accepts_wire_version(3)
+        $link->supports_list_commands
       ? $self->_command_list_indexes( $link, $topology )
       : $self->_legacy_list_indexes( $link, $topology );
 

@@ -87,7 +87,7 @@ sub execute {
         distinct => $self->coll_name,
         key      => $self->fieldname,
         query    => $filter,
-        ($link->accepts_wire_version(4) ?
+        ($link->supports_read_concern ?
             @{ $self->read_concern->as_args } : ()),
         %$options
     );

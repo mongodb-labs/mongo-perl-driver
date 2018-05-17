@@ -74,7 +74,7 @@ sub execute {
             query         => $self->filter,
             update        => $self->modifier,
             (
-                $link->accepts_wire_version(4)
+                $link->supports_find_modify_write_concern
                 ? ( @{ $self->write_concern->as_args } )
                 : ()
             ),

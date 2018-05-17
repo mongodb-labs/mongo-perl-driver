@@ -98,7 +98,7 @@ sub execute {
                 "delete",
             )
         )
-        : $link->does_write_commands
+        : $link->supports_write_commands
         ? (
             $self->_send_write_command(
                 $link,

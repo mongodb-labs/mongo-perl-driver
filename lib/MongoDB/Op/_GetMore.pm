@@ -64,7 +64,7 @@ sub execute {
     my ( $self, $link ) = @_;
 
     my $res =
-        $link->accepts_wire_version(4)
+        $link->supports_query_commands
       ? $self->_command_get_more($link)
       : $self->_legacy_get_more($link);
 
