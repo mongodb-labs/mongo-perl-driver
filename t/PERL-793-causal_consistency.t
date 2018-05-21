@@ -38,12 +38,15 @@ use MongoDBTest qw/
     get_unique_collection
 /;
 
-use Test::Role::BSONDebug;
-Role::Tiny->apply_roles_to_package(
-    'MongoDB::BSON', 'Test::Role::BSONDebug',
-);
+my @events;
 
-my $conn           = build_client();
+sub clear_events { @events = () }
+sub event_count { scalar @events }
+sub event_cb { push @events, $_[0] }
+
+my $conn           = build_client(
+  monitoring_callback => \&event_cb,
+);
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
@@ -55,17 +58,13 @@ plan skip_all => "Requires MongoDB 3.6"
 plan skip_all => "Causal Consistency unsupported on standalone servers"
     if $server_type eq 'Standalone';
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
-
 # spec test 1
 subtest 'session operation_time undef on init' => sub {
     my $session = $conn->start_session;
     is $session->operation_time, undef, 'is undef';
 };
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+clear_events();
 
 # spec test 2
 subtest 'first read' => sub {
@@ -73,13 +72,12 @@ subtest 'first read' => sub {
 
     my $response = $coll->find_one({ _id => 1 }, {}, { session => $session });
 
-    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $event = $events[-2];
 
-    ok ! $command->EXISTS( 'afterClusterTime' ), 'afterClusterTime not sent on first read';
+    ok ! exists $event->{ command }->{ 'afterClusterTime' }, 'afterClusterTime not sent on first read';
 };
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+clear_events();
 
 # spec test 3
 subtest 'update operation_time' => sub {
@@ -89,9 +87,10 @@ subtest 'update operation_time' => sub {
 
     my $response = $coll->insert_one({ _id => 1 }, { session => $session });
 
-    my $bson = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
+    my $event = $events[-1];
 
-    is $session->operation_time, $bson->{operationTime}, 'response has operation time and is updated in session';
+    # for some reason 'is' wont do the comparison correctly...
+    ok $session->operation_time == $event->{reply}->{operationTime}, 'response has operation time and is updated in session';
 
     $session->end_session;
 
@@ -104,13 +103,12 @@ subtest 'update operation_time' => sub {
 
     isa_ok( $err, 'MongoDB::DatabaseError', "duplicate insert error" );
 
-    my $error_bson = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
+    my $err_event = $events[-1];
 
-    is $session->operation_time, $error_bson->{operationTime}, 'response has operation time and is updated in session';
+    ok $session->operation_time == $err_event->{reply}->{operationTime}, 'response has operation time and is updated in session';
 };
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+clear_events();
 
 # spec test 4
 subtest 'find_one then read includes operationtime' => sub {
@@ -138,6 +136,7 @@ subtest 'find_one then read includes operationtime' => sub {
       aggregate
       count
       distinct / ) {
+        clear_events();
         subtest $key => sub {
             my $session = find_one_and_get_session();
             my $op_time = $session->operation_time;
@@ -145,9 +144,9 @@ subtest 'find_one then read includes operationtime' => sub {
             my $ret = $coll->$key(@{ $tests->{$key} }, { session => $session });
             if ( $key eq 'find' ) { $ret->result }
 
-            my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+            my $event = $events[-2];
 
-            is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+            is $op_time, $event->{command}->{'readConcern'}->{afterClusterTime}, 'has correct afterClusterTime';
         };
     }
 };
@@ -160,8 +159,7 @@ sub find_one_and_get_session {
     return $session;
 }
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+clear_events();
 
 # spec test 5
 subtest 'write then find_one includes operationTime' => sub {
@@ -235,6 +233,7 @@ subtest 'write then find_one includes operationTime' => sub {
       find_one_and_delete
       find_one_and_replace
       find_one_and_update / ) {
+        clear_events();
         subtest $key => sub {
             my $session = $conn->start_session({ causalConsistency => 1 });
 
@@ -317,13 +316,12 @@ sub find_one_and_assert {
 
     $coll->find_one({ _id => 1 }, {}, { session => $session });
 
-    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $event = $events[-2];
 
-    is $op_time, $command->FETCH('readConcern')->{afterClusterTime}, 'has correct afterClusterTime';
+    is $op_time, $event->{command}->{'readConcern'}->{afterClusterTime}, 'has correct afterClusterTime';
 }
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+clear_events();
 
 # spec test 6
 subtest 'turn off causalConsistency' => sub {
@@ -333,13 +331,12 @@ subtest 'turn off causalConsistency' => sub {
 
     $coll->find_one({ _id => 1 }, {}, { session => $session });
 
-    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $event = $events[-2];
 
-    ok ! $command->EXISTS('readConcern'), 'no readconcern, so no afterClusterTime';
+    ok ! exists $event->{command}->{'readConcern'}, 'no readconcern, so no afterClusterTime';
 };
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+clear_events();
 
 # spec test 8
 subtest 'using default readConcern' => sub {
@@ -352,13 +349,12 @@ subtest 'using default readConcern' => sub {
 
     $coll->find_one({ _id => 1 }, {}, { session => $session });
 
-    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $event = $events[-2];
 
-    ok ! defined $command->FETCH('readConcern')->{level}, 'no read concern level with default value';
+    ok ! defined $event->{command}->{'readConcern'}->{level}, 'no read concern level with default value';
 };
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+clear_events();
 
 # spec test 9
 subtest 'using custom readConcern' => sub {
@@ -372,9 +368,9 @@ subtest 'using custom readConcern' => sub {
 
     $custom_coll->find_one({ _id => 1 }, {}, { session => $session });
 
-    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $event = $events[-2];
 
-    my $read_concern = $command->FETCH('readConcern');
+    my $read_concern = $event->{command}->{'readConcern'};
 
     is $read_concern->{level}, 'local', 'read concern level with custom value';
     is $read_concern->{afterClusterTime}, $op_time, 'read concern afterClusterTime present';
