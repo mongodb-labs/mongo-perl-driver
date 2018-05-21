@@ -112,7 +112,7 @@ is $post_stepdown_ret->inserted_id, 2, 'write succeeded';
 # event, just that the failed one comes first.
 my $first_insert_index;
 
-for my $f_idx ( 0 .. $#events ) {
+for my $f_idx ( 0 .. $#events - 1 ) {
     my $event = $events[ $f_idx ];
     if ( $event->{ commandName } eq 'insert'
       && $event->{ type } eq 'command_started' ) {
@@ -128,7 +128,11 @@ ok defined( $first_insert_index ), 'found first command';
 
 my $second_insert_index;
 
-for my $s_idx ( $first_insert_index + 2 .. $#events ) {
+if ( $first_insert_index + 2 > $#events - 1 ) {
+  fail 'not enough events captured';
+}
+
+for my $s_idx ( $first_insert_index + 2 .. $#events - 1 ) {
     my $event = $events[ $s_idx ];
     if ( $event->{ commandName } eq 'insert'
       && $event->{ type } eq 'command_started' ) {
