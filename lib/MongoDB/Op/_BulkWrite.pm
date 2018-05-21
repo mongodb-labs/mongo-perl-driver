@@ -64,6 +64,12 @@ has client => (
     isa => InstanceOf['MongoDB::MongoClient'],
 );
 
+has _retryable => (
+    is => 'rw',
+    isa => Bool,
+    default => 1,
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
@@ -71,7 +77,6 @@ with $_ for qw(
   MongoDB::Role::_UpdatePreEncoder
   MongoDB::Role::_InsertPreEncoder
   MongoDB::Role::_BypassValidation
-  MongoDB::Role::_RetryableBulk
 );
 
 sub _is_retryable {

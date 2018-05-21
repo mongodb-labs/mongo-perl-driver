@@ -121,9 +121,14 @@ sub _build__client {
     return $self->_database->_client;
 }
 
+has _retryable => (
+    is => 'rw',
+    isa => Bool,
+    default => 1,
+);
+
 with $_ for qw(
   MongoDB::Role::_DeprecationWarner
-  MongoDB::Role::_RetryableBulk
 );
 
 =method find
