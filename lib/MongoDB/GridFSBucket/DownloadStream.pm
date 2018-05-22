@@ -25,13 +25,13 @@ our $VERSION = 'v1.999.0';
 use Moo;
 use Types::Standard qw(
   Str
-  Bool
   Maybe
   HashRef
   InstanceOf
   FileHandle
 );
 use MongoDB::_Types qw(
+  Boolish
   NonNegNum
 );
 use List::Util qw(max min);
@@ -92,7 +92,7 @@ has _offset => (
 
 has _closed => (
     is      => 'rwp',
-    isa     => Bool,
+    isa     => Boolish,
     default => 0,
 );
 

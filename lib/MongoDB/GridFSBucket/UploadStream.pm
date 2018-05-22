@@ -31,13 +31,13 @@ use MongoDB::BSON::Binary;
 use Time::HiRes qw/time/;
 use Types::Standard qw(
   Str
-  Bool
   Maybe
   HashRef
   ArrayRef
   InstanceOf
 );
 use MongoDB::_Types qw(
+  Boolish
   NonNegNum
 );
 use MongoDB::_Constants;
@@ -150,7 +150,7 @@ sub _build_id {
 
 has _closed => (
     is      => 'rwp',
-    isa     => Bool,
+    isa     => Boolish,
     default => 0,
 );
 

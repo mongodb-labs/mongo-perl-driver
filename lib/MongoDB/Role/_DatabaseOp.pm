@@ -27,13 +27,13 @@ our $VERSION = 'v1.999.0';
 use Moo::Role;
 
 use MongoDB::_Types qw(
+    Boolish
     BSONCodec
     ClientSession
 );
 use Types::Standard qw(
     CodeRef
     Str
-    Bool
     Maybe
 );
 
@@ -68,7 +68,7 @@ has session => (
 # set during retryable writes on supported operations
 has retryable_write => (
     is      => 'rw',
-    isa     => Bool,
+    isa     => Boolish,
     default => 0,
 );
 

@@ -28,9 +28,9 @@ use Moo;
 use MongoDB::Op::_Command;
 use MongoDB::_Types qw(
     ArrayOfHashRef
+    Boolish
 );
 use Types::Standard qw(
-    Bool
     HashRef
     InstanceOf
     Num
@@ -59,7 +59,7 @@ has options => (
 has has_out => (
     is       => 'ro',
     required => 1,
-    isa      => Bool,
+    isa      => Boolish,
 );
 
 has maxAwaitTimeMS => (

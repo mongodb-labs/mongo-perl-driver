@@ -32,11 +32,11 @@ use DateTime;
 use MongoDB::Error;
 use Moo;
 use MongoDB::_Types qw(
+    Boolish
     NonNegNum
     SingleChar
 );
 use Types::Standard qw(
-    Bool
     CodeRef
     Maybe
     Str
@@ -175,7 +175,7 @@ The default is false.
 
 has prefer_numeric => (
     is => 'ro',
-    isa => Bool,
+    isa => Boolish,
 );
 
 #--------------------------------------------------------------------------#

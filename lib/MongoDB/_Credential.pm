@@ -36,8 +36,10 @@ use MIME::Base64 qw/encode_base64 decode_base64/;
 use Safe::Isa;
 use Tie::IxHash;
 use Try::Tiny;
+use MongoDB::_Types qw(
+    Boolish
+);
 use Types::Standard qw(
-  Bool
   CodeRef
   HashRef
   InstanceOf
@@ -81,7 +83,7 @@ has password => (
 
 has pw_is_digest => (
     is  => 'ro',
-    isa => Bool,
+    isa => Boolish,
 );
 
 has mechanism_properties => (

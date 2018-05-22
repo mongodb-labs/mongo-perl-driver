@@ -44,7 +44,6 @@ use Types::Standard qw(
   HashRef
   InstanceOf
   Maybe
-  Bool
   Num
   Str
 );

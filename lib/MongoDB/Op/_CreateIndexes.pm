@@ -30,7 +30,6 @@ use MongoDB::Op::_Command;
 use MongoDB::Op::_BatchInsert;
 use Types::Standard qw(
     ArrayRef
-    Bool
     HashRef
     Num
 );

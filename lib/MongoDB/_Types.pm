@@ -28,6 +28,7 @@ use Type::Library
   -declare => qw(
   ArrayOfHashRef
   AuthMechanism
+  Boolish
   Booleanpm
   BSONCodec
   ClientSession
@@ -68,12 +69,14 @@ use Type::Library
 use Type::Utils -all;
 use Types::Standard qw(
     Any
+    Bool
     ArrayRef
     Dict
     HashRef
     Maybe
     Num
     Optional
+    Overload
     Ref
     Str
     Undef
@@ -92,7 +95,11 @@ declare ArrayOfHashRef, as ArrayRef [HashRef];
 enum AuthMechanism,
   [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1 SCRAM-SHA-256/];
 
-class_type Booleanpm, { class => 'boolean' };
+# Types::Standard::Bool is overly restrictive, not allowing objects that
+# overload boolification, and Overload['bool'] doesn't detect objects that
+# overload via fallback, so we use this type for documentation purposes,
+# but allow any actual type.
+declare Boolish, as Any;
 
 duck_type BSONCodec, [ qw/encode_one decode_one/ ];
 
@@ -192,7 +199,7 @@ coerce ArrayOfHashRef, from HashRef, via { [$_] };
 coerce BSONCodec, from HashRef,
   via { require BSON; BSON->new($_) };
 
-coerce Booleanpm, from Any, via { boolean($_) };
+coerce Boolish, from Any, via { !!$_ };
 
 coerce DBRefColl, from MongoDBCollection, via { $_->name };
 

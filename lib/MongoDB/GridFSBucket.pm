@@ -26,6 +26,7 @@ use Moo;
 use MongoDB::GridFSBucket::DownloadStream;
 use MongoDB::GridFSBucket::UploadStream;
 use MongoDB::_Types qw(
+  Boolish
   ReadPreference
   WriteConcern
   ReadConcern
@@ -34,7 +35,6 @@ use MongoDB::_Types qw(
 );
 use Scalar::Util qw/reftype/;
 use Types::Standard qw(
-  Bool
   Int
   Str
   InstanceOf
@@ -168,7 +168,7 @@ has max_time_ms => (
 # determines whether or not to attempt index creation
 has _tried_indexing => (
     is => 'rwp',
-    isa => Bool,
+    isa => Boolish,
 );
 
 has _files => (

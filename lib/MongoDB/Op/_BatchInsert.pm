@@ -28,9 +28,11 @@ use Moo;
 
 use MongoDB::InsertManyResult;
 use Tie::IxHash;
+use MongoDB::_Types qw(
+    Boolish
+);
 use Types::Standard qw(
     ArrayRef
-    Bool
 );
 
 use namespace::clean;
@@ -45,13 +47,13 @@ has documents => (
 has ordered => (
     is       => 'ro',
     required => 1,
-    isa      => Bool,
+    isa      => Boolish,
 );
 
 has check_keys => (
     is       => 'ro',
     required => 1,
-    isa      => Bool,
+    isa      => Boolish,
 );
 
 # starts empty and gets initialized during operations

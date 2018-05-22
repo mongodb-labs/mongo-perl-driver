@@ -28,7 +28,6 @@ use MongoDB::_Types qw(
     BSONTimestamp
 );
 use Types::Standard qw(
-    Bool
     Maybe
     HashRef
     InstanceOf

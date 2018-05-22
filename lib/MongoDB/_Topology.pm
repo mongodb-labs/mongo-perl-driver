@@ -30,6 +30,7 @@ use MongoDB::ReadPreference;
 use MongoDB::_Constants;
 use MongoDB::_Link;
 use MongoDB::_Types qw(
+    Boolish
     BSONCodec
     Document
     NonNegNum
@@ -37,7 +38,6 @@ use MongoDB::_Types qw(
     to_IxHash
 );
 use Types::Standard qw(
-    Bool
     CodeRef
     HashRef
     ArrayRef
@@ -165,7 +165,7 @@ has server_selection_timeout_sec => (
 has server_selection_try_once => (
     is      => 'ro',
     default => 1,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has ewma_alpha => (
@@ -214,7 +214,7 @@ has handshake_document => (
 has is_compatible => (
     is => 'ro',
     writer => '_set_is_compatible',
-    isa => Bool,
+    isa => Boolish,
 );
 
 has wire_version_floor => (

@@ -36,12 +36,12 @@ use Time::HiRes qw/time/;
 use MongoDB::Error;
 use MongoDB::_Constants;
 use MongoDB::_Types qw(
+    Boolish
     HostAddress
     NonNegNum
     ServerDesc
 );
 use Types::Standard qw(
-    Bool
     HashRef
     Maybe
     Num
@@ -75,7 +75,7 @@ has socket_timeout => (
 
 has with_ssl => (
     is => 'ro',
-    isa => Bool,
+    isa => Boolish,
 );
 
 has SSL_options => (
@@ -119,101 +119,101 @@ for my $f ( @is_master_fields ) {
 has supports_write_commands => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 # wire version >= 3
 has supports_list_commands => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_scram_sha1 => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 # wire version >= 4
 has supports_document_validation => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_explain_command => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_query_commands => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_find_modify_write_concern => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_fsync_command => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_read_concern => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 # wire version >= 5
 has supports_collation => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_helper_write_concern => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_x509_user_from_cert => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 # for caching wire version >=6
 has supports_arrayFilters => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_clusterTime => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_db_aggregation => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has supports_retryWrites => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 my @connection_state_fields = qw(

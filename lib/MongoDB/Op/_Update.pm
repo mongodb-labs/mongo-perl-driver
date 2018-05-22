@@ -28,10 +28,10 @@ use Moo;
 use MongoDB::UpdateResult;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
+    Boolish
     Document
 );
 use Types::Standard qw(
-    Bool
     Maybe
     ArrayRef
 );
@@ -54,13 +54,13 @@ has update => (
 has is_replace => (
     is       => 'ro',
     required => 1,
-    isa      => Bool,
+    isa      => Boolish,
 );
 
 has multi => (
     is       => 'ro',
     required => 1,
-    isa      => Bool,
+    isa      => Boolish,
 );
 
 has upsert => (
