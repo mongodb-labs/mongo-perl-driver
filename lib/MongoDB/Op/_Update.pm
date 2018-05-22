@@ -21,7 +21,7 @@ package MongoDB::Op::_Update;
 # Encapsulate an update operation; returns a MongoDB::UpdateResult
 
 use version;
-our $VERSION = 'v1.8.2';
+our $VERSION = 'v1.8.3';
 
 use Moo;
 

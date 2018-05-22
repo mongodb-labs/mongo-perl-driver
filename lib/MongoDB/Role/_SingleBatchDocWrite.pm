@@ -21,7 +21,7 @@ package MongoDB::Role::_SingleBatchDocWrite;
 # MongoDB interface for database insert/update/delete operations
 
 use version;
-our $VERSION = 'v1.8.2';
+our $VERSION = 'v1.8.3';
 
 use Moo::Role;
 

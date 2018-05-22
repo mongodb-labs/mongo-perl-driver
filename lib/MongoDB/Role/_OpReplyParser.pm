@@ -21,7 +21,7 @@ package MongoDB::Role::_OpReplyParser;
 # MongoDB interface for sending OP_QUERY|OP_GETMORE and parsing OP_REPLY
 
 use version;
-our $VERSION = 'v1.8.2';
+our $VERSION = 'v1.8.3';
 
 use Moo::Role;
 

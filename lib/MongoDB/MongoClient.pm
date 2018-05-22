@@ -21,7 +21,7 @@ package MongoDB::MongoClient;
 # ABSTRACT: A connection to a MongoDB server or multi-server deployment
 
 use version;
-our $VERSION = 'v1.8.2';
+our $VERSION = 'v1.8.3';
 
 use Moo;
 use MongoDB;
