@@ -27,9 +27,9 @@ use Moo;
 
 use MongoDB::Error;
 use MongoDB::_Types qw(
+    Boolish
     Document
     IxHash
-    Booleanpm
 );
 use Types::Standard qw(
     Maybe
@@ -61,8 +61,8 @@ has _collation => (
 
 has _upsert => (
     is      => 'ro',
-    isa     => Booleanpm,
-    default => sub { false },
+    isa     => Boolish,
+    default => 0,
 );
 
 with $_ for qw(

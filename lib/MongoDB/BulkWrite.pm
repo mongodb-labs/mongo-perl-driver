@@ -30,11 +30,11 @@ use MongoDB::BulkWriteView;
 
 use Moo;
 use MongoDB::_Types qw(
+    Boolish
     to_WriteConcern
 );
 use Types::Standard qw(
     ArrayRef
-    Bool
     InstanceOf
 );
 use namespace::clean -except => 'meta';
@@ -60,7 +60,7 @@ unordered (false).
 
 has 'ordered' => (
     is       => 'ro',
-    isa      => Bool,
+    isa      => Boolish,
     required => 1,
 );
 
@@ -73,12 +73,12 @@ Default is false.
 
 has 'bypassDocumentValidation' => (
     is       => 'ro',
-    isa      => Bool,
+    isa      => Boolish,
 );
 
 has '_executed' => (
     is       => 'rw',
-    isa      => Bool,
+    isa      => Boolish,
     init_arg => undef,
     default  => 0,
 );

@@ -31,13 +31,13 @@ use MongoDB::_Constants;
 use MongoDB::_Link;
 use MongoDB::_Types qw(
     BSONCodec
+    Boolish
     Document
     NonNegNum
     TopologyType
     to_IxHash
 );
 use Types::Standard qw(
-    Bool
     HashRef
     InstanceOf
     Num
@@ -142,7 +142,7 @@ has server_selection_timeout_sec => (
 has server_selection_try_once => (
     is      => 'ro',
     default => 1,
-    isa => Bool,
+    isa => Boolish,
 );
 
 has ewma_alpha => (
@@ -191,7 +191,7 @@ has handshake_document => (
 has is_compatible => (
     is => 'ro',
     writer => '_set_is_compatible',
-    isa => Bool,
+    isa => Boolish,
 );
 
 has wire_version_floor => (

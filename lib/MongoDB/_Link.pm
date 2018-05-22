@@ -36,12 +36,12 @@ use Time::HiRes qw/time/;
 use MongoDB::Error;
 use MongoDB::_Constants;
 use MongoDB::_Types qw(
+    Boolish
     HostAddress
     NonNegNum
     ServerDesc
 );
 use Types::Standard qw(
-    Bool
     HashRef
     Maybe
     Num
@@ -75,7 +75,7 @@ has socket_timeout => (
 
 has with_ssl => (
     is => 'ro',
-    isa => Bool,
+    isa => Boolish,
 );
 
 has SSL_options => (
@@ -119,14 +119,14 @@ for my $f ( @is_master_fields ) {
 has does_write_commands => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 # for caching wire version >= 5
 has supports_collation => (
     is => 'rwp',
     init_arg => undef,
-    isa => Bool,
+    isa => Boolish,
 );
 
 my @connection_state_fields = qw(

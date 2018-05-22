@@ -27,6 +27,7 @@ use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::_Types qw(
   AuthMechanism
+  Boolish
   NonEmptyStr
 );
 
@@ -36,7 +37,6 @@ use MIME::Base64 qw/encode_base64 decode_base64/;
 use Tie::IxHash;
 use Try::Tiny;
 use Types::Standard qw(
-  Bool
   HashRef
   InstanceOf
   Str
@@ -70,7 +70,7 @@ has password => (
 
 has pw_is_digest => (
     is  => 'ro',
-    isa => Bool,
+    isa => Boolish,
 );
 
 has mechanism_properties => (

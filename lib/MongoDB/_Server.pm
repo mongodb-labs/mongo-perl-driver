@@ -23,13 +23,13 @@ our $VERSION = 'v1.8.2';
 
 use Moo;
 use MongoDB::_Types qw(
+    Boolish
     NonNegNum
     HostAddress
     ServerType
     HostAddressList
 );
 use Types::Standard qw(
-    Bool
     InstanceOf
     HashRef
     Str
@@ -214,7 +214,7 @@ sub _build_last_write_date {
 
 has is_available => (
     is      => 'lazy',
-    isa     => Bool,
+    isa     => Boolish,
     builder => "_build_is_available",
 );
 
@@ -225,7 +225,7 @@ sub _build_is_available {
 
 has is_readable => (
     is      => 'lazy',
-    isa     => Bool,
+    isa     => Boolish,
     builder => "_build_is_readable",
 );
 
@@ -239,7 +239,7 @@ sub _build_is_readable {
 
 has is_writable => (
     is      => 'lazy',
-    isa     => Bool,
+    isa     => Boolish,
     builder => "_build_is_writable",
 );
 

@@ -34,7 +34,6 @@ my $SERVERSET = declare as ConsumerOf['MongoDBTest::Role::ServerSet'];
 
 has with_CSRS => (
     is => 'lazy',
-    isa => Bool,
 );
 
 sub _build_with_CSRS {

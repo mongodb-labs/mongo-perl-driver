@@ -35,9 +35,11 @@ use MongoDB::Op::_Update;
 use MongoDB::Op::_Delete;
 use MongoDB::_Protocol;
 use MongoDB::_Constants;
+use MongoDB::_Types qw(
+    Boolish
+);
 use Types::Standard qw(
     ArrayRef
-    Bool
 );
 use Safe::Isa;
 use Try::Tiny;
@@ -54,7 +56,7 @@ has queue => (
 has ordered => (
     is       => 'ro',
     required => 1,
-    isa      => Bool,
+    isa      => Boolish,
 );
 
 with $_ for qw(

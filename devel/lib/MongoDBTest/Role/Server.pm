@@ -33,6 +33,9 @@ use version;
 
 use Moo::Role;
 use Types::Standard -types;
+use MongoDB::_Types qw(
+    Boolish
+);
 use Types::Path::Tiny qw/AbsFile AbsDir AbsPath/;
 use namespace::clean;
 
@@ -219,7 +222,7 @@ has auth_config => (
 
 has did_auth_setup => (
     is => 'rwp',
-    isa => Bool,
+    isa => Boolish,
 );
 
 has ssl_config => (
@@ -229,7 +232,7 @@ has ssl_config => (
 
 has did_ssl_auth_setup => (
     is => 'rwp',
-    isa => Bool,
+    isa => Boolish,
 );
 
 # Semi-private

@@ -26,8 +26,8 @@ our $VERSION = 'v1.8.2';
 
 use Moo::Role;
 
-use Types::Standard qw(
-  Bool
+use MongoDB::_Types qw(
+    Boolish
 );
 use boolean;
 
@@ -35,7 +35,7 @@ use namespace::clean;
 
 has bypassDocumentValidation => (
     is  => 'ro',
-    isa => Bool
+    isa => Boolish,
 );
 
 # args not unpacked for efficiency; args are self, link, command;

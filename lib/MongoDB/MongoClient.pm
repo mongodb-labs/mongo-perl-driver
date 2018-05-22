@@ -52,6 +52,7 @@ use Try::Tiny;
 use MongoDB::_Types qw(
     ArrayOfHashRef
     AuthMechanism
+    Boolish
     BSONCodec
     HeartbeatFreq
     MaxStalenessNum
@@ -60,7 +61,6 @@ use MongoDB::_Types qw(
     ReadPreference
 );
 use Types::Standard qw(
-    Bool
     HashRef
     InstanceOf
     Undef
@@ -354,7 +354,7 @@ strings 'true' or 'false'.
 
 has j => (
     is      => 'lazy',
-    isa     => Bool,
+    isa     => Boolish,
     builder => '_build_j',
 );
 
@@ -662,7 +662,7 @@ option.
 
 has server_selection_try_once => (
     is      => 'lazy',
-    isa     => Bool,
+    isa     => Boolish,
     builder => '_build_server_selection_try_once',
 );
 
@@ -778,7 +778,7 @@ version of the driver may support customizing ssl via the connection string.)
 
 has ssl => (
     is      => 'lazy',
-    isa     => Bool|HashRef,
+    isa     => Boolish|HashRef,
     builder => '_build_ssl',
 );
 
@@ -986,7 +986,7 @@ C<sasl_mechanism> property.
 
 has sasl => (
     is      => 'ro',
-    isa     => Bool,
+    isa     => Boolish,
     default => 0
 );
 
