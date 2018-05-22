@@ -1,0 +1,645 @@
+#
+#  Copyright 2015 - present MongoDB, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+
+# PODNAME: MongoDB::Upgrading::v1
+# ABSTRACT: Deprecations and behavior changes from v0 to v1
+
+=pod
+
+=head1 DESCRIPTION
+
+The v1 driver represents a substantial step forward in functionality and
+consistency.  There are many areas where the old API has been deprecated or
+changed in a backward breaking way.
+
+This document is intended to help developers update their code to take into
+account API changes from the v0 driver to the v1 driver.
+
+=head1 RATIONALE
+
+Changes to the driver were deemed necessary to achieve certain goals:
+
+=for :list
+* consistency (intra-driver) – many parts of the v0 API were inconsistent,
+  behaving differently from method to method; the v1 API minimizes
+  developer surprises by improving consistency in return types and
+  exception mechanisms.
+* consistency (inter-driver) — "next-generation" MongoDB drivers across all
+  languages are converging on common APIs and common behaviors; this
+  simplifies developer education and support, as cross-language examples
+  will be similar.
+* encapsulation – too many low-level, internal operations were exposed as
+  part of the API, which complicates maintenance work; the v1 API aims to
+  minimize the "public surface" available to developers, allowing faster
+  future development keeping up with MongoDB server enhancements with less
+  risk of breakage.
+* abstraction – many v0 methods returned raw server documents for end-user
+  code to inspect, which is brittle in the face of changes in server
+  responses over time; the v1 API uses result classes to abstract the
+  details behind standardized accessors.
+* server compatibility – some new features and behavior changes in the
+  MongoDB server no longer fit the old driver design; the v1 driver
+  transparently supports both old and new servers.
+* portability – the v0 driver had a large dependency tree and substantial
+  non-portable C code; the v1 driver removes some dependencies and uses
+  widely-used, well-tested CPAN modules in place of custom C code where
+  possible; it lays the groundwork for a future "pure-Perl optional"
+  driver.
+* round-trippable data – the v0 BSON implementation could easily change
+  data types when round-tripping documents; the v1 driver is designed to
+  round-trip data correctly whenever possible (within the limits of Perl's
+  dynamic typing).
+
+=head1 INSTALLATION AND DEPENDENCY CHANGES
+
+=head2 Moo instead of Moose
+
+The v1 driver uses L<Moo> instead of L<Moose>.  This change results in
+a slightly faster driver and a significanly reduced deep dependency tree.
+
+=head2 SSL and SASL
+
+The v0 driver required a compiler and OpenSSL and libgsasl for SSL and SASL
+support, respectively.  The v1 driver instead relies on CPAN modules
+C<IO::Socket::SSL> and C<Authen::SASL> for SSL and SASL support,
+respectively.
+
+SSL configuration is now possible via the L<ssl
+attribute|MongoDB::MongoClient/ssl>.
+
+Authentication configuration is described in L<MongoDB::MongoClient/AUTHENTICATION>.
+
+=head1 BEHAVIOR CHANGES
+
+=head2 MongoClient configuration
+
+=head3 New configuration options
+
+Several configuration options have been added, with particular emphasis on
+adding more granular control of timings and timeout behaviors.
+
+=for :list
+* C<auth_mechanism>
+* C<auth_mechanism_properties>
+* C<bson_codec>
+* C<connect_timeout_ms>
+* C<heartbeat_frequency_ms>
+* C<local_threshold_ms>
+* C<max_time_ms>
+* C<replica_set_name>
+* C<read_pref_mode>
+* C<read_pref_tag_sets>
+* C<server_selection_timeout_ms>
+* C<socket_check_interval_ms>
+* C<socket_timeout_ms>
+
+=head3 Replica set configuration
+
+Connecting to a replica set now requires a replica set name, given either
+with the C<replica_set_name> option for L<MongoDB::MongoClient> or with
+the C<replicaSet> option in a connection string.  For example:
+
+    $client = MongoDB::MongoClient->new(
+        host => "mongodb://rs1.example.com,rs2.example.com/",
+        replica_set_name => 'the_set',
+    );
+
+    $client = MongoDB::MongoClient->new(
+        host => "mongodb://rs1.example.com,rs2.example.com/?replicaSet=the_set"
+    );
+
+=head3 Configuration options changed to read-only
+
+Configuration options are changing to be immutable to prevent surprising
+action-at-a-distance.  (E.g. changing an attribute value in some part of
+the code changes it for other parts of the code that didn't expect it.)
+Going forward, options may be set at L<MongoDB::MongoClient> construction
+time only.
+
+The following options have changed to be read-only:
+
+=for :list
+* C<db_name>
+* C<j>
+* C<password>
+* C<ssl>
+* C<username>
+* C<w>
+* C<wtimeout>
+
+Write concern may be overridden at the L<MongoDB::Database> and
+L<MongoDB::Collection> level during construction of those objects.
+For more details, see the later section on
+L<write concern changes|/Write concern objects and removing the safe argument>.
+
+=head3 Mapping between connection string and configuration options
+
+Many configuration options may be set via a connection string URI in the
+C<host> option.  In the v0 driver, the precedence between the connection
+string and constructor options was completely inconsistent.  In the v1
+driver, options set via a connection string URI will take precedence over
+options passed to the constructor.  This is consistent with with other
+MongoDB drivers (as well as how L<DBI> treats Data Source Names).
+
+The list of servers and ports as well as the optional C<username>,
+C<password> and C<db_name> options come directly from URI structure.  Other
+options are parsed as key-value parameters at the end of the connection
+string.  The following table shows how connection string keys map to
+configuration options in the L<MongoDB::MongoClient>:
+
+    Connection String Key           MongoClient option
+    ---------------------------     -----------------------------
+    authMechanism                   auth_mechanism
+    authMechanismProperties         auth_mechanism_properties
+    connectTimeoutMS                connect_timeout_ms
+    heartbeatFrequencyMS            heartbeat_frequency_ms
+    journal                         j
+    localThresholdMS                local_threshold_ms
+    maxTimeMS                       max_time_ms
+    readPreference                  read_pref_mode
+    readPreferenceTags              read_pref_tag_sets
+    replicaSet                      replica_set_name
+    serverSelectionTimeoutMS        server_selection_timeout_ms
+    socketCheckIntervalMS           socket_check_interval_ms
+    socketTimeoutMS                 socket_timeout_ms
+    ssl                             ssl
+    w                               w
+    wTimeoutMS                      wtimeout
+
+The C<readPreferenceTags> and C<authMechanismProperties> keys take
+colon-delimited, comma-separated pairs:
+
+    readPreferenceTags=dc:nyeast,rack:1
+    authMechanismProperties=SERVICE_NAME:mongodb
+
+The C<readPreferenceTags> option may be repeated to build up a list
+of tag set documents:
+
+    readPreferenceTags=dc:nyc,rack:1&readPreferenceTags=dc:nyc
+
+=head3 Deprecated configuration options
+
+Several options have been superseded, replaced or renamed for clarity and
+are thus deprecated and undocumented.  They are kept for a limited degree
+of backwards compatibility.  They will be generally be used as fallbacks
+for other options.  If any were read-write, they have also been changed to
+read-only.
+
+=for :list
+* C<dt_type> — see L</BSON encoding changes> for details.
+* C<query_timeout> — replaced by C<socket_timeout_ms>; if set, this will be
+  used as a fallback default for C<socket_timeout_ms>.
+* C<sasl> — superseded by C<auth_mechanism>; if set, this will be used
+  along with C<sasl_mechanism> as a fallback default for C<auth_mechanism>.
+* C<sasl_mechanism> — superseded by C<auth_mechanism>; if set, this will be
+  used as a fallback default for C<auth_mechanism>.
+* C<timeout> — replaced by C<connect_timeout_ms>; if set, this will be used
+  as a fallback default for C<connect_timeout_ms>.
+
+These will be removed in a future major release.
+
+=head3 Configuration options removed
+
+Some configuration options have been removed entirely, as they no longer
+serve any purpose given changes to server discovery, server selection and
+connection handling:
+
+=for :list
+* C<auto_connect>
+* C<auto_reconnect>
+* C<find_master>
+* C<max_bson_size>
+
+As described further below in the L</BSON encoding changes> section, these
+BSON encoding configuration options have been removed as well:
+
+=for :list
+* C<inflate_dbrefs>
+* C<inflate_regexps>
+
+Removed configuration options will be ignored if passed to the
+L<MongoDB::MongoClient> constructor.
+
+=head2 Lazy connections and reconnections on demand
+
+The improved approach to server monitoring and selection allows all
+connections to be lazy.  When the client is constructed, no connections are
+made until the first network operation is needed.  At that time, the client
+will scan all servers in the seed list and begin regular monitoring.
+Connections that drop will be re-established when needed.
+
+B<IMPORTANT:> Code that used to rely on a fatal exception from
+C<< MongoDB::MongoClient->new >> when no mongod is available will break.
+Instead, users are advised to just conduct their operations and be prepared
+to handle errors.
+
+For testing, users may wish to run a simple command to check that
+a mongod is ready:
+
+    use Test::More;
+
+    # OLD WAY: BROKEN
+    plan skip_all => 'no mongod' unless eval {
+        MongoDB::MongoClient->new
+    };
+
+    # NEW WAY 1: with MongoDB::MongoClient
+    plan skip_all => 'no mongod' unless eval {
+        MongoDB::MongoClient->new->db('admin')->run_command(
+            [ ismaster => 1 ]
+        )
+    };
+
+    # NEW WAY 2: with MongoDB and connect
+    plan skip_all => 'no mongod' unless eval {
+        MongoDB->connect->db('admin')->run_command([ ismaster => 1 ])
+    };
+
+See L<SERVER SELECTION|MongoDB::MongoClient/SERVER SELECTION> and L<SERVER
+MONITORING AND FAILOVER|MongoDB::MongoClient/SERVER MONITORING AND FAILOVER> in
+L<MongoDB::MongoClient> for details.
+
+=head2 Exceptions are the preferred error handling approach
+
+In the v0 driver, errors could be indicated in various ways:
+
+=for :list
+* boolean return value
+* string return value is an error; hash ref is success
+* document that might contain an 'err', 'errmsg' or '$err' field
+* thrown string exception
+
+Regardless of the documented error handling, every method that involved a
+network operation would throw an exception on various network errors.
+
+In the v1 driver, exceptions objects are the standard way of indicating
+errors.  The exception hierarchy is described in L<MongoDB::Error>.
+
+=head2 Cursors and query responses
+
+In v0, L<MongoDB::Cursor> objects were used for ordinary queries as well as
+the query-like commands aggregation and parallel scan.  However, only
+cursor iteration commands worked for aggregation and parallel scan
+"cursors"; the rest of the L<MongoDB::Cursor> API didn't apply and was
+fatal.
+
+In v1, all result iteration is done via the new L<MongoDB::QueryResult>
+class.  L<MongoDB::Cursor> is now just a thin wrapper that holds query
+parameters, instantiates a L<MongoDB::QueryResult> on demand, and passes
+iteration methods through to the query result object.
+
+This significantly simplifies the code base and should have little end-user
+visibility unless users are specifically checking the return type of
+queries and query-like methods.
+
+The C<explain> cursor method no longer resets the cursor.
+
+The C<slave_okay> cursor method now sets the C<read_preference>
+to 'secondaryPreferred' or clears it to 'primary'.
+
+The C<snapshot> cursor method now requires a boolean argument, allowing
+it to be turned on or off before executing the query.  Calling it without
+an argument (as it was in v0) is a fatal exception.
+
+Parallel scan "cursors" are now L<QueryResult> objects, with the same
+iteration methods as in v0.
+
+The C<$MongoDB::Cursor::slave_okay> global variable has been removed as part
+of the revision to read preference handling.  See the L<read
+preferences|/Read preference objects and the read_preference method> section
+below for more details.
+
+The C<$MongoDB::Cursor::timeout> global variable has also been removed.
+Timeouts are set during L<MongoDB::MongoClient> configuration and are
+immutable.  See the section on L<configuration changes|/MongoClient
+configuration> for more.
+
+=head2 Aggregation API
+
+On MongoDB 2.6 or later, C<aggregate> always uses a cursor to execute
+the query.  The C<batchSize> option has been added (but has no effect
+prior to 2.6).  The C<cursor> option is deprecated.
+
+The return types for the C<aggregate> method are now B<always>
+L<QueryResult> objects, regardless of whether the aggregation uses a cursor
+internally or is an 'explain'.
+
+B<NOTE>: To help users with a 2.6 mongos and mixed version shards with
+versions before 2.6, passing the deprecated 'cursor' option with a false
+value will disable the use of a cursor.  This workaround is provided for
+convenience and will be removed when 2.4 is no longer supported.
+
+=head2 Read preference objects and the read_preference method
+
+A new L<MongoDB::ReadPreference> class is used to encapsulate read
+preference attributes.  In the v1 driver, it is constructed from the
+C<read_pref_mode> and C<read_pref_tag_sets> attributes on L<MongoDB::MongoClient>:
+
+    MongoDB::MongoClient->new(
+        read_pref_mode => 'primaryPreferred',
+        read_pref_tag_sets => [ { dc => 'useast' }, {} ],
+    );
+
+The old C<read_preference> method to change the read preference has been
+removed and trying to set a read preference after the client has been
+created is a fatal error.  The old mode constants PRIMARY, SECONDARY,
+etc. have been removed.
+
+The C<read_preference> method now returns the L<MongoDB::ReadPreference>
+object generated from C<read_pref_mode> and C<read_pref_tag_sets>.
+
+It is inherited by L<MongoDB::Database>, L<MongoDB::Collection>,
+and L<MongoDB::GridFS> objects unless provided as an option to
+the relevant factory methods:
+
+    my $coll = $db->get_collection(
+        "foo", { read_preference => 'secondary' }
+    );
+
+Such C<read_preference> arguments may be a L<MongoDB::ReadPreference>
+object, a hash reference of arguments to construct one, or a string that
+represents the read preference mode.
+
+L<MongoDB::Database> and L<MongoDB::Collection> also have C<clone> methods
+that allow easy alteration of a read preference for a limited scope.
+
+    my $coll2 = $coll->clone( read_preference => 'secondaryPreferred' );
+
+For L<MongoDB::Cursor>, the C<read_preference> method sets a hidden read
+preference attribute that is used for the query in place of the
+L<MongoDB::MongoClient> default C<read_preference> attribute.  This means
+that calling C<read_preference> on a cursor object no longer changes the
+read preference globally on the client – the read preference change is
+scoped to the cursor object only.
+
+=head2 Write concern objects and removing the safe argument
+
+A new L<MongoDB::WriteConcern> class is used to encapsulate write concern
+attributes.  In the v1 driver, it is constructed from the C<w>, C<wtimeout>
+and C<j> attributes on L<MongoDB::MongoClient>:
+
+    MongoDB::MongoClient->new( w => 'majority', wtimeout => 1000 );
+
+The C<write_concern> method now returns the L<MongoDB::WriteConcern>
+object generated from C<w>, C<wtimeout> and C<j>.
+
+It is inherited by L<MongoDB::Database>, L<MongoDB::Collection>,
+and L<MongoDB::GridFS> objects unless provided as an option to
+the relevant factory methods:
+
+    $db = $client->get_database(
+        "test", { write_concern => { w => 'majority' } }
+    );
+
+Such C<write_concern> arguments may be a L<MongoDB::WriteConcern>
+object, a hash reference of arguments to construct one, or a string that
+represents the C<w> mode.
+
+L<MongoDB::Database> and L<MongoDB::Collection> also have C<clone> methods
+that allow easy alteration of a write concern for a limited scope.
+
+    my $coll2 = $coll->clone( write_concern => { w => 1 } );
+
+The C<safe> argument is no longer used in the new CRUD API.
+
+=head2 Authentication based only on configuration options
+
+Authentication now happens automatically on connection during the
+"handshake" with any given server based on the L<auth_mechanism
+attribute|MongoDB::MongoClient/auth_mechanism>.
+
+The old C<authenticate> method in L<MongoDB::MongoClient> has been removed.
+
+=head2 Bulk API
+
+=head3 Bulk method names changed to match CRUD API
+
+Method names match the new CRUD API, e.g. C<insert_one> instead of
+C<insert> and so one.  The legacy names are deprecated.
+
+=head3 Bulk insertion
+
+Insertion via the bulk API will B<NOT> insert an C<_id> into the original
+document if one does not exist.  Previous documentation was not specific
+whether this was the case or if the C<_id> was added to the document
+sent to the server.
+
+=head3 Bulk write results
+
+The bulk write results class has been renamed to
+L<MongoDB::BulkWriteResult>.  It keeps C<MongoDB::WriteResult> as an empty
+superclass for some backwards compatibility so that C<<
+$result->isa("MongoDB::WriteResult") >> will continue to work as expected.
+
+The attributes have been renamed to be consistent with the new CRUD API.
+The legacy names are deprecated, but are available as aliases.
+
+=head2 GridFS
+
+The L<MongoDB::GridFS> class now has explicit read preference and write
+concern attributes inherited from L<MongoDB::MongoClient> or
+L<MongoDB::Database>, just like L<MongoDB::Collection>.  This means that
+GridFS operations now default to an acknowledged write concern, just like
+collection operations have been doing since v0.502.0 in 2012.
+
+The use of C<safe> is deprecated.
+
+Support for ancient, undocumented positional parameters circa 2010
+has been removed.
+
+=head2 Low-level functions removed
+
+Low-level driver functions have been removed from the public API.
+
+=head2 MongoDB::Connection removed
+
+The C<MongoDB::Connection> module was deprecated in v0.502.0 and has been
+removed.
+
+=head2 BSON encoding changes
+
+In the v1 driver, BSON encoding and decoding have been encapsulated into a
+L<MongoDB::BSON> codec object.  This can be provided at any level, from
+L<MongoDB::MongoClient> to L<MongoDB::Collection>.  If not provided, a
+default will be created that behaves similarly to the v0 encoding/decoding
+functions, except for the following changes.
+
+=head3 C<$MongoDB::BSON::use_binary> removed
+
+Historically, this defaulted to false, which corrupts binary data when
+round tripping.  Retrieving a binary data element and re-inserting it
+would have resulted in a field with UTF-8 encoded string of binary data.
+
+Going forward, binary data will be returned as a L<MongoDB::BSON::Binary>
+object.  A future driver may add the ability to control decoding to allow
+alternative representations.
+
+=head3 C<$MongoDB::BSON::use_boolean> removed
+
+This global variable never worked. BSON booleans were always deserialized
+as L<boolean> objects.  A future driver may add the ability to control
+boolean representation.
+
+=head3 C<$MongoDB::BSON::utf8_flag_on> removed
+
+In order to ensure round-tripping of string data, this variable is removed.
+BSON strings will always be decoded to Perl character strings.  Anything
+else risks double-encoding a round-trip.
+
+=head3 C<$MongoDB::BSON::looks_like_number> and C<$MongoDB::BSON::char>
+deprecated and re-scoped
+
+In order to allow a future driver to provide more flexible user-customized
+encoding and decoding, these global variables are deprecated.  If set, they
+will be examined during C<< MongoDB::MongoClient->new() >> to set the
+configuration of a default L<MongoDB::BSON> codec (if one is not
+provided).  Changing them later will B<NOT> change the behavior of the
+codec object.
+
+=head3 C<MongoDB::MongoClient> option C<inflate_regexps> removed
+
+Previously, BSON regular expressions decoded to C<qr{}> references by
+default and the C<MongoDB::MongoClient> C<inflate_regexps> option was
+available to decode instead to L<MongoDB::BSON::Regexp>s.
+
+Going forward in the v1.0.0 driver, for safety and consistency with other
+drivers, BSON regular expressions B<always> decode to
+L<MongoDB::BSON::Regexp> objects.
+
+=head3 C<MongoDB::MongoClient> option C<inflate_dbrefs> removed
+
+The C<inflate_dbrefs> configuration option has been removed and replaced
+with a C<dbref_callback> option in L<MongoDB::BSON>.
+
+By default, the C<MongoDB::MongoClient> will create a L<MongoDB::BSON>
+codec that will construct L<MongoDB::DBRef> objects.  This ensures that
+DBRefs properly round-trip.
+
+=head3 C<MongoDB::MongoClient> option C<dt_type> deprecated and changed to read-only
+
+The C<dt_type> option is now only takes effect if C<MongoDB::MongoClient>
+constructs a L<MongoDB::BSON> codec object.  It has been changed to a
+read-only attribute so that any code that relied on changing C<dt_type>
+after constructing a C<MongoDB::MongoClient> object will fail instead of
+being silently ignored.
+
+=head3 Int32 vs Int64 encoding changes
+
+On 64-bit Perls, integers that fit in 32-bits will be encoded as BSON
+Int32 (whereas previously these were always encoded as BSON Int64).
+
+Math::BigInt objects will always be encoded as BSON Int64, which allows
+users to force 64-bit encoding if desired.
+
+=head3 Added support for Time::Moment
+
+L<Time::Moment> is a much faster replacement for the venerable L<DateTime>
+module.  The BSON codec will serialize L<Time::Moment> objects correctly
+and can use that module as an argument for the C<dt_type> codec attribute.
+
+=head3 Added support for encoding common JSON boolean classes
+
+Most JSON libraries on CPAN implement their own boolean classes.  The
+following libraries boolean types will now encode correctly as BSON
+booleans:
+
+=for :list
+* JSON::XS
+* Cpanel::JSON::XS
+* JSON::PP
+* JSON::Tiny
+* Mojo::JSON
+
+=head2 DBRef objects
+
+The C<fetch> method and related attributes C<client>, C<verify_db>, and
+C<verify_coll> have been removed from L<MongoDB::DBRef>.
+
+Providing a C<fetch> method was inconsistent with other MongoDB drivers,
+which either never provided it, or have dropped it in the next-generation
+drivers.  It requires a C<client> attribute, which tightly couples BSON
+decoding to the client model, causing circular reference issues and
+triggering Perl memory bugs under threads.  Therefore, the v1.0.0 driver no
+longer support fetching directly from L<MongoDB::DBRef>; users will need to
+implement their own methods for dereferencing.
+
+Additionally, the C<db> attribute is now optional, consistent with the
+specification for DBRefs.
+
+Also, all attributes (C<ref>, C<id> and C<db>) are now read-only,
+consistent with the move toward immutable objects throughout the driver.
+
+To support round-tripping DBRefs with additional fields other than C<$ref>,
+C<$id> and C<$db>, the DBRef class now has an attribute called C<extra>.
+As not all drivers support this feature, using it for new DBRefs is not
+recommended.
+
+=head1 DEPRECATED METHODS
+
+Deprecated options and methods may be removed in a future release.  Their
+documentation has been removed to discourage ongoing use.  Unless
+otherwise stated, they will continue to behave as they previously did,
+allowing a degree of backwards compatibility until code is updated to the
+new MongoDB driver API.
+
+=head2 MongoDB::Database
+
+=for :list
+* eval – MongoDB 3.0 deprecated the '$eval' command, so this helper method
+  is deprecated as well.
+* last_error — Errors are now indicated via exceptions at the time database
+  commands are executed.
+
+=head2 MongoDB::Collection
+
+=for :list
+* insert, batch_insert, remove, update, save, query and find_and_modify — A new
+  common driver CRUD API replaces these legacy methods.
+* get_collection — This method implied that collections could be contained
+  inside collection.  This doesn't actually happen so it's confusing to
+  have a Collection be a factory for collections.  Users who want nested
+  namespaces should be explicit and create them off Database objects instead.
+* ensure_index, drop_indexes, drop_index, get_index — A new
+  L<MongoDB::IndexView> class is accessible through the C<indexes> method,
+  offering greater consistency in behavior across drivers.
+* validate — The return values have changed over different server versions,
+  so this method is risky to use; it has more use as a one-off tool, which
+  can be accomplished via C<run_command>.
+
+=head2 MongoDB::CommandResult
+
+=for :list
+* result — has been renamed to 'output' for clarity
+
+=head2 MongoDB::Cursor
+
+=for :list
+* slave_ok — this modifier method is superseded by the 'read_preference'
+  modifier method
+* count — this is superseded by the L<MongoDB::Collection
+  count/MongoDB::Collection#count> method.  Previously, this ignored
+  skip/limit unless a true argument was passed, which was a bizarre,
+  non-intuitive and inconsistent API.
+
+=head2 MongoDB::BulkWrite and MongoDB::BulkWriteView
+
+=for :list
+* insert — renamed to 'insert_one' for consistency with CRUD API
+* update — renamed to 'update_many' for consistency with CRUD API
+* remove — renamed to 'delete_many' for consistency with CRUD API
+* remove_one — renamed to 'delete_one' for consistency with CRUD API
+
+=cut
