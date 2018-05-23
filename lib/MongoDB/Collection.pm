@@ -1360,12 +1360,10 @@ sub parallel_scan {
     }
     $options = ref $options eq 'HASH' ? $options : { };
 
-    # TODO Implicit sessions expire when???
     my $op = MongoDB::Op::_ParallelScan->_new(
         %{ $self->_op_args },
         num_cursors     => $num_cursors,
         options         => $options,
-        session         => undef, # SERVER-33998 not fully supported
     );
 
     my $result = $self->client->send_read_op( $op );
