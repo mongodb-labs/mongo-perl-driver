@@ -1206,7 +1206,6 @@ sub _build__topology {
 
     MongoDB::_Topology->new(
         uri                          => $self->_uri,
-        bson_codec                   => $self->bson_codec,
         type                         => $type,
         app_name                     => $self->app_name,
         replica_set_name             => $self->replica_set_name,

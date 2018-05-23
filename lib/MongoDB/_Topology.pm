@@ -184,6 +184,7 @@ has bson_codec => (
     is       => 'ro',
     default  => sub { BSON->new },
     isa => BSONCodec,
+    init_arg => undef,
 );
 
 has number_of_seeds => (
