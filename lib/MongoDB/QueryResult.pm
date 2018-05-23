@@ -41,6 +41,7 @@ use Types::Standard qw(
     Int
     HashRef
     Num
+    Overload
     Str
 );
 use namespace::clean;
@@ -67,7 +68,7 @@ has _address => (
 has _full_name => (
     is       => 'ro',
     required => 1,
-    isa => Str,
+    isa => Str|Overload['""'],
 );
 
 has _bson_codec => (
