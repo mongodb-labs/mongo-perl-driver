@@ -342,13 +342,15 @@ sub check_reply_field {
 
     # special case for $event.reply.writeErrors
     if (exists $exp_reply->{writeErrors}) {
-        for my $error (@{ $exp_reply->{writeErrors} }) {
+        for my $i ( 0 .. $#{ $exp_reply->{writeErrors} } ) {
+            my $error = $exp_reply->{writeErrors}[$i];
             if (exists $error->{code} and $error->{code} eq 42) {
                 $error->{code} = code(\&_verify_is_positive_num);
             }
             if (exists $error->{errmsg} and $error->{errmsg} eq '') {
                 $error->{errmsg} = code(\&_verify_is_nonempty_str);
             }
+            $exp_reply->{writeErrors}[$i] = superhashof( $error );
         }
     }
 
@@ -367,7 +369,7 @@ sub check_reply_field {
         cmp_deeply
             $event_reply->{$exp_key},
             prepare_data_spec($exp_reply->{$exp_key}),
-            "reply field $exp_key";
+            "reply field $exp_key" or diag explain $event_reply->{$exp_key};
     }
 }
 
