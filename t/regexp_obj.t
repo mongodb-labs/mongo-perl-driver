@@ -42,7 +42,7 @@ my $conn = build_client();
 
 like(
     exception { my $regexp = MongoDB::BSON::Regexp->new( pattern => 'narf', flags => 'xyz' ); },
-    qr/Regexp flag \w is not supported/,
+    qr/Regex flag \w is not supported/,
     'exception on invalid flag'
 );
 

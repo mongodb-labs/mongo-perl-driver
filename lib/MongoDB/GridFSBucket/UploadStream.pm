@@ -23,10 +23,10 @@ use version;
 our $VERSION = 'v1.999.0';
 
 use Moo;
+use BSON::OID;
 use Encode;
 use DateTime;
 use MongoDB::Error;
-use MongoDB::OID;
 use MongoDB::BSON::Binary;
 use Time::HiRes qw/time/;
 use Types::Standard qw(
@@ -145,7 +145,7 @@ has id => (
 sub _build_id {
     my $self = shift;
     my $creator = $self->_bucket->bson_codec->can("create_oid");
-    return $creator ? $creator->() : MongoDB::OID->_new_oid();
+    return $creator ? $creator->() : BSON::OID->new();
 }
 
 has _closed => (

@@ -26,7 +26,7 @@ our $VERSION = 'v1.999.0';
 use Moo::Role;
 
 use BSON::Raw;
-use MongoDB::OID;
+use BSON::OID;
 
 use namespace::clean;
 
@@ -51,10 +51,7 @@ sub _pre_encode_insert {
     );
     if ( ! defined $id ) {
         my $creator = $self->bson_codec->can("create_oid");
-        # "create_oid" is a new codec API method.  If a codec doesn't
-        # have it, we fall back to MongoDB::OID, but use _new_oid for
-        # efficiency as it bypasses Moo construction overhead.
-        $id = $creator ? $creator->() : MongoDB::OID->_new_oid();
+        $id = $creator ? $creator->() : BSON::OID->new();
     }
     my $bson_doc = $self->bson_codec->encode_one(
         $doc,

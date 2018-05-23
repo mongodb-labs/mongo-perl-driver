@@ -41,7 +41,7 @@ use MongoDB::_Topology;
 use MongoDB::_Constants;
 use MongoDB::_Credential;
 use MongoDB::_URI;
-use BSON v1.6.0;
+use BSON 1.006002;
 use Digest::MD5;
 use UUID::URandom;
 use Tie::IxHash;
