@@ -21,7 +21,6 @@ use Test::More;
 use Test::Fatal;
 
 use MongoDB;
-use MongoDB::BSON;
 use Scalar::Util 'blessed', 'reftype';
 
 use lib "t/lib";
