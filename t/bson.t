@@ -239,14 +239,6 @@ subtest "Person object" => sub {
     is($person->{'age'}, 22, "roundtrip number");
 };
 
-subtest "warn on floating timezone" => sub {
-    my $warned = 0;
-    local $SIG{__WARN__} = sub { if ($_[0] =~ /floating/) { $warned = 1; } else { warn(@_); } };
-    my $date = DateTime->new(year => 2010, time_zone => "floating");
-    $c->with_codec( dt_type => 'DateTime' )->insert_one({"date" => $date});
-    is($warned, 1, "warn on floating timezone");
-};
-
 subtest "epoch time" => sub {
     my $date = bson_time( 0 );
     is( exception { $c->insert_one( { "date" => $date } ) },

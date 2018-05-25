@@ -25,6 +25,7 @@ our $VERSION = 'v1.999.0';
 use MongoDB::GridFS::File;
 use Digest::MD5;
 use Moo;
+use BSON::Time;
 use MongoDB::Error;
 use MongoDB::WriteConcern;
 use MongoDB::_Types qw(
@@ -338,7 +339,6 @@ with:
 sub insert {
     my ($self, $fh, $metadata, $options) = @_;
     $options ||= {};
-    require DateTime; # lazy load so we don't have overhead if not needed
 
     MongoDB::UsageError->throw("not a file handle") unless $fh;
     $metadata = {} unless $metadata && ref $metadata eq 'HASH';
@@ -398,7 +398,7 @@ sub insert {
 
     $copy{"_id"} = $id;
     $copy{"chunkSize"} = $MongoDB::GridFS::chunk_size;
-    $copy{"uploadDate"} = DateTime->now;
+    $copy{"uploadDate"} = BSON::Time->new();
     $copy{"length"} = $length;
     return $files->insert_one(\%copy)->inserted_id;
 }

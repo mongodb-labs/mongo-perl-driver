@@ -26,6 +26,7 @@ use Time::HiRes qw/usleep/;
 
 use MongoDB;
 use MongoDB::GridFSBucket;
+use BSON::Time;
 use Path::Tiny;
 
 use lib "t/lib";
@@ -86,7 +87,7 @@ sub setup_gridfs {
     open( my $file, '<:raw', $txtfile ) or die $!;
     ok( my $id = $bucket->upload_from_stream( 'input.txt', $file ),
         'upload small file' );
-    my $time = DateTime->now;
+    my $time = BSON::Time->new();
     close $file;
 
     my @chunks = $bucket->_chunks->find( { files_id => $id } )->result->all;
@@ -116,7 +117,7 @@ sub setup_gridfs {
         ),
         'upload large file'
     );
-    $time = DateTime->now;
+    $time = BSON::Time->new();
     seek $file, 0, 0;
 
     my $chunks =

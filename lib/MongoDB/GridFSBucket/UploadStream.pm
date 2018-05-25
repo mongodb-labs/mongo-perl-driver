@@ -24,8 +24,8 @@ our $VERSION = 'v1.999.0';
 
 use Moo;
 use BSON::OID;
+use BSON::Time;
 use Encode;
-use DateTime;
 use MongoDB::Error;
 use MongoDB::BSON::Binary;
 use Time::HiRes qw/time/;
@@ -309,7 +309,7 @@ sub close {
         _id        => $self->id,
         length     => $self->_length,
         chunkSize  => $self->chunk_size_bytes,
-        uploadDate => DateTime->from_epoch( epoch => time ),
+        uploadDate => BSON::Time->new(),
         md5        => $self->_md5->hexdigest,
         filename   => $self->filename,
     };
