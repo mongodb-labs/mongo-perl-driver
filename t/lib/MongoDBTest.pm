@@ -23,6 +23,7 @@ use warnings;
 
 use Exporter 'import';
 use MongoDB;
+use BSON;
 use Test::More;
 use boolean;
 use version;
@@ -65,6 +66,16 @@ sub build_client {
         };
     }
 
+    my $codec;
+    if ( $ENV{PERL_MONGO_TEST_CODEC_WRAPPED} ) {
+        $codec = BSON->new(
+            ordered      => 1,
+            wrap_dbrefs  => 1,
+            wrap_numbers => 1,
+            wrap_strings => 1,
+        );
+    }
+
     # long query timeout may help spurious failures on heavily loaded CI machines
     return MongoDB->connect(
         $host,
@@ -73,6 +84,7 @@ sub build_client {
             socket_timeout_ms           => 60000,
             server_selection_timeout_ms => $ENV{ATLAS_PROXY} ? 10000 : 2000,
             server_selection_try_once   => 0,
+            ( $codec ? ( bson_codec => $codec ) : () ),
             %args,
         }
     );

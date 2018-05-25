@@ -295,13 +295,13 @@ subtest 'indexes w/ same key pattern but different collations' => sub {
         { collation => $valid_collation_alternate, name => "index2" } );
     cmp_deeply(
         [ map { $_->{key} } $iv->list->all ],
-        [ { _id => 1 }, { a => 1 }, { a => 1 } ],
+        [ { _id => num(1) }, { a => num(1) }, { a => num(1) } ],
         "both indexes created"
     );
     $iv->drop_one("index1");
     cmp_deeply(
         [ map { $_->{name} } $iv->list->all ],
-        [ "_id_", "index2" ],
+        [ str("_id_"), str("index2") ],
         "correct index dropped"
     );
 };

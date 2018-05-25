@@ -32,10 +32,10 @@ use MongoDB::Error;
 use MongoDB::_Constants;
 use MongoDB::_Types qw(
     ArrayOfHashRef
+    Numish
 );
 use Types::Standard qw(
     HashRef
-    Num
     Undef
 );
 use namespace::clean;
@@ -84,7 +84,7 @@ for my $attr (qw/inserted_count upserted_count matched_count deleted_count/) {
         is       => 'ro',
         writer   => "_set_$attr",
         required => 1,
-        isa      => Num,
+        isa      => Numish,
     );
 }
 
@@ -97,7 +97,7 @@ has modified_count => (
     is       => 'ro',
     writer   => '_set_modified_count',
     required => 1,
-    isa      => (Num|Undef),
+    isa      => (Numish|Undef),
 );
 
 sub has_modified_count {
@@ -109,14 +109,14 @@ has op_count => (
     is       => 'ro',
     writer   => '_set_op_count',
     required => 1,
-    isa      => Num,
+    isa      => Numish,
 );
 
 has batch_count => (
     is       => 'ro',
     writer   => '_set_batch_count',
     required => 1,
-    isa      => Num,
+    isa      => Numish,
 );
 
 #--------------------------------------------------------------------------#

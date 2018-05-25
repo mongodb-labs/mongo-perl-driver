@@ -35,7 +35,6 @@ use MongoDB::_Types qw(
 );
 use Scalar::Util qw/reftype/;
 use Types::Standard qw(
-  Int
   Str
   InstanceOf
 );

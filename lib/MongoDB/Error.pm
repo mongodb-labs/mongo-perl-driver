@@ -121,7 +121,9 @@ sub _is_resumable { 1 }
 
 package MongoDB::DatabaseError;
 use Moo;
-use Types::Standard qw(Num);
+use MongoDB::_Types qw(
+    Numish
+);
 use namespace::clean;
 
 extends("MongoDB::Error");
@@ -134,7 +136,7 @@ has result => (
 
 has code => (
     is      => 'ro',
-    isa     => Num,
+    isa     => Numish,
     builder => '_build_code',
 );
 
@@ -305,14 +307,16 @@ extends 'MongoDB::Error';
 #--------------------------------------------------------------------------#
 package MongoDB::_CommandSizeError;
 use Moo;
-use Types::Standard qw(Int);
+use MongoDB::_Types qw(
+    Intish
+);
 use namespace::clean;
 
 extends("MongoDB::Error");
 
 has size => (
     is       => 'ro',
-    isa      => Int,
+    isa      => Intish,
     required => 1,
 );
 

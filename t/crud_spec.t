@@ -37,6 +37,9 @@ use MongoDBTest qw/
 
 skip_unless_mongod();
 
+plan skip_all => "Not testing with BSON wrappers"
+  if $ENV{PERL_MONGO_TEST_CODEC_WRAPPED};
+
 my $conn           = build_client();
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);

@@ -23,7 +23,7 @@ license 'Apache';
 all_from 'lib/MongoDB.pm';
 
 requires 'Authen::SCRAM::Client' => '0.009';
-requires 'BSON' => '1.006002';
+requires 'BSON' => '1.006003';
 requires 'Carp';
 requires 'Class::XSAccessor';
 requires 'DateTime' => '0.78';

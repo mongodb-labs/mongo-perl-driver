@@ -207,7 +207,7 @@ if ( $server_version >= v2.4.11 ) {
   $result = $coll->find_id($id, { c => 3 });
   cmp_deeply(
     $result,
-    { _id => str($id), c => 3 }, # use str() to allow MongoDB::OID vs BSON::OID
+    { _id => str($id), c => num(3) }, # use str() to allow MongoDB::OID vs BSON::OID
     "find_id projection"
   );
 
@@ -315,7 +315,7 @@ if ( $server_version >= v2.4.11 ) {
 
     cmp_deeply(
         $yer,
-        { _id => ignore(), y => 2 },
+        { _id => ignore(), y => num(2) },
         "projection fields correct"
     );
 
@@ -924,7 +924,7 @@ subtest "querying w/ collation" => sub {
 
         my $doc = $coll->find_one( { _id => 0, x => "foo" },
             undef, { collation => $case_insensitive_collation } );
-        cmp_deeply( $doc, { _id => 0, x => "FOO" }, "find_one w/ collation" );
+        cmp_deeply( $doc, { _id => num(0), x => str("FOO") }, "find_one w/ collation" );
     }
     else {
         like(
@@ -983,8 +983,8 @@ for my $criteria ( $js_str, $js_obj ) {
         cmp_deeply(
             \@docs,
             [
-                { _id => ignore(), a => 2, b => 1, n => 2 },
-                { _id => ignore(), a => 3, b => 1, n => 3 }
+                { _id => ignore(), a => num(2), b => num(1), n => num(2) },
+                { _id => ignore(), a => num(3), b => num(1), n => num(3) }
             ],
             "javascript query correct"
         );

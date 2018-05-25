@@ -39,12 +39,12 @@ use MongoDB::_Types qw(
     Boolish
     HostAddress
     NonNegNum
+    Numish
     ServerDesc
 );
 use Types::Standard qw(
     HashRef
     Maybe
-    Num
     Str
     Undef
 );
@@ -64,13 +64,13 @@ has address => (
 has connect_timeout => (
     is => 'ro',
     default => 20,
-    isa => Num,
+    isa => Numish,
 );
 
 has socket_timeout => (
     is => 'ro',
     default => 30,
-    isa => Num|Undef,
+    isa => Numish|Undef,
 );
 
 has with_ssl => (

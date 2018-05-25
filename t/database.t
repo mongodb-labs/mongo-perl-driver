@@ -125,7 +125,7 @@ subtest "collection names" => sub {
     }
 
     my @names_of_capped = $testdb->collection_names( { 'options.capped' => true } );
-    cmp_deeply( \@names_of_capped, ['test_capped'], "collection_names with filter" );
+    cmp_deeply( \@names_of_capped, [str('test_capped')], "collection_names with filter" );
 };
 
 # tie

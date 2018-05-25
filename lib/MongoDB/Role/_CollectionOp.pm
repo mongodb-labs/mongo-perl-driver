@@ -26,8 +26,8 @@ our $VERSION = 'v1.999.0';
 
 use Moo::Role;
 
-use Types::Standard qw(
-    Str
+use MongoDB::_Types qw(
+    Stringish
 );
 
 use namespace::clean;
@@ -35,13 +35,13 @@ use namespace::clean;
 has coll_name => (
     is       => 'ro',
     required => 1,
-    isa      => Str,
+    isa      => Stringish,
 );
 
 has full_name => (
     is       => 'ro',
     required => 1,
-    isa      => Str,
+    isa      => Stringish,
 );
 
 with $_ for qw(

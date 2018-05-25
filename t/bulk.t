@@ -285,7 +285,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         }
 
         # check expected values
-        $_->{x} = 3 for @docs;
+        $_->{x} = num(3) for @docs;
         cmp_deeply( [ $coll->find( {} )->all ], \@docs, "all documents updated" );
     };
 
@@ -435,7 +435,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         # check expected values
         my $distinct = [ $coll->distinct("key")->all ];
-        cmp_deeply( $distinct, bag( 1, 3 ), "only one document replaced" );
+        cmp_deeply( $distinct, bag( num(1), num(3) ), "only one document replaced" );
     };
 
     subtest "replace_one with collation, using $method" => sub {
@@ -507,7 +507,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         cmp_deeply(
             [ $coll->find( {} )->all ],
-            [ { _id => ignore(), key => 2, x => 2 } ],
+            [ { _id => ignore(), key => num(2), x => num(2) } ],
             "upserted document correct"
         );
 
@@ -551,7 +551,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             "result object correct"
         ) or diag _truncate explain $result;
 
-        $_->{x} = 1 for @docs;
+        $_->{x} = num(1) for @docs;
         cmp_deeply( [ $coll->find( {} )->all ], \@docs, "all documents updated" );
     };
 
@@ -616,7 +616,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         cmp_deeply(
             [ $coll->find( {} )->all ],
-            [ { _id => ignore(), key => 2, x => 2 } ],
+            [ { _id => ignore(), key => num(2), x => num(2) } ],
             "upserted document correct"
         );
 
@@ -646,7 +646,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         ) or diag _truncate explain $result;
 
         # add expected key to one document only
-        $docs[0]{x} = 2;
+        $docs[0]{x} = num(2);
         my @got = $coll->find( {} )->all;
 
         cmp_deeply( \@got, bag(@docs), "updated document correct" )
@@ -682,7 +682,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         cmp_deeply(
             [ $coll->find( {} )->all ],
-            [ { _id => ignore(), x => 2 } ],
+            [ { _id => ignore(), x => num(2) } ],
             "upserted document correct"
         );
 
@@ -712,7 +712,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         ) or diag _truncate explain $result;
 
         # change one expected doc only
-        $docs[0]{x} = 2;
+        $docs[0]{x} = num(2);
         delete $docs[0]{key};
 
         my @got = $coll->find( {} )->all;
@@ -784,7 +784,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
 
         cmp_deeply(
             [ $coll->find( {} )->all ],
-            [ { _id => ignore(), key => 2 } ],
+            [ { _id => ignore(), key => num(2) } ],
             "correct object remains"
         );
     };
@@ -804,7 +804,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             is( $err, undef, "bulk delete_many w/ collation" );
             cmp_deeply(
                 [ $coll->find( {} )->all ],
-                bag( { _id => ignore(), key => "b" } ),
+                bag( { _id => ignore(), key => str("b") } ),
                 "collection updated"
             );
         }
@@ -816,7 +816,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             );
             cmp_deeply(
                 [ $coll->find( {} )->all ],
-                bag( { _id => ignore(), key => "a" }, { _id => ignore(), key => "a" } ),
+                bag( { _id => ignore(), key => str("a") }, { _id => ignore(), key => str("a") } ),
                 "collection not updated"
             );
         }
@@ -874,7 +874,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             is( $err, undef, "bulk delete_one w/ collation" );
             cmp_deeply(
                 [ $coll->find( {} )->all ],
-                bag( { _id => ignore(), key => "b" } ),
+                bag( { _id => ignore(), key => str("b") } ),
                 "collection updated"
             );
         }
@@ -886,7 +886,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             );
             cmp_deeply(
                 [ $coll->find( {} )->all ],
-                bag( { _id => ignore(), key => "a" } ),
+                bag( { _id => ignore(), key => str("a") } ),
                 "collection not updated"
             );
         }
@@ -1013,15 +1013,15 @@ subtest "unordered batch with errors" => sub {
         cmp_deeply(
             $details->upserted,
             [
-                { index => 0, _id => obj_isa("BSON::OID") },
-                { index => 1, _id => obj_isa("BSON::OID") },
+                { index => num(0), _id => obj_isa("BSON::OID") },
+                { index => num(1), _id => obj_isa("BSON::OID") },
             ],
             "upsert list"
         );
     }
 
     my $distinct = [ $coll->distinct("a")->all ];
-    cmp_deeply( $distinct, bag( 1 .. 3 ), "distinct keys" );
+    cmp_deeply( $distinct, bag( map { num($_) } 1 .. 3 ), "distinct keys" );
 
 };
 
@@ -1471,7 +1471,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
                 upserted_count => 3,
                 modified_count => ( $server_does_bulk ? 0 : undef ),
                 upserted     =>
-                  [ { index => 0, _id => 0 }, { index => 1, _id => 1 }, { index => 2, _id => 2 }, ],
+                  [ { index => num(0), _id => num(0) }, { index => num(1), _id => num(1) }, { index => num(2), _id => num(2) }, ],
                 op_count    => 3,
                 batch_count => $server_does_bulk ? 1 : 3,
             ),

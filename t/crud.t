@@ -49,7 +49,7 @@ subtest "insert_one" => sub {
     $res = $coll->insert_one( { _id => "foo", value => "bar" } );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => "foo", value => "bar" } ),
+        bag( { _id => str("foo"), value => str("bar") } ),
         "insert with _id: doc inserted"
     );
     ok( $res->acknowledged, "result acknowledged" );
@@ -64,7 +64,7 @@ subtest "insert_one" => sub {
     my @got = $coll->find( {} )->all;
     cmp_deeply(
         \@got,
-        bag( { _id => ignore(), value => "bar" } ),
+        bag( { _id => ignore(), value => str("bar") } ),
         "insert without _id: hash doc inserted"
     );
     ok( $res->acknowledged, "result acknowledged" );
@@ -76,7 +76,7 @@ subtest "insert_one" => sub {
     $res = $coll->insert_one( [ value => "bar" ] );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => ignore(), value => "bar" } ),
+        bag( { _id => ignore(), value => str("bar") } ),
         "insert without _id: array doc inserted"
     );
 
@@ -85,7 +85,7 @@ subtest "insert_one" => sub {
     $res = $coll->insert_one( Tie::IxHash->new( value => "bar" ) );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => ignore(), value => "bar" } ),
+        bag( { _id => ignore(), value => str("bar") } ),
         "insert without _id: Tie::IxHash doc inserted"
     );
 
@@ -101,20 +101,20 @@ subtest "insert_many" => sub {
     my @got = $coll->find( {} )->all;
     cmp_deeply(
         \@got,
-        bag( { _id => "foo", value => "bar" }, { _id => ignore(), value => "baz" }, ),
+        bag( { _id => str("foo"), value => str("bar") }, { _id => ignore(), value => str("baz") }, ),
         "insert many: docs inserted"
     );
     ok( $res->acknowledged, "result acknowledged" );
     isa_ok( $res, "MongoDB::InsertManyResult", "result" );
     cmp_deeply(
         $res->inserted,
-        [ { index => 0, _id => 'foo' }, { index => 1, _id => obj_isa("BSON::OID") } ],
+        [ { index => num(0), _id => str("foo") }, { index => num(1), _id => obj_isa("BSON::OID") } ],
         "inserted contains correct hashrefs"
     );
     cmp_deeply(
         $res->inserted_ids,
         {
-            0 => "foo",
+            0 => str("foo"),
             1 => $res->inserted->[1]{_id},
         },
         "inserted_ids contains correct keys/values"
@@ -274,7 +274,7 @@ subtest "replace_one" => sub {
     );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => ignore(), x => 2 }, { _id => ignore, x => 3 } ),
+        bag( { _id => ignore(), x => num(2) }, { _id => ignore, x => num(3) } ),
         "collection docs correct"
     );
 
@@ -289,7 +289,7 @@ subtest "replace_one" => sub {
     );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => ignore(), x => 2 }, { _id => ignore, x => 4 } ),
+        bag( { _id => ignore(), x => num(2) }, { _id => ignore, x => num(4) } ),
         "collection docs correct"
     );
 
@@ -368,7 +368,7 @@ subtest "update_one" => sub {
     );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => ignore(), x => 2 }, { _id => ignore, x => 3 } ),
+        bag( { _id => ignore(), x => num(2) }, { _id => ignore, x => num(3) } ),
         "collection docs correct"
     );
 
@@ -383,7 +383,7 @@ subtest "update_one" => sub {
     );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => ignore(), x => 2 }, { _id => ignore, x => 4 } ),
+        bag( { _id => ignore(), x => num(2) }, { _id => ignore, x => num(4) } ),
         "collection docs correct"
     );
 
@@ -455,7 +455,7 @@ subtest "update_many" => sub {
     my $got = $coll->find_one( { _id => $res->upserted_id } );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => ignore(), x => 2 } ),
+        bag( { _id => ignore(), x => num(2) } ),
         "collection docs correct"
     );
 
@@ -471,7 +471,7 @@ subtest "update_many" => sub {
     );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => ignore(), x => 3 }, { _id => ignore, x => 3 } ),
+        bag( { _id => ignore(), x => num(3) }, { _id => ignore, x => num(3) } ),
         "collection docs correct"
     );
 
@@ -486,7 +486,7 @@ subtest "update_many" => sub {
     );
     cmp_deeply(
         [ $coll->find( {} )->all ],
-        bag( { _id => ignore(), x => 4 }, { _id => ignore, x => 4 } ),
+        bag( { _id => ignore(), x => num(4) }, { _id => ignore, x => num(4) } ),
         "collection docs correct"
     );
 
@@ -548,7 +548,7 @@ subtest 'bulk_write' => sub {
     my @got = $coll->find( {} )->all;
     cmp_deeply(
         \@got,
-        bag( map { { _id => ignore, x => $_ } } 3, 5, 7, 8, 9 ),
+        bag( map { { _id => ignore, x => num($_) } } 3, 5, 7, 8, 9 ),
         "collection docs correct",
     ) or diag explain \@got;
 
@@ -644,7 +644,7 @@ subtest "find_one_and_delete" => sub {
     # find/remove existing doc (testing sort and projection, too)
     $doc = $coll->find_one_and_delete( { x => 1 },
         { sort => [ y => 1 ], projection => { y => 1 } } );
-    cmp_deeply( $doc, { _id => ignore(), y => 'a' }, "expected doc returned" );
+    cmp_deeply( $doc, { _id => ignore(), y => str("a") }, "expected doc returned" );
     is( $coll->count( {} ), 1, "only 1 doc left" );
 
     if ($supports_collation) {
@@ -654,7 +654,7 @@ subtest "find_one_and_delete" => sub {
         );
         cmp_deeply(
             $doc,
-            { _id => ignore(), x => 1, y => 'b' },
+            { _id => ignore(), x => num(1), y => str("b") },
             "find_one_and_delete with collation"
         );
         is( $coll->count( { y => 'b' } ), 0, "no documents left" );
@@ -701,7 +701,7 @@ subtest "find_one_and_replace" => sub {
     $doc = $coll->find_one_and_replace( { x => 3 }, { x => 4, y => 'c' }, { upsert => 1 });
     cmp_deeply(
         $doc,
-        { _id => ignore(), x => 3, y => 'c' },
+        { _id => ignore(), x => num(3), y => str("c") },
         "find_one_and_replace on existing doc returned old doc",
     );
     is( $coll->count( {} ), 3, "no new doc added" );
@@ -711,7 +711,7 @@ subtest "find_one_and_replace" => sub {
     $doc = $coll->find_one_and_replace( { x => 4 }, { x => 5, y => 'c' }, { returnDocument => 'after' });
     cmp_deeply(
         $doc,
-        { _id => ignore(), x => 5, y => 'c' },
+        { _id => ignore(), x => num(5), y => str("c") },
         "find_one_and_replace on existing doc returned new doc",
     );
     is( $coll->count( {} ), 3, "no new doc added" );
@@ -721,7 +721,7 @@ subtest "find_one_and_replace" => sub {
     $doc = $coll->find_one_and_replace( { x => 1 }, { x => 2, y => 'z' }, { sort => [ y => -1 ], projection => { y => 1 } } );
     cmp_deeply(
         $doc,
-        { _id => ignore(), y => 'b' },
+        { _id => ignore(), y => str("b") },
         "find_one_and_replace on existing doc returned new doc",
     );
     is( $coll->count( { x => 2 } ), 1, "1 doc matching replacment" );
@@ -748,7 +748,7 @@ subtest "find_one_and_replace" => sub {
         );
         cmp_deeply(
             $doc,
-            { _id => ignore(), y => 'b' },
+            { _id => ignore(), y => str("b") },
             "find_one_and_replace with collation"
         );
         is( $coll->count( { y => 'c' } ), 1, "doc matching replacement" );
@@ -794,7 +794,7 @@ subtest "find_one_and_update" => sub {
     $doc = $coll->find_one_and_update( { x => 3 }, { '$inc' => { x => 1 } }, { upsert => 1 });
     cmp_deeply(
         $doc,
-        { _id => ignore(), x => 3, y => 'c' },
+        { _id => ignore(), x => num(3), y => str("c") },
         "find_one_and_update on existing doc returned old doc",
     );
     is( $coll->count( {} ), 3, "no new doc added" );
@@ -804,7 +804,7 @@ subtest "find_one_and_update" => sub {
     $doc = $coll->find_one_and_update( { x => 4 }, { '$inc' => { x => 1 } }, { returnDocument => 'after' });
     cmp_deeply(
         $doc,
-        { _id => ignore(), x => 5, y => 'c' },
+        { _id => ignore(), x => num(5), y => str("c") },
         "find_one_and_update on existing doc returned new doc",
     );
     is( $coll->count( {} ), 3, "no new doc added" );
@@ -818,7 +818,7 @@ subtest "find_one_and_update" => sub {
     );
     cmp_deeply(
         $doc,
-        { _id => ignore(), y => 'b' },
+        { _id => ignore(), y => str("b") },
         "find_one_and_update on existing doc returned new doc",
     );
     is( $coll->count( { x => 2 } ), 1, "1 doc matching replacment" );
@@ -846,7 +846,7 @@ subtest "find_one_and_update" => sub {
         );
         cmp_deeply(
             $doc,
-            { _id => ignore(), y => 'b' },
+            { _id => ignore(), y => str("b") },
             "find_one_and_update with collation"
         );
         is( $coll->count( { y => 'c' } ), 1, "doc matching replacement" );

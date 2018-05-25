@@ -28,9 +28,9 @@ use Moo;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use Safe::Isa;
-use Types::Standard qw(
-  Str
-  Num
+use MongoDB::_Types qw(
+    Numish
+    Stringish
 );
 
 use namespace::clean;
@@ -38,12 +38,12 @@ use namespace::clean;
 has index_name => (
     is       => 'ro',
     required => 1,
-    isa      => Str,
+    isa      => Stringish,
 );
 
 has max_time_ms => (
     is => 'ro',
-    isa => Num,
+    isa => Numish,
 );
 
 with $_ for qw(

@@ -25,8 +25,8 @@ our $VERSION = 'v1.999.0';
 
 use Moo;
 use MongoDB::_Constants;
-use Types::Standard qw(
-    Num
+use MongoDB::_Types qw(
+    Numish
 );
 use namespace::clean;
 
@@ -44,7 +44,7 @@ The number of documents that matched the filter.
 has deleted_count => (
     is      => 'ro',
     default => 0,
-    isa => Num,
+    isa => Numish,
 );
 
 1;

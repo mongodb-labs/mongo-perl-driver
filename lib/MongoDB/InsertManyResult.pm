@@ -27,10 +27,10 @@ use Moo;
 use MongoDB::_Constants;
 use MongoDB::_Types qw(
     ArrayOfHashRef
+    Numish
 );
 use Types::Standard qw(
     HashRef
-    Num
 );
 use namespace::clean;
 
@@ -48,7 +48,7 @@ The number of documents inserted.
 has inserted_count => (
     is      => 'lazy',
     builder => '_build_inserted_count',
-    isa => Num,
+    isa => Numish,
 );
 
 sub _build_inserted_count

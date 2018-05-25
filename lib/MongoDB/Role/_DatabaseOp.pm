@@ -30,10 +30,10 @@ use MongoDB::_Types qw(
     Boolish
     BSONCodec
     ClientSession
+    Stringish
 );
 use Types::Standard qw(
     CodeRef
-    Str
     Maybe
 );
 
@@ -48,7 +48,7 @@ has bson_codec => (
 has db_name => (
     is       => 'ro',
     required => 1,
-    isa      => Str,
+    isa      => Stringish,
 );
 
 # required, but allowed to be undef so we're sure this gets wired up

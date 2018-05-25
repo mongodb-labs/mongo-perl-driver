@@ -31,7 +31,9 @@ use MongoDB::Op::_BatchInsert;
 use Types::Standard qw(
     ArrayRef
     HashRef
-    Num
+);
+use MongoDB::_Types qw(
+    Numish
 );
 
 use namespace::clean;
@@ -44,7 +46,7 @@ has indexes => (
 
 has max_time_ms => (
     is => 'ro',
-    isa => Num,
+    isa => Numish,
 );
 
 with $_ for qw(

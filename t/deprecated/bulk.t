@@ -34,6 +34,9 @@ $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1;
 
 skip_unless_mongod();
 
+plan skip_all => "Not testing with BSON wrappers"
+  if $ENV{PERL_MONGO_TEST_CODEC_WRAPPED};
+
 my $conn = build_client();
 my $testdb = get_test_db($conn);
 my $coll = $testdb->get_collection("test_collection");

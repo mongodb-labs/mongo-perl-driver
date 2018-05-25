@@ -25,8 +25,10 @@ our $VERSION = 'v1.999.0';
 
 use Moo;
 use MongoDB::_Constants;
+use MongoDB::_Types qw(
+    Numish
+);
 use Types::Standard qw(
-    Num
     Undef
 );
 use namespace::clean;
@@ -45,7 +47,7 @@ The number of documents that matched the filter.
 has matched_count => (
     is       => 'ro',
     required => 1,
-    isa      => Num,
+    isa      => Numish,
 );
 
 =attr modified_count
@@ -62,7 +64,7 @@ defined or not.
 has modified_count => (
     is       => 'ro',
     required => 1,
-    isa      => (Num|Undef),
+    isa      => (Numish|Undef),
 );
 
 sub has_modified_count {

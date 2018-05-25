@@ -32,17 +32,17 @@ use MongoDB::_Types qw(
     BSONCodec
     ClientSession
     HostAddress
+    Intish
+    Numish
+    Stringish
 );
 use Types::Standard qw(
     Maybe
     ArrayRef
     Any
     InstanceOf
-    Int
     HashRef
-    Num
     Overload
-    Str
 );
 use namespace::clean;
 
@@ -68,7 +68,7 @@ has _address => (
 has _full_name => (
     is       => 'ro',
     required => 1,
-    isa => Str|Overload['""'],
+    isa => Stringish
 );
 
 has _bson_codec => (
@@ -80,12 +80,12 @@ has _bson_codec => (
 has _batch_size => (
     is       => 'ro',
     required => 1,
-    isa      => Int,
+    isa      => Intish,
 );
 
 has _max_time_ms => (
     is       => 'ro',
-    isa      => Num,
+    isa      => Numish,
 );
 
 has _session => (
@@ -98,7 +98,7 @@ has _session => (
 has _cursor_at => (
     is       => 'ro',
     required => 1,
-    isa      => Num,
+    isa      => Numish,
 );
 
 sub _inc_cursor_at { $_[0]{_cursor_at}++ }
@@ -106,7 +106,7 @@ sub _inc_cursor_at { $_[0]{_cursor_at}++ }
 has _limit => (
     is       => 'ro',
     required => 1,
-    isa      => Num,
+    isa      => Numish,
 );
 
 # attributes from actual results
@@ -123,7 +123,7 @@ has _cursor_start => (
     is       => 'ro',
     required => 1,
     writer   => '_set_cursor_start',
-    isa      => Num,
+    isa      => Numish,
 );
 
 has _cursor_flags => (
@@ -136,7 +136,7 @@ has _cursor_flags => (
 has _cursor_num => (
     is       => 'ro',
     required => 1,
-    isa      => Num,
+    isa      => Numish,
 );
 
 sub _inc_cursor_num { $_[0]{_cursor_num} += $_[1] }

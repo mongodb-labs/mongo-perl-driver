@@ -143,11 +143,11 @@ sub setup_gridfs {
         'upload large file uploadDate' );
     cmp_deeply(
         $filedoc->{metadata},
-        { airspeed_velocity => '11m/s' },
+        { airspeed_velocity => str('11m/s') },
         'upload large file metadta'
     );
     is( $filedoc->{'contentType'}, 'data.bin', 'upload large file content_type' );
-    cmp_deeply( $filedoc->{aliases}, ['screenshot.png'], 'upload large file aliases' );
+    cmp_deeply( $filedoc->{aliases}, [str('screenshot.png')], 'upload large file aliases' );
 
 }
 
@@ -172,8 +172,9 @@ sub setup_gridfs {
     my $doc2 = $uploadstream->close;
     is( $uploadstream->id, 6, "created file has correct custom file id" );
     my $doc3 = $bucket->find_id(6);
-    $doc3->{uploadDate} = ignore(); # DateTime objects internals can differ :-(
-    cmp_deeply( $doc2, $doc3, "finding file created with custom file id" );
+    for my $k ( sort keys %$doc2 ) {
+        is ( $doc2->{$k}, $doc3->{$k}, "$k" );
+    }
 }
 
 # delete
@@ -406,9 +407,9 @@ sub text_is {
     my $doc = $uploadstream->close;
     my $id = $uploadstream->id;
     my $doc2 = $bucket->find_id($id);
-    $doc2->{uploadDate} = ignore(); # DateTime objects internals can differ :-(
-    $doc2->{_id} = str($doc2->{_id}); # BSON OID types can differ
-    cmp_deeply( $doc, $doc2, "close returns file document" );
+    for my $k ( sort keys %$doc ) {
+        is ( $doc->{$k}, $doc2->{$k}, "$k" );
+    }
     is( $bucket->_chunks->count( { files_id => $id } ),
         2, 'custom chunk size num chunks' );
     my @results = $bucket->_chunks->find( { files_id => $id } )->all;

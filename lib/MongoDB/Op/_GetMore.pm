@@ -31,7 +31,9 @@ use MongoDB::_Protocol;
 use Types::Standard qw(
   Maybe
   Any
-  Num
+);
+use MongoDB::_Types qw(
+    Numish
 );
 
 use namespace::clean;
@@ -45,12 +47,12 @@ has cursor_id => (
 has batch_size => (
     is       => 'ro',
     required => 1,
-    isa      => Num,
+    isa      => Numish,
 );
 
 has max_time_ms => (
     is  => 'ro',
-    isa => Num,
+    isa => Numish,
 );
 
 with $_ for qw(

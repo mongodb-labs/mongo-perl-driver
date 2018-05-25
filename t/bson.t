@@ -111,8 +111,9 @@ subtest "UTF-8 strings" => sub {
     $x = $c->find_one;
 
     # make sure it's being returned as a utf8 string
-    ok(utf8::is_utf8($x->{char}));
-    is(length $x->{char}, 2);
+    is($x->{char}, $valid, "round trip");
+    ok(utf8::is_utf8("$x->{char}"), "UTF8 flag on");
+    is(length $x->{char}, 2, "length");
 };
 
 ##subtest "bad UTF8" => sub {
@@ -381,9 +382,9 @@ subtest "Checking hash key unicode support" => sub {
 
     my $oid;
     eval { $oid = $c->insert_one( $hash )->inserted_id; };
-    is ( $@, '' );
+    is ( $@, '', "insert with unicode key without error" );
     my $obj = $c->find_one( { _id => $oid } );
-    is ( $obj->{$testkey}, 1 );
+    is ( $obj->{$testkey}, 1, "unicode key roundtrip" );
 };
 
 subtest "PERL-489 ref to PVNV" => sub {

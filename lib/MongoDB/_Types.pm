@@ -42,6 +42,7 @@ use Type::Library
   HeartbeatFreq
   HostAddress
   HostAddressList
+  Intish
   IndexModel
   IndexModelList
   IxHash
@@ -52,6 +53,7 @@ use Type::Library
   BSONTimestamp
   NonEmptyStr
   NonNegNum
+  Numish
   OID
   OrderedDoc
   PairArrayRef
@@ -62,6 +64,7 @@ use Type::Library
   ServerType
   SingleChar
   SingleKeyHash
+  Stringish
   TopologyType
   WriteConcern
 );
@@ -90,16 +93,20 @@ require Tie::IxHash;
 # Type declarations (without inherited coercions)
 #--------------------------------------------------------------------------#
 
-declare ArrayOfHashRef, as ArrayRef [HashRef];
+declare Stringish, as Str|Overload['""'];
 
-enum AuthMechanism,
-  [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1 SCRAM-SHA-256/];
+declare Numish, as Num|Overload['0+'];
 
 # Types::Standard::Bool is overly restrictive, not allowing objects that
 # overload boolification, and Overload['bool'] doesn't detect objects that
 # overload via fallback, so we use this type for documentation purposes,
 # but allow any actual type.
 declare Boolish, as Any;
+
+declare ArrayOfHashRef, as ArrayRef [HashRef];
+
+enum AuthMechanism,
+  [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1 SCRAM-SHA-256/];
 
 duck_type BSONCodec, [ qw/encode_one decode_one/ ];
 
@@ -109,7 +116,7 @@ enum ConnectType, [qw/replicaSet direct none/];
 
 enum CursorType, [qw/non_tailable tailable tailable_await/];
 
-declare ErrorStr, as Str, where { $_ }; # needs a true value
+declare ErrorStr, as Stringish, where { defined($_) && length($_) }; # needs a true value
 
 declare HashLike, as Ref, where { reftype($_) eq 'HASH' };
 
@@ -119,7 +126,7 @@ declare HeartbeatFreq, as Num,
 
 # XXX loose address validation for now.  Host part should really be hostname or
 # IPv4/IPv6 literals
-declare HostAddress, as Str,
+declare HostAddress, as Stringish,
   where { $_ =~ /^[^:]+:[0-9]+$/ and lc($_) eq $_ }, message {
     "Address '$_' either not lowercased or not formatted as 'hostname:port'"
   };
@@ -127,6 +134,8 @@ declare HostAddress, as Str,
 declare HostAddressList, as ArrayRef [HostAddress], message {
     "Address list <@$_> not all formatted as lowercased 'hostname:port' pairs"
 };
+
+declare Intish, as Numish, where { defined $_ and $_ == int($_) };
 
 class_type IxHash, { class => 'Tie::IxHash' };
 
@@ -138,13 +147,13 @@ class_type MongoDBDatabase, { class => 'MongoDB::Database' };
 
 class_type BSONTimestamp, { class => 'BSON::Timestamp' };
 
-declare NonEmptyStr, as Str, where { defined $_ && length $_ };
+declare NonEmptyStr, as Stringish, where { defined $_ && length $_ };
 
-declare NonNegNum, as Num,
+declare NonNegNum, as Numish,
   where { defined($_) && $_ >= 0 },
   message { "value must be a non-negative number" };
 
-declare MaxStalenessNum, as Num,
+declare MaxStalenessNum, as Numish,
   where { defined($_) && ( $_ > 0 || $_ == -1 ) },
   message { "value must be a positive number or -1" };
 
