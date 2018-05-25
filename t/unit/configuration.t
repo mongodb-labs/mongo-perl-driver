@@ -22,8 +22,6 @@ use Test::Fatal;
 use MongoDB;
 use MongoDB::MongoClient;
 
-use constant HAS_DATETIME_TINY => eval { require DateTime::Tiny; 1 };
-
 sub _mc {
     return MongoDB::MongoClient->new(@_);
 }

@@ -26,7 +26,6 @@ requires 'Authen::SCRAM::Client' => '0.009';
 requires 'BSON' => '1.006003';
 requires 'Carp';
 requires 'Class::XSAccessor';
-requires 'DateTime' => '0.78';
 requires 'Digest::MD5';
 requires 'Encode';
 requires 'Exporter' => '5.57';

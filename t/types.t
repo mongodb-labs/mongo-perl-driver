@@ -21,7 +21,6 @@ use Test::More 0.96;
 use MongoDB;
 use MongoDB::Code;
 use MongoDB::Timestamp;
-use DateTime;
 use JSON::MaybeXS;
 use Test::Fatal;
 use boolean;
@@ -54,11 +53,13 @@ is($id."", $id->value);
     for (0..8) {
         ok($ids[$_] < $ids[$_+1]);
     }
-    
-    my $now = DateTime->now;
+
+    my $now = bson_time();
     $id = bson_oid();
-    
-    ok($id->get_time >= $now->epoch, "OID time >= epoch" );
+
+    my $oid_time = $id->get_time;
+    my $bson_time = int($now->epoch);
+    ok( $oid_time >= $bson_time, "OID time >= epoch" );
 }
 
 # creating ids from an existing value
@@ -118,22 +119,17 @@ is($id."", $id->value);
 {
     $coll->drop;
 
-    my $now = DateTime->now;
-
+    my $now = bson_time();
     $coll->insert_one({'date' => $now});
-    my $date = $coll->find_one;
+    my $doc = $coll->find_one;
+    my $date = $doc->{'date'};
+    is($date->epoch, $now->epoch);
 
-    my $date2 = $date->{'date'}->as_datetime;
-    is($date2->epoch, $now->epoch);
-    is($date2->day_of_week, $now->day_of_week);
-
-    my $past = DateTime->from_epoch('epoch' => 1234567890);
-
+    my $past = bson_time(1234567890);
     $coll->insert_one({'date' => $past});
-    $date = $coll->find_one({'date' => $past});
-    $date2 = $date->{'date'}->as_datetime;
-
-    is($date2->epoch, 1234567890);
+    $doc = $coll->find_one({'date' => $past});
+    $date = $doc->{'date'};
+    is($date->epoch, $past->epoch);
 }
 
 # minkey/maxkey
@@ -155,10 +151,10 @@ is($id."", $id->value);
     $coll->drop;
 
     my %test;
-    tie %test, 'Tie::IxHash'; 
-    $test{one} = "on"; 
-    $test{two} = 2; 
-    
+    tie %test, 'Tie::IxHash';
+    $test{one} = "on";
+    $test{two} = 2;
+
     ok( $coll->insert_one(\%test), "inserted IxHash") ;
 
     my $doc = $coll->find_one;

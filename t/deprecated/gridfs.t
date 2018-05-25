@@ -26,7 +26,7 @@ use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 use MongoDB::GridFS;
 use MongoDB::GridFS::File;
-use DateTime;
+use BSON::Time;
 use FileHandle;
 
 use lib "t/lib";
@@ -67,7 +67,7 @@ $grid->drop;
 {
     $dumb_str = "abc\n\nzyw\n";
     my $text_doc = new IO::File("$txtfile", "r") or die $!;
-    my $ts = DateTime->now;
+    my $ts = BSON::Time->new;
     ok( my $id = $grid->put($text_doc), "put" ); # safe mode so we can check MD5
     $text_doc->close;
 
