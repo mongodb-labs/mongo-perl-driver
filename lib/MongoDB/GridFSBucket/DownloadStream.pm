@@ -44,7 +44,7 @@ The file document for the file to be downloaded.
 Valid file documents typically include the following fields:
 
 =for :list
-* _id – a unique ID for this document, typically a L<MongoDB::OID> object.
+* _id – a unique ID for this document, typically a L<BSON::OID> object.
   Legacy GridFS files may store this value as a different type.
 * length – the length of this stored file, in bytes
 * chunkSize – the size, in bytes, of each full data chunk of this file.

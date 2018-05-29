@@ -205,7 +205,7 @@ sub get {
     $id = $grid->put($fh, $metadata);
     $id = $grid->put($fh, {filename => "pic.jpg"});
 
-Inserts a file into GridFS, adding a L<MongoDB::OID> as the _id field if the
+Inserts a file into GridFS, adding a L<BSON::OID> as the _id field if the
 field is not already defined.  This is a wrapper for C<MongoDB::GridFS::insert>,
 see that method below for more information.
 
@@ -360,7 +360,7 @@ sub insert {
         $id = $metadata->{"_id"};
     }
     else {
-        $id = MongoDB::OID->new;
+        $id = BSON::OID->new;
     }
 
     my $n = 0;
