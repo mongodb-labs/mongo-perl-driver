@@ -26,7 +26,6 @@ our $VERSION = 'v1.999.0';
 use Moo;
 use MongoDB;
 use MongoDB::Cursor;
-use MongoDB::DBRef;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_FSyncUnlock;
