@@ -21,6 +21,7 @@ use Test::More;
 use Test::Fatal;
 
 use MongoDB;
+use MongoDB::BSON::Regexp;
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;
