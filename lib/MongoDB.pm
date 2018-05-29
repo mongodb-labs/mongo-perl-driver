@@ -32,7 +32,6 @@ use Carp ();
 use MongoDB::MongoClient;
 use MongoDB::Database;
 use MongoDB::Collection;
-use MongoDB::Timestamp;
 use MongoDB::BulkWrite;
 use MongoDB::_Link;
 use MongoDB::_Protocol;
