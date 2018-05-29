@@ -24,7 +24,6 @@ use version;
 our $VERSION = 'v1.999.0';
 
 use Moo;
-use MongoDB;
 use MongoDB::Cursor;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
