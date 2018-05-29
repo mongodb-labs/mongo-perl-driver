@@ -76,7 +76,7 @@ sub fix_types {
             $obj = bson_oid($obj->{'$oid'});
         }
         elsif ( exists $obj->{'$hex'} ) {
-            $obj = MongoDB::BSON::Binary->new( { data => hex_to_str( $obj->{'$hex'} ) } );
+            $obj = BSON::Bytes->new( { data => hex_to_str( $obj->{'$hex'} ) } );
         }
         else {
             for my $key ( keys %{$obj} ) {

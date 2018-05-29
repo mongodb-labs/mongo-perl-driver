@@ -35,7 +35,6 @@ use MongoDB::Collection;
 use MongoDB::DBRef;
 use MongoDB::OID;
 use MongoDB::Timestamp;
-use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use MongoDB::BulkWrite;
 use MongoDB::_Link;

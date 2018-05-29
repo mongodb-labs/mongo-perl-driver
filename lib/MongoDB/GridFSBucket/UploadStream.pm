@@ -23,11 +23,11 @@ use version;
 our $VERSION = 'v1.999.0';
 
 use Moo;
+use BSON::Bytes;
 use BSON::OID;
 use BSON::Time;
 use Encode;
 use MongoDB::Error;
-use MongoDB::BSON::Binary;
 use Time::HiRes qw/time/;
 use Types::Standard qw(
   Str
@@ -236,7 +236,7 @@ sub _flush_chunks {
           {
             files_id => $self->id,
             n        => int( $self->_current_chunk_n ),
-            data     => MongoDB::BSON::Binary->new( { data => $data } ),
+            data     => BSON::Bytes->new( data => $data ),
           };
         $self->{_current_chunk_n} += 1;
     }

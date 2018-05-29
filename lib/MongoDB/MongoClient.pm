@@ -25,7 +25,6 @@ our $VERSION = 'v1.999.0';
 
 use Moo;
 use MongoDB;
-use MongoDB::BSON::Binary;
 use MongoDB::BSON::Regexp;
 use MongoDB::Cursor;
 use MongoDB::DBRef;

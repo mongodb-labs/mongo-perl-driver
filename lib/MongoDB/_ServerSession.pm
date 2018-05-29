@@ -28,7 +28,6 @@ use MongoDB::Error;
 use Moo;
 use UUID::URandom;
 use Math::BigInt;
-use MongoDB::BSON::Binary;
 use MongoDB::_Types qw(
     Document
 );
@@ -37,13 +36,15 @@ use Types::Standard qw(
     InstanceOf
     Int
 );
+use constant UUID_TYPE => 4;
+
 use namespace::clean -except => 'meta';
 
 =attr session_id
 
     $server_session->session_id;
 
-Returns the session id for this server session. Is a MongoDB::Bson::Binary
+Returns the session id for this server session as a L<BSON::Bytes> object
 containing a binary UUID V4. For lower network usage, if not provided on
 initialisation this class will generate a new UUID instead of consulting the
 server for a new session id.
@@ -58,9 +59,9 @@ has session_id => (
 
 sub _build_session_id {
     my ( $self ) = @_;
-    my $uuid = MongoDB::BSON::Binary->new(
+    my $uuid = BSON::Bytes->new(
         data => UUID::URandom::create_uuid(),
-        subtype => MongoDB::BSON::Binary->SUBTYPE_UUID,
+        subtype => UUID_TYPE,
     );
     return { id => $uuid };
 }
