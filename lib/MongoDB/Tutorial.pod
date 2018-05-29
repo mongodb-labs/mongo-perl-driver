@@ -47,7 +47,7 @@ Table
 
 Record or row
 
-=item L<MongoDB::OID>
+=item L<BSON::OID>
 
 Autoincrementing primary key
 
@@ -114,10 +114,10 @@ takes a hash reference which is saved to the collection.
 
 Now there is a user in the collection.
 
-=head3 L<MongoDB::OID>s
+=head3 L<BSON::OID>s
 
 When a document is inserted, it is given a C<_id> field if one does not already
-exist.  By default, this field is a L<MongoDB::OID>, 12 bytes that are
+exist.  By default, this field is a L<BSON::OID>, 12 bytes that are
 guaranteed to be unique. The C<_id> field of the inserted document is returned
 in a L<MongoDB::InsertOneResult> object by the C<insert_one> method.
 
