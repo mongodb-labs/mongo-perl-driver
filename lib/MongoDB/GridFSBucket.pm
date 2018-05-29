@@ -603,7 +603,7 @@ blocks on disk.)
 Valid file documents typically include the following fields:
 
 =for :list
-* _id – a unique ID for this document, typically type BSON ObjectId.
+* _id – a unique ID for this document, typically a BSON ObjectId.
 * length – the length of this stored file, in bytes
 * chunkSize – the size, in bytes, of each full data chunk of this file. This
   value is configurable per file.

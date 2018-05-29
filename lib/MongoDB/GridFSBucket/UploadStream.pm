@@ -134,7 +134,7 @@ has _bucket => (
 The id of the file created by the stream.  It will be stored in the C<_id>
 field of the file document on a successful upload.  Some upload methods
 require specifying an id at upload time.  Defaults to a newly-generated
-L<MongoDB::OID> or BSON codec specific equivalent.
+L<BSON::OID> or BSON codec specific equivalent.
 
 =cut
 
