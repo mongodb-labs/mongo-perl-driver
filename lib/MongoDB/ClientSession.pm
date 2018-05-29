@@ -20,6 +20,9 @@ package MongoDB::ClientSession;
 
 # ABSTRACT: MongoDB session management
 
+use version;
+our $VERSION = 'v1.999.0';
+
 use MongoDB::Error;
 
 use Moo;

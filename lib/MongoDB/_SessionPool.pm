@@ -18,6 +18,9 @@ use strict;
 use warnings;
 package MongoDB::_SessionPool;
 
+use version;
+our $VERSION = 'v1.999.0';
+
 use Moo;
 use MongoDB::_ServerSession;
 use Types::Standard qw(
