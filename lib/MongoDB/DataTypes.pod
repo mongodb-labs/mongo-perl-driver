@@ -1,5 +1,4 @@
-#
-#  Copyright 2009-2013 10gen, Inc.
+#  Copyright 2009 - present MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -12,11 +11,9 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-#
-
 
 # PODNAME: MongoDB::DataTypes
-# ABSTRACT: The data types used with MongoDB
+# ABSTRACT: Using MongoDB data types with Perl
 
 =pod
 
@@ -24,287 +21,186 @@
 
 =head1 DESCRIPTION
 
-This goes over the types you can save to the database and use for queries in the
-Perl driver.  If you are using another language, please refer to that language's
-documentation (L<http://api.mongodb.org>).
+MongoDB stores typed data in a data format called BSON
+(L<http://bsonspec.org/>).  This document describes how to work with BSON
+data types in the MongoDB Perl driver.
 
-=head1 NOTES FOR SQL PROGRAMMERS
+As of the MongoDB Perl driver v2.0.0, the driver relies on the external
+L<BSON> library (and optional L<BSON::XS> library) for converting between
+Perl data and the MongoDB BSON format.
 
-=head2 You must query for data using the correct type.
+=head2 Additional information
 
-For example, it is perfectly valid to have some records where the field "foo" is
-123 (integer) and other records where "foo" is "123" (string).  Thus, you must
-query for the correct type.  If you save C<{"foo" =E<gt> "123"}>, you cannot query
-for it with C<{"foo" =E<gt> 123}>.  MongoDB is strict about types.
+Additional information about MongoDB documents and types may be found in
+the following MongoDB manual pages:
 
-If the type of a field is ambiguous and important to your application, you
-should document what you expect the application to send to the database and
-convert your data to those types before sending.  There are some object-document
-mappers that will enforce certain types for certain fields for you.
+=for :list
+* L<Documents|https://docs.mongodb.com/manual/core/document/>
+* L<BSON Types|https://docs.mongodb.com/manual/reference/bson-types/>
 
-You generally shouldn't save numbers as strings, as they will behave like
-strings (e.g., range queries won't work correctly) and the data will take up
-more space.  If you set L<MongoDB::BSON/looks_like_number>, the driver will
-automatically convert everything that looks like a number to a number before
-sending it to the database.
+=head1 ESSENTIAL CONCEPTS
 
-Numbers are the only exception to the strict typing: all number types stored by
-MongoDB (32-bit integers, 64-bit integers, 64-bit floating point numbers) will
-match each other.
+=head2 MongoDB records are ordered documents
 
-=head1 TYPES
+A MongoDB record (i.e. "row") is a BSON document -- a list of key-value
+pairs, like a Perl hash except that the keys in a BSON document are
+ordered.  Keys are always strings.  Values can be any of 20+ BSON types.
 
-=head2 Numbers
+Queries and update specifications are also expressed as documents.
 
-By default, numbers with a decimal point will be saved as doubles (64-bit).
+=head2 Type wrapper classes provide non-native and disambiguated types
 
-B<NOTE>: On a perl compiled with long-double support, floating point
-number precision will be lost when sending data to MongoDB.
+In order to represent BSON types that don't natively exist in Perl, we use
+type wrapper classes from the L<BSON> library, such as L<BSON::OID> and
+L<BSON::Time>.
 
-=head3 32-bit Platforms
+Wrappers for native types are available when necessary to address
+limitations in Perl's type system. For example, one can use L<BSON::Doc>
+for a ordered hash or L<BSON::Int64> for a 64-bit integer.
 
-Numbers without decimal points will be saved as 32-bit integers.  To save a
-number as a 64-bit integer, use bigint (i.e. L<Math::BigInt>):
+The L<BSON> class has attributes that configure how type wrappers are used
+during encoding and decoding.
 
-    use bigint;
+The L<PERL-BSON Type Mapping|BSON/PERL-BSON-TYPE-MAPPING>
+documentation has a detailed table of all BSON type conversions.
 
-    $collection->insert({"user_id" => 28347197234178})
+=head2 String/number type conversion heuristics
 
-The driver will die if you try to insert a number beyond the signed 64-bit
-range: -9,223,372,036,854,775,808 to +9,223,372,036,854,775,807.
+Perl's scalar values can have several underlying, internal representations
+such as double, integer, or string (see L<perlguts>).  When encoding to
+BSON, the default behavior is as follows:
 
-Numbers that are saved as 64-bit integers will be decoded as
-L<Math::BigInt> objects.
+=for :list
+* If the value has a valid double representation, it will be encoded to
+  BSON as a double.
+* Otherwise, if the value has a valid integer interpretation, it will be
+  encoded as either Int32 or Int64; the smallest type that the value fits
+  will be used; a value that overflows will error.
+* Otherwise, the value will be encoded as a UTF-8 string.
 
-=head3 64-bit Platforms
+The L<BSON> library provides the C<prefer_numeric> attribute to more
+aggressively coerce number-like strings that don't already have a numeric
+representation into a numeric form.
 
-Numbers without a decimal point will be saved and returned as 32-bit
-integers if they will fit and 64-bit integers otherwise.
+=head2 Order sometimes matters a lot
 
-To force 64-bit encoding, use a L<Math::BigInt> object.
+When writing a query document, the order of B<top> level keys doesn't
+matter, but the order of keys in any embedded documents does matter.
 
-=head4 64-bit integers in the shell
+    $coll->insert_one({
+        name => { first => "John", last => "Doe" },
+        age => 42,
+        color => "blue",
+    });
 
-The Mongo shell has one numeric type: the 8-byte float.  This means that it
-cannot always represent an 8-byte integer exactly.  Thus, when you display a
-64-bit integer in the shell, it will be wrapped in a subobject that indicates
-it might be an approximate value.  For instance, if we run this Perl on a
-64-bit machine:
+    # Order doesn't matter here
+    $coll->find( { age => 42, color => "blue" } );     # MATCH
+    $coll->find( { color => "blue", age => 42 } );     # MATCH
 
-    $coll->insert({_id => 1});
+    # Order *does* matter here
+    $coll->find(
+        { name => { first => "John", last => "Doe" } } # MATCH
+    );
+    $coll->find(
+        { name => { last => "Doe", first => "John" } } # NO MATCH
+    );
 
-then look at it in the shell, we see:
+When specifying a sort order or the order of keys for an index, order
+matters whenever there is more than one key.
 
-    > db.whatever.findOne()
-    {
-        "_id" :
-            {
-                "floatApprox" : 1
-            }
-    }
+Because of Perl's hash order randomization, be very careful using
+native hashes with MongoDB.  See the L</Documents> section below for
+specific guidance.
 
-This doesn't mean that we saved a float, it just means that the float value of
-a 64-bit integer may not be exact.
+=head1 THE BSON::TYPES LIBRARY
 
-=head3 Decimal128
-
-MongoDB 3.4 will add support for a new BSON type, Decimal128.  The
-L<BSON::Decimal128> class is used as a proxy for these values for both
-inserting and retrieving documents.  Be sure to use B<strings> when
-constructing Decimal128 objects.
+L<BSON::Types> is a library with helper subroutines to easily create BSON
+type wrappers.  Use of this library is highly recommended.
 
     use BSON::Types ':all';
 
-    my $item = {
-        name => "widget",
-        price => bson_decimal128( "4.99" ),
-        currency => "USD",
-    };
+    $int64   = bson_int64(42);         # force encoding more bits
+    $decimal = bson_decimal("24.01");  # Decimal128 type
+    $time    = bson_time();            # now
 
-    $coll->insert($item);
+Examples in the rest of this document assume that all L<BSON::Types>
+helper functions are loaded.
 
-=head3 Dealing with numbers and strings in Perl
-
-Perl is very flexible about whether something is number or a string; it
-generally infers the type from context.  Unfortunately, the driver doesn't have
-any context when it has to choose how to serialize a variable.  Therefore, the
-default behavior is to introspect the internal state of the variable.  Any
-variable that has ever been used in a string context (e.g. printed,
-compared with 'eq', matched with a regular expression, etc.) will be
-serialized as a string.
-
-    my $var = "4";
-    # stored as the string "4"
-    $collection->insert({myVar => $var});
-
-    $var = int($var) if (int($var) eq $var);
-    # stored as the int 4
-    $collection->insert({myVar => $var});
-
-Because of this, users often end up with more strings than they
-wanted in their databases.
-
-One technique for eliminating the string representation and store a numeric
-interpretation is to add 0 to the variable:
-
-    $collection->insert({myVar => 0 + $var});
-
-If you would like to have everything that looks like a number saved as a
-number without the C<0+> technique, use a L<MongoDB::BSON> codec that has
-the L<prefer_numeric|MongoDB::BSON/prefer_numeric> option set.
-
-    $coll2 = $collection->with_codec( prefer_numeric => 1 );
-    $coll2->insert( {myVar => "1.23"} ); # stored as double 1.23
-
-On the other hand, some data looks like a number but should be saved as a
-string.  For example, suppose we are storing zip codes.  To ensure a zip
-code is saved as a string, bless the string as a C<MongoDB::BSON::String>
-type:
-
-    my $z = "04101";
-    my $zip = bless(\$z, "MongoDB::BSON::String");
-
-    # zip is stored as "04101"
-    $collection->insert({city => "Portland",
-        zip => bless(\$zip, "MongoDB::BSON::String")});
-
-Additionally, there are two utility functions, C<force_int> and
-C<force_double>, that explicitly set Perl's internal type flags to
-Integer (C<IV>) and Double (C<NV>) respectively. These flags trigger
-MongoDB's recognition of the values as Int32/Int64 (depending on the
-size of the number) or Double:
-
-    my $x = 1.0;
-    MongoDB::force_int($x);
-    $coll->insert({x => $x}); # Inserts an integer
-
-    MongoDB::force_double($x);
-    $coll->insert({x => $x}); # Inserts a double
-
-=head2 Strings
-
-All strings must be valid UTF-8 to be sent to the database.  If a string is not
-valid, it will not be saved.  If you need to save a non-UTF-8 string, you can
-save it as a binary blob (see the Binary Data section below).
-
-All strings returned from the database have the UTF-8 flag set.
-
-Unfortunately, due to Perl weirdness, UTF-8 is not very pretty.  For example,
-suppose we have a UTF-8 string:
-
-    my $str = 'Åland Islands';
-
-Now, let's print it:
-
-    print "$str\n";
-
-You can see in the output:
-
-    "\x{c5}land Islands"
-
-Lovely, isn't it?  This is how Perl prints UTF-8.  To make it "pretty," there
-are a couple options:
-
-    my $pretty_str = utf8::encode($str);
-
-This, unintuitively, clears the UTF-8 flag.
-
-You can also just run
-
-    binmode STDOUT, ':utf8';
-
-and then the string (and all future UTF-8 strings) will print "correctly."
+=head1 NOTES ON SPECIFIC TYPES
 
 =head2 Arrays
 
-Arrays must be saved as array references (C<\@foo>, not C<@foo>).
+BSON arrays encode and decode via Perl array references.
 
-=head2 Embedded Documents
+=head2 Documents
 
-Embedded documents take the same form as top-level documents: either hash
-references or L<Tie::IxHash>es.
+Because Perl's hashes guarantee key-order randomness, using hash references
+as documents will lead to BSON documents with a different key order.  For
+top-level keys, this shouldn't cause problems, but it may cause problems
+for embedded documents when querying, sorting or indexing on the embedded
+document.
 
-=head2 Dates
+For sending data to the server, the L<BSON::Doc> class provides a very
+lightweight wrapper around ordered key-value pairs, but it's opaque.
 
-The L<DateTime>, L<Time::Moment> or L<DateTime::Tiny> package can be used
-to insert and query for dates. Dates stored in the database will be
-returned as instances of one of these classes, depending on the C<dt_type>
-setting of the L<MongoDB::BSON> codec object:
+    $doc = bson_doc( name => "Larry", color => "purple" );
 
-    $codec = MongoDB::BSON->new( dt_type => 'Time::Moment' );
-    $client = MongoDB::MongoClient->new( bson_codec => $codec );
+You can also use L<Tie::IxHash> for a more-interactive ordered document,
+but at the expense of tied-object overhead.
 
-An example of storing and retrieving a date:
+The L<BSON> encoder has an C<ordered> attribute that, if enabled, returns
+all documents as order-preserving tied hashes.  This is slow, but is the
+only way to ensure that documents can roundtrip preserving key order.
 
-    use DateTime;
+=head2 Numbers
 
-    my $now = DateTime->now;
-    $collection->insert({'ts' => $now});
+By default, the BSON decoder decodes doubles and integers into a
+Perl-native form.  To maximize fidelity during a roundtrip, the decoder
+supports the L<wrap_numbers> attribute to always decode to a BSON type
+wrapper class with numeric overloading.
 
-    my $obj = $collection->find_one;
-    print "Today is ".$obj->{'ts'}->ymd."\n";
+=head3 32-bit Platforms
 
-An example of querying for a range of dates:
+On a 32-bit platform, the L<BSON> library treats L<Math::BigInt> as the
+"native" type for integers outside the (signed) 32-bit range.  Values that
+are encoded as 64-bit integers will be decoded as L<Math::BigInt> objects.
 
-    my $start = DateTime->from_epoch( epoch => 100000 );
-    my $end = DateTime->from_epoch( epoch => 500000 );
+=head3 64-bit Platforms
 
-    my $cursor = $collection->query({event => {'$gt' => $start, '$lt' => $end}});
+On a 64-bit platform, (signed) Int64 values are supported, but, by default,
+numbers will be stored in the smallest BSON size needed.  To force a 64-bit
+representation for numbers in the signed 32-bit range, use a type wrapper:
 
-B<Warning: creating Perl L<DateTime> objects is extremely slow.>  Consider
-saving dates as epoch seconds and converting the numbers to objects only when
-needed.  A single L<DateTime> field can make deserialization up to 10 times
-slower.
+    $int64 = bson_int64(0); # 64 bits of 0
 
-For example, you could use the L<time> function to store seconds since the epoch:
+=head3 Long doubles
 
-    $collection->update($criteria, {'$set' => {"last modified" => time()}})
+On a perl compiled with long-double support, floating point number
+precision will be lost when sending data to MongoDB.
 
-This will be B<MUCH> faster to deserialize.  Or, for more precision, consider
-using the L<Time::HiRes/time> function to get epoch
-seconds as a floating-point value.
+=head3 Decimal128
 
-The L<Time::Moment> module is substantially faster than L<DateTime> and
-might be a convenient alternative to using integers or floating point
-numbers and manually inflating to an object before use.  Consider comparing
-benchmarks using C<dt_type> set to L<Time::Moment> against those using numbers
-and inflating on demand.
+MongoDB 3.4 adds support for the IEEE 754 Decimal128 type.  The
+L<BSON::Decimal128> class is used as a proxy for these values for both
+inserting and querying documents.  Be sure to use B<strings> when
+constructing Decimal128 objects.
 
-Note that (at least, as of C<DateTime::Tiny> version 1.04) there is no
-time-zone attribute for C<DateTime::Tiny> objects.  We therefore
-consider all such times to be in the C<UTC> time zone.  Likewise,
-C<DateTime::Tiny> has no notion of milliseconds (yet?), so the
-milliseconds portion of the datetime will be set to zero.
+    $item = {
+        name => "widget",
+        price => bson_decimal128("4.99"), # 4.99 as a string
+        currency => "USD",
+    };
 
-=head2 Regular Expressions
+    $coll->insert_one($item);
 
-Use C<qr/.../> to use a regular expression in a query, but be sure to limit
-your regular expression to syntax and features supported by PCRE, which are
-L<not actually fully compatible with
-Perl|https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions#Differences_from_Perl>.
+=head2 Strings
 
-    my $cursor = $collection->query({"name" => qr/[Jj]oh?n/});
+String values are expected to be character-data (not bytes).  They are
+encoded as UTF-8 before being sent to the database and decoded from UTF-8
+when received.  If a string can't be decoded, an error will be thrown.
 
-Regular expressions will match strings saved in the database.
-
-B<NOTE>: only the following flags are supported: "imxs".
-
-You can also save and retrieve regular expressions themselves, but
-regular expressions will be retrieved as L<MongoDB::BSON::Regexp>
-objects for safety (these will round-trip correctly).
-
-From that object, you can attempt to compile a reference to a C<qr{}> using
-the C<try_compile> method. However, due to PCRE differences, this could fail
-to compile or could have different match behavior than intended.
-
-    $collection->insert({"regex" => qr/foo/i});
-    $obj = $collection->find_one;
-    if ("FOO" =~ $obj->{regex}->try_compile) { # matches
-        print "hooray\n";
-    }
-
-B<SECURITY NOTE>: A regular expression can evaluate arbitrary code.  You
-are strongly advised never to use untrusted input as a regular expression.
+To save or query arbitrary, non-UTF8 bytes, use a binary type wrapper (see
+L</Binary Data>, below).
 
 =head2 Booleans
 
@@ -318,135 +214,142 @@ An example of inserting boolean values:
 
     use boolean;
 
-    $collection->insert({"okay" => true, "name" => "fred"});
+    $collection->insert_one({"okay" => true, "name" => "fred"});
 
 An example of using boolean values for query operators (only returns documents
 where the name field exists):
 
-    my $cursor = $collection->query({"name" => {'$exists' => boolean::true}});
+    $cursor = $collection->find({"name" => {'$exists' => true}});
 
-Most of the time, you can just use 1 or 0 in query operations instead of
-C<true> and C<false>, such as for specifying fields to return, but some
-commands require L<boolean> objects and the database will return an error
-if integers 1 or 0 are used.
+Often, you can just use 1 or 0 in query operations instead of C<true> and
+C<false>, but some commands require L<boolean> objects and the database
+will return an error if integers 1 or 0 are used.
 
 Boolean objects from the following JSON libraries will also be encoded
 correctly in the database:
 
 =for :list
-* JSON::XS
-* JSON::PP
-* Cpanel::JSON::XS
-* Mojo::JSON
-* JSON::Tiny
+* L<JSON::XS>
+* L<JSON::PP>
+* L<Cpanel::JSON::XS>
+* L<Mojo::JSON>
+* L<JSON::Tiny>
 
-=head2 MongoDB::OID
+=head2 Object IDs
 
-"OID" stands for "Object ID", and is a unique id for identifying documents.
-OIDs are 12 bytes, which are guaranteed to be unique.  Their string form is
-a 24-character string of hexadecimal digits.
+The BSON object ID type (aka "OID") is a 12 byte identifier that ensures
+uniqueness by mixing a timestamp and counter with host and
+process-specific bytes.
+
+All MongoDB documents have an C<_id> field as a unique identifier.  This
+field does not have to be an object ID, but if the field does not exist, an
+object ID is created automatically for it when the document is inserted
+into the database.
+
+The L<BSON::OID> class is the type wrapper for object IDs.
 
 To create a unique id:
 
-    my $oid = MongoDB::OID->new;
+    $oid = bson_oid();
 
-To create a MongoDB::OID from an existing 24-character hexadecimal string:
+To create a L<BSON::OID> from an existing 24-character hexadecimal string:
 
-    my $oid = MongoDB::OID->new("value" => "123456789012345678901234");
+    $oid = bson_oid("123456789012345678901234");
+
+=head2 Regular Expressions
+
+Use C<qr/.../> to use a regular expression in a query, but be sure to limit
+your regular expression to syntax and features supported by PCRE, which are
+L<not fully compatible with
+Perl|https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions#Differences_from_Perl>.
+
+    $cursor = $collection->find({"name" => qr/[Jj]oh?n/});
+
+Regular expressions will match strings saved in the database.
+
+B<NOTE>: only the following flags are supported: "imsxlu".
+
+You can also save and retrieve regular expressions themselves, but
+regular expressions will be retrieved as L<BSON::Regex>
+objects for safety (these will round-trip correctly).
+
+From that object, you can attempt to compile a reference to a C<qr{}> using
+the C<try_compile> method. However, due to PCRE differences, this could fail
+to compile or could have different match behavior than intended.
+
+    $collection->insert_one({"regex" => qr/foo/i});
+    $obj = $collection->find_one;
+    if ("FOO" =~ $obj->{regex}->try_compile) { # matches
+        print "hooray\n";
+    }
+
+B<SECURITY NOTE>: A regular expression can evaluate arbitrary code if C<use
+re 'eval'> is in scope.  You are strongly advised never to use untrusted
+input as a regular expression.
+
+=head2 Dates
+
+BSON has a datetime type representing signed Int64 milliseconds relative to
+the Unix epoch.  As of MongoDB v2.0.0, the lightweight L<BSON::Time>
+wrapper is now the default wrapper for datetime data.
+
+The C<bson_time()> helper function uses fractional epoch seconds, for
+better integration with the L<Time::HiRes> module:
+
+    use Time::HiRes 'time';
+
+    $later = bson_time( time() + 60 );
+
+For convenience, The default value for the helper is C<Time::HiRes::time>:
+
+    $now = bson_time();
+
+L<BSON::Time> has methods for inflating into various popular Perl date
+classes, including L<DateTime>, L<Time::Moment> and L<DateTime::Tiny>.  The
+BSON encoder can also encode objects of these types, with limitations on
+precision and timezone based on the underlying class.  For example,
+L<DateTime::Tiny> has no time zone or sub-second precision.
 
 =head2 Binary Data
 
-By default, all database strings are UTF8.  You need to store images, binaries,
-and other non-UTF8 data as binary data.  There are two ways to do this.
+By default, all database strings are UTF-8.  To store images, binaries, and
+other non-UTF-8 data, one can use the BSON binary data type via the
+L<BSON::Bytes> wrapper.
 
-=head3 String Refs
+The BSON binary type includes the notion of a "subtype" attribute, which
+can be any integer between 0 and 255.  The meaning of subtypes from 0 to
+127 are reserved for definition by MongoDB; values 128 to 255 are
+user-defined.  Binary data values will only match in a MongoDB query if
+both the binary bytes and the subtypes are the same.  The default subtype
+is 0 (a.k.a. "generic binary data") and generally should not be modified.
 
-In general, you can pass the string as a reference.  For example:
+To roundtrip binary data, use the L<BSON::Bytes> wrapper:
 
     # non-utf8 string
-    my $string = "\xFF\xFE\xFF";
+    $bytes = "\xFF\xFE\xFF";
 
-    $collection->insert({"photo" => \$string});
+    $collection->insert_one({"photo" => bson_bytes($bytes)});
 
-This will save the variable as binary data, bypassing the UTF8 check.
+Binary data will be decoded into a L<BSON::Bytes> object.  It stringifies
+as the underlying bytes for convenience.
 
-Binary data can be matched exactly by the database, so this query will match
-the object we inserted above:
+One can also store binary data by using a string reference.
 
-    $collection->find({"photo" => \$string});
+    $collection->insert_one({"photo" => \$bytes});
 
-=head3 L<MongoDB::BSON::Binary> type
+=head2 MinKey and MaxKey
 
-You can also use the L<MongoDB::BSON::Binary> class.  This allows you to
-preserve the I<subtype> of your data.  Binary data in MongoDB stores a "type"
-field, which can be any integer between 0 and 255.  Identical data will only
-match if the subtype is the same.
+L<BSON::MinKey> is "less than" any other value of any type.  This can be useful
+for always returning certain documents first.
 
-Perl uses the default subtype C<SUBTYPE_GENERIC>.
+L<BSON::MaxKey> is "greater than" any other value of any type.  This can be useful
+for always returning certain documents last.
 
-The driver returns binary fields as instances of L<MongoDB::BSON::Binary>
-to ensure that binary data can successfullly roundtrip.
-L<MongoDB::BSON::Binary> objects stringify to the underlying data to make it
-easier to work with.
+There is a helper function for each:
 
-=head2 MongoDB::Code
+    $min = bson_minkey();
+    $max = bson_maxkey();
 
-L<MongoDB::Code> is used to represent JavaScript code and, optionally, scope.
-To create one:
-
-    use MongoDB::Code;
-
-    my $code = MongoDB::Code->new("code" => "function() { return 'hello, world'; }");
-
-Or, with a scope:
-
-    my $code = MongoDB::Code->new("code" => "function() { return 'hello, '+name; }",
-        "scope" => {"name" => "Fred"});
-
-Which would then return "hello, Fred" when run.
-
-=head2 MongoDB::MinKey
-
-C<MongoDB::MinKey> is "less than" any other value of any type.  This can be useful
-for always returning certain documents first (or last).
-
-C<MongoDB::MinKey> has no methods, fields, or string form.  To create one, it is
-sufficient to say:
-
-    $minKey = bless {}, "MongoDB::MinKey";
-
-=head2 MongoDB::MaxKey
-
-C<MongoDB::MaxKey> is "greater than" any other value of any type.  This can be useful
-for always returning certain documents last (or first).
-
-C<MongoDB::MaxKey> has no methods, fields, or string form.  To create one, it is
-sufficient to say:
-
-    $maxKey = bless {}, "MongoDB::MaxKey";
-
-=head2 MongoDB::Timestamp
-
-    my $ts = MongoDB::Timestamp->new({sec => $seconds, inc => $increment});
-
-Timestamps are used internally by MongoDB's replication.  You can see them in
-their natural habitat by querying C<local.main.$oplog>.  Each entry looks
-something like:
-
-    { "ts" : { "t" : 1278872990000, "i" : 1 }, "op" : "n", "ns" : "", "o" : { } }
-
-In the shell, timestamps are shown in milliseconds, although they are stored as
-seconds.  So, to represent this document in Perl, we would do:
-
-    my $oplog = {
-        "ts" => MongoDB::Timestamp->new("sec" => 1278872990, "inc" => 1),
-        "op" => "n",
-        "ns" => "",
-        "o" => {}
-    }
-
-Timestamps are not dates.  You should not use them unless you are doing
-something low-level with replication.  To save dates or times, use a number,
-L<DateTime> object, or L<DateTime::Tiny> object.
+=cut
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:
