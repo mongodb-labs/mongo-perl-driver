@@ -1431,7 +1431,7 @@ off a new thread.
 sub reconnect {
     my ($self) = @_;
     $self->_topology->close_all_links;
-    $self->_topology->scan_all_servers;
+    $self->_topology->scan_all_servers(1);
     return 1;
 }
 
