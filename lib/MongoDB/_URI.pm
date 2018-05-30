@@ -99,6 +99,7 @@ sub _build_valid_options {
             authMechanism
             authMechanismProperties
             authSource
+            compressors
             connectTimeoutMS
             connect
             heartbeatFrequencyMS
@@ -118,6 +119,7 @@ sub _build_valid_options {
             w
             wTimeoutMS
             readConcernLevel
+            zlibCompressionLevel
         )
     };
 }
@@ -184,6 +186,9 @@ sub _parse_options {
         }
         if ( $lc_k eq 'authmechanismproperties' ) {
             $parsed{$lc_k} = _parse_doc( $k, $v );
+        }
+        elsif ( $lc_k eq 'compressors' ) {
+            $parsed{$lc_k} = [split m{,}, $v, -1];
         }
         elsif ( $lc_k eq 'authsource' ) {
             $result->{db_name} = $v;

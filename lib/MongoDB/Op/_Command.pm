@@ -89,9 +89,16 @@ sub execute {
     $self->publish_command_started( $link, $self->{query}, $request_id )
       if $self->monitoring_callback;
 
+    my %write_opt;
+    my $command_name = do {
+        my $command = _to_tied_ixhash($self->{query});
+        lc tied(%$command)->Keys(0);
+    };
+    $write_opt{disable_compression} = !is_compressible($command_name);
+
     my $result;
     eval {
-        $link->write( $op_bson ),
+        $link->write( $op_bson, %write_opt ),
         ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
     };
     if ( my $err = $@ ) {
@@ -115,6 +122,22 @@ sub execute {
     $self->_update_session_and_cluster_time($res);
 
     return $res;
+}
+
+sub is_compressible {
+    my $command_name = lc shift;
+    return not grep { $_ eq $command_name } qw(
+        ismaster
+        saslstart
+        saslcontinue
+        getnonce
+        authenticate
+        createuser
+        updateuser
+        copydbsaslstart
+        copydbgetnonce
+        copydb
+    );
 }
 
 1;

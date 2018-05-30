@@ -32,9 +32,11 @@ use MongoDB::_Link;
 use MongoDB::_Types qw(
     Boolish
     BSONCodec
+    CompressionType
     Document
     NonNegNum
     TopologyType
+    ZlibCompressionLevel
     to_IxHash
 );
 use Types::Standard qw(
@@ -95,6 +97,18 @@ has monitoring_callback => (
     is => 'ro',
     required => 1,
     isa => Maybe[CodeRef],
+);
+
+has compression => (
+    is => 'ro',
+    isa => ArrayRef[CompressionType],
+    default => sub { [] },
+);
+
+has zlib_compression_level => (
+    is => 'ro',
+    isa => ZlibCompressionLevel,
+    default => sub { -1 },
 );
 
 has type => (
@@ -1001,6 +1015,9 @@ sub _generate_ismaster_request {
             push @opts, saslSupportedMechs => $db_user;
         }
     }
+    if (@{ $self->compression }) {
+        push @opts, compression => $self->compression;
+    }
     return [ ismaster => 1, @opts ];
 }
 
@@ -1053,6 +1070,7 @@ sub _update_topology_from_link {
         last_update_time => $end_time,
         rtt_sec           => $rtt_sec,
         is_master        => $is_master,
+        zlib_compression_level => $self->zlib_compression_level,
     );
 
     $self->_update_topology_from_server_desc( $link->address, $new_server );
