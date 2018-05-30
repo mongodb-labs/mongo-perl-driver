@@ -22,33 +22,18 @@ use Test::Fatal;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_type server_version/;
+use MongoDBTest qw(
+  skip_unless_mongod build_client get_test_db server_type server_version
+  skip_unless_failpoints_available
+);
 
 skip_unless_mongod();
+skip_unless_failpoints_available();
 
 my $conn           = build_client();
 my $testdb         = get_test_db($conn);
 my $server_type    = server_type($conn);
 my $server_version = server_version($conn);
-
-# This test sets failpoints, which will make the tested server unusable
-# for ordinary purposes. As this is risky, the test requires the user
-# to opt-in
-unless ( $ENV{FAILPOINT_TESTING} ) {
-    plan skip_all => "\$ENV{FAILPOINT_TESTING} is false";
-}
-
-# Test::Harness 3.31 supports the t/testrules.yml file to ensure that
-# this test file won't be run in parallel other tests, since turning on
-# a fail point will interfere with other tests.
-if ( version->parse($ENV{HARNESS_VERSION}) < version->parse(3.31) ) {
-    plan skip_all => "not safe to run fail points before Test::Harness 3.31";
-}
-
-my $param = eval {
-    $conn->get_database('admin')
-      ->run_command( [ getParameter => 1, enableTestCommands => 1 ] );
-};
 
 my $coll;
 my $admin = $conn->get_database("admin");
@@ -181,12 +166,6 @@ subtest "expected behaviors" => sub {
 subtest "force maxTimeMS failures" => sub {
     plan skip_all => "maxTimeMS not available before 2.6"
       unless $server_version >= v2.6.0;
-
-    plan skip_all => "enableTestCommands is off"
-      unless $param && $param->{enableTestCommands};
-
-    plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
 
     # low batchSize to force multiple batches to get all docs
     my $cursor = $coll->find( {}, { batchSize => 5, maxTimeMS => 5000 } )->result;
@@ -435,12 +414,6 @@ subtest "create_many w/ maxTimeMS" => sub {
     plan skip_all => "maxTimeMS not available before 3.6"
       unless $server_version >= v3.6.0;
 
-    plan skip_all => "enableTestCommands is off"
-      unless $param && $param->{enableTestCommands};
-
-    plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
-
     $coll->drop;
 
     is(
@@ -502,12 +475,6 @@ subtest "create_one w/ maxTimeMS" => sub {
     plan skip_all => "maxTimeMS not available before 3.6"
       unless $server_version >= v3.6.0;
 
-    plan skip_all => "enableTestCommands is off"
-      unless $param && $param->{enableTestCommands};
-
-    plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
-
     $coll->drop;
 
     is(
@@ -560,12 +527,6 @@ subtest "create_one w/ maxTimeMS" => sub {
 subtest "drop_one w/ maxTimeMS" => sub {
     plan skip_all => "maxTimeMS not available before 3.6"
       unless $server_version >= v3.6.0;
-
-    plan skip_all => "enableTestCommands is off"
-      unless $param && $param->{enableTestCommands};
-
-    plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
 
     $coll->drop;
 
@@ -622,12 +583,6 @@ subtest "drop_one w/ maxTimeMS" => sub {
 subtest "drop_all w/ maxTimeMS" => sub {
     plan skip_all => "maxTimeMS not available before 3.6"
       unless $server_version >= v3.6.0;
-
-    plan skip_all => "enableTestCommands is off"
-      unless $param && $param->{enableTestCommands};
-
-    plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
 
     $coll->drop;
 

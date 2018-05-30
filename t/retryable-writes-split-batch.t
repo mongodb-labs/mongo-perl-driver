@@ -32,10 +32,12 @@ use MongoDBTest qw/
     server_type
     check_min_server_version
     skip_unless_mongod
+    skip_unless_failpoints_available
     get_features
 /;
 
 skip_unless_mongod();
+skip_unless_failpoints_available();
 
 my $conn = build_client(
     retry_writes => 1,
@@ -48,9 +50,6 @@ my $features       = get_features($conn);
 
 plan skip_all => "retryableWrites not supported on this MongoDB"
     unless ( $features->supports_retryWrites );
-
-plan skip_all => "mongos doesn't have failpoints needed for this tests"
-    if $server_type eq 'Mongos';
 
 subtest "ordered batch split on size" => sub {
 

@@ -25,6 +25,7 @@ use Exporter 'import';
 use MongoDB;
 use BSON;
 use Test::More;
+use Path::Tiny;
 use boolean;
 use version;
 
@@ -37,6 +38,7 @@ our @EXPORT_OK = qw(
     get_capped
     skip_if_mongod
     skip_unless_mongod
+    skip_unless_failpoints_available
     uri_escape
     get_unique_collection
     get_features
@@ -158,6 +160,44 @@ sub skip_if_mongod {
     if ( ! $@ ) {
         plan skip_all => "Test can't start with a running mongod";
     }
+}
+
+sub skip_unless_failpoints_available {
+    my ($arg) = @_;
+
+    # Setting failpoints will make the tested server unusable for ordinary
+    # purposes. As this is risky, the test requires the user to opt-in
+    unless ( $ENV{FAILPOINT_TESTING} ) {
+        plan skip_all => "\$ENV{FAILPOINT_TESTING} is false";
+    }
+
+    # Test::Harness 3.31 supports the t/testrules.yml file to ensure that
+    # this test file won't be run in parallel other tests, since turning on
+    # a fail point will interfere with other tests.
+    if ( version->parse( $ENV{HARNESS_VERSION} ) < version->parse(3.31) ) {
+        plan skip_all => "not safe to run fail points before Test::Harness 3.31";
+    }
+
+    # If running from t/ check that the file is in the test rules file.
+    if ( $0 =~ m{^t/.*\.t$} ) {
+        my $rules = path("t/testrules.yml")->slurp_utf8;
+        plan skip_all => "$0 not listed in t/testrules.yml"
+          unless $rules =~ m{seq:\s+\Q$0\E};
+    }
+
+    my $conn        = build_client;
+    my $server_type = server_type($conn);
+
+    my $param = eval {
+        $conn->get_database('admin')
+          ->run_command( [ getParameter => 1, enableTestCommands => 1 ] );
+    };
+
+    plan skip_all => "enableTestCommands is off"
+      unless $param && $param->{enableTestCommands};
+
+    plan skip_all => "fail points not supported via mongos"
+      if $server_type eq 'Mongos';
 }
 
 sub server_version {
