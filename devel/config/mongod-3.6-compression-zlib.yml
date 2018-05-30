@@ -1,0 +1,7 @@
+---
+type: single
+default_args: -v --bind_ip 0.0.0.0 --enableMajorityReadConcern --networkMessageCompressors zlib
+default_version: 3.6
+mongod:
+    - name: host1
+
