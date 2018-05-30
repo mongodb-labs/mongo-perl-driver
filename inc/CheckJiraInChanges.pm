@@ -2,7 +2,7 @@ use 5.008001;
 use strict;
 use warnings;
 
-package inc::CheckJiraInChanges;
+package CheckJiraInChanges;
 
 our $VERSION = 0.001;
 

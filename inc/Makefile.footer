@@ -1,0 +1,14 @@
+package MY;
+
+sub postamble {
+    my $self = shift;
+    return $self->SUPER::postamble . <<'HERE';
+
+cover : pure_all
+	HARNESS_PERL_SWITCHES=-MDevel::Cover make test
+
+ptest : pure_all
+	HARNESS_OPTIONS=j9 make test
+
+HERE
+}
