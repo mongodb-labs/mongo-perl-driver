@@ -844,6 +844,141 @@ tasks:
     depends_on:
       - name: test_3.6_DB_auth
       - name: test_3.6_SC
+  - name: test_4.0_DB
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v4.0
+      - func: testDriver
+    depends_on:
+      - name: check
+  - name: test_4.0_DB_auth
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v4.0
+      - func: testDriver
+    depends_on:
+      - name: test_4.0_DB
+  - name: test_4.0_DB_ssl
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v4.0
+      - func: testDriver
+    depends_on:
+      - name: test_4.0_DB
+  - name: test_4.0_RS
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v4.0
+      - func: testDriver
+    depends_on:
+      - name: test_4.0_DB
+  - name: test_4.0_RS_auth
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v4.0
+      - func: testDriver
+    depends_on:
+      - name: test_4.0_DB_auth
+      - name: test_4.0_RS
+  - name: test_4.0_SC
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.0
+      - func: testDriver
+    depends_on:
+      - name: test_4.0_DB
+  - name: test_4.0_SC_auth
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.0
+      - func: testDriver
+    depends_on:
+      - name: test_4.0_DB_auth
+      - name: test_4.0_SC
   - name: test_latest_DB
     commands:
       - func: dynamicVars
@@ -1037,6 +1172,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_10t
     display_name: RHEL 6.2 Perl 5.10t
@@ -1055,6 +1191,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_10ld
     display_name: RHEL 6.2 Perl 5.10ld
@@ -1073,6 +1210,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_12
     display_name: RHEL 6.2 Perl 5.12
@@ -1091,6 +1229,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_12t
     display_name: RHEL 6.2 Perl 5.12t
@@ -1109,6 +1248,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_12ld
     display_name: RHEL 6.2 Perl 5.12ld
@@ -1127,6 +1267,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_14
     display_name: RHEL 6.2 Perl 5.14
@@ -1175,6 +1316,13 @@ buildvariants:
       - test_3.6_RS_auth
       - test_3.6_SC
       - test_3.6_SC_auth
+      - test_4.0_DB
+      - test_4.0_DB_auth
+      - test_4.0_DB_ssl
+      - test_4.0_RS
+      - test_4.0_RS_auth
+      - test_4.0_SC
+      - test_4.0_SC_auth
       - test_latest_DB
       - test_latest_DB_auth
       - test_latest_DB_ssl
@@ -1199,6 +1347,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_14ld
     display_name: RHEL 6.2 Perl 5.14ld
@@ -1217,6 +1366,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_16
     display_name: RHEL 6.2 Perl 5.16
@@ -1235,6 +1385,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_16t
     display_name: RHEL 6.2 Perl 5.16t
@@ -1253,6 +1404,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_16ld
     display_name: RHEL 6.2 Perl 5.16ld
@@ -1271,6 +1423,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_18
     display_name: RHEL 6.2 Perl 5.18
@@ -1289,6 +1442,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_18t
     display_name: RHEL 6.2 Perl 5.18t
@@ -1307,6 +1461,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_18ld
     display_name: RHEL 6.2 Perl 5.18ld
@@ -1325,6 +1480,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_20
     display_name: RHEL 6.2 Perl 5.20
@@ -1343,6 +1499,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_20t
     display_name: RHEL 6.2 Perl 5.20t
@@ -1361,6 +1518,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_20ld
     display_name: RHEL 6.2 Perl 5.20ld
@@ -1379,6 +1537,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_22
     display_name: RHEL 6.2 Perl 5.22
@@ -1397,6 +1556,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_22t
     display_name: RHEL 6.2 Perl 5.22t
@@ -1415,6 +1575,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_22ld
     display_name: RHEL 6.2 Perl 5.22ld
@@ -1433,6 +1594,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_24
     display_name: RHEL 6.2 Perl 5.24
@@ -1481,6 +1643,13 @@ buildvariants:
       - test_3.6_RS_auth
       - test_3.6_SC
       - test_3.6_SC_auth
+      - test_4.0_DB
+      - test_4.0_DB_auth
+      - test_4.0_DB_ssl
+      - test_4.0_RS
+      - test_4.0_RS_auth
+      - test_4.0_SC
+      - test_4.0_SC_auth
       - test_latest_DB
       - test_latest_DB_auth
       - test_latest_DB_ssl
@@ -1505,6 +1674,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_24ld
     display_name: RHEL 6.2 Perl 5.24ld
@@ -1523,6 +1693,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_26
     display_name: RHEL 6.2 Perl 5.26
@@ -1541,6 +1712,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_26t
     display_name: RHEL 6.2 Perl 5.26t
@@ -1559,6 +1731,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_rhel62_perl_26ld
     display_name: RHEL 6.2 Perl 5.26ld
@@ -1577,6 +1750,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_suse12_z_perl_14
     display_name: SUSE 12 Z Series Perl 5.14
@@ -1604,6 +1778,13 @@ buildvariants:
       - test_3.6_RS_auth
       - test_3.6_SC
       - test_3.6_SC_auth
+      - test_4.0_DB
+      - test_4.0_DB_auth
+      - test_4.0_DB_ssl
+      - test_4.0_RS
+      - test_4.0_RS_auth
+      - test_4.0_SC
+      - test_4.0_SC_auth
       - test_latest_DB
       - test_latest_DB_auth
       - test_latest_DB_ssl
@@ -1627,6 +1808,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1644,6 +1826,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1661,6 +1844,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1678,6 +1862,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1695,6 +1880,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1712,6 +1898,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1729,6 +1916,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1746,6 +1934,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1763,6 +1952,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1792,6 +1982,13 @@ buildvariants:
       - test_3.6_RS_auth
       - test_3.6_SC
       - test_3.6_SC_auth
+      - test_4.0_DB
+      - test_4.0_DB_auth
+      - test_4.0_DB_ssl
+      - test_4.0_RS
+      - test_4.0_RS_auth
+      - test_4.0_SC
+      - test_4.0_SC_auth
       - test_latest_DB
       - test_latest_DB_auth
       - test_latest_DB_ssl
@@ -1815,6 +2012,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1832,6 +2030,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1849,6 +2048,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1891,6 +2091,13 @@ buildvariants:
       - test_3.6_RS_auth
       - test_3.6_SC
       - test_3.6_SC_auth
+      - test_4.0_DB
+      - test_4.0_DB_auth
+      - test_4.0_DB_ssl
+      - test_4.0_RS
+      - test_4.0_RS_auth
+      - test_4.0_SC
+      - test_4.0_SC_auth
       - test_latest_DB
       - test_latest_DB_auth
       - test_latest_DB_ssl
@@ -1914,6 +2121,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1931,6 +2139,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1948,6 +2157,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1965,6 +2175,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1982,6 +2193,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -1999,6 +2211,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2016,6 +2229,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2033,6 +2247,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2050,6 +2265,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2067,6 +2283,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2084,6 +2301,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2101,6 +2319,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2118,6 +2337,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2135,6 +2355,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2164,6 +2385,13 @@ buildvariants:
       - test_3.6_RS_auth
       - test_3.6_SC
       - test_3.6_SC_auth
+      - test_4.0_DB
+      - test_4.0_DB_auth
+      - test_4.0_DB_ssl
+      - test_4.0_RS
+      - test_4.0_RS_auth
+      - test_4.0_SC
+      - test_4.0_SC_auth
       - test_latest_DB
       - test_latest_DB_auth
       - test_latest_DB_ssl
@@ -2187,6 +2415,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2204,6 +2433,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2221,6 +2451,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2238,6 +2469,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2255,6 +2487,7 @@ buildvariants:
       - check
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
     stepback: false
     batchtime: 604800
@@ -2305,6 +2538,13 @@ buildvariants:
       - test_3.6_RS_auth
       - test_3.6_SC
       - test_3.6_SC_auth
+      - test_4.0_DB
+      - test_4.0_DB_auth
+      - test_4.0_DB_ssl
+      - test_4.0_RS
+      - test_4.0_RS_auth
+      - test_4.0_SC
+      - test_4.0_SC_auth
       - test_latest_DB
       - test_latest_DB_auth
       - test_latest_DB_ssl
@@ -2329,6 +2569,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_windows64_perl_18
     display_name: Win64 Perl 5.18
@@ -2347,6 +2588,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_windows64_perl_20
     display_name: Win64 Perl 5.20
@@ -2365,6 +2607,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_windows64_perl_22
     display_name: Win64 Perl 5.22
@@ -2383,6 +2626,7 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB
   - name: os_windows64_perl_24
     display_name: Win64 Perl 5.24
@@ -2431,6 +2675,13 @@ buildvariants:
       - test_3.6_RS_auth
       - test_3.6_SC
       - test_3.6_SC_auth
+      - test_4.0_DB
+      - test_4.0_DB_auth
+      - test_4.0_DB_ssl
+      - test_4.0_RS
+      - test_4.0_RS_auth
+      - test_4.0_SC
+      - test_4.0_SC_auth
       - test_latest_DB
       - test_latest_DB_auth
       - test_latest_DB_ssl
@@ -2455,4 +2706,5 @@ buildvariants:
       - test_3.2_DB
       - test_3.4_DB
       - test_3.6_DB
+      - test_4.0_DB
       - test_latest_DB

@@ -92,7 +92,7 @@ sub generate_test_variations {
     # For the topology specific configs, we repeat the list for each server
     # version we're testing.
     my @matrix =
-      map { with_version( $_ => \@topo_tests ) } qw/v2.6 v3.0 v3.2 v3.4 v3.6 latest/;
+      map { with_version( $_ => \@topo_tests ) } qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0 latest/;
 
     return @matrix;
 }
@@ -107,7 +107,7 @@ sub orch_test {
 
     # Overwrite defaults with config
     my %opts = (
-        version  => 'v3.4',
+        version  => 'v4.0',
         topology => 'server',
         ssl      => 'nossl',
         auth     => 'noauth',
