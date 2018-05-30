@@ -63,6 +63,19 @@ with $_ for qw(
   MongoDB::Role::_CommandMonitoring
 );
 
+my %IS_NOT_COMPRESSIBLE = map { ($_ => 1) } qw(
+    ismaster
+    saslstart
+    saslcontinue
+    getnonce
+    authenticate
+    createuser
+    updateuser
+    copydbsaslstart
+    copydbgetnonce
+    copydb
+);
+
 sub execute {
     my ( $self, $link, $topology_type ) = @_;
     $topology_type ||= 'Single'; # if not specified, assume direct
@@ -87,9 +100,29 @@ sub execute {
     $self->publish_command_started( $link, $self->{query}, $request_id )
       if $self->monitoring_callback;
 
+    my %write_opt;
+    $write_opt{disable_compression} = do {
+        my $doc = $self->{query};
+        my $type = ref $doc;
+        (
+            $type eq 'ARRAY' ? $IS_NOT_COMPRESSIBLE{ $doc->[0] }
+          : $type eq 'Tie::IxHash' ? $doc->Keys(0)
+          : do { # hashlike?
+              my $disable;
+              DOC_FIELD: for my $name (keys %$doc) {
+                  if ($IS_NOT_COMPRESSIBLE{lc $name}) {
+                      $disable = 1;
+                      last DOC_FIELD;
+                  }
+              }
+              $disable
+            }
+        )
+    };
+
     my $result;
     eval {
-        $link->write( $op_bson ),
+        $link->write( $op_bson, \%write_opt ),
         ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
     };
     if ( my $err = $@ ) {

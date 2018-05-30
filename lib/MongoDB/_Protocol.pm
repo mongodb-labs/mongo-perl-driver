@@ -24,6 +24,8 @@ our $VERSION = 'v1.999.0';
 use MongoDB::_Constants;
 use MongoDB::Error;
 
+use Compress::Zlib ();
+
 use constant {
     OP_REPLY        => 1,    # Reply to a client request. responseTo is set
     OP_MSG          => 1000, # generic msg command followed by a string
@@ -34,6 +36,7 @@ use constant {
     OP_GET_MORE     => 2005, # Get more data from a query. See Cursors
     OP_DELETE       => 2006, # Delete documents
     OP_KILL_CURSORS => 2007, # Tell database client is done with a cursor
+    OP_COMPRESSED   => 2012, # wire compression
 };
 
 use constant {
@@ -60,6 +63,7 @@ use constant {
     P_DELETE       => PERL58 ? "l5Z*l"   : "l<5Z*l<",
     P_KILL_CURSORS => PERL58 ? "l6(a8)*" : "l<6(a8)*",
     P_REPLY_HEADER => PERL58 ? "l5a8l2"  : "l<5a8l<2",
+    P_COMPRESSED   => PERL58 ? "l6C"     : "l<6C",
 };
 
 # struct MsgHeader {
@@ -74,6 +78,108 @@ use constant {
 # fix it up after the message is constructed.  E.g.
 #     my $msg = pack( P_INSERT, 0, int(rand(2**32-1)), 0, OP_INSERT, 0, $ns ) . $bson_docs;
 #     substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
+
+use constant {
+    # length for MsgHeader
+    P_HEADER_LENGTH =>
+        length(pack P_HEADER, 0, 0, 0, 0),
+    # length for OP_COMPRESSED
+    P_COMPRESSED_PREFIX_LENGTH =>
+        length(pack P_COMPRESSED, 0, 0, 0, 0, 0, 0, 0),
+};
+
+# struct OP_COMPRESSED {
+#     MsgHeader header;             // standard message header
+#     int32_t   originalOpcode;     // wrapped op code
+#     int32_t   uncompressedSize;   // size of deflated wo. header
+#     uint8_t   compressorId;       // compressor
+#     char*     compressedMessage;  // compressed contents
+# };
+
+# decompressors indexed by ID.
+my @DECOMPRESSOR = (
+    # none
+    sub { shift },
+    # snappy (unsupported)
+    undef,
+    # zlib
+    sub { Compress::Zlib::uncompress(shift) },
+);
+
+# construct compressor by name with options
+sub get_compressor {
+    my ($name, $comp_opt) = @_;
+
+    if ($name eq 'none') {
+        return {
+            id => 0,
+            callback => sub { shift },
+        };
+    }
+    elsif ($name eq 'zlib') {
+        my $level = $comp_opt->{zlib_compression_level};
+        $level = undef
+            if defined $level and $level < 0;
+        return {
+            id => 2,
+            callback => sub {
+                return Compress::Zlib::compress(
+                    $_[0],
+                    defined($level) ? $level : (),
+                );
+            },
+        };
+    }
+    else {
+        MongoDB::ProtocolError->throw("Unknown compressor '$name'");
+    }
+}
+
+# compress message
+sub compress {
+    my ($msg, $compressor) = @_;
+
+    my ($len, $request_id, $response_to, $op_code)
+        = unpack(P_HEADER, $msg);
+
+    $msg = substr $msg, P_HEADER_LENGTH;
+
+    my $msg_comp = pack(
+        P_COMPRESSED,
+        0, $request_id, $response_to, OP_COMPRESSED,
+        $op_code,
+        length($msg),
+        $compressor->{id},
+    ).$compressor->{callback}->($msg);
+
+    substr($msg_comp, 0, 4, pack(P_INT32, length($msg_comp)));
+    return $msg_comp;
+}
+
+# attempt to uncompress message
+# messages that aren't OP_COMPRESSED are returned as-is
+sub try_uncompress {
+    my ($msg) = @_;
+
+    my ($len, $request_id, $response_to, $op_code, $orig_op_code, $orig_len, $comp_id)
+        = unpack(P_COMPRESSED, $msg);
+
+    return $msg
+        if $op_code != OP_COMPRESSED;
+
+    $msg = substr $msg, P_COMPRESSED_PREFIX_LENGTH;
+
+    my $decompressor = $DECOMPRESSOR[$comp_id]
+        or MongoDB::ProtocolError->throw("Unknown compressor ID '$comp_id'");
+
+    my $decomp_msg = $decompressor->($msg);
+    my $done =
+        pack(P_HEADER, $orig_len, $request_id, $response_to, $orig_op_code)
+        .$decomp_msg;
+
+    return $done;
+
+}
 
 # struct OP_UPDATE {
 #     MsgHeader header;             // standard message header
@@ -287,6 +393,8 @@ sub parse_reply {
 
     MongoDB::ProtocolError->throw("response was truncated")
         if length($msg) < MIN_REPLY_LENGTH;
+
+    $msg = try_uncompress($msg);
 
     my (
         $len, $msg_id, $response_to, $opcode, $bitflags, $cursor_id, $starting_from,

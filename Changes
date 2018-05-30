@@ -32,6 +32,8 @@
 
     - PERL-768 Added support for aggregation hints
 
+    - PERL-778 Add support for wire protocol compression
+
     - PERL-782 Add maxTimeMS option to Indexview methods
 
     - PERL-787 Implement arrayFilters support

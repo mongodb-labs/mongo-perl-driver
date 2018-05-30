@@ -80,6 +80,13 @@ has is_master => (
     default => sub { {} },
 );
 
+# compressor: hashref with id/callback values for used compression
+
+has compressor => (
+    is => 'ro',
+    isa => Maybe[HashRef],
+);
+
 # type: a ServerType enum value. Default Unknown.  Definitions from the Server
 # Discovery and Monitoring Spec:
 # - Unknown	Initial, or after a network error or failed ismaster call, or "ok: 1"
