@@ -1,7 +1,7 @@
 ---
 type: single
 default_args: -v --bind_ip 0.0.0.0
-default_version: v3.7.6
+default_version: v4.0
 default_fcv: "4.0"
 auth:
     user: root

@@ -3,9 +3,6 @@ type: replica
 setName: foo
 default_args: -v --bind_ip 0.0.0.0 --enableMajorityReadConcern --quiet
 default_version: v4.0
-auth:
-    user: root
-    password: toor
 mongod:
     - name: host1
     - name: host2
