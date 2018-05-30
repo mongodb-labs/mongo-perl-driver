@@ -13,7 +13,8 @@ my %WriteMakefileArgs = (
   "CONFIGURE_REQUIRES" => {
     "Config::AutoConf" => "0.22",
     "ExtUtils::MakeMaker" => "6.17",
-    "Path::Tiny" => "0.052"
+    "Path::Tiny" => "0.052",
+    "Text::ParseWords" => 0
   },
   "DISTNAME" => "MongoDB",
   "LICENSE" => "apache",
@@ -33,7 +34,6 @@ my %WriteMakefileArgs = (
     "BSON::Timestamp" => 0,
     "BSON::Types" => 0,
     "Carp" => 0,
-    "Class::XSAccessor" => 0,
     "Digest::MD5" => 0,
     "Encode" => 0,
     "Exporter" => "5.57",
@@ -53,7 +53,6 @@ my %WriteMakefileArgs = (
     "Time::HiRes" => 0,
     "Try::Tiny" => 0,
     "Type::Library" => 0,
-    "Type::Tiny::XS" => 0,
     "Type::Utils" => 0,
     "Types::Standard" => 0,
     "UUID::URandom" => 0,
@@ -106,7 +105,6 @@ my %FallbackPrereqs = (
   "BSON::Timestamp" => 0,
   "BSON::Types" => 0,
   "Carp" => 0,
-  "Class::XSAccessor" => 0,
   "Data::Dumper" => 0,
   "Digest::MD5" => 0,
   "Encode" => 0,
@@ -137,7 +135,6 @@ my %FallbackPrereqs = (
   "Time::HiRes" => 0,
   "Try::Tiny" => 0,
   "Type::Library" => 0,
-  "Type::Tiny::XS" => 0,
   "Type::Utils" => 0,
   "Types::Standard" => 0,
   "UUID::URandom" => 0,
@@ -155,6 +152,13 @@ my %FallbackPrereqs = (
   "version" => 0,
   "warnings" => 0
 );
+
+# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.034
+if (!want_pp() && can_xs()) {
+runtime_requires('BSON::XS', '0.004001');
+runtime_requires('Class::XSAccessor');
+runtime_requires('Type::Tiny::XS');
+}
 
 unless ( eval { ExtUtils::MakeMaker->VERSION(6.63_03) } ) {
   delete $WriteMakefileArgs{TEST_REQUIRES};
@@ -180,4 +184,55 @@ ptest : pure_all
 	HARNESS_OPTIONS=j9 make test
 
 HERE
+}
+
+package main;
+
+# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.034
+sub _add_prereq {
+  my ($mm_key, $module, $version_or_range) = @_;
+  $version_or_range ||= 0;
+  warn "$module already exists in $mm_key (at version $WriteMakefileArgs{$mm_key}{$module}) -- need to do a sane metamerge!"
+    if exists $WriteMakefileArgs{$mm_key}{$module}
+      and $WriteMakefileArgs{$mm_key}{$module} ne '0'
+      and $WriteMakefileArgs{$mm_key}{$module} ne $version_or_range;
+  warn "$module already exists in FallbackPrereqs (at version $WriteMakefileArgs{$mm_key}{$module}) -- need to do a sane metamerge!"
+    if exists $FallbackPrereqs{$module} and $FallbackPrereqs{$module} ne '0'
+        and $FallbackPrereqs{$module} ne $version_or_range;
+  $WriteMakefileArgs{$mm_key}{$module} = $FallbackPrereqs{$module} = $version_or_range;
+  return;
+}
+
+use lib 'inc';
+use ExtUtils::HasCompiler 0.014 'can_compile_loadable_object';
+{
+  my $can_xs;
+  sub can_xs {
+    return $can_xs if defined $can_xs;
+    $can_xs = can_compile_loadable_object(quiet => 1) ? 1 : 0;
+  }
+}
+
+sub parse_args {
+  require ExtUtils::MakeMaker;
+  require Text::ParseWords;
+  ExtUtils::MakeMaker::parse_args(
+    my $tmp = {},
+    Text::ParseWords::shellwords($ENV{PERL_MM_OPT} || ''),
+    @ARGV,
+  );
+  return $tmp->{ARGS} || {};
+}
+
+sub runtime_requires {
+  my ($module, $version_or_range) = @_;
+  _add_prereq(PREREQ_PM => $module, $version_or_range);
+}
+
+{
+  my $want_pp;
+  sub want_pp {
+    return $want_pp if defined $want_pp;
+    $want_pp = parse_args()->{PUREPERL_ONLY} ? 1 : 0
+  }
 }
