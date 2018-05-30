@@ -60,7 +60,7 @@ subtest "get_database and check names" => sub {
     my $db = $conn->get_database( $testdb->name );
     isa_ok( $db, 'MongoDB::Database', 'get_database' );
 
-    $db->get_collection('test_collection')->insert_one( { foo => 42 } );
+    $db->get_collection('test_collection1')->insert_one( { foo => 42 } );
 
     ok( ( grep { /testdb/ } $conn->database_names ), 'database_names' );
 
@@ -88,7 +88,7 @@ subtest "wire protocol versions" => sub {
 subtest "reconnect" => sub {
     ok( $testdb->_client->reconnect, "ran reconnect" );
     my $db = $conn->get_database( $testdb->name );
-    ok( $db->get_collection('test_collection')->insert_one( { foo => 42 } ),
+    ok( $db->get_collection('test_collection2')->insert_one( { foo => 42 } ),
         "inserted a doc after reconnection"
     );
 };
