@@ -28,7 +28,6 @@ use BSON::Decimal128;
 use Encode;
 use Tie::IxHash;
 use Test::Fatal;
-use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::BSON::Binary;
 use BSON::Types ':all';
 

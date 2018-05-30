@@ -22,9 +22,7 @@ use Test::Deep qw/!blessed/;
 
 use utf8;
 use Tie::IxHash;
-use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::Error;
-use MongoDB::Code;
 
 use MongoDB;
 

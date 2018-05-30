@@ -24,9 +24,7 @@ use Test::Deep qw/!blessed/;
 use utf8;
 use Tie::IxHash;
 use Encode qw(encode decode);
-use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB::Error;
-use MongoDB::Code;
 
 use MongoDB;
 use BSON::Types ':all';
@@ -961,7 +959,7 @@ subtest "bulk_write writeConcern used" => sub {
 };
 
 my $js_str = 'function() { return this.a > this.b }';
-my $js_obj = MongoDB::Code->new( code => $js_str );
+my $js_obj = bson_code ($js_str );
 
 for my $criteria ( $js_str, $js_obj ) {
     my $type = ref($criteria) || 'string';

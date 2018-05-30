@@ -19,8 +19,6 @@ use warnings;
 use Test::More;
 use Test::Fatal;
 
-use MongoDB::Timestamp; # needed if db is being run as master
-
 use MongoDB;
 
 use lib "t/lib";

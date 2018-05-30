@@ -21,7 +21,6 @@ use Test::More;
 use Test::Fatal;
 use IO::File;
 use File::Temp;
-use MongoDB::Timestamp; # needed if db is being run as master
 
 use MongoDB;
 use MongoDB::GridFS;

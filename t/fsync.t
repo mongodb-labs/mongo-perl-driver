@@ -22,7 +22,6 @@ use Test::Fatal;
 
 use Data::Dumper;
 
-use MongoDB::Timestamp; # needed if db is being run as master
 use MongoDB;
 
 use lib "t/lib";

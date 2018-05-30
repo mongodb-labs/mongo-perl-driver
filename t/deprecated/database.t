@@ -23,8 +23,6 @@ use Test::Deep;
 use Tie::IxHash;
 use boolean;
 
-use MongoDB::Timestamp; # needed if db is being run as master
-
 use MongoDB;
 use MongoDB::_Constants;
 use MongoDB::Error;
