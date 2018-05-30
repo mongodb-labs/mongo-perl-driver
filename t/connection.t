@@ -64,8 +64,6 @@ subtest "get_database and check names" => sub {
 
     ok( ( grep { /testdb/ } $conn->database_names ), 'database_names' );
 
-    my $result = $db->drop;
-    is( $result->{'ok'}, 1, 'db was dropped' );
 };
 
 subtest "wire protocol versions" => sub {
