@@ -78,6 +78,11 @@ sub build_client {
         );
     }
 
+    # allow whole test suite to be run with compression enabled
+    if (my $comp = $ENV{PERL_MONGO_TEST_COMPRESSION}) {
+        $args{compressors} ||= [$comp];
+    }
+
     # long query timeout may help spurious failures on heavily loaded CI machines
     return MongoDB->connect(
         $host,
