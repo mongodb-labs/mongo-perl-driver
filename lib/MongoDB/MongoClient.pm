@@ -2139,7 +2139,7 @@ to a newer operating system distribution.
 See also the documentation for L<Net::SSLeay> for details on installing and
 compiling against OpenSSL.
 
-TLS connnections in the driver rely on the default settings provided by
+TLS connections in the driver rely on the default settings provided by
 L<IO::Socket::SSL>, but allow you to pass custom configuration to it.
 Please read its documentation carefully to see how to control your TLS
 configuration.
