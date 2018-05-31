@@ -123,11 +123,6 @@ sub _is_expiring {
     return;
 }
 
-sub _increment_transaction_id {
-    my $self = shift;
-    $self->transaction_id->binc();
-}
-
 1;
 
 __END__

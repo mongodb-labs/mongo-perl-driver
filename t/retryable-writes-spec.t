@@ -208,7 +208,11 @@ while ( my $path = $iterator->() ) {
         }
 
         for my $test ( @{ $plan->{tests} } ) {
-            my $coll = get_unique_collection( $testdb, 'retry_write' );
+            my $client_options = $test->{clientOptions};
+            $client_options = remap_hashref_to_snake_case( $client_options );
+            my $test_conn = build_client( %$client_options );
+            my $test_db = get_test_db( $test_conn );
+            my $coll = get_unique_collection( $test_db, 'retry_write' );
             my $ret = $coll->insert_many( $plan->{data} );
             my $description = $test->{description};
 

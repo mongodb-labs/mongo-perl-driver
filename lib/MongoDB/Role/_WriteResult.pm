@@ -122,4 +122,15 @@ sub last_wtimeout {
     return !!( $self->count_write_concern_errors && !$self->count_write_errors );
 }
 
+sub last_error_labels {
+    my ( $self ) = @_;
+    if ( $self->count_write_errors ) {
+        return $self->write_errors->[-1]{errorLabels} || [];
+    }
+    elsif ( $self->count_write_concern_errors ) {
+        return $self->write_errors->[-1]{errorLabels} || [];
+    }
+    return [];
+}
+
 1;

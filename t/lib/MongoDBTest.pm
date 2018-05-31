@@ -36,6 +36,7 @@ our @EXPORT_OK = qw(
     skip_unless_mongod
     skip_unless_failpoints_available
     skip_unless_sessions
+    skip_unless_transactions
     to_snake_case
     remap_hashref_to_snake_case
     uri_escape
@@ -209,6 +210,13 @@ sub skip_unless_sessions {
 
     plan skip_all => "Session support not available"
       unless $conn->_topology->_supports_sessions;
+}
+
+sub skip_unless_transactions {
+    my $conn = build_client;
+
+    plan skip_all => "Transaction support not available"
+        unless $conn->_topology->_supports_transactions;
 }
 
 sub server_version {

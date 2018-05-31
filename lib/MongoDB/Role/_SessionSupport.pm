@@ -23,7 +23,9 @@ our $VERSION = 'v1.999.1';
 
 use Moo::Role;
 use MongoDB::_Types -types, 'to_IxHash';
+use MongoDB::_Constants;
 use Safe::Isa;
+use boolean;
 use namespace::clean;
 
 requires qw/ session retryable_write /;
@@ -43,8 +45,41 @@ sub _apply_session_and_cluster_time {
     $$query_ref = to_IxHash( $$query_ref );
     ($$query_ref)->Push( 'lsid' => $self->session->session_id );
 
-    if ( $self->retryable_write ) {
+    if ( $self->retryable_write || ! $self->session->_in_transaction_state( TXN_NONE ) ) {
         ($$query_ref)->Push( 'txnNumber' => $self->session->_server_session->transaction_id );
+    }
+
+    if ( ! $self->session->_in_transaction_state( TXN_NONE ) ) {
+        ($$query_ref)->Push( 'autocommit' => false );
+    }
+
+    if ( $self->session->_in_transaction_state( TXN_STARTING ) ) {
+        ($$query_ref)->Push( 'startTransaction' => true );
+        ($$query_ref)->Push( @{ $self->session->_get_transaction_read_concern->as_args( $self->session ) } );
+    } elsif ( ! $self->session->_in_transaction_state( TXN_NONE ) ) {
+        # read concern only valid outside a transaction or when starting
+        ($$query_ref)->Delete( 'readConcern' );
+    }
+
+    # write concern not allowed in transactions except when ending. We can
+    # safely delete it here as you can only pass writeConcern through by
+    # arguments to client of collection.
+    if ( $self->session->_in_transaction_state( TXN_STARTING, TXN_IN_PROGRESS ) ) {
+        ($$query_ref)->Delete( 'writeConcern' );
+    }
+
+    if ( $self->session->_in_transaction_state( TXN_ABORTED, TXN_COMMITTED )
+         && ! ($$query_ref)->EXISTS('writeConcern')
+    ) {
+        ($$query_ref)->Push( @{ $self->session->_get_transaction_write_concern->as_args() } );
+    }
+
+    # MUST be the last thing to touch the transaction state before sending,
+    # so the various starting specific query modifications can be applied
+    # The spec states that this should happen after the command even on error,
+    # so happening before the command is sent is still valid
+    if ( $self->session->_in_transaction_state( TXN_STARTING ) ) {
+        $self->session->_set__transaction_state( TXN_IN_PROGRESS );
     }
 
     $self->session->_server_session->update_last_use;
@@ -53,7 +88,6 @@ sub _apply_session_and_cluster_time {
 
     if ( defined $cluster_time && $link->supports_clusterTime ) {
         # Gossip the clusterTime
-        $$query_ref = to_IxHash($$query_ref);
         ($$query_ref)->Push( '$clusterTime' => $cluster_time );
     }
 
@@ -81,7 +115,7 @@ sub _update_session_and_cluster_time {
     return;
 }
 
-sub _update_operation_time {
+sub _update_session_pre_assert {
     my ( $self, $response ) = @_;
 
     return unless defined $self->session;
@@ -104,6 +138,13 @@ sub _assert_session_errors {
     }
 
     return;
+}
+
+sub _update_session_connection_error {
+    my ( $self, $err ) = @_;
+
+    return unless defined $self->session;
+    return $self->session->_maybe_apply_error_labels( $err );
 }
 
 sub __extract_from {

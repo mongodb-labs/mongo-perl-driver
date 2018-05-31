@@ -660,6 +660,14 @@ sub _supports_retry_writes {
     return;
 }
 
+sub _supports_transactions {
+    my ( $self ) = @_;
+
+    return unless $self->_supports_sessions;
+    return if $self->wire_version_ceil < 7;
+    return if $self->type eq 'Sharded';
+    return 1;
+}
 
 sub _check_staleness_compatibility {
     my ($self, $read_pref) = @_;
