@@ -195,6 +195,9 @@ declare SingleKeyHash, as HashRef, where { 1 == scalar keys %$_ };
 enum TopologyType,
   [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Direct Unknown/];
 
+enum TransactionState,
+  [ qw/ none starting committed in_progress aborted / ];
+
 class_type WriteConcern, { class => 'MongoDB::WriteConcern' };
 
 # after SingleKeyHash, PairArrayRef and IxHash

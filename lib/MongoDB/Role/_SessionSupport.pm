@@ -24,6 +24,7 @@ our $VERSION = 'v1.999.1';
 use Moo::Role;
 use MongoDB::_Types -types, 'to_IxHash';
 use Safe::Isa;
+use boolean;
 use namespace::clean;
 
 requires qw/ session retryable_write /;
@@ -43,8 +44,18 @@ sub _apply_session_and_cluster_time {
     $$query_ref = to_IxHash( $$query_ref );
     ($$query_ref)->Push( 'lsid' => $self->session->session_id );
 
-    if ( $self->retryable_write ) {
+    if ( $self->retryable_write || ! $self->session->in_transaction_state( 'none' ) ) {
         ($$query_ref)->Push( 'txnNumber' => $self->session->_server_session->transaction_id );
+    }
+
+    # TODO are these the only states that need autocommit?
+    if ( $self->session->in_transaction_state( qw/ starting in_progress / ) ) {
+        ($$query_ref)->Push( 'autocommit' => false );
+    }
+
+    if ( $self->session->in_transaction_state( 'starting' ) ) {
+        ($$query_ref)->Push( 'startTransaction' => true );
+        ($$query_ref)->Push( 'readConcern' => $self->session->_get_transaction_read_concern->as_args( $self->session ) );
     }
 
     $self->session->_server_session->update_last_use;
@@ -53,7 +64,6 @@ sub _apply_session_and_cluster_time {
 
     if ( defined $cluster_time && $link->supports_clusterTime ) {
         # Gossip the clusterTime
-        $$query_ref = to_IxHash($$query_ref);
         ($$query_ref)->Push( '$clusterTime' => $cluster_time );
     }
 

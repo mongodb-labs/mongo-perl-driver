@@ -295,6 +295,12 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::TimeoutError';
 
+#Transaction errors
+package MongoDB::TransactionError;
+use Moo;
+use namespace::clean;
+extends 'MongoDB::Error';
+
 # Database errors
 package MongoDB::DuplicateKeyError;
 use Moo;
@@ -473,6 +479,8 @@ To retry failures automatically, consider using L<Try::Tiny::Retry>.
         |   |->MongoDB::ExecutionTimeout
         |   |
         |   |->MongoDB::NetworkTimeout
+        |
+        |->MongoDB::TransactionError
         |
         |->MongoDB::UsageError
 
