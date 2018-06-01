@@ -67,6 +67,7 @@ use Type::Library
   SingleKeyHash
   Stringish
   TopologyType
+  TransactionState
   WriteConcern
 );
 

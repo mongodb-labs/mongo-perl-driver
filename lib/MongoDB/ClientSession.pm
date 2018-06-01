@@ -94,7 +94,11 @@ has options => (
         %{ $_[0] },
         # applied after to not override the clone with the original
         defaultTransactionOptions => {
-          %{ $_[0]->{defaultTransactionOptions} },
+          defined( $_[0] )
+            && ref( $_[0] ) eq 'HASH'
+            && defined( $_[0]->{defaultTransactionOptions} )
+              ? ( %{ $_[0]->{defaultTransactionOptions} } )
+              : (),
         },
       };
     },
@@ -112,7 +116,6 @@ has _current_transaction_settings => (
     is => 'rwp',
     isa => HashRef,
     init_arg => undef,
-    default => undef,
     clearer => '_clear_current_transaction_settings',
 );
 
