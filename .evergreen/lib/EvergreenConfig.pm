@@ -547,6 +547,14 @@ __DATA__
       ${prepare_shell}
       export MONGOD=$(echo "${MONGODB_URI}" | tr -d '[:space:]')
       SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/test.pl
+"testLive" :
+  command: shell.exec
+  type: test
+  params:
+    script: |
+      ${prepare_shell}
+      export MONGOD="${uri}"
+      $PERL ${repo_directory}/.evergreen/testing/live-test.pl
 "testModule" :
   command: shell.exec
   type: test
