@@ -267,13 +267,13 @@ subtest "auth credentials" => sub {
 
     like(
         exception { $class->new( uri => 'mongodb://user@name:password@localhost' ) },
-        qr/username must be URL encoded, found unescaped '\@'/,
+        qr/username must be URL encoded/,
         'username with unescaped at sign'
     );
 
     like(
         exception { $class->new( uri => 'mongodb://username:pass:word@localhost' ) },
-        qr/password must be URL encoded, found unescaped ':'/,
+        qr/password must be URL encoded/,
         "password with unescaped colon"
     );
 };

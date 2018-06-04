@@ -49,7 +49,8 @@ sub run_test {
     $warning_counter = 0;
     {
         local $SIG{__WARN__} = sub { ++$warning_counter; };
-        $uri = new_ok( "MongoDB::_URI", [ uri => $test->{uri} ], "uri construction" );
+        $uri = new_ok( "MongoDB::_URI", [ uri => $test->{uri} ], "uri construction" )
+          or return;
     }
 
     my @hosts;
@@ -80,9 +81,10 @@ sub run_test {
 
 my $dir      = path("t/data/connection_string");
 my $iterator = $dir->iterator;
+my $json = JSON::MaybeXS->new;
 while ( my $path = $iterator->() ) {
     next unless $path =~ /\.json$/;
-    my $plan = eval { decode_json( $path->slurp_utf8 ) };
+    my $plan = eval { $json->decode( $path->slurp_utf8 ) };
     if ($@) {
         die "Error decoding $path: $@";
     }

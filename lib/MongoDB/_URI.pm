@@ -159,15 +159,15 @@ sub BUILD {
 
     if ( defined $result{username} ) {
         MongoDB::Error->throw(
-            "URI '$self' could not be parsed (username must be URL encoded, found unescaped '\@'"
-        ) if $result{username} =~ /@/;
+            "URI '$self' could not be parsed (username must be URL encoded)"
+        ) if __userinfo_invalid_chars($result{username});
         $result{username} = _unescape_all( $result{username} );
     }
 
     if ( defined $result{password} ) {
         MongoDB::Error->throw(
-            "URI '$self' could not be parsed (password must be URL encoded, found unescaped ':'")
-          if $result{password} =~ /:/;
+            "URI '$self' could not be parsed (password must be URL encoded)"
+        ) if __userinfo_invalid_chars($result{password});
         $result{password} = _unescape_all( $result{password} );
     }
 
@@ -254,6 +254,37 @@ sub __str_to_bool {
     my $ret = $str eq "true" ? 1 : $str eq "false" ? 0 : undef;
     return $ret if defined $ret;
     MongoDB::UsageError->throw("expected boolean string 'true' or 'false' for key '$k' but instead received '$str'");
+}
+
+# uri_escape borrowed from HTTP::Tiny 0.070
+my %escapes = map { chr($_) => sprintf("%%%02X", $_) } 0..255;
+$escapes{' '}="+";
+my $unsafe_char = qr/[^A-Za-z0-9\-\._~]/;
+
+sub __uri_escape {
+    my ($str) = @_;
+    if ( $] ge '5.008' ) {
+        utf8::encode($str);
+    }
+    else {
+        $str = pack("U*", unpack("C*", $str)) # UTF-8 encode a byte string
+            if ( length $str == do { use bytes; length $str } );
+        $str = pack("C*", unpack("C*", $str)); # clear UTF-8 flag
+    }
+    $str =~ s/($unsafe_char)/$escapes{$1}/ge;
+    return $str;
+}
+
+# Check if should have been escaped; allow safe chars plus '+' and '%'
+my $unreserved = q[a-z0-9._~-]; # use last so it ends in '-'
+my $subdelimit = q[!$&'()*+,;=];
+my $allowed = "%$subdelimit$unreserved";
+my $not_allowed_re = qr/[^$allowed]/i;
+my $not_pct_enc_re = qr/%(?![0-9a-f]{2})/i;
+
+sub __userinfo_invalid_chars {
+    my ($str) = @_;
+    return $str =~ $not_pct_enc_re || $str =~ $not_allowed_re;
 }
 
 # redact user credentials when stringifying
