@@ -49,7 +49,8 @@ sub run_test {
     $warning_counter = 0;
     {
         local $SIG{__WARN__} = sub { ++$warning_counter; };
-        $uri = new_ok( "MongoDB::_URI", [ uri => $test->{uri} ], "uri construction" );
+        $uri = new_ok( "MongoDB::_URI", [ uri => $test->{uri} ], "uri construction" )
+          or return;
     }
 
     my @hosts;

@@ -340,14 +340,14 @@ sub BUILD {
     if ( defined $result{username} ) {
         MongoDB::Error->throw(
             "URI '$self' could not be parsed (username must be URL encoded)"
-        ) if __has_unescaped_characters($result{username});
+        ) if __userinfo_invalid_chars($result{username});
         $result{username} = _unescape_all( $result{username} );
     }
 
     if ( defined $result{password} ) {
         MongoDB::Error->throw(
             "URI '$self' could not be parsed (password must be URL encoded)"
-        ) if __has_unescaped_characters($result{password});
+        ) if __userinfo_invalid_chars($result{password});
         $result{password} = _unescape_all( $result{password} );
     }
 
@@ -423,9 +423,15 @@ sub __uri_escape {
 }
 
 # Check if should have been escaped; allow safe chars plus '+' and '%'
-sub __has_unescaped_characters {
+my $unreserved = q[a-z0-9._~-]; # use last so it ends in '-'
+my $subdelimit = q[!$&'()*+,;=];
+my $allowed = "%$subdelimit$unreserved";
+my $not_allowed_re = qr/[^$allowed]/i;
+my $not_pct_enc_re = qr/%(?![0-9a-f]{2})/i;
+
+sub __userinfo_invalid_chars {
     my ($str) = @_;
-    return $str =~ m{[^WA-Za-z0-9._~+%-]};
+    return $str =~ $not_pct_enc_re || $str =~ $not_allowed_re;
 }
 
 # redact user credentials when stringifying
