@@ -45,10 +45,11 @@ use MongoDBTest qw/
     uuid_to_string
 /;
 
-use Test::Role::BSONDebug;
-Role::Tiny->apply_roles_to_package(
-    'BSON', 'Test::Role::BSONDebug',
-);
+my @events;
+
+sub clear_events { @events = () }
+sub event_count { scalar @events }
+sub event_cb { push @events, $_[0] }
 
 my $orc =
 MongoDBTest::Orchestrator->new(
@@ -59,7 +60,9 @@ $ENV{MONGOD} = $orc->as_uri;
 
 print $ENV{MONGOD};
 
-my $conn           = build_client();
+my $conn           = build_client(
+    monitoring_callback => \&event_cb,
+);
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
@@ -109,7 +112,7 @@ subtest 'endSession closes sessions on server' => sub {
     # called in destruction of client normally
     $conn->_server_session_pool->end_all_sessions;
 
-    my $response = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
+    my $response = $events[-1];
 
     is $response->{ok}, 1, 'Got ok 1 from ending all sessions';
 
