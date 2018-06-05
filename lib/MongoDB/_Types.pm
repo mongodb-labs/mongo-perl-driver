@@ -183,7 +183,7 @@ declare SingleChar, as Str, where { length $_ eq 1 };
 declare SingleKeyHash, as HashRef, where { 1 == scalar keys %$_ };
 
 enum TopologyType,
-  [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Unknown/];
+  [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Direct Unknown/];
 
 class_type WriteConcern, { class => 'MongoDB::WriteConcern' };
 

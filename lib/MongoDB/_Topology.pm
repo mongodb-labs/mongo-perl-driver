@@ -561,8 +561,8 @@ sub _check_wire_versions {
         my ( $server_min_wire_version, $server_max_wire_version ) =
           @{ $server->is_master }{qw/minWireVersion maxWireVersion/};
 
-        $server_max_wire_version = 0 unless defined $server_max_wire_version; 
-        $server_min_wire_version = 0 unless defined $server_min_wire_version; 
+        $server_max_wire_version = 0 unless defined $server_max_wire_version;
+        $server_min_wire_version = 0 unless defined $server_min_wire_version;
 
         if ( $server_min_wire_version > $self->max_wire_version
           || $server_max_wire_version < $self->min_wire_version ) {
@@ -603,8 +603,13 @@ sub _supports_sessions {
 
     $self->scan_all_servers if $self->stale;
 
-    # Sessions arent supported in standalone servers
-    return if $self->type eq 'Single';
+    # Sessions require a data bearing replica set member or mongos.
+    # Because direct connections to a replica set member show up
+    # as topology type 'Single', we check the server type as well.
+    if ( $self->type eq 'Single' ) {
+        my ($server) = $self->all_data_bearing_servers;
+        return $server && $server->type ne 'Standalone';
+    }
 
     return 1 if defined $self->logical_session_timeout_minutes;
     return;
@@ -1323,6 +1328,22 @@ sub _update_Sharded {
 sub _update_Single {
     my ( $self, $address, $new_server ) = @_;
     # Per the spec, TopologyType Single never changes type or membership
+    return;
+}
+
+# Direct mode is like Unknown, except that it switches only between Sharded
+# or Single based on the response.
+sub _update_Direct {
+    my ( $self, $address, $new_server ) = @_;
+
+    my $server_type = $new_server->type;
+
+    if ( $server_type eq 'Mongos' ) {
+        $self->_set_type('Sharded');
+        return;
+    }
+
+    $self->_set_type('Single');
     return;
 }
 

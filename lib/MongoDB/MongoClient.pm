@@ -1170,16 +1170,16 @@ has _deferred => (
 
 =method topology_type
 
-Returns an enumerated topology type.  If the L</replica_set_name> is
-set, the value will be either 'ReplicaSetWithPrimary' or 'ReplicaSetNoPrimary'
-(if the primary is down or not yet discovered).  Without L</replica_set_name>,
-the type will be 'Single' if there is only one server in the list of hosts, and
-'Sharded' if there are more than one.
+Returns an enumerated topology type.  If the L</replica_set_name> is set,
+the value will be either 'ReplicaSetWithPrimary' or 'ReplicaSetNoPrimary'
+(if the primary is down or not yet discovered).  Without
+L</replica_set_name>, if there is more than one server in the list of
+hosts, the type will be 'Sharded'.
 
-N.B. A single mongos will have a topology type of 'Single', as that mongos will
-be used for all reads and writes, just like a standalone mongod.  The 'Sharded'
-type indicates a sharded cluster with multiple mongos servers, and reads/writes
-will be distributed across them.
+With only a single host and no replica set name, the topology type will
+start as 'Direct' until the server is contacted the first time, after which
+the type will be 'Sharded' for a mongos or 'Single' for standalone server
+or direct connection to a replica set member.
 
 =cut
 
@@ -1198,7 +1198,7 @@ sub _build__topology {
     my $type =
         length( $self->replica_set_name ) ? 'ReplicaSetNoPrimary'
       : @{ $self->_uri->hostids } > 1     ? 'Sharded'
-      :                                     'Unknown';
+      :                                     'Direct';
 
     MongoDB::_Topology->new(
         uri                          => $self->_uri,
