@@ -10,6 +10,22 @@
 
   - PERL-843 Bump IO::Socket::IP prereq to 0.32 for Timeout support
 
+v1.8.2    2018-05-22 12:24:02-04:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-870  Repeated credential validation may skip validation after
+    first failure
+
+  - PERL-878 - Update Authen::SCRAM prereq to fix unicode bug
+
+  - PERL-879 - Deprecate snapshot option
+
+  - PERL-882 - Document how to use the latest TLS protocols
+
+  - PERL-906 - Work around new version of Type::Tiny::XS with a stricter
+    definition of type Bool
+
 v1.8.1    2018-01-17 10:44:22-05:00 America/New_York
 
   [Bug fixes]
