@@ -27,11 +27,8 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use lib "devel/lib";
 
 use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
-
-use MongoDBTest::Orchestrator; 
 
 use MongoDBTest qw/
     build_client
@@ -41,15 +38,6 @@ use MongoDBTest qw/
     clear_testdbs
     get_unique_collection
 /;
-
-my $orc =
-MongoDBTest::Orchestrator->new(
-  config_file => "devel/config/replicaset-multi-4.0.yml" );
-$orc->start;
-
-$ENV{MONGOD} = $orc->as_uri;
-
-print $ENV{MONGOD};
 
 my $conn           = build_client();
 my $testdb         = get_test_db($conn);
