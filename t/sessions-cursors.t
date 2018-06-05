@@ -31,6 +31,7 @@ use lib "t/lib";
 
 use MongoDBTest qw/
     build_client
+    skip_unless_mongod
     get_test_db
     server_version
     server_type
@@ -38,6 +39,8 @@ use MongoDBTest qw/
     get_unique_collection
     uuid_to_string
 /;
+
+skip_unless_mongod();
 
 my @events;
 
