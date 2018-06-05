@@ -29,11 +29,6 @@ use MongoDB::Error;
 use MongoDB::_Types qw/ to_IxHash /;
 
 use lib "t/lib";
-use lib "devel/lib";
-
-use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
-
-use MongoDBTest::Orchestrator; 
 
 use MongoDBTest qw/
     build_client
@@ -45,27 +40,27 @@ use MongoDBTest qw/
     uuid_to_string
 /;
 
-use Test::Role::BSONDebug;
-Role::Tiny->apply_roles_to_package(
-    'BSON', 'Test::Role::BSONDebug',
+my @events;
+
+sub clear_events { @events = () }
+sub event_count { scalar @events }
+sub event_cb { push @events, $_[0] }
+
+my $conn           = build_client(
+    monitoring_callback => \&event_cb,
 );
-
-my $orc =
-MongoDBTest::Orchestrator->new(
-  config_file => "devel/config/replicaset-single-3.6.yml" );
-$orc->start;
-
-$ENV{MONGOD} = $orc->as_uri;
-
-print $ENV{MONGOD};
-
-my $conn           = build_client();
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 
 plan skip_all => "Requires MongoDB 3.6"
     if $server_version < v3.6.0;
+
+plan skip_all => "Sessions unsupported on standalone server"
+    if $server_type eq 'Standalone';
+
+plan skip_all => "deployment does not support sessions"
+    unless $conn->_topology->_supports_sessions;
 
 subtest 'Session for ack writes' => sub {
 
@@ -75,19 +70,19 @@ subtest 'Session for ack writes' => sub {
 
     my $result = $coll->insert_one( { _id => 1 }, { session => $session } );
     
-    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $command = $events[-2]->{ command };
 
-    ok $command->EXISTS('lsid'), 'Session found';
+    ok exists $command->{'lsid'}, 'Session found';
 
-    is uuid_to_string( $command->FETCH('lsid')->{id}->data ),
+    is uuid_to_string( $command->{'lsid'}->{id}->data ),
     uuid_to_string( $session->_server_session->session_id->{id}->data ),
     "Session matches";
 
     my $result2 = $coll->insert_one( { _id => 2 } );
 
-    my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $command2 = $events[-2]->{ command };
 
-    ok $command2->EXISTS('lsid'), 'Implicit session found';
+    ok $command2->{'lsid'}, 'Implicit session found';
 };
 
 subtest 'No session for unac writes' => sub {
@@ -98,20 +93,15 @@ subtest 'No session for unac writes' => sub {
 
     my $result = $coll->insert_one( { _id => 1 }, { session => $session } );
     
-    my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $command = $events[-2]->{ command };
 
-    # cannot guarantee ixhash!
-    $command = to_IxHash( $command );
-
-    ok ! $command->EXISTS('lsid'), 'No session found';
+    ok ! exists $command->{'lsid'}, 'No session found';
 
     my $result2 = $coll->insert_one( { _id => 2 } );
 
-    my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $command2 = $events[-2]->{ command };
 
-    $command2 = to_IxHash( $command2 );
-
-    ok ! $command2->EXISTS('lsid'), 'No implicit session found';
+    ok ! exists $command2->{'lsid'}, 'No implicit session found';
 };
 
 clear_testdbs;

@@ -28,11 +28,6 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use lib "devel/lib";
-
-use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
-
-use MongoDBTest::Orchestrator; 
 
 use MongoDBTest qw/
     build_client
@@ -44,16 +39,15 @@ use MongoDBTest qw/
     uuid_to_string
 /;
 
-my $orc =
-MongoDBTest::Orchestrator->new(
-  config_file => "devel/config/replicaset-single-3.6.yml" );
-$orc->start;
+my @events;
 
-$ENV{MONGOD} = $orc->as_uri;
+sub clear_events { @events = () }
+sub event_count { scalar @events }
+sub event_cb { push @events, $_[0] }
 
-print $ENV{MONGOD};
-
-my $conn           = build_client();
+my $conn           = build_client(
+    monitoring_callback => \&event_cb,
+);
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
@@ -62,15 +56,15 @@ my $coll           = $testdb->get_collection('test_collection');
 plan skip_all => "Requires MongoDB 3.6"
     if $server_version < v3.6.0;
 
-use Test::Role::BSONDebug;
+plan skip_all => "Sessions unsupported on standalone server"
+    if $server_type eq 'Standalone';
 
-Role::Tiny->apply_roles_to_package(
-    'BSON', 'Test::Role::BSONDebug',
-);
+plan skip_all => "deployment does not support sessions"
+    unless $conn->_topology->_supports_sessions;
 
 $coll->insert_many( [ map { { wanted => 1, score => $_ } } 0 .. 400 ] );
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+clear_events();
 
 subtest 'Shared session in explicit cursor' => sub {
 
@@ -83,9 +77,9 @@ subtest 'Shared session in explicit cursor' => sub {
 
     my $lsid = uuid_to_string( $session->_server_session->session_id->{id}->data );
 
-    my $cursor_command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $cursor_command = $events[-2]->{ command };
 
-    my $cursor_command_sid = uuid_to_string( $cursor_command->FETCH('lsid')->{id}->data );
+    my $cursor_command_sid = uuid_to_string( $cursor_command->{'lsid'}->{id}->data );
 
     is $cursor_command_sid, $lsid, "Cursor sent with correct lsid";
 
@@ -97,9 +91,9 @@ subtest 'Shared session in explicit cursor' => sub {
         # Call first batch run outside of loop as doesnt fetch intially
         my @items = $cursor->batch;
         while ( @items = $cursor->batch ) {
-            my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-            ok $command->EXISTS('lsid'), "cursor has session";
-            my $cursor_session_id = uuid_to_string( $command->FETCH('lsid')->{id}->data );
+            my $command = $events[-2]->{ command };
+            ok exists $command->{'lsid'}, "cursor has session";
+            my $cursor_session_id = uuid_to_string( $command->{'lsid'}->{id}->data );
             is $cursor_session_id, $lsid, "Cursor is using given session";
         }
     };
@@ -114,7 +108,7 @@ subtest 'Shared session in explicit cursor' => sub {
 
 };
 
-Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
+clear_events();
 
 subtest 'Shared session in implicit cursor' => sub {
 
@@ -123,9 +117,9 @@ subtest 'Shared session in implicit cursor' => sub {
     # pull out implicit session
     my $lsid = uuid_to_string( $cursor->_session->session_id->{id}->data );
 
-    my $cursor_command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+    my $cursor_command = $events[-2]->{ command };
 
-    my $cursor_command_sid = uuid_to_string( $cursor_command->FETCH('lsid')->{id}->data );
+    my $cursor_command_sid = uuid_to_string( $cursor_command->{'lsid'}->{id}->data );
 
     is $cursor_command_sid, $lsid, "Cursor sent with correct lsid";
 
@@ -133,9 +127,9 @@ subtest 'Shared session in implicit cursor' => sub {
         # Call first batch run outside of loop as doesnt fetch intially
         my @items = $cursor->batch;
         while ( @items = $cursor->batch ) {
-            my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-            ok $command->EXISTS('lsid'), "cursor has session";
-            my $cursor_session_id = uuid_to_string( $command->FETCH('lsid')->{id}->data );
+            my $command = $events[-2]->{ command };
+            ok exists $command->{'lsid'}, "cursor has session";
+            my $cursor_session_id = uuid_to_string( $command->{'lsid'}->{id}->data );
             is $cursor_session_id, $lsid, "Cursor is using given session";
         }
     };

@@ -29,11 +29,6 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use lib "devel/lib";
-
-use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
-
-use MongoDBTest::Orchestrator; 
 
 use MongoDBTest qw/
     build_client
@@ -51,15 +46,6 @@ sub clear_events { @events = () }
 sub event_count { scalar @events }
 sub event_cb { push @events, $_[0] }
 
-my $orc =
-MongoDBTest::Orchestrator->new(
-  config_file => "devel/config/replicaset-single-3.6.yml" );
-$orc->start;
-
-$ENV{MONGOD} = $orc->as_uri;
-
-print $ENV{MONGOD};
-
 my $conn           = build_client(
     monitoring_callback => \&event_cb,
 );
@@ -70,6 +56,12 @@ my $coll           = $testdb->get_collection('test_collection');
 
 plan skip_all => "Requires MongoDB 3.6"
     if $server_version < v3.6.0;
+
+plan skip_all => "Sessions unsupported on standalone server"
+    if $server_type eq 'Standalone';
+
+plan skip_all => "deployment does not support sessions"
+    unless $conn->_topology->_supports_sessions;
 
 subtest 'endSession closes sessions on server' => sub {
     my $session_count = 10;
@@ -114,7 +106,7 @@ subtest 'endSession closes sessions on server' => sub {
 
     my $response = $events[-1];
 
-    is $response->{ok}, 1, 'Got ok 1 from ending all sessions';
+    is $response->{reply}->{ok}, 1, 'Got ok 1 from ending all sessions';
 
 };
 
