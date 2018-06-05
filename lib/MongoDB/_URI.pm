@@ -420,8 +420,8 @@ sub __uri_escape {
     return $str;
 }
 
-# Check if should have been escaped; allow safe chars plus '+' and '%'
-my $unreserved = q[a-z0-9._~-]; # use last so it ends in '-'
+# Rules for valid userinfo from RFC 3986 Section 3.2.1.
+my $unreserved = q[a-z0-9._~-]; # use this class last so regex ends in '-'
 my $subdelimit = q[!$&'()*+,;=];
 my $allowed = "%$subdelimit$unreserved";
 my $not_allowed_re = qr/[^$allowed]/i;
