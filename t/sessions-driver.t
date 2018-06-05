@@ -27,11 +27,6 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use lib "devel/lib";
-
-use if $ENV{MONGOVERBOSE}, qw/Log::Any::Adapter Stderr/;
-
-use MongoDBTest::Orchestrator; 
 
 use MongoDBTest qw/
     build_client
@@ -42,19 +37,15 @@ use MongoDBTest qw/
     get_unique_collection
 /;
 
-# This test starts servers on localhost ports 27017, 27018 and 27019. We skip if
-# these aren't available.
+my @events;
 
-my $orc =
-MongoDBTest::Orchestrator->new(
-  config_file => "devel/config/replicaset-single-3.6.yml" );
-$orc->start;
+sub clear_events { @events = () }
+sub event_count { scalar @events }
+sub event_cb { push @events, $_[0] }
 
-$ENV{MONGOD} = $orc->as_uri;
-
-print $ENV{MONGOD};
-
-my $conn           = build_client();
+my $conn           = build_client(
+    monitoring_callback => \&event_cb,
+);
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
@@ -62,6 +53,12 @@ my $coll           = $testdb->get_collection('test_collection');
 
 plan skip_all => "Requires MongoDB 3.6"
     if $server_version < v3.6.0;
+
+plan skip_all => "Sessions unsupported on standalone server"
+    if $server_type eq 'Standalone';
+
+plan skip_all => "deployment does not support sessions"
+    unless $conn->_topology->_supports_sessions;
 
 # Last in First out
 subtest 'LIFO Pool' => sub {
@@ -92,35 +89,28 @@ subtest 'LIFO Pool' => sub {
 
 subtest 'clusterTime in commands' => sub {
 
-    use Test::Role::BSONDebug;
-
-    Role::Tiny->apply_roles_to_package(
-        'BSON', 'Test::Role::BSONDebug',
-    );
-
     subtest 'ping' => sub {
         my $local_client = get_high_heartbeat_client();
 
         my $ping_result = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
 
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-        my $result = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
+        my $command = $events[-2]->{ command };
+        my $result = $events[-1]->{ reply };
 
-        ok $command->EXISTS('ping'), 'ping in sent command';
+        ok exists $command->{'ping'}, 'ping in sent command';
 
-        ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        ok exists $command->{'$clusterTime'}, 'clusterTime in sent command';
 
         my $ping_result2 = $local_client->send_admin_command(Tie::IxHash->new('ping' => 1));
 
-        my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $command2 = $events[-2]->{ command };
 
-        is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
-           $result->{'$clusterTime'}->{clusterTime}->{sec},
+        ok $command2->{'$clusterTime'}->{clusterTime}
+          == $result->{'$clusterTime'}->{clusterTime},
            "clusterTime matches";
     };
 
-    Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-    Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+    clear_events();
 
     subtest 'aggregate' => sub {
         my $local_client = get_high_heartbeat_client();
@@ -140,25 +130,24 @@ subtest 'clusterTime in commands' => sub {
             { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } }
         ] );
 
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-        my $result = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
+        my $command = $events[-2]->{ command };
+        my $result = $events[-1]->{ reply };
 
-        ok $command->EXISTS('aggregate'), 'aggregate in sent command';
+        ok exists $command->{'aggregate'}, 'aggregate in sent command';
 
-        ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        ok exists $command->{'$clusterTime'}, 'clusterTime in sent command';
 
         my $agg_result2 = $local_coll->aggregate( [ { '$match'   => { wanted => 1 } },
             { '$group'   => { _id => 1, 'avgScore' => { '$avg' => '$score' } } } ] );
 
-        my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $command2 = $events[-2]->{ command };
 
-        is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
-           $result->{'$clusterTime'}->{clusterTime}->{sec},
+        ok $command2->{'$clusterTime'}->{clusterTime}
+          == $result->{'$clusterTime'}->{clusterTime},
            "clusterTime matches";
     };
 
-    Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-    Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+    clear_events();
 
     subtest 'find' => sub {
         my $local_client = get_high_heartbeat_client();
@@ -171,24 +160,23 @@ subtest 'clusterTime in commands' => sub {
         # explain 1 to get it to show the whole returned result
         my $find_result = $local_coll->find({_id => 1})->result;
 
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-        my $result = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
+        my $command = $events[-2]->{ command };
+        my $result = $events[-1]->{ reply };
 
-        ok $command->EXISTS('find'), 'find in sent command';
+        ok exists $command->{'find'}, 'find in sent command';
 
-        ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        ok exists $command->{'$clusterTime'}, 'clusterTime in sent command';
 
         my $find_result2 = $local_coll->find({_id => 1})->result;
 
-        my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $command2 = $events[-2]->{ command };
 
-        is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
-           $result->{'$clusterTime'}->{clusterTime}->{sec},
+        ok $command2->{'$clusterTime'}->{clusterTime}
+          == $result->{'$clusterTime'}->{clusterTime},
            "clusterTime matches";
     };
 
-    Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-    Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
+    clear_events();
 
     subtest 'insert_one' => sub {
         my $local_client = get_high_heartbeat_client();
@@ -197,30 +185,28 @@ subtest 'clusterTime in commands' => sub {
 
         my $insert_result = $local_coll->insert_one({_id => 1});
 
-        my $command = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
-        my $result = Test::Role::BSONDebug::GET_LAST_DECODE_ONE;
+        my $command = $events[-2]->{ command };
+        my $result = $events[-1]->{ reply };
 
-        ok $command->EXISTS('insert'), 'insert in sent command';
+        ok exists $command->{'insert'}, 'insert in sent command';
 
-        ok $command->EXISTS('$clusterTime'), 'clusterTime in sent command';
+        ok exists $command->{'$clusterTime'}, 'clusterTime in sent command';
 
         my $insert_result2 = $local_coll->insert_one({_id => 2});
 
-        my $command2 = Test::Role::BSONDebug::GET_LAST_ENCODE_ONE;
+        my $command2 = $events[-2]->{ command };
 
-        is $command2->FETCH('$clusterTime')->{clusterTime}->{sec},
-           $result->{'$clusterTime'}->{clusterTime}->{sec},
+        ok $command2->{'$clusterTime'}->{clusterTime}
+          == $result->{'$clusterTime'}->{clusterTime},
            "clusterTime matches";
     };
-
-    Test::Role::BSONDebug::CLEAR_ENCODE_ONE_QUEUE;
-    Test::Role::BSONDebug::CLEAR_DECODE_ONE_QUEUE;
 };
 
 sub get_high_heartbeat_client {
     my $local_client = build_client(
         # You want big number? we give you big number
         heartbeat_frequency_ms => 9_000_000_000,
+        monitoring_callback => \&event_cb,
     );
 
     # Make sure we have clusterTime already populated
