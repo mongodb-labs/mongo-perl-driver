@@ -85,20 +85,9 @@ subtest 'endSession closes sessions on server' => sub {
         $coll->insert_one( { '_id' => $i + 1 }, { session => $sessions[$i] } );
     }
 
-    # Check that all the sessions are actually there on the server
-    my $agg_result = $testdb->_aggregate(
-        [ { '$listLocalSessions' => {} } ],
-    );
-
-    my $s_count = count_sessions_in_hash(
-        [ map { $_->{_id} } $agg_result->all ],
-        \%session_ids,
-    );
-    is $s_count, $session_count, 'found all sessions';
-
     $_->end_session for @sessions;
 
-    $s_count = count_sessions_in_hash (
+    my $s_count = count_sessions_in_hash (
         [ map { $_->session_id } @{ $conn->_server_session_pool->_server_session_pool } ],
         \%session_ids,
     );
