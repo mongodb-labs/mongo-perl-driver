@@ -2,13 +2,133 @@
 
 {{ $NEXT }}
 
-  [Testing]
+  # XXX last commit included: 11a84f65 XXX #
 
-  - PERL-671 Update CRUD testing data files
+  [!!! Incompatible Changes !!!]
+
+    - PERL-640 Remove bundled MongoDB::BSON codec and use BSON.pm and/or
+      BSON::XS instead. While this is a sweeping change, applications that
+      relied on the default encoder are likely to need minimal changes.
+      MongoDB type wrapper classes will encode correctly, but decoded
+      wrappers will be from the BSON.pm library instead.  See
+      MongoDB::Upgrading for more details.  Additionally, with this change,
+      the MongoDB driver can now be used without a compiler.
+
+    - PERL-742 Require Perl 5.10.1 or later
+
+  [*** Deprecations ***]
+
+    - PERL-873 Deprecate cursor snapshot option
+
+  [Additions]
+
+    - PERL-710 Support authSource URI option
+
+    - PERL-718 Add support for deprecated 'modifiers' fields
+
+    - PERL-768 Added support for aggregation hints
+
+    - PERL-782 Add maxTimeMS option to Indexview methods
+
+    - PERL-787 Implement arrayFilters support
+
+    - PERL-790 Implement Drivers Sessions API
+
+    - PERL-791 Change stream support
+
+    - PERL-792 Implement Retryable Writes
+
+    - PERL-793 Causally Consistency read support
+
+    - PERL-805 Implement database enumeration spec
+
+    - PERL-807 Implement DNS Seedlist Discovery (mongodb+srv://...)
+
+    - PERL-808 Add support for aggregation comment option
+
+    - PERL-863 Implement SCRAM-SHA-256 authentication
+
+    - PERL-883 Implement command monitoring
+
+  [Bug fixes]
+
+    - PERL-690 Fix undefined reference to strerror_r on Windows
+
+    - PERL-781 Prevent index drop errors for no collection
+
+    - PERL-783 Check username/password are URI-escaped
+
+    - PERL-865 Fix wide character error in auth
+
+    - PERL-887 Fix topology_status with refresh
+
+    - PERL-891 Fix bugs found during command monitoring testing (bulk_write
+      write concern, query limit propagation, cursor internal accounting)
+
+    - PERL-919 Fix user/pass percent encoding validation
+
+  [Changes]
+
+    - PERL-641 Make legacy typewrappers into subclasses of BSON.pm classes
+
+    - PERL-733 Require ordered document for run_command
+
+    - PERL-794 Improve resolution of GridFS uploadDate
+
+    - PERL-816 Improve error message for incompatible MongoDB versions
+
+    - PERL-864 Improve auth error messages
+
+  [Documentation]
+
+    - PERL-768 Document GridFS uniqueness constraints
+
+    - PERL-788 Amend MongoDB::Cursor docs
+
+    - PERL-809 Added t/examples/changestream.t
+
+    - PERL-866 Document how to use the latest TLS protocols
+
+    - PERL-903 Revise MongoDB::DataTypes and MongoDB::Tutorial
+
+    - PERL-917 Fix minor spelling error
 
   [Prerequisites]
 
-  - PERL-843 Bump IO::Socket::IP prereq to 0.32 for Timeout support
+    - PERL-900 Conditionally require XS dependencies (BSON::XS,
+      Class::XSAccessor and Type::Tiny::XS)
+
+  [Removals]
+
+    - PERL-765 Remove DateTime from driver code and tests
+
+  [Testing]
+
+    - PERL-668 Update SDAM spec tests
+
+    - PERL-671 Update CRUD testing data files
+
+    - PERL-700 Fix app_name test for multi-shard topologies
+
+    - PERL-719 Resync CRUD spec tests
+
+    - PERL-726 Update deprecated 'last_error' test
+
+    - PERL-727 Fix GridFS tests on Windows
+
+    - PERL-907 Test with BSON Codec using full wrapping
+
+  [~ Internal changes ~]
+
+    - PERL-666 Eliminate Module::Install in Makefile.PL
+
+    - PERL-715 Force localhost to connect via IPv4
+
+    - PERL-767 Cache SCRAM-SHA-1 client key
+
+    - PERL-826 Stop sending maxAwaitTimeMS if not set
+
+    - PERL-900 Vendor ExtUtils::HasCompiler
 
 v1.8.2    2018-05-22 12:24:02-04:00 America/New_York
 
