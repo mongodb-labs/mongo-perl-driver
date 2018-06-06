@@ -2150,8 +2150,11 @@ are only available in the Enterprise edition.
 MongoDB client authentication is controlled via the L</auth_mechanism>
 attribute, which takes one of the following values:
 
+B<NOTE>: MONGODB-CR was deprecated with the release of MongoDB 3.6 and
+is no longer supported by MongoDB 4.0.
+
 =for :list
-* MONGODB-CR -- legacy username-password challenge-response
+* MONGODB-CR -- legacy username-password challenge-response (< 4.0)
 * SCRAM-SHA-1 -- secure username-password challenge-response (3.0+)
 * MONGODB-X509 -- SSL client certificate authentication (2.6+)
 * PLAIN -- LDAP authentication via SASL PLAIN (Enterprise only)
