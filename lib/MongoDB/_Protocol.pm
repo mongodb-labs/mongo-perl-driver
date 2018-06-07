@@ -24,6 +24,8 @@ our $VERSION = 'v1.999.0';
 use MongoDB::_Constants;
 use MongoDB::Error;
 
+use Compress::Zlib ();
+
 use constant {
     OP_REPLY        => 1,    # Reply to a client request. responseTo is set
     OP_MSG          => 1000, # generic msg command followed by a string
@@ -94,64 +96,48 @@ use constant {
 #     char*     compressedMessage;  // compressed contents
 # };
 
-# compressor dispatchers
-#   $name => [
-#       $compressor_id,
-#       $compress,          # $compress->($buf, $opts)
-#       $decompress,        # $decompress->($buf)
-#   ],
-my %COMPRESSOR = (
-    none => [
-        0,
-        sub { shift },
-        sub { shift },
-    ],
-    zlib => [
-        2,
-        sub {
-            my ($buf, $opts) = @_;
-
-            my $level = $opts->{zlib_compression_level};
-            $level = undef
-                if defined $level and $level < 0;
-
-            require Compress::Zlib;
-            return Compress::Zlib::compress(
-                $buf,
-                defined($level) ? $level : (),
-            );
-        },
-        sub {
-            require Compress::Zlib;
-            return Compress::Zlib::uncompress(shift);
-        },
-    ],
+# decompressors indexed by ID.
+my @DECOMPRESSOR = (
+    # none
+    sub { shift },
+    # snappy (unsupported)
+    undef,
+    # zlib
+    sub { Compress::Zlib::uncompress(shift) },
 );
 
-# determines if an op code should be compressed
-sub is_compressible {
-    my ($msg) = @_;
+# construct compressor by name with options
+sub get_compressor {
+    my ($name, $comp_opt) = @_;
 
-    my ($len, $request_id, $response_to, $op_code)
-        = unpack(P_HEADER, $msg);
-
-    return grep { $_ == $op_code }
-        OP_QUERY,
-        OP_MSG,
-        OP_REPLY,
-        OP_INSERT,
-        OP_UPDATE,
-        OP_DELETE,
-        OP_GET_MORE,
-        OP_KILL_CURSORS;
+    if ($name eq 'none') {
+        return {
+            id => 0,
+            callback => sub { shift },
+        };
+    }
+    elsif ($name eq 'zlib') {
+        my $level = $comp_opt->{zlib_compression_level};
+        $level = undef
+            if defined $level and $level < 0;
+        return {
+            id => 2,
+            callback => sub {
+                return Compress::Zlib::compress(
+                    $_[0],
+                    defined($level) ? $level : (),
+                );
+            },
+        };
+    }
+    else {
+        MongoDB::ProtocolError->throw("Unknown compressor '$name'");
+    }
 }
 
 # compress message
 sub compress {
-    my ($msg, $compressor, %opts) = @_;
-
-    my ($comp_id, $comp_cb) = @{ $COMPRESSOR{$compressor} || [] }
-        or MongoDB::ProtocolError->throw("Unknown compressor '$compressor'");
+    my ($msg, $compressor) = @_;
 
     my ($len, $request_id, $response_to, $op_code)
         = unpack(P_HEADER, $msg);
@@ -163,8 +149,8 @@ sub compress {
         0, $request_id, $response_to, OP_COMPRESSED,
         $op_code,
         length($msg),
-        $comp_id,
-    ).$comp_cb->($msg, \%opts);
+        $compressor->{id},
+    ).$compressor->{callback}->($msg);
 
     substr($msg_comp, 0, 4, pack(P_INT32, length($msg_comp)));
     return $msg_comp;
@@ -175,7 +161,7 @@ sub compress {
 sub try_uncompress {
     my ($msg) = @_;
 
-    my ($len, $request_id, $response_to, $op_code, $orig_op_code, undef, $comp_id)
+    my ($len, $request_id, $response_to, $op_code, $orig_op_code, $orig_len, $comp_id)
         = unpack(P_COMPRESSED, $msg);
 
     return $msg
@@ -183,18 +169,16 @@ sub try_uncompress {
 
     $msg = substr $msg, P_COMPRESSED_PREFIX_LENGTH;
 
-    for my $comp_name (keys %COMPRESSOR) {
-        if ($COMPRESSOR{$comp_name}[0] == $comp_id) {
-            my $decomp_msg = $COMPRESSOR{$comp_name}[2]->($msg);
-            my $done =
-                pack(P_HEADER, 0, $request_id, $response_to, $orig_op_code)
-                .$decomp_msg;
-            substr($done, 0, 4, pack(P_INT32, length($done)));
-            return $done;
-        }
-    }
+    my $decompressor = $DECOMPRESSOR[$comp_id]
+        or MongoDB::ProtocolError->throw("Unknown compressor ID '$comp_id'");
 
-    MongoDB::ProtocolError->throw("Unknown compressor ID '$comp_id'");
+    my $decomp_msg = $decompressor->($msg);
+    my $done =
+        pack(P_HEADER, $orig_len, $request_id, $response_to, $orig_op_code)
+        .$decomp_msg;
+
+    return $done;
+
 }
 
 # struct OP_UPDATE {

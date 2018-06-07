@@ -421,18 +421,17 @@ sub is_connected {
 }
 
 sub write {
-    my ( $self, $buf, %write_opt ) = @_;
+    my ( $self, $buf, $write_opt ) = @_;
+    $write_opt ||= {};
 
     if (
-        !$write_opt{disable_compression}
+        !$write_opt->{disable_compression}
         && $self->server
         && $self->server->compressor
-        && MongoDB::_Protocol::is_compressible($buf)
     ) {
         $buf = MongoDB::_Protocol::compress(
             $buf,
             $self->server->compressor,
-            zlib_compression_level => $self->server->zlib_compression_level,
         );
     }
 

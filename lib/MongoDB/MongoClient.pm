@@ -1269,7 +1269,7 @@ sub _build__topology {
             ( ref( $self->ssl ) eq 'HASH' ? ( SSL_options => $self->ssl ) : () ),
         },
         monitoring_callback => $self->monitoring_callback,
-        compression => $self->compressors,
+        compressors => $self->compressors,
         zlib_compression_level => $self->zlib_compression_level,
     );
 }

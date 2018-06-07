@@ -63,6 +63,19 @@ with $_ for qw(
   MongoDB::Role::_CommandMonitoring
 );
 
+my %IS_NOT_COMPRESSIBLE = map { ($_ => 1) } qw(
+    ismaster
+    saslstart
+    saslcontinue
+    getnonce
+    authenticate
+    createuser
+    updateuser
+    copydbsaslstart
+    copydbgetnonce
+    copydb
+);
+
 sub execute {
     my ( $self, $link, $topology_type ) = @_;
     $topology_type ||= 'Single'; # if not specified, assume direct
@@ -88,15 +101,28 @@ sub execute {
       if $self->monitoring_callback;
 
     my %write_opt;
-    my $command_name = do {
-        my $command = _to_tied_ixhash($self->{query});
-        lc tied(%$command)->Keys(0);
+    $write_opt{disable_compression} = do {
+        my $doc = $self->{query};
+        my $type = ref $doc;
+        (
+            $type eq 'ARRAY' ? $IS_NOT_COMPRESSIBLE{ $doc->[0] }
+          : $type eq 'Tie::IxHash' ? $doc->Keys(0)
+          : do { # hashlike?
+              my $disable;
+              DOC_FIELD: for my $name (keys %$doc) {
+                  if ($IS_NOT_COMPRESSIBLE{lc $name}) {
+                      $disable = 1;
+                      last DOC_FIELD;
+                  }
+              }
+              $disable
+            }
+        )
     };
-    $write_opt{disable_compression} = !is_compressible($command_name);
 
     my $result;
     eval {
-        $link->write( $op_bson, %write_opt ),
+        $link->write( $op_bson, \%write_opt ),
         ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
     };
     if ( my $err = $@ ) {
@@ -120,22 +146,6 @@ sub execute {
     $self->_update_session_and_cluster_time($res);
 
     return $res;
-}
-
-sub is_compressible {
-    my $command_name = lc shift;
-    return not grep { $_ eq $command_name } qw(
-        ismaster
-        saslstart
-        saslcontinue
-        getnonce
-        authenticate
-        createuser
-        updateuser
-        copydbsaslstart
-        copydbgetnonce
-        copydb
-    );
 }
 
 1;

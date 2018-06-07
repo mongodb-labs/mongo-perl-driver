@@ -47,6 +47,7 @@ use Types::Standard qw(
     Maybe
 );
 use MongoDB::_Server;
+use MongoDB::_Protocol;
 use Config;
 use List::Util qw/first max min/;
 use Safe::Isa;
@@ -97,7 +98,7 @@ has monitoring_callback => (
     isa => Maybe[CodeRef],
 );
 
-has compression => (
+has compressors => (
     is => 'ro',
     isa => ArrayRef[CompressionType],
     default => sub { [] },
@@ -1018,8 +1019,8 @@ sub _generate_ismaster_request {
             push @opts, saslSupportedMechs => $db_user;
         }
     }
-    if (@{ $self->compression }) {
-        push @opts, compression => $self->compression;
+    if (@{ $self->compressors }) {
+        push @opts, compression => $self->compressors;
     }
     return [ ismaster => 1, @opts ];
 }
@@ -1073,12 +1074,34 @@ sub _update_topology_from_link {
         last_update_time => $end_time,
         rtt_sec           => $rtt_sec,
         is_master        => $is_master,
-        zlib_compression_level => $self->zlib_compression_level,
+        compressor       => $self->_construct_compressor($is_master),
     );
 
     $self->_update_topology_from_server_desc( $link->address, $new_server );
 
     return;
+}
+
+# find suitable compressor
+#
+# implemented here because the result is based on the specified
+# order of compressors combined with the list of server supported
+# compressors
+sub _construct_compressor {
+    my ($self, $is_master) = @_;
+
+    my @supported = @{ ($is_master || {})->{compression} || [] }
+        or return undef;
+
+    for my $name (@{ $self->compressors }) {
+        if (grep { $name eq $_ } @supported) {
+            return MongoDB::_Protocol::get_compressor($name, {
+                zlib_compression_level => $self->zlib_compression_level,
+            });
+        }
+    }
+
+    return undef;
 }
 
 sub _update_topology_from_server_desc {
