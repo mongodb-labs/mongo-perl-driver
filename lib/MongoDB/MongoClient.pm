@@ -257,6 +257,9 @@ sub _build_compressors {
 An integer from C<-1> to C<9> specifying the compression level to use
 when L</compression> is set to C<zlib>.
 
+B<Note>: When the special value C<-1> is given, the default compression
+level will be used.
+
 =cut
 
 has zlib_compression_level => (
