@@ -18,6 +18,8 @@
 
   [*** Deprecations ***]
 
+    - PERL-872 Deprecate maxScan find option
+
     - PERL-873 Deprecate cursor snapshot option
 
   [Additions]

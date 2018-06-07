@@ -710,7 +710,7 @@ Valid options include:
   new documents to satisfy a tailable cursor query. This only applies
   to a C<cursorType> of 'tailable_await'; the option is otherwise ignored.
   (Note, this will be ignored for servers before version 3.2.)
-* C<maxScan> – L<maximum number of documents or index keys to scan|
+* C<maxScan> – (DEPRECATED) L<maximum number of documents or index keys to scan|
   https://docs.mongodb.com/manual/reference/operator/meta/maxScan/>.
 * C<maxTimeMS> – the maximum amount of time to allow the query to run.
   (Note, this will be ignored for servers before version 2.6.)
