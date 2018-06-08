@@ -290,11 +290,7 @@ sub check_insert_outcome {
         return check_write_outcome( $label, $res, $outcome );
     }
 
-    my $ids = [
-        map  { $res->inserted_ids->{$_} }
-        sort { $a <=> $b } keys %{ $res->inserted_ids }
-    ];
-    cmp_deeply( $ids, $outcome->{result}{insertedIds}, "$label: result doc" );
+    cmp_deeply( $res->inserted_ids , $outcome->{result}{insertedIds}, "$label: result doc" );
     check_collection( $label, $outcome );
 }
 
