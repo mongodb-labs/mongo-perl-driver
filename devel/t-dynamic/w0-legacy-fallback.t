@@ -45,7 +45,7 @@ subtest "w0 doesn't send write commands" => sub {
     $res = $coll->insert_one( { a => 1 } );
     isa_ok( $res, "MongoDB::UnacknowledgedResult", "insert_one" );
     ok( !scalar $orc->get_server('host1')->grep_log(qr/command: insert/), "no insert command in log" );
-    is( $coll->count, 1, "inserted one doc" );
+    is( $coll->count_documents, 1, "inserted one doc" );
 
     $res = $coll->update_one( { a => 1 }, { '$inc' => { a => 2 } } );
     isa_ok( $res, "MongoDB::UnacknowledgedResult", "update_one" );
@@ -54,14 +54,14 @@ subtest "w0 doesn't send write commands" => sub {
     $res = $coll->delete_one( { a => 3 } );
     isa_ok( $res, "MongoDB::UnacknowledgedResult", "delete_one" );
     ok( !scalar $orc->get_server('host1')->grep_log(qr/command: delete/), "no delete command in log" );
-    is( $coll->count, 0, "no docs left" );
+    is( $coll->count_documents, 0, "no docs left" );
 
     $res = $coll->insert_many( [ map { { a => $_ } } 2 .. 10 ] );
     isa_ok( $res, "MongoDB::UnacknowledgedResult", "insert_many" );
     ok( scalar $orc->get_server('host1')->grep_log(qr/command: insert.*w: 0/), "insert command with w:0 in log" )
         or diag $orc->get_server('host1')->logfile->lines;
 
-    is( $coll->count, 9, "nine docs left" );
+    is( $coll->count_documents, 9, "nine docs left" );
 
     ok( !scalar $orc->get_server('host1')->grep_log(qr/getLastError/),
         "no GLE in log" );

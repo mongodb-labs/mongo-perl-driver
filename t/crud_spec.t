@@ -74,6 +74,7 @@ for my $dir ( map { path("t/data/CRUD/$_") } qw/read write/ ) {
                 $coll->insert_many( $plan->{data} );
                 my $op   = $test->{operation};
                 my $meth = $op->{name};
+                local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $meth eq 'count';
                 $meth =~ s{([A-Z])}{_\L$1}g;
                 my $test_meth = "test_$meth";
                 my $res = main->$test_meth( $test->{description}, $meth, $op->{arguments},
@@ -160,18 +161,20 @@ sub test_find_and_modify {
 }
 
 BEGIN {
-    *test_find                 = \&test_read_w_filter;
-    *test_count                = \&test_read_w_filter;
-    *test_delete_many          = \&test_write_w_filter;
-    *test_delete_one           = \&test_write_w_filter;
-    *test_insert_many          = \&test_insert;
-    *test_insert_one           = \&test_insert;
-    *test_replace_one          = \&test_modify;
-    *test_update_one           = \&test_modify;
-    *test_update_many          = \&test_modify;
-    *test_find_one_and_delete  = \&test_write_w_filter;
-    *test_find_one_and_replace = \&test_find_and_modify;
-    *test_find_one_and_update  = \&test_find_and_modify;
+    *test_find                     = \&test_read_w_filter;
+    *test_count                    = \&test_read_w_filter;
+    *test_count_documents          = \&test_read_w_filter;
+    *test_estimated_document_count = \&test_read_w_filter;
+    *test_delete_many              = \&test_write_w_filter;
+    *test_delete_one               = \&test_write_w_filter;
+    *test_insert_many              = \&test_insert;
+    *test_insert_one               = \&test_insert;
+    *test_replace_one              = \&test_modify;
+    *test_update_one               = \&test_modify;
+    *test_update_many              = \&test_modify;
+    *test_find_one_and_delete      = \&test_write_w_filter;
+    *test_find_one_and_replace     = \&test_find_and_modify;
+    *test_find_one_and_update      = \&test_find_and_modify;
 }
 
 #--------------------------------------------------------------------------#

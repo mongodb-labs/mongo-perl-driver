@@ -1210,12 +1210,15 @@ sub aggregate {
     return $self->client->send_read_op($op);
 }
 
-=method count
+=method count_documents
 
-    $count = $coll->count( $filter );
-    $count = $coll->count( $filter, $options );
+    $count = $coll->count_documents( $filter );
+    $count = $coll->count_documents( $filter, $options );
 
 Returns a count of documents matching a L<filter expression|/Filter expression>.
+To return a count of all documents, use an empty hash reference as the filter.
+
+B<NOTE>: this may result in a scan of all documents in the collection.
 
 A hash reference of options may be provided. Valid keys include:
 
@@ -1223,9 +1226,8 @@ A hash reference of options may be provided. Valid keys include:
 * C<collation> - a L<document|/Document> defining the collation for this operation.
   See docs for the format of the collation document here:
   L<https://docs.mongodb.com/master/reference/collation/>.
-* C<hint> – L<specify an index to
-  use|http://docs.mongodb.org/manual/reference/command/count/#specify-the-index-to-use>;
-  must be a string, array reference, hash reference or L<Tie::IxHash> object.
+* C<hint> – specify an index to use; must be a string, array reference,
+  hash reference or L<Tie::IxHash> object. (Requires server version 3.6 or later.)
 * C<limit> – the maximum number of documents to count.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
@@ -1233,39 +1235,80 @@ A hash reference of options may be provided. Valid keys include:
 * C<session> - the session to use for these operations. If not supplied, will
   use an implicit session. For more information see L<MongoDB::ClientSession>
 
-B<NOTE>: On a sharded cluster, C<count> can result in an inaccurate count if
-orphaned documents exist or if a chunk migration is in progress.  See L<count
-command
-documentation|http://docs.mongodb.org/manual/reference/command/count/#behavior>
-for details and a work-around using L</aggregate>.
-
 =cut
 
-sub count {
+sub count_documents {
     my ( $self, $filter, $options ) = @_;
     $filter  ||= {};
     $options ||= {};
+
+    my $pipeline = [ { '$match' => $filter } ];
+
+    if ( exists $options->{skip} ) {
+        push @$pipeline, { '$skip', delete $options->{skip} };
+    }
+
+    if ( exists $options->{limit} ) {
+        push @$pipeline, { '$limit', delete $options->{limit} };
+    }
+
+    push @$pipeline, { '$group' => { '_id' => undef, 'n' => { '$sum' => 1 } } };
 
     # possibly fallback to default maxTimeMS
     if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $session = $self->_get_session_from_hashref( $options );
-
     # string is OK so we check ref, not just exists
     __ixhash($options, 'hint') if ref $options->{hint};
 
+    my $res = $self->aggregate($pipeline, $options)->next;
+
+    return $res->{n} // 0;
+}
+
+=method estimated_document_count
+
+    $count = $coll->estimated_document_count();
+    $count = $coll->estimated_document_count($options);
+
+Returns an estimated count of documents based on collection metadata.
+
+B<NOTE>: this method does not support sessions or transactions.
+
+A hash reference of options may be provided. Valid keys include:
+
+=for :list
+* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
+  command to run.  (Note, this will be ignored for servers before version 2.6.)
+
+=cut
+
+sub estimated_document_count {
+    my ( $self, $options ) = @_;
+    $options ||= {};
+
+    # only maxTimeMS is supported
+    my $filtered = {
+        ( exists $options->{maxTimeMS} ? ( maxTimeMS => $options->{maxTimeMS} ) : () )
+    };
+
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $filtered->{maxTimeMS} && $self->max_time_ms ) {
+        $filtered->{maxTimeMS} = $self->max_time_ms;
+    }
+
+    # XXX replace this with direct use of a command op?
     my $op = MongoDB::Op::_Count->_new(
-        options         => $options,
-        filter          => $filter,
-        session         => $session,
+        options         => $filtered,
+        filter          => undef,
+        session         => undef,
         %{ $self->_op_args },
     );
 
     my $res = $self->client->send_read_op($op);
 
-    return $res->{n};
+    return $res->{n} // 0;
 }
 
 =method distinct
@@ -1750,6 +1793,40 @@ sub _get_session_from_hashref {
 }
 
 #--------------------------------------------------------------------------#
+# Deprecated functions
+#--------------------------------------------------------------------------#
+
+sub count {
+    my ( $self, $filter, $options ) = @_;
+
+    $self->_warn_deprecated( 'count' => "count is deprecated; use count_documents or estimated_document_count instead" );
+
+    $filter  ||= {};
+    $options ||= {};
+
+    # possibly fallback to default maxTimeMS
+    if ( !exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
+
+    my $session = $self->_get_session_from_hashref($options);
+
+    # string is OK so we check ref, not just exists
+    __ixhash( $options, 'hint' ) if ref $options->{hint};
+
+    my $op = MongoDB::Op::_Count->_new(
+        options => $options,
+        filter  => $filter,
+        session => $session,
+        %{ $self->_op_args },
+    );
+
+    my $res = $self->client->send_read_op($op);
+
+    return $res->{n};
+}
+
+#--------------------------------------------------------------------------#
 # utility function
 #--------------------------------------------------------------------------#
 
@@ -1797,6 +1874,7 @@ __END__
 =pod
 
 =for Pod::Coverage
+count
 initialize_ordered_bulk_op
 initialize_unordered_bulk_op
 batch_insert

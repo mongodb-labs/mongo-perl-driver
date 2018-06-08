@@ -63,7 +63,7 @@ subtest "ordered batch split on size" => sub {
     }
     disable_failpoint();
 
-    is( $coll->count, 6, "collection count" );
+    is( $coll->count_documents, 6, "collection count" );
 
     enable_failpoint( { mode => { skip => 2 } } );
     {
@@ -79,7 +79,7 @@ subtest "ordered batch split on size" => sub {
     }
     disable_failpoint();
 
-    is( $coll->count, 6, "collection count" );
+    is( $coll->count_documents, 6, "collection count" );
 };
 
 sub enable_failpoint {

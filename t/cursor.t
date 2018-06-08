@@ -111,7 +111,7 @@ $coll->drop;
     my $id1 = $coll->insert_one({x => 1})->inserted_id;
     my $id2 = $coll->insert_one({x => 5})->inserted_id;
 
-    is($coll->count, 2);
+    is($coll->count_documents, 2);
     $cursor = $coll->query;
     is($cursor->next->{'x'}, 1);
     is($cursor->next->{'x'}, 5);
@@ -321,7 +321,7 @@ $coll->drop;
 
     # XXX this test makes no sense; remove? fix? -- xdg, 2016-08-10
     $cursor = $coll->query({}, { limit => 10, skip => 0, sort_by => {created => 1 }});
-    is($coll->count(), 5);
+    is($coll->count_documents(), 5);
 }
 
 # delayed tailable cursor

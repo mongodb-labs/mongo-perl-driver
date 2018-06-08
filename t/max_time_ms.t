@@ -89,7 +89,7 @@ subtest "expected behaviors" => sub {
 
     is(
         exception {
-            my $doc = $coll->count( {}, { maxTimeMS => 5000 } );
+            my $doc = $coll->count_documents( {}, { maxTimeMS => 5000 } );
         },
         undef,
         "count helper with maxTimeMS works"
@@ -208,7 +208,7 @@ subtest "force maxTimeMS failures" => sub {
 
     like(
         exception {
-            my $doc = $coll->count( {}, { maxTimeMS => 10 } );
+            my $doc = $coll->count_documents( {}, { maxTimeMS => 10 } );
         },
         qr/exceeded time limit/,
         "count command with maxTimeMS times out"
@@ -232,7 +232,7 @@ subtest "force maxTimeMS failures" => sub {
 
     like(
         exception {
-            my $doc = $coll->count( {}, { maxTimeMS => 10 } );
+            my $doc = $coll->count_documents( {}, { maxTimeMS => 10 } );
         },
         qr/exceeded time limit/,
         "count helper with maxTimeMS times out"
@@ -303,7 +303,7 @@ subtest "force maxTimeMS failures" => sub {
 
     subtest "max_time_ms via constructor" => sub {
         is(
-            exception { my $doc = $coll->count( {} ) },
+            exception { my $doc = $coll->count_documents( {} ) },
             undef,
             "count helper with default maxTimeMS 0 from client works"
         );
@@ -314,7 +314,7 @@ subtest "force maxTimeMS failures" => sub {
 
         like(
             exception {
-                my $doc = $coll2->count( {} );
+                my $doc = $coll2->count_documents( {} );
             },
             qr/exceeded time limit/,
             "count helper with configured maxTimeMS times out"
@@ -351,7 +351,7 @@ subtest "force maxTimeMS failures" => sub {
 
         is(
             exception {
-                my $doc = $coll->count( {}, { maxTimeMS => 0 } );
+                my $doc = $coll->count_documents( {}, { maxTimeMS => 0 } );
             },
             undef,
             "count helper with MaxTimeMS zero works"

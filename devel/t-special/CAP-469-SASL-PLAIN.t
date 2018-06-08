@@ -44,7 +44,7 @@ subtest "no authentication" => sub {
     my $coll   = $testdb->get_collection("test");
 
     like(
-        exception { $coll->count },
+        exception { $coll->count_documents },
         qr/not authorized/,
         "can't read collection when not authenticated"
     );
@@ -79,7 +79,7 @@ subtest "with authentication" => sub {
     my $testdb = $conn->get_database("ldap");
     my $coll   = $testdb->get_collection("test");
 
-    is( exception { $coll->count }, undef, "no exception reading from new client" );
+    is( exception { $coll->count_documents }, undef, "no exception reading from new client" );
 };
 
 subtest "with legacy sasl attributes" => sub {
@@ -95,7 +95,7 @@ subtest "with legacy sasl attributes" => sub {
     my $testdb = $conn->get_database("ldap");
     my $coll   = $testdb->get_collection("test");
 
-    is( exception { $coll->count }, undef, "no exception reading from new client" );
+    is( exception { $coll->count_documents }, undef, "no exception reading from new client" );
 };
 
 my $connect_string = $ENV{MONGOD};
@@ -122,7 +122,7 @@ for my $uri ( @strings ) {
         my $testdb = $conn->get_database("ldap");
         my $coll   = $testdb->get_collection("test");
 
-        is( exception { $coll->count }, undef, "no exception reading" );
+        is( exception { $coll->count_documents }, undef, "no exception reading" );
     };
 }
 

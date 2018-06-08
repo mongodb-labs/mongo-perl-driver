@@ -57,7 +57,7 @@ subtest "insert" => sub {
     );
     # End Example 1
 
-    is( $coll->count(), 1 );
+    is( $coll->count_documents(), 1 );
 
     # Start Example 2
     $cursor = $db->coll("inventory")->find( { item => "canvas" } );
@@ -90,7 +90,7 @@ subtest "insert" => sub {
     );
     # End Example 3
 
-    is( $coll->count(), 4 );
+    is( $coll->count_documents(), 4 );
 };
 
 subtest "query_top_level_fields" => sub {
@@ -133,7 +133,7 @@ subtest "query_top_level_fields" => sub {
     );
     # End Example 6
 
-    is( $coll->count(), 5 );
+    is( $coll->count_documents(), 5 );
 
     # Start Example 7
     $cursor = $db->coll("inventory")->find( {} );
@@ -820,25 +820,25 @@ subtest delete => sub {
     );
     # End Example 55
 
-    is( $coll->count(), 5 );
+    is( $coll->count_documents(), 5 );
 
     # Start Example 57
     $db->coll("inventory")->delete_many( { status => "A" } );
     # End Example 57
 
-    is( $coll->count(), 3 );
+    is( $coll->count_documents(), 3 );
 
     # Start Example 58
     $db->coll("inventory")->delete_one( { status => "D" } );
     # End Example 58
 
-    is( $coll->count(), 2 );
+    is( $coll->count_documents(), 2 );
 
     # Start Example 56
     $db->coll("inventory")->delete_many( {} );
     # End Example 56
 
-    is( $coll->count(), 0 );
+    is( $coll->count_documents(), 0 );
 };
 
 #>>> no perltidy

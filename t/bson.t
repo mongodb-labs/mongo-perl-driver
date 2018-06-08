@@ -302,9 +302,9 @@ subtest "aggressively convert numbers" => sub {
     $alt_c->insert_one({num => 5});
     $alt_c->insert_one({num => 6});
 
-    is($alt_c->count({num => {'$gt' => 4}}), 4);
-    is($alt_c->count({num => {'$gte' => "5"}}), 4);
-    is($alt_c->count({num => {'$gte' => "4.1"}}), 4);
+    is($alt_c->count_documents({num => {'$gt' => 4}}), 4);
+    is($alt_c->count_documents({num => {'$gte' => "5"}}), 4);
+    is($alt_c->count_documents({num => {'$gte' => "4.1"}}), 4);
 };
 
 subtest "string type" => sub {
@@ -320,9 +320,9 @@ subtest "string type" => sub {
         $alt_c->insert_one({num => bson_string($num)});
     }
 
-    is($c->count({num => 1}), 1);
-    is($c->count({num => "001"}), 1);
-    is($c->count, 2);
+    is($c->count_documents({num => 1}), 1);
+    is($c->count_documents({num => "001"}), 1);
+    is($c->count_documents, 2);
 };
 
 subtest "MongoDB::BSON::Binary type" => sub {

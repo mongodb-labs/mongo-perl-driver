@@ -408,7 +408,7 @@ sub text_is {
     for my $k ( sort keys %$doc ) {
         is ( $doc->{$k}, $doc2->{$k}, "$k" );
     }
-    is( $bucket->_chunks->count( { files_id => $id } ),
+    is( $bucket->_chunks->count_documents( { files_id => $id } ),
         2, 'custom chunk size num chunks' );
     my @results = $bucket->_chunks->find( { files_id => $id } )->all;
     is( $results[0]->{data}, 'a' x 12, 'custom chunk size boundries 1' );
@@ -436,7 +436,7 @@ sub text_is {
     $uploadstream->close;
     is( fileno($fh), undef, "fileno on closed fh returns undef" );
     my $id = $uploadstream->id;
-    is( $bucket->_chunks->count( { files_id => $id } ), 2, 'unicode upload' );
+    is( $bucket->_chunks->count_documents( { files_id => $id } ), 2, 'unicode upload' );
     is( $bucket->_files->find_id($id)->{length}, $testlen, 'unicode upload file length' );
     my $str;
     is( $bucket->open_download_stream($id)->read( $str, 100 ),

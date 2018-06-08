@@ -47,7 +47,7 @@ my $coll   = $testdb->get_collection("test_collection");
 
 note("CAP-490, user management tests");
 
-is( $admin->get_collection('system.users')->count, 1, "1 (root) user in system.users");
+is( $admin->get_collection('system.users')->count_documents, 1, "1 (root) user in system.users");
 
 for ( 1 .. 3 ) {
     is(
@@ -57,7 +57,7 @@ for ( 1 .. 3 ) {
     );
 }
 
-is( $admin->get_collection('system.users')->count, 4, "4 users in system.users");
+is( $admin->get_collection('system.users')->count_documents, 4, "4 users in system.users");
 
 my $info;
 is(
@@ -89,7 +89,7 @@ is(
     "dropUser",
 );
 
-is( $admin->get_collection('system.users')->count, 3, "3 users in system.users");
+is( $admin->get_collection('system.users')->count_documents, 3, "3 users in system.users");
 
 is(
     exception { $testdb->run_command( [ dropAllUsersFromDatabase => "limited0" ] ) },
@@ -97,7 +97,7 @@ is(
     "dropAllUsersFromDatabase",
 );
 
-is( $admin->get_collection('system.users')->count, 1, "1 user left in system.users");
+is( $admin->get_collection('system.users')->count_documents, 1, "1 user left in system.users");
 
 clear_testdbs;
 

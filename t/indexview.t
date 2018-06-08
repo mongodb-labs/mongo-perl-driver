@@ -243,7 +243,7 @@ subtest 'handling duplicates' => sub {
     $coll->drop;
     my $doc = { foo => 1, bar => 1, baz => 1, boo => 1 };
     $coll->insert_one($doc) for 1 .. 2;
-    is( $coll->count, 2, "two identical docs inserted" );
+    is( $coll->count_documents, 2, "two identical docs inserted" );
     like( exception { $iv->create_one( [ foo => 1 ], { unique => 1 } ) },
         qr/E11000/, "got expected error creating unique index with dups" );
 
@@ -251,7 +251,7 @@ subtest 'handling duplicates' => sub {
     if ( $server_version < v2.7.5 ) {
         ok( $iv->create_one( [ foo => 1 ], { unique => 1, dropDups => 1 } ),
             "create unique with dropDups" );
-        is( $coll->count, 1, "one doc dropped" );
+        is( $coll->count_documents, 1, "one doc dropped" );
     }
 };
 
@@ -322,7 +322,7 @@ subtest "sparse indexes" => sub {
         $coll->insert_one( { x => $_, y => $_ } );
         $coll->insert_one( { x => $_ } );
     }
-    is( $coll->count, 20, "inserted 20 docs" );
+    is( $coll->count_documents, 20, "inserted 20 docs" );
 
     like(
         exception { $iv->create_one( { y => 1 }, { unique => 1, name => "foo" } ) },
@@ -354,7 +354,7 @@ subtest 'text indices' => sub {
     $coll2->drop;
     $coll2->insert_one( { language => 'english', w1 => 'hello', w2 => 'world' } )
       foreach ( 1 .. 10 );
-    is( $coll2->count, 10, "inserted 10 documents" );
+    is( $coll2->count_documents, 10, "inserted 10 documents" );
 
     my $res = $coll2->indexes->create_one(
         { '$**' => 'text' },

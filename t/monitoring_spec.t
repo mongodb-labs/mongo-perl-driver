@@ -125,6 +125,8 @@ while ( my $path = $iterator->() ) {
 sub test_dispatch {
     my ($method, $args, $events) = @_;
 
+    local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $method eq 'count';
+
     my @call_args = _adjust_arguments($method, $args);
     my $res = eval {
         my $res = $coll->$method(@call_args);

@@ -135,28 +135,28 @@ for my $server_version (qw/3.2 3.4/) {
             my $conn = new_client( $uri, $certs{badclient}, $bad_user );
             my $coll = $conn->ns("x509.test_collection");
 
-            like( exception { $coll->count }, qr/MongoDB::AuthError/, $invalid_msg );
+            like( exception { $coll->count_documents }, qr/MongoDB::AuthError/, $invalid_msg );
         };
 
         subtest "invalid client cert, but valid username" => sub {
             my $conn = new_client( $uri, $certs{badclient}, $cert_user );
             my $coll = $conn->ns("x509.test_collection");
 
-            like( exception { $coll->count }, qr/MongoDB::AuthError/, $invalid_msg );
+            like( exception { $coll->count_documents }, qr/MongoDB::AuthError/, $invalid_msg );
         };
 
         subtest "valid client cert, but bad username" => sub {
             my $conn = new_client( $uri, $certs{client}, $bad_user );
             my $coll = $conn->ns("x509.test_collection");
 
-            like( exception { $coll->count }, qr/MongoDB::AuthError/, $invalid_msg );
+            like( exception { $coll->count_documents }, qr/MongoDB::AuthError/, $invalid_msg );
         };
 
         subtest "valid client cert (matching username in attributes)" => sub {
             my $conn = new_client( $uri, $certs{client}, $cert_user );
             my $coll = $conn->ns("x509.test_collection");
 
-            is( exception { $coll->count }, undef, $valid_msg );
+            is( exception { $coll->count_documents }, undef, $valid_msg );
         };
 
         subtest "valid client cert (matching username in URL)" => sub {
@@ -165,7 +165,7 @@ for my $server_version (qw/3.2 3.4/) {
             my $conn = new_client( $new_uri, $certs{client} );
             my $coll = $conn->ns("x509.test_collection");
 
-            is( exception { $coll->count }, undef, $valid_msg );
+            is( exception { $coll->count_documents }, undef, $valid_msg );
         };
 
     };
@@ -188,7 +188,7 @@ subtest "Server 3.2 with no username provided" => sub {
         my $conn = new_client( $uri, $certs{client} );
         my $coll = $conn->ns("x509.test_collection");
 
-        is( exception { $coll->count }, undef, $valid_msg );
+        is( exception { $coll->count_documents }, undef, $valid_msg );
         like(
             last_auth_line($orc),
             qr/user: "\Q$cert_user\E"/,
@@ -200,7 +200,7 @@ subtest "Server 3.2 with no username provided" => sub {
         my $conn = new_client( $uri, $certs{badclient} );
         my $coll = $conn->ns("x509.test_collection");
 
-        like( exception { $coll->count }, qr/MongoDB::AuthError/, $invalid_msg );
+        like( exception { $coll->count_documents }, qr/MongoDB::AuthError/, $invalid_msg );
     };
 };
 
@@ -212,7 +212,7 @@ subtest "Server 3.4 with no username provided" => sub {
         my $conn = new_client( $uri, $certs{client} );
         my $coll = $conn->ns("x509.test_collection");
 
-        is( exception { $coll->count }, undef, $valid_msg );
+        is( exception { $coll->count_documents }, undef, $valid_msg );
         unlike( last_auth_line($orc), qr/user:/, "authenticate command had no username" );
     };
 
@@ -220,7 +220,7 @@ subtest "Server 3.4 with no username provided" => sub {
         my $conn = new_client( $uri, $certs{badclient} );
         my $coll = $conn->ns("x509.test_collection");
 
-        like( exception { $coll->count }, qr/MongoDB::AuthError/, $invalid_msg );
+        like( exception { $coll->count_documents }, qr/MongoDB::AuthError/, $invalid_msg );
     };
 
 };

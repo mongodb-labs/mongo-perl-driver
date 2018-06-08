@@ -121,15 +121,15 @@ you see below.
 
 =item C<SELECT COUNT(*y) FROM users>
 
-    $db->get_collection( 'users' )->count;
+    $db->get_collection( 'users' )->count_documents;
 
 =item C<< SELECT COUNT(*y) FROM users where age > 30 >>
 
-    $db->get_collection( 'users' )->count( { "age" => { '$gt' => 30 } } );
+    $db->get_collection( 'users' )->count_documents( { "age" => { '$gt' => 30 } } );
 
 =item C<SELECT COUNT(age) from users>
 
-    $db->get_collection( 'users' )->count( { age => { '$exists' => 1 } } );
+    $db->get_collection( 'users' )->count_documents( { age => { '$exists' => 1 } } );
 
 =item C<UPDATE users SET a=1 WHERE b='q'>
 

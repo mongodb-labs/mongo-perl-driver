@@ -26,6 +26,7 @@ use Moo;
 use MongoDB::Op::_Command;
 use Types::Standard qw(
     HashRef
+    Maybe
 );
 
 use namespace::clean;
@@ -33,7 +34,7 @@ use namespace::clean;
 has filter => (
     is       => 'ro',
     required => 1,
-    isa => HashRef,
+    isa => Maybe[HashRef],
 );
 
 has options => (
@@ -58,11 +59,9 @@ sub execute {
 
     my $command = [
         count => $self->coll_name,
-        query => $self->filter,
-
+        (defined $self->{filter} ? ( query => $self->{filter} ) : () ),
         ($link->supports_read_concern ?
             @{ $self->read_concern->as_args( $self->session ) } : () ),
-
         %{ $self->options },
     ];
 

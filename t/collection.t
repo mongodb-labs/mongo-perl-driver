@@ -140,7 +140,7 @@ if ( $server_version >= v2.4.11 ) {
     $coll->drop;
 
     $id = $coll->insert_one({ just => 'another', perl => 'hacker' })->inserted_id;
-    is($coll->count, 1, 'count');
+    is($coll->count_documents, 1, 'count');
 
     $coll->replace_one({ _id => $id }, {
         just => "an\xE4oth\0er",
@@ -148,32 +148,32 @@ if ( $server_version >= v2.4.11 ) {
         with => { a => 'reference' },
         and => [qw/an array reference/],
     });
-    is($coll->count, 1);
+    is($coll->count_documents, 1);
 }
 
 # rename
 {
     my $newcoll = $coll->rename('test_collection.rename');
     is($newcoll->name, 'test_collection.rename', 'rename');
-    is($coll->count, 0, 'rename');
-    is($newcoll->count, 1, 'rename');
+    is($coll->count_documents, 0, 'rename');
+    is($newcoll->count_documents, 1, 'rename');
     $coll = $newcoll->rename('test_collection');
     is($coll->name, 'test_collection', 'rename');
-    is($coll->count, 1, 'rename');
-    is($newcoll->count, 0, 'rename');
+    is($coll->count_documents, 1, 'rename');
+    is($newcoll->count_documents, 0, 'rename');
 }
 
-# count
+# count_documents
 {
-    is($coll->count({ mongo => 'programmer' }), 0, 'count = 0');
-    is($coll->count({ mongo => 'hacker'     }), 1, 'count = 1');
-    is($coll->count({ 'with.a' => 'reference' }), 1, 'inner obj count');
+    is($coll->count_documents({ mongo => 'programmer' }), 0, 'count = 0');
+    is($coll->count_documents({ mongo => 'hacker'     }), 1, 'count = 1');
+    is($coll->count_documents({ 'with.a' => 'reference' }), 1, 'inner obj count');
 
     # missing collection
     my $coll2 = $testdb->coll("aadfkasfa");
     my $count;
     is(
-        exception { $count = $coll2->count({}) },
+        exception { $count = $coll2->count_documents({}) },
         undef,
         "count on missing collection lives"
     );
@@ -212,7 +212,7 @@ if ( $server_version >= v2.4.11 ) {
 # remove
 {
     $coll->delete_one($obj);
-    is($coll->count, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
+    is($coll->count_documents, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
 }
 
 # doubles
@@ -290,7 +290,7 @@ if ( $server_version >= v2.4.11 ) {
 {
     $coll->drop;
     my $ids = $coll->insert_many([{'x' => 1}, {'x' => 2}, {'x' => 3}])->inserted_ids;
-    is($coll->count, 3, 'insert_many');
+    is($coll->count_documents, 3, 'insert_many');
 }
 
 # sort
@@ -317,7 +317,7 @@ if ( $server_version >= v2.4.11 ) {
     $coll->drop;
     $coll->insert_many([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
     $coll->delete_one( { "x" => 1 } );
-    is ($coll->count, 2, 'remove just one');
+    is ($coll->count_documents, 2, 'remove just one');
 }
 
 # tie::ixhash for update/insert
@@ -376,7 +376,7 @@ if ( $server_version >= v2.4.11 ) {
     ok($coll->find_one({"x" => 1}));
 
     my $res = $coll->update_many({"x" => 2}, {'$set' => {'x' => 4}});
-    is($coll->count({"x" => 4}), 2) or diag explain $res;
+    is($coll->count_documents({"x" => 4}), 2) or diag explain $res;
 
     $cursor = $coll->query({"x" => 4})->sort({"y" => 1});
 
@@ -392,7 +392,7 @@ subtest "multiple update" => sub {
       unless $server_version >= v1.3.0;
 
     $coll->update_many({"x" => 4}, {'$set' => {"x" => 3}}, {'upsert' => 1});
-    is($coll->count({"x" => 3}), 2, 'count');
+    is($coll->count_documents({"x" => 3}), 2, 'count');
 
     $cursor = $coll->query({"x" => 3})->sort({"y" => 1});
 
@@ -532,7 +532,7 @@ SKIP: {
      $ok = $coll->insert_one({ $kanji => 1});
     };
     is($ok,0,"Insert key with Null Char Operation Failed");
-    is($coll->count, 0, "Insert key with Null Char in Key Failed");
+    is($coll->count_documents, 0, "Insert key with Null Char in Key Failed");
     $coll->drop;
     $ok = 0;
     my $kanji_a = "漢\0字";
@@ -545,7 +545,7 @@ SKIP: {
      $ok = $coll->insert_many([{ $kanji_a => "some data"} , { $kanji_b => "some more data"}, { $kanji_c => "even more data"}]);
     };
     is($ok,0, "insert_many key with Null Char in Key Operation Failed");
-    is($coll->count, 0, "insert_many key with Null Char in Key Failed");
+    is($coll->count_documents, 0, "insert_many key with Null Char in Key Failed");
     $coll->drop;
 
     #test ixhash
@@ -554,7 +554,7 @@ SKIP: {
      $ok = $coll->insert_one($hash);
     };
     is($ok,0, "ixHash Insert key with Null Char in Key Operation Failed");
-    is($coll->count, 0, "ixHash key with Null Char in Key Operation Failed");
+    is($coll->count_documents, 0, "ixHash key with Null Char in Key Operation Failed");
     $tied = $coll->find_one;
     $coll->drop;
 }
@@ -824,46 +824,49 @@ subtest "deep update" => sub {
 
 };
 
-subtest "count w/ hint" => sub {
+subtest "count_document w/ hint" => sub {
+
+    plan skip_all => "count_document with hints unsupported on MongoDB $server_version"
+        unless $server_version >= v3.6.0;
 
     $coll->drop;
     $coll->insert_one( { i => 1 } );
     $coll->insert_one( { i => 2 } );
-    is ($coll->count(), 2, 'count = 2');
+    is ($coll->count_documents(), 2, 'count = 2');
 
     $coll->indexes->create_one( { i => 1 } );
 
-    is( $coll->count( { i => 1 }, { hint => '_id_' } ), 1, 'count w/ hint & spec');
-    is( $coll->count( {}, { hint => '_id_' } ), 2, 'count w/ hint');
+    is( $coll->count_documents( { i => 1 }, { hint => '_id_' } ), 1, 'count w/ hint & spec');
+    is( $coll->count_documents( {}, { hint => '_id_' } ), 2, 'count w/ hint');
 
     my $current_version = version->parse($server_version);
     my $version_2_6 = version->parse('v2.6');
 
     if ( $current_version > $version_2_6 ) {
 
-        eval { $coll->count( { i => 1 } , { hint => 'BAD HINT' } ) };
+        eval { $coll->count_documents( { i => 1 } , { hint => 'BAD HINT' } ) };
         like($@, ($server_type eq "Mongos" ? qr/failed/ : qr/bad hint/ ), 'check bad hint error');
 
     } else {
 
-        is( $coll->count( { i => 1 } , { hint => 'BAD HINT' } ), 1, 'bad hint and spec');
+        is( $coll->count_documents( { i => 1 } , { hint => 'BAD HINT' } ), 1, 'bad hint and spec');
     }
 
     $coll->indexes->create_one( { x => 1 }, { sparse => 1 } );
 
     if ($current_version > $version_2_6 ) {
 
-        is( $coll->count( {  i => 1 } , { hint => 'x_1' } ), 0, 'spec & hint on empty sparse index');
+        is( $coll->count_documents( {  i => 1 } , { hint => 'x_1' } ), 0, 'spec & hint on empty sparse index');
 
     } else {
 
-        is( $coll->count( {  i => 1 } , { hint => 'x_1' } ), 1, 'spec & hint on empty sparse index');
+        is( $coll->count_documents( {  i => 1 } , { hint => 'x_1' } ), 1, 'spec & hint on empty sparse index');
     }
 
     # XXX Failing on nightly master -- xdg, 2016-02-11
     TODO: {
         local $TODO = "Failing nightly master";
-        is( $coll->count( {}, { hint => 'x_1' } ), 2, 'hint on empty sparse index');
+        is( $coll->count_documents( {}, { hint => 'x_1' } ), 2, 'hint on empty sparse index');
     }
 };
 
@@ -872,13 +875,13 @@ subtest "count w/ collation" => sub {
     $coll->insert_one( { x => "foo" } );
 
     if ($supports_collation) {
-        is( $coll->count( { x => "FOO" }, { collation => $case_insensitive_collation } ),
+        is( $coll->count_documents( { x => "FOO" }, { collation => $case_insensitive_collation } ),
             1, 'count w/ collation' );
     }
     else {
         like(
             exception {
-                $coll->count( { x => "FOO" }, { collation => $case_insensitive_collation } );
+                $coll->count_documents( { x => "FOO" }, { collation => $case_insensitive_collation } );
             },
             qr/MongoDB host '.*:\d+' doesn't support collation/,
             "count w/ collation returns error if unsupported"

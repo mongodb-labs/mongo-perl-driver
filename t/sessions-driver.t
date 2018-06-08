@@ -392,7 +392,7 @@ sub test_collection_session_exceptions {
         sprintf( $message_string, 'aggregate' );
 
     like
-        exception { $coll->count(
+        exception { $coll->count_documents(
                         { _id => 1 },
                         { session => $session } ) },
         $error_regex,
