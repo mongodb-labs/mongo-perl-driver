@@ -71,29 +71,12 @@ sub connect {
     return MongoDB::MongoClient->new( $options );
 }
 
-sub force_double {
-    if ( ref $_[0] ) {
-        Carp::croak("Can't force a reference into a double");
-    }
-    return $_[0] = unpack("d",pack("d", $_[0]));
-}
-
-sub force_int {
-    if ( ref $_[0] ) {
-        Carp::croak("Can't force a reference into an int");
-    }
-    return $_[0] = int($_[0]);
-}
-
 1;
 
 
 __END__
 
 =for Pod::Coverage
-force_double
-force_int
-read_documents
 
 =begin :prelude
 

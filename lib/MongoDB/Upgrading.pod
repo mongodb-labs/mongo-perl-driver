@@ -116,9 +116,10 @@ earlier.
 * C<MongoDB::GridFS>
 * C<MongoDB::GridFS::File>
 
-=head2 Methods
+=head2 Functions/Methods
 
 =for :list
+* From C<MongoDB> - C<force_double>, C<force_int>
 * From C<MongoDB::BulkWrite> and C<MongoDB::BulkWriteView> - C<insert>,
   C<update>, C<remove>, C<remove_one>
 * From C<MongoDB::Collection> - C<insert>, C<batch_insert>, C<remove>,

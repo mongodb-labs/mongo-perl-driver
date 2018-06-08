@@ -278,30 +278,4 @@ SKIP: {
     like($@, qr/type \(MongoDB::Collection\) unhandled|can't encode value of type 'MongoDB::Collection'/, "can't insert a non-recognized obj");
 }
 
-
-# forcing types
-{
-    $coll->drop;
-
-    my $x = 1.0;
-    my ($double_type, $int_type) = ({x => {'$type' => 1}},
-                                    {'$or' => [{x => {'$type' => 16}},
-                                               {x => {'$type' => 18}}]});
-
-    MongoDB::force_double($x);
-    $coll->insert_one({x => $x});
-    my $result = $coll->find_one($double_type);
-    is($result->{x}, 1);
-    $result = $coll->find_one($int_type);
-    is($result, undef);
-    $coll->drop;
-
-    MongoDB::force_int($x);
-    $coll->insert_one({x => $x});
-    $result = $coll->find_one($double_type);
-    is($result, undef);
-    $result = $coll->find_one($int_type);
-    is($result->{x}, 1);
-}
-
 done_testing;
