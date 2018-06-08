@@ -166,10 +166,7 @@ has auth_mechanism => (
 sub _build_auth_mechanism {
     my ($self) = @_;
 
-    my $default =
-        $self->sasl     ? $self->sasl_mechanism
-      : $self->username ? 'DEFAULT'
-      :                   'NONE';
+    my $default = $self->username ? 'DEFAULT' : 'NONE';
 
     return $self->__uri_or_else(
         u => 'authmechanism',
@@ -258,7 +255,7 @@ sub _build_connect_timeout_ms {
     return $self->__uri_or_else(
         u => 'connecttimeoutms',
         e => 'connect_timeout_ms',
-        d => $self->timeout, # deprecated legacy attribute as default
+        d => 10000,
     );
 }
 
@@ -716,7 +713,7 @@ sub _build_socket_timeout_ms {
     return $self->__uri_or_else(
         u => 'sockettimeoutms',
         e => 'socket_timeout_ms',
-        d => $self->query_timeout, # deprecated legacy timeout as default
+        d => 30000,
     );
 }
 
@@ -976,69 +973,6 @@ sub _build_retry_writes {
         d => 0,
     );
 }
-
-#--------------------------------------------------------------------------#
-# deprecated public attributes
-#--------------------------------------------------------------------------#
-
-=attr query_timeout (DEPRECATED AND READ-ONLY)
-
-    # set query timeout to 1 second
-    my $client = MongoDB::MongoClient->new(query_timeout => 1000);
-
-This option has been renamed as L</socket_timeout_ms>.  If this option is set
-and that one is not, this will be used.
-
-This value is in milliseconds and defaults to 30000.
-
-=cut
-
-has query_timeout => (
-    is      => 'ro',
-    isa     => Int,
-    default => 30000,
-);
-
-=attr sasl (DEPRECATED)
-
-If true, the driver will set the authentication mechanism based on the
-C<sasl_mechanism> property.
-
-=cut
-
-has sasl => (
-    is      => 'ro',
-    isa     => Boolish,
-    default => 0
-);
-
-=attr sasl_mechanism (DEPRECATED)
-
-This specifies the SASL mechanism to use for authentication with a MongoDB server.
-It has the same valid values as L</auth_mechanism>.  The default is GSSAPI.
-
-=cut
-
-has sasl_mechanism => (
-    is      => 'ro',
-    isa     => AuthMechanism,
-    default => 'GSSAPI',
-);
-
-=attr timeout (DEPRECATED AND READ-ONLY)
-
-This option has been renamed as L</connect_timeout_ms>.  If this option is set
-and that one is not, this will be used.
-
-Connection timeout is in milliseconds. Defaults to C<10000>.
-
-=cut
-
-has timeout => (
-    is        => 'ro',
-    isa       => Int,
-    default   => 10000,
-);
 
 #--------------------------------------------------------------------------#
 # computed attributes - these are private and can't be set in the

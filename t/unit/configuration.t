@@ -103,22 +103,6 @@ subtest "auth mechanism and properties" => sub {
         { bar => 2, SERVICE_NAME => 'mongodb' },
         "authMechanismProperties supersedes auth_mechanism_properties"
     );
-
-    $mc = _mc(
-        @up,
-        sasl           => 1,
-        sasl_mechanism => 'PLAIN',
-    );
-    is( $mc->auth_mechanism, 'PLAIN', "sasl+sasl_mechanism is auth_mechanism default" );
-
-    $mc = _mc(
-        @up,
-        auth_mechanism => 'MONGODB-CR',
-        sasl           => 1,
-        sasl_mechanism => 'PLAIN',
-    );
-    is( $mc->auth_mechanism, 'MONGODB-CR',
-        "auth_mechanism dominates sasl+sasl_mechanism" );
 };
 
 subtest bson_codec => sub {
@@ -139,11 +123,7 @@ subtest connect_timeout_ms => sub {
     my $mc = _mc();
     is( $mc->connect_timeout_ms, 10000, "default connect_timeout_ms" );
 
-    $mc = _mc( timeout => 60000, );
-    is( $mc->connect_timeout_ms, 60000, "legacy 'timeout' as fallback" );
-
     $mc = _mc(
-        timeout            => 60000,
         connect_timeout_ms => 30000,
     );
     is( $mc->connect_timeout_ms, 30000, "connect_timeout_ms" );
@@ -281,11 +261,7 @@ subtest socket_timeout_ms => sub {
     my $mc = _mc();
     is( $mc->socket_timeout_ms, 30000, "default socket_timeout_ms" );
 
-    $mc = _mc( query_timeout => 60000, );
-    is( $mc->socket_timeout_ms, 60000, "explicit 'query_timeout' as fallback" );
-
     $mc = _mc(
-        query_timeout     => 60000,
         socket_timeout_ms => 40000,
     );
     is( $mc->socket_timeout_ms, 40000, "socket_timeout_ms" );
