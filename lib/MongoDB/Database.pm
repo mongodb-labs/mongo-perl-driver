@@ -538,12 +538,4 @@ are recommended:
 
 To retry failures automatically, consider using L<Try::Tiny::Retry>.
 
-=head1 DEPRECATIONS
-
-The methods still exist, but are no longer documented.  In a future version
-they will warn when used, then will eventually be removed.
-
-=for :list
-* last_error
-
 =cut

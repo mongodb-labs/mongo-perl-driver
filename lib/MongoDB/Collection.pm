@@ -1970,34 +1970,6 @@ A filter expression provides the L<query
 criteria|http://docs.mongodb.org/manual/tutorial/query-documents/> to select a
 document for deletion.  It must be an L</Ordered document>.
 
-=head1 DEPRECATIONS
-
-With the introduction of the common driver CRUD API, these legacy methods
-have been deprecated:
-
-=for :list
-* batch_insert
-* find_and_modify
-* insert
-* query
-* remove
-* update
-* save
-
-The C<get_collection> method is deprecated; it implied a 'subcollection'
-relationship that is purely notional.
-
-The C<ensure_index>, C<drop_indexes>, C<drop_index>, and C<get_index>
-methods are deprecated. The new L<MongoDB::IndexView> class is accessible
-through the C<indexes> method, and offer greater consistency in behavior
-across drivers.
-
-The C<validate> method is deprecated as the return value was inconsistent
-over time. Users who need it should execute it via C<run_command> instead.
-
-The methods still exist, but are no longer documented.  In a future version
-they will warn when used, then will eventually be removed.
-
 =cut
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:
