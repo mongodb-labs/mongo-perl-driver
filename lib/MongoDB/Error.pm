@@ -30,6 +30,10 @@ use Carp;
 use MongoDB::_Types qw(
     ErrorStr
 );
+use Types::Standard qw(
+    ArrayRef
+    Str
+);
 use Scalar::Util ();
 use Sub::Quote ();
 use Safe::Isa;
@@ -102,6 +106,18 @@ has 'previous_exception' => (
     }
   >),
 );
+
+has error_labels => (
+    is      => 'ro',
+    isa     => ArrayRef[Str],
+);
+
+sub has_error_label {
+    my ( $self, $expected ) = @_;
+
+    return unless defined $self->error_labels;
+    return grep { $_ eq $expected } @{ $self->error_labels };
+}
 
 sub throw {
   my ($inv) = shift;
@@ -640,6 +656,20 @@ B<Note>:
 * Only C<MongoDB::DatabaseError> objects have a C<code> attribute.
 * The database uses multiple write concern error codes.  The driver maps
   them all to WRITE_CONCERN_ERROR for consistency and convenience.
+
+=head1 ERROR LABELS
+
+From MongoDB 4.0 onwards, errors may contain an error labels field. This field
+is populated for extra information from either the server or the driver,
+depending on the error.
+
+Known error labels include (but are not limited to):
+
+=for :list
+* C<TransientTransactionError> - added when network errors are encountered
+  inside a transaction.
+* C<UnknownTransactionCommitResult> - added when a transaction commit may not
+  have been able to satisfy the provided write concern.
 
 =cut
 

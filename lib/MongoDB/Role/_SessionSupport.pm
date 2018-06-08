@@ -44,18 +44,17 @@ sub _apply_session_and_cluster_time {
     $$query_ref = to_IxHash( $$query_ref );
     ($$query_ref)->Push( 'lsid' => $self->session->session_id );
 
-    if ( $self->retryable_write || ! $self->session->in_transaction_state( 'none' ) ) {
+    if ( $self->retryable_write || ! $self->session->_in_transaction_state( 'none' ) ) {
         ($$query_ref)->Push( 'txnNumber' => $self->session->_server_session->transaction_id );
     }
 
-    # TODO are these the only states that need autocommit?
-    if ( $self->session->in_transaction_state( qw/ starting in_progress / ) ) {
+    if ( ! $self->session->_in_transaction_state( qw/ none / ) ) {
         ($$query_ref)->Push( 'autocommit' => false );
     }
 
-    if ( $self->session->in_transaction_state( 'starting' ) ) {
+    if ( $self->session->_in_transaction_state( 'starting' ) ) {
         ($$query_ref)->Push( 'startTransaction' => true );
-        ($$query_ref)->Push( 'readConcern' => $self->session->_get_transaction_read_concern->as_args( $self->session ) );
+        ($$query_ref)->Push( @{ $self->session->_get_transaction_read_concern->as_args( $self->session ) } );
     }
 
     $self->session->_server_session->update_last_use;
@@ -91,10 +90,15 @@ sub _update_session_and_cluster_time {
     return;
 }
 
+# All items here happen before the response is checked for success
 sub _update_operation_time {
     my ( $self, $response ) = @_;
 
     return unless defined $self->session;
+
+    if ( $self->session->_in_transaction_state( 'starting' ) ) {
+        $self->session->_set__transaction_state( 'in_progress' );
+    }
 
     my $operation_time = $self->__extract_from( $response, 'operationTime' );
     $self->session->advance_operation_time( $operation_time ) if defined $operation_time;

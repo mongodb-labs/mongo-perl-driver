@@ -57,6 +57,7 @@ sub _throw_database_error {
     $error_class->throw(
         result => $self,
         code   => $code || UNKNOWN_ERROR,
+        error_labels => $self->output->{errorLabels} || [],
         ( length($err) ? ( message => $err ) : () ),
     );
 

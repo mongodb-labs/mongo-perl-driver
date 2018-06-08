@@ -242,16 +242,9 @@ sub advance_operation_time {
     return;
 }
 
-=method in_transaction_state
-
-    do { ... } if $session->in_transaction_state( 'starting', 'in_progress', ... );
-
-Returns 1 if the session is in one of the specified transaction states.
-Returns a false value if not in any of the states defined as an argument.
-
-=cut
-
-sub in_transaction_state {
+# Returns 1 if the session is in one of the specified transaction states.
+# Returns a false value if not in any of the states defined as an argument.
+sub _in_transaction_state {
     my ( $self, @states ) = @_;
     return 1 if scalar ( grep { $_ eq $self->_transaction_state } @states );
     return;
@@ -281,19 +274,28 @@ sub start_transaction {
     my ( $self, $opts ) = @_;
 
     MongoDB::TransactionError->throw("Transaction already in progress")
-        if $self->in_transaction_state( 'starting', 'in_progress' );
+        if $self->_in_transaction_state( 'starting', 'in_progress' );
 
     MongoDB::ConfigurationError->throw("Transactions are unsupported on this deployment")
-        unless $self->_client->_topology->_supports_transactions;
+        unless $self->client->_topology->_supports_transactions;
 
     $opts ||= {};
     $opts = { %{ $self->options->{defaultTransactionOptions} }, %$opts };
 
-    $self->_set_current_transaction_settings( $opts );
+    $self->_set__current_transaction_settings( $opts );
 
-    $self->_set_transaction_state('starting');
+    $self->_set__transaction_state('starting');
+
+    $self->_increment_transaction_id;
 
     return;
+}
+
+sub _increment_transaction_id {
+    my $self = shift;
+    return if $self->_in_transaction_state( qw/ in_progress committed aborted / );
+
+    $self->_server_session->transaction_id->binc();
 }
 
 =method commit_transaction
@@ -312,9 +314,7 @@ sub commit_transaction {
     MongoDB::TransactionError->throw("Cannot call commit_transaction after calling abort_transaction")
         if $self->_transaction_state eq 'aborted';
 
-    # TODO Actually commit the transaction - including retrying even if not enabled.
-
-    $self->_set_transaction_state('committed');
+    $self->_send_end_transaction_command( 'committed', [ commitTransaction => 1 ] );
 
     return;
 }
@@ -329,33 +329,70 @@ sub abort_transaction {
     my $self = shift;
 
     MongoDB::TransactionError->throw("No transaction started")
-        if $self->in_transaction_state( 'none' );
+        if $self->_in_transaction_state( 'none' );
 
     # Error message tweaked to use our function names
     MongoDB::TransactionError->throw("Cannot call abort_transaction after calling commit_transaction")
-        if $self->in_transaction_state( 'committed' );
+        if $self->_in_transaction_state( 'committed' );
 
     # Error message tweaked to use our function names 
     MongoDB::TransactionError->throw("Cannot call abort_transaction twice")
-        if $self->in_transaction_state( 'aborted' );
+        if $self->_in_transaction_state( 'aborted' );
 
-    # TODO Actually abort the transaction, ignoring any errors as theres nothing that can be done.
-
-    $self->_set_transaction_state('aborted');
+    $self->_send_end_transaction_command( 'aborted', [ abortTransaction => 1 ] );
 
     return;
 }
 
+sub _send_end_transaction_command {
+    my ( $self, $end_state, $command ) = @_;
+
+    # Only need to send commit command if the transaction actually sent anything
+    if ( ! $self->_in_transaction_state( qw/ starting / ) ) {
+
+        # Must set state before running the op as otherwise it wont be retried
+        $self->_set__transaction_state( $end_state );
+
+        my $op = MongoDB::Op::_Command->_new(
+            db_name             => 'admin',
+            query               => $command,
+            query_flags         => {},
+            bson_codec          => $self->client->bson_codec,
+            session             => $self,
+            monitoring_callback => $self->client->monitoring_callback,
+        );
+
+        $self->client->send_retryable_write_op( $op, 'force' );
+    }
+
+    $self->_set__transaction_state( $end_state );
+}
+
 sub _get_transaction_read_concern {
     my $self = shift;
-
     # readConcern is merged during start_transaction
     if ( defined $self->_current_transaction_settings->{readConcern} ) {
         return MongoDB::ReadConcern->new( $self->_current_transaction_settings->{readConcern} );
     }
 
     # Default to the clients read concern
-    return $self->_client->read_concern;
+    return $self->client->read_concern;
+}
+
+# TODO TBSliver REMOVE ME ON RELEASE
+sub _debug {
+    my $self = shift;
+    return {
+        state           => $self->_transaction_state,
+        client          => defined $self->client ? 'defined' : '',
+        session         => defined $self->_server_session ? 'defined' : '',
+        session_id      => $self->session_id,
+        transaction_id  => defined $self->_server_session ? $self->_server_session->transaction_id : '',
+        cluster_time    => $self->cluster_time,
+        options         => $self->options,
+        transaction_settings => $self->_current_transaction_settings,
+        operation_time  => $self->operation_time,
+    };
 }
 
 =method end_session

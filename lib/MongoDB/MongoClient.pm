@@ -1009,7 +1009,9 @@ delete_many operations.
 =cut
 
 has retry_writes => (
-    is      => 'lazy',
+    # need rwp to allow for retryable writes inside transactions
+    is      => 'rwp',
+    lazy    => '1',
     isa     => Boolish,
     builder => '_build_retry_writes',
 );
@@ -1577,15 +1579,21 @@ BEGIN {
 }
 
 sub send_retryable_write_op {
-    my ( $self, $op ) = @_;
+    my ( $self, $op, $force ) = @_;
 
-    return $self->send_write_op( $op ) unless $self->retry_writes;
+    # force is used specifically for retrying writes in transactions
+    # TODO untangle the send_write_op and _try_write_op_for_link duplication
+    return $self->send_write_op( $op ) unless $self->retry_writes || ( defined $force && $force eq 'force' );
 
     my $result;
     my $link = $self->{_topology}->get_writable_link;
 
+    # Not sent to send_write_op to use the link we just got
     # If server doesnt support retryable writes, pretend its not enabled
-    unless ( $link->supports_retryWrites ) {
+    # active transactions also dont support retryable writes
+    # except in abort and commit state
+    unless ( $link->supports_retryWrites
+      && !$op->session->_in_transaction_state( qw/ starting in_progress / ) ) {
         eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
             WITH_ASSERTS ? ( confess $err ) : ( die $err );
@@ -1597,7 +1605,7 @@ sub send_retryable_write_op {
     # wrong, so probably not worth worrying about.
     #
     # increment transaction id before write, but otherwise is the same for both attempts
-    $op->session->_server_session->_increment_transaction_id;
+    $op->session->_increment_transaction_id;
     $op->retryable_write( 1 );
 
     # attempt the op the first time
