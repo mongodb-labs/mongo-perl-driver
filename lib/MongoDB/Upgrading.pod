@@ -108,6 +108,8 @@ earlier.
 * C<sasl>
 * C<sasl_mechanism>
 * C<timeout>
+* C<$MongoDB::BSON::char>
+* C<$MongoDB::BSON::looks_like_number>
 
 =head2 Classes
 
