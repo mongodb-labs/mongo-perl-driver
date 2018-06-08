@@ -18,6 +18,8 @@
 
   [*** Deprecations ***]
 
+    - PERL-718 Deprecate find option 'modifiers'
+
     - PERL-872 Deprecate maxScan find option
 
     - PERL-873 Deprecate cursor snapshot option
@@ -26,7 +28,7 @@
 
     - PERL-710 Support authSource URI option
 
-    - PERL-718 Add support for deprecated 'modifiers' fields
+    - PERL-718 Add find options to replace deprecated 'modifiers' option
 
     - PERL-768 Added support for aggregation hints
 

@@ -19,16 +19,115 @@
 
 =head1 DESCRIPTION
 
+The v2 driver represents an evolutionary rather than revolutionary release,
+but with enough differences to justify a major version bump.
+
+The most significant change in v2 is a switch away from the embedded BSON
+encoder/decoder to an external library, L<BSON> and an optional
+optimization addon, L<BSON::XS>.  Many applications will continue to work
+unmodified, but some may need changes.
+
+This document is intended to help developers update their code to take into
+account API changes from the v1 driver to the v2 driver.
 
 =head1 RATIONALE
 
+API Changes are never something to do lightly.  Changes in the v2 driver
+were deemed necessary to achieve certain goals, all of which echo themes of
+the v1 driver release:
+
+=for :list
+* consistency – particularly with regards to Perl <-> BSON data conversion,
+  the v2 driver provides a complete, consistenly-designed set of BSON
+  type wrappers, and significantly improved round-trip capabilities.
+* server compatibility – as the MongoDB server deprecates or removes
+  functionality, the driver must be updated to match so that users don't
+  develop apps around features that are going away.
+* portability – the switch to an external library that has both pure-Perl
+  and XS optimized versions allow the MongoDB driver to support
+  environments without a C compiler available.
 
 =head1 INSTALLATION AND DEPENDENCY CHANGES
 
+=head2 BSON library
 
-=head1 BEHAVIOR CHANGES
+=head2 Minimum Perl version
+
+=head2 Pure-perl capable
 
 
-=head1 DEPRECATED METHODS
+=head1 BSON BEHAVIOR CHANGES
+
+=head2 New type wrapper classes
+
+=head2 Legacy type wrappers
+
+=head2 Default date type decoding
+
+=head2 More consistent string/number heuristics
+
+=head2 Type helper functions
+
+
+=head1 NON-BSON BEHAVIOR CHANGES
+
+
+=head1 DEPRECATIONS
+
+=head2 Query options
+
+=for :list
+* maxScan
+* modifiers
+* snapshot
+
+=head2 Classes
+
+=for :list
+* MongoDB::BSON::Binary
+* MongoDB::BSON::Regexp
+* MongoDB::Code
+* MongoDB::DBRef
+* MongodB::OID
+* MongoDB::Timestamp
+
+=head2 Count method on collections
+
+
+=head1 REMOVED FEATURES
+
+Features deprecated in the v1 release have now been removed.  Additionally,
+C<MongoDB::BSON> has been removed in favor of L<BSON>, as described
+earlier.
+
+=head2 Configuration options
+
+=for :list
+* C<dt_type>
+* C<query_timeout>
+* C<sasl>
+* C<sasl_mechanism>
+* C<timeout>
+
+=head2 Classes
+
+=for :list
+* C<MongoDB::BSON>
+* C<MongoDB::GridFS>
+* C<MongoDB::GridFS::File>
+
+=head2 Methods
+
+=for :list
+* From C<MongoDB::BulkWrite> and C<MongoDB::BulkWriteView> - C<insert>,
+  C<update>, C<remove>, C<remove_one>
+* From C<MongoDB::Collection> - C<insert>, C<batch_insert>, C<remove>,
+  C<update>, C<save>, C<query>, C<find_and_modify>, C<get_collection>,
+  C<ensure_index>, C<drop_indexes>, C<drop_index>, C<get_index>, C<validate>
+* From C<MongoDB::Database> - C<eval>, C<last_error>
+* From C<MongoDB::CommandResult> - C<result>
+* From C<MongoDB::Cursor> - C<slave_okay>, C<count>
 
 =cut
+
+# vim: set ts=4 sts=4 sw=4 et tw=75:
