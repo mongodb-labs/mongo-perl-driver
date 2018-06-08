@@ -125,7 +125,7 @@ earlier.
 * From C<MongoDB::Collection> - C<insert>, C<batch_insert>, C<remove>,
   C<update>, C<save>, C<query>, C<find_and_modify>, C<get_collection>,
   C<ensure_index>, C<drop_indexes>, C<drop_index>, C<get_index>, C<validate>
-* From C<MongoDB::Database> - C<eval>, C<last_error>
+* From C<MongoDB::Database> - C<eval>, C<last_error>, C<get_gridfs>
 * From C<MongoDB::CommandResult> - C<result>
 * From C<MongoDB::Cursor> - C<slave_okay>, C<count>
 

@@ -315,45 +315,6 @@ sub get_gridfsbucket {
 
 { no warnings 'once'; *gfs = \&get_gridfsbucket }
 
-=method get_gridfs (DEPRECATED)
-
-    my $grid = $database->get_gridfs;
-    my $grid = $database->get_gridfs("fs");
-    my $grid = $database->get_gridfs("fs", $options);
-
-The L<MongoDB::GridFS> class has been deprecated in favor of the new MongoDB
-driver-wide standard GridFS API, available via L<MongoDB::GridFSBucket> and
-the C<get_gridfsbucket>/C<gfs> methods.
-
-This method returns a L<MongoDB::GridFS> for storing and retrieving files
-from the database.  Default prefix is "fs", making C<$grid-E<gt>files>
-"fs.files" and C<$grid-E<gt>chunks> "fs.chunks".
-
-It takes an optional hash reference of options that are passed to the
-L<MongoDB::GridFS> constructor.
-
-See L<MongoDB::GridFS> for more information.
-
-=cut
-
-sub get_gridfs {
-    my ($self, $prefix, $options) = @_;
-    $prefix = "fs" unless $prefix;
-
-    $self->_warn_deprecated( 'get_gridfs' => [qw/get_gridfsbucket gfs/] );
-
-    return MongoDB::GridFS->new(
-        read_preference => $self->read_preference,
-        write_concern   => $self->write_concern,
-        max_time_ms     => $self->max_time_ms,
-        bson_codec      => $self->bson_codec,
-        ( $options ? %$options : () ),
-        # not allowed to be overridden by options
-        _database => $self,
-        prefix => $prefix
-    );
-}
-
 =method drop
 
     $database->drop;
