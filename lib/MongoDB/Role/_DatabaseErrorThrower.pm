@@ -27,7 +27,7 @@ use MongoDB::Error;
 
 use namespace::clean;
 
-requires qw/last_errmsg last_code last_wtimeout/;
+requires qw/last_errmsg last_code last_wtimeout last_error_labels/;
 
 my $ANY_DUP_KEY = [ DUPLICATE_KEY, DUPLICATE_KEY_UPDATE, DUPLICATE_KEY_CAPPED ];
 my $ANY_NOT_MASTER = [ NOT_MASTER, NOT_MASTER_NO_SLAVE_OK, NOT_MASTER_OR_SECONDARY ];
@@ -40,6 +40,7 @@ sub _throw_database_error {
 
     my $err  = $self->last_errmsg;
     my $code = $self->last_code;
+    my $error_labels = $self->last_error_labels;
 
     if ( grep { $code == $_ } @$ANY_NOT_MASTER || $err =~ /^(?:not master|node is recovering)/ ) {
         $error_class = "MongoDB::NotMasterError";
@@ -57,7 +58,7 @@ sub _throw_database_error {
     $error_class->throw(
         result => $self,
         code   => $code || UNKNOWN_ERROR,
-        error_labels => $self->output->{errorLabels} || [],
+        error_labels => $error_labels || [],
         ( length($err) ? ( message => $err ) : () ),
     );
 

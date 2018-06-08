@@ -115,6 +115,17 @@ sub last_wtimeout {
         || exists $self->output->{writeConcernError} );
 }
 
+=method last_error_labels
+
+Returns any error labels from the command
+
+=cut
+
+sub last_error_labels {
+    my ( $self ) = @_;
+    return $self->output->{errorLabels};
+}
+
 =method assert
 
 Throws an exception if the command failed.
