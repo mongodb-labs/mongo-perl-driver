@@ -578,68 +578,6 @@ sub info {
 # Deprecated methods
 #--------------------------------------------------------------------------#
 
-sub count {
-    my ($self, $limit_skip) = @_;
-
-    $self->_warn_deprecated(
-        'count' => "Use the 'count' method from MongoDB::Collection instead." );
-
-    my $cmd = new Tie::IxHash(count => $self->_query->coll_name);
-
-    $cmd->Push(query => $self->_query->filter);
-
-    if ($limit_skip) {
-        my $limit = $self->_query->options->{limit};
-        my $skip = $self->_query->options->{skip};
-        $cmd->Push(limit => $limit) if $limit;
-        $cmd->Push(skip => $skip) if $skip;
-    }
-
-    # XXX Allow this manual use of query internals, as this deprecated
-    # count method will be removed eventually anyway.
-    if ($self->_query->has_hint) {
-        $cmd->Push(hint => $self->_query->options->{hint});
-    }
-
-    my $result = try {
-        my $db = $self->_query->client->get_database( $self->_query->db_name );
-        $db->run_command( $cmd, $self->_query->read_preference );
-    }
-    catch {
-        # if there was an error, check if it was the "ns missing" one that means the
-        # collection hasn't been created or a real error.
-        die $_ unless /^ns missing/;
-    };
-
-    return $result ? $result->{n} : 0;
-}
-
-my $PRIMARY = MongoDB::ReadPreference->new;
-my $SEC_PREFERRED = MongoDB::ReadPreference->new( mode => 'secondaryPreferred' );
-
-sub slave_okay {
-    my ($self, $value) = @_;
-
-    $self->_warn_deprecated( 'slave_okay' => [qw/read_preference/] );
-
-    MongoDB::UsageError->throw("cannot set slave_ok after querying")
-      if $self->started_iterating;
-
-    if ($value) {
-        # if not 'primary', then slave_ok is already true, so leave alone
-        if ( $self->_query->read_preference->mode eq 'primary' ) {
-            # secondaryPreferred is how mongos interpretes slave_ok
-            $self->_query->read_preference( $SEC_PREFERRED );
-        }
-    }
-    else {
-        $self->_query->read_preference( $PRIMARY );
-    }
-
-    # returning self is an API change but more consistent with other cursor methods
-    return $self;
-}
-
 sub snapshot {
     my ($self, $bool) = @_;
 

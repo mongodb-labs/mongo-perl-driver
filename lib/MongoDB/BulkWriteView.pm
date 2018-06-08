@@ -69,10 +69,6 @@ has _upsert => (
     default => 0,
 );
 
-with $_ for qw(
-  MongoDB::Role::_DeprecationWarner
-);
-
 sub collation {
     my ($self, $collation) = @_;
     return $self->new( %$self, _collation => $collation );
@@ -170,34 +166,6 @@ sub delete_one {
         ]
     );
     return;
-}
-
-#--------------------------------------------------------------------------#
-# Deprecated methods
-#--------------------------------------------------------------------------#
-
-sub update {
-    my $self = shift;
-
-    $self->_warn_deprecated( 'update' => [qw/update_many/] );
-
-    return $self->update_many(@_);
-}
-
-sub remove {
-    my $self = shift;
-
-    $self->_warn_deprecated( 'remove' => [qw/delete_many/] );
-
-    return $self->delete_many(@_);
-}
-
-sub remove_one {
-    my $self = shift;
-
-    $self->_warn_deprecated( 'remove_one' => [qw/delete_one/] );
-
-    return $self->delete_one(@_);
 }
 
 1;

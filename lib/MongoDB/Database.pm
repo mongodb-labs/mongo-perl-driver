@@ -146,10 +146,6 @@ has bson_codec => (
     required => 1,
 );
 
-with $_ for qw(
-  MongoDB::Role::_DeprecationWarner
-);
-
 #--------------------------------------------------------------------------#
 # methods
 #--------------------------------------------------------------------------#
@@ -526,41 +522,6 @@ sub _get_session_from_hashref {
 
     return $session;
 }
-
-#--------------------------------------------------------------------------#
-# deprecated methods
-#--------------------------------------------------------------------------#
-
-sub eval {
-    my ($self, $code, $args, $nolock) = @_;
-
-    $self->_warn_deprecated( 'eval', "Run manually via run_command instead." );
-
-    $nolock = boolean::false unless defined $nolock;
-
-    my $cmd = tie(my %hash, 'Tie::IxHash');
-    %hash = ('$eval' => $code,
-             'args' => $args,
-             'nolock' => $nolock);
-
-    my $output = $self->run_command($cmd);
-    if (ref $output eq 'HASH' && exists $output->{'retval'}) {
-        return $output->{'retval'};
-    }
-    else {
-        return $output;
-    }
-}
-
-sub last_error {
-    my ( $self, $opt ) = @_;
-
-    $self->_warn_deprecated(
-        'last_error' => "Use a write concern or manually run getlasterror with run_command." );
-
-    return $self->run_command( [ getlasterror => 1, ( $opt ? %$opt : () ) ] );
-}
-
 
 1;
 

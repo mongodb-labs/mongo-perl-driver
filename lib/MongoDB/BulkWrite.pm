@@ -125,10 +125,6 @@ has _retryable => (
     default => 1,
 );
 
-with $_ for qw(
-  MongoDB::Role::_DeprecationWarner
-);
-
 =method find
 
     $view = $bulk->find( $query_document );
@@ -288,18 +284,6 @@ sub execute {
 
     # Op::_BulkWrite internally does retryable writes
     return $self->_client->send_write_op( $op );
-}
-
-#--------------------------------------------------------------------------#
-# Deprecated methods
-#--------------------------------------------------------------------------#
-
-sub insert {
-    my $self = shift;
-
-    $self->_warn_deprecated( 'insert' => [qw/insert_one/] );
-
-    return $self->insert_one(@_);
 }
 
 1;

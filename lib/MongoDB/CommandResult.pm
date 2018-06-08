@@ -145,15 +145,6 @@ sub assert_no_write_concern_error {
     return 1;
 }
 
-# deprecated
-sub result {
-    my $self = shift;
-
-    $self->_warn_deprecated( 'result' => [qw/output/] );
-
-    return $self->output;
-}
-
 1;
 
 __END__
@@ -165,13 +156,5 @@ result
 
 This class encapsulates the results from a database command.  Currently, it is
 only available from the C<result> attribute of C<MongoDB::DatabaseError>.
-
-=head1 DEPRECATIONS
-
-The methods still exist, but are no longer documented.  In a future version
-they will warn when used, then will eventually be removed.
-
-=for :list
-* result
 
 =cut
