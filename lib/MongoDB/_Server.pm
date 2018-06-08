@@ -26,6 +26,7 @@ use MongoDB::_Types qw(
     HostAddress
     ServerType
     HostAddressList
+    ZlibCompressionLevel
 );
 use Types::Standard qw(
     InstanceOf
@@ -79,6 +80,24 @@ has is_master => (
     isa     => HashRef,
     default => sub { {} },
 );
+
+has compressor => (
+    is => 'lazy',
+    isa => Maybe[Str],
+    builder => '_build_compressor',
+);
+
+has zlib_compression_level => (
+    is => 'ro',
+    isa => ZlibCompressionLevel,
+    default => sub { -1 },
+);
+
+sub _build_compressor {
+    my ($self) = @_;
+    my ($comp) = @{ ($self->is_master || {})->{compression} || [] };
+    return $comp;
+}
 
 # type: a ServerType enum value. Default Unknown.  Definitions from the Server
 # Discovery and Monitoring Spec:

@@ -30,6 +30,8 @@ use Type::Library
   Booleanpm
   BSONCodec
   ClientSession
+  CompressionType
+  ZlibCompressionLevel
   ConnectType
   CursorType
   DBRefColl
@@ -74,6 +76,7 @@ use Types::Standard qw(
     ArrayRef
     Dict
     HashRef
+    Int
     Maybe
     Num
     Optional
@@ -109,6 +112,12 @@ enum AuthMechanism,
 duck_type BSONCodec, [ qw/encode_one decode_one/ ];
 
 class_type ClientSession, { class => 'MongoDB::ClientSession' };
+
+enum CompressionType, [qw/zlib/];
+
+declare ZlibCompressionLevel, as Int,
+  where { $_ >= -1 && $_ <= 9 },
+  message { "zlib compression value must be value from -1 to 9" };
 
 enum ConnectType, [qw/replicaSet direct none/];
 

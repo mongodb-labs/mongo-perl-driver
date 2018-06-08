@@ -33,6 +33,7 @@ use Socket qw/SOL_SOCKET SO_KEEPALIVE SO_RCVBUF IPPROTO_TCP TCP_NODELAY AF_INET/
 use Time::HiRes qw/time/;
 use MongoDB::Error;
 use MongoDB::_Constants;
+use MongoDB::_Protocol;
 use MongoDB::_Types qw(
     Boolish
     HostAddress
@@ -420,7 +421,20 @@ sub is_connected {
 }
 
 sub write {
-    my ( $self, $buf ) = @_;
+    my ( $self, $buf, %write_opt ) = @_;
+
+    if (
+        !$write_opt{disable_compression}
+        && $self->server
+        && $self->server->compressor
+        && MongoDB::_Protocol::is_compressible($buf)
+    ) {
+        $buf = MongoDB::_Protocol::compress(
+            $buf,
+            $self->server->compressor,
+            zlib_compression_level => $self->server->zlib_compression_level,
+        );
+    }
 
     my ( $len, $off, $pending, $nfound, $r ) = ( length($buf), 0 );
 

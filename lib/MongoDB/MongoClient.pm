@@ -51,12 +51,14 @@ use MongoDB::_Types qw(
     AuthMechanism
     Boolish
     BSONCodec
+    CompressionType
     Document
     HeartbeatFreq
     MaxStalenessNum
     NonNegNum
     ReadPrefMode
     ReadPreference
+    ZlibCompressionLevel
 );
 use Types::Standard qw(
     CodeRef
@@ -226,6 +228,50 @@ has bson_codec => (
 sub _build_bson_codec {
     my ($self) = @_;
     return BSON->new();
+}
+
+=attr compressors
+
+An array reference of compression type names. Currently only C<zlib>
+is supported.
+
+=cut
+
+has compressors => (
+    is      => 'lazy',
+    isa     => ArrayRef[CompressionType],
+    builder => '_build_compressors',
+);
+
+sub _build_compressors {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'compressors',
+        e => 'compressors',
+        d => [],
+    );
+}
+
+=attr zlib_compression_level
+
+An integer from C<-1> to C<9> specifying the compression level to use
+when L</compression> is set to C<zlib>.
+
+=cut
+
+has zlib_compression_level => (
+    is      => 'lazy',
+    isa     => ZlibCompressionLevel,
+    builder => '_build_zlib_compression_level',
+);
+
+sub _build_zlib_compression_level {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'zlibcompressionlevel',
+        e => 'zlib_compression_level',
+        d => -1,
+    );
 }
 
 =attr connect_timeout_ms
@@ -1220,6 +1266,8 @@ sub _build__topology {
             ( ref( $self->ssl ) eq 'HASH' ? ( SSL_options => $self->ssl ) : () ),
         },
         monitoring_callback => $self->monitoring_callback,
+        compression => $self->compressors,
+        zlib_compression_level => $self->zlib_compression_level,
     );
 }
 
@@ -2038,6 +2086,7 @@ The currently supported connection string options are:
 *appName
 *authMechanism
 *authMechanism.SERVICE_NAME
+*compressors
 *connectTimeoutMS
 *journal
 *readPreference
@@ -2046,6 +2095,7 @@ The currently supported connection string options are:
 *ssl
 *w
 *wtimeoutMS
+*zlibCompressionLevel
 
 See the official MongoDB documentation on connection strings for more on the URI
 format and connection string options:
