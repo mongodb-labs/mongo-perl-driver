@@ -178,8 +178,7 @@ deprecation warning is issued once per call-site for deprecated methods.)
 
 =head1 THREADS
 
-Because of well-known bugs, use of threads on perls before v5.8.5 is
-not supported.
+Per L<threads> documentation, use of Perl threads is discouraged.
 
 =cut
 
