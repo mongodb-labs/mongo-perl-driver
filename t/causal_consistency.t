@@ -121,12 +121,12 @@ subtest 'find_one then read includes operationtime' => sub {
     # * distinct
 
     my $tests = {
-        find      => [ {_id => 1 } ],
-        find_one  => [ { _id => 1 }, {} ],
-        find_id   => [ 1, {} ],
-        aggregate => [ [ { '$match' => { count => { '$gt' => 0 } } } ] ],
-        count     => [ { _id => 1 } ],
-        distinct  => [ "id_", { _id => 1 } ],
+        find            => [ {_id => 1 } ],
+        find_one        => [ { _id => 1 }, {} ],
+        find_id         => [ 1, {} ],
+        aggregate       => [ [ { '$match' => { count => { '$gt' => 0 } } } ] ],
+        count_documents => [ { _id => 1 } ],
+        distinct        => [ "id_", { _id => 1 } ],
     };
 
     for my $key ( qw/
@@ -134,7 +134,7 @@ subtest 'find_one then read includes operationtime' => sub {
       find_one
       find_id
       aggregate
-      count
+      count_documents
       distinct / ) {
         clear_events();
         subtest $key => sub {

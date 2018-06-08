@@ -26,6 +26,15 @@ use Moo;
 extends 'BSON::OID';
 use namespace::clean -except => 'meta';
 
+with $_ for qw(
+  MongoDB::Role::_DeprecationWarner
+);
+
+sub BUILD {
+    my $self = shift;
+    $self->_warn_deprecated_class(__PACKAGE__, ["BSON::OID"], 0);
+};
+
 around BUILDARGS => sub {
     my $orig = shift;
     my $class = shift;

@@ -1799,7 +1799,7 @@ sub _get_session_from_hashref {
 sub count {
     my ( $self, $filter, $options ) = @_;
 
-    $self->_warn_deprecated( 'count' => "count is deprecated; use count_documents or estimated_document_count instead" );
+    $self->_warn_deprecated_method( 'count' => [qw/count_documents estimated_document_count/] );
 
     $filter  ||= {};
     $options ||= {};

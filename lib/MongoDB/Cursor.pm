@@ -581,7 +581,7 @@ sub info {
 sub snapshot {
     my ($self, $bool) = @_;
 
-    $self->_warn_deprecated(
+    $self->_warn_deprecated_method(
         'snapshot' => "Snapshot is deprecated as of MongoDB 3.6" );
 
     MongoDB::UsageError->throw("cannot set snapshot after querying")

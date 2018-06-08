@@ -25,6 +25,8 @@ use MongoDBTest qw/skip_unless_mongod build_client get_test_db
 
 skip_unless_mongod();
 
+$ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1;
+
 my $conn           = build_client( bson_codec => { wrap_strings => 1 } );
 my $server_type    = server_type($conn);
 my $server_version = server_version($conn);

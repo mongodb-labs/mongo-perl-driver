@@ -27,34 +27,73 @@ use namespace::clean;
 
 my %CALL_SITES;
 
-sub _warn_deprecated {
+sub _warn_deprecated_method {
     my ( $self, $old, $new ) = @_;
 
     return if $ENV{PERL_MONGO_NO_DEP_WARNINGS};
+    my $trace = _get_trace();
+    return unless defined $trace; # already warned from this location
 
     my $msg = "# The '$old' method will be removed in a future major release.";
+    $msg .= _get_alternative($new);
 
+    return __warn_deprecated($msg, $trace);
+}
+
+# Expected to be called from BUILD
+sub _warn_deprecated_class {
+    my ( $self, $old, $new, $uplevel ) = @_;
+
+    return if $ENV{PERL_MONGO_NO_DEP_WARNINGS};
+
+    my $trace = _get_trace(2);
+    return unless defined $trace; # already warned from this location
+
+    my $msg = "# The '$old' class will be removed in a future major release.";
+    $msg .= _get_alternative($new);
+
+    # fixup name of constructor
+    my $class = ref($self);
+    $trace =~ s/\S+ called at/${class}::new called at/;
+
+    return __warn_deprecated($msg, $trace);
+}
+
+sub __warn_deprecated {
+    my ( $msg, $trace ) = @_;
+    chomp $msg;
+    warn("#\n# *** DEPRECATION WARNING ***\n#\n$msg\n$trace");
+    return;
+}
+
+sub _get_alternative {
+    my ($new) = @_;
     # Arrayref is a list of replacement methods; string is just a message
     if ( ref $new eq 'ARRAY' ) {
         if ( @$new == 1 ) {
-            $msg .= "\n# Use '$new->[0]' instead.";
+            return "\n# Use '$new->[0]' instead.";
         }
         elsif (@$new > 1) {
             my $last = pop @$new;
-            my $list = join(", ", map { '$_' } @$new);
-            $msg .= "\n# Use $list or '$last' instead.";
+            my $list = join(", ", map { "'$_'" } @$new);
+            return "\n# Use $list or '$last' instead.";
+        }
+        else {
+            return "";
         }
     }
-    elsif ( defined $new ) {
-        $msg .= "\n# $new";
-    }
+    return "\n # $new" // "";
+}
 
-    my ( $trace, $i ) = ( "", 0 );
+sub _get_trace {
+    my ($uplevel) = @_;
+    $uplevel //= 0;
 
     my ( $callsite_found, $pkg, $file, $line, $sub );
+    my ( $trace, $i ) = ( "", $uplevel + 1 );
 
-    # Accumulate the stack trace. Start at caller(1) to skip '_warn_deprecated'
-    # in the stack trace
+    # Accumulate the stack trace. Start at uplevel + caller(2) to skip
+    # '__warn_deprecated' and its internal caller in the stack trace
     while ( ++$i ) {
         # Use CORE::caller to get a real stack-trace, not one overridden by
         # CORE::GLOBAL::caller
@@ -75,7 +114,8 @@ sub _warn_deprecated {
         $trace .= "#    $sub called at $file line $line\n";
     }
 
-    warn("#\n# *** DEPRECATION WARNING ***\n#\n$msg\n$trace");
+    return $trace;
 }
+
 
 1;

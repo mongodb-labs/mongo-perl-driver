@@ -35,35 +35,25 @@ my $server_type = server_type($conn);
 
 my $coll = $testdb->get_collection('test_collection');
 
-my $cursor;
-my @values;
-
-# test setup
-{
-    $coll->drop;
-
-    $coll->insert_one({ foo => 9,  bar => 3, shazbot => 1 });
-    $coll->insert_one({ foo => 2,  bar => 5 });
-    $coll->insert_one({ foo => -3, bar => 4 });
-    $coll->insert_one({ foo => 4,  bar => 9, shazbot => 1 });
-}
-
 # snapshot
 # XXX tests don't fail if snapshot is turned off ?!?
 subtest "snapshot" => sub {
     plan skip_all => "Snapshot removed in 3.7+"
       unless $server_version < v3.7.0;
 
-    my $cursor3 = $coll->query->snapshot(1);
-    is( $cursor3->has_next, 1, 'check has_next' );
-    my $r1 = $cursor3->next;
-    is( $cursor3->has_next, 1,
+    $coll->drop;
+    $coll->insert_many([ { i => 1 }, { i => 2 } ] );
+
+    my $cursor = $coll->find->snapshot(1);
+    is( $cursor->has_next, 1, 'check has_next' );
+    my $r1 = $cursor->next;
+    is( $cursor->has_next, 1,
         'if this failed, the database you\'re running is old and snapshot won\'t work' );
-    $cursor3->next;
-    is( int $cursor3->has_next, 0, 'check has_next is false' );
+    $cursor->next;
+    is( int $cursor->has_next, 0, 'check has_next is false' );
 
     like(
-        exception { $coll->query->snapshot },
+        exception { $coll->find->snapshot },
         qr/requires a defined, boolean argument/,
         "snapshot exception without argument"
     );

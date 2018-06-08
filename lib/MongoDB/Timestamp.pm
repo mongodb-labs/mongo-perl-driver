@@ -24,6 +24,15 @@ our $VERSION = 'v1.999.0';
 use Moo;
 extends 'BSON::Timestamp';
 
+with $_ for qw(
+  MongoDB::Role::_DeprecationWarner
+);
+
+sub BUILD {
+    my $self = shift;
+    $self->_warn_deprecated_class(__PACKAGE__, ["BSON::Timestamp"], 0);
+};
+
 1;
 
 __END__

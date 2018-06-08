@@ -32,6 +32,8 @@ use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
 
 skip_unless_mongod();
 
+$ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1;
+
 my $conn           = build_client();
 my $server_version = server_version($conn);
 my $testdb         = get_test_db($conn);
