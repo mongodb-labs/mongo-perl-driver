@@ -51,26 +51,120 @@ the v1 driver release:
 
 =head2 BSON library
 
+The MongoDB driver uses a newer version of the L<BSON> library.
+Previously, L<BSON> was already required for L<BSON::Decimal128>, so this
+is a version bump rather than an entirely new dependency.
+
 =head2 Minimum Perl version
+
+The MongoDB driver now requires Perl v5.10.1 or later.  This provides
+better pure-Perl support, several core dependencies, and many fewer bugs
+involving Unicode and threads.  While threads are discouraged, threads
+under Perl 5.8 were so broken that driver tests were regularly failing.
 
 =head2 Pure-perl capable
 
+The MongoDB driver can now be installed without needing a compiler.  If a
+compiler is detected, additional XS-based dependencies will be added to the
+prerequisites list for improved performance.  You can also specify
+C<PUREPERL_ONLY=1> as a C<Makefile.PL> argument to disable compiler
+detection.
 
 =head1 BSON BEHAVIOR CHANGES
 
+For update details on types, see L<MongoDB::DataTypes>.  The following
+sections provide an overview of major changes from past versions.
+
+=head2 MongoDB::BSON is removed
+
+Code that customized behavior by instantiating this class will need to
+use L<BSON> instead.  Options are generally similar, though L<BSON>
+provides much more flexibility.
+
 =head2 New type wrapper classes
+
+The L<BSON> module provides a complete set of classes mapping to every BSON
+type.  When decoding, these types will be returned for types that don't map
+by default to Perl types.
+
+Code that uses C<ref> to check documents returned from the database for
+legacy types (e.g.  C<MongoDB::BSON::Regexp>) will need to be updated for
+the new type wrappers.
 
 =head2 Legacy type wrappers
 
+All the legacy type wrappers have been updated to be subclasses of their
+corresponding L<BSON> library equivalent.  For example,
+L<MongoDB::BSON::Regexp> is a subclass of L<BSON::Regex>.  Most of them are
+empty subclasses -- the BSON-library versions provide the same API -- but
+some have some additional constructor argument behaviors for backwards
+compatibility.
+
+The L<BSON> library knows how to encode legacy types, so code that uses
+legacy types for encoding values should be able to work without
+modification.
+
 =head2 Default date type decoding
+
+The legacy driver defaulted to decoding the BSON date type as a L<DateTime>
+object.  Unfortunately, that type is very heavy-weight and slow to
+construct; it's a poor choice as a default as it inflicts that cost whether
+or not users ultimately need or want objects of that type.
+
+The C<dt_type> configuration argument has been removed from
+L<MongoDB::MongoClient> and the default date type of the L<BSON> library is
+now L<BSON::Time>, which is extremly lightweight and provides convenience
+methods to convert to various popular time classes.  It also works will
+with L<Time::HiRes> for recording datetimes with millisecond precision.
+
+Code that relied on date types being L<DateTime> objects will need to
+convert via the C<as_datetime> method.
 
 =head2 More consistent string/number heuristics
 
+Depending on their history of use, non-reference Perl scalars may have both
+string and number representations internally and the MongoDB driver wasn't
+clear how it treated them, plus the treatment could vary slightly by Perl
+version.  The heuristics are now standardized as follows:
+
+=for :list
+* If the value has a valid double representation, it will be encoded to
+  BSON as a double.
+* Otherwise, if the value has a valid integer interpretation, it will be
+  encoded as either Int32 or Int64; the smallest type that the value fits
+  will be used; a value that overflows will error.
+* Otherwise, the value will be encoded as a UTF-8 string.
+
+The L<BSON> library provides the C<prefer_numeric> attribute to more
+aggressively coerce number-like strings that don't already have a numeric
+representation into a numeric form.
+
+This is essentially the same as the legacy heuristic but some edge cases
+have been made consistent.
+
 =head2 Type helper functions
 
+To simplify use of type wrappers (and avoid unintentionally using a
+deprecated one), the L<BSON::Types> module has a standard
+set of type helper functions:
+
+    use BSON::Types ':all';
+
+    $int32    = bson_int32(42);
+    $time     = bson_time(); # now
+    $ordered  = bson_doc( first => "John", last => "Doe );
 
 =head1 NON-BSON BEHAVIOR CHANGES
 
+=head2 run_command requires ordered document
+
+The MongoDB database uses the first key of the document provided to
+C<run_command> as the name of the command.  Due to Perl's hash order
+randomization, use of a hash reference with more than one key as an
+argument to C<run_command> is not reliable.  This restriction is now
+enforced.  The argument must be a L<BSON::Doc> object, a L<Tie::IxHash>
+object, an array reference with an even number of keys, or a hash reference
+with a single key.
 
 =head1 DEPRECATIONS
 
@@ -99,14 +193,24 @@ correctness expections:
   documents); in can be used with or without transactions; performance is
   O(N) in the worst case.
 
+=head2 Authentication
+
+The MONGODB-CR authentication mechanism was deprecated in MongoDB serve 3.6
+and removed in MongoDB 4.0.  The Perl driver is deprecating MONGODB-CR, but
+will not remove it until it no longer supports older servers.
+
 =head2 Query options
 
 =for :list
-* maxScan
-* modifiers
-* snapshot
+* maxScan -- deprecated in MongoDB server 4.0
+* modifiers -- the old C<$> prefixed modifiers have been replaced with
+  explicit, equivalent options for C<find>
+* snapshot -- deprecated in MongoDB server 4.0
 
 =head2 Classes
+
+These classes are superseded by type wrappers from L<BSON>, as described
+earlier.
 
 =for :list
 * MongoDB::BSON::Binary
