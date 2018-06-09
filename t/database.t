@@ -18,6 +18,7 @@ use Test::More;
 use Test::Fatal;
 use Test::Deep;
 use Tie::IxHash;
+use BSON::Types ':all';
 use boolean;
 
 use MongoDB;
@@ -64,6 +65,8 @@ subtest 'run_command' => sub {
     is( ref $testdb->run_command( { ismaster => 1 } ),
         'HASH', "run_command(HASHREF) gives HASH" );
     is( ref $testdb->run_command( Tie::IxHash->new( ismaster => 1 ) ),
+        'HASH', "run_command(IxHash) gives HASH" );
+    is( ref $testdb->run_command( bson_doc( ismaster => 1 ) ),
         'HASH', "run_command(IxHash) gives HASH" );
 
     if ( $server_type eq 'RSPrimary' && $conn->_topology->all_servers > 1 ) {

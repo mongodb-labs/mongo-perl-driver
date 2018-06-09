@@ -39,7 +39,7 @@ sub _pre_encode_insert {
 
     my $id = (
           $type eq 'HASH' ? $doc->{_id}
-        : $type eq 'ARRAY' ? do {
+        : $type eq 'ARRAY' || $type eq 'BSON::Doc' ? do {
             my $i;
             for ( $i = 0; $i < @$doc; $i++ ) { last if $doc->[$i] eq '_id' }
             $i < $#$doc ? $doc->[ $i + 1 ] : undef;

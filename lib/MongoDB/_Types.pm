@@ -29,6 +29,7 @@ use Type::Library
   Boolish
   Booleanpm
   BSONCodec
+  BSONDoc
   ClientSession
   CompressionType
   ZlibCompressionLevel
@@ -110,6 +111,8 @@ enum AuthMechanism,
   [qw/NONE DEFAULT MONGODB-CR MONGODB-X509 GSSAPI PLAIN SCRAM-SHA-1 SCRAM-SHA-256/];
 
 duck_type BSONCodec, [ qw/encode_one decode_one/ ];
+
+class_type BSONDoc, { class => 'BSON::Doc' };
 
 class_type ClientSession, { class => 'MongoDB::ClientSession' };
 
@@ -195,8 +198,8 @@ enum TopologyType,
 class_type WriteConcern, { class => 'MongoDB::WriteConcern' };
 
 # after SingleKeyHash, PairArrayRef and IxHash
-declare OrderedDoc, as PairArrayRef|IxHash|SingleKeyHash;
-declare Document, as HashRef|PairArrayRef|IxHash|HashLike;
+declare OrderedDoc, as BSONDoc|PairArrayRef|IxHash|SingleKeyHash;
+declare Document, as HashRef|BSONDoc|PairArrayRef|IxHash|HashLike;
 
 # after NonEmptyStr
 declare DBRefColl, as NonEmptyStr;
@@ -230,6 +233,8 @@ coerce IxHash, from HashRef, via { Tie::IxHash->new(%$_) };
 coerce IxHash, from ArrayRef, via { Tie::IxHash->new(@$_) };
 
 coerce IxHash, from HashLike, via { Tie::IxHash->new(%$_) };
+
+coerce IxHash, from BSONDoc, via { Tie::IxHash->new(@$_) };
 
 coerce OID, from Str, via { lc $_ };
 

@@ -341,6 +341,29 @@ if ( $server_version >= v2.4.11 ) {
     is($tied->{'something'}, 'else');
 }
 
+subtest "BSON::Doc for insert/update" => sub {
+    $coll->drop;
+    my $hash = bson_doc("f" => 1, "s" => 2, "fo" => 4, "t" => 3);
+    $id = $coll->insert_one($hash)->inserted_id;
+    isa_ok($id, 'BSON::OID');
+    my $got = $coll->find_one;
+    is($got->{'_id'}."", "$id");
+    is($got->{'f'}, 1);
+    is($got->{'s'}, 2);
+    is($got->{'fo'}, 4);
+    is($got->{'t'}, 3);
+
+    my $criteria = bson_doc("_id" => $id);
+    $coll->replace_one($criteria, bson_doc( f => 1, something => 'else' ));
+    $got = $coll->find_one;
+    is($got->{'f'}, 1);
+    is($got->{'something'}, 'else');
+
+    my $oid = bson_oid();
+    ok( $coll->insert_one(bson_doc(_id => $oid)), "inserted with oid" );
+    ok( $coll->find_id($oid), "found by oid" );
+};
+
 # () update/insert
 {
     $coll->drop;
