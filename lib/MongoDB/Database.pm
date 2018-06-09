@@ -24,7 +24,6 @@ our $VERSION = 'v1.999.0';
 
 use MongoDB::CommandResult;
 use MongoDB::Error;
-use MongoDB::GridFS;
 use MongoDB::GridFSBucket;
 use MongoDB::Op::_Command;
 use MongoDB::Op::_DropDatabase;
