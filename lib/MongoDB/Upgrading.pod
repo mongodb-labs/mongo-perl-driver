@@ -74,6 +74,31 @@ the v1 driver release:
 
 =head1 DEPRECATIONS
 
+=head2 Count method on collections
+
+The C<count> method is deprecated.
+
+The reasons for this change are as follows:
+
+=for :list
+* The performance and correctness characteristics of the C<count> method could
+  vary widely depending on whether or a predicate is used.
+* The C<count> method could be incorrect on sharded clusters during document
+  migration between shards.
+
+Many users are unaware of these considerations in the use of C<count>.  As
+any change to C<count> could surprise users with unexpected differences in
+either performance or correctness, the C<count> method has been replaced
+with two new API methods, which more directly convey performance and
+correctness expections:
+
+=for :list
+* C<estimated_document_count> takes no predicate; it does not work
+  in transactions; performance is O(1).
+* C<count_documents> takes a predicate (even if "empty", meaning count all
+  documents); in can be used with or without transactions; performance is
+  O(N) in the worst case.
+
 =head2 Query options
 
 =for :list
@@ -90,9 +115,6 @@ the v1 driver release:
 * MongoDB::DBRef
 * MongodB::OID
 * MongoDB::Timestamp
-
-=head2 Count method on collections
-
 
 =head1 REMOVED FEATURES
 
