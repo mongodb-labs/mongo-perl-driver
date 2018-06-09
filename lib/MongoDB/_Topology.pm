@@ -601,16 +601,7 @@ sub _supports_sessions {
 
     $self->scan_all_servers if $self->stale;
 
-    # Sessions require a data bearing replica set member or mongos.
-    # Because direct connections to a replica set member show up
-    # as topology type 'Single', we check the server type as well.
-    if ( $self->type eq 'Single' ) {
-        my ($server) = $self->all_data_bearing_servers;
-        return $server && $server->type ne 'Standalone';
-    }
-
-    return 1 if defined $self->logical_session_timeout_minutes;
-    return;
+    return defined $self->logical_session_timeout_minutes;
 }
 
 # Used for bulkWrite for shortcutting to original execute command
