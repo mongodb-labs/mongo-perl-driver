@@ -28,6 +28,7 @@ use MongoDB::_Types qw(
     Document
     ReadPreference
 );
+use List::Util qw/first/;
 use Types::Standard qw(
     CodeRef
     HashRef
@@ -100,25 +101,9 @@ sub execute {
     $self->publish_command_started( $link, $self->{query}, $request_id )
       if $self->monitoring_callback;
 
-    my %write_opt;
-    $write_opt{disable_compression} = do {
-        my $doc = $self->{query};
-        my $type = ref $doc;
-        (
-            $type eq 'ARRAY' ? $IS_NOT_COMPRESSIBLE{ $doc->[0] }
-          : $type eq 'Tie::IxHash' ? $doc->Keys(0)
-          : do { # hashlike?
-              my $disable;
-              DOC_FIELD: for my $name (keys %$doc) {
-                  if ($IS_NOT_COMPRESSIBLE{lc $name}) {
-                      $disable = 1;
-                      last DOC_FIELD;
-                  }
-              }
-              $disable
-            }
-        )
-    };
+    my %write_opt = (
+        disable_compression => $IS_NOT_COMPRESSIBLE{ _get_command_name( $self->{query} ) },
+    );
 
     my $result;
     eval {
@@ -146,6 +131,15 @@ sub execute {
     $self->_update_session_and_cluster_time($res);
 
     return $res;
+}
+
+sub _get_command_name {
+    my ($doc) = @_;
+    my $type = ref $doc;
+    return
+        $type eq 'ARRAY' || $type eq 'BSON::Doc' ? $doc->[0]
+      : $type eq 'Tie::IxHash' ? $doc->Keys(0)
+      :                          $doc->{ [ keys %$doc ]->[0] };
 }
 
 1;
