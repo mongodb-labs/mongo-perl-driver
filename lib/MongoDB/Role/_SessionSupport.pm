@@ -57,6 +57,20 @@ sub _apply_session_and_cluster_time {
         ($$query_ref)->Push( @{ $self->session->_get_transaction_read_concern->as_args( $self->session ) } );
     }
 
+    # write concern not allowed in transactions except when ending. We can
+    # safely delete it here as you can only pass writeConcern through by
+    # arguments to client of collection.
+
+    if ( $self->session->_in_transaction_state( qw/ starting in_progress / ) ) {
+        ($$query_ref)->Delete( 'writeConcern' );
+    }
+
+    if ( $self->session->_in_transaction_state( qw/ aborted committed / )
+         && ! ($$query_ref)->EXISTS('writeConcern')
+    ) {
+        ($$query_ref)->Push( @{ $self->session->_get_transaction_write_concern->as_args() } );
+    }
+
     $self->session->_server_session->update_last_use;
 
     my $cluster_time = $self->session->get_latest_cluster_time;
@@ -90,8 +104,7 @@ sub _update_session_and_cluster_time {
     return;
 }
 
-# All items here happen before the response is checked for success
-sub _update_operation_time {
+sub _update_session_pre_assert {
     my ( $self, $response ) = @_;
 
     return unless defined $self->session;
@@ -118,6 +131,14 @@ sub _assert_session_errors {
     }
 
     return;
+}
+
+sub _update_session_error {
+    my ( $self, $err ) = @_;
+
+    if ( $self->session->_in_transaction_state( qw/ starting in_progress / ) ) {
+        push @{ $err->error_labels }, 'TransientTransactionError';
+    }
 }
 
 sub __extract_from {

@@ -112,6 +112,7 @@ sub execute {
     };
     if ( my $err = $@ ) {
         $self->publish_command_exception($err) if $self->monitoring_callback;
+        $self->_update_session_error( $err );
         die $err;
     }
 
@@ -123,8 +124,7 @@ sub execute {
         address => $link->address,
     );
 
-    # Must happen even on an error (ie. the command fails)
-    $self->_update_operation_time( $res );
+    $self->_update_session_pre_assert( $res );
 
     $res->assert;
 

@@ -379,6 +379,17 @@ sub _get_transaction_read_concern {
     return $self->client->read_concern;
 }
 
+sub _get_transaction_write_concern {
+    my $self = shift;
+    # writeConcern is merged during start_transaction
+    if ( defined $self->_current_transaction_settings->{writeConcern} ) {
+        return MongoDB::WriteConcern->new( $self->_current_transaction_settings->{writeConcern} );
+    }
+
+    # Default to client write_concern, however unlikely to actually be used
+    return $self->client->write_concern;
+}
+
 # TODO TBSliver REMOVE ME ON RELEASE
 sub _debug {
     my $self = shift;

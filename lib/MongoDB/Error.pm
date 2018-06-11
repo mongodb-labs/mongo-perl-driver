@@ -110,6 +110,7 @@ has 'previous_exception' => (
 has error_labels => (
     is      => 'ro',
     isa     => ArrayRef[Str],
+    default => sub { [] },
 );
 
 sub has_error_label {

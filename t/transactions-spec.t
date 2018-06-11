@@ -21,6 +21,7 @@ use Path::Tiny 0.054; # basename with suffix
 use Test::More 0.96;
 use Test::Deep;
 use Math::BigInt;
+use Storable qw( dclone );
 
 use utf8;
 
@@ -42,7 +43,7 @@ use MongoDBTest qw/
     skip_unless_failpoints_available
 /;
 
-skip_unless_mongod();
+# TODO Keep not getting hosts???? skip_unless_mongod();
 # TODO skip_unless_failpoints_available();
 
 my @events;
@@ -51,7 +52,8 @@ my @events;
 
 sub clear_events { @events = () }
 sub event_count { scalar @events }
-sub event_cb { push @events, $_[0] }#; Dwarn $_[0] }
+# Must use dclone, as was causing action at a distance for binc on txn number
+sub event_cb { push @events, dclone $_[0] }#; Dwarn $_[0] }
 
 my $conn           = build_client();
 my $server_version = server_version($conn);
@@ -80,7 +82,7 @@ my %method_args = (
 my $dir      = path("t/data/transactions");
 my $iterator = $dir->iterator; my $index = 0; # TBSLIVER
 while ( my $path = $iterator->() ) {
-    next unless $path =~ /\.json$/; next unless ++$index == 3; # TBSLIVER
+    next unless $path =~ /\.json$/; next unless ++$index == 3; # TBSLIVER run specific file
     my $plan = eval { decode_json( $path->slurp_utf8 ) };
     if ($@) {
         die "Error decoding $path: $@";
@@ -90,7 +92,7 @@ while ( my $path = $iterator->() ) {
 
     subtest $path => sub {
 
-        for my $test ( @{ $plan->{tests} }[0] ) { # TBSLIVER
+        for my $test ( @{ $plan->{tests} }[0..5] ) { # TBSLIVER run specific subtest
             my $description = $test->{description};
             subtest $description => sub {
                 my $client = build_client();
@@ -132,29 +134,47 @@ sub set_failpoint {
     my ( $client, $failpoint ) = @_;
 
     return unless defined $failpoint;
-    $client->send_admin_command([
+    #Dwarn '-----------set failpoint-------------';
+    #DwarnN $failpoint;
+    my $ret = $client->send_admin_command([
         configureFailPoint => $failpoint->{configureFailPoint},
         mode => $failpoint->{mode},
         defined $failpoint->{data}
           ? ( data => $failpoint->{data} )
           : (),
     ]);
+  #DwarnN $ret;
+  #Dwarn '----------/set failpoint-------------';
 }
 
 sub clear_failpoint {
     my ( $client, $failpoint ) = @_;
 
     return unless defined $failpoint;
-    $client->send_admin_command([
+    #Dwarn '-----------clear failpoint-------------';
+    #DwarnN $failpoint;
+    my $ret = $client->send_admin_command([
         configureFailPoint => $failpoint->{configureFailPoint},
         mode => 'off',
     ]);
+  #DwarnN $ret;
+    #Dwarn '----------/clear failpoint-------------';
 }
 
 sub to_snake_case {
-  my $t = shift;
-  $t =~ s{([A-Z])}{_\L$1}g;
-  return $t;
+    my $t = shift;
+    $t =~ s{([A-Z])}{_\L$1}g;
+    return $t;
+}
+
+sub remap_hash_to_snake_case {
+    my $hash = shift;
+    return {
+        map {
+            my $k = to_snake_case( $_ );
+            $k => $hash->{ $_ }
+        } keys %$hash
+    }
 }
 
 # Global so can get values when checking sessions
@@ -164,13 +184,7 @@ sub run_test {
     my ( $test_db_name, $test_coll_name, $test ) = @_;
 
     my $client_options = $test->{clientOptions} // {};
-    # Remap camel case to snake case
-    $client_options = {
-      map {
-        my $k = to_snake_case( $_ );
-        $k => $client_options->{ $_ }
-      } keys %$client_options
-    };
+    $client_options = remap_hash_to_snake_case( $client_options );
 
     my $client = build_client( monitoring_callback => \&event_cb, %$client_options );
 
@@ -183,11 +197,12 @@ sub run_test {
     $sessions{session0_lsid} = $sessions{session0}->session_id;
     $sessions{session1_lsid} = $sessions{session1}->session_id;
 
-    # Cant see any in the files?
-    my $collection_options = $test->{collectionOptions} // {};
-
     clear_events();
     for my $operation ( @{ $test->{operations} } ) {
+
+        my $collection_options = $operation->{collectionOptions} // {};
+        $collection_options = remap_hash_to_snake_case( $collection_options );
+
         eval {
             my $test_db = $client->get_database( $test_db_name );
             my $test_coll = $test_db->get_collection( $test_coll_name, $collection_options );
@@ -196,7 +211,8 @@ sub run_test {
             diag $cmd;
             #Dwarn $operation;
             if ( $cmd =~ /_transaction$/ ) {
-                $sessions{ $operation->{object} }->$cmd;
+                my $op_args = $operation->{arguments} // {};
+                $sessions{ $operation->{object} }->$cmd( $op_args->{options} );
             } else {
                 my @args = _adjust_arguments( $cmd, $operation->{arguments} );
                 $args[-1]->{session} = $sessions{ $args[-1]->{session} }
@@ -234,7 +250,10 @@ sub run_test {
                 }
             }
         } elsif ( grep {/^error/} keys %{ $operation->{result} } ) {
-            ok 0, 'Should have found an error';
+            fail 'Should have found an error';
+            #DwarnN $operation;
+            #DwarnN $events[-2];
+            #DwarnN $events[-1];
         }
     }
 
@@ -245,7 +264,7 @@ sub run_test {
     if ( defined $test->{expectations} ) {
         check_event_expectations( _adjust_types( $test->{expectations} ) );
     }
-    ok 1;
+    %sessions = ();
 }
 
 # Following subs modified from monitoring_spec.t

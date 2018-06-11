@@ -192,6 +192,7 @@ sub _send_write_command {
     };
     if ( my $err = $@ ) {
         $self->publish_command_exception($err) if $self->monitoring_callback;
+        $self->_update_session_error( $err );
         die $err;
     }
 
@@ -200,11 +201,12 @@ sub _send_write_command {
 
     my $res = $self->bson_codec->decode_one( $result->{docs} );
 
-    $self->_update_operation_time( $res );
+    $self->_update_session_pre_assert( $res );
 
     $self->_update_session_and_cluster_time($res);
 
     # Error checking depends on write concern
+    # TODO does this logic get affected by transactions???? Probably?
 
     if ( $self->write_concern->is_acknowledged ) {
         # errors in the command itself get handled as normal CommandResult
