@@ -35,7 +35,7 @@ use MongoDBTest qw/
     server_version
     server_type
     check_min_server_version
-    get_feature_compat_version
+    get_features
 /;
 
 my $orc =
@@ -63,13 +63,13 @@ my $testdb         = get_test_db($conn);
 my $coll = get_unique_collection( $testdb, 'retry_failover' );
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
-my $feat_compat_ver = get_feature_compat_version($conn);
+my $features       = get_features($conn);
+
+plan skip_all => "retryableWrites not supported on this MongoDB"
+    unless ( $features->supports_retryWrites );
 
 plan skip_all => "standalone servers dont support retryableWrites"
     if $server_type eq 'Standalone';
-
-plan skip_all => "retryableWrites requires featureCompatibilityVersion 3.6 - got $feat_compat_ver"
-    if ( $feat_compat_ver < 3.6 );
 
 my $primary = $conn->_topology->current_primary;
 

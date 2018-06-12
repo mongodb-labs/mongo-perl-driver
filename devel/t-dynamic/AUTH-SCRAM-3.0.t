@@ -49,7 +49,7 @@ subtest "no authentication" => sub {
     my $coll   = $testdb->get_collection("test_collection");
 
     like(
-        exception { $coll->count_documents },
+        exception { $coll->count_documents({}) },
         qr/not authorized/,
         "can't read collection when not authenticated"
     );
@@ -70,7 +70,7 @@ subtest "MONGODB-CR disabled" => sub {
 
             my $testdb = get_test_db($conn);
             my $coll   = $testdb->get_collection("test_collection");
-            $coll->count_documents();
+            $coll->count_documents({});
         },
 
         qr/challenge-response.*disabled/i,
@@ -90,7 +90,7 @@ subtest "auth via client attributes" => sub {
     my $testdb = get_test_db($conn);
     my $coll   = $testdb->get_collection("test_collection");
 
-    is( exception { $coll->count_documents }, undef, "no exception reading from new client" );
+    is( exception { $coll->count_documents({}) }, undef, "no exception reading from new client" );
 };
 
 subtest "auth via connection string" => sub {
@@ -98,7 +98,7 @@ subtest "auth via connection string" => sub {
     my $testdb = get_test_db($conn);
     my $coll   = $testdb->get_collection("test_collection");
 
-    is( exception { $coll->count_documents }, undef, "no exception reading from new client" );
+    is( exception { $coll->count_documents({}) }, undef, "no exception reading from new client" );
 };
 
 clear_testdbs;

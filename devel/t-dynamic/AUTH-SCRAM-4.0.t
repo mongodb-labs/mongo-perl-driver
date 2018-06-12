@@ -73,7 +73,7 @@ sub auth_ok {
     for my $k ( sort keys %cases ) {
         my $conn = build_client(%{$cases{$k}});
         my $coll = $conn->db($dbname)->get_collection("test_collection");
-        is( exception { $coll->count_documents }, undef, "$label ($k)" );
+        is( exception { $coll->count_documents({}) }, undef, "$label ($k)" );
     }
 
 }
@@ -83,7 +83,7 @@ sub auth_not_ok {
     my ( $label, $dbname, @options ) = @_;
     my $conn = build_client(@options);
     my $coll = $conn->db($dbname)->get_collection("test_collection");
-    like( exception { $coll->count_documents }, qr/MongoDB::AuthError/, $label );
+    like( exception { $coll->count_documents({}) }, qr/MongoDB::AuthError/, $label );
 }
 
 my $orc =
@@ -130,8 +130,8 @@ subtest "no authentication" => sub {
     my $coll = $conn->db( $testdb->name )->get_collection("test_collection");
 
     like(
-        exception { $coll->count_documents },
-        qr/not authorized/,
+        exception { $coll->count_documents({}) },
+        qr/not authorized|requires authentication/,
         "can't read collection when not authenticated"
     );
 };
@@ -147,8 +147,8 @@ subtest "invalid user" => sub {
     my $coll = $conn->db( $testdb->name )->get_collection("test_collection");
 
     like(
-        exception { $coll->count_documents },
-        qr/MongoDB::AuthError.*mechanism negotiation error/,
+        exception { $coll->count_documents({}) },
+        qr/MongoDB::AuthError.*/,
         "unknown user is an auth error"
     );
 };

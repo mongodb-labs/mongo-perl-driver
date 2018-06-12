@@ -1239,7 +1239,9 @@ A hash reference of options may be provided. Valid keys include:
 
 sub count_documents {
     my ( $self, $filter, $options ) = @_;
-    $filter  ||= {};
+    MongoDB::UsageError->throw("filter argument must be a reference")
+      unless ref( $filter );
+
     $options ||= {};
 
     my $pipeline = [ { '$match' => $filter } ];

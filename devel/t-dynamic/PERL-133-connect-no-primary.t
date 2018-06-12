@@ -73,7 +73,7 @@ subtest "connect to RS without primary" => sub {
 
     my $conn2 = build_client( dt_type => undef, read_preference => 'primary_preferred' );
     my $coll2 = $conn2->get_database($testdb->name)->get_collection("test_collection");
-    my $count = $coll2->count_documents;
+    my $count = $coll2->count_documents({});
 
     is( $count, 1, "read count from secondary" );
 };

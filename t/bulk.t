@@ -142,12 +142,12 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "$method: successful insert" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        is( $coll->count_documents, 0, "no docs in collection" );
+        is( $coll->count_documents({}), 0, "no docs in collection" );
         $bulk->insert_one( { _id => 1 } );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on insert" ) or diag _truncate explain $err;
-        is( $coll->count_documents, 1, "one doc in collection" );
+        is( $coll->count_documents({}), 1, "one doc in collection" );
 
         # test empty superclass
         isa_ok( $result, 'MongoDB::WriteResult', "result object" );
@@ -169,13 +169,13 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
     subtest "$method insert without _id" => sub {
         $coll->drop;
         my $bulk = $coll->$method;
-        is( $coll->count_documents, 0, "no docs in collection" );
+        is( $coll->count_documents({}), 0, "no docs in collection" );
         my $doc = {};
         $bulk->insert_one( $doc );
         my ( $result, $err );
         $err = exception { $result = $bulk->execute };
         is( $err, undef, "no error on insert" ) or diag _truncate explain $err;
-        is( $coll->count_documents, 1, "one doc in collection" );
+        is( $coll->count_documents({}), 1, "one doc in collection" );
         isa_ok( $result, 'MongoDB::BulkWriteResult', "result object" );
         cmp_deeply(
             $result,
@@ -755,7 +755,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             "result object correct"
         ) or diag _truncate explain $result;
 
-        is( $coll->count_documents, 0, "all documents removed" );
+        is( $coll->count_documents({}), 0, "all documents removed" );
     };
 
     subtest "delete_many matching with $method" => sub {
@@ -855,7 +855,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             "result object correct"
         ) or diag _truncate explain $result;
 
-        is( $coll->count_documents, 1, "only one doc removed" );
+        is( $coll->count_documents({}), 1, "only one doc removed" );
     };
 
     subtest "delete_one with collation, using $method" => sub {
@@ -1070,7 +1070,7 @@ subtest "ordered batch with errors" => sub {
         "error op"
     ) or diag _truncate explain $details->write_errors->[0]{op};
 
-    is( $coll->count_documents, 1, "subsequent inserts did not run" );
+    is( $coll->count_documents({}), 1, "subsequent inserts did not run" );
 };
 
 note("QA-477 BATCH SPLITTING: maxBsonObjectSize");
@@ -1101,7 +1101,7 @@ subtest "ordered batch split on size" => sub {
     is( $errdoc->{index},            6,     "error index" );
     ok( length( $errdoc->{errmsg} ), "error message" );
 
-    is( $coll->count_documents, 6, "collection count" );
+    is( $coll->count_documents({}), 6, "collection count" );
 };
 
 subtest "unordered batch split on size" => sub {
@@ -1126,7 +1126,7 @@ subtest "unordered batch split on size" => sub {
     is( $errdoc->{index},            6,     "error index" );
     ok( length( $errdoc->{errmsg} ), "error message" );
 
-    is( $coll->count_documents, 7, "collection count" );
+    is( $coll->count_documents({}), 7, "collection count" );
 };
 
 note("QA-477 BATCH SPLITTING: maxWriteBatchSize");
@@ -1155,7 +1155,7 @@ subtest "ordered batch split on number of ops" => sub {
     is( $errdoc->{index},            2000,  "error index" );
     ok( length( $errdoc->{errmsg} ), "error message" );
 
-    is( $coll->count_documents, 2000, "collection count" );
+    is( $coll->count_documents({}), 2000, "collection count" );
 };
 
 subtest "unordered batch split on number of ops" => sub {
@@ -1178,7 +1178,7 @@ subtest "unordered batch split on number of ops" => sub {
     is( $errdoc->{index},            2000,  "error index" );
     ok( length( $errdoc->{errmsg} ), "error message" );
 
-    is( $coll->count_documents, 2001, "collection count" );
+    is( $coll->count_documents({}), 2001, "collection count" );
 };
 
 note("QA-477 RE-RUNNING A BATCH");
@@ -1278,7 +1278,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
           or diag _truncate explain $err;
 
         my $expect = $method eq 'initialize_ordered_bulk_op' ? 1 : 2;
-        is( $coll->count_documents, $expect, "document count ($expect)" );
+        is( $coll->count_documents({}), $expect, "document count ($expect)" );
     };
 }
 
@@ -1318,13 +1318,13 @@ note("ARRAY REFS"); # Not in QA-477 -- this is perl driver specific
 subtest "insert (ARRAY)" => sub {
     $coll->drop;
     my $bulk = $coll->initialize_ordered_bulk_op;
-    is( $coll->count_documents, 0, "no docs in collection" );
+    is( $coll->count_documents({}), 0, "no docs in collection" );
     $bulk->insert_one( [ _id => 1 ] );
     $bulk->insert_one( [] );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on insert" ) or diag _truncate explain $err;
-    is( $coll->count_documents, 2, "doc count" );
+    is( $coll->count_documents({}), 2, "doc count" );
 };
 
 subtest "update (ARRAY)" => sub {
@@ -1364,14 +1364,14 @@ note("Tie::IxHash");
 subtest "insert (Tie::IxHash)" => sub {
     $coll->drop;
     my $bulk = $coll->initialize_ordered_bulk_op;
-    is( $coll->count_documents, 0, "no docs in collection" );
+    is( $coll->count_documents({}), 0, "no docs in collection" );
     $bulk->insert_one( Tie::IxHash->new( _id => 1 ) );
     my $doc = Tie::IxHash->new();
     $bulk->insert_one( $doc  );
     my ( $result, $err );
     $err = exception { $result = $bulk->execute };
     is( $err, undef, "no error on insert" ) or diag _truncate explain $err;
-    is( $coll->count_documents, 2, "doc count" );
+    is( $coll->count_documents({}), 2, "doc count" );
 };
 
 subtest "update (Tie::IxHash)" => sub {
@@ -1425,7 +1425,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
           or diag _truncate explain $err;
 
         my $expect = $method eq 'initialize_ordered_bulk_op' ? 1 : 2;
-        is( $coll->count_documents, $expect, "document count ($expect)" );
+        is( $coll->count_documents({}), $expect, "document count ($expect)" );
     };
 }
 

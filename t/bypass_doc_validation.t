@@ -310,7 +310,7 @@ subtest "aggregate with \$out" => sub {
             "invalid aggregate output throws error"
         );
 
-        is( $coll->count_documents, 0, "no docs in \$out collection" );
+        is( $coll->count_documents({}), 0, "no docs in \$out collection" );
     }
 
     is(
@@ -323,7 +323,7 @@ subtest "aggregate with \$out" => sub {
         "validation bypassed"
     );
 
-    is( $coll->count_documents, 10, "correct doc count in \$out collection" );
+    is( $coll->count_documents({}), 10, "correct doc count in \$out collection" );
 
     is(
         exception {

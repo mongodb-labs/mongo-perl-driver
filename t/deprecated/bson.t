@@ -324,7 +324,7 @@ subtest "string type" => sub {
 
     is($c->count_documents({num => 1}), 1);
     is($c->count_documents({num => "001"}), 1);
-    is($c->count_documents, 2);
+    is($c->count_documents({}), 2);
 };
 
 subtest "MongoDB::BSON::Binary type" => sub {

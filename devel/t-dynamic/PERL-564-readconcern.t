@@ -42,7 +42,7 @@ sub _test_read_concern_set {
 
     $coll->drop;
     $coll->insert_one({ a => 1 });
-    is( $coll->count_documents, 1, "one doc in collection");
+    is( $coll->count_documents({}), 1, "one doc in collection");
     my $cursor = $coll->find( {} );
     my $obj = $cursor->next;
 
@@ -59,7 +59,7 @@ sub _test_read_concern_not_set {
 
     $coll->drop;
     $coll->insert_one({ a => 1 });
-    is( $coll->count_documents, 1, "one doc in collection");
+    is( $coll->count_documents({}), 1, "one doc in collection");
     my $cursor = $coll->find( {} );
     my $obj = $cursor->next;
 

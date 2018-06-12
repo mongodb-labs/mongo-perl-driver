@@ -220,7 +220,7 @@ sub _create_indexes {
 
     my $pf = $self->_files->clone( read_preference => 'primary' );
 
-    return if $pf->count_documents > 0;
+    return if $pf->count_documents({}) > 0;
 
     my $pfi = $pf->indexes;
     my $pci = $self->_chunks->clone( read_preference => 'primary' )->indexes;

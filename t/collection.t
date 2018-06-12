@@ -140,7 +140,7 @@ if ( $server_version >= v2.4.11 ) {
     $coll->drop;
 
     $id = $coll->insert_one({ just => 'another', perl => 'hacker' })->inserted_id;
-    is($coll->count_documents, 1, 'count');
+    is($coll->count_documents({}), 1, 'count');
 
     $coll->replace_one({ _id => $id }, {
         just => "an\xE4oth\0er",
@@ -148,19 +148,19 @@ if ( $server_version >= v2.4.11 ) {
         with => { a => 'reference' },
         and => [qw/an array reference/],
     });
-    is($coll->count_documents, 1);
+    is($coll->count_documents({}), 1);
 }
 
 # rename
 {
     my $newcoll = $coll->rename('test_collection.rename');
     is($newcoll->name, 'test_collection.rename', 'rename');
-    is($coll->count_documents, 0, 'rename');
-    is($newcoll->count_documents, 1, 'rename');
+    is($coll->count_documents({}), 0, 'rename');
+    is($newcoll->count_documents({}), 1, 'rename');
     $coll = $newcoll->rename('test_collection');
     is($coll->name, 'test_collection', 'rename');
-    is($coll->count_documents, 1, 'rename');
-    is($newcoll->count_documents, 0, 'rename');
+    is($coll->count_documents({}), 1, 'rename');
+    is($newcoll->count_documents({}), 0, 'rename');
 }
 
 # count_documents
@@ -168,6 +168,10 @@ if ( $server_version >= v2.4.11 ) {
     is($coll->count_documents({ mongo => 'programmer' }), 0, 'count = 0');
     is($coll->count_documents({ mongo => 'hacker'     }), 1, 'count = 1');
     is($coll->count_documents({ 'with.a' => 'reference' }), 1, 'inner obj count');
+
+    # requires filter
+    like( exception { $coll->count_documents },
+        qr/MongoDB::UsageError/, "requires a filter" );
 
     # missing collection
     my $coll2 = $testdb->coll("aadfkasfa");
@@ -212,7 +216,7 @@ if ( $server_version >= v2.4.11 ) {
 # remove
 {
     $coll->delete_one($obj);
-    is($coll->count_documents, 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
+    is($coll->count_documents({}), 0, 'remove() deleted everything (won\'t work on an old version of Mongo)');
 }
 
 # doubles
@@ -290,7 +294,7 @@ if ( $server_version >= v2.4.11 ) {
 {
     $coll->drop;
     my $ids = $coll->insert_many([{'x' => 1}, {'x' => 2}, {'x' => 3}])->inserted_ids;
-    is($coll->count_documents, 3, 'insert_many');
+    is($coll->count_documents({}), 3, 'insert_many');
 }
 
 # sort
@@ -317,7 +321,7 @@ if ( $server_version >= v2.4.11 ) {
     $coll->drop;
     $coll->insert_many([{"x" => 1}, {"x" => 1}, {"x" => 1}]);
     $coll->delete_one( { "x" => 1 } );
-    is ($coll->count_documents, 2, 'remove just one');
+    is ($coll->count_documents({}), 2, 'remove just one');
 }
 
 # tie::ixhash for update/insert
@@ -555,7 +559,7 @@ SKIP: {
      $ok = $coll->insert_one({ $kanji => 1});
     };
     is($ok,0,"Insert key with Null Char Operation Failed");
-    is($coll->count_documents, 0, "Insert key with Null Char in Key Failed");
+    is($coll->count_documents({}), 0, "Insert key with Null Char in Key Failed");
     $coll->drop;
     $ok = 0;
     my $kanji_a = "漢\0字";
@@ -568,7 +572,7 @@ SKIP: {
      $ok = $coll->insert_many([{ $kanji_a => "some data"} , { $kanji_b => "some more data"}, { $kanji_c => "even more data"}]);
     };
     is($ok,0, "insert_many key with Null Char in Key Operation Failed");
-    is($coll->count_documents, 0, "insert_many key with Null Char in Key Failed");
+    is($coll->count_documents({}), 0, "insert_many key with Null Char in Key Failed");
     $coll->drop;
 
     #test ixhash
@@ -577,7 +581,7 @@ SKIP: {
      $ok = $coll->insert_one($hash);
     };
     is($ok,0, "ixHash Insert key with Null Char in Key Operation Failed");
-    is($coll->count_documents, 0, "ixHash key with Null Char in Key Operation Failed");
+    is($coll->count_documents({}), 0, "ixHash key with Null Char in Key Operation Failed");
     $tied = $coll->find_one;
     $coll->drop;
 }
@@ -855,7 +859,7 @@ subtest "count_document w/ hint" => sub {
     $coll->drop;
     $coll->insert_one( { i => 1 } );
     $coll->insert_one( { i => 2 } );
-    is ($coll->count_documents(), 2, 'count = 2');
+    is ($coll->count_documents({}), 2, 'count = 2');
 
     $coll->indexes->create_one( { i => 1 } );
 

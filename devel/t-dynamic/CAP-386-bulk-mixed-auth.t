@@ -78,7 +78,7 @@ my ( $result, $err );
 $err = exception { $result = $bulk->execute };
 like( $err->message, qr/not authorized/, "no error on bulk op by limited user" ) or diag explain $err;
 
-is( $coll2->count_documents, 1, "document inserted but not removed"); 
+is( $coll2->count_documents({}), 1, "document inserted but not removed");
 
 clear_testdbs;
 
