@@ -616,6 +616,9 @@ sub _supports_sessions {
 
     $self->scan_all_servers if $self->stale;
 
+    my @servers = $self->all_servers;
+    return if @servers == 1 && $servers[0]->type eq 'Standalone';
+
     return defined $self->logical_session_timeout_minutes;
 }
 
