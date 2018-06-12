@@ -111,8 +111,8 @@ sub execute {
         ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
     };
     if ( my $err = $@ ) {
+        $self->_update_session_connection_error( $err );
         $self->publish_command_exception($err) if $self->monitoring_callback;
-        $self->_update_session_error( $err );
         die $err;
     }
 

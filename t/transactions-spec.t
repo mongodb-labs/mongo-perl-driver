@@ -48,7 +48,7 @@ use MongoDBTest qw/
 
 my @events;
 
-#use Devel::Dwarn;
+use Devel::Dwarn;
 
 sub clear_events { @events = () }
 sub event_count { scalar @events }
@@ -82,7 +82,7 @@ my %method_args = (
 my $dir      = path("t/data/transactions");
 my $iterator = $dir->iterator; my $index = 0; # TBSLIVER
 while ( my $path = $iterator->() ) {
-    next unless $path =~ /\.json$/; next unless ++$index == 3; # TBSLIVER run specific file
+    next unless $path =~ /\.json$/; next unless ++$index == 3; # TBSLIVER run specific file - error-labels
     my $plan = eval { decode_json( $path->slurp_utf8 ) };
     if ($@) {
         die "Error decoding $path: $@";
@@ -92,7 +92,7 @@ while ( my $path = $iterator->() ) {
 
     subtest $path => sub {
 
-        for my $test ( @{ $plan->{tests} }[0..5] ) { # TBSLIVER run specific subtest
+        for my $test ( @{ $plan->{tests} }[7] ) { # TBSLIVER run specific subtest
             my $description = $test->{description};
             subtest $description => sub {
                 my $client = build_client();
@@ -134,8 +134,6 @@ sub set_failpoint {
     my ( $client, $failpoint ) = @_;
 
     return unless defined $failpoint;
-    #Dwarn '-----------set failpoint-------------';
-    #DwarnN $failpoint;
     my $ret = $client->send_admin_command([
         configureFailPoint => $failpoint->{configureFailPoint},
         mode => $failpoint->{mode},
@@ -143,22 +141,16 @@ sub set_failpoint {
           ? ( data => $failpoint->{data} )
           : (),
     ]);
-  #DwarnN $ret;
-  #Dwarn '----------/set failpoint-------------';
 }
 
 sub clear_failpoint {
     my ( $client, $failpoint ) = @_;
 
     return unless defined $failpoint;
-    #Dwarn '-----------clear failpoint-------------';
-    #DwarnN $failpoint;
     my $ret = $client->send_admin_command([
         configureFailPoint => $failpoint->{configureFailPoint},
         mode => 'off',
     ]);
-  #DwarnN $ret;
-    #Dwarn '----------/clear failpoint-------------';
 }
 
 sub to_snake_case {
@@ -260,7 +252,7 @@ sub run_test {
     $sessions{session0}->end_session;
     $sessions{session1}->end_session;
 
-    #Dwarn \@events;
+    Dwarn \@events;
     if ( defined $test->{expectations} ) {
         check_event_expectations( _adjust_types( $test->{expectations} ) );
     }
@@ -373,7 +365,9 @@ sub prepare_data_spec {
 
 sub check_event_expectations {
     my ( $expected ) = @_;
-    my @got = grep { $_->{type} eq 'command_started' } @events;
+    # We only care about command_started events
+    # also ignoring ismaster commands caused by re-negotiation after network error
+    my @got = grep { $_->{type} eq 'command_started' && $_->{commandName} ne 'ismaster' } @events;
 
     #Dwarn \@events;
     for my $exp ( @$expected ) {

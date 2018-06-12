@@ -7,7 +7,6 @@ mongod:
     - name: host1
     - name: host2
     - name: host3
-    - name: host4
       rs_config:
           arbiterOnly: true
 

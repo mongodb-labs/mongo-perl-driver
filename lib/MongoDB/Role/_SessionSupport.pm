@@ -133,11 +133,13 @@ sub _assert_session_errors {
     return;
 }
 
-sub _update_session_error {
+sub _update_session_connection_error {
     my ( $self, $err ) = @_;
 
     if ( $self->session->_in_transaction_state( qw/ starting in_progress / ) ) {
         push @{ $err->error_labels }, 'TransientTransactionError';
+        # If already in_progress, no harm done
+        $self->session->_set__transaction_state( 'in_progress' );
     }
 }
 

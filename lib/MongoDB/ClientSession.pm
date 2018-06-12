@@ -314,7 +314,23 @@ sub commit_transaction {
     MongoDB::TransactionError->throw("Cannot call commit_transaction after calling abort_transaction")
         if $self->_transaction_state eq 'aborted';
 
-    $self->_send_end_transaction_command( 'committed', [ commitTransaction => 1 ] );
+    eval {
+        $self->_send_end_transaction_command( 'committed', [ commitTransaction => 1 ] );
+    };
+    if ( my $err = $@ ) {
+        # catch and re-throw after retryable errors
+        # TODO maybe need better checking logic that theres actually an error code in output?
+        my $err_code = $err->result->output->{codeName} || '';
+        # If its a write concern error, retrying a commit would still error
+        unless ( grep { $_ eq $err_code } qw/
+            CannotSatisfyWriteConcern
+            UnsatisfiableWriteConcern
+            UnknownReplWriteConcern
+        / ) {
+            push @{ $err->error_labels }, 'UnknownTransactionCommitResult';
+        }
+        die $err;
+    }
 
     return;
 }
