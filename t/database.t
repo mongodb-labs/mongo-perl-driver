@@ -67,7 +67,7 @@ subtest 'run_command' => sub {
     is( ref $testdb->run_command( Tie::IxHash->new( ismaster => 1 ) ),
         'HASH', "run_command(IxHash) gives HASH" );
     is( ref $testdb->run_command( bson_doc( ismaster => 1 ) ),
-        'HASH', "run_command(IxHash) gives HASH" );
+        'HASH', "run_command(BSON::Doc) gives HASH" );
 
     if ( $server_type eq 'RSPrimary' && $conn->_topology->all_servers > 1 ) {
         my $primary = $testdb->run_command( [ ismaster => 1 ] );
