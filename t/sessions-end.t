@@ -31,6 +31,7 @@ use lib "t/lib";
 use MongoDBTest qw/
     build_client
     skip_unless_mongod
+    skip_unless_sessions
     get_test_db
     server_version
     server_type
@@ -40,6 +41,7 @@ use MongoDBTest qw/
 /;
 
 skip_unless_mongod();
+skip_unless_sessions();
 
 my @events;
 
@@ -54,15 +56,6 @@ my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 my $coll           = $testdb->get_collection('test_collection');
-
-plan skip_all => "Requires MongoDB 3.6"
-    if $server_version < v3.6.0;
-
-plan skip_all => "Sessions unsupported on standalone server"
-    if $server_type eq 'Standalone';
-
-plan skip_all => "deployment does not support sessions"
-    unless $conn->_topology->_supports_sessions;
 
 subtest 'endSession closes sessions on server' => sub {
     my $session_count = 10;

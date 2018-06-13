@@ -30,21 +30,19 @@ use MongoDBTest qw/
     server_type
     check_min_server_version
     skip_unless_mongod
+    skip_unless_sessions
     skip_unless_failpoints_available
     get_features
 /;
 
 skip_unless_mongod();
+skip_unless_sessions();
 skip_unless_failpoints_available();
 
 my $conn           = build_client(retry_writes => 1);
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
-my $features       = get_features($conn);
-
-plan skip_all => "retryableWrites not supported on this MongoDB"
-    unless ( $features->supports_retryWrites );
 
 sub run_test {
     my ( $coll, $test ) = @_;

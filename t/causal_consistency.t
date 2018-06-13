@@ -34,9 +34,11 @@ use MongoDBTest qw/
     clear_testdbs
     get_unique_collection
     skip_unless_mongod
+    skip_unless_sessions
 /;
 
 skip_unless_mongod();
+skip_unless_sessions();
 
 my @events;
 
@@ -51,12 +53,6 @@ my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 my $coll           = $testdb->get_collection('test_collection');
-
-plan skip_all => "Requires MongoDB 3.6"
-    if $server_version < v3.6.0;
-
-plan skip_all => "Causal Consistency unsupported on standalone servers"
-    if $server_type eq 'Standalone';
 
 # spec test 1
 subtest 'session operation_time undef on init' => sub {

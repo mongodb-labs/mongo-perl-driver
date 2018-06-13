@@ -34,9 +34,11 @@ use MongoDBTest qw/
     check_min_server_version
     get_features
     skip_unless_mongod
+    skip_unless_sessions
 /;
 
 skip_unless_mongod();
+skip_unless_sessions();
 
 my @events;
 
@@ -53,7 +55,7 @@ my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 my $features       = get_features($conn);
 
-plan skip_all => "retryableWrites not supported on this MongoDB"
+plan skip_all => "Retryable writes support not available"
     unless ( $features->supports_retryWrites );
 
 sub check_event_no_txn {

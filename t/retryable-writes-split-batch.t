@@ -30,11 +30,13 @@ use MongoDBTest qw/
     server_type
     check_min_server_version
     skip_unless_mongod
+    skip_unless_sessions
     skip_unless_failpoints_available
     get_features
 /;
 
 skip_unless_mongod();
+skip_unless_sessions();
 skip_unless_failpoints_available();
 
 my $conn = build_client(
@@ -44,10 +46,6 @@ my $testdb         = get_test_db($conn);
 my $coll = get_unique_collection( $testdb, 'retry_split_batch' );
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
-my $features       = get_features($conn);
-
-plan skip_all => "retryableWrites not supported on this MongoDB"
-    unless ( $features->supports_retryWrites );
 
 subtest "ordered batch split on size" => sub {
 

@@ -35,6 +35,7 @@ our @EXPORT_OK = qw(
     skip_if_mongod
     skip_unless_mongod
     skip_unless_failpoints_available
+    skip_unless_sessions
     uri_escape
     get_unique_collection
     get_features
@@ -199,6 +200,13 @@ sub skip_unless_failpoints_available {
 
     plan skip_all => "fail points not supported via mongos"
       if $server_type eq 'Mongos';
+}
+
+sub skip_unless_sessions {
+    my $conn           = build_client;
+
+    plan skip_all => "Session support not available"
+      unless $conn->_topology->_supports_sessions;
 }
 
 sub server_version {
