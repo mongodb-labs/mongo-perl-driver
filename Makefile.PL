@@ -155,7 +155,7 @@ my %FallbackPrereqs = (
 
 # inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.034
 if (!want_pp() && can_xs()) {
-runtime_requires('BSON::XS', '0.004001');
+runtime_requires('BSON::XS', '0.004002');
 runtime_requires('Class::XSAccessor');
 runtime_requires('Type::Tiny::XS');
 }
