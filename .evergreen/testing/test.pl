@@ -54,7 +54,30 @@ run_in_dir $ENV{REPO_DIR} => sub {
     configure();
     make();
 
-    # Run tests
-    make("test");
+    # Enable fail point tests
+    $ENV{FAILPOINT_TESTING} = 1;
+
+    # Run tests with various combinations of environment config
+    {
+        local $ENV{PERL_MONGO_WITH_ASSERTS}=0;
+        local $ENV{PERL_BSON_BACKEND}="BSON::PP";
+        print "\n*** Testing with PERL_MONGO_WITH_ASSERTS=$ENV{PERL_MONGO_WITH_ASSERTS}\n";
+        print "\n*** Testing with PERL_BSON_BACKEND=$ENV{PERL_BSON_BACKEND}\n";
+        make("test");
+    }
+    {
+        local $ENV{PERL_MONGO_WITH_ASSERTS}=1;
+        local $ENV{PERL_BSON_BACKEND}="BSON::PP";
+        print "\n*** Testing with PERL_MONGO_WITH_ASSERTS=$ENV{PERL_MONGO_WITH_ASSERTS}\n";
+        print "\n*** Testing with PERL_BSON_BACKEND=$ENV{PERL_BSON_BACKEND}\n";
+        make("test");
+    }
+    {
+        local $ENV{PERL_MONGO_WITH_ASSERTS}=0;
+        local $ENV{PERL_BSON_BACKEND}="";
+        print "\n*** Testing with PERL_MONGO_WITH_ASSERTS=$ENV{PERL_MONGO_WITH_ASSERTS}\n";
+        print "\n*** Testing with PERL_BSON_BACKEND=$ENV{PERL_BSON_BACKEND}\n";
+        make("test");
+    }
 };
 
