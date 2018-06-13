@@ -38,13 +38,13 @@ the v1 driver release:
 
 =for :list
 * consistency – particularly with regards to Perl <-> BSON data conversion,
-  the v2 driver provides a complete, consistenly-designed set of BSON
+  the v2 driver provides a complete, consistently-designed set of BSON
   type wrappers, and significantly improved round-trip capabilities.
 * server compatibility – as the MongoDB server deprecates or removes
   functionality, the driver must be updated to match so that users don't
   develop apps around features that are going away.
 * portability – the switch to an external library that has both pure-Perl
-  and XS optimized versions allow the MongoDB driver to support
+  and XS optimized versions allows the MongoDB driver to support
   environments without a C compiler available.
 
 =head1 INSTALLATION AND DEPENDENCY CHANGES
@@ -60,7 +60,7 @@ is a version bump rather than an entirely new dependency.
 The MongoDB driver now requires Perl v5.10.1 or later.  This provides
 better pure-Perl support, several core dependencies, and many fewer bugs
 involving Unicode and threads.  While threads are discouraged, threads
-under Perl 5.8 were so broken that driver tests were regularly failing.
+under Perl v5.8 were so broken that driver tests were regularly failing.
 
 =head2 Pure-perl capable
 
@@ -72,8 +72,9 @@ detection.
 
 =head1 BSON BEHAVIOR CHANGES
 
-For update details on types, see L<MongoDB::DataTypes>.  The following
-sections provide an overview of major changes from past versions.
+For detailed information on handling MongoDB data types in Perl, see
+L<MongoDB::DataTypes>.  The following sections provide an overview of major
+changes from past versions.
 
 =head2 MongoDB::BSON is removed
 
@@ -88,13 +89,13 @@ type.  When decoding, these types will be returned for types that don't map
 by default to Perl types.
 
 Code that uses C<ref> to check documents returned from the database for
-legacy types (e.g.  C<MongoDB::BSON::Regexp>) will need to be updated for
+legacy types (e.g.  L<MongoDB::BSON::Regexp>) will need to be updated for
 the new type wrappers.
 
 =head2 Legacy type wrappers
 
 All the legacy type wrappers have been updated to be subclasses of their
-corresponding L<BSON> library equivalent.  For example,
+corresponding L<BSON> library equivalents.  For example,
 L<MongoDB::BSON::Regexp> is a subclass of L<BSON::Regex>.  Most of them are
 empty subclasses -- the BSON-library versions provide the same API -- but
 some have some additional constructor argument behaviors for backwards
@@ -104,6 +105,9 @@ The L<BSON> library knows how to encode legacy types, so code that uses
 legacy types for encoding values should be able to work without
 modification.
 
+The legacy type wrappers will be removed in a future major version release
+of the driver.
+
 =head2 Default date type decoding
 
 The legacy driver defaulted to decoding the BSON date type as a L<DateTime>
@@ -111,21 +115,22 @@ object.  Unfortunately, that type is very heavy-weight and slow to
 construct; it's a poor choice as a default as it inflicts that cost whether
 or not users ultimately need or want objects of that type.
 
-The C<dt_type> configuration argument has been removed from
-L<MongoDB::MongoClient> and the default date type of the L<BSON> library is
-now L<BSON::Time>, which is extremly lightweight and provides convenience
-methods to convert to various popular time classes.  It also works will
-with L<Time::HiRes> for recording datetimes with millisecond precision.
+The previously-deprecated  C<dt_type> configuration argument has been
+removed from L<MongoDB::MongoClient> and the default date type of the
+L<BSON> library is L<BSON::Time>, which is extremly lightweight and
+provides convenience methods to convert to various popular time classes.
+It also works well with L<Time::HiRes> for recording datetimes with
+millisecond precision.
 
 Code that relied on date types being L<DateTime> objects will need to
-convert via the C<as_datetime> method.
+convert via the C<as_datetime> method of L<BSON::Time>.
 
 =head2 More consistent string/number heuristics
 
 Depending on their history of use, non-reference Perl scalars may have both
 string and number representations internally and the MongoDB driver wasn't
-clear how it treated them, plus the treatment could vary slightly by Perl
-version.  The heuristics are now standardized as follows:
+always clear on how it treated them. Moreover, this treatment could vary
+slightly by Perl version.  The heuristics are now standardized as follows:
 
 =for :list
 * If the value has a valid double representation, it will be encoded to
@@ -144,7 +149,7 @@ have been made consistent.
 
 =head2 Type helper functions
 
-To simplify use of type wrappers (and avoid unintentionally using a
+To make it easy to use type wrappers (and to avoid unintentionally using a
 deprecated one), the L<BSON::Types> module has a standard
 set of type helper functions:
 
@@ -156,7 +161,7 @@ set of type helper functions:
 
 =head1 NON-BSON BEHAVIOR CHANGES
 
-=head2 run_command requires ordered document
+=head2 run_command requires an ordered document
 
 The MongoDB database uses the first key of the document provided to
 C<run_command> as the name of the command.  Due to Perl's hash order
@@ -176,7 +181,7 @@ The reasons for this change are as follows:
 
 =for :list
 * The performance and correctness characteristics of the C<count> method could
-  vary widely depending on whether or a predicate is used.
+  vary widely depending on whether or not a predicate is used.
 * The C<count> method could be incorrect on sharded clusters during document
   migration between shards.
 
@@ -195,11 +200,14 @@ correctness expections:
 
 =head2 Authentication
 
-The MONGODB-CR authentication mechanism was deprecated in MongoDB serve 3.6
-and removed in MongoDB 4.0.  The Perl driver is deprecating MONGODB-CR, but
-will not remove it until it no longer supports older servers.
+The MONGODB-CR authentication mechanism was deprecated in MongoDB server
+3.6 and removed in MongoDB server 4.0.  The Perl driver is deprecating
+MONGODB-CR, but will not remove it until it no longer supports older
+servers.
 
 =head2 Query options
+
+The following query options are deprecated:
 
 =for :list
 * maxScan -- deprecated in MongoDB server 4.0
