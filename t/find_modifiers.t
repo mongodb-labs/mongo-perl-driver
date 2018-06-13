@@ -258,6 +258,8 @@ subtest "Given: a 'max' value for an index" => sub {
 };
 
 subtest "Given: a 'maxScan' value for an index" => sub {
+    plan skip_all => 'Removed from MongODB 4.1.0+' if $server_version >= v4.1.0;
+
     my $maxScan = 101;
     my $maxScan2 = 0;
 
