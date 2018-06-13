@@ -98,7 +98,20 @@ Fields:
 
 =head1 REDACTION
 
-TODO: describe redaction rules
+Certain commands are considered sensitive.  When any of the following
+commands are seen in monitoring, the command body and database reply body
+are replaced with an empty document:
+
+=for :list
+* authenticate
+* saslStart
+* saslContinue
+* getnonce
+* createUser
+* updateUser
+* copydbgetnonce
+* copydbsaslstart
+* copydb
 
 =cut
 
