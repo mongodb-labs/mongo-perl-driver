@@ -22,7 +22,7 @@ my %WriteMakefileArgs = (
   "NAME" => "MongoDB",
   "PREREQ_PM" => {
     "Authen::SASL::SASLprep" => 0,
-    "Authen::SCRAM::Client" => "0.009",
+    "Authen::SCRAM::Client" => "0.010",
     "BSON" => "1.006003",
     "BSON::Bytes" => 0,
     "BSON::Code" => 0,
@@ -92,7 +92,7 @@ my %WriteMakefileArgs = (
 
 my %FallbackPrereqs = (
   "Authen::SASL::SASLprep" => 0,
-  "Authen::SCRAM::Client" => "0.009",
+  "Authen::SCRAM::Client" => "0.010",
   "BSON" => "1.006003",
   "BSON::Bytes" => 0,
   "BSON::Code" => 0,
