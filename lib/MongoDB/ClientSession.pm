@@ -135,8 +135,7 @@ has _active_transaction => (
 );
 
 # Flag used to say whether any operations have been performed on the
-# transaction - this is used to determine if the transaction has actually had
-# any operations performed in it.
+# transaction
 has _has_transaction_operations => (
     is => 'rwp',
     isa => Boolish,

@@ -115,7 +115,6 @@ sub _update_session_pre_assert {
 
     if ( $self->session->_in_transaction_state( 'starting' ) ) {
         $self->session->_set__transaction_state( 'in_progress' );
-        $self->session->_set__has_transaction_operations( 1 );
     }
 
     my $operation_time = $self->__extract_from( $response, 'operationTime' );
