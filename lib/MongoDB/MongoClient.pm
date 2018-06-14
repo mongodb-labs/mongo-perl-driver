@@ -1077,7 +1077,8 @@ has _write_concern => (
 sub _build__write_concern {
     my ($self) = @_;
     return MongoDB::WriteConcern->new(
-        ( $self->w        ? ( w        => $self->w )        : () ),
+        # Must check for defined as w can be 0, and defaults to undef
+        ( defined $self->w ? ( w        => $self->w )        : () ),
         ( $self->wtimeout ? ( wtimeout => $self->wtimeout ) : () ),
         ( $self->j        ? ( j        => $self->j )        : () ),
     );
@@ -1532,6 +1533,12 @@ sub send_admin_command {
 sub send_direct_op {
     my ( $self, $op, $address ) = @_;
     my ( $link, $result );
+
+    # Reset session state if we're outside an active transaction
+    if ( defined $op->session && ! $op->session->_active_transaction ) {
+        $op->session->_set__transaction_state( 'none' );
+    }
+
     ( $link = $self->{_topology}->get_specific_link($address) ), (
         eval { ($result) = $op->execute($link); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
@@ -1553,6 +1560,12 @@ sub send_direct_op {
 sub send_write_op {
     my ( $self, $op ) = @_;
     my ( $link, $result );
+
+    # Reset session state if we're outside an active transaction
+    if ( defined $op->session && ! $op->session->_active_transaction ) {
+        $op->session->_set__transaction_state( 'none' );
+    }
+
     ( $link = $self->{_topology}->get_writable_link ), (
         eval { ($result) = $op->execute($link, $self->{_topology}->type); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
@@ -1585,6 +1598,11 @@ sub send_retryable_write_op {
     # TODO untangle the send_write_op and _try_write_op_for_link duplication
     return $self->send_write_op( $op ) unless $self->retry_writes || ( defined $force && $force eq 'force' );
 
+    # Reset session state if we're outside an active transaction
+    if ( defined $op->session && ! $op->session->_active_transaction ) {
+        $op->session->_set__transaction_state( 'none' );
+    }
+
     my $result;
     my $link = $self->{_topology}->get_writable_link;
 
@@ -1603,7 +1621,7 @@ sub send_retryable_write_op {
 
     # If we get this far and there is no session, then somethings gone really
     # wrong, so probably not worth worrying about.
-    #
+
     # increment transaction id before write, but otherwise is the same for both attempts
     $op->session->_increment_transaction_id;
     $op->retryable_write( 1 );
@@ -1668,6 +1686,17 @@ sub _try_write_op_for_link {
 sub send_read_op {
     my ( $self, $op ) = @_;
     my ( $link, $type, $result );
+
+    # Get transaction read preference if in a transaction
+    if ( defined $op->session && $op->session->_active_transaction ) {
+        $op->read_preference( $op->session->_get_transaction_read_preference );
+        MongoDB::ConfigurationError->throw("read preference in a transaction must be primary")
+            if $op->read_preference->mode ne 'primary';
+    } elsif ( defined $op->session ) {
+        # Not in an active transaction, so reset state
+        $op->session->_set__transaction_state( 'none' );
+    }
+
     ( $link = $self->{_topology}->get_readable_link( $op->read_preference ) ),
       ( $type = $self->{_topology}->type ), (
         eval { ($result) = $op->execute( $link, $type ); 1 } or do {

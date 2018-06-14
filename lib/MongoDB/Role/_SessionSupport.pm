@@ -60,15 +60,19 @@ sub _apply_session_and_cluster_time {
     # write concern not allowed in transactions except when ending. We can
     # safely delete it here as you can only pass writeConcern through by
     # arguments to client of collection.
-
     if ( $self->session->_in_transaction_state( qw/ starting in_progress / ) ) {
         ($$query_ref)->Delete( 'writeConcern' );
+    }
+
+    # read concern only valid outside a transaction or when starting
+    if ( ! $self->session->_in_transaction_state( qw/ none starting / ) ) {
+        ($$query_ref)->Delete( 'readConcern' );
     }
 
     if ( $self->session->_in_transaction_state( qw/ aborted committed / )
          && ! ($$query_ref)->EXISTS('writeConcern')
     ) {
-        ($$query_ref)->Push( @{ $self->session->_get_transaction_write_concern->as_args() } );
+        ($$query_ref)->Push( @{ $self->session->_transaction_write_concern->as_args() } );
     }
 
     $self->session->_server_session->update_last_use;
@@ -111,6 +115,7 @@ sub _update_session_pre_assert {
 
     if ( $self->session->_in_transaction_state( 'starting' ) ) {
         $self->session->_set__transaction_state( 'in_progress' );
+        $self->session->_set__has_transaction_operations( 1 );
     }
 
     my $operation_time = $self->__extract_from( $response, 'operationTime' );

@@ -29,6 +29,8 @@ use MongoDB::_Types qw(
     Document
     BSONTimestamp
     TransactionState
+    Boolish
+    WriteConcern
 );
 use Types::Standard qw(
     Maybe
@@ -123,6 +125,22 @@ has _transaction_state => (
     is => 'rwp',
     isa => TransactionState,
     default => 'none',
+);
+
+# Flag used to say we are still in a transaction
+has _active_transaction => (
+    is => 'rwp',
+    isa => Boolish,
+    default => 0,
+);
+
+# Flag used to say whether any operations have been performed on the
+# transaction - this is used to determine if the transaction has actually had
+# any operations performed in it.
+has _has_transaction_operations => (
+    is => 'rwp',
+    isa => Boolish,
+    default => 0,
 );
 
 =attr operation_time
@@ -284,16 +302,23 @@ sub start_transaction {
 
     $self->_set__current_transaction_settings( $opts );
 
+    # Trigger build of write_concern - must error on start of transaction
+    $self->_clear_transaction_write_concern;
+    $self->_transaction_write_concern;
+
     $self->_set__transaction_state('starting');
 
     $self->_increment_transaction_id;
+
+    $self->_set__active_transaction( 1 );
+    $self->_set__has_transaction_operations( 0 );
 
     return;
 }
 
 sub _increment_transaction_id {
     my $self = shift;
-    return if $self->_in_transaction_state( qw/ in_progress committed aborted / );
+    return if $self->_active_transaction;
 
     $self->_server_session->transaction_id->binc();
 }
@@ -314,18 +339,32 @@ sub commit_transaction {
     MongoDB::TransactionError->throw("Cannot call commit_transaction after calling abort_transaction")
         if $self->_transaction_state eq 'aborted';
 
+    # Commit can be called multiple times - even if the transaction completes
+    # correctly. Setting this here makes sure we dont increment transaction id
+    # until after another command has been called using this session
+    $self->_set__active_transaction( 1 );
+
     eval {
         $self->_send_end_transaction_command( 'committed', [ commitTransaction => 1 ] );
     };
     if ( my $err = $@ ) {
         # catch and re-throw after retryable errors
         # TODO maybe need better checking logic that theres actually an error code in output?
-        my $err_code = $err->result->output->{codeName} || '';
+        my $err_code;
+        if ( $err->can('result') ) {
+            if ( $err->result->can('output') ) {
+                $err_code = $err->result->output->{codeName};
+                $err_code ||= $err->result->output->{writeConcernError}
+                  ? $err->result->output->{writeConcernError}->{codeName}
+                  : ''; # Empty string just in case
+            }
+        }
         # If its a write concern error, retrying a commit would still error
-        unless ( grep { $_ eq $err_code } qw/
+        unless ( defined( $err_code ) && grep { $_ eq $err_code } qw/
             CannotSatisfyWriteConcern
             UnsatisfiableWriteConcern
             UnknownReplWriteConcern
+            NoSuchTransaction
         / ) {
             push @{ $err->error_labels }, 'UnknownTransactionCommitResult';
         }
@@ -364,7 +403,7 @@ sub _send_end_transaction_command {
     my ( $self, $end_state, $command ) = @_;
 
     # Only need to send commit command if the transaction actually sent anything
-    if ( ! $self->_in_transaction_state( qw/ starting / ) ) {
+    if ( $self->_has_transaction_operations ) {
 
         # Must set state before running the op as otherwise it wont be retried
         $self->_set__transaction_state( $end_state );
@@ -378,15 +417,28 @@ sub _send_end_transaction_command {
             monitoring_callback => $self->client->monitoring_callback,
         );
 
-        $self->client->send_retryable_write_op( $op, 'force' );
+        my $result = $self->client->send_retryable_write_op( $op, 'force' );
+        MongoDB::WriteConcernError->throw(
+            message => $result->last_errmsg,
+            result  => $result,
+            code    => WRITE_CONCERN_ERROR,
+        ) if exists $result->output->{writeConcernError};
+
     }
 
     $self->_set__transaction_state( $end_state );
+
+    # If the commit/abort succeeded, we are no longer in an active transaction
+    $self->_set__active_transaction( 0 );
 }
 
+# read/write concern, and read preference are merged during start_transaction
 sub _get_transaction_read_concern {
     my $self = shift;
-    # readConcern is merged during start_transaction
+
+    # Read concern is only read during the first operation in a transaction, so we can set this here
+    $self->_set__has_transaction_operations( 1 );
+
     if ( defined $self->_current_transaction_settings->{readConcern} ) {
         return MongoDB::ReadConcern->new( $self->_current_transaction_settings->{readConcern} );
     }
@@ -395,15 +447,37 @@ sub _get_transaction_read_concern {
     return $self->client->read_concern;
 }
 
-sub _get_transaction_write_concern {
+sub _get_transaction_read_preference {
     my $self = shift;
-    # writeConcern is merged during start_transaction
-    if ( defined $self->_current_transaction_settings->{writeConcern} ) {
-        return MongoDB::WriteConcern->new( $self->_current_transaction_settings->{writeConcern} );
+
+    if ( defined $self->_current_transaction_settings->{readPreference} ) {
+        return MongoDB::ReadPreference->new( $self->_current_transaction_settings->{readPreference} );
     }
 
-    # Default to client write_concern, however unlikely to actually be used
-    return $self->client->write_concern;
+    return $self->client->read_preference;
+}
+
+has _transaction_write_concern => (
+    is => 'lazy',
+    isa => WriteConcern,
+    init_arg => undef,
+    builder => '_build_transaction_write_concern',
+    clearer => '_clear_transaction_write_concern',
+);
+
+sub _build_transaction_write_concern {
+    my $self = shift;
+
+    my $write_concern = $self->client->write_concern;
+    # client is last default - provided settings override.
+    if ( defined $self->_current_transaction_settings->{writeConcern} ) {
+        $write_concern = MongoDB::WriteConcern->new( $self->_current_transaction_settings->{writeConcern} );
+    }
+
+    unless ( $write_concern->is_acknowledged ) {
+        MongoDB::ConfigurationError->throw( 'transactions do not support unacknowledged write concerns' );
+    }
+    return $write_concern;
 }
 
 # TODO TBSliver REMOVE ME ON RELEASE

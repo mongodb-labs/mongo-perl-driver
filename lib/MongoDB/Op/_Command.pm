@@ -52,7 +52,7 @@ has query_flags => (
 );
 
 has read_preference => (
-    is  => 'ro',
+    is  => 'rw',
     isa => Maybe [ReadPreference],
 );
 
