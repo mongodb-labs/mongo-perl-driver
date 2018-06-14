@@ -80,9 +80,14 @@ __END__
 
 =begin :prelude
 
-B<NOTE:> The v1.7.x versions are development releases in advance of the
-MongoDB Perl Driver v1.8.0. They are available for evaluation and testing
+This is the Alpha 1 release for v2.0.0.
+
+B<NOTE:> The v1.999.x versions are development releases in advance of the
+MongoDB Perl Driver v2.0.0. They are available for evaluation and testing
 and should not be used in production.
+
+More details on changes and how to upgrade applications may be found in
+L<MongoDB::Upgrading>.
 
 =end :prelude
 
