@@ -1105,28 +1105,6 @@ sub _build__read_concern {
     );
 }
 
-has _cluster_time => (
-    is => 'rwp',
-    isa => Maybe[Document],
-    init_arg => undef,
-    default => undef,
-);
-
-sub _update_cluster_time {
-    my ( $self, $cluster_time ) = @_;
-
-    # Only update the cluster time if it is more recent than the current entry
-    if ( ! defined $self->_cluster_time ) {
-        $self->_set__cluster_time( $cluster_time );
-    } else {
-        if ( $cluster_time->{'clusterTime'}
-           > $self->_cluster_time->{'clusterTime'} ) {
-            $self->_set__cluster_time( $cluster_time );
-        }
-    }
-    return;
-}
-
 #--------------------------------------------------------------------------#
 # private attributes
 #--------------------------------------------------------------------------#
@@ -1169,7 +1147,11 @@ has _topology => (
     isa      => InstanceOf ['MongoDB::_Topology'],
     init_arg => undef,
     builder  => '_build__topology',
-    handles  => { topology_type => 'type' },
+    handles  => {
+        topology_type => 'type',
+        _cluster_time => 'cluster_time',
+        _update_cluster_time => 'update_cluster_time',
+    },
     clearer  => '_clear__topology',
 );
 

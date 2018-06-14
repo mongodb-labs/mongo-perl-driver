@@ -19,6 +19,7 @@ use Test::Fatal;
 use Test::Deep qw/!blessed/;
 
 use utf8;
+use List::Util 'max';
 use Tie::IxHash;
 
 use MongoDB;
@@ -82,6 +83,42 @@ subtest 'LIFO Pool' => sub {
 };
 
 subtest 'clusterTime in commands' => sub {
+
+    clear_events();
+
+    subtest 'SDAM' => sub {
+        my $local_client = get_high_heartbeat_client();
+
+        $local_client->topology_status( refresh => 1 );
+
+        my $command = $events[0]->{command};
+        ok exists $command->{'ismaster'}, 'ismaster in sent command';
+
+        # first ismaster to unknown hosts won't have it
+        ok !exists $command->{'$clusterTime'}, 'clusterTime in sent command';
+
+        # find max time among replies
+        my $max_cluster_time = max(
+            map  { $_->{reply}{'$clusterTime'}{clusterTime} }
+            grep { $_->{type} eq 'command_succeeded' } @events
+        );
+
+        clear_events();
+
+        $local_client->topology_status( refresh => 1 );
+
+        my $command2 = $events[0]->{command};
+
+        # next ismaster to known hosts should have $clustertime
+        ok exists $command2->{'ismaster'}, 'ismater in sent command'
+          or diag explain $command2;
+
+        my $got = $command2->{'$clusterTime'}->{clusterTime};
+        ok( $got == $max_cluster_time, "clusterTime matches" )
+          or diag "GOT:\n", explain $got, "\nEXPECTED:\n", explain $max_cluster_time;
+    };
+
+    clear_events();
 
     subtest 'ping' => sub {
         my $local_client = get_high_heartbeat_client();
@@ -202,9 +239,6 @@ sub get_high_heartbeat_client {
         heartbeat_frequency_ms => 9_000_000_000,
         monitoring_callback => \&event_cb,
     );
-
-    # Make sure we have clusterTime already populated
-    $local_client->send_admin_command(Tie::IxHash->new('ismaster' => 1));
 
     return $local_client;
 }

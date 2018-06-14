@@ -281,6 +281,26 @@ has rtt_ewma_sec => (
     isa => HashRef[Num],
 );
 
+has cluster_time => (
+    is => 'rwp',
+    isa => Maybe[Document],
+    init_arg => undef,
+    default => undef,
+);
+
+sub update_cluster_time {
+    my ( $self, $cluster_time ) = @_;
+
+    # Only update the cluster time if it is more recent than the current entry
+    if ( !defined $self->cluster_time ) {
+        $self->_set_cluster_time($cluster_time);
+    }
+    elsif ( $cluster_time->{'clusterTime'} > $self->cluster_time->{'clusterTime'} ) {
+        $self->_set_cluster_time($cluster_time);
+    }
+    return;
+}
+
 #--------------------------------------------------------------------------#
 # builders
 #--------------------------------------------------------------------------#
@@ -1004,7 +1024,7 @@ sub _selection_timeout {
 my $PRIMARY = MongoDB::ReadPreference->new;
 
 sub _generate_ismaster_request {
-    my ( $self, $should_perform_handshake ) = @_;
+    my ( $self, $link, $should_perform_handshake ) = @_;
     my @opts;
     if ($should_perform_handshake) {
         push @opts, client => $self->handshake_document;
@@ -1016,6 +1036,10 @@ sub _generate_ismaster_request {
             push @opts, compression => $self->compressors;
         }
     }
+    if ( $link->supports_clusterTime && defined $self->cluster_time ) {
+        push @opts, '$clusterTime' => $self->cluster_time;
+    }
+
     return [ ismaster => 1, @opts ];
 }
 
@@ -1026,7 +1050,7 @@ sub _update_topology_from_link {
     my $is_master = eval {
         my $op = MongoDB::Op::_Command->_new(
             db_name             => 'admin',
-            query               => $self->_generate_ismaster_request( $opts{with_handshake} ),
+            query               => $self->_generate_ismaster_request( $link, $opts{with_handshake} ),
             query_flags         => {},
             bson_codec          => $self->bson_codec,
             read_preference     => $PRIMARY,
@@ -1059,6 +1083,10 @@ sub _update_topology_from_link {
     };
 
     return unless $is_master;
+
+    if ( my $cluster_time = $is_master->{'$clusterTime'} ) {
+        $self->update_cluster_time($cluster_time);
+    }
 
     my $end_time = time;
     my $rtt_sec = $end_time - $start_time;
