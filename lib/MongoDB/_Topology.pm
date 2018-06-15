@@ -1085,7 +1085,7 @@ sub _construct_compressor {
     my ($self, $is_master) = @_;
 
     my @supported = @{ ($is_master || {})->{compression} || [] }
-        or return undef;
+        or return undef; ## no critic
 
     for my $name (@{ $self->compressors }) {
         if (grep { $name eq $_ } @supported) {
@@ -1095,7 +1095,7 @@ sub _construct_compressor {
         }
     }
 
-    return undef;
+    return undef; ## no critic
 }
 
 sub _update_topology_from_server_desc {
