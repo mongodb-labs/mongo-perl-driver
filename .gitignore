@@ -25,3 +25,4 @@ MYMETA.yml
 output.txt
 /nyt*
 /tags
+/.build
