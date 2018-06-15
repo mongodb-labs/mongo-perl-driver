@@ -18,7 +18,7 @@ use warnings;
 package MongoDB::_Credential;
 
 use version;
-our $VERSION = 'v1.999.0';
+our $VERSION = 'v1.999.1';
 
 use Moo;
 use MongoDB::Error;

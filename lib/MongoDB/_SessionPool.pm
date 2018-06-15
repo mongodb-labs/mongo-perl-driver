@@ -17,7 +17,7 @@ use warnings;
 package MongoDB::_SessionPool;
 
 use version;
-our $VERSION = 'v1.999.0';
+our $VERSION = 'v1.999.1';
 
 use Moo;
 use MongoDB::_ServerSession;

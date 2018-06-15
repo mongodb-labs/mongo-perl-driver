@@ -19,7 +19,7 @@ package MongoDB::DBRef;
 # ABSTRACT: (DEPRECATED) A MongoDB database reference type
 
 use version;
-our $VERSION = 'v1.999.0';
+our $VERSION = 'v1.999.1';
 
 use Moo;
 extends 'BSON::DBRef';

@@ -19,7 +19,7 @@ use warnings;
 package MongoDB::_Protocol;
 
 use version;
-our $VERSION = 'v1.999.0';
+our $VERSION = 'v1.999.1';
 
 use MongoDB::_Constants;
 use MongoDB::Error;
