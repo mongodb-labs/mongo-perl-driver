@@ -2,8 +2,6 @@
 
 {{ $NEXT }}
 
-  # XXX last commit included: 11a84f65 XXX #
-
   [!!! Incompatible Changes !!!]
 
     - PERL-640 Remove bundled MongoDB::BSON codec and use BSON.pm and/or
@@ -16,6 +14,8 @@
 
     - PERL-742 Require Perl 5.10.1 or later
 
+    - PERL-871 Remove features and methods deprecated in v1.0.0
+
   [*** Deprecations ***]
 
     - PERL-718 Deprecate find option 'modifiers'
@@ -23,6 +23,8 @@
     - PERL-872 Deprecate maxScan find option
 
     - PERL-873 Deprecate cursor snapshot option
+
+    - PERL-926 Deprecate 'count' method
 
   [Additions]
 
@@ -103,6 +105,9 @@
 
     - PERL-900 Conditionally require XS dependencies (BSON::XS,
       Class::XSAccessor and Type::Tiny::XS)
+
+    - PERL-934 Bumped Authen::SCRAM prerequisite to work around
+      deep dependency issues
 
   [Removals]
 

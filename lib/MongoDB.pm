@@ -82,12 +82,41 @@ __END__
 
 This is the Alpha 1 release for v2.0.0.
 
+=head1 ALPHA RELEASE
+
 B<NOTE:> The v1.999.x versions are development releases in advance of the
 MongoDB Perl Driver v2.0.0. They are available for evaluation and testing
 and should not be used in production.
 
-More details on changes and how to upgrade applications may be found in
-L<MongoDB::Upgrading>.
+Details on incompatible changes and how to upgrade applications may be
+found in L<MongoDB::Upgrading>.
+
+This development release includes several new features, including:
+
+=over
+
+=item *
+
+BSON encoding and decoding uses the external L<BSON> and optional L<BSON::XS>
+libraries
+
+=item *
+
+Support for MongoDB 3.6 features, including sessions and retryable writes
+
+=item *
+
+Wire protocol compression
+
+=item *
+
+Command monitoring callback support
+
+=back
+
+B<NOTE:> Some MongoDB 4.0 features are still under development and are not
+yet included in the driver, including transactions and
+database/cluster-wide change streams.
 
 =end :prelude
 
