@@ -1012,9 +1012,9 @@ sub _generate_ismaster_request {
             my $db_user = join( ".", map { $self->credential->$_ } qw/source username/ );
             push @opts, saslSupportedMechs => $db_user;
         }
-    }
-    if (@{ $self->compressors }) {
-        push @opts, compression => $self->compressors;
+        if (@{ $self->compressors }) {
+            push @opts, compression => $self->compressors;
+        }
     }
     return [ ismaster => 1, @opts ];
 }
