@@ -39,16 +39,11 @@ has _server_session_pool => (
     builder => sub { [] },
 );
 
-=method get_server_session
 
-    my $session = $pool->get_server_session;
-
-Returns a L<MongoDB::ServerSession> that was at least one minute remaining
-before session times out. Returns undef if no sessions available.
-
-Also retires any expiring sessions from the front of the queue as requried.
-
-=cut
+# Returns a L<MongoDB::ServerSession> that was at least one minute remaining
+# before session times out. Returns undef if no sessions available.
+#
+# Also retires any expiring sessions from the front of the queue as requried.
 
 sub get_server_session {
     my ( $self ) = @_;
@@ -64,18 +59,12 @@ sub get_server_session {
     return MongoDB::_ServerSession->new;
 }
 
-=method retire_server_session
-
-    $pool->retire_server_session( $session );
-
-Place a session back into the pool for use. Will check that there is at least
-one minute remaining in the session, and if so will place the session at the
-front of the pool.
-
-Also checks for expiring sessions at the back of the pool, and retires as
-required.
-
-=cut
+# Place a session back into the pool for use. Will check that there is at least
+# one minute remaining in the session, and if so will place the session at the
+# front of the pool.
+#
+# Also checks for expiring sessions at the back of the pool, and retires as
+# required.
 
 sub retire_server_session {
     my ( $self, $server_session ) = @_;
@@ -94,13 +83,7 @@ sub retire_server_session {
     return;
 }
 
-=method end_all_sessions
-
-    $pool->end_all_sessions
-
-Close all sessions registered with the server. Used during global cleanup.
-
-=cut
+# Close all sessions registered with the server. Used during global cleanup.
 
 sub end_all_sessions {
     my ( $self ) = @_;
