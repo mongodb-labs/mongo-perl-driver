@@ -80,7 +80,7 @@ __END__
 
 =begin :prelude
 
-This is the Alpha 1 release for v2.0.0.
+This is the Alpha 2 release for v2.0.0.
 
 =head1 ALPHA RELEASE
 
@@ -97,20 +97,7 @@ This development release includes several new features, including:
 
 =item *
 
-BSON encoding and decoding uses the external L<BSON> and optional L<BSON::XS>
-libraries
-
-=item *
-
-Support for MongoDB 3.6 features, including sessions and retryable writes
-
-=item *
-
-Wire protocol compression
-
-=item *
-
-Command monitoring callback support
+TBD
 
 =back
 
