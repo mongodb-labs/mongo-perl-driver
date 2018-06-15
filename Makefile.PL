@@ -11,9 +11,7 @@ my %WriteMakefileArgs = (
   "ABSTRACT" => "Official MongoDB Driver for Perl",
   "AUTHOR" => "David Golden <david\@mongodb.com>, Rassi <rassi\@mongodb.com>, Mike Friedman <friedo\@friedo.com>, Kristina Chodorow <k.chodorow\@gmail.com>, Florian Ragwitz <rafl\@debian.org>",
   "CONFIGURE_REQUIRES" => {
-    "Config::AutoConf" => "0.22",
     "ExtUtils::MakeMaker" => "6.17",
-    "Path::Tiny" => "0.052",
     "Text::ParseWords" => 0
   },
   "DISTNAME" => "MongoDB",
