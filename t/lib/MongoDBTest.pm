@@ -36,6 +36,8 @@ our @EXPORT_OK = qw(
     skip_unless_mongod
     skip_unless_failpoints_available
     skip_unless_sessions
+    to_snake_case
+    remap_hashref_to_snake_case
     uri_escape
     get_unique_collection
     get_features
@@ -269,6 +271,22 @@ sub uri_escape {
     utf8::encode($str);
     $str =~ s/($unsafe_char)/$escapes{$1}/ge;
     return $str;
+}
+
+sub to_snake_case {
+    my $t = shift;
+    $t =~ s{([A-Z])}{_\L$1}g;
+    return $t;
+}
+
+sub remap_hashref_to_snake_case {
+    my $hash = shift;
+    return {
+        map {
+            my $k = to_snake_case( $_ );
+            $k => $hash->{ $_ }
+        } keys %$hash
+    }
 }
 
 sub uuid_to_string {
