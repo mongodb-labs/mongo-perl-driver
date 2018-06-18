@@ -17,7 +17,8 @@ use warnings;
 use JSON::MaybeXS;
 use Path::Tiny 0.054; # basename with suffix
 use Test::More 0.88;
-use Test::Fatal;
+use Test::Deep ':v1';
+use Safe::Isa;
 
 use lib "t/lib";
 
@@ -32,6 +33,8 @@ use MongoDBTest qw/
     skip_unless_mongod
     skip_unless_sessions
     skip_unless_failpoints_available
+    to_snake_case
+    remap_hashref_to_snake_case
     get_features
 /;
 
@@ -46,7 +49,7 @@ my $server_type    = server_type($conn);
 
 sub run_test {
     my ( $coll, $test ) = @_;
-    enable_failpoint( $test->{failPoint} ) if exists $test->{failPoint};
+    enable_failpoint( $test->{failPoint} );
 
     my $op = $test->{operation};
     my $method = $op->{name};
@@ -63,33 +66,13 @@ sub run_test {
 
     if ( !exists $test->{outcome}{error} && exists $test->{outcome}->{result} ) {
 
-        #Dwarn $ret;
-        #Dwarn $test->{outcome};
-        for my $res_key ( keys %{ $test->{outcome}->{result} } ) {
-            next if $res_key eq 'upsertedCount' && ! $ret->can('upserted_count'); # Driver does not parse this value on all things?
-            # next if $res_key eq 'upsertedId' && ! defined $ret->upserted_id; # upserted id is always present
-            my $res = $test->{outcome}->{result}->{$res_key};
+        my $expected = remap_hashref_to_snake_case( $test->{outcome}->{result} );
+        # not all commands return an upserted count
+        delete $expected->{upserted_count} unless $ret->$_can('upserted_count');
 
-            if ( $res_key eq 'insertedIds' ) {
-                my $ret_parsed = {};
-                for my $item ( @{ $ret->inserted } ) {
-                  $ret_parsed->{$item->{index}} = $item->{_id};
-                }
-                is_deeply $ret_parsed, $test->{outcome}->{result}->{insertedIds}, 'insertedIds correct in result';
-                next;
-            }
-            if ( $res_key eq 'upsertedIds' ) {
-                my $ret_parsed = {};
-                for my $item ( @{ $ret->upserted } ) {
-                  $ret_parsed->{$item->{index}} = $item->{_id};
-                }
-                is_deeply $ret_parsed, $test->{outcome}->{result}->{upsertedIds}, 'upsertedIds correct in result';
-                next;
-            }
-            my $ret_key = $res_key;
-            $ret_key =~ s{([A-Z])}{_\L$1}g;
-
-            is $ret->{$ret_key}, $res, "$res_key correct in result";
+        for my $key ( keys %$expected ) {
+            my $got = ref $ret eq 'HASH' ? $ret->{$key} : $ret->$key;
+            cmp_deeply $got, $expected->{$key}, "$key result as expected";
         }
     }
 
@@ -97,7 +80,7 @@ sub run_test {
     my $coll_expected = $test->{outcome}->{collection}->{data};
 
     is_deeply \@coll_outcome, $coll_expected, 'Collection has correct outcome';
-    disable_failpoint() if exists $test->{failPoint};
+    disable_failpoint( $test->{failPoint} );
 }
 
 sub do_delete_one {
@@ -152,6 +135,15 @@ sub do_find_one_and_delete {
     return $coll->find_one_and_delete( $filter, $options );
 }
 
+my %bulk_remap = (
+    insert_one  => [qw( document )],
+    update_one  => [qw( filter update )],
+    update_many => [qw( filter update )],
+    replace_one => [qw( filter replacement )],
+    delete_one  => [qw( filter )],
+    delete_many => [qw( filter )],
+);
+
 sub do_bulk_write {
     my ( $self, $coll, $args ) = @_;
     my $options = {
@@ -164,24 +156,13 @@ sub do_bulk_write {
 
     my @arguments;
     for my $request ( @{ $args->{requests} } ) {
-        if ( $request->{name} eq 'insertOne' ) {
-            push @arguments, { insert_one => [ $request->{arguments}->{document} ] };
-        } elsif ( $request->{name} eq 'updateOne' ) {
-            push @arguments, { update_one => [
-                $request->{arguments}->{filter},
-                $request->{arguments}->{update},
-                ( defined $request->{arguments}->{upsert}
-                  ? ( { upsert => $request->{arguments}->{upsert} ? 1 : 0 } )
-                  : () )
-            ] };
-        } elsif ( $request->{name} eq 'deleteOne' ) {
-            push @arguments, { delete_one => [ $request->{arguments}->{filter} ] };
-        } elsif ( $request->{name} eq 'replaceOne' ) {
-            push @arguments, { replace_one => [
-                $request->{arguments}->{filter},
-                $request->{arguments}->{replacement}
-            ] };
-        }
+        my $req_name = to_snake_case( $request->{name} );
+        my @req_fields = @{ $bulk_remap{ $req_name } };
+        my @arg = map {
+            delete $request->{arguments}->{ $_ }
+        } @req_fields;
+        push @arg, $request->{arguments} if keys %{ $request->{arguments} };
+        push @arguments, { $req_name => \@arg };
     }
     return $coll->bulk_write( \@arguments, $options );
 }
@@ -230,6 +211,7 @@ while ( my $path = $iterator->() ) {
             my $coll = get_unique_collection( $testdb, 'retry_write' );
             my $ret = $coll->insert_many( $plan->{data} );
             my $description = $test->{description};
+
             subtest $description => sub {
                 run_test( $coll, $test );
             }
@@ -238,17 +220,22 @@ while ( my $path = $iterator->() ) {
 }
 
 sub enable_failpoint {
-    my $doc = shift;
+    my $failpoint = shift;
+    return unless defined $failpoint;
     $conn->send_admin_command([
-        configureFailPoint => 'onPrimaryTransactionalWrite',
-        %$doc,
+        configureFailPoint => $failpoint->{configureFailPoint},
+        mode => $failpoint->{mode},
+        defined $failpoint->{data}
+          ? ( data => $failpoint->{data} )
+          : (),
     ]);
 }
 
 sub disable_failpoint {
-    my $doc = shift;
+    my $failpoint = shift;
+    return unless defined $failpoint;
     $conn->send_admin_command([
-        configureFailPoint => 'onPrimaryTransactionalWrite',
+        configureFailPoint => $failpoint->{configureFailPoint},
         mode => 'off',
     ]);
 }
