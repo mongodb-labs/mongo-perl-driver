@@ -1624,7 +1624,8 @@ sub send_retryable_write_op {
         my $retry_link = $self->{_topology}->get_writable_link;
 
         # Rare chance that the new link is not retryable
-        unless ( $retry_link->supports_retryWrites ) {
+        unless ( $retry_link->supports_retryWrites
+          && $err->$_call_if_can('_is_retryable') ) {
             WITH_ASSERTS ? ( confess $err ) : ( die $err );
         }
 
