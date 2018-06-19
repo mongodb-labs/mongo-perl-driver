@@ -50,9 +50,9 @@ Valid file documents typically include the following fields:
 * uploadDate – the date and time this file was added to GridFS, stored as a
   BSON datetime value and inflated per the bucket's
   L<bson_codec|MongoDB::GridFSBucket/bson_codec> attribute.
-* md5 – a hash of the contents of the stored file
 * filename – the name of this stored file; this does not need to be unique
 * metadata – any additional application-specific data
+* md5 – DEPRECATED
 * contentType – DEPRECATED
 * aliases – DEPRECATED
 

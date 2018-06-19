@@ -163,6 +163,18 @@ has max_time_ms => (
     required => 1,
 );
 
+=attr disable_md5
+
+When true, files will not include the deprecated C<md5> field in the
+file document.  Defaults to false.
+
+=cut
+
+has disable_md5 => (
+    is       => 'ro',
+    isa      => Boolish,
+);
+
 # determines whether or not to attempt index creation
 has _tried_indexing => (
     is => 'rwp',
@@ -594,7 +606,7 @@ object.
 =head2 Data model
 
 A GridFS file is represented in MongoDB as a "file document" with
-information like the file's name, length, MD5 hash, and any user-supplied
+information like the file's name, length, and any user-supplied
 metadata.  The actual contents are stored as a number of "chunks" of binary
 data.  (Think of the file document as a directory entry and the chunks like
 blocks on disk.)
@@ -608,11 +620,12 @@ Valid file documents typically include the following fields:
   value is configurable per file.
 * uploadDate – the date and time this file was added to GridFS, stored as
   a BSON datetime value.
-* md5 – a hash of the contents of the stored file
 * filename – the name of this stored file; the combination of filename and
   uploadDate (millisecond resolution) must be unique
 * metadata – any additional application data the user wishes to store
   (optional)
+* md5 – DEPRECATED a hash of the contents of the stored file (store this
+  in C<metadata> if you need it) (optional)
 * contentType – DEPRECATED (store this in C<metadata> if you need it)
   (optional)
 * aliases – DEPRECATED (store this in C<metadata> if you need it)

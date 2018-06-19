@@ -215,6 +215,18 @@ The following query options are deprecated:
   explicit, equivalent options for C<find>
 * snapshot -- deprecated in MongoDB server 4.0
 
+=head2 MD5 checksum for GridFS files
+
+The C<md5> field of GridFS documents is deprecated.  Use of a checksum like
+MD5 has been redundant since MongoDB added write concern and MD5 itself is
+no longer considered a secure digest function.  A future release will
+remove the use of MD5 entirely.  In the meantime, users can disable MD5
+digesting with the C<disable_md5> option in L<MongoDB::GridFSBucket>.
+
+Users who wish to continue storing a digest are encouraged to compute their
+own digest using a function of their choice and store it under a
+user-defined key in the C<metadata> field of the file document.
+
 =head2 Classes
 
 These classes are superseded by type wrappers from L<BSON>, as described

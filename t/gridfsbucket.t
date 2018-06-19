@@ -175,6 +175,28 @@ sub setup_gridfs {
     }
 }
 
+# test file upload without md5
+subtest "disable_md5" => sub {
+    setup_gridfs;
+    my $bucket = $testdb->get_gridfsbucket( {disable_md5 => 1 } );
+
+    # upload_from_stream_with_id()
+    open( my $file, '<:raw', $txtfile ) or die $!;
+    $bucket->upload_from_stream_with_id( 5, "file_5.txt", $file );
+    close $file;
+    my $doc = $bucket->find_id(5);
+    ok( !exists $doc->{"md5"}, "upload_from_stream_with_id: md5 omitted" );
+
+    # open_upload_stream_with_id()
+    my $uploadstream = $bucket->open_upload_stream_with_id( 6, "file_6.txt" );
+    $uploadstream->print( "a" x 12 );
+    $uploadstream->print( "b" x 8 );
+    my $doc2 = $uploadstream->close;
+    my $doc3 = $bucket->find_id(6);
+    ok( !exists $doc2->{"md5"}, "open_upload_stream_with_id: md5 omitted in returned doc" );
+    ok( !exists $doc3->{"md5"}, "open_upload_stream_with_id: md5 omitted in uploaded doc" );
+};
+
 # delete
 {
     setup_gridfs;

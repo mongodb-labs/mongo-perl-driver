@@ -252,7 +252,7 @@ sub _write_data {
     Encode::_utf8_off($data); # force it to bytes for transmission
     $self->{_buffer} .= $data;
     $self->{_length} += length $data;
-    $self->_md5->add($data);
+    $self->_md5->add($data) unless $self->_bucket->disable_md5;
     $self->_flush_chunks if length $self->{_buffer} >= $self->_chunk_buffer_length;
 }
 
@@ -309,8 +309,8 @@ sub close {
         length     => $self->_length,
         chunkSize  => $self->chunk_size_bytes,
         uploadDate => BSON::Time->new(),
-        md5        => $self->_md5->hexdigest,
         filename   => $self->filename,
+        ( $self->_bucket->disable_md5 ? () : (md5 => $self->_md5->hexdigest) ),
     };
     $filedoc->{'contentType'} = $self->content_type if $self->content_type;
     $filedoc->{'metadata'}    = $self->metadata     if $self->metadata;
