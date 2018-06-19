@@ -92,6 +92,20 @@ sub _update_operation_time {
     return;
 }
 
+# Certain errors have to happen as soon as possible, such as write concern
+# errors in a retryable write. This has to be seperate to the other functions
+# due to not all result objects having the base response inside, so cannot be
+# used to parse operationTime or $clusterTime
+sub _assert_session_errors {
+    my ( $self, $response ) = @_;
+
+    if ( $self->retryable_write ) {
+        $response->assert_no_write_concern_error;
+    }
+
+    return;
+}
+
 sub __extract_from {
     my ( $self, $response, $key ) = @_;
 

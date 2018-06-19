@@ -130,6 +130,8 @@ sub execute {
 
     $self->_update_session_and_cluster_time($res);
 
+    $self->_assert_session_errors($res);
+
     return $res;
 }
 
