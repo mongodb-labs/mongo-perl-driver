@@ -2,6 +2,14 @@
 
 {{ $NEXT }}
 
+  [*** Deprecations ***]
+
+    - PERL-856 Deprecate 'md5' field in GridFS file documents
+
+  [Prerequisites]
+
+    - PERL-941 Bump BSON prereq to v1.6.5 for BSON::Time fix on 32-bit perls
+
 v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]
