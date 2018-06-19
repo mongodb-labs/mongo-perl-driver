@@ -22,6 +22,8 @@ v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
 
     - PERL-718 Deprecate find option 'modifiers'
 
+    - PERL-856 Deprecate 'md5' field in GridFS file documents
+
     - PERL-872 Deprecate maxScan find option
 
     - PERL-873 Deprecate cursor snapshot option
