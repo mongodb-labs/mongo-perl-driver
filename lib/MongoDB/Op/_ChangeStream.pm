@@ -171,6 +171,7 @@ sub execute {
 
     # default startAtOperationTime when supported and not
     if (
+        0 && # TODO: Not in spec tests, throws when included
         !defined($start_op_time) &&
         !$self->changes_received &&
         $link->supports_4_0_changestreams
@@ -195,9 +196,9 @@ sub execute {
 
     my @pipeline = (
         {'$changeStream' => {
-            (defined($self->start_at_operation_time)
+            (defined($start_op_time)
                 ? (startAtOperationTime => BSON::Timestamp->new(
-                    $self->start_at_operation_time,
+                    $start_op_time,
                   ))
                 : ()
             ),
