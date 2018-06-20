@@ -24,7 +24,7 @@ our $VERSION = 'v1.999.1';
 use Moo;
 use Try::Tiny;
 use MongoDB::Cursor;
-use MongoDB::Op::_Aggregate;
+use MongoDB::Op::_ChangeStream;
 use MongoDB::Error;
 use Safe::Isa;
 use MongoDB::_Types qw(
@@ -32,8 +32,11 @@ use MongoDB::_Types qw(
     ArrayOfHashRef
 );
 use Types::Standard qw(
+    Bool
     InstanceOf
+    Int
     HashRef
+    Maybe
     Str
 );
 
@@ -47,15 +50,22 @@ has _result => (
     clearer => '_clear_result',
 );
 
-has collection => (
+has client => (
     is => 'ro',
-    isa => MongoDBCollection,
+    isa => InstanceOf['MongoDB::MongoClient'],
     required => 1,
 );
 
-has aggregation_options => (
+has _op_args => (
     is => 'ro',
     isa => HashRef,
+    default => sub { {} },
+    init_arg => 'op_args',
+);
+
+has collection => (
+    is => 'ro',
+    isa => MongoDBCollection,
 );
 
 has pipeline => (
@@ -77,6 +87,22 @@ has _resume_token => (
     lazy => 1,
 );
 
+has all_changes_for_cluster => (
+    is => 'ro',
+    isa => Bool,
+    default => sub { 0 },
+);
+
+has _changes_received => (
+    is => 'rw',
+    default => sub { 0 },
+);
+
+has start_at_operation_time => (
+    is => 'ro',
+    isa => Maybe[Int],
+);
+
 sub BUILD {
     my ($self) = @_;
 
@@ -87,25 +113,23 @@ sub BUILD {
 sub _build_result {
     my ($self) = @_;
 
-    my @pipeline = @{ $self->pipeline };
-    @pipeline = (
-        {'$changeStream' => {
-            ($self->_has_full_document
-                ? (fullDocument => $self->full_document)
-                : ()
-            ),
-            ($self->_has_resume_token
-                ? (resumeAfter => $self->_resume_token)
-                : ()
-            ),
-        }},
-        @pipeline,
+    my $op = MongoDB::Op::_ChangeStream->new(
+        pipeline => $self->pipeline,
+        all_changes_for_cluster => $self->all_changes_for_cluster,
+        changes_received => $self->_changes_received,
+        defined($self->start_at_operation_time)
+            ? (start_at_operation_time => $self->start_at_operation_time)
+            : (),
+        $self->_has_full_document
+            ? (full_document => $self->full_document)
+            : (),
+        $self->_has_resume_token
+            ? (resume_after => $self->_resume_token)
+            : (),
+        %{ $self->_op_args },
     );
 
-    return $self->collection->aggregate(
-        \@pipeline,
-        $self->aggregation_options,
-    );
+    return $self->client->send_read_op($op);
 }
 
 =head1 STREAM METHODS
@@ -160,6 +184,7 @@ sub next {
 
     if (exists $change->{_id}) {
         $self->_resume_token($change->{_id});
+        $self->_changes_received(1);
         return $change;
     }
     else {

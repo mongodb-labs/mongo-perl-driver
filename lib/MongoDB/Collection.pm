@@ -1081,9 +1081,15 @@ The optional second argument is a hash reference with options:
   was changed from some time after the change occurred.
 * C<resumeAfter> - The logical starting point for this change stream.
   This value can be obtained from the C<_id> field of a document returned
-  by L<MongoDB::ChangeStream/next>.
+  by L<MongoDB::ChangeStream/next>. Cannot be specified together with
+  C<startAtOperationTime>
 * C<maxAwaitTimeMS> - The maximum number of milliseconds for the server
   to wait before responding.
+* C<startAtOperationTime> - A timestamp specifying at what point in time
+  changes will start being watched. Cannot be specified together with
+  C<resumeAfter>.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 See L</aggregate> for more available options.
 
@@ -1101,16 +1107,44 @@ sub watch {
     $pipeline ||= [];
     $options ||= {};
 
+    my $session = $self->_get_session_from_hashref( $options );
+
+    # boolify some options
+    for my $k (qw/allowDiskUse explain/) {
+        $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
+    }
+
+    # possibly fallback to default maxTimeMS
+    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
+        $options->{maxTimeMS} = $self->max_time_ms;
+    }
+
+    # read preferences are ignored if the last stage is $out
+    my ($last_op) = keys %{ $pipeline->[-1] || {} };
+
     return MongoDB::ChangeStream->new(
+        exists($options->{startAtOperationTime})
+            ? (start_at_operation_time => delete $options->{startAtOperationTime})
+            : (),
         exists($options->{fullDocument})
             ? (full_document => delete $options->{fullDocument})
             : (full_document => 'default'),
         exists($options->{resumeAfter})
             ? (resume_after => delete $options->{resumeAfter})
             : (),
+        client => $self->client,
         collection => $self,
         pipeline => $pipeline,
-        aggregation_options => $options,
+        op_args => {
+            options => $options,
+            read_concern => $self->read_concern,
+            has_out => defined($last_op) && $last_op eq '$out',
+            exists($options->{maxAwaitTimeMS})
+                ? (maxAwaitTimeMS => delete $options->{maxAwaitTimeMS})
+                : (),
+            session => $session,
+            %{ $self->_op_args },
+        },
     );
 }
 

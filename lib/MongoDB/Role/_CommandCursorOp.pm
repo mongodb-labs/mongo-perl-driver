@@ -44,7 +44,10 @@ sub _build_result_from_cursor {
         $self->options->{cursorType} eq 'tailable_await') {
         $max_time_ms = $self->options->{maxAwaitTimeMS} if $self->options->{maxAwaitTimeMS};
     }
-    elsif ($self->isa('MongoDB::Op::_Aggregate')) {
+    elsif (
+        $self->isa('MongoDB::Op::_Aggregate') ||
+        $self->isa('MongoDB::Op::_ChangeStream')
+    ) {
         $max_time_ms = $self->maxAwaitTimeMS if $self->maxAwaitTimeMS;
     }
 
