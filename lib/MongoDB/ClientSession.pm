@@ -90,18 +90,16 @@ has options => (
     # Shallow copy to prevent action at a distance.
     # Upgrade to use Storable::dclone if a more complex option is required
     coerce => sub {
-      $_[0] = {
-        causalConsistency => 1,
-        %{ $_[0] },
-        # applied after to not override the clone with the original
-        defaultTransactionOptions => {
-          defined( $_[0] )
-            && ref( $_[0] ) eq 'HASH'
-            && defined( $_[0]->{defaultTransactionOptions} )
-              ? ( %{ $_[0]->{defaultTransactionOptions} } )
-              : (),
-        },
-      };
+        # Will cause the isa requirement to fire
+        return unless defined( $_[0] ) && ref( $_[0] ) eq 'HASH';
+        my $dto = $_[0]->{defaultTransactionOptions};
+        $dto ||= {};
+        $_[0] = {
+            causalConsistency => 1,
+            %{ $_[0] },
+            # applied after to not override the clone with the original
+            defaultTransactionOptions => $dto,
+        };
     },
 );
 
