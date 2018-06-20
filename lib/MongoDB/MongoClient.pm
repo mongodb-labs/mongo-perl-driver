@@ -1690,8 +1690,6 @@ sub send_read_op {
     # Get transaction read preference if in a transaction
     if ( defined $op->session && $op->session->_active_transaction ) {
         $op->read_preference( $op->session->_get_transaction_read_preference );
-        MongoDB::ConfigurationError->throw("read preference in a transaction must be primary")
-            if $op->read_preference->mode ne 'primary';
     } elsif ( defined $op->session ) {
         # Not in an active transaction, so reset state
         $op->session->_set__transaction_state( 'none' );

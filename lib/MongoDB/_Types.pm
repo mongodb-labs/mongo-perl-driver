@@ -49,6 +49,7 @@ use Type::Library
   IxHash
   MaxStalenessNum
   MaybeHashRef
+  MongoDBClient
   MongoDBCollection
   MongoDBDatabase
   BSONTimestamp
@@ -151,6 +152,8 @@ declare Intish, as Numish, where { defined $_ and $_ == int($_) };
 class_type IxHash, { class => 'Tie::IxHash' };
 
 declare MaybeHashRef, as Maybe[ HashRef ];
+
+class_type MongoDBClient, { class => 'MongoDB::MongoClient' };
 
 class_type MongoDBCollection, { class => 'MongoDB::Collection' };
 

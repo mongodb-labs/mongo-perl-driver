@@ -24,19 +24,18 @@ our $VERSION = 'v1.999.1';
 use MongoDB::Error;
 
 use Moo;
-use MongoDB::ReadConcern;
 use MongoDB::_Types qw(
     Document
     BSONTimestamp
     TransactionState
     Boolish
-    WriteConcern
 );
 use Types::Standard qw(
     Maybe
     HashRef
     InstanceOf
 );
+use MongoDB::_TransactionOptions;
 use namespace::clean -except => 'meta';
 
 =attr client
@@ -70,7 +69,7 @@ has cluster_time => (
 
 Options provided for this particular session. Available options include:
 
-=for :list 
+=for :list
 * C<causalConsistency> - If true, will enable causalConsistency for
   this session. For more information, see L<MongoDB documentation on Causal
   Consistency|https://docs.mongodb.com/manual/core/read-isolation-consistency-recency/#causal-consistency>.
@@ -114,11 +113,14 @@ has _server_session => (
     clearer => '__clear_server_session',
 );
 
-has _current_transaction_settings => (
+has _current_transaction_options => (
     is => 'rwp',
-    isa => HashRef,
-    init_arg => undef,
-    clearer => '_clear_current_transaction_settings',
+    isa => InstanceOf[ 'MongoDB::_TransactionOptions' ],
+    handles  => {
+        _get_transaction_write_concern   => 'write_concern',
+        _get_transaction_read_concern    => 'read_concern',
+        _get_transaction_read_preference => 'read_preference',
+    },
 );
 
 has _transaction_state => (
@@ -297,13 +299,13 @@ sub start_transaction {
         unless $self->client->_topology->_supports_transactions;
 
     $opts ||= {};
-    $opts = { %{ $self->options->{defaultTransactionOptions} }, %$opts };
+    my $trans_opts = MongoDB::_TransactionOptions->new(
+        client => $self->client,
+        options => $opts,
+        default_options => $self->options->{defaultTransactionOptions},
+    );
 
-    $self->_set__current_transaction_settings( $opts );
-
-    # Trigger build of write_concern - must error on start of transaction
-    $self->_clear_transaction_write_concern;
-    $self->_transaction_write_concern;
+    $self->_set__current_transaction_options( $trans_opts );
 
     $self->_set__transaction_state('starting');
 
@@ -389,7 +391,7 @@ sub abort_transaction {
     MongoDB::TransactionError->throw("Cannot call abort_transaction after calling commit_transaction")
         if $self->_in_transaction_state( 'committed' );
 
-    # Error message tweaked to use our function names 
+    # Error message tweaked to use our function names
     MongoDB::TransactionError->throw("Cannot call abort_transaction twice")
         if $self->_in_transaction_state( 'aborted' );
 
@@ -401,12 +403,10 @@ sub abort_transaction {
 sub _send_end_transaction_command {
     my ( $self, $end_state, $command ) = @_;
 
+    $self->_set__transaction_state( $end_state );
+
     # Only need to send commit command if the transaction actually sent anything
     if ( $self->_has_transaction_operations ) {
-
-        # Must set state before running the op as otherwise it wont be retried
-        $self->_set__transaction_state( $end_state );
-
         my $op = MongoDB::Op::_Command->_new(
             db_name             => 'admin',
             query               => $command,
@@ -417,82 +417,12 @@ sub _send_end_transaction_command {
         );
 
         my $result = $self->client->send_retryable_write_op( $op, 'force' );
-        MongoDB::WriteConcernError->throw(
-            message => $result->last_errmsg,
-            result  => $result,
-            code    => WRITE_CONCERN_ERROR,
-        ) if exists $result->output->{writeConcernError};
-
+        # TODO This may be redundant after 918 is merged?
+        $result->assert_no_write_concern_error;
     }
-
-    $self->_set__transaction_state( $end_state );
 
     # If the commit/abort succeeded, we are no longer in an active transaction
     $self->_set__active_transaction( 0 );
-}
-
-# read/write concern, and read preference are merged during start_transaction
-sub _get_transaction_read_concern {
-    my $self = shift;
-
-    # Read concern is only read during the first operation in a transaction, so we can set this here
-    $self->_set__has_transaction_operations( 1 );
-
-    if ( defined $self->_current_transaction_settings->{readConcern} ) {
-        return MongoDB::ReadConcern->new( $self->_current_transaction_settings->{readConcern} );
-    }
-
-    # Default to the clients read concern
-    return $self->client->read_concern;
-}
-
-sub _get_transaction_read_preference {
-    my $self = shift;
-
-    if ( defined $self->_current_transaction_settings->{readPreference} ) {
-        return MongoDB::ReadPreference->new( $self->_current_transaction_settings->{readPreference} );
-    }
-
-    return $self->client->read_preference;
-}
-
-has _transaction_write_concern => (
-    is => 'lazy',
-    isa => WriteConcern,
-    init_arg => undef,
-    builder => '_build_transaction_write_concern',
-    clearer => '_clear_transaction_write_concern',
-);
-
-sub _build_transaction_write_concern {
-    my $self = shift;
-
-    my $write_concern = $self->client->write_concern;
-    # client is last default - provided settings override.
-    if ( defined $self->_current_transaction_settings->{writeConcern} ) {
-        $write_concern = MongoDB::WriteConcern->new( $self->_current_transaction_settings->{writeConcern} );
-    }
-
-    unless ( $write_concern->is_acknowledged ) {
-        MongoDB::ConfigurationError->throw( 'transactions do not support unacknowledged write concerns' );
-    }
-    return $write_concern;
-}
-
-# TODO TBSliver REMOVE ME ON RELEASE
-sub _debug {
-    my $self = shift;
-    return {
-        state           => $self->_transaction_state,
-        client          => defined $self->client ? 'defined' : '',
-        session         => defined $self->_server_session ? 'defined' : '',
-        session_id      => $self->session_id,
-        transaction_id  => defined $self->_server_session ? $self->_server_session->transaction_id : '',
-        cluster_time    => $self->cluster_time,
-        options         => $self->options,
-        transaction_settings => $self->_current_transaction_settings,
-        operation_time  => $self->operation_time,
-    };
 }
 
 =method end_session
