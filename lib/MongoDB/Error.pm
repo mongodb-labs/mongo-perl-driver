@@ -312,12 +312,6 @@ use Moo;
 use namespace::clean;
 extends 'MongoDB::TimeoutError';
 
-#Transaction errors
-package MongoDB::TransactionError;
-use Moo;
-use namespace::clean;
-extends 'MongoDB::Error';
-
 # Database errors
 package MongoDB::DuplicateKeyError;
 use Moo;
@@ -497,8 +491,6 @@ To retry failures automatically, consider using L<Try::Tiny::Retry>.
         |   |
         |   |->MongoDB::NetworkTimeout
         |
-        |->MongoDB::TransactionError
-        |
         |->MongoDB::UsageError
 
 All classes inherit from C<MongoDB::Error>.
@@ -628,6 +620,8 @@ Indicates invalid arguments or configuration options.  Not all usage errors
 will throw this — only ones originating directly from the MongoDB::* library
 files.  Some type and usage errors will originate from the L<Type::Tiny>
 library if the objects are used incorrectly.
+
+Also used to indicate usage errors for transaction commands.
 
 =head1 ERROR CODES
 

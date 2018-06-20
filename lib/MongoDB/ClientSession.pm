@@ -290,7 +290,7 @@ Start a transaction in this session. Takes a hashref of options which can contai
 sub start_transaction {
     my ( $self, $opts ) = @_;
 
-    MongoDB::TransactionError->throw("Transaction already in progress")
+    MongoDB::UsageError->throw("Transaction already in progress")
         if $self->_in_transaction_state( 'starting', 'in_progress' );
 
     MongoDB::ConfigurationError->throw("Transactions are unsupported on this deployment")
@@ -331,11 +331,11 @@ Commit the current transaction. This will use the writeConcern set on this trans
 sub commit_transaction {
     my $self = shift;
 
-    MongoDB::TransactionError->throw("No transaction started")
+    MongoDB::UsageError->throw("No transaction started")
         if $self->_transaction_state eq 'none';
 
     # Error message tweaked to use our function names
-    MongoDB::TransactionError->throw("Cannot call commit_transaction after calling abort_transaction")
+    MongoDB::UsageError->throw("Cannot call commit_transaction after calling abort_transaction")
         if $self->_transaction_state eq 'aborted';
 
     # Commit can be called multiple times - even if the transaction completes
@@ -382,15 +382,15 @@ Abort the current transaction. This will use the writeConcern set on this transa
 sub abort_transaction {
     my $self = shift;
 
-    MongoDB::TransactionError->throw("No transaction started")
+    MongoDB::UsageError->throw("No transaction started")
         if $self->_in_transaction_state( 'none' );
 
     # Error message tweaked to use our function names
-    MongoDB::TransactionError->throw("Cannot call abort_transaction after calling commit_transaction")
+    MongoDB::UsageError->throw("Cannot call abort_transaction after calling commit_transaction")
         if $self->_in_transaction_state( 'committed' );
 
     # Error message tweaked to use our function names
-    MongoDB::TransactionError->throw("Cannot call abort_transaction twice")
+    MongoDB::UsageError->throw("Cannot call abort_transaction twice")
         if $self->_in_transaction_state( 'aborted' );
 
     $self->_send_end_transaction_command( 'aborted', [ abortTransaction => 1 ] );
