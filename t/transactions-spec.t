@@ -107,6 +107,7 @@ while ( my $path = $iterator->() ) {
             local $TODO = 'does a run_command read_preference count as a user configurable read_preference?' if $path =~ /run-command/ && $description =~ /explicit secondary read preference/;
             # TODO requires PERL-918
             local $TODO = 'requires PERL-918' if $path =~ /error-labels/ && $description =~ /add unknown commit label/;
+            local $TODO = 'requires PERL-918' if $path =~ /error-labels/ && $description =~ /omit unknown commit label/;
             local $TODO = 'requires PERL-918' if $path =~ /retryable-abort/ && $description =~ /abortTransaction succeeds after (NotMaster|Interrupted|Primary|Shutdown|Host|Socket|Network|WriteConcernError)/;
             local $TODO = 'requires PERL-918' if $path =~ /retryable-commit/ && $description =~ /commitTransaction succeeds after (NotMaster|Interrupted|Primary|Shutdown|Host|Socket|Network|WriteConcernError)/;
             subtest $description => sub {
