@@ -117,13 +117,14 @@ sub last_wtimeout {
 
 =method last_error_labels
 
-Returns any error labels from the command
+Returns an array of error labels from the command, or an empty array if there
+are none
 
 =cut
 
 sub last_error_labels {
     my ( $self ) = @_;
-    return $self->output->{errorLabels};
+    return $self->output->{errorLabels} || [];
 }
 
 =method assert
