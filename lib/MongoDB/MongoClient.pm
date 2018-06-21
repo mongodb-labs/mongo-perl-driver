@@ -1926,19 +1926,6 @@ sub watch {
 
     my $session = $self->_get_session_from_hashref( $options );
 
-    # boolify some options
-    for my $k (qw/allowDiskUse explain/) {
-        $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
-    }
-
-    # possibly fallback to default maxTimeMS
-    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
-        $options->{maxTimeMS} = $self->max_time_ms;
-    }
-
-    # read preferences are ignored if the last stage is $out
-    my ($last_op) = keys %{ $pipeline->[-1] || {} };
-
     return MongoDB::ChangeStream->new(
         exists($options->{startAtOperationTime})
             ? (start_at_operation_time => delete $options->{startAtOperationTime})
@@ -1949,18 +1936,16 @@ sub watch {
         exists($options->{resumeAfter})
             ? (resume_after => delete $options->{resumeAfter})
             : (),
+        exists($options->{maxAwaitTimeMS})
+            ? (max_await_time_ms => delete $options->{maxAwaitTimeMS})
+            : (),
         client => $self,
         all_changes_for_cluster => 1,
         pipeline => $pipeline,
+        session => $session,
+        options => $options,
         op_args => {
-            options => $options,
             read_concern => $self->read_concern,
-            has_out => defined($last_op) && $last_op eq '$out',
-            exists($options->{maxAwaitTimeMS})
-                ? (maxAwaitTimeMS => delete $options->{maxAwaitTimeMS})
-                : (),
-            session => $session,
-            client => $self,
             db_name => 'admin',,
             coll_name => 1,
             full_name => 'admin.1',

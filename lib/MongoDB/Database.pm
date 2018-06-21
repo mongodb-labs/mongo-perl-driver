@@ -196,7 +196,7 @@ sub list_collections {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_ListCollections->_new(
         db_name             => $self->name,
@@ -333,7 +333,7 @@ Valid options include:
 sub drop {
     my ( $self, $options ) = @_;
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     return $self->_client->send_write_op(
         MongoDB::Op::_DropDatabase->_new(
@@ -404,7 +404,7 @@ sub run_command {
         ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
       if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_Command->_new(
         client              => $self->_client,
@@ -429,7 +429,7 @@ sub _aggregate {
     my ( $self, $pipeline, $options ) = @_;
     $options ||= {};
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     # boolify some options
     for my $k (qw/allowDiskUse explain/) {
@@ -461,26 +461,6 @@ sub _aggregate {
     );
 
     return $self->_client->send_read_op($op);
-}
-
-# Extracts a session from a provided hashref, or returns an implicit session
-# Almost identical to same subroutine in Collection, however in Database the
-# client attribute is private. 
-sub _get_session_from_hashref {
-    my ( $self, $hashref ) = @_;
-
-    my $session = delete $hashref->{session};
-
-    if ( defined $session ) {
-        MongoDB::UsageError->throw( "Cannot use session from another client" )
-            if ( $session->client->_id ne $self->_client->_id );
-        MongoDB::UsageError->throw( "Cannot use session which has ended" )
-            if ! defined $session->session_id;
-    } else {
-        $session = $self->_client->_maybe_get_implicit_session;
-    }
-
-    return $session;
 }
 
 =method watch
@@ -520,20 +500,7 @@ sub watch {
     $pipeline ||= [];
     $options ||= {};
 
-    my $session = $self->_get_session_from_hashref( $options );
-
-    # boolify some options
-    for my $k (qw/allowDiskUse explain/) {
-        $options->{$k} = ( $options->{$k} ? true : false ) if exists $options->{$k};
-    }
-
-    # possibly fallback to default maxTimeMS
-    if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
-        $options->{maxTimeMS} = $self->max_time_ms;
-    }
-
-    # read preferences are ignored if the last stage is $out
-    my ($last_op) = keys %{ $pipeline->[-1] || {} };
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     return MongoDB::ChangeStream->new(
         exists($options->{startAtOperationTime})
@@ -545,17 +512,15 @@ sub watch {
         exists($options->{resumeAfter})
             ? (resume_after => delete $options->{resumeAfter})
             : (),
+        exists($options->{maxAwaitTimeMS})
+            ? (max_await_time_ms => delete $options->{maxAwaitTimeMS})
+            : (),
         client => $self->_client,
         pipeline => $pipeline,
+        session => $session,
+        options => $options,
         op_args => {
-            options => $options,
             read_concern => $self->read_concern,
-            has_out => defined($last_op) && $last_op eq '$out',
-            exists($options->{maxAwaitTimeMS})
-                ? (maxAwaitTimeMS => delete $options->{maxAwaitTimeMS})
-                : (),
-            session => $session,
-            client => $self->_client,
             bson_codec => $self->bson_codec,
             db_name => $self->name,
             coll_name => 1,                     # Magic not-an-actual-collection number

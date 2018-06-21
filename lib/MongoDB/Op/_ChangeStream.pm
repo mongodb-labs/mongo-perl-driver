@@ -1,4 +1,4 @@
-#  Copyright 2015 - present MongoDB, Inc.
+#  Copyright 2018 - present MongoDB, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ use strict;
 use warnings;
 package MongoDB::Op::_ChangeStream;
 
-# Encapsulate aggregate operation; return MongoDB::QueryResult
+# Encapsulate changestream operation; return MongoDB::QueryResult
 
 use version;
 our $VERSION = 'v1.999.1';
@@ -29,6 +29,7 @@ use MongoDB::Op::_Command;
 use MongoDB::_Types qw(
     ArrayOfHashRef
     Boolish
+    BSONTimestamp
 );
 use Types::Standard qw(
     HashRef
@@ -36,8 +37,6 @@ use Types::Standard qw(
     Num
     Str
     Maybe
-    Int
-    Bool
 );
 
 use namespace::clean;
@@ -60,12 +59,6 @@ has options => (
     isa      => HashRef,
 );
 
-has has_out => (
-    is       => 'ro',
-    required => 1,
-    isa      => Boolish,
-);
-
 has maxAwaitTimeMS => (
     is       => 'rw',
     isa      => Num,
@@ -84,13 +77,13 @@ has resume_after => (
 
 has all_changes_for_cluster => (
     is => 'ro',
-    isa => Bool,
+    isa => Boolish,
     default => sub { 0 },
 );
 
 has start_at_operation_time => (
     is => 'ro',
-    isa => Maybe[Int],
+    isa => BSONTimestamp,
 );
 
 has changes_received => (
@@ -155,8 +148,6 @@ sub execute {
         delete $options->{cursor};
     }
 
-    my $has_out = $self->has_out;
-
     if ( $self->coll_name eq 1 && ! $link->supports_db_aggregation ) {
         MongoDB::Error->throw(
             "Calling aggregate with a collection name of '1' is not supported on Wire Version < 6" );
@@ -197,9 +188,7 @@ sub execute {
     my @pipeline = (
         {'$changeStream' => {
             (defined($start_op_time)
-                ? (startAtOperationTime => BSON::Timestamp->new(
-                    $start_op_time,
-                  ))
+                ? (startAtOperationTime => $start_op_time)
                 : ()
             ),
             ($self->all_changes_for_cluster
@@ -222,12 +211,9 @@ sub execute {
         aggregate => $self->coll_name,
         pipeline  => \@pipeline,
         %$options,
-        (
-            !$has_out && $link->supports_read_concern ? @{ $self->read_concern->as_args( $self->session) } : ()
-        ),
-        (
-            $has_out && $link->supports_helper_write_concern ? @{ $self->write_concern->as_args } : ()
-        ),
+        $link->supports_read_concern
+            ? @{ $self->read_concern->as_args( $self->session) }
+            : (),
     );
 
     my $op = MongoDB::Op::_Command->_new(
@@ -235,33 +221,12 @@ sub execute {
         query       => Tie::IxHash->new(@command),
         query_flags => {},
         bson_codec  => $self->bson_codec,
-        ( $has_out ? () : ( read_preference => $self->read_preference ) ),
+        read_preference => $self->read_preference,
         session             => $self->session,
         monitoring_callback => $self->monitoring_callback,
     );
 
     my $res = $op->execute( $link, $topology );
-
-    $res->assert_no_write_concern_error if $has_out;
-
-    # For explain, we give the whole response as fields have changed in
-    # different server versions
-    if ( $options->{explain} ) {
-        return MongoDB::QueryResult->_new(
-            _client       => $self->client,
-            _address      => $link->address,
-            _full_name    => '',
-            _bson_codec   => $self->bson_codec,
-            _batch_size   => 1,
-            _cursor_at    => 0,
-            _limit        => 0,
-            _cursor_id    => 0,
-            _cursor_start => 0,
-            _cursor_flags => {},
-            _cursor_num   => 1,
-            _docs         => [ $res->output ],
-        );
-    }
 
     # Fake up a single-batch cursor if we didn't get a cursor response.
     # We use the 'results' fields as the first (and only) batch
