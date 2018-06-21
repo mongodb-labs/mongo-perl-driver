@@ -32,7 +32,6 @@ use MongoDB::_Types qw(
     MongoDBCollection
     ArrayOfHashRef
     Boolish
-    Intish
     BSONTimestamp
     ClientSession
 );
@@ -50,9 +49,6 @@ has _result => (
     is => 'rw',
     isa => InstanceOf['MongoDB::QueryResult'],
     init_arg => undef,
-    lazy => 1,
-    builder => '_build_result',
-    clearer => '_clear_result',
 );
 
 has _client => (
@@ -83,23 +79,16 @@ has _full_document => (
     predicate => '_has_full_document',
 );
 
-has _resume_token => (
-    is => 'rw',
+has _resume_after => (
+    is => 'ro',
     init_arg => 'resume_after',
-    predicate => '_has_resume_token',
+    predicate => '_has_resume_after',
 );
 
 has _all_changes_for_cluster => (
     is => 'ro',
     isa => Boolish,
     init_arg => 'all_changes_for_cluster',
-    default => sub { 0 },
-);
-
-has _changes_received => (
-    is => 'rw',
-    isa => Boolish,
-    init_arg => 'changes_received',
     default => sub { 0 },
 );
 
@@ -133,39 +122,66 @@ has _max_await_time_ms => (
     predicate => '_has_max_await_time_ms',
 );
 
+has _last_operation_time => (
+    is => 'rw',
+    init_arg => undef,
+    predicate => '_has_last_operation_time',
+);
+
+has _last_resume_token => (
+    is => 'rw',
+    init_arg => undef,
+    predicate => '_has_last_resume_token',
+);
+
 sub BUILD {
     my ($self) = @_;
 
     # starting point is construction time instead of first next call
-    $self->_result;
+    $self->_execute_query;
 }
 
-sub _build_result {
+sub _execute_query {
     my ($self) = @_;
+
+    my $resume_opt = {};
+
+    # seen prior results, continuing after last resume token
+    if ($self->_has_last_resume_token) {
+        $resume_opt->{resume_after} = $self->_last_resume_token;
+    }
+    # no results yet, but we have operation time from prior query
+    elsif ($self->_has_last_operation_time) {
+        $resume_opt->{start_at_operation_time} = $self->_last_operation_time;
+    }
+    # no results and no prior operation time, send specified options
+    else {
+        $resume_opt->{start_at_operation_time} = $self->_start_at_operation_time
+            if $self->_has_start_at_operation_time;
+        $resume_opt->{resume_after} = $self->_resume_after
+            if $self->_has_resume_after;
+    }
 
     my $op = MongoDB::Op::_ChangeStream->new(
         pipeline => $self->_pipeline,
         all_changes_for_cluster => $self->_all_changes_for_cluster,
-        changes_received => $self->_changes_received,
         session => $self->_session,
         options => $self->_options,
         client => $self->_client,
-        $self->_has_start_at_operation_time
-            ? (start_at_operation_time => $self->_start_at_operation_time)
-            : (),
         $self->_has_full_document
             ? (full_document => $self->_full_document)
-            : (),
-        $self->_has_resume_token
-            ? (resume_after => $self->_resume_token)
             : (),
         $self->_has_max_await_time_ms
             ? (maxAwaitTimeMS => $self->_max_await_time_ms)
             : (),
+        %$resume_opt,
         %{ $self->_op_args },
     );
 
-    return $self->_client->send_read_op($op);
+    my $res = $self->_client->send_read_op($op);
+    $self->_result($res->{result});
+    $self->_last_operation_time($res->{operationTime})
+        if exists $res->{operationTime};
 }
 
 =head1 STREAM METHODS
@@ -203,7 +219,7 @@ sub next {
                 and $error->_is_resumable
             ) {
                 $retried = 1;
-                $self->_result($self->_build_result);
+                $self->_execute_query;
             }
             else {
                 die $error;
@@ -219,8 +235,7 @@ sub next {
     }
 
     if (exists $change->{_id}) {
-        $self->_resume_token($change->{_id});
-        $self->_changes_received(1);
+        $self->_last_resume_token($change->{_id});
         return $change;
     }
     else {

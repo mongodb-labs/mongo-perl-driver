@@ -17,6 +17,7 @@ use warnings;
 package MongoDB::Op::_ChangeStream;
 
 # Encapsulate changestream operation; return MongoDB::QueryResult
+# and operationTime if supported
 
 use version;
 our $VERSION = 'v1.999.1';
@@ -84,11 +85,7 @@ has all_changes_for_cluster => (
 has start_at_operation_time => (
     is => 'ro',
     isa => BSONTimestamp,
-);
-
-has changes_received => (
-    is => 'ro',
-    default => sub { 0 },
+    predicate => 'has_start_at_operation_time',
 );
 
 with $_ for qw(
@@ -153,42 +150,10 @@ sub execute {
             "Calling aggregate with a collection name of '1' is not supported on Wire Version < 6" );
     }
 
-    my $start_op_time;
-
-    # preset startAtOperationTime
-    if (!$self->changes_received && defined $self->start_at_operation_time) {
-        $start_op_time = $self->start_at_operation_time;
-    }
-
-    # default startAtOperationTime when supported and not
-    if (
-        0 && # TODO: Not in spec tests, throws when included
-        !defined($start_op_time) &&
-        !$self->changes_received &&
-        $link->supports_4_0_changestreams
-    ) {
-        if (
-            defined($link->server) &&
-            defined(my $op_time = $link->server->is_master->{operationTime})
-        ) {
-            $start_op_time = $op_time;
-        }
-
-        if (
-            !defined($start_op_time) &&
-            defined($self->session) &&
-            defined(my $latest_cl_time = $self->session->get_latest_cluster_time)
-        ) {
-            if (defined(my $cl_time = $latest_cl_time->{clusterTime})) {
-                $start_op_time = $cl_time;
-            }
-        }
-    }
-
     my @pipeline = (
         {'$changeStream' => {
-            (defined($start_op_time)
-                ? (startAtOperationTime => $start_op_time)
+            ($self->has_start_at_operation_time
+                ? (startAtOperationTime => $self->start_at_operation_time)
                 : ()
             ),
             ($self->all_changes_for_cluster
@@ -238,7 +203,12 @@ sub execute {
         };
     }
 
-    return $self->_build_result_from_cursor($res);
+    return {
+        result => $self->_build_result_from_cursor($res),
+        $link->supports_4_0_changestreams
+            ? (operationTime => $res->output->{operationTime})
+            : (),
+    };
 }
 
 1;
