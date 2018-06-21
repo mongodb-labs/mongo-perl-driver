@@ -98,7 +98,7 @@ has _start_at_operation_time => (
     init_arg => 'start_at_operation_time',
     predicate => '_has_start_at_operation_time',
     coerce => sub {
-        ref($_[0]) ? $_[0] : BSON::Timestamp->new($_[0])
+        ref($_[0]) ? $_[0] : BSON::Timestamp->new(seconds => $_[0])
     },
 );
 
