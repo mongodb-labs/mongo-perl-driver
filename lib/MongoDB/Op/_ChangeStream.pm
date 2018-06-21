@@ -156,7 +156,7 @@ sub execute {
     my $start_op_time;
 
     # preset startAtOperationTime
-    if (defined $self->start_at_operation_time) {
+    if (!$self->changes_received && defined $self->start_at_operation_time) {
         $start_op_time = $self->start_at_operation_time;
     }
 
