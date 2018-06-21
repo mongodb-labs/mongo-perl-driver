@@ -52,6 +52,7 @@ has query_flags => (
 );
 
 has read_preference => (
+    # Needs to be rw for transactions
     is  => 'rw',
     isa => Maybe [ReadPreference],
 );
