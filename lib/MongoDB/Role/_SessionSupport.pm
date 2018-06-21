@@ -54,7 +54,6 @@ sub _apply_session_and_cluster_time {
 
     if ( $self->session->_in_transaction_state( 'starting' ) ) {
         ($$query_ref)->Push( 'startTransaction' => true );
-        $self->session->_set__has_transaction_operations( 1 );
         ($$query_ref)->Push( @{ $self->session->_get_transaction_read_concern->as_args( $self->session ) } );
     }
 
