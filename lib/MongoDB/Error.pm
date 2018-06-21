@@ -168,6 +168,7 @@ sub _check_is_retryable_code {
 sub _check_is_retryable_message {
   my $message = $_[-1];
 
+  return 0 unless defined $message;
   return 1 if $message =~ /(not master|node is recovering)/i;
   return 0;
 }

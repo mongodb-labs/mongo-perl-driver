@@ -349,22 +349,35 @@ sub commit_transaction {
     if ( my $err = $@ ) {
         # catch and re-throw after retryable errors
         # TODO maybe need better checking logic that theres actually an error code in output?
+        my $err_code_name;
         my $err_code;
         if ( $err->can('result') ) {
             if ( $err->result->can('output') ) {
-                $err_code = $err->result->output->{codeName};
+                $err_code_name = $err->result->output->{codeName};
+                $err_code = $err->result->output->{code};
+                $err_code_name ||= $err->result->output->{writeConcernError}
+                    ? $err->result->output->{writeConcernError}->{codeName}
+                    : ''; # Empty string just in case
                 $err_code ||= $err->result->output->{writeConcernError}
-                  ? $err->result->output->{writeConcernError}->{codeName}
-                  : ''; # Empty string just in case
+                    ? $err->result->output->{writeConcernError}->{code}
+                    : 0; # just in case
             }
         }
         # If its a write concern error, retrying a commit would still error
-        unless ( defined( $err_code ) && grep { $_ eq $err_code } qw/
-            CannotSatisfyWriteConcern
-            UnsatisfiableWriteConcern
-            UnknownReplWriteConcern
-            NoSuchTransaction
-        / ) {
+        unless (
+            ( defined( $err_code_name ) && grep { $_ eq $err_code_name } qw/
+                CannotSatisfyWriteConcern
+                UnsatisfiableWriteConcern
+                UnknownReplWriteConcern
+                NoSuchTransaction
+            / )
+            # Spec tests include code numbers only with no codeName
+            || ( defined ( $err_code ) && grep { $_ == $err_code }
+                100, # UnsatisfiableWriteConcern/CannotSatisfyWriteConcern
+                79,  # UnknownReplWriteConcern
+                251, # NoSuchTransaction
+            )
+        ) {
             push @{ $err->error_labels }, 'UnknownTransactionCommitResult';
         }
         die $err;

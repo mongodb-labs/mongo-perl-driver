@@ -44,20 +44,19 @@ use MongoDBTest qw/
     get_unique_collection
     skip_unless_mongod
     skip_unless_failpoints_available
+    skip_unless_transactions
 /;
 
-# TODO Keep not getting hosts???? skip_unless_mongod();
-# TODO skip_unless_failpoints_available();
+skip_unless_mongod();
+skip_unless_failpoints_available();
+skip_unless_transactions();
 
 my @events;
-
-# TODO strip all Dwarns
-#use Devel::Dwarn;
 
 sub clear_events { @events = () }
 sub event_count { scalar @events }
 # Must use dclone, as was causing action at a distance for binc on txn number
-sub event_cb { push @events, dclone $_[0] }#; Dwarn $_[0] }
+sub event_cb { push @events, dclone $_[0] }
 
 my $conn           = build_client();
 my $server_version = server_version($conn);
@@ -90,9 +89,9 @@ my %method_args = (
 );
 
 my $dir      = path("t/data/transactions");
-my $iterator = $dir->iterator; my $index = 0; # TBSLIVER
+my $iterator = $dir->iterator;
 while ( my $path = $iterator->() ) {
-    next unless $path =~ /\.json$/; #next unless ++$index == 19; # TBSLIVER run specific file
+    next unless $path =~ /\.json$/;
     my $plan = eval { decode_json( $path->slurp_utf8 ) };
     if ($@) {
         die "Error decoding $path: $@";
@@ -102,14 +101,9 @@ while ( my $path = $iterator->() ) {
 
     subtest $path => sub {
 
-        for my $test ( @{ $plan->{tests} } ) { # TBSLIVER run specific subtest
+        for my $test ( @{ $plan->{tests} } ) {
             my $description = $test->{description};
             local $TODO = 'does a run_command read_preference count as a user configurable read_preference?' if $path =~ /run-command/ && $description =~ /explicit secondary read preference/;
-            # TODO requires PERL-918
-            local $TODO = 'requires PERL-918' if $path =~ /error-labels/ && $description =~ /add unknown commit label/;
-            local $TODO = 'requires PERL-918' if $path =~ /error-labels/ && $description =~ /omit unknown commit label/;
-            local $TODO = 'requires PERL-918' if $path =~ /retryable-abort/ && $description =~ /abortTransaction succeeds after (NotMaster|Interrupted|Primary|Shutdown|Host|Socket|Network|WriteConcernError)/;
-            local $TODO = 'requires PERL-918' if $path =~ /retryable-commit/ && $description =~ /commitTransaction succeeds after (NotMaster|Interrupted|Primary|Shutdown|Host|Socket|Network|WriteConcernError)/;
             subtest $description => sub {
                 my $client = build_client();
 
@@ -119,20 +113,16 @@ while ( my $path = $iterator->() ) {
 
                 # We crank wtimeout up to 10 seconds to help reduce
                 # replication timeouts in testing
-                $test_db->get_collection(
+                my $test_coll = $test_db->get_collection(
                     $test_coll_name,
                     { write_concern => { w => 'majority', wtimeout => 10000 } }
-                )->drop;
+                );
+                $test_coll->drop;
 
                 # Drop first to make sure its clear for the next test.
                 # MongoDB::Collection doesnt have a ->create option so done as
                 # a seperate step.
                 $test_db->run_command([ create => $test_coll_name ]);
-
-                my $test_coll = $test_db->get_collection(
-                    $test_coll_name,
-                    { write_concern => { w => 'majority', wtimeout => 10000 } }
-                );
 
                 if ( scalar @{ $plan->{data} } > 0 ) {
                     $test_coll->insert_many( $plan->{data} );
@@ -142,7 +132,10 @@ while ( my $path = $iterator->() ) {
                 run_test( $test_db_name, $test_coll_name, $test );
                 clear_failpoint( $client, $test->{failPoint} );
 
-                # TODO Check outcome data
+                if ( defined $test->{outcome}{collection}{data} ) {
+                    my @outcome = $test_coll->find()->all;
+                    cmp_deeply( \@outcome, $test->{outcome}{collection}{data}, 'outcome as expected' )
+                }
             };
         }
     };
@@ -225,8 +218,6 @@ sub run_test {
             $sessions{ collection } = $sessions{ database }->get_collection( $test_coll_name, $collection_options );
             my $cmd = to_snake_case( $operation->{name} );
 
-            # diag $cmd;
-            #Dwarn $operation;
             if ( $cmd =~ /_transaction$/ ) {
                 my $op_args = $operation->{arguments} // {};
                 $sessions{ $operation->{object} }->$cmd( $op_args->{options} );
@@ -272,7 +263,6 @@ sub run_test {
     $sessions{session0}->end_session;
     $sessions{session1}->end_session;
 
-    #Dwarn \@events;
     if ( defined $test->{expectations} ) {
         check_event_expectations( _adjust_types( $test->{expectations} ) );
     }
@@ -297,7 +287,7 @@ sub check_error {
             }
             return;
         }
-        #Dwarn $err;
+
         my $err_contains        = $exp->{errorContains};
         my $err_code_name       = $exp->{errorCodeName};
         my $err_labels_contains = $exp->{errorLabelsContain};
@@ -330,8 +320,6 @@ sub check_error {
 sub check_result_outcome {
     my ( $got, $exp ) = @_;
 
-    #DwarnN $got;
-    #DwarnN $exp;
     if ( ref( $exp ) eq 'ARRAY' ) {
         check_array_result_outcome( $got, $exp );
     } else {
@@ -470,7 +458,6 @@ sub check_event_expectations {
     # also ignoring ismaster commands caused by re-negotiation after network error
     my @got = grep { $_->{type} eq 'command_started' && $_->{commandName} ne 'ismaster' } @events;
 
-    #Dwarn \@events;
     for my $exp ( @$expected ) {
         my ($exp_type, $exp_spec) = %$exp;
         # We only have command_started_event checks
@@ -633,9 +620,6 @@ sub check_command_field {
     if ( defined $exp_command->{txnNumber} ) {
         $exp_command->{txnNumber} = Math::BigInt->new($exp_command->{txnNumber});
     }
-
-    #DwarnN $exp_command;
-    #DwarnN $event_command;
 
     for my $exp_key (sort keys %$exp_command) {
         my $event_value = $event_command->{$exp_key};
