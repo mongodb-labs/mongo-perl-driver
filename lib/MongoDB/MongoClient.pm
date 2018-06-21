@@ -1527,15 +1527,20 @@ sub send_admin_command {
     return $self->send_read_op( $op );
 }
 
+# Reset session state if we're outside an active transaction
+sub _maybe_reset_session_state {
+    my ( $self, $op ) = @_;
+    if ( defined $op->session && ! $op->session->_active_transaction ) {
+        $op->session->_set__transaction_state( 'none' );
+    }
+}
+
 # op dispatcher written in highly optimized style
 sub send_direct_op {
     my ( $self, $op, $address ) = @_;
     my ( $link, $result );
 
-    # Reset session state if we're outside an active transaction
-    if ( defined $op->session && ! $op->session->_active_transaction ) {
-        $op->session->_set__transaction_state( 'none' );
-    }
+    $self->_maybe_reset_session_state( $op );
 
     ( $link = $self->{_topology}->get_specific_link($address) ), (
         eval { ($result) = $op->execute($link); 1 } or do {
@@ -1559,10 +1564,7 @@ sub send_write_op {
     my ( $self, $op ) = @_;
     my ( $link, $result );
 
-    # Reset session state if we're outside an active transaction
-    if ( defined $op->session && ! $op->session->_active_transaction ) {
-        $op->session->_set__transaction_state( 'none' );
-    }
+    $self->_maybe_reset_session_state( $op );
 
     ( $link = $self->{_topology}->get_writable_link ), (
         eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
@@ -1587,10 +1589,7 @@ sub send_retryable_write_op {
     my $result;
     my $link = $self->{_topology}->get_writable_link;
 
-    # Reset session state if we're outside an active transaction
-    if ( defined $op->session && ! $op->session->_active_transaction ) {
-        $op->session->_set__transaction_state( 'none' );
-    }
+    $self->_maybe_reset_session_state( $op );
 
     # Need to force to do a retryable write on a Transaction Commit or Abort. $force is an override for retry_writes, but theres no point trying that if the link doesnt support it anyway.
     # This triggers on the following:
@@ -1686,9 +1685,8 @@ sub send_read_op {
         # check the read preference from the transaction settings as per
         # transaction spec - see MongoDB::_TransactionOptions
         $op->read_preference( $op->session->_get_transaction_read_preference );
-    } elsif ( defined $op->session ) {
-        # Not in an active transaction, so reset state
-        $op->session->_set__transaction_state( 'none' );
+    } else {
+        $self->_maybe_reset_session_state( $op );
     }
 
     ( $link = $self->{_topology}->get_readable_link( $op->read_preference ) ),
