@@ -849,6 +849,10 @@ subtest delete => sub {
 
 subtest "aggregate" => sub {
 
+    # Tests use a $lookup syntax not available untli v3.6.0
+    plan skip_all => "Requires MongoDB 3.6"
+        unless $server_version >= v3.6.0;
+
     # Start Aggregation Example 1
     $db->coll("sales")->aggregate(
         [
