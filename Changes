@@ -6,6 +6,10 @@
 
     - PERL-856 Deprecate 'md5' field in GridFS file documents
 
+  [Documentation]
+
+    - PERL-859 Added tests with example code for MongoDB's docs site
+
   [Prerequisites]
 
     - PERL-941 Bump BSON prereq to v1.6.5 for BSON::Time fix on 32-bit perls

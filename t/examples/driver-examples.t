@@ -41,6 +41,11 @@ my $coll           = $db->coll("inventory");
 my $server_version = server_version($conn);
 my $cursor;
 
+# ensure some collections exist
+for my $name ( qw/sales records restaurants air_alliances/ ) {
+    $db->coll($name)->insert_one({});
+}
+
 #<<< No perltidy
 
 subtest "insert" => sub {
@@ -839,6 +844,131 @@ subtest delete => sub {
     # End Example 56
 
     is( $coll->count_documents({}), 0 );
+};
+
+
+subtest "aggregate" => sub {
+
+    # Start Aggregation Example 1
+    $db->coll("sales")->aggregate(
+        [
+            { '$match' => { "items.fruit" => "banana" } },
+            { '$sort' => { "date" => 1 } },
+        ]
+    );
+    # End Aggregation Example 1
+
+    # Start Aggregation Example 2
+    $db->coll("sales")->aggregate(
+        [
+            { '$unwind' => '$items' },
+            { '$match'  => { "items.fruit" => "banana" } },
+            {
+                '$group' => {
+                    _id   => { day    => { '$dayOfWeek' => '$date' } },
+                    count => { '$sum' => '$items.quantity' }
+                }
+            },
+            {
+                '$project' => {
+                    dayOfWeek  => '$_id.day',
+                    numberSold => '$count',
+                    _id        => 0
+                }
+            },
+            { '$sort' => { 'numberSold' => 1 } },
+        ]
+    );
+    # End Aggregation Example 2
+
+    # Start Aggregation Example 3
+    $db->coll("sales")->aggregate(
+        [
+            { '$unwind' => '$items' },
+            {
+                '$group' => {
+                    _id        => { day    => { '$dayOfWeek' => '$date' } },
+                    items_sold => { '$sum' => '$items.quantity' },
+                    revenue => { '$sum' => { '$multiply' => [ '$items.quantity', '$items.price' ] } },
+                },
+            },
+            {
+                '$project' => {
+                    day        => '$_id.day',
+                    revenue    => 1,
+                    items_sold => 1,
+                    discount => {
+                        '$cond' => {
+                            if   => { '$lte' => [ '$revenue', 250 ] },
+                            then => 25,
+                            else => 0,
+                        },
+                    },
+                },
+            },
+        ]
+    );
+    # End Aggregation Example 3
+
+    # Start Aggregation Example 4
+    $db->coll("air_alliances")->aggregate(
+        [
+            {
+                '$lookup' => {
+                    from => 'air_airlines',
+                    let  => { constituents => '$airlines' },
+                    pipeline => [
+                        { '$match' => { '$expr' => { '$in' => [ '$name', '$$constituents' ] } } },
+                    ],
+                    as => 'airlines'
+                }
+            },
+            {
+                '$project' => {
+                    '_id'    => 0,
+                    'name'   => 1,
+                    airlines => {
+                        '$filter' => {
+                            input => '$airlines',
+                            as    => 'airline',
+                            cond  => { '$eq' => [ '$$airline.country', 'Canada' ] },
+                        }
+                    }
+                }
+            }
+        ]
+    );
+    # End Aggregation Example 4
+
+    pass();
+};
+
+subtest 'run_command' => sub {
+    # Start runCommand Example 1
+    $db->run_command([buildInfo => 1]);
+    # End runCommand Example 1
+
+    # Start runCommand Example 2
+    $db->run_command([collStats => 'restaurants']);
+    # End runCommand Example 2
+
+    pass();
+};
+
+subtest 'indexing' => sub {
+
+    # Start Index Example 1
+    $db->coll("records")->indexes->create_one( [ score => 1 ] );
+    # End Index Example 1
+
+    # Start Index Example 2
+    $db->coll("restaurants")->indexes->create_one(
+        [ cuisine => 1, name => 1 ],
+        { partialFilterExpression => { rating => { '$gt' => 5 } } },
+    );
+    # End Index Example 2
+
+    pass();
 };
 
 #>>> no perltidy
