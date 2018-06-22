@@ -39,7 +39,7 @@ use Types::Standard qw(
 );
 use namespace::clean -except => 'meta';
 
-# Options provided during strart transaction
+# Options provided during start transaction
 has options => (
     is => 'ro',
     required => 1,
