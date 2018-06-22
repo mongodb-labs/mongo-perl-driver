@@ -1532,7 +1532,7 @@ sub send_admin_command {
 sub _maybe_update_session_state {
     my ( $self, $op ) = @_;
     if ( defined $op->session && ! $op->session->_active_transaction ) {
-        $op->session->_set__transaction_state( 'none' );
+        $op->session->_set__transaction_state( TXN_NONE );
     } elsif ( defined $op->session ) {
         $op->session->_set__has_transaction_operations( 1 );
     }
@@ -1603,7 +1603,7 @@ sub send_retryable_write_op {
     unless ( $link->supports_retryWrites
         && ( $self->retry_writes || ( defined $force && $force eq 'force' ) )
         && ( defined $op->session
-          && ! $op->session->_in_transaction_state( qw/ starting in_progress / )
+          && ! $op->session->_in_transaction_state( TXN_STARTING, TXN_IN_PROGRESS )
         )
     ) {
         eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {

@@ -91,6 +91,7 @@ use Types::Standard qw(
 
 use Scalar::Util qw/reftype/;
 use boolean 0.25;
+use MongoDB::_Constants;
 require Tie::IxHash;
 
 #--------------------------------------------------------------------------#
@@ -200,7 +201,7 @@ enum TopologyType,
   [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Direct Unknown/];
 
 enum TransactionState,
-  [ qw/ none starting committed in_progress aborted / ];
+  [ TXN_NONE, TXN_STARTING, TXN_IN_PROGRESS, TXN_COMMITTED, TXN_ABORTED ];
 
 class_type WriteConcern, { class => 'MongoDB::WriteConcern' };
 

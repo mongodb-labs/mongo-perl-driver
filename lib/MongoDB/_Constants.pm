@@ -49,6 +49,12 @@ BEGIN {
         P_INT32                    => $] lt '5.010' ? 'l' : 'l<',
         SMALLEST_MAX_STALENESS_SEC => 90,
         WITH_ASSERTS               => $ENV{PERL_MONGO_WITH_ASSERTS},
+        # Transaction state tracking
+        TXN_NONE                    => 'none',
+        TXN_STARTING                => 'starting',
+        TXN_IN_PROGRESS             => 'in_progress',
+        TXN_COMMITTED               => 'committed',
+        TXN_ABORTED                 => 'aborted',
     };
 }
 

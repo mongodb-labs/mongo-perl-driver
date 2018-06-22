@@ -24,6 +24,7 @@ our $VERSION = 'v1.999.1';
 use MongoDB::Error;
 
 use Moo;
+use MongoDB::_Constants;
 use MongoDB::_Types qw(
     Document
     BSONTimestamp
@@ -291,7 +292,7 @@ sub start_transaction {
     my ( $self, $opts ) = @_;
 
     MongoDB::UsageError->throw("Transaction already in progress")
-        if $self->_in_transaction_state( 'starting', 'in_progress' );
+        if $self->_in_transaction_state( TXN_STARTING, TXN_IN_PROGRESS );
 
     MongoDB::ConfigurationError->throw("Transactions are unsupported on this deployment")
         unless $self->client->_topology->_supports_transactions;
@@ -305,7 +306,7 @@ sub start_transaction {
 
     $self->_set__current_transaction_options( $trans_opts );
 
-    $self->_set__transaction_state('starting');
+    $self->_set__transaction_state( TXN_STARTING );
 
     $self->_increment_transaction_id;
 
@@ -332,11 +333,11 @@ sub commit_transaction {
     my $self = shift;
 
     MongoDB::UsageError->throw("No transaction started")
-        if $self->_transaction_state eq 'none';
+        if $self->_in_transaction_state( TXN_NONE );
 
     # Error message tweaked to use our function names
     MongoDB::UsageError->throw("Cannot call commit_transaction after calling abort_transaction")
-        if $self->_transaction_state eq 'aborted';
+        if $self->_in_transaction_state( TXN_ABORTED );
 
     # Commit can be called multiple times - even if the transaction completes
     # correctly. Setting this here makes sure we dont increment transaction id
@@ -344,7 +345,7 @@ sub commit_transaction {
     $self->_set__active_transaction( 1 );
 
     eval {
-        $self->_send_end_transaction_command( 'committed', [ commitTransaction => 1 ] );
+        $self->_send_end_transaction_command( TXN_COMMITTED, [ commitTransaction => 1 ] );
     };
     if ( my $err = $@ ) {
         # catch and re-throw after retryable errors
@@ -396,17 +397,17 @@ sub abort_transaction {
     my $self = shift;
 
     MongoDB::UsageError->throw("No transaction started")
-        if $self->_in_transaction_state( 'none' );
+        if $self->_in_transaction_state( TXN_NONE );
 
     # Error message tweaked to use our function names
     MongoDB::UsageError->throw("Cannot call abort_transaction after calling commit_transaction")
-        if $self->_in_transaction_state( 'committed' );
+        if $self->_in_transaction_state( TXN_COMMITTED );
 
     # Error message tweaked to use our function names
     MongoDB::UsageError->throw("Cannot call abort_transaction twice")
-        if $self->_in_transaction_state( 'aborted' );
+        if $self->_in_transaction_state( TXN_ABORTED );
 
-    $self->_send_end_transaction_command( 'aborted', [ abortTransaction => 1 ] );
+    $self->_send_end_transaction_command( TXN_ABORTED, [ abortTransaction => 1 ] );
 
     return;
 }
@@ -440,7 +441,7 @@ sub _send_end_transaction_command {
 sub _maybe_apply_error_labels {
     my ( $self, $err ) = @_;
 
-    if ( $self->_in_transaction_state( qw/ starting in_progress / ) ) {
+    if ( $self->_in_transaction_state( TXN_STARTING, TXN_IN_PROGRESS ) ) {
         push @{ $err->error_labels }, 'TransientTransactionError';
     }
     return;
@@ -458,7 +459,7 @@ recycling.  Has no effect after calling for the first time.
 sub end_session {
     my ( $self ) = @_;
 
-    if ( $self->_transaction_state eq 'in_progress' ) {
+    if ( $self->_in_transaction_state ( TXN_IN_PROGRESS ) ) {
         # Ignore all errors
         eval { $self->abort_transaction };
     }
