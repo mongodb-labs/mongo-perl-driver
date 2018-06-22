@@ -436,6 +436,16 @@ sub _send_end_transaction_command {
     $self->_set__active_transaction( 0 );
 }
 
+# For applying connection errors etc
+sub _maybe_apply_error_labels {
+    my ( $self, $err ) = @_;
+
+    if ( $self->_in_transaction_state( qw/ starting in_progress / ) ) {
+        push @{ $err->error_labels }, 'TransientTransactionError';
+    }
+    return;
+}
+
 =method end_session
 
     $session->end_session;

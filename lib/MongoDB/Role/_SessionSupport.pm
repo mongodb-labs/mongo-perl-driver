@@ -142,9 +142,8 @@ sub _assert_session_errors {
 sub _update_session_connection_error {
     my ( $self, $err ) = @_;
 
-    if ( $self->session->_in_transaction_state( qw/ starting in_progress / ) ) {
-        push @{ $err->error_labels }, 'TransientTransactionError';
-    }
+    return unless defined $self->session;
+    return $self->session->_maybe_apply_error_labels( $err );
 }
 
 sub __extract_from {
