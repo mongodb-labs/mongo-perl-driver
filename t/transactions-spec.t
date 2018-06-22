@@ -218,6 +218,9 @@ sub run_test {
             $sessions{ collection } = $sessions{ database }->get_collection( $test_coll_name, $collection_options );
             my $cmd = to_snake_case( $operation->{name} );
 
+            # TODO count is checked specifically for errors during a transaction so warning here is not useful - we cannot change to count_documents, which is actually allowed in transactions.
+            local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $cmd eq 'count';
+
             if ( $cmd =~ /_transaction$/ ) {
                 my $op_args = $operation->{arguments} // {};
                 $sessions{ $operation->{object} }->$cmd( $op_args->{options} );
