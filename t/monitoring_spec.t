@@ -50,19 +50,20 @@ my $conn           = build_client( monitoring_callback => \&event_cb );
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
-my $coll           = $testdb->get_collection('test_collection');
+
+my ($coll);
 
 # defines which argument hash fields become positional arguments
 my %method_args = (
     insert_one => [qw( document )],
-    insert_many => [qw( documents )],
+    insert_many => [qw( documents options )],
     delete_one => [qw( filter )],
     delete_many => [qw( filter )],
     update_one => [qw( filter update )],
     update_many => [qw( filter update )],
     find => [qw( filter )],
     count => [qw( filter )],
-    bulk_write => [qw( requests )],
+    bulk_write => [qw( requests options )],
 );
 
 my $dir = path("t/data/command-monitoring");
@@ -98,6 +99,14 @@ while ( my $path = $iterator->() ) {
                     plan skip_all => "Ignored for '$topology' topology"
                         if $ignore_server_type eq $server_type;
                 }
+
+                $coll = $testdb->get_collection(
+                    'test_collection',
+                    +{map {
+                        (my $name = $_) =~ s{([A-Z])}{_\L$1}g;
+                        ($name, $test->{operation}{collectionOptions}{$_})
+                    } keys %{ $test->{operation}{collectionOptions} || {} }},
+                );
 
                 $coll->drop;
                 $coll->insert_many( $plan->{data} );
@@ -194,7 +203,7 @@ sub _adjust_types {
 sub _adjust_bulk_write_requests {
     my ($requests) = @_;
     return [map {
-        my ($name, $args) = %$_;
+        my ($name, $args) = @{$_}{qw( name arguments )};
         $name =~ s{([A-Z])}{_\L$1}g;
         +{ $name => [_adjust_arguments($name, $args)] };
     } @$requests];
