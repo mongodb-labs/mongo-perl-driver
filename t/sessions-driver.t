@@ -55,6 +55,9 @@ my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 my $coll           = $testdb->get_collection('test_collection');
 
+$coll->insert_one({}); # do a write so cluster establishes an optime
+clear_events();
+
 # Last in First out
 subtest 'LIFO Pool' => sub {
     my $session_a = $conn->start_session;
