@@ -407,7 +407,10 @@ sub abort_transaction {
     MongoDB::UsageError->throw("Cannot call abort_transaction twice")
         if $self->_in_transaction_state( TXN_ABORTED );
 
-    $self->_send_end_transaction_command( TXN_ABORTED, [ abortTransaction => 1 ] );
+    eval {
+        $self->_send_end_transaction_command( TXN_ABORTED, [ abortTransaction => 1 ] );
+    };
+    # Ignore all errors thrown by abortTransaction
 
     return;
 }
