@@ -196,7 +196,7 @@ sub list_collections {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_ListCollections->_new(
         db_name             => $self->name,
@@ -333,7 +333,7 @@ Valid options include:
 sub drop {
     my ( $self, $options ) = @_;
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     return $self->_client->send_write_op(
         MongoDB::Op::_DropDatabase->_new(
@@ -404,7 +404,7 @@ sub run_command {
         ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
       if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_Command->_new(
         client              => $self->_client,
@@ -429,7 +429,7 @@ sub _aggregate {
     my ( $self, $pipeline, $options ) = @_;
     $options ||= {};
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     # boolify some options
     for my $k (qw/allowDiskUse explain/) {
@@ -463,24 +463,73 @@ sub _aggregate {
     return $self->_client->send_read_op($op);
 }
 
-# Extracts a session from a provided hashref, or returns an implicit session
-# Almost identical to same subroutine in Collection, however in Database the
-# client attribute is private. 
-sub _get_session_from_hashref {
-    my ( $self, $hashref ) = @_;
+=method watch
 
-    my $session = delete $hashref->{session};
+Watches for changes on this database.
 
-    if ( defined $session ) {
-        MongoDB::UsageError->throw( "Cannot use session from another client" )
-            if ( $session->client->_id ne $self->_client->_id );
-        MongoDB::UsageError->throw( "Cannot use session which has ended" )
-            if ! defined $session->session_id;
-    } else {
-        $session = $self->_client->_maybe_get_implicit_session;
+Perform an aggregation with an implicit initial C<$changeStream> stage
+and returns a L<MongoDB::ChangeStream> result which can be used to
+iterate over the changes in the database. This functionality is
+available since MongoDB 4.0.
+
+    my $stream = $db->watch();
+    my $stream = $db->watch( \@pipeline );
+    my $stream = $db->watch( \@pipeline, \%options );
+
+    while (1) {
+
+        # This inner loop will only run until no more changes are
+        # available.
+        while (my $change = $stream->next) {
+            # process $change
+        }
     }
 
-    return $session;
+The returned stream will not block forever waiting for changes. If you
+want to respond to changes over a longer time use C<maxAwaitTimeMS> and
+regularly call C<next> in a loop.
+
+See L<MongoDB::Collection/watch> for details on usage and available
+options.
+
+=cut
+
+sub watch {
+    my ( $self, $pipeline, $options ) = @_;
+
+    $pipeline ||= [];
+    $options ||= {};
+
+    my $session = $self->_client->_get_session_from_hashref( $options );
+
+    return MongoDB::ChangeStream->new(
+        exists($options->{startAtOperationTime})
+            ? (start_at_operation_time => delete $options->{startAtOperationTime})
+            : (),
+        exists($options->{fullDocument})
+            ? (full_document => delete $options->{fullDocument})
+            : (full_document => 'default'),
+        exists($options->{resumeAfter})
+            ? (resume_after => delete $options->{resumeAfter})
+            : (),
+        exists($options->{maxAwaitTimeMS})
+            ? (max_await_time_ms => delete $options->{maxAwaitTimeMS})
+            : (),
+        client => $self->_client,
+        pipeline => $pipeline,
+        session => $session,
+        options => $options,
+        op_args => {
+            read_concern => $self->read_concern,
+            bson_codec => $self->bson_codec,
+            db_name => $self->name,
+            coll_name => 1,                     # Magic not-an-actual-collection number
+            full_name => $self->name . ".1",
+            read_preference => $self->read_preference,
+            write_concern => $self->write_concern,
+            monitoring_callback => $self->_client->monitoring_callback,
+        },
+    );
 }
 
 1;

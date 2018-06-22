@@ -24,17 +24,23 @@ our $VERSION = 'v1.999.1';
 use Moo;
 use Try::Tiny;
 use MongoDB::Cursor;
-use MongoDB::Op::_Aggregate;
+use MongoDB::Op::_ChangeStream;
 use MongoDB::Error;
 use Safe::Isa;
+use BSON::Timestamp;
 use MongoDB::_Types qw(
     MongoDBCollection
     ArrayOfHashRef
+    Boolish
+    BSONTimestamp
+    ClientSession
 );
 use Types::Standard qw(
     InstanceOf
     HashRef
+    Maybe
     Str
+    Num
 );
 
 use namespace::clean -except => 'meta';
@@ -42,70 +48,140 @@ use namespace::clean -except => 'meta';
 has _result => (
     is => 'rw',
     isa => InstanceOf['MongoDB::QueryResult'],
-    lazy => 1,
-    builder => '_build_result',
-    clearer => '_clear_result',
+    init_arg => undef,
 );
 
-has collection => (
+has _client => (
     is => 'ro',
-    isa => MongoDBCollection,
+    isa => InstanceOf['MongoDB::MongoClient'],
+    init_arg => 'client',
     required => 1,
 );
 
-has aggregation_options => (
+has _op_args => (
     is => 'ro',
     isa => HashRef,
-);
-
-has pipeline => (
-    is => 'ro',
-    isa => ArrayOfHashRef,
+    init_arg => 'op_args',
     required => 1,
 );
 
-has full_document => (
+has _pipeline => (
+    is => 'ro',
+    isa => ArrayOfHashRef,
+    init_arg => 'pipeline',
+    required => 1,
+);
+
+has _full_document => (
     is => 'ro',
     isa => Str,
+    init_arg => 'full_document',
     predicate => '_has_full_document',
 );
 
-has _resume_token => (
-    is => 'rw',
+has _resume_after => (
+    is => 'ro',
     init_arg => 'resume_after',
-    predicate => '_has_resume_token',
-    lazy => 1,
+    predicate => '_has_resume_after',
+);
+
+has _all_changes_for_cluster => (
+    is => 'ro',
+    isa => Boolish,
+    init_arg => 'all_changes_for_cluster',
+    default => sub { 0 },
+);
+
+has _start_at_operation_time => (
+    is => 'ro',
+    isa => BSONTimestamp,
+    init_arg => 'start_at_operation_time',
+    predicate => '_has_start_at_operation_time',
+    coerce => sub {
+        ref($_[0]) ? $_[0] : BSON::Timestamp->new(seconds => $_[0])
+    },
+);
+
+has _session => (
+    is => 'ro',
+    isa => Maybe[ClientSession],
+    init_arg => 'session',
+);
+
+has _options => (
+    is => 'ro',
+    isa => HashRef,
+    init_arg => 'options',
+    default => sub { {} },
+);
+
+has _max_await_time_ms => (
+    is => 'ro',
+    isa => Num,
+    init_arg => 'max_await_time_ms',
+    predicate => '_has_max_await_time_ms',
+);
+
+has _last_operation_time => (
+    is => 'rw',
+    init_arg => undef,
+    predicate => '_has_last_operation_time',
+);
+
+has _last_resume_token => (
+    is => 'rw',
+    init_arg => undef,
+    predicate => '_has_last_resume_token',
 );
 
 sub BUILD {
     my ($self) = @_;
 
     # starting point is construction time instead of first next call
-    $self->_result;
+    $self->_execute_query;
 }
 
-sub _build_result {
+sub _execute_query {
     my ($self) = @_;
 
-    my @pipeline = @{ $self->pipeline };
-    @pipeline = (
-        {'$changeStream' => {
-            ($self->_has_full_document
-                ? (fullDocument => $self->full_document)
-                : ()
-            ),
-            ($self->_has_resume_token
-                ? (resumeAfter => $self->_resume_token)
-                : ()
-            ),
-        }},
-        @pipeline,
+    my $resume_opt = {};
+
+    # seen prior results, continuing after last resume token
+    if ($self->_has_last_resume_token) {
+        $resume_opt->{resume_after} = $self->_last_resume_token;
+    }
+    # no results yet, but we have operation time from prior query
+    elsif ($self->_has_last_operation_time) {
+        $resume_opt->{start_at_operation_time} = $self->_last_operation_time;
+    }
+    # no results and no prior operation time, send specified options
+    else {
+        $resume_opt->{start_at_operation_time} = $self->_start_at_operation_time
+            if $self->_has_start_at_operation_time;
+        $resume_opt->{resume_after} = $self->_resume_after
+            if $self->_has_resume_after;
+    }
+
+    my $op = MongoDB::Op::_ChangeStream->new(
+        pipeline => $self->_pipeline,
+        all_changes_for_cluster => $self->_all_changes_for_cluster,
+        session => $self->_session,
+        options => $self->_options,
+        client => $self->_client,
+        $self->_has_full_document
+            ? (full_document => $self->_full_document)
+            : (),
+        $self->_has_max_await_time_ms
+            ? (maxAwaitTimeMS => $self->_max_await_time_ms)
+            : (),
+        %$resume_opt,
+        %{ $self->_op_args },
     );
 
-    return $self->collection->aggregate(
-        \@pipeline,
-        $self->aggregation_options,
-    );
+    my $res = $self->_client->send_read_op($op);
+    $self->_result($res->{result});
+    $self->_last_operation_time($res->{operationTime})
+        if exists $res->{operationTime};
 }
 
 =head1 STREAM METHODS
@@ -143,7 +219,7 @@ sub next {
                 and $error->_is_resumable
             ) {
                 $retried = 1;
-                $self->_result($self->_build_result);
+                $self->_execute_query;
             }
             else {
                 die $error;
@@ -159,7 +235,7 @@ sub next {
     }
 
     if (exists $change->{_id}) {
-        $self->_resume_token($change->{_id});
+        $self->_last_resume_token($change->{_id});
         return $change;
     }
     else {

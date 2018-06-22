@@ -265,7 +265,7 @@ sub execute {
 
     $write_concern ||= $self->collection->write_concern;
 
-    my $session = $self->collection->_get_session_from_hashref( $options );
+    my $session = $self->_client->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_BulkWrite->_new(
         client                   => $self->_client,

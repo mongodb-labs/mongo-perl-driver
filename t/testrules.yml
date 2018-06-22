@@ -4,6 +4,7 @@ seq:
     - seq: t/max_time_ms.t
     - seq: t/using_profiler.t
     - seq: t/changestreams.t
+    - seq: t/changestreams_spec.t
     - seq: t/examples/changestream.t
     - seq: t/retryable-writes-spec.t
     - seq: t/retryable-writes-split-batch.t

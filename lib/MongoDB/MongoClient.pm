@@ -1852,6 +1852,94 @@ sub fsync_unlock {
     return $self->send_primary_op($op);
 }
 
+sub _get_session_from_hashref {
+    my ( $self, $hashref ) = @_;
+
+    my $session = delete $hashref->{session};
+
+    if ( defined $session ) {
+        MongoDB::UsageError->throw( "Cannot use session from another client" )
+            if ( $session->client->_id ne $self->_id );
+        MongoDB::UsageError->throw( "Cannot use session which has ended" )
+            if ! defined $session->session_id;
+    } else {
+        $session = $self->_maybe_get_implicit_session;
+    }
+
+    return $session;
+}
+
+=method watch
+
+Watches for changes on the cluster.
+
+Perform an aggregation with an implicit initial C<$changeStream> stage
+and returns a L<MongoDB::ChangeStream> result which can be used to
+iterate over the changes in the cluster. This functionality is
+available since MongoDB 4.0.
+
+    my $stream = $client->watch();
+    my $stream = $client->watch( \@pipeline );
+    my $stream = $client->watch( \@pipeline, \%options );
+
+    while (1) {
+
+        # This inner loop will only run until no more changes are
+        # available.
+        while (my $change = $stream->next) {
+            # process $change
+        }
+    }
+
+The returned stream will not block forever waiting for changes. If you
+want to respond to changes over a longer time use C<maxAwaitTimeMS> and
+regularly call C<next> in a loop.
+
+See L<MongoDB::Collection/watch> for details on usage and available
+options.
+
+=cut
+
+sub watch {
+    my ( $self, $pipeline, $options ) = @_;
+
+    $pipeline ||= [];
+    $options ||= {};
+
+    my $session = $self->_get_session_from_hashref( $options );
+
+    return MongoDB::ChangeStream->new(
+        exists($options->{startAtOperationTime})
+            ? (start_at_operation_time => delete $options->{startAtOperationTime})
+            : (),
+        exists($options->{fullDocument})
+            ? (full_document => delete $options->{fullDocument})
+            : (full_document => 'default'),
+        exists($options->{resumeAfter})
+            ? (resume_after => delete $options->{resumeAfter})
+            : (),
+        exists($options->{maxAwaitTimeMS})
+            ? (max_await_time_ms => delete $options->{maxAwaitTimeMS})
+            : (),
+        client => $self,
+        all_changes_for_cluster => 1,
+        pipeline => $pipeline,
+        session => $session,
+        options => $options,
+        op_args => {
+            read_concern => $self->read_concern,
+            db_name => 'admin',,
+            coll_name => 1,
+            full_name => 'admin.1',
+            bson_codec => $self->bson_codec,
+            write_concern => $self->write_concern,
+            read_concern => $self->read_concern,
+            read_preference => $self->read_preference,
+            monitoring_callback => $self->monitoring_callback,
+        },
+    );
+}
+
 
 1;
 

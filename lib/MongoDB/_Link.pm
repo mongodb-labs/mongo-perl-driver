@@ -215,6 +215,12 @@ has supports_retryWrites => (
     isa => Boolish,
 );
 
+has supports_4_0_changestreams => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Boolish,
+);
+
 my @connection_state_fields = qw(
     fh connected rcvbuf last_used fdset is_ssl
 );
@@ -349,6 +355,9 @@ sub set_metadata {
             ? 1
             : 0
         );
+    }
+    if ( $self->accepts_wire_version(7) ) {
+        $self->_set_supports_4_0_changestreams(1);
     }
 
     return;

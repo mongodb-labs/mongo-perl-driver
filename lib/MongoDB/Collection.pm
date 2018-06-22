@@ -372,7 +372,7 @@ sub insert_one {
 
     return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_InsertOne->_new(
-            session => $_[0]->_get_session_from_hashref( $_[2] ),
+            session => $_[0]->client->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
             document => $_[1],
             %{ $_[0]->_op_args },
@@ -426,7 +426,7 @@ sub insert_many {
             # default
             ordered => 1,
             # user overrides
-            session => $_[0]->_get_session_from_hashref( $_[2] ),
+            session => $_[0]->client->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? ( %{ $_[2] } ) : () ),
             # un-overridable
             queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
@@ -478,7 +478,7 @@ sub delete_one {
 
     return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_Delete->_new(
-            session => $_[0]->_get_session_from_hashref( $_[2] ),
+            session => $_[0]->client->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
             filter   => $_[1],
             just_one => 1,
@@ -515,7 +515,7 @@ sub delete_many {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Delete->_new(
-            session => $_[0]->_get_session_from_hashref( $_[2] ),
+            session => $_[0]->client->_get_session_from_hashref( $_[2] ),
             ( defined $_[2] ? (%{$_[2]}) : () ),
             filter   => $_[1],
             just_one => 0,
@@ -560,7 +560,7 @@ sub replace_one {
 
     return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_Update->_new(
-            session => $_[0]->_get_session_from_hashref( $_[3] ),
+            session => $_[0]->client->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
@@ -611,7 +611,7 @@ sub update_one {
 
     return $_[0]->client->send_retryable_write_op(
         MongoDB::Op::_Update->_new(
-            session => $_[0]->_get_session_from_hashref( $_[3] ),
+            session => $_[0]->client->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
@@ -662,7 +662,7 @@ sub update_many {
 
     return $_[0]->client->send_write_op(
         MongoDB::Op::_Update->_new(
-            session => $_[0]->_get_session_from_hashref( $_[3] ),
+            session => $_[0]->client->_get_session_from_hashref( $_[3] ),
             ( defined $_[3] ? (%{$_[3]}) : () ),
             filter     => $_[1],
             update     => $_[2],
@@ -771,7 +771,7 @@ sub find {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->client->_get_session_from_hashref( $options );
 
     # coerce to IxHash
     __ixhash( $options, 'sort' );
@@ -836,7 +836,7 @@ sub find_one {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->client->_get_session_from_hashref( $options );
 
     # coerce to IxHash
     __ixhash( $options, 'sort' );
@@ -919,7 +919,7 @@ sub find_one_and_delete {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->client->_get_session_from_hashref( $options );
 
     # coerce to IxHash
     __ixhash($options, 'sort');
@@ -1081,9 +1081,16 @@ The optional second argument is a hash reference with options:
   was changed from some time after the change occurred.
 * C<resumeAfter> - The logical starting point for this change stream.
   This value can be obtained from the C<_id> field of a document returned
-  by L<MongoDB::ChangeStream/next>.
+  by L<MongoDB::ChangeStream/next>. Cannot be specified together with
+  C<startAtOperationTime>
 * C<maxAwaitTimeMS> - The maximum number of milliseconds for the server
   to wait before responding.
+* C<startAtOperationTime> - A L<BSON::Timestamp> specifying at what point
+  in time changes will start being watched. Cannot be specified together
+  with C<resumeAfter>. Plain values will be coerced to L<BSON::Timestamp>
+  objects.
+* C<session> - the session to use for these operations. If not supplied, will
+  use an implicit session. For more information see L<MongoDB::ClientSession>
 
 See L</aggregate> for more available options.
 
@@ -1101,16 +1108,26 @@ sub watch {
     $pipeline ||= [];
     $options ||= {};
 
+    my $session = $self->client->_get_session_from_hashref( $options );
+
     return MongoDB::ChangeStream->new(
+        exists($options->{startAtOperationTime})
+            ? (start_at_operation_time => delete $options->{startAtOperationTime})
+            : (),
         exists($options->{fullDocument})
             ? (full_document => delete $options->{fullDocument})
             : (full_document => 'default'),
         exists($options->{resumeAfter})
             ? (resume_after => delete $options->{resumeAfter})
             : (),
-        collection => $self,
+        exists($options->{maxAwaitTimeMS})
+            ? (max_await_time_ms => delete $options->{maxAwaitTimeMS})
+            : (),
+        client => $self->client,
         pipeline => $pipeline,
-        aggregation_options => $options,
+        session => $session,
+        options => $options,
+        op_args => $self->_op_args,
     );
 }
 
@@ -1180,7 +1197,7 @@ sub aggregate {
     my ( $self, $pipeline, $options ) = @_;
     $options ||= {};
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->client->_get_session_from_hashref( $options );
 
     # boolify some options
     for my $k (qw/allowDiskUse explain/) {
@@ -1357,7 +1374,7 @@ sub distinct {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->client->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_Distinct->_new(
         fieldname       => $fieldname,
@@ -1461,7 +1478,7 @@ collection.
 sub rename {
     my ( $self, $new_name, $options ) = @_;
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->client->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_RenameCollection->_new(
         src_ns => $self->full_name,
@@ -1487,7 +1504,7 @@ Deletes a collection as well as all of its indexes.
 sub drop {
     my ( $self, $options ) = @_;
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->client->_get_session_from_hashref( $options );
 
     $self->client->send_write_op(
         MongoDB::Op::_DropCollection->_new(
@@ -1629,7 +1646,7 @@ sub bulk_write {
 
     my $ordered = exists $options->{ordered} ? delete $options->{ordered} : 1;
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->client->_get_session_from_hashref( $options );
 
     my $bulk =
       $ordered ? $self->ordered_bulk($options) : $self->unordered_bulk($options);
@@ -1760,7 +1777,7 @@ sub _find_one_and_update_or_replace {
     # pass separately for MongoDB::Role::_BypassValidation
     my $bypass = delete $options->{bypassDocumentValidation};
 
-    my $session = $self->_get_session_from_hashref( $options );
+    my $session = $self->client->_get_session_from_hashref( $options );
 
     my $op = MongoDB::Op::_FindAndUpdate->_new(
         filter         => $filter,
@@ -1774,24 +1791,6 @@ sub _find_one_and_update_or_replace {
     return $self->write_concern->is_acknowledged
       ? $self->client->send_retryable_write_op( $op )
       : $self->client->send_write_op( $op );
-}
-
-# Extracts a session from a provided hashref, or returns an implicit session
-sub _get_session_from_hashref {
-    my ( $self, $hashref ) = @_;
-
-    my $session = delete $hashref->{session};
-
-    if ( defined $session ) {
-        MongoDB::UsageError->throw( "Cannot use session from another client" )
-            if ( $session->client->_id ne $self->client->_id );
-        MongoDB::UsageError->throw( "Cannot use session which has ended" )
-            if ! defined $session->session_id;
-    } else {
-        $session = $self->client->_maybe_get_implicit_session;
-    }
-
-    return $session;
 }
 
 #--------------------------------------------------------------------------#
@@ -1811,7 +1810,7 @@ sub count {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    my $session = $self->_get_session_from_hashref($options);
+    my $session = $self->client->_get_session_from_hashref($options);
 
     # string is OK so we check ref, not just exists
     __ixhash( $options, 'hint' ) if ref $options->{hint};
