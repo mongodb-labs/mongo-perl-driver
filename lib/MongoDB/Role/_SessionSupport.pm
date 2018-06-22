@@ -55,6 +55,9 @@ sub _apply_session_and_cluster_time {
     if ( $self->session->_in_transaction_state( 'starting' ) ) {
         ($$query_ref)->Push( 'startTransaction' => true );
         ($$query_ref)->Push( @{ $self->session->_get_transaction_read_concern->as_args( $self->session ) } );
+    } elsif ( ! $self->session->_in_transaction_state( 'none' ) ) {
+        # read concern only valid outside a transaction or when starting
+        ($$query_ref)->Delete( 'readConcern' );
     }
 
     # write concern not allowed in transactions except when ending. We can
@@ -64,15 +67,18 @@ sub _apply_session_and_cluster_time {
         ($$query_ref)->Delete( 'writeConcern' );
     }
 
-    # read concern only valid outside a transaction or when starting
-    if ( ! $self->session->_in_transaction_state( qw/ none starting / ) ) {
-        ($$query_ref)->Delete( 'readConcern' );
-    }
-
     if ( $self->session->_in_transaction_state( qw/ aborted committed / )
          && ! ($$query_ref)->EXISTS('writeConcern')
     ) {
         ($$query_ref)->Push( @{ $self->session->_get_transaction_write_concern->as_args() } );
+    }
+
+    # MUST be the last thing to touch the transaction state before sending,
+    # so the various starting specific query modifications can be applied
+    # The spec states that this should happen after the command even on error,
+    # so happening before the command is sent is still valid
+    if ( $self->session->_in_transaction_state( 'starting') ) {
+        $self->session->_set__transaction_state( 'in_progress' );
     }
 
     $self->session->_server_session->update_last_use;
@@ -113,10 +119,6 @@ sub _update_session_pre_assert {
 
     return unless defined $self->session;
 
-    if ( $self->session->_in_transaction_state( 'starting' ) ) {
-        $self->session->_set__transaction_state( 'in_progress' );
-    }
-
     my $operation_time = $self->__extract_from( $response, 'operationTime' );
     $self->session->advance_operation_time( $operation_time ) if defined $operation_time;
 
@@ -142,8 +144,6 @@ sub _update_session_connection_error {
 
     if ( $self->session->_in_transaction_state( qw/ starting in_progress / ) ) {
         push @{ $err->error_labels }, 'TransientTransactionError';
-        # If already in_progress, no harm done
-        $self->session->_set__transaction_state( 'in_progress' );
     }
 }
 
