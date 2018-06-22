@@ -149,6 +149,20 @@ has bson_codec => (
 # methods
 #--------------------------------------------------------------------------#
 
+=method client
+
+    $client = $db->client;
+
+Returns the L<MongoDB::MongoClient> object associated with this
+object.
+
+=cut
+
+sub client {
+    my ($self) = @_;
+    return $self->_client;
+}
+
 =method list_collections
 
     $result = $coll->list_collections( $filter );

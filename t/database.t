@@ -56,6 +56,8 @@ subtest 'get_database' => sub {
     ok( $db = $conn->get_database( $db_name, { bson_codec => { op_char => '-' } } ),
         "get_database(NAME, OPTIONS)" );
     is( $db->bson_codec->op_char, '-', "DB-level bson_codec coerces" );
+
+    is( $db->client, $conn, "client method" );
 };
 
 subtest 'run_command' => sub {

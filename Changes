@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+    - PERL-944 Add 'client' method to MongoDB::Database
+
 v1.999.1  2018-06-23 23:41:05-04:00 America/New_York (TRIAL RELEASE)
 
   [!!! Incompatible Changes !!!]
