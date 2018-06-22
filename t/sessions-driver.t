@@ -102,9 +102,13 @@ subtest 'clusterTime in commands' => sub {
 
         # find max time among replies
         my $max_cluster_time = max(
+            grep { defined }
             map  { $_->{reply}{'$clusterTime'}{clusterTime} }
             grep { $_->{type} eq 'command_succeeded' } @events
         );
+
+        ok( defined $max_cluster_time, "have max cluster time from ismaster replies" )
+            or diag explain \@events;
 
         clear_events();
 
