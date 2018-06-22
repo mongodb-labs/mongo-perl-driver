@@ -222,12 +222,14 @@ sub _send_write_command {
 
         # otherwise, construct the desired result object, calling back
         # on class-specific parser to generate additional attributes
-        return $result_class->_new(
+        my $built_result = $result_class->_new(
             write_errors => ( $res->{writeErrors} ? $res->{writeErrors} : [] ),
             write_concern_errors =>
               ( $res->{writeConcernError} ? [ $res->{writeConcernError} ] : [] ),
             $self->_parse_cmd($res),
         );
+        $self->_assert_session_errors( $built_result );
+        return $built_result;
     }
     else {
         return MongoDB::UnacknowledgedResult->_new(

@@ -32,6 +32,7 @@ use MongoDB::_Types qw(
 );
 use Scalar::Util ();
 use Sub::Quote ();
+use Safe::Isa;
 use Exporter 5.57 qw/import/;
 use namespace::clean -except => ['import'];
 
@@ -40,6 +41,8 @@ my $ERROR_CODES;
 BEGIN {
     $ERROR_CODES = {
         BAD_VALUE                 => 2,
+        HOST_UNREACHABLE          => 6,
+        HOST_NOT_FOUND            => 7,
         UNKNOWN_ERROR             => 8,
         USER_NOT_FOUND            => 11,
         NAMESPACE_NOT_FOUND       => 26,
@@ -48,9 +51,15 @@ BEGIN {
         EXCEEDED_TIME_LIMIT       => 50,
         COMMAND_NOT_FOUND         => 59,
         WRITE_CONCERN_ERROR       => 64,
+        NETWORK_TIMEOUT           => 89,
+        SHUTDOWN_IN_PROGRESS      => 91,
+        PRIMARY_STEPPED_DOWN      => 189,
+        SOCKET_EXCEPTION          => 9001,
         NOT_MASTER                => 10107,
         DUPLICATE_KEY             => 11000,
         DUPLICATE_KEY_UPDATE      => 11001, # legacy before 2.6
+        INTERRUPTED_AT_SHUTDOWN   => 11600,
+        INTERRUPTED_DUE_TO_REPL_STATE_CHANGE => 11602,
         DUPLICATE_KEY_CAPPED      => 12582, # legacy before 2.6
         UNRECOGNIZED_COMMAND      => 13390, # mongos error before 2.4
         NOT_MASTER_NO_SLAVE_OK    => 13435,
@@ -112,6 +121,62 @@ sub throw {
 # internal flag indicating if an operation should be retried when
 # an error occurs.
 sub _is_resumable { 1 }
+
+# internal flag for if this error type specifically can be retried regardless
+# of other state. See _is_retryable which contains the full retryable error
+# logic.
+sub __is_retryable_error { 0 }
+
+sub _check_is_retryable_code {
+    my $code = $_[-1];
+
+    my @retryable_codes = (
+        MongoDB::Error::HOST_NOT_FOUND(),
+        MongoDB::Error::HOST_UNREACHABLE(),
+        MongoDB::Error::NETWORK_TIMEOUT(),
+        MongoDB::Error::SHUTDOWN_IN_PROGRESS(),
+        MongoDB::Error::PRIMARY_STEPPED_DOWN(),
+        MongoDB::Error::SOCKET_EXCEPTION(),
+        MongoDB::Error::NOT_MASTER(),
+        MongoDB::Error::INTERRUPTED_AT_SHUTDOWN(),
+        MongoDB::Error::INTERRUPTED_DUE_TO_REPL_STATE_CHANGE(),
+        MongoDB::Error::NOT_MASTER_NO_SLAVE_OK(),
+        MongoDB::Error::NOT_MASTER_OR_SECONDARY(),
+    );
+
+    return 1 if grep { $code == $_ } @retryable_codes;
+    return 0;
+}
+
+sub _check_is_retryable_message {
+  my $message = $_[-1];
+
+  return 1 if $message =~ /(not master|node is recovering)/i;
+  return 0;
+}
+
+# indicates if this error can be retried under retryable writes
+sub _is_retryable {
+    my $self = shift;
+
+    if ( $self->$_can( 'result' ) ) {
+        return 1 if _check_is_retryable_code( $self->result->last_code );
+    }
+
+    if ( $self->$_can( 'code' ) ) {
+        return 1 if _check_is_retryable_code( $self->code );
+    }
+
+    return 1 if _check_is_retryable_message( $self->message );
+
+    if ( $self->$_isa( 'MongoDB::WriteConcernError' ) ) {
+      return 1 if _check_is_retryable_code( $self->result->output->{writeConcernError}{code} );
+      return 1 if _check_is_retryable_message( $self->result->output->{writeConcernError}{message} );
+    }
+
+    # Defaults to 0 unless its a network exception
+    return $self->__is_retryable_error;
+}
 
 #--------------------------------------------------------------------------#
 # Subclasses with attributes included inline below
@@ -200,6 +265,7 @@ use namespace::clean;
 extends 'MongoDB::Error';
 
 sub _is_resumable { 1 }
+sub __is_retryable_error { 1 }
 
 package MongoDB::HandshakeError;
 use Moo;
@@ -216,6 +282,8 @@ package MongoDB::TimeoutError;
 use Moo;
 use namespace::clean;
 extends 'MongoDB::Error';
+
+sub __is_retryable_error { 1 }
 
 package MongoDB::ExecutionTimeout;
 use Moo;

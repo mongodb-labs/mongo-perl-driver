@@ -1603,6 +1603,14 @@ sub send_retryable_write_op {
     # attempt the op the first time
     eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
         my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+
+        # If the error is not retryable, then drop out
+        unless ( $err->$_call_if_can('_is_retryable') ) {
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+        }
+
+        # Must check if error is retryable before getting the link, in case we
+        # get a 'no writable servers' error
         my $retry_link = $self->{_topology}->get_writable_link;
 
         # Rare chance that the new link is not retryable
