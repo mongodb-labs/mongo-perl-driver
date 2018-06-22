@@ -49,6 +49,7 @@ use Type::Library
   IxHash
   MaxStalenessNum
   MaybeHashRef
+  MongoDBClient
   MongoDBCollection
   MongoDBDatabase
   BSONTimestamp
@@ -67,6 +68,7 @@ use Type::Library
   SingleKeyHash
   Stringish
   TopologyType
+  TransactionState
   WriteConcern
 );
 
@@ -89,6 +91,7 @@ use Types::Standard qw(
 
 use Scalar::Util qw/reftype/;
 use boolean 0.25;
+use MongoDB::_Constants;
 require Tie::IxHash;
 
 #--------------------------------------------------------------------------#
@@ -151,6 +154,8 @@ class_type IxHash, { class => 'Tie::IxHash' };
 
 declare MaybeHashRef, as Maybe[ HashRef ];
 
+class_type MongoDBClient, { class => 'MongoDB::MongoClient' };
+
 class_type MongoDBCollection, { class => 'MongoDB::Collection' };
 
 class_type MongoDBDatabase, { class => 'MongoDB::Database' };
@@ -194,6 +199,9 @@ declare SingleKeyHash, as HashRef, where { 1 == scalar keys %$_ };
 
 enum TopologyType,
   [qw/Single ReplicaSetNoPrimary ReplicaSetWithPrimary Sharded Direct Unknown/];
+
+enum TransactionState,
+  [ TXN_NONE, TXN_STARTING, TXN_IN_PROGRESS, TXN_COMMITTED, TXN_ABORTED ];
 
 class_type WriteConcern, { class => 'MongoDB::WriteConcern' };
 

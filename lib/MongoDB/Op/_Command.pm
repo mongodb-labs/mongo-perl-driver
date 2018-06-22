@@ -52,7 +52,8 @@ has query_flags => (
 );
 
 has read_preference => (
-    is  => 'ro',
+    # Needs to be rw for transactions
+    is  => 'rw',
     isa => Maybe [ReadPreference],
 );
 
@@ -111,6 +112,7 @@ sub execute {
         ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
     };
     if ( my $err = $@ ) {
+        $self->_update_session_connection_error( $err );
         $self->publish_command_exception($err) if $self->monitoring_callback;
         die $err;
     }
@@ -123,12 +125,13 @@ sub execute {
         address => $link->address,
     );
 
-    # Must happen even on an error (ie. the command fails)
-    $self->_update_operation_time( $res );
+    $self->_update_session_pre_assert( $res );
 
     $res->assert;
 
     $self->_update_session_and_cluster_time($res);
+
+    $self->_assert_session_errors($res);
 
     return $res;
 }

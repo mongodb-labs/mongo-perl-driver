@@ -1075,7 +1075,8 @@ has _write_concern => (
 sub _build__write_concern {
     my ($self) = @_;
     return MongoDB::WriteConcern->new(
-        ( $self->w        ? ( w        => $self->w )        : () ),
+        # Must check for defined as w can be 0, and defaults to undef
+        ( defined $self->w ? ( w        => $self->w )        : () ),
         ( $self->wtimeout ? ( wtimeout => $self->wtimeout ) : () ),
         ( $self->j        ? ( j        => $self->j )        : () ),
     );
@@ -1526,10 +1527,24 @@ sub send_admin_command {
     return $self->send_read_op( $op );
 }
 
+# Reset session state if we're outside an active transaction, otherwise set
+# that this transaction actually has operations
+sub _maybe_update_session_state {
+    my ( $self, $op ) = @_;
+    if ( defined $op->session && ! $op->session->_active_transaction ) {
+        $op->session->_set__transaction_state( TXN_NONE );
+    } elsif ( defined $op->session ) {
+        $op->session->_set__has_transaction_operations( 1 );
+    }
+}
+
 # op dispatcher written in highly optimized style
 sub send_direct_op {
     my ( $self, $op, $address ) = @_;
     my ( $link, $result );
+
+    $self->_maybe_update_session_state( $op );
+
     ( $link = $self->{_topology}->get_specific_link($address) ), (
         eval { ($result) = $op->execute($link); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
@@ -1551,17 +1566,12 @@ sub send_direct_op {
 sub send_write_op {
     my ( $self, $op ) = @_;
     my ( $link, $result );
+
+    $self->_maybe_update_session_state( $op );
+
     ( $link = $self->{_topology}->get_writable_link ), (
-        eval { ($result) = $op->execute($link, $self->{_topology}->type); 1 } or do {
+        eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
-            if ( $err->$_isa("MongoDB::ConnectionError") ) {
-                $self->{_topology}->mark_server_unknown( $link->server, $err );
-            }
-            elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
-                $self->{_topology}->mark_server_unknown( $link->server, $err );
-                $self->{_topology}->mark_stale;
-            }
-            # regardless of cleanup, rethrow the error
             WITH_ASSERTS ? ( confess $err ) : ( die $err );
           }
       ),
@@ -1577,15 +1587,25 @@ BEGIN {
 }
 
 sub send_retryable_write_op {
-    my ( $self, $op ) = @_;
-
-    return $self->send_write_op( $op ) unless $self->retry_writes;
+    my ( $self, $op, $force ) = @_;
 
     my $result;
     my $link = $self->{_topology}->get_writable_link;
 
-    # If server doesnt support retryable writes, pretend its not enabled
-    unless ( $link->supports_retryWrites ) {
+    $self->_maybe_update_session_state( $op );
+
+    # Need to force to do a retryable write on a Transaction Commit or Abort. $force is an override for retry_writes, but theres no point trying that if the link doesnt support it anyway.
+    # This triggers on the following:
+    # * $force is not set to 'force'
+    #   (specifically for retrying writes in ending transaction operations)
+    # * retry writes is not enabled or the link doesnt support retryWrites
+    # * if an active transaction is starting or in progress
+    unless ( $link->supports_retryWrites
+        && ( $self->retry_writes || ( defined $force && $force eq 'force' ) )
+        && ( defined $op->session
+          && ! $op->session->_in_transaction_state( TXN_STARTING, TXN_IN_PROGRESS )
+        )
+    ) {
         eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
             WITH_ASSERTS ? ( confess $err ) : ( die $err );
@@ -1595,14 +1615,23 @@ sub send_retryable_write_op {
 
     # If we get this far and there is no session, then somethings gone really
     # wrong, so probably not worth worrying about.
-    #
-    # increment transaction id before write, but otherwise is the same for both attempts
-    $op->session->_server_session->_increment_transaction_id;
+
+    # increment transaction id before write, but otherwise is the same for both
+    # attempts. If not in a transaction, is a no-op
+    $op->session->_increment_transaction_id;
     $op->retryable_write( 1 );
 
     # attempt the op the first time
     eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
         my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
+
+        # If the error is not retryable, then drop out
+        unless ( $err->$_call_if_can('_is_retryable') ) {
+            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+        }
+
+        # Must check if error is retryable before getting the link, in case we
+        # get a 'no writable servers' error
         my $retry_link = $self->{_topology}->get_writable_link;
 
         # Rare chance that the new link is not retryable
@@ -1652,6 +1681,17 @@ sub _try_write_op_for_link {
 sub send_read_op {
     my ( $self, $op ) = @_;
     my ( $link, $type, $result );
+
+    # Get transaction read preference if in a transaction.
+    if ( defined $op->session && $op->session->_active_transaction ) {
+        # Transactions may only read from primary in MongoDB 4.0, so get and
+        # check the read preference from the transaction settings as per
+        # transaction spec - see MongoDB::_TransactionOptions
+        $op->read_preference( $op->session->_get_transaction_read_preference );
+    }
+
+    $self->_maybe_update_session_state( $op );
+
     ( $link = $self->{_topology}->get_readable_link( $op->read_preference ) ),
       ( $type = $self->{_topology}->type ), (
         eval { ($result) = $op->execute( $link, $type ); 1 } or do {

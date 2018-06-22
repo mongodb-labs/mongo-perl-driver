@@ -191,6 +191,7 @@ sub _send_write_command {
         ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
     };
     if ( my $err = $@ ) {
+        $self->_update_session_connection_error( $err );
         $self->publish_command_exception($err) if $self->monitoring_callback;
         die $err;
     }
@@ -200,11 +201,12 @@ sub _send_write_command {
 
     my $res = $self->bson_codec->decode_one( $result->{docs} );
 
-    $self->_update_operation_time( $res );
+    $self->_update_session_pre_assert( $res );
 
     $self->_update_session_and_cluster_time($res);
 
     # Error checking depends on write concern
+    # TODO does this logic get affected by transactions???? Probably?
 
     if ( $self->write_concern->is_acknowledged ) {
         # errors in the command itself get handled as normal CommandResult
@@ -222,12 +224,14 @@ sub _send_write_command {
 
         # otherwise, construct the desired result object, calling back
         # on class-specific parser to generate additional attributes
-        return $result_class->_new(
+        my $built_result = $result_class->_new(
             write_errors => ( $res->{writeErrors} ? $res->{writeErrors} : [] ),
             write_concern_errors =>
               ( $res->{writeConcernError} ? [ $res->{writeConcernError} ] : [] ),
             $self->_parse_cmd($res),
         );
+        $self->_assert_session_errors( $built_result );
+        return $built_result;
     }
     else {
         return MongoDB::UnacknowledgedResult->_new(
