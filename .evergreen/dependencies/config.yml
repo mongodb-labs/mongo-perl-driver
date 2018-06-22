@@ -218,7 +218,7 @@ buildvariants:
       perlpath: /opt/perl/10/bin/perl
       perlver: 10
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -234,7 +234,7 @@ buildvariants:
       perlpath: /opt/perl/10t/bin/perl
       perlver: 10t
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -250,7 +250,7 @@ buildvariants:
       perlpath: /opt/perl/10ld/bin/perl
       perlver: 10ld
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -266,7 +266,7 @@ buildvariants:
       perlpath: /opt/perl/12/bin/perl
       perlver: 12
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -282,7 +282,7 @@ buildvariants:
       perlpath: /opt/perl/12t/bin/perl
       perlver: 12t
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -298,7 +298,7 @@ buildvariants:
       perlpath: /opt/perl/12ld/bin/perl
       perlver: 12ld
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -314,7 +314,7 @@ buildvariants:
       perlpath: /opt/perl/14/bin/perl
       perlver: 14
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -330,7 +330,7 @@ buildvariants:
       perlpath: /opt/perl/14t/bin/perl
       perlver: 14t
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -346,7 +346,7 @@ buildvariants:
       perlpath: /opt/perl/14ld/bin/perl
       perlver: 14ld
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -362,7 +362,7 @@ buildvariants:
       perlpath: /opt/perl/16/bin/perl
       perlver: 16
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -378,7 +378,7 @@ buildvariants:
       perlpath: /opt/perl/16t/bin/perl
       perlver: 16t
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -394,7 +394,7 @@ buildvariants:
       perlpath: /opt/perl/16ld/bin/perl
       perlver: 16ld
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -410,7 +410,7 @@ buildvariants:
       perlpath: /opt/perl/18/bin/perl
       perlver: 18
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -426,7 +426,7 @@ buildvariants:
       perlpath: /opt/perl/18t/bin/perl
       perlver: 18t
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -442,7 +442,7 @@ buildvariants:
       perlpath: /opt/perl/18ld/bin/perl
       perlver: 18ld
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -458,7 +458,7 @@ buildvariants:
       perlpath: /opt/perl/20/bin/perl
       perlver: 20
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -474,7 +474,7 @@ buildvariants:
       perlpath: /opt/perl/20t/bin/perl
       perlver: 20t
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -490,7 +490,7 @@ buildvariants:
       perlpath: /opt/perl/20ld/bin/perl
       perlver: 20ld
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -506,7 +506,7 @@ buildvariants:
       perlpath: /opt/perl/22/bin/perl
       perlver: 22
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -522,7 +522,7 @@ buildvariants:
       perlpath: /opt/perl/22t/bin/perl
       perlver: 22t
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -538,7 +538,7 @@ buildvariants:
       perlpath: /opt/perl/22ld/bin/perl
       perlver: 22ld
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -554,7 +554,7 @@ buildvariants:
       perlpath: /opt/perl/24/bin/perl
       perlver: 24
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -570,7 +570,7 @@ buildvariants:
       perlpath: /opt/perl/24t/bin/perl
       perlver: 24t
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -586,7 +586,7 @@ buildvariants:
       perlpath: /opt/perl/24ld/bin/perl
       perlver: 24ld
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -602,7 +602,7 @@ buildvariants:
       perlpath: /opt/perl/26/bin/perl
       perlver: 26
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -618,7 +618,7 @@ buildvariants:
       perlpath: /opt/perl/26t/bin/perl
       perlver: 26t
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -634,7 +634,7 @@ buildvariants:
       perlpath: /opt/perl/26ld/bin/perl
       perlver: 26ld
     run_on:
-      - rhel62-test
+      - rhel62-small
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib

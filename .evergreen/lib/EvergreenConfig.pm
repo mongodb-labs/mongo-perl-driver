@@ -117,7 +117,7 @@ my %os_map = (
     },
     rhel62 => {
         name     => "RHEL 6.2",
-        run_on   => [ 'rhel62-test' ],
+        run_on   => [ 'rhel62-small' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@unix_perls,
