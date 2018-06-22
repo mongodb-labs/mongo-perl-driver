@@ -92,13 +92,13 @@ has options => (
     coerce => sub {
         # Will cause the isa requirement to fire
         return unless defined( $_[0] ) && ref( $_[0] ) eq 'HASH';
-        my $dto = $_[0]->{defaultTransactionOptions};
-        $dto ||= {};
         $_[0] = {
-            causalConsistency => 1,
-            %{ $_[0] },
-            # applied after to not override the clone with the original
-            defaultTransactionOptions => $dto,
+            causalConsistency => defined $_[0]->{causalConsistency}
+                ? $_[0]->{causalConsistency}
+                : 1,
+            defaultTransactionOptions => {
+                %{ $_[0]->{defaultTransactionOptions} || {} }
+            },
         };
     },
 );
