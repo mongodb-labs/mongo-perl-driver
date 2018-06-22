@@ -291,7 +291,8 @@ has cluster_time => (
 sub update_cluster_time {
     my ( $self, $cluster_time ) = @_;
 
-    return unless $cluster_time && exists $cluster_time->{clusterTime};
+    return unless $cluster_time && exists $cluster_time->{clusterTime}
+        && ref($cluster_time) eq 'BSON::Timestamp';
 
     # Only update the cluster time if it is more recent than the current entry
     if ( !defined $self->cluster_time ) {
