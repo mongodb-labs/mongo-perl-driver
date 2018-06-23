@@ -23,8 +23,6 @@
 
     - PERL-936 Added session support to 'watch' for MongoDB::Collection
 
-    - PERL-937 G
-
   [Documentation]
 
     - PERL-859 Added tests with example code for MongoDB's docs site
