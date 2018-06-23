@@ -2,17 +2,42 @@
 
 {{ $NEXT }}
 
+  [!!! Incompatible Changes !!!]
+
+    - See note from 1.999.0-TRIAL
+
   [*** Deprecations ***]
 
     - PERL-856 Deprecate 'md5' field in GridFS file documents
+
+  [Additions]
+
+    - PERL-875 Multi-document ACID transactions (replica sets only)
+
+    - PERL-912 Add 'watch' methods to MongoDB::Database and
+      MongoDB::MongoClient
+
+    - PERL-940 Added 'startAtOperationTime' option to 'watch' methods
+
+  [Bug fixes]
+
+    - PERL-936 Added session support to 'watch' for MongoDB::Collection
+
+    - PERL-937 G
 
   [Documentation]
 
     - PERL-859 Added tests with example code for MongoDB's docs site
 
+    - PERL-859 Add test examples for aggregate, run_command and indexing
+
   [Prerequisites]
 
     - PERL-941 Bump BSON prereq to v1.6.5 for BSON::Time fix on 32-bit perls
+
+  [~ Internal changes ~]
+
+    - PERL-937 Gossip cluster time during SDAM 
 
 v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
 
