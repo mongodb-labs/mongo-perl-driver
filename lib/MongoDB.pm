@@ -80,9 +80,9 @@ __END__
 
 =begin :prelude
 
-This is the Alpha 2 release for v2.0.0.
+This is the Beta 1 release for v2.0.0.
 
-=head1 ALPHA RELEASE
+=head1 BETA RELEASE
 
 B<NOTE:> The v1.999.x versions are development releases in advance of the
 MongoDB Perl Driver v2.0.0. They are available for evaluation and testing
@@ -91,19 +91,25 @@ and should not be used in production.
 Details on incompatible changes and how to upgrade applications may be
 found in L<MongoDB::Upgrading>.
 
-This development release includes several new features, including:
+This development release includes several significant changes since Alpha
+1, including:
 
 =over
 
 =item *
 
-TBD
+The API for multi-document ACID transactions is now available.  See
+L<MongoDB::ClientSession> for details. (Requires MongoDB 4.0)
+
+=item *
+
+Change streams via the C<watch> method are now available at both single
+databases and client (all databases) levels. (Requires MongoDB 4.0)
 
 =back
 
-B<NOTE:> Some MongoDB 4.0 features are still under development and are not
-yet included in the driver, including transactions and
-database/cluster-wide change streams.
+As of the Beta release, the driver is feature complete for MongoDB 4.0
+support.
 
 =end :prelude
 
