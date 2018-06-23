@@ -211,7 +211,7 @@ tasks:
 
 buildvariants:
   - name: os_rhel62_perl_10
-    display_name: RHEL 6.2 Perl 5.10
+    display_name: RHEL 6.2 x86_64 Perl 5.10
     expansions:
       addpaths: /opt/perl/10/bin
       os: rhel62
@@ -227,7 +227,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_10t
-    display_name: RHEL 6.2 Perl 5.10t
+    display_name: RHEL 6.2 x86_64 Perl 5.10t
     expansions:
       addpaths: /opt/perl/10t/bin
       os: rhel62
@@ -243,7 +243,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_10ld
-    display_name: RHEL 6.2 Perl 5.10ld
+    display_name: RHEL 6.2 x86_64 Perl 5.10ld
     expansions:
       addpaths: /opt/perl/10ld/bin
       os: rhel62
@@ -259,7 +259,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_12
-    display_name: RHEL 6.2 Perl 5.12
+    display_name: RHEL 6.2 x86_64 Perl 5.12
     expansions:
       addpaths: /opt/perl/12/bin
       os: rhel62
@@ -275,7 +275,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_12t
-    display_name: RHEL 6.2 Perl 5.12t
+    display_name: RHEL 6.2 x86_64 Perl 5.12t
     expansions:
       addpaths: /opt/perl/12t/bin
       os: rhel62
@@ -291,7 +291,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_12ld
-    display_name: RHEL 6.2 Perl 5.12ld
+    display_name: RHEL 6.2 x86_64 Perl 5.12ld
     expansions:
       addpaths: /opt/perl/12ld/bin
       os: rhel62
@@ -307,7 +307,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_14
-    display_name: RHEL 6.2 Perl 5.14
+    display_name: RHEL 6.2 x86_64 Perl 5.14
     expansions:
       addpaths: /opt/perl/14/bin
       os: rhel62
@@ -323,7 +323,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_14t
-    display_name: RHEL 6.2 Perl 5.14t
+    display_name: RHEL 6.2 x86_64 Perl 5.14t
     expansions:
       addpaths: /opt/perl/14t/bin
       os: rhel62
@@ -339,7 +339,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_14ld
-    display_name: RHEL 6.2 Perl 5.14ld
+    display_name: RHEL 6.2 x86_64 Perl 5.14ld
     expansions:
       addpaths: /opt/perl/14ld/bin
       os: rhel62
@@ -355,7 +355,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_16
-    display_name: RHEL 6.2 Perl 5.16
+    display_name: RHEL 6.2 x86_64 Perl 5.16
     expansions:
       addpaths: /opt/perl/16/bin
       os: rhel62
@@ -371,7 +371,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_16t
-    display_name: RHEL 6.2 Perl 5.16t
+    display_name: RHEL 6.2 x86_64 Perl 5.16t
     expansions:
       addpaths: /opt/perl/16t/bin
       os: rhel62
@@ -387,7 +387,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_16ld
-    display_name: RHEL 6.2 Perl 5.16ld
+    display_name: RHEL 6.2 x86_64 Perl 5.16ld
     expansions:
       addpaths: /opt/perl/16ld/bin
       os: rhel62
@@ -403,7 +403,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_18
-    display_name: RHEL 6.2 Perl 5.18
+    display_name: RHEL 6.2 x86_64 Perl 5.18
     expansions:
       addpaths: /opt/perl/18/bin
       os: rhel62
@@ -419,7 +419,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_18t
-    display_name: RHEL 6.2 Perl 5.18t
+    display_name: RHEL 6.2 x86_64 Perl 5.18t
     expansions:
       addpaths: /opt/perl/18t/bin
       os: rhel62
@@ -435,7 +435,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_18ld
-    display_name: RHEL 6.2 Perl 5.18ld
+    display_name: RHEL 6.2 x86_64 Perl 5.18ld
     expansions:
       addpaths: /opt/perl/18ld/bin
       os: rhel62
@@ -451,7 +451,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_20
-    display_name: RHEL 6.2 Perl 5.20
+    display_name: RHEL 6.2 x86_64 Perl 5.20
     expansions:
       addpaths: /opt/perl/20/bin
       os: rhel62
@@ -467,7 +467,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_20t
-    display_name: RHEL 6.2 Perl 5.20t
+    display_name: RHEL 6.2 x86_64 Perl 5.20t
     expansions:
       addpaths: /opt/perl/20t/bin
       os: rhel62
@@ -483,7 +483,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_20ld
-    display_name: RHEL 6.2 Perl 5.20ld
+    display_name: RHEL 6.2 x86_64 Perl 5.20ld
     expansions:
       addpaths: /opt/perl/20ld/bin
       os: rhel62
@@ -499,7 +499,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_22
-    display_name: RHEL 6.2 Perl 5.22
+    display_name: RHEL 6.2 x86_64 Perl 5.22
     expansions:
       addpaths: /opt/perl/22/bin
       os: rhel62
@@ -515,7 +515,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_22t
-    display_name: RHEL 6.2 Perl 5.22t
+    display_name: RHEL 6.2 x86_64 Perl 5.22t
     expansions:
       addpaths: /opt/perl/22t/bin
       os: rhel62
@@ -531,7 +531,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_22ld
-    display_name: RHEL 6.2 Perl 5.22ld
+    display_name: RHEL 6.2 x86_64 Perl 5.22ld
     expansions:
       addpaths: /opt/perl/22ld/bin
       os: rhel62
@@ -547,7 +547,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_24
-    display_name: RHEL 6.2 Perl 5.24
+    display_name: RHEL 6.2 x86_64 Perl 5.24
     expansions:
       addpaths: /opt/perl/24/bin
       os: rhel62
@@ -563,7 +563,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_24t
-    display_name: RHEL 6.2 Perl 5.24t
+    display_name: RHEL 6.2 x86_64 Perl 5.24t
     expansions:
       addpaths: /opt/perl/24t/bin
       os: rhel62
@@ -579,7 +579,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_24ld
-    display_name: RHEL 6.2 Perl 5.24ld
+    display_name: RHEL 6.2 x86_64 Perl 5.24ld
     expansions:
       addpaths: /opt/perl/24ld/bin
       os: rhel62
@@ -595,7 +595,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_26
-    display_name: RHEL 6.2 Perl 5.26
+    display_name: RHEL 6.2 x86_64 Perl 5.26
     expansions:
       addpaths: /opt/perl/26/bin
       os: rhel62
@@ -611,7 +611,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_26t
-    display_name: RHEL 6.2 Perl 5.26t
+    display_name: RHEL 6.2 x86_64 Perl 5.26t
     expansions:
       addpaths: /opt/perl/26t/bin
       os: rhel62
@@ -627,7 +627,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_rhel62_perl_26ld
-    display_name: RHEL 6.2 Perl 5.26ld
+    display_name: RHEL 6.2 x86_64 Perl 5.26ld
     expansions:
       addpaths: /opt/perl/26ld/bin
       os: rhel62
@@ -643,7 +643,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_suse12_z_perl_14
-    display_name: SUSE 12 Z Series Perl 5.14
+    display_name: ZAP SUSE 12 Z Series Perl 5.14
     expansions:
       addpaths: /opt/perl/14/bin
       os: suse12_z
@@ -661,7 +661,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_14t
-    display_name: SUSE 12 Z Series Perl 5.14t
+    display_name: ZAP SUSE 12 Z Series Perl 5.14t
     expansions:
       addpaths: /opt/perl/14t/bin
       os: suse12_z
@@ -679,7 +679,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_14ld
-    display_name: SUSE 12 Z Series Perl 5.14ld
+    display_name: ZAP SUSE 12 Z Series Perl 5.14ld
     expansions:
       addpaths: /opt/perl/14ld/bin
       os: suse12_z
@@ -697,7 +697,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_16
-    display_name: SUSE 12 Z Series Perl 5.16
+    display_name: ZAP SUSE 12 Z Series Perl 5.16
     expansions:
       addpaths: /opt/perl/16/bin
       os: suse12_z
@@ -715,7 +715,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_16t
-    display_name: SUSE 12 Z Series Perl 5.16t
+    display_name: ZAP SUSE 12 Z Series Perl 5.16t
     expansions:
       addpaths: /opt/perl/16t/bin
       os: suse12_z
@@ -733,7 +733,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_16ld
-    display_name: SUSE 12 Z Series Perl 5.16ld
+    display_name: ZAP SUSE 12 Z Series Perl 5.16ld
     expansions:
       addpaths: /opt/perl/16ld/bin
       os: suse12_z
@@ -751,7 +751,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_18
-    display_name: SUSE 12 Z Series Perl 5.18
+    display_name: ZAP SUSE 12 Z Series Perl 5.18
     expansions:
       addpaths: /opt/perl/18/bin
       os: suse12_z
@@ -769,7 +769,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_18t
-    display_name: SUSE 12 Z Series Perl 5.18t
+    display_name: ZAP SUSE 12 Z Series Perl 5.18t
     expansions:
       addpaths: /opt/perl/18t/bin
       os: suse12_z
@@ -787,7 +787,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_18ld
-    display_name: SUSE 12 Z Series Perl 5.18ld
+    display_name: ZAP SUSE 12 Z Series Perl 5.18ld
     expansions:
       addpaths: /opt/perl/18ld/bin
       os: suse12_z
@@ -805,7 +805,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_20
-    display_name: SUSE 12 Z Series Perl 5.20
+    display_name: ZAP SUSE 12 Z Series Perl 5.20
     expansions:
       addpaths: /opt/perl/20/bin
       os: suse12_z
@@ -823,7 +823,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_20t
-    display_name: SUSE 12 Z Series Perl 5.20t
+    display_name: ZAP SUSE 12 Z Series Perl 5.20t
     expansions:
       addpaths: /opt/perl/20t/bin
       os: suse12_z
@@ -841,7 +841,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_20ld
-    display_name: SUSE 12 Z Series Perl 5.20ld
+    display_name: ZAP SUSE 12 Z Series Perl 5.20ld
     expansions:
       addpaths: /opt/perl/20ld/bin
       os: suse12_z
@@ -859,7 +859,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_22
-    display_name: SUSE 12 Z Series Perl 5.22
+    display_name: ZAP SUSE 12 Z Series Perl 5.22
     expansions:
       addpaths: /opt/perl/22/bin
       os: suse12_z
@@ -877,7 +877,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_22t
-    display_name: SUSE 12 Z Series Perl 5.22t
+    display_name: ZAP SUSE 12 Z Series Perl 5.22t
     expansions:
       addpaths: /opt/perl/22t/bin
       os: suse12_z
@@ -895,7 +895,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_22ld
-    display_name: SUSE 12 Z Series Perl 5.22ld
+    display_name: ZAP SUSE 12 Z Series Perl 5.22ld
     expansions:
       addpaths: /opt/perl/22ld/bin
       os: suse12_z
@@ -913,7 +913,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_24
-    display_name: SUSE 12 Z Series Perl 5.24
+    display_name: ZAP SUSE 12 Z Series Perl 5.24
     expansions:
       addpaths: /opt/perl/24/bin
       os: suse12_z
@@ -931,7 +931,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_24t
-    display_name: SUSE 12 Z Series Perl 5.24t
+    display_name: ZAP SUSE 12 Z Series Perl 5.24t
     expansions:
       addpaths: /opt/perl/24t/bin
       os: suse12_z
@@ -949,7 +949,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_24ld
-    display_name: SUSE 12 Z Series Perl 5.24ld
+    display_name: ZAP SUSE 12 Z Series Perl 5.24ld
     expansions:
       addpaths: /opt/perl/24ld/bin
       os: suse12_z
@@ -967,7 +967,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_26
-    display_name: SUSE 12 Z Series Perl 5.26
+    display_name: ZAP SUSE 12 Z Series Perl 5.26
     expansions:
       addpaths: /opt/perl/26/bin
       os: suse12_z
@@ -985,7 +985,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_26t
-    display_name: SUSE 12 Z Series Perl 5.26t
+    display_name: ZAP SUSE 12 Z Series Perl 5.26t
     expansions:
       addpaths: /opt/perl/26t/bin
       os: suse12_z
@@ -1003,7 +1003,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_suse12_z_perl_26ld
-    display_name: SUSE 12 Z Series Perl 5.26ld
+    display_name: ZAP SUSE 12 Z Series Perl 5.26ld
     expansions:
       addpaths: /opt/perl/26ld/bin
       os: suse12_z
@@ -1021,7 +1021,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_perl_10
-    display_name: Ubuntu 16.04 Perl 5.10
+    display_name: Ubuntu 16.04 x86_64 Perl 5.10
     expansions:
       addpaths: /opt/perl/10/bin
       os: ubuntu1604
@@ -1037,7 +1037,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_10t
-    display_name: Ubuntu 16.04 Perl 5.10t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.10t
     expansions:
       addpaths: /opt/perl/10t/bin
       os: ubuntu1604
@@ -1053,7 +1053,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_10ld
-    display_name: Ubuntu 16.04 Perl 5.10ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.10ld
     expansions:
       addpaths: /opt/perl/10ld/bin
       os: ubuntu1604
@@ -1069,7 +1069,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_12
-    display_name: Ubuntu 16.04 Perl 5.12
+    display_name: Ubuntu 16.04 x86_64 Perl 5.12
     expansions:
       addpaths: /opt/perl/12/bin
       os: ubuntu1604
@@ -1085,7 +1085,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_12t
-    display_name: Ubuntu 16.04 Perl 5.12t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.12t
     expansions:
       addpaths: /opt/perl/12t/bin
       os: ubuntu1604
@@ -1101,7 +1101,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_12ld
-    display_name: Ubuntu 16.04 Perl 5.12ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.12ld
     expansions:
       addpaths: /opt/perl/12ld/bin
       os: ubuntu1604
@@ -1117,7 +1117,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_14
-    display_name: Ubuntu 16.04 Perl 5.14
+    display_name: Ubuntu 16.04 x86_64 Perl 5.14
     expansions:
       addpaths: /opt/perl/14/bin
       os: ubuntu1604
@@ -1133,7 +1133,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_14t
-    display_name: Ubuntu 16.04 Perl 5.14t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.14t
     expansions:
       addpaths: /opt/perl/14t/bin
       os: ubuntu1604
@@ -1149,7 +1149,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_14ld
-    display_name: Ubuntu 16.04 Perl 5.14ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.14ld
     expansions:
       addpaths: /opt/perl/14ld/bin
       os: ubuntu1604
@@ -1165,7 +1165,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_16
-    display_name: Ubuntu 16.04 Perl 5.16
+    display_name: Ubuntu 16.04 x86_64 Perl 5.16
     expansions:
       addpaths: /opt/perl/16/bin
       os: ubuntu1604
@@ -1181,7 +1181,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_16t
-    display_name: Ubuntu 16.04 Perl 5.16t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.16t
     expansions:
       addpaths: /opt/perl/16t/bin
       os: ubuntu1604
@@ -1197,7 +1197,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_16ld
-    display_name: Ubuntu 16.04 Perl 5.16ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.16ld
     expansions:
       addpaths: /opt/perl/16ld/bin
       os: ubuntu1604
@@ -1213,7 +1213,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_18
-    display_name: Ubuntu 16.04 Perl 5.18
+    display_name: Ubuntu 16.04 x86_64 Perl 5.18
     expansions:
       addpaths: /opt/perl/18/bin
       os: ubuntu1604
@@ -1229,7 +1229,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_18t
-    display_name: Ubuntu 16.04 Perl 5.18t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.18t
     expansions:
       addpaths: /opt/perl/18t/bin
       os: ubuntu1604
@@ -1245,7 +1245,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_18ld
-    display_name: Ubuntu 16.04 Perl 5.18ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.18ld
     expansions:
       addpaths: /opt/perl/18ld/bin
       os: ubuntu1604
@@ -1261,7 +1261,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_20
-    display_name: Ubuntu 16.04 Perl 5.20
+    display_name: Ubuntu 16.04 x86_64 Perl 5.20
     expansions:
       addpaths: /opt/perl/20/bin
       os: ubuntu1604
@@ -1277,7 +1277,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_20t
-    display_name: Ubuntu 16.04 Perl 5.20t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.20t
     expansions:
       addpaths: /opt/perl/20t/bin
       os: ubuntu1604
@@ -1293,7 +1293,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_20ld
-    display_name: Ubuntu 16.04 Perl 5.20ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.20ld
     expansions:
       addpaths: /opt/perl/20ld/bin
       os: ubuntu1604
@@ -1309,7 +1309,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_22
-    display_name: Ubuntu 16.04 Perl 5.22
+    display_name: Ubuntu 16.04 x86_64 Perl 5.22
     expansions:
       addpaths: /opt/perl/22/bin
       os: ubuntu1604
@@ -1325,7 +1325,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_22t
-    display_name: Ubuntu 16.04 Perl 5.22t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.22t
     expansions:
       addpaths: /opt/perl/22t/bin
       os: ubuntu1604
@@ -1341,7 +1341,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_22ld
-    display_name: Ubuntu 16.04 Perl 5.22ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.22ld
     expansions:
       addpaths: /opt/perl/22ld/bin
       os: ubuntu1604
@@ -1357,7 +1357,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_24
-    display_name: Ubuntu 16.04 Perl 5.24
+    display_name: Ubuntu 16.04 x86_64 Perl 5.24
     expansions:
       addpaths: /opt/perl/24/bin
       os: ubuntu1604
@@ -1373,7 +1373,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_24t
-    display_name: Ubuntu 16.04 Perl 5.24t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.24t
     expansions:
       addpaths: /opt/perl/24t/bin
       os: ubuntu1604
@@ -1389,7 +1389,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_24ld
-    display_name: Ubuntu 16.04 Perl 5.24ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.24ld
     expansions:
       addpaths: /opt/perl/24ld/bin
       os: ubuntu1604
@@ -1405,7 +1405,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_26
-    display_name: Ubuntu 16.04 Perl 5.26
+    display_name: Ubuntu 16.04 x86_64 Perl 5.26
     expansions:
       addpaths: /opt/perl/26/bin
       os: ubuntu1604
@@ -1421,7 +1421,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_26t
-    display_name: Ubuntu 16.04 Perl 5.26t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.26t
     expansions:
       addpaths: /opt/perl/26t/bin
       os: ubuntu1604
@@ -1437,7 +1437,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_26ld
-    display_name: Ubuntu 16.04 Perl 5.26ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.26ld
     expansions:
       addpaths: /opt/perl/26ld/bin
       os: ubuntu1604
@@ -1453,7 +1453,7 @@ buildvariants:
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
   - name: os_ubuntu1604_arm64_perl_14
-    display_name: Ubuntu 16.04 ARM64 Perl 5.14
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.14
     expansions:
       addpaths: /opt/perl/14/bin
       os: ubuntu1604_arm64
@@ -1471,7 +1471,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_14t
-    display_name: Ubuntu 16.04 ARM64 Perl 5.14t
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.14t
     expansions:
       addpaths: /opt/perl/14t/bin
       os: ubuntu1604_arm64
@@ -1489,7 +1489,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_14ld
-    display_name: Ubuntu 16.04 ARM64 Perl 5.14ld
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.14ld
     expansions:
       addpaths: /opt/perl/14ld/bin
       os: ubuntu1604_arm64
@@ -1507,7 +1507,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_16
-    display_name: Ubuntu 16.04 ARM64 Perl 5.16
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.16
     expansions:
       addpaths: /opt/perl/16/bin
       os: ubuntu1604_arm64
@@ -1525,7 +1525,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_16t
-    display_name: Ubuntu 16.04 ARM64 Perl 5.16t
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.16t
     expansions:
       addpaths: /opt/perl/16t/bin
       os: ubuntu1604_arm64
@@ -1543,7 +1543,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_16ld
-    display_name: Ubuntu 16.04 ARM64 Perl 5.16ld
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.16ld
     expansions:
       addpaths: /opt/perl/16ld/bin
       os: ubuntu1604_arm64
@@ -1561,7 +1561,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_18
-    display_name: Ubuntu 16.04 ARM64 Perl 5.18
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.18
     expansions:
       addpaths: /opt/perl/18/bin
       os: ubuntu1604_arm64
@@ -1579,7 +1579,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_18t
-    display_name: Ubuntu 16.04 ARM64 Perl 5.18t
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.18t
     expansions:
       addpaths: /opt/perl/18t/bin
       os: ubuntu1604_arm64
@@ -1597,7 +1597,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_18ld
-    display_name: Ubuntu 16.04 ARM64 Perl 5.18ld
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.18ld
     expansions:
       addpaths: /opt/perl/18ld/bin
       os: ubuntu1604_arm64
@@ -1615,7 +1615,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_20
-    display_name: Ubuntu 16.04 ARM64 Perl 5.20
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.20
     expansions:
       addpaths: /opt/perl/20/bin
       os: ubuntu1604_arm64
@@ -1633,7 +1633,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_20t
-    display_name: Ubuntu 16.04 ARM64 Perl 5.20t
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.20t
     expansions:
       addpaths: /opt/perl/20t/bin
       os: ubuntu1604_arm64
@@ -1651,7 +1651,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_20ld
-    display_name: Ubuntu 16.04 ARM64 Perl 5.20ld
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.20ld
     expansions:
       addpaths: /opt/perl/20ld/bin
       os: ubuntu1604_arm64
@@ -1669,7 +1669,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_22
-    display_name: Ubuntu 16.04 ARM64 Perl 5.22
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.22
     expansions:
       addpaths: /opt/perl/22/bin
       os: ubuntu1604_arm64
@@ -1687,7 +1687,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_22t
-    display_name: Ubuntu 16.04 ARM64 Perl 5.22t
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.22t
     expansions:
       addpaths: /opt/perl/22t/bin
       os: ubuntu1604_arm64
@@ -1705,7 +1705,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_22ld
-    display_name: Ubuntu 16.04 ARM64 Perl 5.22ld
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.22ld
     expansions:
       addpaths: /opt/perl/22ld/bin
       os: ubuntu1604_arm64
@@ -1723,7 +1723,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_24
-    display_name: Ubuntu 16.04 ARM64 Perl 5.24
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.24
     expansions:
       addpaths: /opt/perl/24/bin
       os: ubuntu1604_arm64
@@ -1741,7 +1741,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_24t
-    display_name: Ubuntu 16.04 ARM64 Perl 5.24t
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.24t
     expansions:
       addpaths: /opt/perl/24t/bin
       os: ubuntu1604_arm64
@@ -1759,7 +1759,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_24ld
-    display_name: Ubuntu 16.04 ARM64 Perl 5.24ld
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.24ld
     expansions:
       addpaths: /opt/perl/24ld/bin
       os: ubuntu1604_arm64
@@ -1777,7 +1777,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_26
-    display_name: Ubuntu 16.04 ARM64 Perl 5.26
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.26
     expansions:
       addpaths: /opt/perl/26/bin
       os: ubuntu1604_arm64
@@ -1795,7 +1795,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_26t
-    display_name: Ubuntu 16.04 ARM64 Perl 5.26t
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.26t
     expansions:
       addpaths: /opt/perl/26t/bin
       os: ubuntu1604_arm64
@@ -1813,7 +1813,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_26ld
-    display_name: Ubuntu 16.04 ARM64 Perl 5.26ld
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.26ld
     expansions:
       addpaths: /opt/perl/26ld/bin
       os: ubuntu1604_arm64
@@ -1831,7 +1831,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_14
-    display_name: Ubuntu 16.04 Power8 Perl 5.14
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.14
     expansions:
       addpaths: /opt/perl/14/bin
       os: ubuntu1604_power8
@@ -1849,7 +1849,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_14t
-    display_name: Ubuntu 16.04 Power8 Perl 5.14t
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.14t
     expansions:
       addpaths: /opt/perl/14t/bin
       os: ubuntu1604_power8
@@ -1867,7 +1867,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_14ld
-    display_name: Ubuntu 16.04 Power8 Perl 5.14ld
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.14ld
     expansions:
       addpaths: /opt/perl/14ld/bin
       os: ubuntu1604_power8
@@ -1885,7 +1885,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_16
-    display_name: Ubuntu 16.04 Power8 Perl 5.16
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.16
     expansions:
       addpaths: /opt/perl/16/bin
       os: ubuntu1604_power8
@@ -1903,7 +1903,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_16t
-    display_name: Ubuntu 16.04 Power8 Perl 5.16t
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.16t
     expansions:
       addpaths: /opt/perl/16t/bin
       os: ubuntu1604_power8
@@ -1921,7 +1921,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_16ld
-    display_name: Ubuntu 16.04 Power8 Perl 5.16ld
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.16ld
     expansions:
       addpaths: /opt/perl/16ld/bin
       os: ubuntu1604_power8
@@ -1939,7 +1939,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_18
-    display_name: Ubuntu 16.04 Power8 Perl 5.18
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.18
     expansions:
       addpaths: /opt/perl/18/bin
       os: ubuntu1604_power8
@@ -1957,7 +1957,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_18t
-    display_name: Ubuntu 16.04 Power8 Perl 5.18t
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.18t
     expansions:
       addpaths: /opt/perl/18t/bin
       os: ubuntu1604_power8
@@ -1975,7 +1975,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_18ld
-    display_name: Ubuntu 16.04 Power8 Perl 5.18ld
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.18ld
     expansions:
       addpaths: /opt/perl/18ld/bin
       os: ubuntu1604_power8
@@ -1993,7 +1993,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_20
-    display_name: Ubuntu 16.04 Power8 Perl 5.20
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.20
     expansions:
       addpaths: /opt/perl/20/bin
       os: ubuntu1604_power8
@@ -2011,7 +2011,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_20t
-    display_name: Ubuntu 16.04 Power8 Perl 5.20t
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.20t
     expansions:
       addpaths: /opt/perl/20t/bin
       os: ubuntu1604_power8
@@ -2029,7 +2029,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_20ld
-    display_name: Ubuntu 16.04 Power8 Perl 5.20ld
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.20ld
     expansions:
       addpaths: /opt/perl/20ld/bin
       os: ubuntu1604_power8
@@ -2047,7 +2047,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_22
-    display_name: Ubuntu 16.04 Power8 Perl 5.22
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.22
     expansions:
       addpaths: /opt/perl/22/bin
       os: ubuntu1604_power8
@@ -2065,7 +2065,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_22t
-    display_name: Ubuntu 16.04 Power8 Perl 5.22t
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.22t
     expansions:
       addpaths: /opt/perl/22t/bin
       os: ubuntu1604_power8
@@ -2083,7 +2083,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_22ld
-    display_name: Ubuntu 16.04 Power8 Perl 5.22ld
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.22ld
     expansions:
       addpaths: /opt/perl/22ld/bin
       os: ubuntu1604_power8
@@ -2101,7 +2101,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_24
-    display_name: Ubuntu 16.04 Power8 Perl 5.24
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.24
     expansions:
       addpaths: /opt/perl/24/bin
       os: ubuntu1604_power8
@@ -2119,7 +2119,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_24t
-    display_name: Ubuntu 16.04 Power8 Perl 5.24t
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.24t
     expansions:
       addpaths: /opt/perl/24t/bin
       os: ubuntu1604_power8
@@ -2137,7 +2137,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_24ld
-    display_name: Ubuntu 16.04 Power8 Perl 5.24ld
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.24ld
     expansions:
       addpaths: /opt/perl/24ld/bin
       os: ubuntu1604_power8
@@ -2155,7 +2155,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_26
-    display_name: Ubuntu 16.04 Power8 Perl 5.26
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.26
     expansions:
       addpaths: /opt/perl/26/bin
       os: ubuntu1604_power8
@@ -2173,7 +2173,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_26t
-    display_name: Ubuntu 16.04 Power8 Perl 5.26t
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.26t
     expansions:
       addpaths: /opt/perl/26t/bin
       os: ubuntu1604_power8
@@ -2191,7 +2191,7 @@ buildvariants:
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_26ld
-    display_name: Ubuntu 16.04 Power8 Perl 5.26ld
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.26ld
     expansions:
       addpaths: /opt/perl/26ld/bin
       os: ubuntu1604_power8

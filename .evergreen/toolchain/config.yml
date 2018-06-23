@@ -152,6 +152,38 @@ tasks:
 # BUILD VARIANTS
 
 buildvariants:
+- name: debian81
+  display_name: Debian 8.1 x86_64
+  run_on:
+    - debian81-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+- name: rhel62
+  display_name: RedHat 6.2 x86_64
+  run_on:
+    - rhel62-large
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+- name: rhel67-zseries
+  display_name: RedHat 6.7 Z Series
+  run_on:
+    - rhel67-zseries-test
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+- name: rhel70
+  display_name: RedHat 7.0 x86_64
+  run_on:
+    - rhel70
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
 - name: ubuntu1604
   display_name: Ubuntu 16.04 x86_64
   run_on:
@@ -172,22 +204,6 @@ buildvariants:
   display_name: Ubuntu 16.04 Power8
   run_on:
     - ubuntu1604-power8-build
-  tasks:
-    - build-unix-perls
-    - validate-unix-perls
-    - push-unix-perls
-- name: rhel67-zseries
-  display_name: RedHat 6.7 Z Series
-  run_on:
-    - rhel67-zseries-test
-  tasks:
-    - build-unix-perls
-    - validate-unix-perls
-    - push-unix-perls
-- name: rhel62
-  display_name: RedHat 6.2 x86_64
-  run_on:
-    - rhel62-large
   tasks:
     - build-unix-perls
     - validate-unix-perls

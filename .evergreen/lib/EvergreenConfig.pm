@@ -109,19 +109,33 @@ my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
 # configuration suffix) to use on that OS.
 my %os_map = (
     ubuntu1604 => {
-        name     => "Ubuntu 16.04",
+        name     => "Ubuntu 16.04 x86_64",
         run_on   => [ 'ubuntu1604-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@unix_perls,
     },
+##    debian81 => {
+##        name     => "Debian 8.1 x86_64",
+##        run_on   => [ 'debian81-test' ],
+##        perlroot => '/opt/perl',
+##        perlpath => 'bin',
+##        perls    => \@unix_perls,
+##    },
     rhel62 => {
-        name     => "RHEL 6.2",
+        name     => "RHEL 6.2 x86_64",
         run_on   => [ 'rhel62-small' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@unix_perls,
     },
+##    rhel70 => {
+##        name     => "RHEL 7.0 x86_64",
+##        run_on   => [ 'rhel70-small' ],
+##        perlroot => '/opt/perl',
+##        perlpath => 'bin',
+##        perls    => \@unix_perls,
+##    },
     windows64 => {
         name     => "Win64",
         run_on   => [ 'windows-64-vs2015-test' ],
@@ -131,7 +145,7 @@ my %os_map = (
         perls    => \@win_perls,
     },
     suse12_z => {
-        name     => "SUSE 12 Z Series",
+        name     => "ZAP SUSE 12 Z Series",
         run_on   => [ 'suse12-zseries-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
@@ -140,7 +154,7 @@ my %os_map = (
         batchtime => $WEEK_IN_SECS,
     },
     ubuntu1604_arm64 => {
-        name     => "Ubuntu 16.04 ARM64",
+        name     => "ZAP Ubuntu 16.04 ARM64",
         run_on   => [ 'ubuntu1604-arm64-large' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
@@ -149,7 +163,7 @@ my %os_map = (
         batchtime => $WEEK_IN_SECS,
     },
     ubuntu1604_power8 => {
-        name     => "Ubuntu 16.04 Power8",
+        name     => "ZAP Ubuntu 16.04 Power8",
         run_on   => [ 'ubuntu1604-power8-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
