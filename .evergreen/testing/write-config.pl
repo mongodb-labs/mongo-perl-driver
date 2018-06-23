@@ -33,11 +33,10 @@ use EvergreenConfig;
 # $OS_FILTER is a filter definition to allow all operating systems
 my $OS_FILTER =
   { os =>
-      [ 'rhel62', 'windows64', 'suse12_z', 'ubuntu1604_power8' ] };
-##      [ 'rhel62', 'windows64', 'suse12_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ] };
+      [ 'ubuntu1604', 'windows64', 'suse12_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ] };
 
 # This allows only the non-ZAP subset
-my $NON_ZAP_OS_FILTER = { os => [ 'rhel62', 'windows64' ] };
+my $NON_ZAP_OS_FILTER = { os => [ 'ubuntu1604', 'windows64' ] };
 
 #--------------------------------------------------------------------------#
 # Functions
