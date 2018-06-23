@@ -337,15 +337,25 @@ sub check_array_result_outcome {
 sub check_hash_result_outcome {
     my ( $got, $exp ) = @_;
 
+    my $ok = 1;
     for my $key ( keys %$exp ) {
         my $obj_key = to_snake_case( $key );
         next if ( $key eq 'upsertedCount' && !$got->can('upserted_count') );
         # Some results are just raw results
         if ( ref $got eq 'HASH' ) {
-            cmp_deeply $got->{ $obj_key }, $exp->{ $key }, "$key result correct";
+            $ok &&= cmp_deeply $got->{ $obj_key }, $exp->{ $key }, "$key result correct";
         } else {
-            cmp_deeply $got->$obj_key, $exp->{ $key }, "$key result correct";
+            # if we got something of the wrong type, it won't have the
+            # right methods and we can note that and skip.
+            unless ( can_ok($got, $obj_key) ) {
+                $ok = 0;
+                next;
+            }
+            $ok &&= cmp_deeply $got->$obj_key, $exp->{ $key }, "$key result correct";
         }
+    }
+    if ( !$ok ) {
+        diag "GOT:\n", explain($got), "\nEXPECT:\n", explain($exp);
     }
 }
 
