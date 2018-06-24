@@ -19,7 +19,7 @@ package MongoDB::_TransactionOptions;
 # MongoDB options for transactions
 
 use version;
-our $VERSION = 'v1.999.0';
+our $VERSION = 'v1.999.2';
 
 use MongoDB::Error;
 

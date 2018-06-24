@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.999.1  2018-06-23 23:41:05-04:00 America/New_York (TRIAL RELEASE)
+
   [!!! Incompatible Changes !!!]
 
     - See note from 1.999.0-TRIAL

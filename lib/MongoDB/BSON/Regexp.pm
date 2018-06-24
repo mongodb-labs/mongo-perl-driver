@@ -19,7 +19,7 @@ package MongoDB::BSON::Regexp;
 # ABSTRACT: (DEPRECATED) Regular expression type
 
 use version;
-our $VERSION = 'v1.999.1';
+our $VERSION = 'v1.999.2';
 
 use Moo;
 extends 'BSON::Regex';
