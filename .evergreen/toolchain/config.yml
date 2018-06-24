@@ -184,6 +184,14 @@ buildvariants:
     - build-unix-perls
     - validate-unix-perls
     - push-unix-perls
+- name: ubuntu1404
+  display_name: Ubuntu 14.04 x86_64
+  run_on:
+    - ubuntu1404-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
 - name: ubuntu1604
   display_name: Ubuntu 16.04 x86_64
   run_on:

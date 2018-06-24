@@ -38,7 +38,6 @@ my $tardir        = "$destdir/$root";
 # define matrix of builds
 
 my @perl_versions = qw(
-  5.8.8
   5.10.1
   5.12.5
   5.14.4
