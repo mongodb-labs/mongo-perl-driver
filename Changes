@@ -23,6 +23,9 @@
 
     - PERL-936 Added session support to 'watch' for MongoDB::Collection
 
+    - PERL-947 Weaken session pool reference to MongoClient to avoid a
+      circular reference memory leak.
+
   [Documentation]
 
     - PERL-859 Added tests with example code for MongoDB's docs site
@@ -32,6 +35,8 @@
   [Prerequisites]
 
     - PERL-941 Bump BSON prereq to v1.6.5 for BSON::Time fix on 32-bit perls
+
+    - PERL-947 Require Authen::SCRAM 0.011 to avoid memory leak
 
   [~ Internal changes ~]
 

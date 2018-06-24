@@ -29,6 +29,7 @@ use Types::Standard qw(
 has client => (
     is => 'ro',
     required => 1,
+    weak_ref => 1,
     isa => InstanceOf['MongoDB::MongoClient'],
 );
 
