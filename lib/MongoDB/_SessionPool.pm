@@ -26,11 +26,16 @@ use Types::Standard qw(
     InstanceOf
 );
 
-has client => (
+has dispatcher => (
     is => 'ro',
     required => 1,
-    weak_ref => 1,
-    isa => InstanceOf['MongoDB::MongoClient'],
+    isa => InstanceOf['MongoDB::_Dispatcher'],
+);
+
+has topology=> (
+    is => 'ro',
+    required => 1,
+    isa => InstanceOf['MongoDB::_Topology'],
 );
 
 has _server_session_pool => (
@@ -50,7 +55,7 @@ sub get_server_session {
     my ( $self ) = @_;
 
     if ( scalar( @{ $self->_server_session_pool } ) > 0 ) {
-        my $session_timeout = $self->client->_topology->logical_session_timeout_minutes;
+        my $session_timeout = $self->topology->logical_session_timeout_minutes;
         # if undefined, sessions not actually supported so drop out here
         while ( my $session = shift @{ $self->_server_session_pool } ) {
             next if $session->_is_expiring( $session_timeout );
@@ -70,7 +75,7 @@ sub get_server_session {
 sub retire_server_session {
     my ( $self, $server_session ) = @_;
 
-    my $session_timeout = $self->client->_topology->logical_session_timeout_minutes;
+    my $session_timeout = $self->topology->logical_session_timeout_minutes;
 
     # Expire old sessions from back of queue
     while ( my $session = $self->_server_session_pool->[-1] ) {
@@ -102,7 +107,7 @@ sub end_all_sessions {
         ];
         # Ignore any errors generated from this
         eval {
-            $self->client->send_admin_command([
+            $self->dispatcher->send_admin_command([
                 endSessions => $sessions,
             ], 'primaryPreferred');
         };
