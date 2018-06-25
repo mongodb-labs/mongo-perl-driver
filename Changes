@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v1.8.3    2018-06-25 12:20:13-04:00 America/New_York
+
   [Bug fixes]
 
   - PERL-923 Fix user/password percent encoding validation
