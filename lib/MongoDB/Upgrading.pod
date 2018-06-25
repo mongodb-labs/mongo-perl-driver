@@ -198,6 +198,19 @@ correctness expections:
   documents); in can be used with or without transactions; performance is
   O(N) in the worst case.
 
+B<NOTE>: When upgrading from the deprecated C<count> method, some legacy
+operators are not supported and must be replaced:
+
+    +-------------+--------------------------------+
+    | Legacy      | Modern Replacement             |
+    +=============+================================+
+    | $where      | $expr (Requires MongoDB 3.6+)  |
+    +-------------+--------------------------------+
+    | $near       | $geoWithin with $center        |
+    +-------------+--------------------------------+
+    | $nearSphere | $geoWithin with $centerSphere  |
+    +-------------+--------------------------------+
+
 =head2 Authentication
 
 The MONGODB-CR authentication mechanism was deprecated in MongoDB server

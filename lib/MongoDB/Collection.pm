@@ -1252,6 +1252,19 @@ A hash reference of options may be provided. Valid keys include:
 * C<session> - the session to use for these operations. If not supplied, will
   use an implicit session. For more information see L<MongoDB::ClientSession>
 
+B<NOTE>: When upgrading from the deprecated C<count> method, some legacy
+operators are not supported and must be replaced:
+
+    +-------------+--------------------------------+
+    | Legacy      | Modern Replacement             |
+    +=============+================================+
+    | $where      | $expr (Requires MongoDB 3.6+)  |
+    +-------------+--------------------------------+
+    | $near       | $geoWithin with $center        |
+    +-------------+--------------------------------+
+    | $nearSphere | $geoWithin with $centerSphere  |
+    +-------------+--------------------------------+
+
 =cut
 
 sub count_documents {
