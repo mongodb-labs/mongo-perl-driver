@@ -81,7 +81,7 @@ Otherwise, returns the invocant.
 
 =head1 SYNOPSIS
 
-    my $result = $coll->delete( { _id => $oid } );
+    my $result = $coll->delete_one( { _id => $oid } );
 
     if ( $result->acknowledged ) {
         ...
