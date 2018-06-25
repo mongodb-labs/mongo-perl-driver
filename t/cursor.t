@@ -17,6 +17,7 @@ use warnings;
 use Test::More;
 use Test::Fatal;
 use Tie::IxHash;
+use Time::HiRes qw/time/;
 use version;
 
 use MongoDB;
@@ -363,7 +364,7 @@ subtest "await data" => sub {
 
     my $start = time;
     $cursor = $coll2->find( { _id => { '$gt' => $last_doc->{_id} } } )->tailable_await(1)
-      ->max_await_time_ms(1000);
+      ->max_await_time_ms(2000);
 
     # We won't get anything yet
     $cursor->next();
@@ -371,7 +372,7 @@ subtest "await data" => sub {
 
     # did it actually block for a bit?
     ok( $end >= $start + 1, "cursor blocked to await data" )
-      or diag "START: $start; END: $end";
+      and diag "START: $start; END: $end";
 };
 
 done_testing;
