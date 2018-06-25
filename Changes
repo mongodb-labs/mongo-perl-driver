@@ -155,6 +155,8 @@
 
     - PERL-907 Test with BSON Codec using full wrapping
 
+    - PERL-951 Make await cursor test more robust
+
   [~ Internal changes ~]
 
     - PERL-666 Eliminate Module::Install in Makefile.PL
