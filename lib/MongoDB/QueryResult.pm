@@ -339,6 +339,12 @@ are recommended:
 When a C<MongoDB::QueryResult> object is destroyed, a cursor termination
 request will be sent to the originating server to free server resources.
 
+=head2 Multithreading
+
+Iterators are cloned in threads, but not reset.  Iterating from multiple
+threads will give unpredictable results.  Only iterate from a single
+thread.
+
 =cut
 
 1;

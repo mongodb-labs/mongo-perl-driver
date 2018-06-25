@@ -1961,6 +1961,18 @@ are recommended:
 
 To retry failures automatically, consider using L<Try::Tiny::Retry>.
 
+=head2 Transactions
+
+To conduct operations in a transactions, get a L<MongoDB::ClientSession>
+from L<MongoDB::MongoClient/start_session>.  Start the transaction on the
+session using C<start_transaction> and pass the session as an option to all
+operations.  Then call C<commit_transaction> or C<abort_transaction> on the
+session.  See the L<MongoDB::ClientSession> for options and usage details.
+
+For detailed instructions on using transactions with MongoDB, see the
+MongoDB manual page:
+L<Transactions|https://docs.mongodb.com/master/core/transactions>.
+
 =head2 Terminology
 
 =head3 Document

@@ -153,20 +153,25 @@ L<MongoDB community website|http://www.mongodb.org/>.
 
 =head1 USAGE
 
-The MongoDB driver is organized into a set of classes representing different
-levels of abstraction and functionality.
+The MongoDB driver is organized into a set of classes representing
+different levels of abstraction and functionality.
 
-As a user, you first create and configure a L<MongoDB::MongoClient> object to
-connect to a MongoDB deployment.  From that client object, you can get
-a L<MongoDB::Database> object for interacting with a specific database.
+As a user, you first create and configure a L<MongoDB::MongoClient> object
+to connect to a MongoDB deployment.  From that client object, you can get a
+L<MongoDB::Database> object for interacting with a specific database.
 
-From a database object, you can get a L<MongoDB::Collection> object for CRUD
-operations on that specific collection, or a L<MongoDB::GridFS> object for
-working with an abstract file system hosted on the database.  Each of those
-classes may return other objects for specific features or functions.
+From a database object, you can get a L<MongoDB::Collection> object for
+CRUD operations on that specific collection, or a L<MongoDB::GridFSBucket>
+object for working with an abstract file system hosted on the database.
+Each of those classes may return other objects for specific features or
+functions.
 
 See the documentation of those classes for more details or the
 L<MongoDB Perl Driver Tutorial|MongoDB::Tutorial> for an example.
+
+L<MongoDB::ClientSession> objects are generated from a
+L<MongoDB::MongoClient> and allow for advanced consistency options, like
+causal-consistency and transactions.
 
 =head2 Error handling
 

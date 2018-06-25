@@ -16,7 +16,7 @@ use strict;
 use warnings;
 package MongoDB::ClientSession;
 
-# ABSTRACT: MongoDB session management
+# ABSTRACT: MongoDB session and transaction management
 
 use version;
 our $VERSION = 'v1.999.2';
@@ -273,7 +273,15 @@ sub _in_transaction_state {
 
 =method start_transaction
 
-Start a transaction in this session. Takes a hashref of options which can contain the following options:
+    $session->start_transaction;
+    $session->start_transaction( $options );
+
+Start a transaction in this session.  If a transaction is already in
+progress or if the driver can detect that the client is connected to a
+topology that does not support transactions, this method will throw an
+error.
+
+A hash reference of options may be provided. Valid keys include:
 
 =for :list
 * C<readConcern> - The read concern to use for the first command in this
@@ -328,7 +336,32 @@ sub _increment_transaction_id {
 
 =method commit_transaction
 
-Commit the current transaction. This will use the writeConcern set on this transaction.
+    $session->commit_transaction;
+
+Commit the current transaction. This will use the writeConcern set on this
+transaction.
+
+If called when no transaction is in progress, then this method will throw
+an error.
+
+If the commit operation encounters an error, an error is thrown.  If the
+error is a transient commit error, the error object will have a label
+containing "UnknownTransactionCommitResult" as an element and the commit
+operation can be retried.  This can be checked via the C<has_error_label>:
+
+    LOOP: {
+        eval {
+            $session->commit_transaction;
+        };
+        if ( my $error = $@ ) {
+            if ( $error->has_error_label("UnknownTransactionCommitResult") ) {
+                redo LOOP;
+            }
+            else {
+                die $error;
+            }
+        }
+    }
 
 =cut
 
@@ -392,7 +425,11 @@ sub commit_transaction {
 
 =method abort_transaction
 
-Abort the current transaction. This will use the writeConcern set on this transaction.
+    $session->abort_transaction;
+
+Aborts the current transaction.  If no transaction is in progress, then this
+method will throw an error.  Otherwise, this method will suppress all other
+errors (including network and database errors).
 
 =cut
 
@@ -458,7 +495,10 @@ sub _maybe_apply_error_labels {
     $session->end_session;
 
 Close this particular session and release the session ID for reuse or
-recycling.  Has no effect after calling for the first time.
+recycling.  If a transaction is in progress, it will be aborted.  Has no
+effect after calling for the first time.
+
+This will be called automatically by the object destructor.
 
 =cut
 
@@ -494,6 +534,16 @@ __END__
     # use session in operations
     my $result = $collection->find( { id => 1 }, { session => $session } );
 
+    # use sessions for transactions
+    $session->start_transaction;
+    ...
+    if ( $ok ) {
+        $session->commit_transaction;
+    }
+    else {
+        $session->abort_transaction;
+    }
+
 =head1 DESCRIPTION
 
 This class encapsulates an active session for use with the current client.
@@ -524,5 +574,12 @@ Sessions are NOT thread safe, and should only be used by one thread at a time.
 Using a session across multiple threads is unsupported and unexpected issues
 and errors may occur. Note that the driver does not check for multi-threaded
 use.
+
+=head2 Transactions
+
+A session may be associated with at most one open transaction (on MongoDB
+4.0+).  For detailed instructions on how to use transactions with drivers,
+see the MongoDB manual page:
+L<Transactions|https://docs.mongodb.com/master/core/transactions>.
 
 =cut
