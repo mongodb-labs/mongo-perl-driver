@@ -2,54 +2,6 @@
 
 {{ $NEXT }}
 
-  [Additions]
-
-    - PERL-944 Add 'client' method to MongoDB::Database
-
-v1.999.1  2018-06-23 23:41:05-04:00 America/New_York (TRIAL RELEASE)
-
-  [!!! Incompatible Changes !!!]
-
-    - See note from 1.999.0-TRIAL
-
-  [*** Deprecations ***]
-
-    - PERL-856 Deprecate 'md5' field in GridFS file documents
-
-  [Additions]
-
-    - PERL-875 Multi-document ACID transactions (replica sets only)
-
-    - PERL-912 Add 'watch' methods to MongoDB::Database and
-      MongoDB::MongoClient
-
-    - PERL-940 Added 'startAtOperationTime' option to 'watch' methods
-
-  [Bug fixes]
-
-    - PERL-936 Added session support to 'watch' for MongoDB::Collection
-
-    - PERL-947 Weaken session pool reference to MongoClient to avoid a
-      circular reference memory leak.
-
-  [Documentation]
-
-    - PERL-859 Added tests with example code for MongoDB's docs site
-
-    - PERL-859 Add test examples for aggregate, run_command and indexing
-
-  [Prerequisites]
-
-    - PERL-941 Bump BSON prereq to v1.6.5 for BSON::Time fix on 32-bit perls
-
-    - PERL-947 Require Authen::SCRAM 0.011 to avoid memory leak
-
-  [~ Internal changes ~]
-
-    - PERL-937 Gossip cluster time during SDAM 
-
-v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
-
   [!!! Incompatible Changes !!!]
 
     - PERL-640 Remove bundled MongoDB::BSON codec and use BSON.pm and/or
@@ -106,7 +58,16 @@ v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
 
     - PERL-863 Implement SCRAM-SHA-256 authentication
 
+    - PERL-875 Multi-document ACID transactions (replica sets only)
+
     - PERL-883 Implement command monitoring
+
+    - PERL-912 Add 'watch' methods to MongoDB::Database and
+      MongoDB::MongoClient
+
+    - PERL-940 Added 'startAtOperationTime' option to 'watch' methods
+
+    - PERL-944 Add 'client' method to MongoDB::Database
 
   [Bug fixes]
 
@@ -124,6 +85,11 @@ v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
       write concern, query limit propagation, cursor internal accounting)
 
     - PERL-919 Fix user/pass percent encoding validation
+
+    - PERL-936 Added session support to 'watch' for MongoDB::Collection
+
+    - PERL-948 Refactor op dispatching to avoid introducing circular refs
+      in session management
 
   [Changes]
 
@@ -145,9 +111,15 @@ v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
 
     - PERL-809 Added t/examples/changestream.t
 
+    - PERL-859 Added tests with example code for MongoDB's docs site
+
+    - PERL-859 Add test examples for aggregate, run_command and indexing
+
     - PERL-866 Document how to use the latest TLS protocols
 
     - PERL-903 Revise MongoDB::DataTypes and MongoDB::Tutorial
+
+    - PERL-908 Add transaction examples for docs
 
     - PERL-917 Fix minor spelling error
 
@@ -158,6 +130,10 @@ v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
 
     - PERL-934 Bumped Authen::SCRAM prerequisite to work around
       deep dependency issues
+
+    - PERL-941 Bump BSON prereq to v1.6.5 for BSON::Time fix on 32-bit perls
+
+    - PERL-947 Require Authen::SCRAM 0.011 to avoid memory leak
 
   [Removals]
 
@@ -190,6 +166,12 @@ v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
     - PERL-826 Stop sending maxAwaitTimeMS if not set
 
     - PERL-900 Vendor ExtUtils::HasCompiler
+
+    - PERL-937 Gossip cluster time during SDAM 
+
+v1.999.1  2018-06-23 23:41:05-04:00 America/New_York (TRIAL RELEASE)
+
+v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
 
 v1.8.2    2018-05-22 12:24:02-04:00 America/New_York
 
