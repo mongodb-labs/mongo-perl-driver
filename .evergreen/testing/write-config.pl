@@ -97,16 +97,21 @@ sub generate_test_variations {
 
     # We test every topology without auth/ssl and with auth, but without ssl.
     # For standalone, we also test with ssl but with no auth.
-    my @topo_tests = (
-        with_topology( server      => [ "noauth nossl", "auth nossl", "noauth ssl" ] ),
-        with_topology( replica_set => [ "noauth nossl", "auth nossl" ] ),
-        with_topology( sharded_cluster => [ "noauth nossl", "auth nossl" ] ),
-    );
+    my $standard = [ "noauth nossl", "auth nossl" ];
+    my @topo_tests = ( map { with_topology( $_ => $standard ) }
+          qw/server replica_set sharded_cluster/ );
 
     # For the topology specific configs, we repeat the list for each server
     # version we're testing.
     my @matrix =
-      map { with_version( $_ => \@topo_tests ) } qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0 latest/;
+      map { with_version( $_ => \@topo_tests ) }
+      qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0 latest/;
+
+    # Test SSL only on 3.2 and later
+    my @ssl_test = ( with_topology( server => ["noauth ssl"] ), );
+
+    push @matrix,
+      map { with_version( $_ => \@ssl_test ) } qw/v3.2 v3.4 v3.6 v4.0 latest/;
 
     return @matrix;
 }
