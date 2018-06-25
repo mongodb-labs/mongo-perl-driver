@@ -24,3 +24,4 @@ MYMETA.json
 MYMETA.yml
 output.txt
 /nyt*
+/.build
