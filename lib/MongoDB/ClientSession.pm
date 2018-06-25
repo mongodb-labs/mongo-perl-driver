@@ -385,7 +385,6 @@ sub commit_transaction {
     };
     if ( my $err = $@ ) {
         # catch and re-throw after retryable errors
-        # TODO maybe need better checking logic that theres actually an error code in output?
         my $err_code_name;
         my $err_code;
         if ( $err->can('result') ) {
@@ -472,7 +471,6 @@ sub _send_end_transaction_command {
         );
 
         my $result = $self->client->send_retryable_write_op( $op, 'force' );
-        # TODO This may be redundant after 918 is merged?
         $result->assert_no_write_concern_error;
     }
 

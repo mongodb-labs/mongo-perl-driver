@@ -101,8 +101,6 @@ sub end_all_sessions {
 
     for my $batch ( @batches ) {
         my $sessions = [
-            # TODO For some reason, the sessions are getting demolished before
-            # here, even though we have references to them...
             map { defined $_ ? $_->session_id : () } @$batch
         ];
         # Ignore any errors generated from this
