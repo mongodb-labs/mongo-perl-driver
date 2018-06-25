@@ -53,13 +53,6 @@ is($id."", $id->value);
     for (0..8) {
         ok($ids[$_] < $ids[$_+1]);
     }
-
-    my $now = bson_time();
-    $id = bson_oid();
-
-    my $oid_time = $id->get_time;
-    my $bson_time = int($now->epoch);
-    ok( $oid_time >= $bson_time, "OID time >= epoch" );
 }
 
 # creating ids from an existing value
