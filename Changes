@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v2.0.0    2018-06-26 14:55:50-04:00 America/New_York
+
   [!!! Incompatible Changes !!!]
 
     - PERL-640 Remove bundled MongoDB::BSON codec and use BSON.pm and/or

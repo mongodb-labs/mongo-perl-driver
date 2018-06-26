@@ -19,7 +19,7 @@ package MongoDB::Op::_ParallelScan;
 # Encapsulate code path for parallelCollectionScan commands
 
 use version;
-our $VERSION = 'v1.999.2';
+our $VERSION = 'v2.0.1';
 
 use Moo;
 

@@ -19,7 +19,7 @@ package MongoDB::Role::_PrivateConstructor;
 # MongoDB interface for a private constructor
 
 use version;
-our $VERSION = 'v1.999.2';
+our $VERSION = 'v2.0.1';
 
 use Moo::Role;
 

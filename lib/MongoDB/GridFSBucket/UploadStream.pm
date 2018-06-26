@@ -19,7 +19,7 @@ package MongoDB::GridFSBucket::UploadStream;
 # ABSTRACT: File handle abstraction for uploading
 
 use version;
-our $VERSION = 'v1.999.2';
+our $VERSION = 'v2.0.1';
 
 use Moo;
 use BSON::Bytes;
