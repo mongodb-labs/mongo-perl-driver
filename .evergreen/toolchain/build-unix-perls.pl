@@ -85,7 +85,13 @@ for my $version (reverse @perl_versions) {
         local $ENV{DESTDIR} = $destdir;
         my $logfile = "$short_ver$config.log";
         push @logs, $logfile;
-        try_system("perl-build @args >$logfile 2>&1");
+        eval { try_system("perl-build @args >$logfile 2>&1") };
+        if ( $@ ) {
+            # tar the build logs so we have a record of the error
+            try_system("tar -czf task-logs.tar.gz @logs");
+            die $@
+        }
+
 
         # remove man dirs from $destdir$dest/...
         rmtree("$destdir$dest/man");
