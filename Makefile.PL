@@ -82,7 +82,7 @@ my %WriteMakefileArgs = (
     "threads::shared" => 0,
     "utf8" => 0
   },
-  "VERSION" => "v1.999.2",
+  "VERSION" => "v2.0.0",
   "test" => {
     "TESTS" => "t/*.t t/deprecated/*.t t/examples/*.t t/threads/*.t t/unit/*.t"
   }
