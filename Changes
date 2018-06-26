@@ -84,8 +84,6 @@
     - PERL-891 Fix bugs found during command monitoring testing (bulk_write
       write concern, query limit propagation, cursor internal accounting)
 
-    - PERL-919 Fix user/pass percent encoding validation
-
     - PERL-936 Added session support to 'watch' for MongoDB::Collection
 
     - PERL-948 Refactor op dispatching to avoid introducing circular refs
@@ -174,6 +172,12 @@
 v1.999.1  2018-06-23 23:41:05-04:00 America/New_York (TRIAL RELEASE)
 
 v1.999.0  2018-06-15 12:38:56-04:00 America/New_York (TRIAL RELEASE)
+
+v1.8.3    2018-06-25 12:20:13-04:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-923 Fix user/password percent encoding validation
 
 v1.8.2    2018-05-22 12:24:02-04:00 America/New_York
 
