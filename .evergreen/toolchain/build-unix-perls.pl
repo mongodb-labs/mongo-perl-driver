@@ -87,11 +87,16 @@ for my $version (reverse @perl_versions) {
         push @logs, $logfile;
         eval { try_system("perl-build @args >$logfile 2>&1") };
         if ( $@ ) {
-            # tar the build logs so we have a record of the error
-            try_system("tar -czf task-logs.tar.gz @logs");
-            die $@
+            # try again without parallel builds
+            my @linear_args = ( '-Doptimize=-g', $version, $dest );
+            (my $log2 = $logfile) =~ s/\.log/-2.log/;
+            eval { try_system("perl-build @linear_args >$log2 2>&1") };
+            if ( $@ ) {
+                # tar the build logs so we have a record of the error
+                try_system("tar -czf task-logs.tar.gz @logs");
+                die $@
+            }
         }
-
 
         # remove man dirs from $destdir$dest/...
         rmtree("$destdir$dest/man");
