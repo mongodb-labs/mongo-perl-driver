@@ -2,6 +2,10 @@
 
 {{ $NEXT }}
 
+  [Documentation]
+
+    - PERL-952 Show how to upgrade v2 over v1 while avoiding shadows
+
 v2.0.0    2018-06-26 14:55:50-04:00 America/New_York
 
   [!!! Incompatible Changes !!!]
