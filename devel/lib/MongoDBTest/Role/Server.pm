@@ -528,6 +528,9 @@ sub _command_args {
             push @args, qw/--setParameter textSearchEnabled=true/;
         }
     }
+    if ( $self->server_version >= v3.6.0 ) {
+        push @args, qw/--networkMessageCompressors zlib/
+    }
 
     if ($skip_replset) {
         my @new_args;
