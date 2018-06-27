@@ -125,7 +125,7 @@ sub get_compressor {
             callback => sub {
                 return Compress::Zlib::compress(
                     $_[0],
-                    defined($level) ? $level : (),
+                    defined($level) ? $level : Compress::Zlib::Z_DEFAULT_COMPRESSION(),
                 );
             },
         };
