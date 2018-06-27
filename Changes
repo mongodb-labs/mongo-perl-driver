@@ -2,6 +2,11 @@
 
 {{ $NEXT }}
 
+  [Bug Fixes]
+
+    - PERL-953 Suppress warnings when using compression without
+      specifying a compression level.
+
   [Documentation]
 
     - PERL-952 Show how to upgrade v2 over v1 while avoiding shadows
