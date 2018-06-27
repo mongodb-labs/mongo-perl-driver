@@ -49,6 +49,24 @@ the v1 driver release:
 
 =head1 INSTALLATION AND DEPENDENCY CHANGES
 
+=head2 Installing v2 over v1
+
+Because the v2 driver is pure-Perl capable (see below), its Perl
+installation directory is different.  If upgrading, you need to be
+sure that the old version doesn't shadow the new one.
+
+That's easy with C<cpanm>:
+
+    cpanm --uninst-shadows MongoDB
+
+For the traditional CPAN client, you'll need to configure the
+C<make_install_arg> config argument like this:
+
+    $ perl -MCPAN -e shell
+    cpan> o conf make_install_arg UNINST=1
+    cpan> o conf commit
+    cpan> install MongoDB
+
 =head2 BSON library
 
 The MongoDB driver uses a newer version of the L<BSON> library.
