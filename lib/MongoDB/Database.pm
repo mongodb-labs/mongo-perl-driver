@@ -193,12 +193,12 @@ A hash reference of options may be provided. Valid keys include:
 * C<batchSize> – the number of documents to return per batch.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
+* C<nameOnly> - return names of the collections only. Defaults to false. (Note,
+  this will be ignored for servers before version 4.0)
 * C<session> - the session to use for these operations. If not supplied, will
   use an implicit session. For more information see L<MongoDB::ClientSession>
 
 =cut
-
-my $list_collections_args;
 
 sub list_collections {
     my ( $self, $filter, $options ) = @_;
@@ -253,9 +253,12 @@ L</list_collections> to iterate over collections instead.
 =cut
 
 sub collection_names {
-    my $self = shift;
+    my ( $self, $filter, $options ) = @_;
 
-    my $res = $self->list_collections( @_ );
+    $options ||= {};
+    $options->{nameOnly} = true if ! defined $options->{nameOnly};
+
+    my $res = $self->list_collections( $filter, $options );
 
     return map { $_->{name} } $res->all;
 }
