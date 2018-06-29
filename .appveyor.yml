@@ -1,6 +1,9 @@
 cache:
   - C:\strawberry
 
+services:
+  - mongodb
+
 install:
   - if not exist "C:\strawberry" choco install strawberryperl -y
   - set PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
