@@ -256,7 +256,7 @@ sub collection_names {
     my ( $self, $filter, $options ) = @_;
 
     $options ||= {};
-    $options->{nameOnly} = true;
+    $options->{nameOnly} = true if ! defined $options->{nameOnly};
 
     my $res = $self->list_collections( $filter, $options );
 
