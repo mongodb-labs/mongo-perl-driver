@@ -37,6 +37,7 @@ use Types::Standard qw(
     Str
 );
 use Tie::IxHash;
+use boolean;
 
 use namespace::clean;
 
@@ -98,6 +99,7 @@ sub _command_list_colls {
     my $cmd = Tie::IxHash->new(
         listCollections => 1,
         filter => $filter,
+        nameOnly => false,
         %{$self->options},
     );
 

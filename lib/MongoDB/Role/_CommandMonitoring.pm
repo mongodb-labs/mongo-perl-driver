@@ -27,11 +27,11 @@ use BSON;
 use BSON::Raw;
 use MongoDB::_Types -types, 'to_IxHash';
 use Tie::IxHash;
+use Safe::Isa;
 use Time::HiRes qw/time/;
 use namespace::clean;
 
 requires qw/monitoring_callback db_name/;
-
 has command_start_time  => ( is => 'rw', );
 has command_start_event => ( is => 'rw', );
 
@@ -39,7 +39,11 @@ sub publish_command_started {
     my ( $self, $link, $command, $request_id ) = @_;
     return unless $self->monitoring_callback;
 
-    $command = _to_tied_ixhash($command);
+    if ( $command->$_can('_as_tied_hash') ) {
+        $command = $command->_as_tied_hash;
+    } else {
+        $command = _to_tied_ixhash($command);
+    }
     my $command_name = tied(%$command)->Keys(0);
 
     my $event = {
@@ -263,7 +267,9 @@ sub _to_tied_ixhash {
         tie %out, "Tie::IxHash";
         $out{$_} = _decode_preencoded( $in->FETCH($_) ) for $in->Keys;
     }
-    else {
+    elsif ( $in->$_can('_as_tied_hash') ) {
+        %out = %{ $in->_as_tied_hash() };
+    } else {
         tie %out, "Tie::IxHash", map { ; $_ => _decode_preencoded( $in->{$_} ) } keys %$in;
     }
     return \%out;

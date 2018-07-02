@@ -124,7 +124,8 @@ subtest "collection names" => sub {
         ok( exists $got{$k}, "list_collections included $k" );
     }
 
-    my @names_of_capped = $testdb->collection_names( { 'options.capped' => true } );
+    # TODO For some reason this specific test doesnt work with nameOnly true - at all?!?!
+    my @names_of_capped = $testdb->collection_names( { 'options.capped' => true }, { nameOnly => false } );
     cmp_deeply( \@names_of_capped, [str('test_capped')], "collection_names with filter" );
 };
 
