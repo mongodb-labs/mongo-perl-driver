@@ -193,10 +193,13 @@ A hash reference of options may be provided. Valid keys include:
 * C<batchSize> – the number of documents to return per batch.
 * C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
   command to run.  (Note, this will be ignored for servers before version 2.6.)
-* C<nameOnly> - return names of the collections only. Defaults to false. (Note,
-  this will be ignored for servers before version 4.0)
+* C<nameOnly> - query and return names of the collections only. Defaults to
+  false. (Note, this will be ignored for servers before version 4.0)
 * C<session> - the session to use for these operations. If not supplied, will
   use an implicit session. For more information see L<MongoDB::ClientSession>
+
+B<NOTE>: When using C<nameOnly>, the filter query must be empty or must only
+query the C<name> field or else no documents will be found.
 
 =cut
 
@@ -229,6 +232,7 @@ sub list_collections {
 
     my @collections = $database->collection_names;
     my @collections = $database->collection_names( $filter );
+    my @collections = $database->collection_names( $filter, $options );
 
 Returns the list of collections in this database.
 
@@ -255,8 +259,12 @@ L</list_collections> to iterate over collections instead.
 sub collection_names {
     my ( $self, $filter, $options ) = @_;
 
+    $filter ||= {};
     $options ||= {};
-    $options->{nameOnly} = true if ! defined $options->{nameOnly};
+
+    my @filter_keys = keys %$filter;
+    $options->{nameOnly} =
+      @filter_keys == 0 || ( @filter_keys == 1 && exists $filter->{name} );
 
     my $res = $self->list_collections( $filter, $options );
 

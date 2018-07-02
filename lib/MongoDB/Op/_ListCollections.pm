@@ -91,6 +91,14 @@ sub _command_list_colls {
         $options->{cursor} = {};
     }
 
+    # Normalize or delete 'nameOnly'
+    if ($options->{nameOnly}) {
+        $options->{nameOnly} = true;
+    }
+    else {
+        delete $options->{nameOnly};
+    }
+
     my $filter =
       ref( $self->filter ) eq 'ARRAY'
       ? { @{ $self->filter } }
