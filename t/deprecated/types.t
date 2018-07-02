@@ -183,30 +183,16 @@ is($id."", $id->value);
     is(keys %$scope, 0);
     is($ret_code->code, $str);
 
-    my $x;
-
-    if ( !( $server_type eq 'Mongos' && $server_version < v2.6.0 ) && !$conn->password )
-    {
-        $x = $testdb->run_command( [ eval => $code, nolock => false ] );
-        is( $x->{retval}, 5, "eval with scope" );
-    }
-
     $str  = "function() { return name; }";
     $code = MongoDB::Code->new(
         "code"  => $str,
         "scope" => { "name" => "Fred" }
     );
 
-    if ( !( $server_type eq 'Mongos' && $server_version < v2.6.0 ) && !$conn->password )
-    {
-        $x = $testdb->run_command( [ eval => $code, nolock => false ] );
-        is( $x->{retval}, "Fred", "eval with scope" );
-    }
-
     $coll->drop;
 
     $coll->insert_one({"x" => "foo", "y" => $code, "z" => 1});
-    $x = $coll->find_one;
+    my $x = $coll->find_one;
     is($x->{x}, "foo");
     is($x->{y}->code, $str);
     is($x->{y}->scope->{"name"}, "Fred");
