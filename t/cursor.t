@@ -372,7 +372,7 @@ subtest "await data" => sub {
 
     # did it actually block for a bit?
     ok( $end >= $start + 1, "cursor blocked to await data" )
-      and diag "START: $start; END: $end";
+      or diag "START: $start; END: $end";
 };
 
 done_testing;
