@@ -1,4 +1,4 @@
-# Dist::Zilla::Plugin::MakeMaker::Awesome 0.41.
+# Dist::Zilla::Plugin::MakeMaker::Awesome 0.45.
 # Don't edit it but the dist.ini and plugins used to construct it.
 
 use strict;
@@ -46,6 +46,7 @@ my %WriteMakefileArgs = (
     "Safe::Isa" => "1.000007",
     "Scalar::Util" => 0,
     "Socket" => 0,
+    "Sub::Defer" => 0,
     "Sub::Quote" => 0,
     "Tie::IxHash" => 0,
     "Time::HiRes" => 0,
@@ -125,6 +126,7 @@ my %FallbackPrereqs = (
   "Scalar::Util" => 0,
   "Socket" => 0,
   "Storable" => 0,
+  "Sub::Defer" => 0,
   "Sub::Quote" => 0,
   "Test::Deep" => "0.111",
   "Test::Fatal" => 0,
@@ -153,12 +155,16 @@ my %FallbackPrereqs = (
 
 # inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.034
 if (!want_pp() && can_xs()) {
-runtime_requires('BSON::XS', '0.004002');
 runtime_requires('Class::XSAccessor');
 runtime_requires('Type::Tiny::XS');
 }
 
-unless ( eval { ExtUtils::MakeMaker->VERSION(6.63_03) } ) {
+# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.034
+if (!want_pp() && can_xs() && ($^O ne "MSWin32" || do {my (undef,$major,undef,undef,$id)=Win32::GetOSVersion(); $id>2 || ($id==2 && $major>=6)})) {
+runtime_requires('BSON::XS', '0.004002');
+}
+
+unless ( eval { ExtUtils::MakeMaker->VERSION('6.63_03') } ) {
   delete $WriteMakefileArgs{TEST_REQUIRES};
   delete $WriteMakefileArgs{BUILD_REQUIRES};
   $WriteMakefileArgs{PREREQ_PM} = \%FallbackPrereqs;
