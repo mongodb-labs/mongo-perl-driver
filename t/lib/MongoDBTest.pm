@@ -124,7 +124,7 @@ sub get_capped {
 
 sub skip_unless_mongod {
     eval {
-        my $conn = build_client( server_selection_timeout_ms => 1000 );
+        my $conn = build_client( server_selection_timeout_ms => 10000 );
         my $topo = $conn->_topology;
         $topo->scan_all_servers;
         my $link;

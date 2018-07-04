@@ -215,6 +215,13 @@ has supports_retryWrites => (
     isa => Boolish,
 );
 
+has supports_op_msg => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Boolish,
+);
+
+# for wire version >= 7
 has supports_4_0_changestreams => (
     is => 'rwp',
     init_arg => undef,
@@ -355,6 +362,7 @@ sub set_metadata {
             ? 1
             : 0
         );
+        $self->_set_supports_op_msg(1);
     }
     if ( $self->accepts_wire_version(7) ) {
         $self->_set_supports_4_0_changestreams(1);

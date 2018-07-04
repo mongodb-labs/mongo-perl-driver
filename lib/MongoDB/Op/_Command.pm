@@ -27,6 +27,7 @@ use MongoDB::_Constants;
 use MongoDB::_Types qw(
     Document
     ReadPreference
+    to_IxHash
 );
 use List::Util qw/first/;
 use Types::Standard qw(
@@ -87,9 +88,18 @@ sub execute {
     # $query is passed as a reference because it *may* be replaced
     $self->_apply_read_prefs( $link, $topology_type, $self->{query_flags}, \$self->{query});
 
-    my ( $op_bson, $request_id ) =
-      MongoDB::_Protocol::write_query( $self->{db_name} . '.$cmd',
-        $self->{bson_codec}->encode_one( $self->{query} ), undef, 0, -1, $self->{query_flags});
+    my ( $op_bson, $request_id );
+
+    if ( $link->supports_op_msg ) {
+        $self->{query} = to_IxHash( $self->{query} );
+        $self->{query}->Push( '$db', $self->db_name );
+        ( $op_bson, $request_id ) =
+            MongoDB::_Protocol::write_msg( $self->{bson_codec}, undef, $self->{query} );
+    } else {
+        ( $op_bson, $request_id ) =
+          MongoDB::_Protocol::write_query( $self->{db_name} . '.$cmd',
+            $self->{bson_codec}->encode_one( $self->{query} ), undef, 0, -1, $self->{query_flags});
+    }
 
     if ( length($op_bson) > MAX_BSON_WIRE_SIZE ) {
         # XXX should this become public?
