@@ -533,18 +533,18 @@ use constant {
 };
 
 sub parse_reply {
-    my ( $msg, $request_id ) = @_;
+    my ( $msg, $request_id, $codec ) = @_;
 
     MongoDB::ProtocolError->throw("response was truncated")
         if length($msg) < MIN_REPLY_LENGTH;
 
     $msg = try_uncompress($msg);
-
+    
     my (
         $len, $msg_id, $response_to, $opcode, $bitflags, $cursor_id, $starting_from,
         $number_returned
-    ) = unpack( P_REPLY_HEADER, $msg );
-
+    ) = unpack( P_MSG, $msg );
+    
     # pre-check all conditions using a modifier in one statement for speed;
     # disambiguate afterwards only if an error exists
 
@@ -554,8 +554,8 @@ sub parse_reply {
             MongoDB::ProtocolError->throw("response was truncated");
         }
 
-        if ( $opcode != OP_REPLY ) {
-            MongoDB::ProtocolError->throw("response was not OP_REPLY");
+        if ( $opcode != OP_REPLY && $opcode != OP_MSG ) {
+            MongoDB::ProtocolError->throw("response was not OP_REPLY or OP_MSG");
         }
 
         if ( $response_to != $request_id ) {
@@ -564,8 +564,29 @@ sub parse_reply {
         }
         }
         if ( length($msg) < $len )
-        || ( $opcode != OP_REPLY )
+        || ( ( $opcode != OP_REPLY ) && ( $opcode != OP_MSG ) )
         || ( $response_to != $request_id );
+
+
+    if ( $opcode == OP_MSG ) {
+        MongoDB::InternalError->throw('OP_MSG requires codec for parse_reply') unless defined $codec;
+        # TODO Extract and check checksum
+        my @sections = split_sections( $codec, substr $msg, P_MSG_PREFIX_LENGTH );
+        # We have none of the other stuff? maybe flags... and an array of docs? erm
+        return {
+          flags => {
+            checksum_present => vec( $bitflags, MSG_FB_CHECKSUM, 1 ),
+            query_failure    => vec( $bitflags, MSG_FB_MORE_TO_COME, 1 ),
+          },
+          docs => $sections[0]->encoded_documents->[0]
+        };
+    } else {
+        # Yes its two unpacks but its just easier than mapping through to the right size
+        (
+            $len, $msg_id, $response_to, $opcode, $bitflags, $cursor_id, $starting_from,
+            $number_returned
+        ) = unpack( P_REPLY_HEADER, $msg );
+    }
 
     # returns non-zero cursor_id as blessed object to identify it as an
     # 8-byte opaque ID rather than an ambiguous Perl scalar. N.B. cursors

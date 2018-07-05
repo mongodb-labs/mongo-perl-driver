@@ -167,12 +167,20 @@ sub _send_write_command {
 
     $self->_apply_session_and_cluster_time( $link, \$cmd );
 
-    # send command and get response document
-    my $command = $self->bson_codec->encode_one( $cmd );
-
-    my ( $op_bson, $request_id ) =
-      MongoDB::_Protocol::write_query( $self->db_name . '.$cmd',
-        $command, undef, 0, -1, undef );
+    my ( $op_bson, $request_id );
+    if ( $ENV{DO_OP_MSG} ) {#$link->supports_op_msg ) {
+        push @$cmd, ( '$db', $self->db_name );
+        my @sections = MongoDB::_Protocol::prepare_sections( $self->bson_codec, $cmd );
+        $cmd = \@sections;
+        my $encoded_sections = MongoDB::_Protocol::join_sections( @sections );
+        ( $op_bson, $request_id ) = MongoDB::_Protocol::write_msg( $encoded_sections, undef );
+    } else {
+        # send command and get response document
+        my $command = $self->bson_codec->encode_one( $cmd );
+        ( $op_bson, $request_id ) =
+          MongoDB::_Protocol::write_query( $self->db_name . '.$cmd',
+            $command, undef, 0, -1, undef );
+    }
 
     if ( length($op_bson) > MAX_BSON_WIRE_SIZE ) {
         # XXX should this become public?
@@ -188,7 +196,7 @@ sub _send_write_command {
     my $result;
     eval {
         $link->write( $op_bson ),
-        ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
+        ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id, $self->bson_codec ) );
     };
     if ( my $err = $@ ) {
         $self->_update_session_connection_error( $err );
