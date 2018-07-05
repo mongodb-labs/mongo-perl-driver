@@ -87,9 +87,19 @@ sub execute {
     # $query is passed as a reference because it *may* be replaced
     $self->_apply_read_prefs( $link, $topology_type, $self->{query_flags}, \$self->{query});
 
-    my ( $op_bson, $request_id ) =
-      MongoDB::_Protocol::write_query( $self->{db_name} . '.$cmd',
-        $self->{bson_codec}->encode_one( $self->{query} ), undef, 0, -1, $self->{query_flags});
+    my ( $op_bson, $request_id );
+
+    if ( $ENV{DO_OP_MSG} ) {#$link->supports_op_msg ) {
+        push @{$self->{query}}, ( '$db', $self->db_name );
+        my @sections = MongoDB::_Protocol::prepare_sections( $self->{bson_codec}, $self->{query} );
+        $self->{query} = \@sections;
+        my $encoded_sections = MongoDB::_Protocol::join_sections( @sections );
+        ( $op_bson, $request_id ) = MongoDB::_Protocol::write_msg( $encoded_sections, undef );
+    } else {
+        ( $op_bson, $request_id ) =
+          MongoDB::_Protocol::write_query( $self->{db_name} . '.$cmd',
+            $self->{bson_codec}->encode_one( $self->{query} ), undef, 0, -1, $self->{query_flags});
+    }
 
     if ( length($op_bson) > MAX_BSON_WIRE_SIZE ) {
         # XXX should this become public?
@@ -109,7 +119,7 @@ sub execute {
     my $result;
     eval {
         $link->write( $op_bson, \%write_opt ),
-        ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
+        ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id, $self->{bson_codec} ) );
     };
     if ( my $err = $@ ) {
         $self->_update_session_connection_error( $err );
