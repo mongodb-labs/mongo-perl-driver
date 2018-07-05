@@ -122,123 +122,50 @@ use constant {
     P_SECTION_SEQUENCE_SIZE_LENGTH => length( pack P_SECTION_SEQUENCE_SIZE, 0 ),
 };
 
-# TODO this really isnt the place for this...
-sub maybe_split_payload {
+use MongoDB::Protocol::_Section;
+
+=method prepare_sections( $cmd )
+
+Takes a command, returns sections ready for joining
+
+=cut
+
+sub prepare_sections {
   my ( $codec, $cmd ) = @_;
 
-  # TODO This is probably going to explode
-  my %th_cmd;
-  tie %th_cmd, "Tie::IxHash", @$cmd;
-
-  my $split_commands = {
+  my %split_commands = (
     insert => 'documents',
     update => 'updates',
     delete => 'deletes',
-  };
+  );
 
-  my $split_docs = $split_commands->{$cmd->[0]};
-  if ( defined $split_docs ) {
-    # can remap documents
-    my $docs = delete $th_cmd{ $split_docs };
+  my ( $command, $collection, $ident, $docs, @other ) = @$cmd;
 
-    my $packed_pl_1 = pack ( P_MSG_PL_1, 0, $split_docs )
-      . join( '', ( map { $codec->encode_one( $_ ) } @$docs ) );
-
-    substr( $packed_pl_1, 0, 4, pack( P_INT32, length ($packed_pl_1) ) );
-
-    $packed_pl_1 = pack( 'C', 1 ) . $packed_pl_1;
-
-    my $packed_pl_0 = $codec->encode_one( \%th_cmd );
-
-    $packed_pl_0 = pack( 'C', 0 ) . $packed_pl_0;
-
-    return [ $packed_pl_0, $packed_pl_1 ];
-  }
-
-  # Drop through if nothings happened yet
-  return [ $codec->encode_one( $cmd ) ];
-};
-
-=method encode_section( $payload_type, $identifier, @documents )
-
-  MongoDB::_Protocol::encode_section( 0, undef, $doc );
-  MongoDB::_Protocol::encode_section( 1, $identifier, $doc, $doc2, $doc3 );
-
-Encodes a section for C<OP_MSG> as needed for each type of payload. Note that
-payload type 0 only accepts one document, an exception will be thrown if more
-than one is passed.
-
-In a payload type 0, the identifier is not required (and is ignored). In a
-payload type 1, this is used as the identifier in the sequence for the struct.
-
-=cut
-
-sub encode_section {
-  my ( $type, $ident, @docs ) = @_;
-
-  my $pl;
-
-  if ( $type == 0 ) {
-    MongoDB::ProtocolError->throw(
-      "Creating an OP_MSG Section Payload 0 with multiple documents is not supported")
-      if scalar( @docs ) > 1;
-    $pl = $docs[0];
-  } elsif ( $type == 1 ) {
-    # Add size and ident placeholders
-    $pl = pack( P_MSG_PL_1, 0, $ident )
-      . join( '', @docs );
-    # calculate size
-    substr( $pl, 0, 4, pack( P_SECTION_SEQUENCE_SIZE, length( $pl ) ) );
+  if ( $split_commands{ $command } eq $ident ) {
+    # Assumes only a single split on the commands
+    return (
+      MongoDB::Protocol::_Section->new(
+        bson_codec => $codec,
+        type => 0,
+        documents => [ [ $command, $collection, @other ] ]
+      ),
+      MongoDB::Protocol::_Section->new(
+        bson_codec => $codec,
+        type => 1,
+        identifier => $ident,
+        documents => $docs
+      ),
+    );
   } else {
-    MongoDB::ProtocolError->throw("Encode: Unsupported section payload type");
+    # Not a recognised command to split, just set up ready for later
+    return (
+      MongoDB::Protocol::_Section->new(
+        bson_codec => $codec,
+        type => 0,
+        documents => [ $cmd ]
+      ),
+    );
   }
-
-  # Add payload type prefix
-  $pl = pack( P_SECTION_PAYLOAD_TYPE, $type ) . $pl;
-
-  return $pl;
-}
-
-=method decode_section( $encoded )
-
-Peforms the exact oposite of encode_section - takes an encoded section and
-returns type, identifier (if applicable) and the documents contained.
-
-=cut
-
-sub decode_section {
-  my $enc = shift;
-  my ( $type, $ident, @docs );
-
-  # first, extract the type
-  ( $type ) = unpack( 'C', $enc );
-  my $payload = substr( $enc, P_SECTION_PAYLOAD_TYPE_LENGTH );
-
-  if ( $type == 0 ) {
-    # payload is actually the document
-    push @docs, $payload;
-  } elsif ( $type == 1 ) {
-    # Pull size off and double check
-    my ( $pl_size ) = unpack( P_SECTION_SEQUENCE_SIZE, $payload );
-    unless ( $pl_size == length( $payload ) ) {
-      MongoDB::ProtocolError->throw("Decode: Section size incorrect");
-    }
-    $payload = substr( $payload, P_SECTION_SEQUENCE_SIZE_LENGTH );
-    # Pull out then remove
-    ( $ident ) = unpack( 'Z*', $payload );
-    $payload = substr( $payload, length ( pack 'Z*', $ident ) );
-
-    while ( length $payload ) {
-      my $doc_size = unpack( P_SECTION_SEQUENCE_SIZE, $payload );
-      my $doc = substr( $payload, 0, $doc_size );
-      $payload = substr( $payload, $doc_size );
-      push @docs, $doc;
-    }
-  } else {
-    MongoDB::ProtocolError->throw("Decode: Unsupported section payload type");
-  }
-
-  return ( $type, $ident, @docs );
 }
 
 =method join_sections
@@ -253,7 +180,7 @@ Joins an array of sections ready for passing to encode_sections.
 sub join_sections {
   my ( @sections ) = @_;
 
-  my $msg = join ('', ( map { encode_section( @$_ ) } @sections ) );
+  my $msg = join ('', ( map { $_->binary } @sections ) );
 
   return $msg;
 }
@@ -265,6 +192,7 @@ Does the exact opposite of join_sections.
 =cut
 
 sub split_sections {
+  my $codec = shift;
   my $msg = shift;
   my @sections;
   while ( length $msg ) {
@@ -273,7 +201,7 @@ sub split_sections {
 
     # Add the payload type length as we reached over it for the length
     my $section = substr( $msg, 0, $section_length + P_SECTION_PAYLOAD_TYPE_LENGTH );
-    push @sections, [ decode_section( $section ) ];
+    push @sections, MongoDB::Protocol::_Section->new( bson_codec => $codec, binary => $section );
 
     $msg = substr( $msg, $section_length + P_SECTION_PAYLOAD_TYPE_LENGTH );
   }
@@ -299,7 +227,7 @@ sub write_msg {
   my $request_id = int( rand( MAX_REQUEST_ID ) );
 
   my $msg = pack( P_MSG, 0, $request_id, 0, OP_MSG, 0 )
-    . join ( '', @$sections );
+    . $sections;
   substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
   return ( $msg, $request_id );
 }
