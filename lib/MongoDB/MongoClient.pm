@@ -2159,6 +2159,10 @@ specifying the "MONGODB-X509" authentication mechanism.
         auth_mechanism => "MONGODB-X509",
     );
 
+B<Note>: Since MongoDB Perl driver v1.8.0, you no longer need to specify a
+C<username> parameter for X509 authentication; the username will be
+extracted automatically from the certificate.
+
 =head2 PLAIN (for LDAP)
 
 This mechanism requires a username and password, which will be UTF-8
