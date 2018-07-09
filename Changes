@@ -11,6 +11,9 @@
 
     - PERL-952 Show how to upgrade v2 over v1 while avoiding shadows
 
+    - PERL-967 Document more clearlly that X509 doesn't need a 'username'
+      parameters, as the username is extracted from the certificate.
+
 v2.0.0    2018-06-26 14:55:50-04:00 America/New_York
 
   [!!! Incompatible Changes !!!]
