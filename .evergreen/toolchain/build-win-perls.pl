@@ -52,6 +52,7 @@ my @perl_versions = qw(
   5.22.3
   5.24.3
   5.26.1
+  5.28.0
 );
 
 my $target_arch = "MSWin32-x64-multi-thread";
