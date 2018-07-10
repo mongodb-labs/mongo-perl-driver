@@ -2114,7 +2114,7 @@ Usage information for each mechanism is given below.
 
 =head2 MONGODB-CR and SCRAM-SHA-1 (for username/password)
 
-These mechnisms require a username and password, given either as
+These mechanisms require a username and password, given either as
 constructor attributes or in the C<host> connection string.
 
 If a username is provided and an authentication mechanism is not specified,
@@ -2134,7 +2134,7 @@ fall back to MONGODB-CR for older servers.
 Usernames and passwords will be UTF-8 encoded before use.  The password is
 never sent over the wire -- only a secure digest is used.  The SCRAM-SHA-1
 mechanism is the Salted Challenge Response Authentication Mechanism
-definedin L<RFC 5802|http://tools.ietf.org/html/rfc5802>.
+defined in L<RFC 5802|http://tools.ietf.org/html/rfc5802>.
 
 The default database for authentication is 'admin'.  If another database
 name should be used, specify it with the C<db_name> attribute or via the

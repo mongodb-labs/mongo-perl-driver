@@ -538,7 +538,7 @@ occurs, the driver has received an error condition from the server.
 Attributes include:
 
 =for :list
-* result — response from a database command; this must impliement the
+* result — response from a database command; this must implement the
   C<last_errmsg> method
 * code — numeric error code; see L</ERROR CODES>; if no code was provided
   by the database, the C<UNKNOWN_ERROR> code will be substituted instead

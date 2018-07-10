@@ -212,7 +212,7 @@ L</cluster_time>. If the cluster time provided is more recent than the sessions
 current cluster time, then the session will be updated to this provided value.
 
 Setting the C<$clusterTime> with a manually crafted value may cause a server
-error. It is reccomended to only use C<$clusterTime> values retrieved from
+error. It is recommended to only use C<$clusterTime> values retrieved from
 database calls.
 
 =cut

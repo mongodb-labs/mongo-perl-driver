@@ -293,7 +293,7 @@ B<Important notes:>
   stream to also close.
 * C<close> will be automatically called when a stream object is destroyed.
   When called this way, any errors thrown will not halt execution.
-* Calling C<close> repeately will warn.
+* Calling C<close> repeatedly will warn.
 
 =cut
 
