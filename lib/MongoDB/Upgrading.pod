@@ -135,7 +135,7 @@ or not users ultimately need or want objects of that type.
 
 The previously-deprecated  C<dt_type> configuration argument has been
 removed from L<MongoDB::MongoClient> and the default date type of the
-L<BSON> library is L<BSON::Time>, which is extremly lightweight and
+L<BSON> library is L<BSON::Time>, which is extremely lightweight and
 provides convenience methods to convert to various popular time classes.
 It also works well with L<Time::HiRes> for recording datetimes with
 millisecond precision.
@@ -207,7 +207,7 @@ Many users are unaware of these considerations in the use of C<count>.  As
 any change to C<count> could surprise users with unexpected differences in
 either performance or correctness, the C<count> method has been replaced
 with two new API methods, which more directly convey performance and
-correctness expections:
+correctness expectations:
 
 =for :list
 * C<estimated_document_count> takes no predicate; it does not work

@@ -49,7 +49,7 @@ Fields:
 =for :list
 * type: "command_started"
 * databaseName: the name of the database to which the command applies
-* commandName: the name of the command being excuted; for legacy operations
+* commandName: the name of the command being executed; for legacy operations
   that don't use commands, the driver will convert them to appear as if
   they are in command form.
 * command: a hash reference representing the full command to be sent
@@ -68,7 +68,7 @@ Fields:
 
 =for :list
 * type: "command_succeeded"
-* commandName: the name of the command being excuted
+* commandName: the name of the command being executed
 * durationSecs: the elapsed time in seconds since the C<command_started>
   event.
 * reply: a hash reference representing the full database reply
@@ -85,7 +85,7 @@ Fields:
 
 =for :list
 * type: "command_failed"
-* commandName: the name of the command being excuted
+* commandName: the name of the command being executed
 * durationSecs: the elapsed time in seconds since the C<command_started>
   event.
 * failure: a string with a error message about the failure

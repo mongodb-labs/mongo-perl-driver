@@ -244,7 +244,7 @@ recent than the sessions current operation time, then the session will be
 updated to this provided value.
 
 Setting C<operation_time> with a manually crafted value may cause a server
-error. It is recommended to only use an C<operation_time> retreived from
+error. It is recommended to only use an C<operation_time> retrieved from
 another session or directly from a database call.
 
 =cut
