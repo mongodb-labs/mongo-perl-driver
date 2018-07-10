@@ -2,10 +2,17 @@
 
 {{ $NEXT }}
 
+  [Additions]
+
+    - PERL-897 'nameOnly' option added to 'list_collections' for efficiency
+
   [Bug Fixes]
 
     - PERL-953 Suppress warnings when using compression without
       specifying a compression level.
+
+    - PERL-959 Undefer constructor in the private constructor to ensure
+      cursors are cleaned up on destructions.
 
   [Documentation]
 
@@ -13,6 +20,12 @@
 
     - PERL-967 Document more clearlly that X509 doesn't need a 'username'
       parameters, as the username is extracted from the certificate.
+
+    - PERL-968 Fix various spelling errors
+
+  [Prerequisites]
+
+    - PERL-958 BSON::XS not available on Windows before Vista
 
 v2.0.0    2018-06-26 14:55:50-04:00 America/New_York
 
