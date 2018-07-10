@@ -1003,7 +1003,7 @@ The supported multi statement write operations are as follows:
 * C<insert_many>
 * C<bulk_write>
 
-The multi statment operations may be ether ordered or unordered. Note that for
+The multi statement operations may be ether ordered or unordered. Note that for
 C<bulk_write> operations, the request may not include update_many or
 delete_many operations.
 
