@@ -19,7 +19,7 @@ package MongoDB::BSON::Binary;
 # ABSTRACT: (DEPRECATED) MongoDB binary type
 
 use version;
-our $VERSION = 'v2.0.1';
+our $VERSION = 'v2.0.2';
 
 use Moo;
 extends 'BSON::Bytes';

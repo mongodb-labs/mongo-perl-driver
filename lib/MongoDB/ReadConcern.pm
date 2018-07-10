@@ -19,7 +19,7 @@ package MongoDB::ReadConcern;
 # ABSTRACT: Encapsulate and validate a read concern
 
 use version;
-our $VERSION = 'v2.0.1';
+our $VERSION = 'v2.0.2';
 
 use Moo;
 use MongoDB::Error;

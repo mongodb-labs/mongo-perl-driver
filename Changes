@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v2.0.1    2018-07-10 18:05:38-04:00 America/New_York
+
   [Additions]
 
     - PERL-897 'nameOnly' option added to 'list_collections' for efficiency

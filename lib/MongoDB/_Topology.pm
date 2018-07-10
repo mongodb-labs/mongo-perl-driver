@@ -17,7 +17,7 @@ use warnings;
 package MongoDB::_Topology;
 
 use version;
-our $VERSION = 'v2.0.1';
+our $VERSION = 'v2.0.2';
 
 use Moo;
 use BSON;

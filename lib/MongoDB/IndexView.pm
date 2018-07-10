@@ -19,7 +19,7 @@ package MongoDB::IndexView;
 # ABSTRACT: Index management for a collection
 
 use version;
-our $VERSION = 'v2.0.1';
+our $VERSION = 'v2.0.2';
 
 use Moo;
 use MongoDB::Error;
