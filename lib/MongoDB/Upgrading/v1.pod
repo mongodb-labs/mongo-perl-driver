@@ -66,7 +66,7 @@ Changes to the driver were deemed necessary to achieve certain goals:
 =head2 Moo instead of Moose
 
 The v1 driver uses L<Moo> instead of L<Moose>.  This change results in
-a slightly faster driver and a significanly reduced deep dependency tree.
+a slightly faster driver and a significantly reduced deep dependency tree.
 
 =head2 SSL and SASL
 

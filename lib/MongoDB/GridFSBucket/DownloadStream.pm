@@ -247,7 +247,7 @@ B<Important notes:>
 * Calling close will also cause any tied file handles created for the
   stream to also close.
 * C<close> will be automatically called when a stream object is destroyed.
-* Calling C<close> repeately will warn.
+* Calling C<close> repeatedly will warn.
 
 =cut
 
