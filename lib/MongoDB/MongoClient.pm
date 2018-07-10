@@ -19,7 +19,7 @@ package MongoDB::MongoClient;
 # ABSTRACT: A connection to a MongoDB server or multi-server deployment
 
 use version;
-our $VERSION = 'v2.0.1';
+our $VERSION = 'v2.1.0';
 
 use Moo;
 use MongoDB::ClientSession;

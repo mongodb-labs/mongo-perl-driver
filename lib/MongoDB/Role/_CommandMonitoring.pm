@@ -20,7 +20,7 @@ package MongoDB::Role::_CommandMonitoring;
 # MongoDB role to add command monitoring support to Ops
 
 use version;
-our $VERSION = 'v2.0.1';
+our $VERSION = 'v2.1.0';
 
 use Moo::Role;
 use BSON;
