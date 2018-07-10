@@ -30,16 +30,19 @@ use Moo::Role;
 # public one, which checks required/isa assertions.  When disabled,
 # the private constructor blesses args directly to the class for speed.
 BEGIN {
-  WITH_ASSERTS
-  ? eval 'sub _new { my $class = shift; $class->new(@_) }' ## no critic
-  : eval '
-      my %done;
-      sub _new {
-        my $class = shift;
-        undefer_sub($class->can(q{new})) and $done{$class}++
-          unless $done{$class};
-        return bless {@_}, $class
-      }'; ## no critic
+    my $code =
+      WITH_ASSERTS
+      ? 'sub _new { my $class = shift; $class->new(@_) }'
+      : <<'HERE';
+my %done;
+sub _new {
+    my $class = shift;
+    undefer_sub($class->can(q{new})) and $done{$class}++
+      unless $done{$class};
+    return bless {@_}, $class
+}
+HERE
+    eval $code; ## no critic
 }
 
 1;
