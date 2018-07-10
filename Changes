@@ -27,6 +27,8 @@
 
     - PERL-958 BSON::XS not available on Windows before Vista
 
+    - Bumped BSON.pm prereq to v1.6.6 for a BSON::Timestamp bug fix
+
 v2.0.0    2018-06-26 14:55:50-04:00 America/New_York
 
   [!!! Incompatible Changes !!!]
