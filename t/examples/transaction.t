@@ -68,9 +68,11 @@ sub updateEmployeeInfo {
 
     eval {
         $employeesCollection->update_one(
+            { session => $session},
             { employee => 3 }, { '$set' => { status => "Inactive" } },
         );
         $eventsCollection->insert_one(
+            { session => $session},
             { employee => 3, status => { new => "Inactive", old => "Active" } },
         );
     };
@@ -220,9 +222,11 @@ sub updateEmployeeInfo {
 
     eval {
         $employeesCollection->update_one(
+            { session => $session},
             { employee => 3 }, { '$set' => { status => "Inactive" } },
         );
         $eventsCollection->insert_one(
+            { session => $session},
             { employee => 3, status => { new => "Inactive", old => "Active" } },
         );
     };
