@@ -275,10 +275,10 @@ sub _maybe_expand_sections {
     my @out;
     for my $section ( @$in ) {
         # If everything isnt a Section, drop out the original
-        return $in unless ref($section) eq 'MongoDB::Protocol::_Section';
+        return $in unless ref($section) eq 'HASH' && defined $section->{type} && defined $section->{documents};
         # Type 0 only ever has one document
-        push @out, @{ $section->documents->[0] } if $section->type == 0;
-        push @out, ( $section->identifier, $section->documents ) if $section->type == 1;
+        push @out, @{ $section->{documents}->[0] } if $section->{type} == 0;
+        push @out, ( $section->{identifier}, $section->{documents} ) if $section->{type} == 1;
     }
     return \@out;
 }

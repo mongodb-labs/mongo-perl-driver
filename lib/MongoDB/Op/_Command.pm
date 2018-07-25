@@ -90,11 +90,14 @@ sub execute {
     my ( $op_bson, $request_id );
 
     if ( $ENV{DO_OP_MSG} ) {#$link->supports_op_msg ) {
+        # TODO Cover other document object types
         push @{$self->{query}}, ( '$db', $self->db_name );
         my @sections = MongoDB::_Protocol::prepare_sections( $self->{bson_codec}, $self->{query} );
         $self->{query} = \@sections;
-        my $encoded_sections = MongoDB::_Protocol::join_sections( @sections );
-        ( $op_bson, $request_id ) = MongoDB::_Protocol::write_msg( $encoded_sections, undef );
+        ( $op_bson, $request_id ) = MongoDB::_Protocol::write_msg(
+            $self->{bson_codec},
+            undef,
+            @sections );
     } else {
         ( $op_bson, $request_id ) =
           MongoDB::_Protocol::write_query( $self->{db_name} . '.$cmd',

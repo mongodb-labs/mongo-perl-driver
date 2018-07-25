@@ -122,8 +122,6 @@ use constant {
     P_SECTION_SEQUENCE_SIZE_LENGTH => length( pack P_SECTION_SEQUENCE_SIZE, 0 ),
 };
 
-use MongoDB::Protocol::_Section;
-
 =method prepare_sections( $cmd )
 
 Takes a command, returns sections ready for joining
@@ -139,33 +137,124 @@ sub prepare_sections {
     delete => 'deletes',
   );
 
+  # TODO can $cmd be any other type?
   my ( $command, $collection, $ident, $docs, @other ) = @$cmd;
 
   if ( $split_commands{ $command } eq $ident ) {
     # Assumes only a single split on the commands
     return (
-      MongoDB::Protocol::_Section->new(
-        bson_codec => $codec,
-        type => 0,
-        documents => [ [ $command, $collection, @other ] ]
-      ),
-      MongoDB::Protocol::_Section->new(
-        bson_codec => $codec,
-        type => 1,
-        identifier => $ident,
-        documents => $docs
-      ),
+        {
+            type => 0,
+            documents => [ [ $command, $collection, @other ] ],
+        },
+        {
+            type => 1,
+            identifier => $ident,
+            documents => $docs,
+        }
     );
   } else {
     # Not a recognised command to split, just set up ready for later
     return (
-      MongoDB::Protocol::_Section->new(
-        bson_codec => $codec,
-        type => 0,
-        documents => [ $cmd ]
-      ),
+        {
+            type => 0,
+            documents => [ $cmd ],
+        }
     );
   }
+}
+
+=method encode_section
+
+    MongoDB::_Protocol::encode_section( $codec, {
+        type => 0,                  # 0 or 1
+        identifier => undef,        # optional in type 0
+        documents => [ $cmd ]       # must be an array of documents
+    });
+
+Takes a section hashref and encodes it for joining
+
+=cut
+
+sub encode_section {
+    my ( $codec, $section ) = @_;
+
+    my $type = $section->{type};
+    my $ident = $section->{identifier};
+    my @raw_docs = @{ $section->{documents} };
+
+    my @docs = map { $codec->encode_one( $_ ) } @raw_docs;
+
+    my $pl;
+    if ( $type == 0 ) {
+        MongoDB::ProtocolError->throw(
+          "Creating an OP_MSG Section Payload 0 with multiple documents is not supported")
+          if scalar( @docs ) > 1;
+        $pl = $docs[0];
+    } elsif ( $type == 1 ) {
+        $pl = pack( P_MSG_PL_1, 0, $ident )
+          . join( '', @docs );
+        # calculate size
+        substr( $pl, 0, 4, pack( P_SECTION_SEQUENCE_SIZE, length( $pl ) ) );
+    } else {
+      MongoDB::ProtocolError->throw("Encode: Unsupported section payload type");
+    }
+
+    # Prepend the section type
+    $pl = pack( P_SECTION_PAYLOAD_TYPE, $type ) . $pl;
+
+    return $pl;
+}
+
+=method decode_section
+
+    MongoDB::_Protocol::decode_section( $codec, $section )
+
+Takes an encoded section and decodes it, exactly the opposite of encode_section.
+
+=cut
+
+sub decode_section {
+    my ( $codec, $doc, $flag ) = @_;
+    my ( $type, $ident, @enc_docs );
+    my $section = {};
+
+    ( $type ) = unpack( 'C', $doc );
+    my $payload = substr( $doc, P_SECTION_PAYLOAD_TYPE_LENGTH );
+
+    $section->{ type } = $type;
+
+    if ( $type == 0 ) {
+        # payload is a raw document
+        push @enc_docs, $payload;
+    } elsif ( $type == 1 ) {
+        # Pull size off and double check
+        my ( $pl_size ) = unpack( P_SECTION_SEQUENCE_SIZE, $payload );
+        unless ( $pl_size == length( $payload ) ) {
+          MongoDB::ProtocolError->throw("Decode: Section size incorrect");
+        }
+        $payload = substr( $payload, P_SECTION_SEQUENCE_SIZE_LENGTH );
+        # Pull out then remove
+        ( $ident ) = unpack( 'Z*', $payload );
+        $section->{ identifier } = $ident;
+        $payload = substr( $payload, length ( pack 'Z*', $ident ) );
+
+        while ( length $payload ) {
+          my $doc_size = unpack( P_SECTION_SEQUENCE_SIZE, $payload );
+          my $doc = substr( $payload, 0, $doc_size );
+          $payload = substr( $payload, $doc_size );
+          push @enc_docs, $doc;
+        }
+    } else {
+        MongoDB::ProtocolError->throw("Decode: Unsupported section payload type");
+    }
+    ## XXX We dont seem to need this decoded till later? flag here for testing
+    if ( $flag ) {
+        @enc_docs = map { $codec->decode_one( $_ ) } @enc_docs;
+    }
+    $section->{ documents } = \@enc_docs;
+
+    return $section;
 }
 
 =method join_sections
@@ -173,14 +262,14 @@ sub prepare_sections {
   MongoDB::_Protocol::join_sections(
     [ 0, undef, $doc ], [ 1, 'documents', $doc, $doc2 ] );
 
-Joins an array of sections ready for passing to encode_sections.
+Encodes and joins an array of sections.
 
 =cut
 
 sub join_sections {
-  my ( @sections ) = @_;
+  my ( $codec, @sections ) = @_;
 
-  my $msg = join ('', ( map { $_->binary } @sections ) );
+  my $msg = join ('', ( map { encode_section( $codec, $_ ) } @sections ) );
 
   return $msg;
 }
@@ -194,6 +283,7 @@ Does the exact opposite of join_sections.
 sub split_sections {
   my $codec = shift;
   my $msg = shift;
+  my $decode_flag = shift;
   my @sections;
   while ( length $msg ) {
     # get first section length
@@ -201,7 +291,8 @@ sub split_sections {
 
     # Add the payload type length as we reached over it for the length
     my $section = substr( $msg, 0, $section_length + P_SECTION_PAYLOAD_TYPE_LENGTH );
-    push @sections, MongoDB::Protocol::_Section->new( bson_codec => $codec, binary => $section );
+
+    push @sections, decode_section( $codec, $section, $decode_flag );
 
     $msg = substr( $msg, $section_length + P_SECTION_PAYLOAD_TYPE_LENGTH );
   }
@@ -215,19 +306,24 @@ use constant {
 };
 
 sub write_msg {
-  my ( $sections, $flags ) = @_;
+  my ( $codec, $flags, @sections ) = @_;
   my $flagbits = 0;
   # checksum is reserved for future use
   if ( $flags ) {
     $flagbits =
-        ( $flags->{checksum_present} ? 1 << MSG_FB_CHECKSUM     : 0 )
-      | ( $flags->{more_to_come}     ? 1 << MSG_FB_MORE_TO_COME : 0 );
+        ( $flags->{checksum_present} ? 1 <<
+            MSG_FB_CHECKSUM     : 0 ) # Newline to stop highlighter crapping itself....
+      | ( $flags->{more_to_come}     ? 1 <<
+            MSG_FB_MORE_TO_COME : 0 ); # Newline to stop highlighter crapping itself....
+
   }
 
   my $request_id = int( rand( MAX_REQUEST_ID ) );
 
+  my $encoded_sections = join_sections( $codec, @sections );
+
   my $msg = pack( P_MSG, 0, $request_id, 0, OP_MSG, 0 )
-    . $sections;
+    . $encoded_sections;
   substr( $msg, 0, 4, pack( P_INT32, length($msg) ) );
   return ( $msg, $request_id );
 }
@@ -348,8 +444,10 @@ sub write_update {
     my $bitflags = 0;
     if ($flags) {
         $bitflags =
-          ( $flags->{upsert} ? 1 << U_UPSERT : 0 )
-          | ( $flags->{multi} ? 1 << U_MULTI_UPDATE : 0 );
+          ( $flags->{upsert} ? 1 <<
+            U_UPSERT : 0 )
+          | ( $flags->{multi} ? 1 <<
+            U_MULTI_UPDATE : 0 );
     }
 
     my $msg =
@@ -377,7 +475,8 @@ sub write_insert {
 
     my $bitflags = 0;
     if ($flags) {
-        $bitflags = ( $flags->{continue_on_error} ? 1 << I_CONTINUE_ON_ERROR : 0 );
+        $bitflags = ( $flags->{continue_on_error} ? 1 <<
+            I_CONTINUE_ON_ERROR : 0 );
     }
 
     my $msg =
@@ -416,11 +515,16 @@ sub write_query {
     my $bitflags = 0;
     if ($flags) {
         $bitflags =
-            ( $flags->{tailable}   ? 1 << Q_TAILABLE          : 0 )
-          | ( $flags->{slave_ok}   ? 1 << Q_SLAVE_OK          : 0 )
-          | ( $flags->{await_data} ? 1 << Q_AWAIT_DATA        : 0 )
-          | ( $flags->{immortal}   ? 1 << Q_NO_CURSOR_TIMEOUT : 0 )
-          | ( $flags->{partial}    ? 1 << Q_PARTIAL           : 0 );
+            ( $flags->{tailable}   ? 1 <<
+                Q_TAILABLE          : 0 )
+          | ( $flags->{slave_ok}   ? 1 <<
+            Q_SLAVE_OK          : 0 )
+          | ( $flags->{await_data} ? 1 <<
+            Q_AWAIT_DATA        : 0 )
+          | ( $flags->{immortal}   ? 1 <<
+            Q_NO_CURSOR_TIMEOUT : 0 )
+          | ( $flags->{partial}    ? 1 <<
+            Q_PARTIAL           : 0 );
     }
 
     my $request_id = int( rand( MAX_REQUEST_ID ) );
@@ -473,7 +577,8 @@ sub write_delete {
 
     my $bitflags = 0;
     if ($flags) {
-        $bitflags = ( $flags->{just_one} ? 1 << D_SINGLE_REMOVE : 0 );
+        $bitflags = ( $flags->{just_one} ? 1 <<
+         D_SINGLE_REMOVE : 0 );
     }
 
     my $msg =
@@ -539,12 +644,12 @@ sub parse_reply {
         if length($msg) < MIN_REPLY_LENGTH;
 
     $msg = try_uncompress($msg);
-    
+
     my (
         $len, $msg_id, $response_to, $opcode, $bitflags, $cursor_id, $starting_from,
         $number_returned
     ) = unpack( P_MSG, $msg );
-    
+
     # pre-check all conditions using a modifier in one statement for speed;
     # disambiguate afterwards only if an error exists
 
@@ -578,7 +683,7 @@ sub parse_reply {
             checksum_present => vec( $bitflags, MSG_FB_CHECKSUM, 1 ),
             query_failure    => vec( $bitflags, MSG_FB_MORE_TO_COME, 1 ),
           },
-          docs => $sections[0]->encoded_documents->[0]
+          docs => $sections[0]->{documents}->[0]
         };
     } else {
         # Yes its two unpacks but its just easier than mapping through to the right size

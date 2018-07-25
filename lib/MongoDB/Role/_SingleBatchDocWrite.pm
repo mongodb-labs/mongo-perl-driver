@@ -172,8 +172,10 @@ sub _send_write_command {
         push @$cmd, ( '$db', $self->db_name );
         my @sections = MongoDB::_Protocol::prepare_sections( $self->bson_codec, $cmd );
         $cmd = \@sections;
-        my $encoded_sections = MongoDB::_Protocol::join_sections( @sections );
-        ( $op_bson, $request_id ) = MongoDB::_Protocol::write_msg( $encoded_sections, undef );
+        ( $op_bson, $request_id ) = MongoDB::_Protocol::write_msg(
+            $self->bson_codec,
+            undef,
+            @sections );
     } else {
         # send command and get response document
         my $command = $self->bson_codec->encode_one( $cmd );
