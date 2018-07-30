@@ -32,7 +32,7 @@ use MongoDBTest::Orchestrator;
 use MongoDBTest qw/build_client get_test_db clear_testdbs/;
 
 my $orc =
-    MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-any-mmapv1.yml" );
+    MongoDBTest::Orchestrator->new( config_file => "devel/config/mongod-3.0-mmapv1.yml" );
 $orc->start;
 local $ENV{MONGOD} = $orc->as_uri;
 
