@@ -139,16 +139,10 @@ sub prepare_sections {
   );
 
   $cmd = to_IxHash( $cmd );
-  my ( $command, $ident );
-  for my $cmd_key ( keys %split_commands ) {
-      if ( defined $cmd->FETCH( $cmd_key ) ) {
-          $command = $cmd_key;
-          if ( defined $cmd->FETCH( $command ) ) {
-              $ident = $split_commands{ $command };
-          }
-          last;
-      }
-  }
+
+  # Command is always first key in cmd
+  my $command = do { my @keys = $cmd->Keys; $keys[0] };
+  my $ident = $split_commands{ $command };
 
   if ( defined $ident
     && $split_commands{ $command } eq $ident ) {
@@ -343,14 +337,10 @@ sub write_msg {
 
   my $request_id = int( rand( MAX_REQUEST_ID ) );
 
-  my $encoded_sections;
-  eval { my @sections = prepare_sections( $codec, $cmd );
+  my @sections = prepare_sections( $codec, $cmd );
 
-  $encoded_sections = join_sections( $codec, @sections ); };
-  if ($@) {
-      ::Dwarn $cmd;
-      die $@;
-  }
+  my $encoded_sections = join_sections( $codec, @sections );
+
 
   my $msg = pack( P_MSG, 0, $request_id, 0, OP_MSG, 0 )
     . $encoded_sections;
