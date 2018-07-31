@@ -27,6 +27,7 @@ use MongoDB::_Constants;
 use MongoDB::_Types qw(
     Document
     ReadPreference
+    to_IxHash
 );
 use List::Util qw/first/;
 use Types::Standard qw(
@@ -89,15 +90,11 @@ sub execute {
 
     my ( $op_bson, $request_id );
 
-    if ( $ENV{DO_OP_MSG} ) {#$link->supports_op_msg ) {
-        # TODO Cover other document object types
-        push @{$self->{query}}, ( '$db', $self->db_name );
-        my @sections = MongoDB::_Protocol::prepare_sections( $self->{bson_codec}, $self->{query} );
-        $self->{query} = \@sections;
-        ( $op_bson, $request_id ) = MongoDB::_Protocol::write_msg(
-            $self->{bson_codec},
-            undef,
-            @sections );
+    if ( $link->supports_op_msg ) {
+        $self->{query} = to_IxHash( $self->{query} );
+        $self->{query}->Push( '$db', $self->db_name );
+        ( $op_bson, $request_id ) =
+            MongoDB::_Protocol::write_msg( $self->{bson_codec}, undef, $self->{query} );
     } else {
         ( $op_bson, $request_id ) =
           MongoDB::_Protocol::write_query( $self->{db_name} . '.$cmd',

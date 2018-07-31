@@ -23,6 +23,7 @@ our $VERSION = 'v2.0.1';
 
 use MongoDB::_Constants;
 use MongoDB::Error;
+use MongoDB::_Types qw/ to_IxHash /;
 
 use Compress::Zlib ();
 
@@ -137,15 +138,37 @@ sub prepare_sections {
     delete => 'deletes',
   );
 
-  # TODO can $cmd be any other type?
-  my ( $command, $collection, $ident, $docs, @other ) = @$cmd;
+  $cmd = to_IxHash( $cmd );
+  my ( $command, $ident );
+  for my $cmd_key ( keys %split_commands ) {
+      if ( defined $cmd->FETCH( $cmd_key ) ) {
+          $command = $cmd_key;
+          if ( defined $cmd->FETCH( $command ) ) {
+              $ident = $split_commands{ $command };
+          }
+          last;
+      }
+  }
 
-  if ( $split_commands{ $command } eq $ident ) {
-    # Assumes only a single split on the commands
+  if ( defined $ident
+    && $split_commands{ $command } eq $ident ) {
+    my $collection = $cmd->FETCH( $command );
+    my $docs = $cmd->FETCH( $ident );
+    # my ( undef, $collection ) = $cmd->Shift;
+    # my ( undef, $docs ) = $cmd->Shift;
+    # # Assumes only a single split on the commands
     return (
         {
             type => 0,
-            documents => [ [ $command, $collection, @other ] ],
+            documents => [ [
+                $command,
+                $collection,
+                # Done specifically to not alter $cmd
+                map { $_ eq $command || $_ eq $ident
+                    ? ()
+                    : ( $_, $cmd->FETCH( $_ ) )
+                } $cmd->Keys()
+            ] ],
         },
         {
             type => 1,
@@ -306,7 +329,7 @@ use constant {
 };
 
 sub write_msg {
-  my ( $codec, $flags, @sections ) = @_;
+  my ( $codec, $flags, $cmd ) = @_;
   my $flagbits = 0;
   # checksum is reserved for future use
   if ( $flags ) {
@@ -320,7 +343,14 @@ sub write_msg {
 
   my $request_id = int( rand( MAX_REQUEST_ID ) );
 
-  my $encoded_sections = join_sections( $codec, @sections );
+  my $encoded_sections;
+  eval { my @sections = prepare_sections( $codec, $cmd );
+
+  $encoded_sections = join_sections( $codec, @sections ); };
+  if ($@) {
+      ::Dwarn $cmd;
+      die $@;
+  }
 
   my $msg = pack( P_MSG, 0, $request_id, 0, OP_MSG, 0 )
     . $encoded_sections;

@@ -256,7 +256,6 @@ sub _to_tied_ixhash {
     my $type = ref($in);
     my %out;
     if ( $type eq 'ARRAY' ) {
-        $in = _maybe_expand_sections( $in );
         # earlier type checks should ensure even elements
         tie %out, "Tie::IxHash", map { _decode_preencoded($_) } @$in;
     }
@@ -268,19 +267,6 @@ sub _to_tied_ixhash {
         tie %out, "Tie::IxHash", map { ; $_ => _decode_preencoded( $in->{$_} ) } keys %$in;
     }
     return \%out;
-}
-
-sub _maybe_expand_sections {
-    my $in = shift;
-    my @out;
-    for my $section ( @$in ) {
-        # If everything isnt a Section, drop out the original
-        return $in unless ref($section) eq 'HASH' && defined $section->{type} && defined $section->{documents};
-        # Type 0 only ever has one document
-        push @out, @{ $section->{documents}->[0] } if $section->{type} == 0;
-        push @out, ( $section->{identifier}, $section->{documents} ) if $section->{type} == 1;
-    }
-    return \@out;
 }
 
 1;

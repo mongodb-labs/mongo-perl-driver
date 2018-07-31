@@ -30,6 +30,7 @@ use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
     WriteConcern
+    to_IxHash
 );
 
 use namespace::clean;
@@ -168,14 +169,11 @@ sub _send_write_command {
     $self->_apply_session_and_cluster_time( $link, \$cmd );
 
     my ( $op_bson, $request_id );
-    if ( $ENV{DO_OP_MSG} ) {#$link->supports_op_msg ) {
-        push @$cmd, ( '$db', $self->db_name );
-        my @sections = MongoDB::_Protocol::prepare_sections( $self->bson_codec, $cmd );
-        $cmd = \@sections;
-        ( $op_bson, $request_id ) = MongoDB::_Protocol::write_msg(
-            $self->bson_codec,
-            undef,
-            @sections );
+    if ( $link->supports_op_msg ) {
+        $cmd = to_IxHash( $cmd );
+        $cmd->Push( '$db', $self->db_name );
+        ( $op_bson, $request_id ) =
+            MongoDB::_Protocol::write_msg( $self->bson_codec, undef, $cmd );
     } else {
         # send command and get response document
         my $command = $self->bson_codec->encode_one( $cmd );
