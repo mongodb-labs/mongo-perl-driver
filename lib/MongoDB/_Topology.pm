@@ -597,8 +597,9 @@ sub _check_wire_versions {
         my ( $server_min_wire_version, $server_max_wire_version ) =
           @{ $server->is_master }{qw/minWireVersion maxWireVersion/};
 
-        $server_max_wire_version = 0 unless defined $server_max_wire_version;
-        $server_min_wire_version = 0 unless defined $server_min_wire_version;
+        # set to -1 as could be undefined, or 0.
+        $server_max_wire_version = -1 unless defined $server_max_wire_version;
+        $server_min_wire_version = -1 unless defined $server_min_wire_version;
 
         if ( $server_min_wire_version > $self->max_wire_version
           || $server_max_wire_version < $self->min_wire_version ) {
@@ -1200,8 +1201,9 @@ sub _update_rs_with_primary_from_member {
         $self->_remove_server($new_server);
     }
 
-    # require 'me' that matches expected address
-    if ( $new_server->me && $new_server->me ne $new_server->address ) {
+    # require 'me' that matches expected address.
+    # check is case insensitive
+    if ( $new_server->me && lc $new_server->me ne $new_server->address ) {
         $self->_remove_server($new_server);
         $self->_check_for_primary;
         return;

@@ -28,6 +28,7 @@ my $iterator = path('t/data/SDAM')->iterator({recurse => 1});
 
 while ( my $path = $iterator->() ) {
     next unless -f $path && $path =~ /\.json$/;
+    #next unless $path =~ /too_old/;
     my $plan = eval { decode_json( $path->slurp_utf8 ) };
     if ( $@ ) {
         die "Error decoding $path: $@";
@@ -95,6 +96,10 @@ sub run_test {
                 $topology->_update_topology_from_server_desc( @$response[0], $desc);
             }
 
+            # Need to force this check for compatibility checking
+            # scan_all_servers wont work as there arent actually any servers...
+            $topology->_check_wire_versions;
+
             # Process outcome
             check_outcome($topology, $phase->{'outcome'});
         }
@@ -127,6 +132,10 @@ sub check_outcome {
     is($topology->replica_set_name, $expected_set_name, 'correct setName for topology');
     is($topology->type, $outcome->{'topologyType'}, 'correct topology type');
     is($topology->logical_session_timeout_minutes, $outcome->{'logicalSessionTimeoutMinutes'}, 'correct ls timeout');
+    if ( defined $outcome->{'compatible'} ) {
+        my $compatibility = $outcome->{'compatible'} ? 1 : 0;
+        is($topology->is_compatible, $compatibility, 'compatibility correct');
+    }
 }
 
 done_testing;
