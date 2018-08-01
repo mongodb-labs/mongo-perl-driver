@@ -95,8 +95,12 @@ sub run_test {
                 $topology->_update_topology_from_server_desc( @$response[0], $desc);
             }
 
+            # Need to force this check for compatibility checking
+            # scan_all_servers wont work as there arent actually any servers...
+            $topology->_check_wire_versions;
+
             # Process outcome
-            check_outcome($topology, $phase->{'outcome'});
+            check_outcome($topology, $phase->{'outcome'}, $name);
         }
     };
 
@@ -104,7 +108,7 @@ sub run_test {
 
 sub check_outcome {
 
-    my ($topology, $outcome, $start_type) = @_;
+    my ($topology, $outcome, $name) = @_;
 
     my %expected_servers = %{$outcome->{'servers'}};
     my %actual_servers = %{$topology->servers};
@@ -127,6 +131,13 @@ sub check_outcome {
     is($topology->replica_set_name, $expected_set_name, 'correct setName for topology');
     is($topology->type, $outcome->{'topologyType'}, 'correct topology type');
     is($topology->logical_session_timeout_minutes, $outcome->{'logicalSessionTimeoutMinutes'}, 'correct ls timeout');
+    if ( defined $outcome->{'compatible'} ) {
+        my $compatibility = $outcome->{'compatible'} ? 1 : 0;
+        # perl driver specifically supports older servers - this goes against
+        # spec but allows for support of legacy servers.
+        $compatibility = 1 if $name =~ /too_old/;
+        is($topology->is_compatible, $compatibility, 'compatibility correct');
+    }
 }
 
 done_testing;
