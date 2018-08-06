@@ -210,6 +210,1446 @@ tasks:
     stepback: false
 
 buildvariants:
+  - name: os_amazon2_perl_10
+    display_name: Amazon v2 x86_64 Perl 5.10
+    expansions:
+      addpaths: /opt/perl/10/bin
+      os: amazon2
+      perlpath: /opt/perl/10/bin/perl
+      perlver: 10
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_10t
+    display_name: Amazon v2 x86_64 Perl 5.10t
+    expansions:
+      addpaths: /opt/perl/10t/bin
+      os: amazon2
+      perlpath: /opt/perl/10t/bin/perl
+      perlver: 10t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_10ld
+    display_name: Amazon v2 x86_64 Perl 5.10ld
+    expansions:
+      addpaths: /opt/perl/10ld/bin
+      os: amazon2
+      perlpath: /opt/perl/10ld/bin/perl
+      perlver: 10ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_12
+    display_name: Amazon v2 x86_64 Perl 5.12
+    expansions:
+      addpaths: /opt/perl/12/bin
+      os: amazon2
+      perlpath: /opt/perl/12/bin/perl
+      perlver: 12
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_12t
+    display_name: Amazon v2 x86_64 Perl 5.12t
+    expansions:
+      addpaths: /opt/perl/12t/bin
+      os: amazon2
+      perlpath: /opt/perl/12t/bin/perl
+      perlver: 12t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_12ld
+    display_name: Amazon v2 x86_64 Perl 5.12ld
+    expansions:
+      addpaths: /opt/perl/12ld/bin
+      os: amazon2
+      perlpath: /opt/perl/12ld/bin/perl
+      perlver: 12ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_14
+    display_name: Amazon v2 x86_64 Perl 5.14
+    expansions:
+      addpaths: /opt/perl/14/bin
+      os: amazon2
+      perlpath: /opt/perl/14/bin/perl
+      perlver: 14
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_14t
+    display_name: Amazon v2 x86_64 Perl 5.14t
+    expansions:
+      addpaths: /opt/perl/14t/bin
+      os: amazon2
+      perlpath: /opt/perl/14t/bin/perl
+      perlver: 14t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_14ld
+    display_name: Amazon v2 x86_64 Perl 5.14ld
+    expansions:
+      addpaths: /opt/perl/14ld/bin
+      os: amazon2
+      perlpath: /opt/perl/14ld/bin/perl
+      perlver: 14ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_16
+    display_name: Amazon v2 x86_64 Perl 5.16
+    expansions:
+      addpaths: /opt/perl/16/bin
+      os: amazon2
+      perlpath: /opt/perl/16/bin/perl
+      perlver: 16
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_16t
+    display_name: Amazon v2 x86_64 Perl 5.16t
+    expansions:
+      addpaths: /opt/perl/16t/bin
+      os: amazon2
+      perlpath: /opt/perl/16t/bin/perl
+      perlver: 16t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_16ld
+    display_name: Amazon v2 x86_64 Perl 5.16ld
+    expansions:
+      addpaths: /opt/perl/16ld/bin
+      os: amazon2
+      perlpath: /opt/perl/16ld/bin/perl
+      perlver: 16ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_18
+    display_name: Amazon v2 x86_64 Perl 5.18
+    expansions:
+      addpaths: /opt/perl/18/bin
+      os: amazon2
+      perlpath: /opt/perl/18/bin/perl
+      perlver: 18
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_18t
+    display_name: Amazon v2 x86_64 Perl 5.18t
+    expansions:
+      addpaths: /opt/perl/18t/bin
+      os: amazon2
+      perlpath: /opt/perl/18t/bin/perl
+      perlver: 18t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_18ld
+    display_name: Amazon v2 x86_64 Perl 5.18ld
+    expansions:
+      addpaths: /opt/perl/18ld/bin
+      os: amazon2
+      perlpath: /opt/perl/18ld/bin/perl
+      perlver: 18ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_20
+    display_name: Amazon v2 x86_64 Perl 5.20
+    expansions:
+      addpaths: /opt/perl/20/bin
+      os: amazon2
+      perlpath: /opt/perl/20/bin/perl
+      perlver: 20
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_20t
+    display_name: Amazon v2 x86_64 Perl 5.20t
+    expansions:
+      addpaths: /opt/perl/20t/bin
+      os: amazon2
+      perlpath: /opt/perl/20t/bin/perl
+      perlver: 20t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_20ld
+    display_name: Amazon v2 x86_64 Perl 5.20ld
+    expansions:
+      addpaths: /opt/perl/20ld/bin
+      os: amazon2
+      perlpath: /opt/perl/20ld/bin/perl
+      perlver: 20ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_22
+    display_name: Amazon v2 x86_64 Perl 5.22
+    expansions:
+      addpaths: /opt/perl/22/bin
+      os: amazon2
+      perlpath: /opt/perl/22/bin/perl
+      perlver: 22
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_22t
+    display_name: Amazon v2 x86_64 Perl 5.22t
+    expansions:
+      addpaths: /opt/perl/22t/bin
+      os: amazon2
+      perlpath: /opt/perl/22t/bin/perl
+      perlver: 22t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_22ld
+    display_name: Amazon v2 x86_64 Perl 5.22ld
+    expansions:
+      addpaths: /opt/perl/22ld/bin
+      os: amazon2
+      perlpath: /opt/perl/22ld/bin/perl
+      perlver: 22ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_24
+    display_name: Amazon v2 x86_64 Perl 5.24
+    expansions:
+      addpaths: /opt/perl/24/bin
+      os: amazon2
+      perlpath: /opt/perl/24/bin/perl
+      perlver: 24
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_24t
+    display_name: Amazon v2 x86_64 Perl 5.24t
+    expansions:
+      addpaths: /opt/perl/24t/bin
+      os: amazon2
+      perlpath: /opt/perl/24t/bin/perl
+      perlver: 24t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_24ld
+    display_name: Amazon v2 x86_64 Perl 5.24ld
+    expansions:
+      addpaths: /opt/perl/24ld/bin
+      os: amazon2
+      perlpath: /opt/perl/24ld/bin/perl
+      perlver: 24ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_26
+    display_name: Amazon v2 x86_64 Perl 5.26
+    expansions:
+      addpaths: /opt/perl/26/bin
+      os: amazon2
+      perlpath: /opt/perl/26/bin/perl
+      perlver: 26
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_26t
+    display_name: Amazon v2 x86_64 Perl 5.26t
+    expansions:
+      addpaths: /opt/perl/26t/bin
+      os: amazon2
+      perlpath: /opt/perl/26t/bin/perl
+      perlver: 26t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_26ld
+    display_name: Amazon v2 x86_64 Perl 5.26ld
+    expansions:
+      addpaths: /opt/perl/26ld/bin
+      os: amazon2
+      perlpath: /opt/perl/26ld/bin/perl
+      perlver: 26ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_28
+    display_name: Amazon v2 x86_64 Perl 5.28
+    expansions:
+      addpaths: /opt/perl/28/bin
+      os: amazon2
+      perlpath: /opt/perl/28/bin/perl
+      perlver: 28
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_28t
+    display_name: Amazon v2 x86_64 Perl 5.28t
+    expansions:
+      addpaths: /opt/perl/28t/bin
+      os: amazon2
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_amazon2_perl_28ld
+    display_name: Amazon v2 x86_64 Perl 5.28ld
+    expansions:
+      addpaths: /opt/perl/28ld/bin
+      os: amazon2
+      perlpath: /opt/perl/28ld/bin/perl
+      perlver: 28ld
+    run_on:
+      - amazon2-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_10
+    display_name: Debian 8.1 x86_64 Perl 5.10
+    expansions:
+      addpaths: /opt/perl/10/bin
+      os: debian81
+      perlpath: /opt/perl/10/bin/perl
+      perlver: 10
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_10t
+    display_name: Debian 8.1 x86_64 Perl 5.10t
+    expansions:
+      addpaths: /opt/perl/10t/bin
+      os: debian81
+      perlpath: /opt/perl/10t/bin/perl
+      perlver: 10t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_10ld
+    display_name: Debian 8.1 x86_64 Perl 5.10ld
+    expansions:
+      addpaths: /opt/perl/10ld/bin
+      os: debian81
+      perlpath: /opt/perl/10ld/bin/perl
+      perlver: 10ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_12
+    display_name: Debian 8.1 x86_64 Perl 5.12
+    expansions:
+      addpaths: /opt/perl/12/bin
+      os: debian81
+      perlpath: /opt/perl/12/bin/perl
+      perlver: 12
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_12t
+    display_name: Debian 8.1 x86_64 Perl 5.12t
+    expansions:
+      addpaths: /opt/perl/12t/bin
+      os: debian81
+      perlpath: /opt/perl/12t/bin/perl
+      perlver: 12t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_12ld
+    display_name: Debian 8.1 x86_64 Perl 5.12ld
+    expansions:
+      addpaths: /opt/perl/12ld/bin
+      os: debian81
+      perlpath: /opt/perl/12ld/bin/perl
+      perlver: 12ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_14
+    display_name: Debian 8.1 x86_64 Perl 5.14
+    expansions:
+      addpaths: /opt/perl/14/bin
+      os: debian81
+      perlpath: /opt/perl/14/bin/perl
+      perlver: 14
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_14t
+    display_name: Debian 8.1 x86_64 Perl 5.14t
+    expansions:
+      addpaths: /opt/perl/14t/bin
+      os: debian81
+      perlpath: /opt/perl/14t/bin/perl
+      perlver: 14t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_14ld
+    display_name: Debian 8.1 x86_64 Perl 5.14ld
+    expansions:
+      addpaths: /opt/perl/14ld/bin
+      os: debian81
+      perlpath: /opt/perl/14ld/bin/perl
+      perlver: 14ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_16
+    display_name: Debian 8.1 x86_64 Perl 5.16
+    expansions:
+      addpaths: /opt/perl/16/bin
+      os: debian81
+      perlpath: /opt/perl/16/bin/perl
+      perlver: 16
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_16t
+    display_name: Debian 8.1 x86_64 Perl 5.16t
+    expansions:
+      addpaths: /opt/perl/16t/bin
+      os: debian81
+      perlpath: /opt/perl/16t/bin/perl
+      perlver: 16t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_16ld
+    display_name: Debian 8.1 x86_64 Perl 5.16ld
+    expansions:
+      addpaths: /opt/perl/16ld/bin
+      os: debian81
+      perlpath: /opt/perl/16ld/bin/perl
+      perlver: 16ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_18
+    display_name: Debian 8.1 x86_64 Perl 5.18
+    expansions:
+      addpaths: /opt/perl/18/bin
+      os: debian81
+      perlpath: /opt/perl/18/bin/perl
+      perlver: 18
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_18t
+    display_name: Debian 8.1 x86_64 Perl 5.18t
+    expansions:
+      addpaths: /opt/perl/18t/bin
+      os: debian81
+      perlpath: /opt/perl/18t/bin/perl
+      perlver: 18t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_18ld
+    display_name: Debian 8.1 x86_64 Perl 5.18ld
+    expansions:
+      addpaths: /opt/perl/18ld/bin
+      os: debian81
+      perlpath: /opt/perl/18ld/bin/perl
+      perlver: 18ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_20
+    display_name: Debian 8.1 x86_64 Perl 5.20
+    expansions:
+      addpaths: /opt/perl/20/bin
+      os: debian81
+      perlpath: /opt/perl/20/bin/perl
+      perlver: 20
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_20t
+    display_name: Debian 8.1 x86_64 Perl 5.20t
+    expansions:
+      addpaths: /opt/perl/20t/bin
+      os: debian81
+      perlpath: /opt/perl/20t/bin/perl
+      perlver: 20t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_20ld
+    display_name: Debian 8.1 x86_64 Perl 5.20ld
+    expansions:
+      addpaths: /opt/perl/20ld/bin
+      os: debian81
+      perlpath: /opt/perl/20ld/bin/perl
+      perlver: 20ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_22
+    display_name: Debian 8.1 x86_64 Perl 5.22
+    expansions:
+      addpaths: /opt/perl/22/bin
+      os: debian81
+      perlpath: /opt/perl/22/bin/perl
+      perlver: 22
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_22t
+    display_name: Debian 8.1 x86_64 Perl 5.22t
+    expansions:
+      addpaths: /opt/perl/22t/bin
+      os: debian81
+      perlpath: /opt/perl/22t/bin/perl
+      perlver: 22t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_22ld
+    display_name: Debian 8.1 x86_64 Perl 5.22ld
+    expansions:
+      addpaths: /opt/perl/22ld/bin
+      os: debian81
+      perlpath: /opt/perl/22ld/bin/perl
+      perlver: 22ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_24
+    display_name: Debian 8.1 x86_64 Perl 5.24
+    expansions:
+      addpaths: /opt/perl/24/bin
+      os: debian81
+      perlpath: /opt/perl/24/bin/perl
+      perlver: 24
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_24t
+    display_name: Debian 8.1 x86_64 Perl 5.24t
+    expansions:
+      addpaths: /opt/perl/24t/bin
+      os: debian81
+      perlpath: /opt/perl/24t/bin/perl
+      perlver: 24t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_24ld
+    display_name: Debian 8.1 x86_64 Perl 5.24ld
+    expansions:
+      addpaths: /opt/perl/24ld/bin
+      os: debian81
+      perlpath: /opt/perl/24ld/bin/perl
+      perlver: 24ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_26
+    display_name: Debian 8.1 x86_64 Perl 5.26
+    expansions:
+      addpaths: /opt/perl/26/bin
+      os: debian81
+      perlpath: /opt/perl/26/bin/perl
+      perlver: 26
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_26t
+    display_name: Debian 8.1 x86_64 Perl 5.26t
+    expansions:
+      addpaths: /opt/perl/26t/bin
+      os: debian81
+      perlpath: /opt/perl/26t/bin/perl
+      perlver: 26t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_26ld
+    display_name: Debian 8.1 x86_64 Perl 5.26ld
+    expansions:
+      addpaths: /opt/perl/26ld/bin
+      os: debian81
+      perlpath: /opt/perl/26ld/bin/perl
+      perlver: 26ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_28
+    display_name: Debian 8.1 x86_64 Perl 5.28
+    expansions:
+      addpaths: /opt/perl/28/bin
+      os: debian81
+      perlpath: /opt/perl/28/bin/perl
+      perlver: 28
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_28t
+    display_name: Debian 8.1 x86_64 Perl 5.28t
+    expansions:
+      addpaths: /opt/perl/28t/bin
+      os: debian81
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian81_perl_28ld
+    display_name: Debian 8.1 x86_64 Perl 5.28ld
+    expansions:
+      addpaths: /opt/perl/28ld/bin
+      os: debian81
+      perlpath: /opt/perl/28ld/bin/perl
+      perlver: 28ld
+    run_on:
+      - debian81-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_10
+    display_name: Debian 9.2 x86_64 Perl 5.10
+    expansions:
+      addpaths: /opt/perl/10/bin
+      os: debian92
+      perlpath: /opt/perl/10/bin/perl
+      perlver: 10
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_10t
+    display_name: Debian 9.2 x86_64 Perl 5.10t
+    expansions:
+      addpaths: /opt/perl/10t/bin
+      os: debian92
+      perlpath: /opt/perl/10t/bin/perl
+      perlver: 10t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_10ld
+    display_name: Debian 9.2 x86_64 Perl 5.10ld
+    expansions:
+      addpaths: /opt/perl/10ld/bin
+      os: debian92
+      perlpath: /opt/perl/10ld/bin/perl
+      perlver: 10ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_12
+    display_name: Debian 9.2 x86_64 Perl 5.12
+    expansions:
+      addpaths: /opt/perl/12/bin
+      os: debian92
+      perlpath: /opt/perl/12/bin/perl
+      perlver: 12
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_12t
+    display_name: Debian 9.2 x86_64 Perl 5.12t
+    expansions:
+      addpaths: /opt/perl/12t/bin
+      os: debian92
+      perlpath: /opt/perl/12t/bin/perl
+      perlver: 12t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_12ld
+    display_name: Debian 9.2 x86_64 Perl 5.12ld
+    expansions:
+      addpaths: /opt/perl/12ld/bin
+      os: debian92
+      perlpath: /opt/perl/12ld/bin/perl
+      perlver: 12ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_14
+    display_name: Debian 9.2 x86_64 Perl 5.14
+    expansions:
+      addpaths: /opt/perl/14/bin
+      os: debian92
+      perlpath: /opt/perl/14/bin/perl
+      perlver: 14
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_14t
+    display_name: Debian 9.2 x86_64 Perl 5.14t
+    expansions:
+      addpaths: /opt/perl/14t/bin
+      os: debian92
+      perlpath: /opt/perl/14t/bin/perl
+      perlver: 14t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_14ld
+    display_name: Debian 9.2 x86_64 Perl 5.14ld
+    expansions:
+      addpaths: /opt/perl/14ld/bin
+      os: debian92
+      perlpath: /opt/perl/14ld/bin/perl
+      perlver: 14ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_16
+    display_name: Debian 9.2 x86_64 Perl 5.16
+    expansions:
+      addpaths: /opt/perl/16/bin
+      os: debian92
+      perlpath: /opt/perl/16/bin/perl
+      perlver: 16
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_16t
+    display_name: Debian 9.2 x86_64 Perl 5.16t
+    expansions:
+      addpaths: /opt/perl/16t/bin
+      os: debian92
+      perlpath: /opt/perl/16t/bin/perl
+      perlver: 16t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_16ld
+    display_name: Debian 9.2 x86_64 Perl 5.16ld
+    expansions:
+      addpaths: /opt/perl/16ld/bin
+      os: debian92
+      perlpath: /opt/perl/16ld/bin/perl
+      perlver: 16ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_18
+    display_name: Debian 9.2 x86_64 Perl 5.18
+    expansions:
+      addpaths: /opt/perl/18/bin
+      os: debian92
+      perlpath: /opt/perl/18/bin/perl
+      perlver: 18
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_18t
+    display_name: Debian 9.2 x86_64 Perl 5.18t
+    expansions:
+      addpaths: /opt/perl/18t/bin
+      os: debian92
+      perlpath: /opt/perl/18t/bin/perl
+      perlver: 18t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_18ld
+    display_name: Debian 9.2 x86_64 Perl 5.18ld
+    expansions:
+      addpaths: /opt/perl/18ld/bin
+      os: debian92
+      perlpath: /opt/perl/18ld/bin/perl
+      perlver: 18ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_20
+    display_name: Debian 9.2 x86_64 Perl 5.20
+    expansions:
+      addpaths: /opt/perl/20/bin
+      os: debian92
+      perlpath: /opt/perl/20/bin/perl
+      perlver: 20
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_20t
+    display_name: Debian 9.2 x86_64 Perl 5.20t
+    expansions:
+      addpaths: /opt/perl/20t/bin
+      os: debian92
+      perlpath: /opt/perl/20t/bin/perl
+      perlver: 20t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_20ld
+    display_name: Debian 9.2 x86_64 Perl 5.20ld
+    expansions:
+      addpaths: /opt/perl/20ld/bin
+      os: debian92
+      perlpath: /opt/perl/20ld/bin/perl
+      perlver: 20ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_22
+    display_name: Debian 9.2 x86_64 Perl 5.22
+    expansions:
+      addpaths: /opt/perl/22/bin
+      os: debian92
+      perlpath: /opt/perl/22/bin/perl
+      perlver: 22
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_22t
+    display_name: Debian 9.2 x86_64 Perl 5.22t
+    expansions:
+      addpaths: /opt/perl/22t/bin
+      os: debian92
+      perlpath: /opt/perl/22t/bin/perl
+      perlver: 22t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_22ld
+    display_name: Debian 9.2 x86_64 Perl 5.22ld
+    expansions:
+      addpaths: /opt/perl/22ld/bin
+      os: debian92
+      perlpath: /opt/perl/22ld/bin/perl
+      perlver: 22ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_24
+    display_name: Debian 9.2 x86_64 Perl 5.24
+    expansions:
+      addpaths: /opt/perl/24/bin
+      os: debian92
+      perlpath: /opt/perl/24/bin/perl
+      perlver: 24
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_24t
+    display_name: Debian 9.2 x86_64 Perl 5.24t
+    expansions:
+      addpaths: /opt/perl/24t/bin
+      os: debian92
+      perlpath: /opt/perl/24t/bin/perl
+      perlver: 24t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_24ld
+    display_name: Debian 9.2 x86_64 Perl 5.24ld
+    expansions:
+      addpaths: /opt/perl/24ld/bin
+      os: debian92
+      perlpath: /opt/perl/24ld/bin/perl
+      perlver: 24ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_26
+    display_name: Debian 9.2 x86_64 Perl 5.26
+    expansions:
+      addpaths: /opt/perl/26/bin
+      os: debian92
+      perlpath: /opt/perl/26/bin/perl
+      perlver: 26
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_26t
+    display_name: Debian 9.2 x86_64 Perl 5.26t
+    expansions:
+      addpaths: /opt/perl/26t/bin
+      os: debian92
+      perlpath: /opt/perl/26t/bin/perl
+      perlver: 26t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_26ld
+    display_name: Debian 9.2 x86_64 Perl 5.26ld
+    expansions:
+      addpaths: /opt/perl/26ld/bin
+      os: debian92
+      perlpath: /opt/perl/26ld/bin/perl
+      perlver: 26ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_28
+    display_name: Debian 9.2 x86_64 Perl 5.28
+    expansions:
+      addpaths: /opt/perl/28/bin
+      os: debian92
+      perlpath: /opt/perl/28/bin/perl
+      perlver: 28
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_28t
+    display_name: Debian 9.2 x86_64 Perl 5.28t
+    expansions:
+      addpaths: /opt/perl/28t/bin
+      os: debian92
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_debian92_perl_28ld
+    display_name: Debian 9.2 x86_64 Perl 5.28ld
+    expansions:
+      addpaths: /opt/perl/28ld/bin
+      os: debian92
+      perlpath: /opt/perl/28ld/bin/perl
+      perlver: 28ld
+    run_on:
+      - debian92-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
   - name: os_rhel62_perl_10
     display_name: RHEL 6.2 x86_64 Perl 5.10
     expansions:
@@ -642,6 +2082,1014 @@ buildvariants:
       - test_bson_perl5lib
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
+  - name: os_rhel62_perl_28
+    display_name: RHEL 6.2 x86_64 Perl 5.28
+    expansions:
+      addpaths: /opt/perl/28/bin
+      os: rhel62
+      perlpath: /opt/perl/28/bin/perl
+      perlver: 28
+    run_on:
+      - rhel62-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel62_perl_28t
+    display_name: RHEL 6.2 x86_64 Perl 5.28t
+    expansions:
+      addpaths: /opt/perl/28t/bin
+      os: rhel62
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
+    run_on:
+      - rhel62-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel62_perl_28ld
+    display_name: RHEL 6.2 x86_64 Perl 5.28ld
+    expansions:
+      addpaths: /opt/perl/28ld/bin
+      os: rhel62
+      perlpath: /opt/perl/28ld/bin/perl
+      perlver: 28ld
+    run_on:
+      - rhel62-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_10
+    display_name: RHEL 7.0 x86_64 Perl 5.10
+    expansions:
+      addpaths: /opt/perl/10/bin
+      os: rhel70
+      perlpath: /opt/perl/10/bin/perl
+      perlver: 10
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_10t
+    display_name: RHEL 7.0 x86_64 Perl 5.10t
+    expansions:
+      addpaths: /opt/perl/10t/bin
+      os: rhel70
+      perlpath: /opt/perl/10t/bin/perl
+      perlver: 10t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_10ld
+    display_name: RHEL 7.0 x86_64 Perl 5.10ld
+    expansions:
+      addpaths: /opt/perl/10ld/bin
+      os: rhel70
+      perlpath: /opt/perl/10ld/bin/perl
+      perlver: 10ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_12
+    display_name: RHEL 7.0 x86_64 Perl 5.12
+    expansions:
+      addpaths: /opt/perl/12/bin
+      os: rhel70
+      perlpath: /opt/perl/12/bin/perl
+      perlver: 12
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_12t
+    display_name: RHEL 7.0 x86_64 Perl 5.12t
+    expansions:
+      addpaths: /opt/perl/12t/bin
+      os: rhel70
+      perlpath: /opt/perl/12t/bin/perl
+      perlver: 12t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_12ld
+    display_name: RHEL 7.0 x86_64 Perl 5.12ld
+    expansions:
+      addpaths: /opt/perl/12ld/bin
+      os: rhel70
+      perlpath: /opt/perl/12ld/bin/perl
+      perlver: 12ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_14
+    display_name: RHEL 7.0 x86_64 Perl 5.14
+    expansions:
+      addpaths: /opt/perl/14/bin
+      os: rhel70
+      perlpath: /opt/perl/14/bin/perl
+      perlver: 14
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_14t
+    display_name: RHEL 7.0 x86_64 Perl 5.14t
+    expansions:
+      addpaths: /opt/perl/14t/bin
+      os: rhel70
+      perlpath: /opt/perl/14t/bin/perl
+      perlver: 14t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_14ld
+    display_name: RHEL 7.0 x86_64 Perl 5.14ld
+    expansions:
+      addpaths: /opt/perl/14ld/bin
+      os: rhel70
+      perlpath: /opt/perl/14ld/bin/perl
+      perlver: 14ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_16
+    display_name: RHEL 7.0 x86_64 Perl 5.16
+    expansions:
+      addpaths: /opt/perl/16/bin
+      os: rhel70
+      perlpath: /opt/perl/16/bin/perl
+      perlver: 16
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_16t
+    display_name: RHEL 7.0 x86_64 Perl 5.16t
+    expansions:
+      addpaths: /opt/perl/16t/bin
+      os: rhel70
+      perlpath: /opt/perl/16t/bin/perl
+      perlver: 16t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_16ld
+    display_name: RHEL 7.0 x86_64 Perl 5.16ld
+    expansions:
+      addpaths: /opt/perl/16ld/bin
+      os: rhel70
+      perlpath: /opt/perl/16ld/bin/perl
+      perlver: 16ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_18
+    display_name: RHEL 7.0 x86_64 Perl 5.18
+    expansions:
+      addpaths: /opt/perl/18/bin
+      os: rhel70
+      perlpath: /opt/perl/18/bin/perl
+      perlver: 18
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_18t
+    display_name: RHEL 7.0 x86_64 Perl 5.18t
+    expansions:
+      addpaths: /opt/perl/18t/bin
+      os: rhel70
+      perlpath: /opt/perl/18t/bin/perl
+      perlver: 18t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_18ld
+    display_name: RHEL 7.0 x86_64 Perl 5.18ld
+    expansions:
+      addpaths: /opt/perl/18ld/bin
+      os: rhel70
+      perlpath: /opt/perl/18ld/bin/perl
+      perlver: 18ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_20
+    display_name: RHEL 7.0 x86_64 Perl 5.20
+    expansions:
+      addpaths: /opt/perl/20/bin
+      os: rhel70
+      perlpath: /opt/perl/20/bin/perl
+      perlver: 20
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_20t
+    display_name: RHEL 7.0 x86_64 Perl 5.20t
+    expansions:
+      addpaths: /opt/perl/20t/bin
+      os: rhel70
+      perlpath: /opt/perl/20t/bin/perl
+      perlver: 20t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_20ld
+    display_name: RHEL 7.0 x86_64 Perl 5.20ld
+    expansions:
+      addpaths: /opt/perl/20ld/bin
+      os: rhel70
+      perlpath: /opt/perl/20ld/bin/perl
+      perlver: 20ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_22
+    display_name: RHEL 7.0 x86_64 Perl 5.22
+    expansions:
+      addpaths: /opt/perl/22/bin
+      os: rhel70
+      perlpath: /opt/perl/22/bin/perl
+      perlver: 22
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_22t
+    display_name: RHEL 7.0 x86_64 Perl 5.22t
+    expansions:
+      addpaths: /opt/perl/22t/bin
+      os: rhel70
+      perlpath: /opt/perl/22t/bin/perl
+      perlver: 22t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_22ld
+    display_name: RHEL 7.0 x86_64 Perl 5.22ld
+    expansions:
+      addpaths: /opt/perl/22ld/bin
+      os: rhel70
+      perlpath: /opt/perl/22ld/bin/perl
+      perlver: 22ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_24
+    display_name: RHEL 7.0 x86_64 Perl 5.24
+    expansions:
+      addpaths: /opt/perl/24/bin
+      os: rhel70
+      perlpath: /opt/perl/24/bin/perl
+      perlver: 24
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_24t
+    display_name: RHEL 7.0 x86_64 Perl 5.24t
+    expansions:
+      addpaths: /opt/perl/24t/bin
+      os: rhel70
+      perlpath: /opt/perl/24t/bin/perl
+      perlver: 24t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_24ld
+    display_name: RHEL 7.0 x86_64 Perl 5.24ld
+    expansions:
+      addpaths: /opt/perl/24ld/bin
+      os: rhel70
+      perlpath: /opt/perl/24ld/bin/perl
+      perlver: 24ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_26
+    display_name: RHEL 7.0 x86_64 Perl 5.26
+    expansions:
+      addpaths: /opt/perl/26/bin
+      os: rhel70
+      perlpath: /opt/perl/26/bin/perl
+      perlver: 26
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_26t
+    display_name: RHEL 7.0 x86_64 Perl 5.26t
+    expansions:
+      addpaths: /opt/perl/26t/bin
+      os: rhel70
+      perlpath: /opt/perl/26t/bin/perl
+      perlver: 26t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_26ld
+    display_name: RHEL 7.0 x86_64 Perl 5.26ld
+    expansions:
+      addpaths: /opt/perl/26ld/bin
+      os: rhel70
+      perlpath: /opt/perl/26ld/bin/perl
+      perlver: 26ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_28
+    display_name: RHEL 7.0 x86_64 Perl 5.28
+    expansions:
+      addpaths: /opt/perl/28/bin
+      os: rhel70
+      perlpath: /opt/perl/28/bin/perl
+      perlver: 28
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_28t
+    display_name: RHEL 7.0 x86_64 Perl 5.28t
+    expansions:
+      addpaths: /opt/perl/28t/bin
+      os: rhel70
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_rhel70_perl_28ld
+    display_name: RHEL 7.0 x86_64 Perl 5.28ld
+    expansions:
+      addpaths: /opt/perl/28ld/bin
+      os: rhel70
+      perlpath: /opt/perl/28ld/bin/perl
+      perlver: 28ld
+    run_on:
+      - rhel70-small
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_10
+    display_name: SUSE 12 x86_64 Perl 5.10
+    expansions:
+      addpaths: /opt/perl/10/bin
+      os: suse12
+      perlpath: /opt/perl/10/bin/perl
+      perlver: 10
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_10t
+    display_name: SUSE 12 x86_64 Perl 5.10t
+    expansions:
+      addpaths: /opt/perl/10t/bin
+      os: suse12
+      perlpath: /opt/perl/10t/bin/perl
+      perlver: 10t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_10ld
+    display_name: SUSE 12 x86_64 Perl 5.10ld
+    expansions:
+      addpaths: /opt/perl/10ld/bin
+      os: suse12
+      perlpath: /opt/perl/10ld/bin/perl
+      perlver: 10ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_12
+    display_name: SUSE 12 x86_64 Perl 5.12
+    expansions:
+      addpaths: /opt/perl/12/bin
+      os: suse12
+      perlpath: /opt/perl/12/bin/perl
+      perlver: 12
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_12t
+    display_name: SUSE 12 x86_64 Perl 5.12t
+    expansions:
+      addpaths: /opt/perl/12t/bin
+      os: suse12
+      perlpath: /opt/perl/12t/bin/perl
+      perlver: 12t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_12ld
+    display_name: SUSE 12 x86_64 Perl 5.12ld
+    expansions:
+      addpaths: /opt/perl/12ld/bin
+      os: suse12
+      perlpath: /opt/perl/12ld/bin/perl
+      perlver: 12ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_14
+    display_name: SUSE 12 x86_64 Perl 5.14
+    expansions:
+      addpaths: /opt/perl/14/bin
+      os: suse12
+      perlpath: /opt/perl/14/bin/perl
+      perlver: 14
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_14t
+    display_name: SUSE 12 x86_64 Perl 5.14t
+    expansions:
+      addpaths: /opt/perl/14t/bin
+      os: suse12
+      perlpath: /opt/perl/14t/bin/perl
+      perlver: 14t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_14ld
+    display_name: SUSE 12 x86_64 Perl 5.14ld
+    expansions:
+      addpaths: /opt/perl/14ld/bin
+      os: suse12
+      perlpath: /opt/perl/14ld/bin/perl
+      perlver: 14ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_16
+    display_name: SUSE 12 x86_64 Perl 5.16
+    expansions:
+      addpaths: /opt/perl/16/bin
+      os: suse12
+      perlpath: /opt/perl/16/bin/perl
+      perlver: 16
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_16t
+    display_name: SUSE 12 x86_64 Perl 5.16t
+    expansions:
+      addpaths: /opt/perl/16t/bin
+      os: suse12
+      perlpath: /opt/perl/16t/bin/perl
+      perlver: 16t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_16ld
+    display_name: SUSE 12 x86_64 Perl 5.16ld
+    expansions:
+      addpaths: /opt/perl/16ld/bin
+      os: suse12
+      perlpath: /opt/perl/16ld/bin/perl
+      perlver: 16ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_18
+    display_name: SUSE 12 x86_64 Perl 5.18
+    expansions:
+      addpaths: /opt/perl/18/bin
+      os: suse12
+      perlpath: /opt/perl/18/bin/perl
+      perlver: 18
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_18t
+    display_name: SUSE 12 x86_64 Perl 5.18t
+    expansions:
+      addpaths: /opt/perl/18t/bin
+      os: suse12
+      perlpath: /opt/perl/18t/bin/perl
+      perlver: 18t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_18ld
+    display_name: SUSE 12 x86_64 Perl 5.18ld
+    expansions:
+      addpaths: /opt/perl/18ld/bin
+      os: suse12
+      perlpath: /opt/perl/18ld/bin/perl
+      perlver: 18ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_20
+    display_name: SUSE 12 x86_64 Perl 5.20
+    expansions:
+      addpaths: /opt/perl/20/bin
+      os: suse12
+      perlpath: /opt/perl/20/bin/perl
+      perlver: 20
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_20t
+    display_name: SUSE 12 x86_64 Perl 5.20t
+    expansions:
+      addpaths: /opt/perl/20t/bin
+      os: suse12
+      perlpath: /opt/perl/20t/bin/perl
+      perlver: 20t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_20ld
+    display_name: SUSE 12 x86_64 Perl 5.20ld
+    expansions:
+      addpaths: /opt/perl/20ld/bin
+      os: suse12
+      perlpath: /opt/perl/20ld/bin/perl
+      perlver: 20ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_22
+    display_name: SUSE 12 x86_64 Perl 5.22
+    expansions:
+      addpaths: /opt/perl/22/bin
+      os: suse12
+      perlpath: /opt/perl/22/bin/perl
+      perlver: 22
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_22t
+    display_name: SUSE 12 x86_64 Perl 5.22t
+    expansions:
+      addpaths: /opt/perl/22t/bin
+      os: suse12
+      perlpath: /opt/perl/22t/bin/perl
+      perlver: 22t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_22ld
+    display_name: SUSE 12 x86_64 Perl 5.22ld
+    expansions:
+      addpaths: /opt/perl/22ld/bin
+      os: suse12
+      perlpath: /opt/perl/22ld/bin/perl
+      perlver: 22ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_24
+    display_name: SUSE 12 x86_64 Perl 5.24
+    expansions:
+      addpaths: /opt/perl/24/bin
+      os: suse12
+      perlpath: /opt/perl/24/bin/perl
+      perlver: 24
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_24t
+    display_name: SUSE 12 x86_64 Perl 5.24t
+    expansions:
+      addpaths: /opt/perl/24t/bin
+      os: suse12
+      perlpath: /opt/perl/24t/bin/perl
+      perlver: 24t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_24ld
+    display_name: SUSE 12 x86_64 Perl 5.24ld
+    expansions:
+      addpaths: /opt/perl/24ld/bin
+      os: suse12
+      perlpath: /opt/perl/24ld/bin/perl
+      perlver: 24ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_26
+    display_name: SUSE 12 x86_64 Perl 5.26
+    expansions:
+      addpaths: /opt/perl/26/bin
+      os: suse12
+      perlpath: /opt/perl/26/bin/perl
+      perlver: 26
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_26t
+    display_name: SUSE 12 x86_64 Perl 5.26t
+    expansions:
+      addpaths: /opt/perl/26t/bin
+      os: suse12
+      perlpath: /opt/perl/26t/bin/perl
+      perlver: 26t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_26ld
+    display_name: SUSE 12 x86_64 Perl 5.26ld
+    expansions:
+      addpaths: /opt/perl/26ld/bin
+      os: suse12
+      perlpath: /opt/perl/26ld/bin/perl
+      perlver: 26ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_28
+    display_name: SUSE 12 x86_64 Perl 5.28
+    expansions:
+      addpaths: /opt/perl/28/bin
+      os: suse12
+      perlpath: /opt/perl/28/bin/perl
+      perlver: 28
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_28t
+    display_name: SUSE 12 x86_64 Perl 5.28t
+    expansions:
+      addpaths: /opt/perl/28t/bin
+      os: suse12
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_suse12_perl_28ld
+    display_name: SUSE 12 x86_64 Perl 5.28ld
+    expansions:
+      addpaths: /opt/perl/28ld/bin
+      os: suse12
+      perlpath: /opt/perl/28ld/bin/perl
+      perlver: 28ld
+    run_on:
+      - suse12-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
   - name: os_suse12_z_perl_14
     display_name: ZAP SUSE 12 Z Series Perl 5.14
     expansions:
@@ -1020,6 +3468,486 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
+  - name: os_ubuntu1404_perl_10
+    display_name: Ubuntu 14.04 x86_64 Perl 5.10
+    expansions:
+      addpaths: /opt/perl/10/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/10/bin/perl
+      perlver: 10
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_10t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.10t
+    expansions:
+      addpaths: /opt/perl/10t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/10t/bin/perl
+      perlver: 10t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_10ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.10ld
+    expansions:
+      addpaths: /opt/perl/10ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/10ld/bin/perl
+      perlver: 10ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_12
+    display_name: Ubuntu 14.04 x86_64 Perl 5.12
+    expansions:
+      addpaths: /opt/perl/12/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/12/bin/perl
+      perlver: 12
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_12t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.12t
+    expansions:
+      addpaths: /opt/perl/12t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/12t/bin/perl
+      perlver: 12t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_12ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.12ld
+    expansions:
+      addpaths: /opt/perl/12ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/12ld/bin/perl
+      perlver: 12ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_14
+    display_name: Ubuntu 14.04 x86_64 Perl 5.14
+    expansions:
+      addpaths: /opt/perl/14/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/14/bin/perl
+      perlver: 14
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_14t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.14t
+    expansions:
+      addpaths: /opt/perl/14t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/14t/bin/perl
+      perlver: 14t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_14ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.14ld
+    expansions:
+      addpaths: /opt/perl/14ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/14ld/bin/perl
+      perlver: 14ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_16
+    display_name: Ubuntu 14.04 x86_64 Perl 5.16
+    expansions:
+      addpaths: /opt/perl/16/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/16/bin/perl
+      perlver: 16
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_16t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.16t
+    expansions:
+      addpaths: /opt/perl/16t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/16t/bin/perl
+      perlver: 16t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_16ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.16ld
+    expansions:
+      addpaths: /opt/perl/16ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/16ld/bin/perl
+      perlver: 16ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_18
+    display_name: Ubuntu 14.04 x86_64 Perl 5.18
+    expansions:
+      addpaths: /opt/perl/18/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/18/bin/perl
+      perlver: 18
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_18t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.18t
+    expansions:
+      addpaths: /opt/perl/18t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/18t/bin/perl
+      perlver: 18t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_18ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.18ld
+    expansions:
+      addpaths: /opt/perl/18ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/18ld/bin/perl
+      perlver: 18ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_20
+    display_name: Ubuntu 14.04 x86_64 Perl 5.20
+    expansions:
+      addpaths: /opt/perl/20/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/20/bin/perl
+      perlver: 20
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_20t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.20t
+    expansions:
+      addpaths: /opt/perl/20t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/20t/bin/perl
+      perlver: 20t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_20ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.20ld
+    expansions:
+      addpaths: /opt/perl/20ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/20ld/bin/perl
+      perlver: 20ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_22
+    display_name: Ubuntu 14.04 x86_64 Perl 5.22
+    expansions:
+      addpaths: /opt/perl/22/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/22/bin/perl
+      perlver: 22
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_22t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.22t
+    expansions:
+      addpaths: /opt/perl/22t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/22t/bin/perl
+      perlver: 22t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_22ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.22ld
+    expansions:
+      addpaths: /opt/perl/22ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/22ld/bin/perl
+      perlver: 22ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_24
+    display_name: Ubuntu 14.04 x86_64 Perl 5.24
+    expansions:
+      addpaths: /opt/perl/24/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/24/bin/perl
+      perlver: 24
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_24t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.24t
+    expansions:
+      addpaths: /opt/perl/24t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/24t/bin/perl
+      perlver: 24t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_24ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.24ld
+    expansions:
+      addpaths: /opt/perl/24ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/24ld/bin/perl
+      perlver: 24ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_26
+    display_name: Ubuntu 14.04 x86_64 Perl 5.26
+    expansions:
+      addpaths: /opt/perl/26/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/26/bin/perl
+      perlver: 26
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_26t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.26t
+    expansions:
+      addpaths: /opt/perl/26t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/26t/bin/perl
+      perlver: 26t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_26ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.26ld
+    expansions:
+      addpaths: /opt/perl/26ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/26ld/bin/perl
+      perlver: 26ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_28
+    display_name: Ubuntu 14.04 x86_64 Perl 5.28
+    expansions:
+      addpaths: /opt/perl/28/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/28/bin/perl
+      perlver: 28
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_28t
+    display_name: Ubuntu 14.04 x86_64 Perl 5.28t
+    expansions:
+      addpaths: /opt/perl/28t/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1404_perl_28ld
+    display_name: Ubuntu 14.04 x86_64 Perl 5.28ld
+    expansions:
+      addpaths: /opt/perl/28ld/bin
+      os: ubuntu1404
+      perlpath: /opt/perl/28ld/bin/perl
+      perlver: 28ld
+    run_on:
+      - ubuntu1404-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
   - name: os_ubuntu1604_perl_10
     display_name: Ubuntu 16.04 x86_64 Perl 5.10
     expansions:
@@ -1443,6 +4371,54 @@ buildvariants:
       os: ubuntu1604
       perlpath: /opt/perl/26ld/bin/perl
       perlver: 26ld
+    run_on:
+      - ubuntu1604-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1604_perl_28
+    display_name: Ubuntu 16.04 x86_64 Perl 5.28
+    expansions:
+      addpaths: /opt/perl/28/bin
+      os: ubuntu1604
+      perlpath: /opt/perl/28/bin/perl
+      perlver: 28
+    run_on:
+      - ubuntu1604-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1604_perl_28t
+    display_name: Ubuntu 16.04 x86_64 Perl 5.28t
+    expansions:
+      addpaths: /opt/perl/28t/bin
+      os: ubuntu1604
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
+    run_on:
+      - ubuntu1604-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1604_perl_28ld
+    display_name: Ubuntu 16.04 x86_64 Perl 5.28ld
+    expansions:
+      addpaths: /opt/perl/28ld/bin
+      os: ubuntu1604
+      perlpath: /opt/perl/28ld/bin/perl
+      perlver: 28ld
     run_on:
       - ubuntu1604-test
     tasks:
@@ -2208,6 +5184,486 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
+  - name: os_ubuntu1804_perl_10
+    display_name: Ubuntu 18.04 x86_64 Perl 5.10
+    expansions:
+      addpaths: /opt/perl/10/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/10/bin/perl
+      perlver: 10
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_10t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.10t
+    expansions:
+      addpaths: /opt/perl/10t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/10t/bin/perl
+      perlver: 10t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_10ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.10ld
+    expansions:
+      addpaths: /opt/perl/10ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/10ld/bin/perl
+      perlver: 10ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_12
+    display_name: Ubuntu 18.04 x86_64 Perl 5.12
+    expansions:
+      addpaths: /opt/perl/12/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/12/bin/perl
+      perlver: 12
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_12t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.12t
+    expansions:
+      addpaths: /opt/perl/12t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/12t/bin/perl
+      perlver: 12t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_12ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.12ld
+    expansions:
+      addpaths: /opt/perl/12ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/12ld/bin/perl
+      perlver: 12ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_14
+    display_name: Ubuntu 18.04 x86_64 Perl 5.14
+    expansions:
+      addpaths: /opt/perl/14/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/14/bin/perl
+      perlver: 14
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_14t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.14t
+    expansions:
+      addpaths: /opt/perl/14t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/14t/bin/perl
+      perlver: 14t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_14ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.14ld
+    expansions:
+      addpaths: /opt/perl/14ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/14ld/bin/perl
+      perlver: 14ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_16
+    display_name: Ubuntu 18.04 x86_64 Perl 5.16
+    expansions:
+      addpaths: /opt/perl/16/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/16/bin/perl
+      perlver: 16
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_16t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.16t
+    expansions:
+      addpaths: /opt/perl/16t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/16t/bin/perl
+      perlver: 16t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_16ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.16ld
+    expansions:
+      addpaths: /opt/perl/16ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/16ld/bin/perl
+      perlver: 16ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_18
+    display_name: Ubuntu 18.04 x86_64 Perl 5.18
+    expansions:
+      addpaths: /opt/perl/18/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/18/bin/perl
+      perlver: 18
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_18t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.18t
+    expansions:
+      addpaths: /opt/perl/18t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/18t/bin/perl
+      perlver: 18t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_18ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.18ld
+    expansions:
+      addpaths: /opt/perl/18ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/18ld/bin/perl
+      perlver: 18ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_20
+    display_name: Ubuntu 18.04 x86_64 Perl 5.20
+    expansions:
+      addpaths: /opt/perl/20/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/20/bin/perl
+      perlver: 20
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_20t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.20t
+    expansions:
+      addpaths: /opt/perl/20t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/20t/bin/perl
+      perlver: 20t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_20ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.20ld
+    expansions:
+      addpaths: /opt/perl/20ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/20ld/bin/perl
+      perlver: 20ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_22
+    display_name: Ubuntu 18.04 x86_64 Perl 5.22
+    expansions:
+      addpaths: /opt/perl/22/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/22/bin/perl
+      perlver: 22
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_22t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.22t
+    expansions:
+      addpaths: /opt/perl/22t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/22t/bin/perl
+      perlver: 22t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_22ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.22ld
+    expansions:
+      addpaths: /opt/perl/22ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/22ld/bin/perl
+      perlver: 22ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_24
+    display_name: Ubuntu 18.04 x86_64 Perl 5.24
+    expansions:
+      addpaths: /opt/perl/24/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/24/bin/perl
+      perlver: 24
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_24t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.24t
+    expansions:
+      addpaths: /opt/perl/24t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/24t/bin/perl
+      perlver: 24t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_24ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.24ld
+    expansions:
+      addpaths: /opt/perl/24ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/24ld/bin/perl
+      perlver: 24ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_26
+    display_name: Ubuntu 18.04 x86_64 Perl 5.26
+    expansions:
+      addpaths: /opt/perl/26/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/26/bin/perl
+      perlver: 26
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_26t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.26t
+    expansions:
+      addpaths: /opt/perl/26t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/26t/bin/perl
+      perlver: 26t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_26ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.26ld
+    expansions:
+      addpaths: /opt/perl/26ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/26ld/bin/perl
+      perlver: 26ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_28
+    display_name: Ubuntu 18.04 x86_64 Perl 5.28
+    expansions:
+      addpaths: /opt/perl/28/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/28/bin/perl
+      perlver: 28
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_28t
+    display_name: Ubuntu 18.04 x86_64 Perl 5.28t
+    expansions:
+      addpaths: /opt/perl/28t/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_ubuntu1804_perl_28ld
+    display_name: Ubuntu 18.04 x86_64 Perl 5.28ld
+    expansions:
+      addpaths: /opt/perl/28ld/bin
+      os: ubuntu1804
+      perlpath: /opt/perl/28ld/bin/perl
+      perlver: 28ld
+    run_on:
+      - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
   - name: os_windows64_perl_14
     display_name: Win64 Perl 5.14
     expansions:
@@ -2311,6 +5767,22 @@ buildvariants:
       os: windows64
       perlpath: /cygdrive/c/perl/26/perl/bin/perl
       perlver: 26
+    run_on:
+      - windows-64-vs2015-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_windows64_perl_28
+    display_name: Win64 Perl 5.28
+    expansions:
+      addpaths: /cygdrive/c/perl/28/perl/bin:/cygdrive/c/perl/28/c/bin
+      os: windows64
+      perlpath: /cygdrive/c/perl/28/perl/bin/perl
+      perlver: 28
     run_on:
       - windows-64-vs2015-test
     tasks:

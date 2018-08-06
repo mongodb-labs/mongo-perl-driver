@@ -69,12 +69,12 @@ my $WEEK_IN_SECS = 7 * 24 * 3600;
 # We test default config, plus threaded ("t") and long-double ("ld")
 # configs.
 my @unix_perls =
-  map { $_, "${_}t", "${_}ld" } qw/10 12 14 16 18 20 22 24 26/;
+  map { $_, "${_}t", "${_}ld" } qw/10 12 14 16 18 20 22 24 26 28/;
 
 # For Windows, we test from 5.14.4 to 5.24.0, as these are available in
 # "portable" format.  There are no configuration suffixes; we just use
 # the standard Strawberry Perl builds (which happen to be threaded).
-my @win_perls = qw/14 16 18 20 22 24 26/;
+my @win_perls = qw/14 16 18 20 22 24 26 28/;
 
 # MongoDB's Windows Evergreen hosts have a different naming scheme than
 # Unix hosts.  We don't care about the compiler type (as we use the MinGW
@@ -108,20 +108,27 @@ my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
 # perls: a list of perl "versions" (really version plus an optional
 # configuration suffix) to use on that OS.
 my %os_map = (
-    ubuntu1604 => {
-        name     => "Ubuntu 16.04 x86_64",
-        run_on   => [ 'ubuntu1604-test' ],
+    amazon2 => {
+        name     => "Amazon v2 x86_64",
+        run_on   => [ 'amazon2-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@unix_perls,
     },
-##    debian81 => {
-##        name     => "Debian 8.1 x86_64",
-##        run_on   => [ 'debian81-test' ],
-##        perlroot => '/opt/perl',
-##        perlpath => 'bin',
-##        perls    => \@unix_perls,
-##    },
+    debian81 => {
+        name     => "Debian 8.1 x86_64",
+        run_on   => [ 'debian81-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    debian92 => {
+        name     => "Debian 9.2 x86_64",
+        run_on   => [ 'debian92-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
     rhel62 => {
         name     => "RHEL 6.2 x86_64",
         run_on   => [ 'rhel62-small' ],
@@ -129,13 +136,41 @@ my %os_map = (
         perlpath => 'bin',
         perls    => \@unix_perls,
     },
-##    rhel70 => {
-##        name     => "RHEL 7.0 x86_64",
-##        run_on   => [ 'rhel70-small' ],
-##        perlroot => '/opt/perl',
-##        perlpath => 'bin',
-##        perls    => \@unix_perls,
-##    },
+    rhel70 => {
+        name     => "RHEL 7.0 x86_64",
+        run_on   => [ 'rhel70-small' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    suse12 => {
+        name     => "SUSE 12 x86_64",
+        run_on   => [ 'suse12-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    ubuntu1404 => {
+        name     => "Ubuntu 14.04 x86_64",
+        run_on   => [ 'ubuntu1404-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    ubuntu1604 => {
+        name     => "Ubuntu 16.04 x86_64",
+        run_on   => [ 'ubuntu1604-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    ubuntu1804 => {
+        name     => "Ubuntu 18.04 x86_64",
+        run_on   => [ 'ubuntu1804-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
     windows64 => {
         name     => "Win64",
         run_on   => [ 'windows-64-vs2015-test' ],
