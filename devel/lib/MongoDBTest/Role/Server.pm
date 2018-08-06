@@ -302,6 +302,13 @@ sub _build_client {
     return MongoDB::MongoClient->new( @args );
 }
 
+sub BUILD {
+    my ($self) = @_;
+    if ( $self->auth_config && ! exists $self->auth_config->{user} ) {
+        $self->_set_did_auth_setup(1); # nothing to do in this case
+    }
+}
+
 # Methods
 
 sub start {
@@ -365,10 +372,14 @@ sub start {
 
     if ( $self->auth_config && !$self->did_auth_setup ) {
         my ( $user, $password ) = @{ $self->auth_config }{qw/user password/};
-        $self->add_user( "admin", $user, $password, [ {role => 'root', db => 'admin' } ] );
-        $self->_set_did_auth_setup(1);
-        $self->_logger->debug("Restarting original server with --auth");
-        $self->_local_restart;
+        # with an empty auth_config, we're probably setting up a secondary
+        # that will get auth details from the primary
+        if ( $user ) {
+            $self->add_user( "admin", $user, $password, [ {role => 'root', db => 'admin' } ] );
+            $self->_set_did_auth_setup(1);
+            $self->_logger->debug("Restarting original server with --auth");
+            $self->_local_restart;
+        }
     }
 
     if (   $self->ssl_config

@@ -77,8 +77,14 @@ sub _build__servers {
             config          => $server,
             default_args    => $self->default_args,
             default_version => $self->default_version,
-            default_fcv => $self->default_fcv,
-            ( $did_first ? () : ( auth_config => $self->auth_config ) ),
+            default_fcv     => $self->default_fcv,
+            # if using auth, for everything but the first, just use empty
+            # hash for auth config to signal we need --auth, but without setup
+            (
+                $self->auth_config
+                ? ( auth_config => $did_first ? {} : $self->auth_config )
+                : ()
+            ),
             ssl_config => $self->ssl_config,
             ( $self->timeout ? ( timeout => $self->timeout ) : () ),
             verbose     => $self->verbose,
