@@ -88,11 +88,6 @@ subtest 'encode section' => sub {
     my $expected_section = "\0" . $doc;
 
     is $got_section, $expected_section, 'encode payload 0 correctly';
-
-    ok exception { MongoDB::_Protocol::encode_section( $codec, {
-      type => 0,
-      documents => [ $raw_doc, $raw_doc ]
-    }); }, 'multiple docs in payload 0 causes error';
   };
 
   subtest 'payload 1 single doc' => sub {
@@ -123,7 +118,7 @@ subtest 'encode section' => sub {
 subtest 'decode section' => sub {
   subtest 'payload 0' => sub {
     my $encoded = "\0" . $doc;
-    my $got_section = MongoDB::_Protocol::decode_section( $codec, $encoded, 1 );
+    my $got_section = MongoDB::_Protocol::decode_section( $encoded, $codec );
 
     is $got_section->{type}, 0, 'section type correct';
     is $got_section->{identifier}, undef, 'section identifier correct';
@@ -132,7 +127,7 @@ subtest 'decode section' => sub {
 
   subtest 'payload 1' => sub {
     my $encoded = "\1&\0\0\0" ."documents\0" . $doc;
-    my $got_section = MongoDB::_Protocol::decode_section( $codec, $encoded, 1 );
+    my $got_section = MongoDB::_Protocol::decode_section( $encoded, $codec );
 
     is $got_section->{type}, 1, 'section type correct';
     is $got_section->{identifier}, 'documents', 'section identifier correct';
@@ -141,7 +136,7 @@ subtest 'decode section' => sub {
 
   subtest 'payload 1 multiple docs' => sub {
     my $encoded = "\1>\0\0\0" ."documents\0" . $doc . $doc;
-    my $got_section = MongoDB::_Protocol::decode_section( $codec, $encoded, 1 );
+    my $got_section = MongoDB::_Protocol::decode_section( $encoded, $codec );
 
     is $got_section->{type}, 1, 'section type correct';
     is $got_section->{identifier}, 'documents', 'section identifier correct';
@@ -149,111 +144,10 @@ subtest 'decode section' => sub {
   };
 };
 
-subtest 'join sections' => sub {
-  subtest 'payload 0' => sub {
-    my @sections = (
-      {
-        type => 0,
-        documents => [ $raw_doc ],
-      }
-    );
-    my $got_sections = MongoDB::_Protocol::join_sections( $codec, @sections );
-    my $expected_sections = "\0" . $doc;
-
-    is_deeply $got_sections, $expected_sections, 'joined correctly';
-  };
-
-  subtest 'payload 0 + 1' => sub {
-    subtest 'single document' => sub {
-      my @sections = (
-        {
-          type => 0,
-          documents => [ $raw_doc ],
-        },
-        {
-          type => 1,
-          identifier => 'documents',
-          documents => [ $raw_doc ],
-        },
-      );
-      my $got_sections = MongoDB::_Protocol::join_sections( $codec, @sections );
-      my $expected_sections = "\0" . $doc . "\1&\0\0\0" ."documents\0" . $doc;
-
-      is_deeply $got_sections, $expected_sections, 'joined correctly';
-    };
-
-    subtest 'multiple documents' => sub {
-      my @sections = (
-        {
-          type => 0,
-          documents => [ $raw_doc ],
-        },
-        {
-          type => 1,
-          identifier => 'documents',
-          documents => [ $raw_doc, $raw_doc ],
-        },
-      );
-      my $got_sections = MongoDB::_Protocol::join_sections( $codec, @sections );
-      my $expected_sections = "\0" . $doc . "\1>\0\0\0" ."documents\0" . $doc . $doc;
-
-      is_deeply $got_sections, $expected_sections, 'joined correctly';
-    };
-  };
-
-  subtest 'payload 0 + multiple 1' => sub {
-    subtest 'single document' => sub {
-      my @sections = (
-        {
-          type => 0,
-          documents => [ $raw_doc ],
-        },
-        {
-          type => 1,
-          identifier => 'documents',
-          documents => [ $raw_doc ],
-        },
-        {
-          type => 1,
-          identifier => 'documents',
-          documents => [ $raw_doc ],
-        },
-      );
-      my $got_sections = MongoDB::_Protocol::join_sections( $codec, @sections );
-      my $expected_sections = "\0" . $doc . "\1&\0\0\0" ."documents\0" . $doc . "\1&\0\0\0" ."documents\0" . $doc;
-
-      is_deeply $got_sections, $expected_sections, 'joined correctly';
-    };
-
-    subtest 'multiple documents' => sub {
-      my @sections = (
-        {
-          type => 0,
-          documents => [ $raw_doc ],
-        },
-        {
-          type => 1,
-          identifier => 'documents',
-          documents => [ $raw_doc, $raw_doc ],
-        },
-        {
-          type => 1,
-          identifier => 'documents',
-          documents => [ $raw_doc, $raw_doc ],
-        },
-      );
-      my $got_sections = MongoDB::_Protocol::join_sections( $codec, @sections );
-      my $expected_sections = "\0" . $doc . "\1>\0\0\0" ."documents\0" . $doc . $doc . "\1>\0\0\0" ."documents\0" . $doc . $doc;
-
-      is_deeply $got_sections, $expected_sections, 'joined correctly';
-    };
-  };
-};
-
 subtest 'split sections' => sub {
   subtest 'payload 0' => sub {
     my $encoded = "\0" . $doc;
-    my @got_sections = MongoDB::_Protocol::split_sections( $codec, $encoded, 1 );
+    my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
     my @expected_sections = (
       [ 0, undef, [ $decoded_doc ] ],
     );
@@ -268,7 +162,7 @@ subtest 'split sections' => sub {
   subtest 'payload 0 + 1' => sub {
     subtest 'single document' => sub {
       my $encoded = "\0" . $doc . "\1&\0\0\0" ."documents\0" . $doc;
-      my @got_sections = MongoDB::_Protocol::split_sections( $codec, $encoded, 1 );
+      my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
       my @expected_sections = (
         [ 0, undef, [ $decoded_doc ] ],
         [ 1, 'documents', [ $decoded_doc ] ],
@@ -283,7 +177,7 @@ subtest 'split sections' => sub {
 
     subtest 'multiple documents' => sub {
       my $encoded = "\0" . $doc . "\1>\0\0\0" ."documents\0" . $doc . $doc;
-      my @got_sections = MongoDB::_Protocol::split_sections( $codec, $encoded, 1 );
+      my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
       my @expected_sections = (
         [ 0, undef, [ $decoded_doc ] ],
         [ 1, 'documents', [ $decoded_doc, $decoded_doc ] ],
@@ -300,7 +194,7 @@ subtest 'split sections' => sub {
   subtest 'payload 0 + multiple 1' => sub {
     subtest 'single document' => sub {
       my $encoded = "\0" . $doc . "\1&\0\0\0" ."documents\0" . $doc . "\1&\0\0\0" ."documents\0" . $doc;
-      my @got_sections = MongoDB::_Protocol::split_sections( $codec, $encoded, 1 );
+      my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
       my @expected_sections = (
         [ 0, undef, [ $decoded_doc ] ],
         [ 1, 'documents', [ $decoded_doc ] ],
@@ -316,7 +210,7 @@ subtest 'split sections' => sub {
 
     subtest 'multiple documents' => sub {
       my $encoded = "\0" . $doc . "\1>\0\0\0" ."documents\0" . $doc . $doc . "\1>\0\0\0" ."documents\0" . $doc . $doc;
-      my @got_sections = MongoDB::_Protocol::split_sections( $codec, $encoded, 1 );
+      my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
       my @expected_sections = (
         [ 0, undef, [ $decoded_doc ] ],
         [ 1, 'documents', [ $decoded_doc, $decoded_doc ] ],
