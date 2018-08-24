@@ -28,7 +28,6 @@ my $iterator = path('t/data/SDAM')->iterator({recurse => 1});
 
 while ( my $path = $iterator->() ) {
     next unless -f $path && $path =~ /\.json$/;
-    #next unless $path =~ /too_old/;
     my $plan = eval { decode_json( $path->slurp_utf8 ) };
     if ( $@ ) {
         die "Error decoding $path: $@";
@@ -101,7 +100,7 @@ sub run_test {
             $topology->_check_wire_versions;
 
             # Process outcome
-            check_outcome($topology, $phase->{'outcome'});
+            check_outcome($topology, $phase->{'outcome'}, $name);
         }
     };
 
@@ -109,7 +108,7 @@ sub run_test {
 
 sub check_outcome {
 
-    my ($topology, $outcome, $start_type) = @_;
+    my ($topology, $outcome, $name) = @_;
 
     my %expected_servers = %{$outcome->{'servers'}};
     my %actual_servers = %{$topology->servers};
@@ -134,6 +133,9 @@ sub check_outcome {
     is($topology->logical_session_timeout_minutes, $outcome->{'logicalSessionTimeoutMinutes'}, 'correct ls timeout');
     if ( defined $outcome->{'compatible'} ) {
         my $compatibility = $outcome->{'compatible'} ? 1 : 0;
+        # perl driver specifically supports older servers - this goes against
+        # spec but allows for support of legacy servers.
+        $compatibility = 1 if $name =~ /too_old/;
         is($topology->is_compatible, $compatibility, 'compatibility correct');
     }
 }

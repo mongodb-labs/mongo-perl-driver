@@ -597,9 +597,10 @@ sub _check_wire_versions {
         my ( $server_min_wire_version, $server_max_wire_version ) =
           @{ $server->is_master }{qw/minWireVersion maxWireVersion/};
 
-        # set to -1 as could be undefined, or 0.
-        $server_max_wire_version = -1 unless defined $server_max_wire_version;
-        $server_min_wire_version = -1 unless defined $server_min_wire_version;
+        # set to 0 as could be undefined. 0 is the equivalent to missing, and
+        # also kept as 0 for legacy compatibility.
+        $server_max_wire_version = 0 unless defined $server_max_wire_version;
+        $server_min_wire_version = 0 unless defined $server_min_wire_version;
 
         if ( $server_min_wire_version > $self->max_wire_version
           || $server_max_wire_version < $self->min_wire_version ) {
