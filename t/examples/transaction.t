@@ -68,12 +68,12 @@ sub updateEmployeeInfo {
 
     eval {
         $employeesCollection->update_one(
-            { session => $session},
             { employee => 3 }, { '$set' => { status => "Inactive" } },
+            { session => $session},
         );
         $eventsCollection->insert_one(
-            { session => $session},
             { employee => 3, status => { new => "Inactive", old => "Active" } },
+            { session => $session},
         );
     };
     if ( my $error = $@ ) {
@@ -222,12 +222,12 @@ sub updateEmployeeInfo {
 
     eval {
         $employeesCollection->update_one(
-            { session => $session},
             { employee => 3 }, { '$set' => { status => "Inactive" } },
+            { session => $session},
         );
         $eventsCollection->insert_one(
-            { session => $session},
             { employee => 3, status => { new => "Inactive", old => "Active" } },
+            { session => $session},
         );
     };
     if ( my $error = $@ ) {
