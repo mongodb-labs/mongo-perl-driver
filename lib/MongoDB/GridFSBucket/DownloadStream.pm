@@ -67,6 +67,7 @@ has file_doc => (
 has _buffer => (
     is  => 'rwp',
     isa => Str,
+    default => "",
 );
 
 has _chunk_n => (
@@ -329,11 +330,9 @@ sub read {
         MongoDB::UsageError->throw(
             'Negative length passed to MongoDB::GridFSBucket::DownloadStream->read');
     }
-    my $bufflen = length $$buffref;
-
     $offset   ||= 0;
-    $bufflen  ||= 0;
     $$buffref ||= '';
+    my $bufflen = length $$buffref;
 
     $offset = max( 0, $bufflen + $offset ) if $offset < 0;
     if ( $offset > $bufflen ) {
