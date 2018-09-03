@@ -196,7 +196,7 @@ sub _send_write_command {
     my $result;
     eval {
         $link->write( $op_bson ),
-        ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id, $self->bson_codec ) );
+        ( $result = MongoDB::_Protocol::parse_reply( $link->read, $request_id ) );
     };
     if ( my $err = $@ ) {
         $self->_update_session_connection_error( $err );

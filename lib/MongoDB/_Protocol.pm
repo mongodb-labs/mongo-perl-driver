@@ -218,14 +218,14 @@ sub encode_section {
 
 =method decode_section
 
-    MongoDB::_Protocol::decode_section( $codec, $section )
+    MongoDB::_Protocol::decode_section( $section )
 
 Takes an encoded section and decodes it, exactly the opposite of encode_section.
 
 =cut
 
 sub decode_section {
-    my ( $doc, $codec ) = @_;
+    my ( $doc ) = @_;
     my ( $type, $ident, @enc_docs );
     my $section = {};
 
@@ -260,10 +260,6 @@ sub decode_section {
     } else {
         MongoDB::ProtocolError->throw("Decode: Unsupported section payload type");
     }
-    ## XXX MongoDB::Role::_OpReplyParser normally does decoding - this is used for testing mainly
-    if ( $codec ) {
-        @enc_docs = map { $codec->decode_one( $_ ) } @enc_docs;
-    }
     $section->{ documents } = \@enc_docs;
 
     return $section;
@@ -278,7 +274,6 @@ sections in packed form
 
 sub split_sections {
   my $msg = shift;
-  my $codec = shift;
   my @sections;
   while ( length $msg ) {
     # get first section length
@@ -287,7 +282,7 @@ sub split_sections {
     # Add the payload type length as we reached over it for the length
     my $section = substr( $msg, 0, $section_length + P_SECTION_PAYLOAD_TYPE_LENGTH );
 
-    push @sections, decode_section( $section, $codec );
+    push @sections, decode_section( $section );
 
     $msg = substr( $msg, $section_length + P_SECTION_PAYLOAD_TYPE_LENGTH );
   }
@@ -623,8 +618,7 @@ use constant {
 };
 
 sub parse_reply {
-    my ( $msg, $request_id, $codec ) = @_;
-
+    my ( $msg, $request_id ) = @_;
     MongoDB::ProtocolError->throw("response was truncated")
         if length($msg) < MIN_REPLY_LENGTH;
 

@@ -23,6 +23,26 @@ use BSON;
 
 my $codec = BSON->new();
 
+sub decode_with_codec {
+  my $section = MongoDB::_Protocol::decode_section( @_ );
+  my @docs = map { $codec->decode_one( $_ ) } @{ $section->{documents} };
+  $section->{documents} = \@docs;
+  return $section;
+}
+
+sub split_with_codec {
+  my @sections = MongoDB::_Protocol::split_sections( @_ );
+  @sections = map {
+    my $cur = $_;
+    my @docs = map {
+      $codec->decode_one( $_ )
+    } @{ $cur->{documents} };
+    $cur->{documents} = \@docs;
+    $cur
+  } @sections;
+  return @sections;
+}
+
 subtest 'insert_doc' => sub {
   my $insert_doc = [
     insert => 'collectionName',
@@ -118,7 +138,7 @@ subtest 'encode section' => sub {
 subtest 'decode section' => sub {
   subtest 'payload 0' => sub {
     my $encoded = "\0" . $doc;
-    my $got_section = MongoDB::_Protocol::decode_section( $encoded, $codec );
+    my $got_section = decode_with_codec( $encoded );
 
     is $got_section->{type}, 0, 'section type correct';
     is $got_section->{identifier}, undef, 'section identifier correct';
@@ -127,7 +147,7 @@ subtest 'decode section' => sub {
 
   subtest 'payload 1' => sub {
     my $encoded = "\1&\0\0\0" ."documents\0" . $doc;
-    my $got_section = MongoDB::_Protocol::decode_section( $encoded, $codec );
+    my $got_section = decode_with_codec( $encoded );
 
     is $got_section->{type}, 1, 'section type correct';
     is $got_section->{identifier}, 'documents', 'section identifier correct';
@@ -136,7 +156,7 @@ subtest 'decode section' => sub {
 
   subtest 'payload 1 multiple docs' => sub {
     my $encoded = "\1>\0\0\0" ."documents\0" . $doc . $doc;
-    my $got_section = MongoDB::_Protocol::decode_section( $encoded, $codec );
+    my $got_section = decode_with_codec( $encoded );
 
     is $got_section->{type}, 1, 'section type correct';
     is $got_section->{identifier}, 'documents', 'section identifier correct';
@@ -147,7 +167,7 @@ subtest 'decode section' => sub {
 subtest 'split sections' => sub {
   subtest 'payload 0' => sub {
     my $encoded = "\0" . $doc;
-    my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
+    my @got_sections = split_with_codec( $encoded );
     my @expected_sections = (
       [ 0, undef, [ $decoded_doc ] ],
     );
@@ -162,7 +182,7 @@ subtest 'split sections' => sub {
   subtest 'payload 0 + 1' => sub {
     subtest 'single document' => sub {
       my $encoded = "\0" . $doc . "\1&\0\0\0" ."documents\0" . $doc;
-      my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
+      my @got_sections = split_with_codec( $encoded );
       my @expected_sections = (
         [ 0, undef, [ $decoded_doc ] ],
         [ 1, 'documents', [ $decoded_doc ] ],
@@ -177,7 +197,7 @@ subtest 'split sections' => sub {
 
     subtest 'multiple documents' => sub {
       my $encoded = "\0" . $doc . "\1>\0\0\0" ."documents\0" . $doc . $doc;
-      my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
+      my @got_sections = split_with_codec( $encoded );
       my @expected_sections = (
         [ 0, undef, [ $decoded_doc ] ],
         [ 1, 'documents', [ $decoded_doc, $decoded_doc ] ],
@@ -194,7 +214,7 @@ subtest 'split sections' => sub {
   subtest 'payload 0 + multiple 1' => sub {
     subtest 'single document' => sub {
       my $encoded = "\0" . $doc . "\1&\0\0\0" ."documents\0" . $doc . "\1&\0\0\0" ."documents\0" . $doc;
-      my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
+      my @got_sections = split_with_codec( $encoded );
       my @expected_sections = (
         [ 0, undef, [ $decoded_doc ] ],
         [ 1, 'documents', [ $decoded_doc ] ],
@@ -210,7 +230,7 @@ subtest 'split sections' => sub {
 
     subtest 'multiple documents' => sub {
       my $encoded = "\0" . $doc . "\1>\0\0\0" ."documents\0" . $doc . $doc . "\1>\0\0\0" ."documents\0" . $doc . $doc;
-      my @got_sections = MongoDB::_Protocol::split_sections( $encoded, $codec );
+      my @got_sections = split_with_codec( $encoded );
       my @expected_sections = (
         [ 0, undef, [ $decoded_doc ] ],
         [ 1, 'documents', [ $decoded_doc, $decoded_doc ] ],
