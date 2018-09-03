@@ -30,6 +30,7 @@ use MongoDB::_Constants;
 use MongoDB::_Protocol;
 use MongoDB::_Types qw(
     WriteConcern
+    to_IxHash
 );
 
 use namespace::clean;
@@ -167,12 +168,19 @@ sub _send_write_command {
 
     $self->_apply_session_and_cluster_time( $link, \$cmd );
 
-    # send command and get response document
-    my $command = $self->bson_codec->encode_one( $cmd );
-
-    my ( $op_bson, $request_id ) =
-      MongoDB::_Protocol::write_query( $self->db_name . '.$cmd',
-        $command, undef, 0, -1, undef );
+    my ( $op_bson, $request_id );
+    if ( $link->supports_op_msg ) {
+        $cmd = to_IxHash( $cmd );
+        $cmd->Push( '$db', $self->db_name );
+        ( $op_bson, $request_id ) =
+            MongoDB::_Protocol::write_msg( $self->bson_codec, undef, $cmd );
+    } else {
+        # send command and get response document
+        my $command = $self->bson_codec->encode_one( $cmd );
+        ( $op_bson, $request_id ) =
+          MongoDB::_Protocol::write_query( $self->db_name . '.$cmd',
+            $command, undef, 0, -1, undef );
+    }
 
     if ( length($op_bson) > MAX_BSON_WIRE_SIZE ) {
         # XXX should this become public?
