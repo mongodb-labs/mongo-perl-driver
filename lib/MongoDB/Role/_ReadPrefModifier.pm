@@ -14,6 +14,7 @@
 
 use strict;
 use warnings;
+
 package MongoDB::Role::_ReadPrefModifier;
 
 # MongoDB role to modify OP_QUERY query document or flags to account
@@ -25,13 +26,37 @@ our $VERSION = 'v2.1.0';
 use Moo::Role;
 
 use MongoDB::Error;
+use MongoDB::ReadPreference;
 use MongoDB::_Types -types, 'to_IxHash';
 
 use namespace::clean;
 
 requires qw/read_preference/;
 
-sub _apply_read_prefs {
+my $PRIMARY = MongoDB::ReadPreference->new()->_as_hashref;
+my $PRIMARYPREFERRED =
+  MongoDB::ReadPreference->new( mode => 'primaryPreferred' )->_as_hashref;
+
+sub _apply_op_msg_read_prefs {
+    my ( $self, $link, $topology_type, $query_flags, $query_ref ) = @_;
+
+    $topology_type ||= "<undef>";
+    my $read_pref = $self->read_preference;
+    my $read_pref_doc = $read_pref ? $read_pref->_as_hashref : $PRIMARY;
+
+    if ( $topology_type eq 'Single' && ! ($link->server && $link->server->type eq 'Mongos') ) {
+        # For direct connection to a non-mongos single server, allow any server
+        # type, overriding the provided read preference
+        $read_pref_doc = $PRIMARYPREFERRED;
+    }
+
+    $$query_ref = to_IxHash($$query_ref);
+    ($$query_ref)->Push( '$readPreference' => $read_pref_doc );
+
+    return;
+}
+
+sub _apply_op_query_read_prefs {
     my ( $self, $link, $topology_type, $query_flags, $query_ref ) = @_;
 
     $topology_type ||= "<undef>";
@@ -39,13 +64,14 @@ sub _apply_read_prefs {
 
     if ( $topology_type eq 'Single' ) {
         if ( $link->server && $link->server->type eq 'Mongos' ) {
-            $self->_apply_mongos_read_prefs($read_pref, $query_flags, $query_ref);
+            $self->_apply_mongos_read_prefs( $read_pref, $query_flags, $query_ref );
         }
         else {
             $query_flags->{slave_ok} = 1;
         }
     }
-    elsif ( grep { $topology_type eq $_ } qw/ReplicaSetNoPrimary ReplicaSetWithPrimary/ ) {
+    elsif ( grep { $topology_type eq $_ } qw/ReplicaSetNoPrimary ReplicaSetWithPrimary/ )
+    {
         if ( !$read_pref || $read_pref->mode eq 'primary' ) {
             $query_flags->{slave_ok} = 0;
         }
@@ -54,7 +80,7 @@ sub _apply_read_prefs {
         }
     }
     elsif ( $topology_type eq 'Sharded' ) {
-        $self->_apply_mongos_read_prefs($read_pref, $query_flags, $query_ref);
+        $self->_apply_mongos_read_prefs( $read_pref, $query_flags, $query_ref );
     }
     else {
         MongoDB::InternalError->throw("can't query topology type '$topology_type'");
@@ -85,11 +111,11 @@ sub _apply_mongos_read_prefs {
     }
 
     if ($need_read_pref) {
-        $$query_ref = to_IxHash( $$query_ref );
-        if ( ! ($$query_ref)->FETCH('$query') ) {
+        $$query_ref = to_IxHash($$query_ref);
+        if ( !($$query_ref)->FETCH('$query') ) {
             $$query_ref = Tie::IxHash->new( '$query' => $$query_ref );
         }
-        ($$query_ref)->Push( '$readPreference' => $read_pref->for_mongos );
+        ($$query_ref)->Push( '$readPreference' => $read_pref->_as_hashref );
     }
 
     return;

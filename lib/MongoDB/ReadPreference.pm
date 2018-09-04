@@ -115,7 +115,7 @@ sub has_empty_tag_sets {
 
 # Reformat to the document needed by mongos in $readPreference
 
-sub for_mongos {
+sub _as_hashref {
     my ($self) = @_;
     return {
         mode => $self->mode,

@@ -85,17 +85,18 @@ sub execute {
 
     $self->_apply_session_and_cluster_time( $link, \$self->{query} );
 
-    # $query is passed as a reference because it *may* be replaced
-    $self->_apply_read_prefs( $link, $topology_type, $self->{query_flags}, \$self->{query});
-
     my ( $op_bson, $request_id );
 
     if ( $link->supports_op_msg ) {
+        # $query is passed as a reference because it *may* be replaced
+        $self->_apply_op_msg_read_prefs( $link, $topology_type, $self->{query_flags}, \$self->{query});
         $self->{query} = to_IxHash( $self->{query} );
         $self->{query}->Push( '$db', $self->db_name );
         ( $op_bson, $request_id ) =
             MongoDB::_Protocol::write_msg( $self->{bson_codec}, undef, $self->{query} );
     } else {
+        # $query is passed as a reference because it *may* be replaced
+        $self->_apply_op_query_read_prefs( $link, $topology_type, $self->{query_flags}, \$self->{query});
         ( $op_bson, $request_id ) =
           MongoDB::_Protocol::write_query( $self->{db_name} . '.$cmd',
             $self->{bson_codec}->encode_one( $self->{query} ), undef, 0, -1, $self->{query_flags});
