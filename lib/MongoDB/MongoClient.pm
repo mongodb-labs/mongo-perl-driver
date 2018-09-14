@@ -745,6 +745,10 @@ If set to a negative value, socket operations will block indefinitely
 until the server replies or until the operating system TCP/IP stack
 gives up.
 
+The driver automatically sets the TCP keepalive option when initializing the
+socket. For keepalive related issues, check the MongoDB documentation for
+L<Does TCP keepalive time affect MongoDB Deployments?|https://docs.mongodb.com/v3.2/faq/diagnostics/#does-tcp-keepalive-time-affect-mongodb-deployments>.
+
 A zero value polls the socket for available data and is thus likely to fail
 except when talking to a local process (and perhaps even then).
 
