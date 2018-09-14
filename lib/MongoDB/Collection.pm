@@ -1857,6 +1857,9 @@ sub __ixhash {
     elsif ( $type eq 'ARRAY' ) {
         $hash->{$key} = Tie::IxHash->new( @$ref );
     }
+    elsif ( $ref->$_can('_as_tied_hash') ) {
+        $hash->{$key} = $ref->_as_tied_hash;
+    }
     else {
         MongoDB::UsageError->throw("Can't convert $type to a Tie::IxHash");
     }
