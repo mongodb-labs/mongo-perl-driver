@@ -1059,4 +1059,157 @@ subtest "sort BSON::Doc" => sub {
     'Got correct sort order';
 };
 
+subtest 'hint coercion' => sub {
+  subtest "no hint" => sub {
+    my $index_name = test_hints_setup();
+    test_hints( $index_name );
+  };
+
+  subtest "hint string" => sub {
+    my $index_name = test_hints_setup();
+    test_hints( $index_name, $index_name );
+  };
+
+  subtest "hint array" => sub {
+    my $index_name = test_hints_setup();
+    test_hints( $index_name, [ qty => 1, category => 1 ] );
+  };
+
+  subtest "hint IxHash" => sub {
+    my $index_name = test_hints_setup();
+    test_hints( $index_name, Tie::IxHash->new( qty => 1, category => 1 ) );
+  };
+
+  subtest "hint BSON::Doc" => sub {
+    my $index_name = test_hints_setup();
+    test_hints( $index_name, bson_doc( qty => 1, category => 1 ) );
+  };
+};
+
+sub test_hints {
+  test_hints_aggregate( @_ );
+  test_hints_count_documents( @_ );
+  test_hints_find( @_ );
+  test_hints_cursor( @_ );
+}
+
+sub test_hints_setup {
+
+  $coll->drop;
+
+  $coll->insert_many( [
+    { _id => 1, category => "cake", type => "chocolate",    qty => 10 },
+    { _id => 2, category => "cake", type => "ice cream",    qty => 25 },
+    { _id => 3, category => "pie",  type => "boston cream", qty => 20 },
+    { _id => 4, category => "pie",  type => "blueberry",    qty => 15 },
+  ] );
+
+  $coll->indexes->create_one( [ qty => 1, type => 1 ] );
+  my $index_name = $coll->indexes->create_one( [qty => 1, category => 1 ] );
+
+  return $index_name;
+}
+
+sub test_hints_aggregate {
+  my ( $index_name, $hint ) = @_;
+
+  subtest 'aggregate' => sub {
+    plan skip_all => "hints unsupported for aggregate on MongoDB $server_version"
+        unless $server_version >= v3.6.0;
+
+    my $cursor = $coll->aggregate(
+        [
+            { '$sort' => { qty => 1 } },
+            { '$match' => { category => 'cake', qty => 10 } },
+            { '$sort' => { type => -1 } } ],
+        { ( defined $hint ? ( hint => $hint ) : () ), explain => 1 }
+    );
+
+    my $result = $cursor->next;
+
+    is( ref( $result ), 'HASH', "aggregate with explain returns a hashref" );
+
+    if ( defined $hint ) {
+      ok(
+          scalar( @{ $result->{stages}->[0]->{'$cursor'}->{queryPlanner}->{rejectedPlans} } ) == 0,
+          "aggregate with hint had no rejectedPlans",
+      );
+    } else {
+      ok(
+          scalar( @{ $result->{stages}->[0]->{'$cursor'}->{queryPlanner}->{rejectedPlans} } ) > 0,
+          "aggregate with no hint had rejectedPlans",
+      );
+    }
+  };
+}
+
+sub test_hints_count_documents {
+  my ( $index_name, $hint ) = @_;
+
+  subtest 'count_document' => sub {
+    is(
+      $coll->count_documents(
+        { category => 'cake', qty => { '$gt' => 0 } },
+        { ( defined $hint ? ( hint => $hint ) : () ) } ),
+      2,
+      'count w/ spec' );
+    is(
+      $coll->count_documents(
+        {},
+        { ( defined $hint ? ( hint => $hint ) : () ) } ),
+      4,
+      'count' );
+  };
+}
+
+sub test_hints_find {
+  my ( $index_name, $hint ) = @_;
+
+  subtest 'find' => sub {
+    my $cursor = $coll->find(
+      { category => 'cake', qty => { '$gt' => 15 } },
+      { ( defined $hint ? ( hint => $hint ) : () ) }
+    );
+
+    my @res = $cursor->all;
+
+    cmp_deeply \@res,
+      [
+        {
+          _id => 2,
+          category => "cake",
+          qty => 25,
+          type => "ice cream",
+        },
+      ],
+      'Got correct result';
+  }
+}
+
+sub test_hints_cursor {
+  my ( $index_name, $hint ) = @_;
+
+  subtest 'cursor' => sub {
+    # Actually the same as find, just setting the hint after the fact
+    my $cursor = $coll->find(
+      { category => 'cake', qty => { '$gt' => 15 } }
+    );
+
+    $cursor->hint( $hint ) if defined $hint;
+
+    my @res = $cursor->all;
+
+    cmp_deeply \@res,
+      [
+        {
+          _id => 2,
+          category => "cake",
+          qty => 25,
+          type => "ice cream",
+        },
+      ],
+      'Got correct result';
+  }
+}
+
 done_testing;
