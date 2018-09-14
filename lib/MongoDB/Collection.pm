@@ -1209,6 +1209,9 @@ sub aggregate {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
+    # string is OK so we check ref, not just exists
+    __ixhash( $options, 'hint' ) if ref $options->{hint};
+
     # read preferences are ignored if the last stage is $out
     my ($last_op) = keys %{ $pipeline->[-1] };
 
