@@ -1854,11 +1854,8 @@ sub __ixhash {
     if ( $type eq 'HASH' ) {
         $hash->{$key} = Tie::IxHash->new( %$ref );
     }
-    elsif ( $type eq 'ARRAY' ) {
+    elsif ( $type eq 'ARRAY' || $type eq 'BSON::Doc' ) {
         $hash->{$key} = Tie::IxHash->new( @$ref );
-    }
-    elsif ( $ref->$_can('_as_tied_hash') ) {
-        $hash->{$key} = $ref->_as_tied_hash;
     }
     else {
         MongoDB::UsageError->throw("Can't convert $type to a Tie::IxHash");

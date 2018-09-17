@@ -1016,4 +1016,47 @@ for my $criteria ( $js_str, $js_obj ) {
     };
 }
 
+subtest "sort standard hash" => sub {
+
+  $coll->drop;
+
+  $coll->insert_many( [
+    { _id => 1, size => 10 },
+    { _id => 2, size => 5  },
+    { _id => 3, size => 15 },
+  ] );
+
+  my @res = $coll->find( {}, { sort => { size => 1 } } )->result->all;
+
+  cmp_deeply \@res,
+    [
+      { _id => 2, size => 5  },
+      { _id => 1, size => 10 },
+      { _id => 3, size => 15 },
+    ],
+    'Got correct sort order';
+};
+
+subtest "sort BSON::Doc" => sub {
+
+  $coll->drop;
+
+  $coll->insert_many( [
+    { _id => 1, size => 10 },
+    { _id => 2, size => 5  },
+    { _id => 3, size => 15 },
+  ] );
+
+  my $b_doc = bson_doc( size => 1 );
+  my @res = $coll->find( {}, { sort => $b_doc } )->result->all;
+
+  cmp_deeply \@res,
+    [
+      { _id => 2, size => 5  },
+      { _id => 1, size => 10 },
+      { _id => 3, size => 15 },
+    ],
+    'Got correct sort order';
+};
+
 done_testing;
