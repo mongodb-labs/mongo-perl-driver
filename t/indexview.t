@@ -388,6 +388,34 @@ subtest 'text indices' => sub {
     }
 };
 
+subtest 'index key order' => sub {
+  $coll->drop;
+
+  # Just need one insert to re-create the collection
+  $coll->insert_one( { x => 1 } );
+
+  my $index_1 = $iv->create_one([x => 1, y => 1]);
+  my $index_2 = $iv->create_one([x => 1, z => 1]);
+  my $index_3 = $iv->create_one([x => 1, y => 1, z => 1]);
+
+  my $index_map = {
+    $index_1 => [x => 1, y => 1],
+    $index_2 => [x => 1, z => 1],
+    $index_3 => [x => 1, y => 1, z => 1],
+  };
+
+  my @indices = $iv->list->all;
+
+  for my $index ( @indices ) {
+    next unless defined $index_map->{ $index->{name} };
+
+    cmp_deeply
+      [ %{ $index->{key} } ],
+      $index_map->{ $index->{name} },
+      'Key correct to name ' . $index->{name};
+  }
+};
+
 done_testing;
 
 # vim: set ts=4 sts=4 sw=4 et tw=75:
