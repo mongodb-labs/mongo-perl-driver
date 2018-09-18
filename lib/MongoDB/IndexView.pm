@@ -67,7 +67,7 @@ has _bson_codec => (
 
 sub _build__bson_codec {
     my ($self) = @_;
-    return $self->collection->bson_codec;
+    return $self->collection->bson_codec->clone( ordered => 1 );
 }
 
 has _client => (
