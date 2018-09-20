@@ -872,7 +872,7 @@ subtest "count_document w/ hint" => sub {
     if ( $current_version > $version_2_6 ) {
 
         eval { $coll->count_documents( { i => 1 } , { hint => 'BAD HINT' } ) };
-        like($@, qr/failed|bad hint/, 'check bad hint error');
+        like($@, qr/failed|bad hint|hint provided does not correspond/, 'check bad hint error');
 
     } else {
 
