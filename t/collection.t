@@ -1147,6 +1147,8 @@ sub test_hints_count_documents {
   my ( $index_name, $hint ) = @_;
 
   subtest 'count_document' => sub {
+    plan skip_all => "hints unsupported for count on MongoDB $server_version"
+        unless $server_version >= v3.6.0;
     is(
       $coll->count_documents(
         { category => 'cake', qty => { '$gt' => 0 } },
