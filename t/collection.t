@@ -1060,9 +1060,6 @@ subtest "sort BSON::Doc" => sub {
 };
 
 subtest 'hint coercion' => sub {
-  plan skip_all => "hints unsupported on MongoDB $server_version"
-      unless $server_version >= v3.6.0;
-
   subtest "no hint" => sub {
     my $index_name = test_hints_setup();
     test_hints( $index_name );
@@ -1117,6 +1114,9 @@ sub test_hints_aggregate {
   my ( $index_name, $hint ) = @_;
 
   subtest 'aggregate' => sub {
+    plan skip_all => "hints unsupported for aggregate on MongoDB $server_version"
+        unless $server_version >= v3.6.0;
+
     my $cursor = $coll->aggregate(
         [
             { '$sort' => { qty => 1 } },
@@ -1166,7 +1166,6 @@ sub test_hints_find {
   my ( $index_name, $hint ) = @_;
 
   subtest 'find' => sub {
-    # XXX cant use explain here to check that its actually using the hint
     my $cursor = $coll->find(
       { category => 'cake', qty => { '$gt' => 15 } },
       { ( defined $hint ? ( hint => $hint ) : () ) }
