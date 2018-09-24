@@ -52,6 +52,7 @@ run_in_dir $ENV{REPO_DIR} => sub {
 
     # Configure & build (repeated to regenerate all object files)
     configure();
+    $ENV{HARNESS_OPTIONS}="j9";
     make();
 
     # Enable fail point tests
