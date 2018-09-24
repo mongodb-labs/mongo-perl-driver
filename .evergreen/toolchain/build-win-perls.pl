@@ -18,6 +18,7 @@ use v5.10;
 use strict;
 use warnings;
 use version;
+use Config;
 use Cwd 'getcwd';
 use File::Path qw/mkpath rmtree/;
 use File::Find qw/find/;
@@ -55,7 +56,9 @@ my @perl_versions = qw(
   5.28.0
 );
 
-my $target_arch = "MSWin32-x64-multi-thread";
+my $target_arch = ($Config{archname} =~ /^x86_64/)
+  ? "MSWin32-x64-multi-thread"
+  : "MSWin32-x86-multi-thread";
 my $ht          = HTTP::Tiny->new;
 
 # Get manifest

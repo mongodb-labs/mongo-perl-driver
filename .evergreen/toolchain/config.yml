@@ -255,6 +255,15 @@ buildvariants:
     - validate-win-perls
     - push-win-perls
 
+- name: windows32
+  display_name: Windows32
+  run_on:
+    - windows-32
+  tasks:
+    - build-win-perls
+    - validate-win-perls
+    - push-win-perls
+
 # ZAP
 
 - name: rhel67-zseries
