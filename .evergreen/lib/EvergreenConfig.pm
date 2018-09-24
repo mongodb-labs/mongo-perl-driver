@@ -179,9 +179,9 @@ my %os_map = (
         ccpath   => 'c/bin',
         perls    => \@win_perls,
     },
-    suse12_z => {
-        name     => "ZAP SUSE 12 Z Series",
-        run_on   => [ 'suse12-zseries-test' ],
+    rhel67_z => {
+        name     => "ZAP RHEL 6.7 Z Series",
+        run_on   => [ 'rhel67-zseries-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@zap_perls,
