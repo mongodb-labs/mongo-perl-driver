@@ -64,7 +64,7 @@ subtest "get_database and check names" => sub {
 
 subtest "wire protocol versions" => sub {
     is $conn->_topology->{min_wire_version}, 0, 'default min wire version';
-    is $conn->_topology->{max_wire_version}, 5, 'default max wire version';
+    is $conn->_topology->{max_wire_version}, 7, 'default max wire version';
 
     # monkey patch wire versions
     my $conn2 = build_client();
