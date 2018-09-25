@@ -212,7 +212,7 @@ sub main {
 
     my @tasks = (
         pre( qw/dynamicVars cleanUp fetchSource/, $download ),
-        post(qw/teardownOrchestration cleanUp/),
+        post(qw/uploadOrchestrationLogs teardownOrchestration cleanUp/),
         task( build => [qw/whichPerl buildModule uploadBuildArtifacts/], filter => $filter ),
         test( name => "check", filter => $filter ),
     );

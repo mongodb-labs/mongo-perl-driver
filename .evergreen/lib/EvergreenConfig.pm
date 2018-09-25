@@ -687,6 +687,33 @@ __DATA__
       script: |
         ${prepare_shell}
         tar -zxf build.tar.gz
+"uploadOrchestrationLogs":
+  - command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        cd driver-tools/.evergreen
+        find orchestration -name \*.log | xargs tar czf mongodb-logs.tar.gz
+  - command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: driver-tools/.evergreen/mongodb-logs.tar.gz
+      remote_file: ${aws_artifact_prefix}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
+      bucket: mciuploads
+      permissions: public-read
+      content_type: ${content_type|application/x-gzip}
+      display_name: "mongodb-logs.tar.gz"
+  - command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: driver-tools/.evergreen/orchestration/server.log
+      remote_file: ${aws_artifact_prefix}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-orchestration.log
+      bucket: mciuploads
+      permissions: public-read
+      content_type: ${content_type|text/plain}
+      display_name: "orchestration.log"
 "cleanUp":
   command: shell.exec
   params:
