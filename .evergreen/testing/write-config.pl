@@ -250,7 +250,7 @@ sub main {
     # Generate config
     print assemble_yaml(
         ignore( "/.evergreen/dependencies", "/.evergreen/toolchain" ),
-        timeout(1800), buildvariants( \@tasks, $variant_filter ),
+        timeout(2400), buildvariants( \@tasks, $variant_filter ),
     );
 
     return 0;

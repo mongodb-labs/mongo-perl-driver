@@ -52,7 +52,8 @@ run_in_dir $ENV{REPO_DIR} => sub {
 
     # Configure & build (repeated to regenerate all object files)
     configure();
-    $ENV{HARNESS_OPTIONS}="j9";
+    # Want some parallel testing but have to be careful not to overload test servers
+    $ENV{HARNESS_OPTIONS} = "j2";
     make();
 
     # Enable fail point tests
