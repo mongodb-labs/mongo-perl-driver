@@ -258,6 +258,19 @@ $session->end_session();
 # Test transaction ran
 my $employee = $employees->find_one({ employee => 3 });
 ok( $employee, "Found employee" );
-is( $employee->{status}, "Inactive", "status updated" );
+
+
+my $event_count = $events->count_documents({employee => 3});
+# If transaction committed, we should see employee status Inactive and
+# two events; otherwise, we should see
+if ( $employee->{status} eq "Inactive" ) {
+  is($event_count, 2, "Status and event count consistent with commit");
+}
+elsif ( $employee->{status} eq "Active" ) {
+  is($event_count, 1, "Status and event count consistent with abort");
+}
+else {
+  fail("employee status is '$employee->{status}'");
+}
 
 done_testing;
