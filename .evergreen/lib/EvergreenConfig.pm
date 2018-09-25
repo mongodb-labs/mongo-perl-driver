@@ -652,12 +652,18 @@ __DATA__
     permissions: public-read
     content_type: application/x-gzip
 "downloadPerl5Lib" :
-  command: shell.exec
-  params:
-    script: |
-      ${prepare_shell}
-      curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
-      tar -zxf perl5lib.tar.gz
+  - command: s3.get
+    params:
+      bucket: mciuploads
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz
+      local_file: perl5lib.tar.gz
+  - command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        tar -zxf perl5lib.tar.gz
 "uploadBuildArtifacts":
   - command: s3.put
     params:
@@ -669,13 +675,18 @@ __DATA__
       permissions: public-read
       content_type: application/x-gzip
 "downloadBuildArtifacts" :
-  command: shell.exec
-  params:
-    script: |
-      ${prepare_shell}
-      cd ${repo_directory}
-      curl https://s3.amazonaws.com/mciuploads/${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz -o build.tar.gz --fail --show-error --silent --max-time 240
-      tar -zxmf build.tar.gz
+  - command: s3.get
+    params:
+      bucket: mciuploads
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      remote_file: ${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz
+      local_file: build.tar.gz
+  - command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        tar -zxf build.tar.gz
 "cleanUp":
   command: shell.exec
   params:
