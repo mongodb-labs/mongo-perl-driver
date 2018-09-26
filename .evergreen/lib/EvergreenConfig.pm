@@ -609,6 +609,8 @@ __DATA__
     script: |
       ${prepare_shell}
       export MONGOD=$(echo "${MONGODB_URI}" | tr -d '[:space:]')
+      export PERL_MONGO_WITH_ASSERTS=${assert}
+      export PERL_BSON_BACKEND="${bsonpp}"
       SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/test.pl
 "testLive" :
   command: shell.exec

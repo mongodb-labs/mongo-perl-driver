@@ -6,7 +6,7 @@ ignore:
   - /.evergreen/dependencies
   - /.evergreen/toolchain
 
-exec_timeout_secs: 3600
+exec_timeout_secs: 1800
 
 timeout:
   - command: shell.exec
@@ -131,6 +131,8 @@ functions:
       script: |
         ${prepare_shell}
         export MONGOD=$(echo "${MONGODB_URI}" | tr -d '[:space:]')
+        export PERL_MONGO_WITH_ASSERTS=${assert}
+        export PERL_BSON_BACKEND="${bsonpp}"
         SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/test.pl
 
   "uploadBuildArtifacts":
@@ -207,6 +209,9 @@ tasks:
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: build
   - name: test_2.6_DB
@@ -226,8 +231,55 @@ tasks:
           topology: server
           version: v2.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: check
+  - name: test_2.6_DB_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_2.6_DB
+  - name: test_2.6_DB_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_2.6_DB
   - name: test_2.6_DB_auth
     commands:
       - func: dynamicVars
@@ -245,6 +297,53 @@ tasks:
           topology: server
           version: v2.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_2.6_DB
+  - name: test_2.6_DB_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_2.6_DB
+  - name: test_2.6_DB_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_2.6_DB
   - name: test_2.6_RS
@@ -264,8 +363,57 @@ tasks:
           topology: replica_set
           version: v2.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_2.6_DB
+  - name: test_2.6_RS_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_2.6_DB
+      - name: test_2.6_RS
+  - name: test_2.6_RS_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_2.6_DB
+      - name: test_2.6_RS
   - name: test_2.6_RS_auth
     commands:
       - func: dynamicVars
@@ -283,6 +431,55 @@ tasks:
           topology: replica_set
           version: v2.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_2.6_DB_auth
+      - name: test_2.6_RS
+  - name: test_2.6_RS_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_2.6_DB_auth
+      - name: test_2.6_RS
+  - name: test_2.6_RS_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_2.6_DB_auth
       - name: test_2.6_RS
@@ -303,8 +500,57 @@ tasks:
           topology: sharded_cluster
           version: v2.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_2.6_DB
+  - name: test_2.6_SC_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_2.6_DB
+      - name: test_2.6_SC
+  - name: test_2.6_SC_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_2.6_DB
+      - name: test_2.6_SC
   - name: test_2.6_SC_auth
     commands:
       - func: dynamicVars
@@ -322,6 +568,55 @@ tasks:
           topology: sharded_cluster
           version: v2.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_2.6_DB_auth
+      - name: test_2.6_SC
+  - name: test_2.6_SC_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_2.6_DB_auth
+      - name: test_2.6_SC
+  - name: test_2.6_SC_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v2.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_2.6_DB_auth
       - name: test_2.6_SC
@@ -342,8 +637,55 @@ tasks:
           topology: server
           version: v3.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: check
+  - name: test_3.0_DB_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.0_DB
+  - name: test_3.0_DB_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.0_DB
   - name: test_3.0_DB_auth
     commands:
       - func: dynamicVars
@@ -361,6 +703,53 @@ tasks:
           topology: server
           version: v3.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.0_DB
+  - name: test_3.0_DB_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.0_DB
+  - name: test_3.0_DB_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.0_DB
   - name: test_3.0_RS
@@ -380,8 +769,57 @@ tasks:
           topology: replica_set
           version: v3.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_3.0_DB
+  - name: test_3.0_RS_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.0_DB
+      - name: test_3.0_RS
+  - name: test_3.0_RS_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.0_DB
+      - name: test_3.0_RS
   - name: test_3.0_RS_auth
     commands:
       - func: dynamicVars
@@ -399,6 +837,55 @@ tasks:
           topology: replica_set
           version: v3.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.0_DB_auth
+      - name: test_3.0_RS
+  - name: test_3.0_RS_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.0_DB_auth
+      - name: test_3.0_RS
+  - name: test_3.0_RS_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.0_DB_auth
       - name: test_3.0_RS
@@ -419,8 +906,57 @@ tasks:
           topology: sharded_cluster
           version: v3.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_3.0_DB
+  - name: test_3.0_SC_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.0_DB
+      - name: test_3.0_SC
+  - name: test_3.0_SC_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.0_DB
+      - name: test_3.0_SC
   - name: test_3.0_SC_auth
     commands:
       - func: dynamicVars
@@ -438,6 +974,55 @@ tasks:
           topology: sharded_cluster
           version: v3.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.0_DB_auth
+      - name: test_3.0_SC
+  - name: test_3.0_SC_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.0_DB_auth
+      - name: test_3.0_SC
+  - name: test_3.0_SC_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.0_DB_auth
       - name: test_3.0_SC
@@ -458,8 +1043,55 @@ tasks:
           topology: server
           version: v3.2
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: check
+  - name: test_3.2_DB_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB
+  - name: test_3.2_DB_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.2_DB
   - name: test_3.2_DB_auth
     commands:
       - func: dynamicVars
@@ -477,6 +1109,53 @@ tasks:
           topology: server
           version: v3.2
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB
+  - name: test_3.2_DB_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB
+  - name: test_3.2_DB_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.2_DB
   - name: test_3.2_RS
@@ -496,8 +1175,57 @@ tasks:
           topology: replica_set
           version: v3.2
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_3.2_DB
+  - name: test_3.2_RS_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB
+      - name: test_3.2_RS
+  - name: test_3.2_RS_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.2_DB
+      - name: test_3.2_RS
   - name: test_3.2_RS_auth
     commands:
       - func: dynamicVars
@@ -515,6 +1243,55 @@ tasks:
           topology: replica_set
           version: v3.2
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB_auth
+      - name: test_3.2_RS
+  - name: test_3.2_RS_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB_auth
+      - name: test_3.2_RS
+  - name: test_3.2_RS_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.2_DB_auth
       - name: test_3.2_RS
@@ -535,8 +1312,57 @@ tasks:
           topology: sharded_cluster
           version: v3.2
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_3.2_DB
+  - name: test_3.2_SC_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB
+      - name: test_3.2_SC
+  - name: test_3.2_SC_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.2_DB
+      - name: test_3.2_SC
   - name: test_3.2_SC_auth
     commands:
       - func: dynamicVars
@@ -554,6 +1380,55 @@ tasks:
           topology: sharded_cluster
           version: v3.2
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB_auth
+      - name: test_3.2_SC
+  - name: test_3.2_SC_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB_auth
+      - name: test_3.2_SC
+  - name: test_3.2_SC_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.2_DB_auth
       - name: test_3.2_SC
@@ -574,8 +1449,55 @@ tasks:
           topology: server
           version: v3.4
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: check
+  - name: test_3.4_DB_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB
+  - name: test_3.4_DB_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.4_DB
   - name: test_3.4_DB_auth
     commands:
       - func: dynamicVars
@@ -593,6 +1515,53 @@ tasks:
           topology: server
           version: v3.4
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB
+  - name: test_3.4_DB_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB
+  - name: test_3.4_DB_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.4_DB
   - name: test_3.4_RS
@@ -612,8 +1581,57 @@ tasks:
           topology: replica_set
           version: v3.4
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_3.4_DB
+  - name: test_3.4_RS_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB
+      - name: test_3.4_RS
+  - name: test_3.4_RS_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.4_DB
+      - name: test_3.4_RS
   - name: test_3.4_RS_auth
     commands:
       - func: dynamicVars
@@ -631,6 +1649,55 @@ tasks:
           topology: replica_set
           version: v3.4
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB_auth
+      - name: test_3.4_RS
+  - name: test_3.4_RS_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB_auth
+      - name: test_3.4_RS
+  - name: test_3.4_RS_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.4_DB_auth
       - name: test_3.4_RS
@@ -651,8 +1718,57 @@ tasks:
           topology: sharded_cluster
           version: v3.4
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_3.4_DB
+  - name: test_3.4_SC_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB
+      - name: test_3.4_SC
+  - name: test_3.4_SC_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.4_DB
+      - name: test_3.4_SC
   - name: test_3.4_SC_auth
     commands:
       - func: dynamicVars
@@ -670,6 +1786,55 @@ tasks:
           topology: sharded_cluster
           version: v3.4
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB_auth
+      - name: test_3.4_SC
+  - name: test_3.4_SC_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB_auth
+      - name: test_3.4_SC
+  - name: test_3.4_SC_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.4_DB_auth
       - name: test_3.4_SC
@@ -690,8 +1855,55 @@ tasks:
           topology: server
           version: v3.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: check
+  - name: test_3.6_DB_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB
+  - name: test_3.6_DB_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.6_DB
   - name: test_3.6_DB_auth
     commands:
       - func: dynamicVars
@@ -709,6 +1921,53 @@ tasks:
           topology: server
           version: v3.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB
+  - name: test_3.6_DB_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB
+  - name: test_3.6_DB_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.6_DB
   - name: test_3.6_RS
@@ -728,8 +1987,57 @@ tasks:
           topology: replica_set
           version: v3.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_3.6_DB
+  - name: test_3.6_RS_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB
+      - name: test_3.6_RS
+  - name: test_3.6_RS_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.6_DB
+      - name: test_3.6_RS
   - name: test_3.6_RS_auth
     commands:
       - func: dynamicVars
@@ -747,6 +2055,55 @@ tasks:
           topology: replica_set
           version: v3.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB_auth
+      - name: test_3.6_RS
+  - name: test_3.6_RS_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB_auth
+      - name: test_3.6_RS
+  - name: test_3.6_RS_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.6_DB_auth
       - name: test_3.6_RS
@@ -767,8 +2124,57 @@ tasks:
           topology: sharded_cluster
           version: v3.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_3.6_DB
+  - name: test_3.6_SC_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB
+      - name: test_3.6_SC
+  - name: test_3.6_SC_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_3.6_DB
+      - name: test_3.6_SC
   - name: test_3.6_SC_auth
     commands:
       - func: dynamicVars
@@ -786,6 +2192,55 @@ tasks:
           topology: sharded_cluster
           version: v3.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB_auth
+      - name: test_3.6_SC
+  - name: test_3.6_SC_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB_auth
+      - name: test_3.6_SC
+  - name: test_3.6_SC_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.6_DB_auth
       - name: test_3.6_SC
@@ -806,8 +2261,55 @@ tasks:
           topology: server
           version: v4.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: check
+  - name: test_4.0_DB_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB
+  - name: test_4.0_DB_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.0_DB
   - name: test_4.0_DB_auth
     commands:
       - func: dynamicVars
@@ -825,6 +2327,53 @@ tasks:
           topology: server
           version: v4.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB
+  - name: test_4.0_DB_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB
+  - name: test_4.0_DB_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_4.0_DB
   - name: test_4.0_RS
@@ -844,8 +2393,57 @@ tasks:
           topology: replica_set
           version: v4.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_4.0_DB
+  - name: test_4.0_RS_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB
+      - name: test_4.0_RS
+  - name: test_4.0_RS_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.0_DB
+      - name: test_4.0_RS
   - name: test_4.0_RS_auth
     commands:
       - func: dynamicVars
@@ -863,6 +2461,55 @@ tasks:
           topology: replica_set
           version: v4.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB_auth
+      - name: test_4.0_RS
+  - name: test_4.0_RS_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB_auth
+      - name: test_4.0_RS
+  - name: test_4.0_RS_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_4.0_DB_auth
       - name: test_4.0_RS
@@ -883,8 +2530,57 @@ tasks:
           topology: sharded_cluster
           version: v4.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_4.0_DB
+  - name: test_4.0_SC_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB
+      - name: test_4.0_SC
+  - name: test_4.0_SC_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.0_DB
+      - name: test_4.0_SC
   - name: test_4.0_SC_auth
     commands:
       - func: dynamicVars
@@ -902,6 +2598,55 @@ tasks:
           topology: sharded_cluster
           version: v4.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB_auth
+      - name: test_4.0_SC
+  - name: test_4.0_SC_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB_auth
+      - name: test_4.0_SC
+  - name: test_4.0_SC_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_4.0_DB_auth
       - name: test_4.0_SC
@@ -922,8 +2667,55 @@ tasks:
           topology: server
           version: latest
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: check
+  - name: test_latest_DB_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB
+  - name: test_latest_DB_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_latest_DB
   - name: test_latest_DB_auth
     commands:
       - func: dynamicVars
@@ -941,6 +2733,53 @@ tasks:
           topology: server
           version: latest
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB
+  - name: test_latest_DB_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB
+  - name: test_latest_DB_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_latest_DB
   - name: test_latest_RS
@@ -960,8 +2799,57 @@ tasks:
           topology: replica_set
           version: latest
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_latest_DB
+  - name: test_latest_RS_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB
+      - name: test_latest_RS
+  - name: test_latest_RS_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_latest_DB
+      - name: test_latest_RS
   - name: test_latest_RS_auth
     commands:
       - func: dynamicVars
@@ -979,6 +2867,55 @@ tasks:
           topology: replica_set
           version: latest
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB_auth
+      - name: test_latest_RS
+  - name: test_latest_RS_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB_auth
+      - name: test_latest_RS
+  - name: test_latest_RS_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_latest_DB_auth
       - name: test_latest_RS
@@ -999,8 +2936,57 @@ tasks:
           topology: sharded_cluster
           version: latest
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: test_latest_DB
+  - name: test_latest_SC_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB
+      - name: test_latest_SC
+  - name: test_latest_SC_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_latest_DB
+      - name: test_latest_SC
   - name: test_latest_SC_auth
     commands:
       - func: dynamicVars
@@ -1018,6 +3004,55 @@ tasks:
           topology: sharded_cluster
           version: latest
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB_auth
+      - name: test_latest_SC
+  - name: test_latest_SC_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB_auth
+      - name: test_latest_SC
+  - name: test_latest_SC_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_latest_DB_auth
       - name: test_latest_SC
@@ -1038,6 +3073,53 @@ tasks:
           topology: server
           version: v3.2
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB
+  - name: test_3.2_DB_ssl_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.2_DB
+  - name: test_3.2_DB_ssl_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v3.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.2_DB
   - name: test_3.4_DB_ssl
@@ -1057,6 +3139,53 @@ tasks:
           topology: server
           version: v3.4
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB
+  - name: test_3.4_DB_ssl_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.4_DB
+  - name: test_3.4_DB_ssl_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v3.4
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.4_DB
   - name: test_3.6_DB_ssl
@@ -1076,6 +3205,53 @@ tasks:
           topology: server
           version: v3.6
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB
+  - name: test_3.6_DB_ssl_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_3.6_DB
+  - name: test_3.6_DB_ssl_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v3.6
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_3.6_DB
   - name: test_4.0_DB_ssl
@@ -1095,6 +3271,53 @@ tasks:
           topology: server
           version: v4.0
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB
+  - name: test_4.0_DB_ssl_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.0_DB
+  - name: test_4.0_DB_ssl_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v4.0
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_4.0_DB
   - name: test_latest_DB_ssl
@@ -1114,6 +3337,53 @@ tasks:
           topology: server
           version: latest
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB
+  - name: test_latest_DB_ssl_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_latest_DB
+  - name: test_latest_DB_ssl_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: latest
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
     depends_on:
       - name: test_latest_DB
   - name: build_for_atlas
@@ -1138,6 +3408,9 @@ tasks:
       - func: whichPerl
       - func: downloadBuildArtifacts
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: build_for_atlas
   - name: test_atlas
@@ -1153,6 +3426,9 @@ tasks:
       - func: setupAtlasProxy
       - func: testAtlasProxy
       - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
     depends_on:
       - name: build_for_atlas
 
@@ -1170,12 +3446,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_10t
     display_name: Ubuntu 16.04 x86_64 Perl 5.10t
     expansions:
@@ -1189,12 +3479,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_10ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.10ld
     expansions:
@@ -1208,12 +3512,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_12
     display_name: Ubuntu 16.04 x86_64 Perl 5.12
     expansions:
@@ -1227,12 +3545,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_12t
     display_name: Ubuntu 16.04 x86_64 Perl 5.12t
     expansions:
@@ -1246,12 +3578,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_12ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.12ld
     expansions:
@@ -1265,12 +3611,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_14
     display_name: Ubuntu 16.04 x86_64 Perl 5.14
     expansions:
@@ -1284,52 +3644,146 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_2.6_DB_auth
+      - test_2.6_DB_auth_asrt
+      - test_2.6_DB_auth_asrt_pp
       - test_2.6_RS
+      - test_2.6_RS_asrt
+      - test_2.6_RS_asrt_pp
       - test_2.6_RS_auth
+      - test_2.6_RS_auth_asrt
+      - test_2.6_RS_auth_asrt_pp
       - test_2.6_SC
+      - test_2.6_SC_asrt
+      - test_2.6_SC_asrt_pp
       - test_2.6_SC_auth
+      - test_2.6_SC_auth_asrt
+      - test_2.6_SC_auth_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.0_DB_auth
+      - test_3.0_DB_auth_asrt
+      - test_3.0_DB_auth_asrt_pp
       - test_3.0_RS
+      - test_3.0_RS_asrt
+      - test_3.0_RS_asrt_pp
       - test_3.0_RS_auth
+      - test_3.0_RS_auth_asrt
+      - test_3.0_RS_auth_asrt_pp
       - test_3.0_SC
+      - test_3.0_SC_asrt
+      - test_3.0_SC_asrt_pp
       - test_3.0_SC_auth
+      - test_3.0_SC_auth_asrt
+      - test_3.0_SC_auth_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.2_DB_auth
+      - test_3.2_DB_auth_asrt
+      - test_3.2_DB_auth_asrt_pp
       - test_3.2_RS
+      - test_3.2_RS_asrt
+      - test_3.2_RS_asrt_pp
       - test_3.2_RS_auth
+      - test_3.2_RS_auth_asrt
+      - test_3.2_RS_auth_asrt_pp
       - test_3.2_SC
+      - test_3.2_SC_asrt
+      - test_3.2_SC_asrt_pp
       - test_3.2_SC_auth
+      - test_3.2_SC_auth_asrt
+      - test_3.2_SC_auth_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.4_DB_auth
+      - test_3.4_DB_auth_asrt
+      - test_3.4_DB_auth_asrt_pp
       - test_3.4_RS
+      - test_3.4_RS_asrt
+      - test_3.4_RS_asrt_pp
       - test_3.4_RS_auth
+      - test_3.4_RS_auth_asrt
+      - test_3.4_RS_auth_asrt_pp
       - test_3.4_SC
+      - test_3.4_SC_asrt
+      - test_3.4_SC_asrt_pp
       - test_3.4_SC_auth
+      - test_3.4_SC_auth_asrt
+      - test_3.4_SC_auth_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_3.6_DB_auth
+      - test_3.6_DB_auth_asrt
+      - test_3.6_DB_auth_asrt_pp
       - test_3.6_RS
+      - test_3.6_RS_asrt
+      - test_3.6_RS_asrt_pp
       - test_3.6_RS_auth
+      - test_3.6_RS_auth_asrt
+      - test_3.6_RS_auth_asrt_pp
       - test_3.6_SC
+      - test_3.6_SC_asrt
+      - test_3.6_SC_asrt_pp
       - test_3.6_SC_auth
+      - test_3.6_SC_auth_asrt
+      - test_3.6_SC_auth_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_4.0_DB_auth
+      - test_4.0_DB_auth_asrt
+      - test_4.0_DB_auth_asrt_pp
       - test_4.0_RS
+      - test_4.0_RS_asrt
+      - test_4.0_RS_asrt_pp
       - test_4.0_RS_auth
+      - test_4.0_RS_auth_asrt
+      - test_4.0_RS_auth_asrt_pp
       - test_4.0_SC
+      - test_4.0_SC_asrt
+      - test_4.0_SC_asrt_pp
       - test_4.0_SC_auth
+      - test_4.0_SC_auth_asrt
+      - test_4.0_SC_auth_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
       - test_latest_DB_auth
+      - test_latest_DB_auth_asrt
+      - test_latest_DB_auth_asrt_pp
       - test_latest_RS
+      - test_latest_RS_asrt
+      - test_latest_RS_asrt_pp
       - test_latest_RS_auth
+      - test_latest_RS_auth_asrt
+      - test_latest_RS_auth_asrt_pp
       - test_latest_SC
+      - test_latest_SC_asrt
+      - test_latest_SC_asrt_pp
       - test_latest_SC_auth
+      - test_latest_SC_auth_asrt
+      - test_latest_SC_auth_asrt_pp
       - test_3.2_DB_ssl
+      - test_3.2_DB_ssl_asrt
+      - test_3.2_DB_ssl_asrt_pp
       - test_3.4_DB_ssl
+      - test_3.4_DB_ssl_asrt
+      - test_3.4_DB_ssl_asrt_pp
       - test_3.6_DB_ssl
+      - test_3.6_DB_ssl_asrt
+      - test_3.6_DB_ssl_asrt_pp
       - test_4.0_DB_ssl
+      - test_4.0_DB_ssl_asrt
+      - test_4.0_DB_ssl_asrt_pp
       - test_latest_DB_ssl
+      - test_latest_DB_ssl_asrt
+      - test_latest_DB_ssl_asrt_pp
   - name: os_ubuntu1604_perl_14t
     display_name: Ubuntu 16.04 x86_64 Perl 5.14t
     expansions:
@@ -1343,12 +3797,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_14ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.14ld
     expansions:
@@ -1362,12 +3830,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_16
     display_name: Ubuntu 16.04 x86_64 Perl 5.16
     expansions:
@@ -1381,12 +3863,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_16t
     display_name: Ubuntu 16.04 x86_64 Perl 5.16t
     expansions:
@@ -1400,12 +3896,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_16ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.16ld
     expansions:
@@ -1419,12 +3929,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_18
     display_name: Ubuntu 16.04 x86_64 Perl 5.18
     expansions:
@@ -1438,12 +3962,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_18t
     display_name: Ubuntu 16.04 x86_64 Perl 5.18t
     expansions:
@@ -1457,12 +3995,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_18ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.18ld
     expansions:
@@ -1476,12 +4028,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_20
     display_name: Ubuntu 16.04 x86_64 Perl 5.20
     expansions:
@@ -1495,12 +4061,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_20t
     display_name: Ubuntu 16.04 x86_64 Perl 5.20t
     expansions:
@@ -1514,12 +4094,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_20ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.20ld
     expansions:
@@ -1533,12 +4127,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_22
     display_name: Ubuntu 16.04 x86_64 Perl 5.22
     expansions:
@@ -1552,12 +4160,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_22t
     display_name: Ubuntu 16.04 x86_64 Perl 5.22t
     expansions:
@@ -1571,12 +4193,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_22ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.22ld
     expansions:
@@ -1590,12 +4226,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_24
     display_name: Ubuntu 16.04 x86_64 Perl 5.24
     expansions:
@@ -1609,52 +4259,146 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_2.6_DB_auth
+      - test_2.6_DB_auth_asrt
+      - test_2.6_DB_auth_asrt_pp
       - test_2.6_RS
+      - test_2.6_RS_asrt
+      - test_2.6_RS_asrt_pp
       - test_2.6_RS_auth
+      - test_2.6_RS_auth_asrt
+      - test_2.6_RS_auth_asrt_pp
       - test_2.6_SC
+      - test_2.6_SC_asrt
+      - test_2.6_SC_asrt_pp
       - test_2.6_SC_auth
+      - test_2.6_SC_auth_asrt
+      - test_2.6_SC_auth_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.0_DB_auth
+      - test_3.0_DB_auth_asrt
+      - test_3.0_DB_auth_asrt_pp
       - test_3.0_RS
+      - test_3.0_RS_asrt
+      - test_3.0_RS_asrt_pp
       - test_3.0_RS_auth
+      - test_3.0_RS_auth_asrt
+      - test_3.0_RS_auth_asrt_pp
       - test_3.0_SC
+      - test_3.0_SC_asrt
+      - test_3.0_SC_asrt_pp
       - test_3.0_SC_auth
+      - test_3.0_SC_auth_asrt
+      - test_3.0_SC_auth_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.2_DB_auth
+      - test_3.2_DB_auth_asrt
+      - test_3.2_DB_auth_asrt_pp
       - test_3.2_RS
+      - test_3.2_RS_asrt
+      - test_3.2_RS_asrt_pp
       - test_3.2_RS_auth
+      - test_3.2_RS_auth_asrt
+      - test_3.2_RS_auth_asrt_pp
       - test_3.2_SC
+      - test_3.2_SC_asrt
+      - test_3.2_SC_asrt_pp
       - test_3.2_SC_auth
+      - test_3.2_SC_auth_asrt
+      - test_3.2_SC_auth_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.4_DB_auth
+      - test_3.4_DB_auth_asrt
+      - test_3.4_DB_auth_asrt_pp
       - test_3.4_RS
+      - test_3.4_RS_asrt
+      - test_3.4_RS_asrt_pp
       - test_3.4_RS_auth
+      - test_3.4_RS_auth_asrt
+      - test_3.4_RS_auth_asrt_pp
       - test_3.4_SC
+      - test_3.4_SC_asrt
+      - test_3.4_SC_asrt_pp
       - test_3.4_SC_auth
+      - test_3.4_SC_auth_asrt
+      - test_3.4_SC_auth_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_3.6_DB_auth
+      - test_3.6_DB_auth_asrt
+      - test_3.6_DB_auth_asrt_pp
       - test_3.6_RS
+      - test_3.6_RS_asrt
+      - test_3.6_RS_asrt_pp
       - test_3.6_RS_auth
+      - test_3.6_RS_auth_asrt
+      - test_3.6_RS_auth_asrt_pp
       - test_3.6_SC
+      - test_3.6_SC_asrt
+      - test_3.6_SC_asrt_pp
       - test_3.6_SC_auth
+      - test_3.6_SC_auth_asrt
+      - test_3.6_SC_auth_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_4.0_DB_auth
+      - test_4.0_DB_auth_asrt
+      - test_4.0_DB_auth_asrt_pp
       - test_4.0_RS
+      - test_4.0_RS_asrt
+      - test_4.0_RS_asrt_pp
       - test_4.0_RS_auth
+      - test_4.0_RS_auth_asrt
+      - test_4.0_RS_auth_asrt_pp
       - test_4.0_SC
+      - test_4.0_SC_asrt
+      - test_4.0_SC_asrt_pp
       - test_4.0_SC_auth
+      - test_4.0_SC_auth_asrt
+      - test_4.0_SC_auth_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
       - test_latest_DB_auth
+      - test_latest_DB_auth_asrt
+      - test_latest_DB_auth_asrt_pp
       - test_latest_RS
+      - test_latest_RS_asrt
+      - test_latest_RS_asrt_pp
       - test_latest_RS_auth
+      - test_latest_RS_auth_asrt
+      - test_latest_RS_auth_asrt_pp
       - test_latest_SC
+      - test_latest_SC_asrt
+      - test_latest_SC_asrt_pp
       - test_latest_SC_auth
+      - test_latest_SC_auth_asrt
+      - test_latest_SC_auth_asrt_pp
       - test_3.2_DB_ssl
+      - test_3.2_DB_ssl_asrt
+      - test_3.2_DB_ssl_asrt_pp
       - test_3.4_DB_ssl
+      - test_3.4_DB_ssl_asrt
+      - test_3.4_DB_ssl_asrt_pp
       - test_3.6_DB_ssl
+      - test_3.6_DB_ssl_asrt
+      - test_3.6_DB_ssl_asrt_pp
       - test_4.0_DB_ssl
+      - test_4.0_DB_ssl_asrt
+      - test_4.0_DB_ssl_asrt_pp
       - test_latest_DB_ssl
+      - test_latest_DB_ssl_asrt
+      - test_latest_DB_ssl_asrt_pp
       - build_for_atlas
       - check_for_atlas
       - test_atlas
@@ -1671,12 +4415,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_24ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.24ld
     expansions:
@@ -1690,12 +4448,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_26
     display_name: Ubuntu 16.04 x86_64 Perl 5.26
     expansions:
@@ -1709,12 +4481,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_26t
     display_name: Ubuntu 16.04 x86_64 Perl 5.26t
     expansions:
@@ -1728,12 +4514,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_26ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.26ld
     expansions:
@@ -1747,12 +4547,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_28
     display_name: Ubuntu 16.04 x86_64 Perl 5.28
     expansions:
@@ -1766,12 +4580,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_28t
     display_name: Ubuntu 16.04 x86_64 Perl 5.28t
     expansions:
@@ -1785,12 +4613,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_perl_28ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.28ld
     expansions:
@@ -1804,12 +4646,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_ubuntu1604_arm64_perl_14
     display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.14
     expansions:
@@ -1823,33 +4679,89 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.4_DB_auth
+      - test_3.4_DB_auth_asrt
+      - test_3.4_DB_auth_asrt_pp
       - test_3.4_RS
+      - test_3.4_RS_asrt
+      - test_3.4_RS_asrt_pp
       - test_3.4_RS_auth
+      - test_3.4_RS_auth_asrt
+      - test_3.4_RS_auth_asrt_pp
       - test_3.4_SC
+      - test_3.4_SC_asrt
+      - test_3.4_SC_asrt_pp
       - test_3.4_SC_auth
+      - test_3.4_SC_auth_asrt
+      - test_3.4_SC_auth_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_3.6_DB_auth
+      - test_3.6_DB_auth_asrt
+      - test_3.6_DB_auth_asrt_pp
       - test_3.6_RS
+      - test_3.6_RS_asrt
+      - test_3.6_RS_asrt_pp
       - test_3.6_RS_auth
+      - test_3.6_RS_auth_asrt
+      - test_3.6_RS_auth_asrt_pp
       - test_3.6_SC
+      - test_3.6_SC_asrt
+      - test_3.6_SC_asrt_pp
       - test_3.6_SC_auth
+      - test_3.6_SC_auth_asrt
+      - test_3.6_SC_auth_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_4.0_DB_auth
+      - test_4.0_DB_auth_asrt
+      - test_4.0_DB_auth_asrt_pp
       - test_4.0_RS
+      - test_4.0_RS_asrt
+      - test_4.0_RS_asrt_pp
       - test_4.0_RS_auth
+      - test_4.0_RS_auth_asrt
+      - test_4.0_RS_auth_asrt_pp
       - test_4.0_SC
+      - test_4.0_SC_asrt
+      - test_4.0_SC_asrt_pp
       - test_4.0_SC_auth
+      - test_4.0_SC_auth_asrt
+      - test_4.0_SC_auth_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
       - test_latest_DB_auth
+      - test_latest_DB_auth_asrt
+      - test_latest_DB_auth_asrt_pp
       - test_latest_RS
+      - test_latest_RS_asrt
+      - test_latest_RS_asrt_pp
       - test_latest_RS_auth
+      - test_latest_RS_auth_asrt
+      - test_latest_RS_auth_asrt_pp
       - test_latest_SC
+      - test_latest_SC_asrt
+      - test_latest_SC_asrt_pp
       - test_latest_SC_auth
+      - test_latest_SC_auth_asrt
+      - test_latest_SC_auth_asrt_pp
       - test_3.4_DB_ssl
+      - test_3.4_DB_ssl_asrt
+      - test_3.4_DB_ssl_asrt_pp
       - test_3.6_DB_ssl
+      - test_3.6_DB_ssl_asrt
+      - test_3.6_DB_ssl_asrt_pp
       - test_4.0_DB_ssl
+      - test_4.0_DB_ssl_asrt
+      - test_4.0_DB_ssl_asrt_pp
       - test_latest_DB_ssl
+      - test_latest_DB_ssl_asrt
+      - test_latest_DB_ssl_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_14t
@@ -1865,9 +4777,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_14ld
@@ -1883,9 +4803,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_16
@@ -1901,9 +4829,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_16t
@@ -1919,9 +4855,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_16ld
@@ -1937,9 +4881,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_18
@@ -1955,9 +4907,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_18t
@@ -1973,9 +4933,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_18ld
@@ -1991,9 +4959,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_20
@@ -2009,9 +4985,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_20t
@@ -2027,9 +5011,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_20ld
@@ -2045,9 +5037,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_22
@@ -2063,9 +5063,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_22t
@@ -2081,9 +5089,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_22ld
@@ -2099,9 +5115,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_24
@@ -2117,33 +5141,89 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.4_DB_auth
+      - test_3.4_DB_auth_asrt
+      - test_3.4_DB_auth_asrt_pp
       - test_3.4_RS
+      - test_3.4_RS_asrt
+      - test_3.4_RS_asrt_pp
       - test_3.4_RS_auth
+      - test_3.4_RS_auth_asrt
+      - test_3.4_RS_auth_asrt_pp
       - test_3.4_SC
+      - test_3.4_SC_asrt
+      - test_3.4_SC_asrt_pp
       - test_3.4_SC_auth
+      - test_3.4_SC_auth_asrt
+      - test_3.4_SC_auth_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_3.6_DB_auth
+      - test_3.6_DB_auth_asrt
+      - test_3.6_DB_auth_asrt_pp
       - test_3.6_RS
+      - test_3.6_RS_asrt
+      - test_3.6_RS_asrt_pp
       - test_3.6_RS_auth
+      - test_3.6_RS_auth_asrt
+      - test_3.6_RS_auth_asrt_pp
       - test_3.6_SC
+      - test_3.6_SC_asrt
+      - test_3.6_SC_asrt_pp
       - test_3.6_SC_auth
+      - test_3.6_SC_auth_asrt
+      - test_3.6_SC_auth_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_4.0_DB_auth
+      - test_4.0_DB_auth_asrt
+      - test_4.0_DB_auth_asrt_pp
       - test_4.0_RS
+      - test_4.0_RS_asrt
+      - test_4.0_RS_asrt_pp
       - test_4.0_RS_auth
+      - test_4.0_RS_auth_asrt
+      - test_4.0_RS_auth_asrt_pp
       - test_4.0_SC
+      - test_4.0_SC_asrt
+      - test_4.0_SC_asrt_pp
       - test_4.0_SC_auth
+      - test_4.0_SC_auth_asrt
+      - test_4.0_SC_auth_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
       - test_latest_DB_auth
+      - test_latest_DB_auth_asrt
+      - test_latest_DB_auth_asrt_pp
       - test_latest_RS
+      - test_latest_RS_asrt
+      - test_latest_RS_asrt_pp
       - test_latest_RS_auth
+      - test_latest_RS_auth_asrt
+      - test_latest_RS_auth_asrt_pp
       - test_latest_SC
+      - test_latest_SC_asrt
+      - test_latest_SC_asrt_pp
       - test_latest_SC_auth
+      - test_latest_SC_auth_asrt
+      - test_latest_SC_auth_asrt_pp
       - test_3.4_DB_ssl
+      - test_3.4_DB_ssl_asrt
+      - test_3.4_DB_ssl_asrt_pp
       - test_3.6_DB_ssl
+      - test_3.6_DB_ssl_asrt
+      - test_3.6_DB_ssl_asrt_pp
       - test_4.0_DB_ssl
+      - test_4.0_DB_ssl_asrt
+      - test_4.0_DB_ssl_asrt_pp
       - test_latest_DB_ssl
+      - test_latest_DB_ssl_asrt
+      - test_latest_DB_ssl_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_24t
@@ -2159,9 +5239,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_24ld
@@ -2177,9 +5265,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_26
@@ -2195,9 +5291,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_26t
@@ -2213,9 +5317,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_26ld
@@ -2231,9 +5343,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_14
@@ -2249,33 +5369,89 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.4_DB_auth
+      - test_3.4_DB_auth_asrt
+      - test_3.4_DB_auth_asrt_pp
       - test_3.4_RS
+      - test_3.4_RS_asrt
+      - test_3.4_RS_asrt_pp
       - test_3.4_RS_auth
+      - test_3.4_RS_auth_asrt
+      - test_3.4_RS_auth_asrt_pp
       - test_3.4_SC
+      - test_3.4_SC_asrt
+      - test_3.4_SC_asrt_pp
       - test_3.4_SC_auth
+      - test_3.4_SC_auth_asrt
+      - test_3.4_SC_auth_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_3.6_DB_auth
+      - test_3.6_DB_auth_asrt
+      - test_3.6_DB_auth_asrt_pp
       - test_3.6_RS
+      - test_3.6_RS_asrt
+      - test_3.6_RS_asrt_pp
       - test_3.6_RS_auth
+      - test_3.6_RS_auth_asrt
+      - test_3.6_RS_auth_asrt_pp
       - test_3.6_SC
+      - test_3.6_SC_asrt
+      - test_3.6_SC_asrt_pp
       - test_3.6_SC_auth
+      - test_3.6_SC_auth_asrt
+      - test_3.6_SC_auth_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_4.0_DB_auth
+      - test_4.0_DB_auth_asrt
+      - test_4.0_DB_auth_asrt_pp
       - test_4.0_RS
+      - test_4.0_RS_asrt
+      - test_4.0_RS_asrt_pp
       - test_4.0_RS_auth
+      - test_4.0_RS_auth_asrt
+      - test_4.0_RS_auth_asrt_pp
       - test_4.0_SC
+      - test_4.0_SC_asrt
+      - test_4.0_SC_asrt_pp
       - test_4.0_SC_auth
+      - test_4.0_SC_auth_asrt
+      - test_4.0_SC_auth_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
       - test_latest_DB_auth
+      - test_latest_DB_auth_asrt
+      - test_latest_DB_auth_asrt_pp
       - test_latest_RS
+      - test_latest_RS_asrt
+      - test_latest_RS_asrt_pp
       - test_latest_RS_auth
+      - test_latest_RS_auth_asrt
+      - test_latest_RS_auth_asrt_pp
       - test_latest_SC
+      - test_latest_SC_asrt
+      - test_latest_SC_asrt_pp
       - test_latest_SC_auth
+      - test_latest_SC_auth_asrt
+      - test_latest_SC_auth_asrt_pp
       - test_3.4_DB_ssl
+      - test_3.4_DB_ssl_asrt
+      - test_3.4_DB_ssl_asrt_pp
       - test_3.6_DB_ssl
+      - test_3.6_DB_ssl_asrt
+      - test_3.6_DB_ssl_asrt_pp
       - test_4.0_DB_ssl
+      - test_4.0_DB_ssl_asrt
+      - test_4.0_DB_ssl_asrt_pp
       - test_latest_DB_ssl
+      - test_latest_DB_ssl_asrt
+      - test_latest_DB_ssl_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_14t
@@ -2291,9 +5467,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_14ld
@@ -2309,9 +5493,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_16
@@ -2327,9 +5519,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_16t
@@ -2345,9 +5545,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_16ld
@@ -2363,9 +5571,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_18
@@ -2381,9 +5597,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_18t
@@ -2399,9 +5623,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_18ld
@@ -2417,9 +5649,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_20
@@ -2435,9 +5675,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_20t
@@ -2453,9 +5701,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_20ld
@@ -2471,9 +5727,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_22
@@ -2489,9 +5753,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_22t
@@ -2507,9 +5779,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_22ld
@@ -2525,9 +5805,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_24
@@ -2543,33 +5831,89 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.4_DB_auth
+      - test_3.4_DB_auth_asrt
+      - test_3.4_DB_auth_asrt_pp
       - test_3.4_RS
+      - test_3.4_RS_asrt
+      - test_3.4_RS_asrt_pp
       - test_3.4_RS_auth
+      - test_3.4_RS_auth_asrt
+      - test_3.4_RS_auth_asrt_pp
       - test_3.4_SC
+      - test_3.4_SC_asrt
+      - test_3.4_SC_asrt_pp
       - test_3.4_SC_auth
+      - test_3.4_SC_auth_asrt
+      - test_3.4_SC_auth_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_3.6_DB_auth
+      - test_3.6_DB_auth_asrt
+      - test_3.6_DB_auth_asrt_pp
       - test_3.6_RS
+      - test_3.6_RS_asrt
+      - test_3.6_RS_asrt_pp
       - test_3.6_RS_auth
+      - test_3.6_RS_auth_asrt
+      - test_3.6_RS_auth_asrt_pp
       - test_3.6_SC
+      - test_3.6_SC_asrt
+      - test_3.6_SC_asrt_pp
       - test_3.6_SC_auth
+      - test_3.6_SC_auth_asrt
+      - test_3.6_SC_auth_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_4.0_DB_auth
+      - test_4.0_DB_auth_asrt
+      - test_4.0_DB_auth_asrt_pp
       - test_4.0_RS
+      - test_4.0_RS_asrt
+      - test_4.0_RS_asrt_pp
       - test_4.0_RS_auth
+      - test_4.0_RS_auth_asrt
+      - test_4.0_RS_auth_asrt_pp
       - test_4.0_SC
+      - test_4.0_SC_asrt
+      - test_4.0_SC_asrt_pp
       - test_4.0_SC_auth
+      - test_4.0_SC_auth_asrt
+      - test_4.0_SC_auth_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
       - test_latest_DB_auth
+      - test_latest_DB_auth_asrt
+      - test_latest_DB_auth_asrt_pp
       - test_latest_RS
+      - test_latest_RS_asrt
+      - test_latest_RS_asrt_pp
       - test_latest_RS_auth
+      - test_latest_RS_auth_asrt
+      - test_latest_RS_auth_asrt_pp
       - test_latest_SC
+      - test_latest_SC_asrt
+      - test_latest_SC_asrt_pp
       - test_latest_SC_auth
+      - test_latest_SC_auth_asrt
+      - test_latest_SC_auth_asrt_pp
       - test_3.4_DB_ssl
+      - test_3.4_DB_ssl_asrt
+      - test_3.4_DB_ssl_asrt_pp
       - test_3.6_DB_ssl
+      - test_3.6_DB_ssl_asrt
+      - test_3.6_DB_ssl_asrt_pp
       - test_4.0_DB_ssl
+      - test_4.0_DB_ssl_asrt
+      - test_4.0_DB_ssl_asrt_pp
       - test_latest_DB_ssl
+      - test_latest_DB_ssl_asrt
+      - test_latest_DB_ssl_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_24t
@@ -2585,9 +5929,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_24ld
@@ -2603,9 +5955,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_26
@@ -2621,9 +5981,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_26t
@@ -2639,9 +6007,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_26ld
@@ -2657,9 +6033,17 @@ buildvariants:
       - build
       - check
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_windows64_perl_14
@@ -2675,52 +6059,146 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_2.6_DB_auth
+      - test_2.6_DB_auth_asrt
+      - test_2.6_DB_auth_asrt_pp
       - test_2.6_RS
+      - test_2.6_RS_asrt
+      - test_2.6_RS_asrt_pp
       - test_2.6_RS_auth
+      - test_2.6_RS_auth_asrt
+      - test_2.6_RS_auth_asrt_pp
       - test_2.6_SC
+      - test_2.6_SC_asrt
+      - test_2.6_SC_asrt_pp
       - test_2.6_SC_auth
+      - test_2.6_SC_auth_asrt
+      - test_2.6_SC_auth_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.0_DB_auth
+      - test_3.0_DB_auth_asrt
+      - test_3.0_DB_auth_asrt_pp
       - test_3.0_RS
+      - test_3.0_RS_asrt
+      - test_3.0_RS_asrt_pp
       - test_3.0_RS_auth
+      - test_3.0_RS_auth_asrt
+      - test_3.0_RS_auth_asrt_pp
       - test_3.0_SC
+      - test_3.0_SC_asrt
+      - test_3.0_SC_asrt_pp
       - test_3.0_SC_auth
+      - test_3.0_SC_auth_asrt
+      - test_3.0_SC_auth_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.2_DB_auth
+      - test_3.2_DB_auth_asrt
+      - test_3.2_DB_auth_asrt_pp
       - test_3.2_RS
+      - test_3.2_RS_asrt
+      - test_3.2_RS_asrt_pp
       - test_3.2_RS_auth
+      - test_3.2_RS_auth_asrt
+      - test_3.2_RS_auth_asrt_pp
       - test_3.2_SC
+      - test_3.2_SC_asrt
+      - test_3.2_SC_asrt_pp
       - test_3.2_SC_auth
+      - test_3.2_SC_auth_asrt
+      - test_3.2_SC_auth_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.4_DB_auth
+      - test_3.4_DB_auth_asrt
+      - test_3.4_DB_auth_asrt_pp
       - test_3.4_RS
+      - test_3.4_RS_asrt
+      - test_3.4_RS_asrt_pp
       - test_3.4_RS_auth
+      - test_3.4_RS_auth_asrt
+      - test_3.4_RS_auth_asrt_pp
       - test_3.4_SC
+      - test_3.4_SC_asrt
+      - test_3.4_SC_asrt_pp
       - test_3.4_SC_auth
+      - test_3.4_SC_auth_asrt
+      - test_3.4_SC_auth_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_3.6_DB_auth
+      - test_3.6_DB_auth_asrt
+      - test_3.6_DB_auth_asrt_pp
       - test_3.6_RS
+      - test_3.6_RS_asrt
+      - test_3.6_RS_asrt_pp
       - test_3.6_RS_auth
+      - test_3.6_RS_auth_asrt
+      - test_3.6_RS_auth_asrt_pp
       - test_3.6_SC
+      - test_3.6_SC_asrt
+      - test_3.6_SC_asrt_pp
       - test_3.6_SC_auth
+      - test_3.6_SC_auth_asrt
+      - test_3.6_SC_auth_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_4.0_DB_auth
+      - test_4.0_DB_auth_asrt
+      - test_4.0_DB_auth_asrt_pp
       - test_4.0_RS
+      - test_4.0_RS_asrt
+      - test_4.0_RS_asrt_pp
       - test_4.0_RS_auth
+      - test_4.0_RS_auth_asrt
+      - test_4.0_RS_auth_asrt_pp
       - test_4.0_SC
+      - test_4.0_SC_asrt
+      - test_4.0_SC_asrt_pp
       - test_4.0_SC_auth
+      - test_4.0_SC_auth_asrt
+      - test_4.0_SC_auth_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
       - test_latest_DB_auth
+      - test_latest_DB_auth_asrt
+      - test_latest_DB_auth_asrt_pp
       - test_latest_RS
+      - test_latest_RS_asrt
+      - test_latest_RS_asrt_pp
       - test_latest_RS_auth
+      - test_latest_RS_auth_asrt
+      - test_latest_RS_auth_asrt_pp
       - test_latest_SC
+      - test_latest_SC_asrt
+      - test_latest_SC_asrt_pp
       - test_latest_SC_auth
+      - test_latest_SC_auth_asrt
+      - test_latest_SC_auth_asrt_pp
       - test_3.2_DB_ssl
+      - test_3.2_DB_ssl_asrt
+      - test_3.2_DB_ssl_asrt_pp
       - test_3.4_DB_ssl
+      - test_3.4_DB_ssl_asrt
+      - test_3.4_DB_ssl_asrt_pp
       - test_3.6_DB_ssl
+      - test_3.6_DB_ssl_asrt
+      - test_3.6_DB_ssl_asrt_pp
       - test_4.0_DB_ssl
+      - test_4.0_DB_ssl_asrt
+      - test_4.0_DB_ssl_asrt_pp
       - test_latest_DB_ssl
+      - test_latest_DB_ssl_asrt
+      - test_latest_DB_ssl_asrt_pp
   - name: os_windows64_perl_16
     display_name: Win64 Perl 5.16
     expansions:
@@ -2734,12 +6212,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_windows64_perl_18
     display_name: Win64 Perl 5.18
     expansions:
@@ -2753,12 +6245,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_windows64_perl_20
     display_name: Win64 Perl 5.20
     expansions:
@@ -2772,12 +6278,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_windows64_perl_22
     display_name: Win64 Perl 5.22
     expansions:
@@ -2791,12 +6311,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_windows64_perl_24
     display_name: Win64 Perl 5.24
     expansions:
@@ -2810,52 +6344,146 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_2.6_DB_auth
+      - test_2.6_DB_auth_asrt
+      - test_2.6_DB_auth_asrt_pp
       - test_2.6_RS
+      - test_2.6_RS_asrt
+      - test_2.6_RS_asrt_pp
       - test_2.6_RS_auth
+      - test_2.6_RS_auth_asrt
+      - test_2.6_RS_auth_asrt_pp
       - test_2.6_SC
+      - test_2.6_SC_asrt
+      - test_2.6_SC_asrt_pp
       - test_2.6_SC_auth
+      - test_2.6_SC_auth_asrt
+      - test_2.6_SC_auth_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.0_DB_auth
+      - test_3.0_DB_auth_asrt
+      - test_3.0_DB_auth_asrt_pp
       - test_3.0_RS
+      - test_3.0_RS_asrt
+      - test_3.0_RS_asrt_pp
       - test_3.0_RS_auth
+      - test_3.0_RS_auth_asrt
+      - test_3.0_RS_auth_asrt_pp
       - test_3.0_SC
+      - test_3.0_SC_asrt
+      - test_3.0_SC_asrt_pp
       - test_3.0_SC_auth
+      - test_3.0_SC_auth_asrt
+      - test_3.0_SC_auth_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.2_DB_auth
+      - test_3.2_DB_auth_asrt
+      - test_3.2_DB_auth_asrt_pp
       - test_3.2_RS
+      - test_3.2_RS_asrt
+      - test_3.2_RS_asrt_pp
       - test_3.2_RS_auth
+      - test_3.2_RS_auth_asrt
+      - test_3.2_RS_auth_asrt_pp
       - test_3.2_SC
+      - test_3.2_SC_asrt
+      - test_3.2_SC_asrt_pp
       - test_3.2_SC_auth
+      - test_3.2_SC_auth_asrt
+      - test_3.2_SC_auth_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.4_DB_auth
+      - test_3.4_DB_auth_asrt
+      - test_3.4_DB_auth_asrt_pp
       - test_3.4_RS
+      - test_3.4_RS_asrt
+      - test_3.4_RS_asrt_pp
       - test_3.4_RS_auth
+      - test_3.4_RS_auth_asrt
+      - test_3.4_RS_auth_asrt_pp
       - test_3.4_SC
+      - test_3.4_SC_asrt
+      - test_3.4_SC_asrt_pp
       - test_3.4_SC_auth
+      - test_3.4_SC_auth_asrt
+      - test_3.4_SC_auth_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_3.6_DB_auth
+      - test_3.6_DB_auth_asrt
+      - test_3.6_DB_auth_asrt_pp
       - test_3.6_RS
+      - test_3.6_RS_asrt
+      - test_3.6_RS_asrt_pp
       - test_3.6_RS_auth
+      - test_3.6_RS_auth_asrt
+      - test_3.6_RS_auth_asrt_pp
       - test_3.6_SC
+      - test_3.6_SC_asrt
+      - test_3.6_SC_asrt_pp
       - test_3.6_SC_auth
+      - test_3.6_SC_auth_asrt
+      - test_3.6_SC_auth_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_4.0_DB_auth
+      - test_4.0_DB_auth_asrt
+      - test_4.0_DB_auth_asrt_pp
       - test_4.0_RS
+      - test_4.0_RS_asrt
+      - test_4.0_RS_asrt_pp
       - test_4.0_RS_auth
+      - test_4.0_RS_auth_asrt
+      - test_4.0_RS_auth_asrt_pp
       - test_4.0_SC
+      - test_4.0_SC_asrt
+      - test_4.0_SC_asrt_pp
       - test_4.0_SC_auth
+      - test_4.0_SC_auth_asrt
+      - test_4.0_SC_auth_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
       - test_latest_DB_auth
+      - test_latest_DB_auth_asrt
+      - test_latest_DB_auth_asrt_pp
       - test_latest_RS
+      - test_latest_RS_asrt
+      - test_latest_RS_asrt_pp
       - test_latest_RS_auth
+      - test_latest_RS_auth_asrt
+      - test_latest_RS_auth_asrt_pp
       - test_latest_SC
+      - test_latest_SC_asrt
+      - test_latest_SC_asrt_pp
       - test_latest_SC_auth
+      - test_latest_SC_auth_asrt
+      - test_latest_SC_auth_asrt_pp
       - test_3.2_DB_ssl
+      - test_3.2_DB_ssl_asrt
+      - test_3.2_DB_ssl_asrt_pp
       - test_3.4_DB_ssl
+      - test_3.4_DB_ssl_asrt
+      - test_3.4_DB_ssl_asrt_pp
       - test_3.6_DB_ssl
+      - test_3.6_DB_ssl_asrt
+      - test_3.6_DB_ssl_asrt_pp
       - test_4.0_DB_ssl
+      - test_4.0_DB_ssl_asrt
+      - test_4.0_DB_ssl_asrt_pp
       - test_latest_DB_ssl
+      - test_latest_DB_ssl_asrt
+      - test_latest_DB_ssl_asrt_pp
   - name: os_windows64_perl_26
     display_name: Win64 Perl 5.26
     expansions:
@@ -2869,12 +6497,26 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
   - name: os_windows64_perl_28
     display_name: Win64 Perl 5.28
     expansions:
@@ -2888,9 +6530,23 @@ buildvariants:
       - build
       - check
       - test_2.6_DB
+      - test_2.6_DB_asrt
+      - test_2.6_DB_asrt_pp
       - test_3.0_DB
+      - test_3.0_DB_asrt
+      - test_3.0_DB_asrt_pp
       - test_3.2_DB
+      - test_3.2_DB_asrt
+      - test_3.2_DB_asrt_pp
       - test_3.4_DB
+      - test_3.4_DB_asrt
+      - test_3.4_DB_asrt_pp
       - test_3.6_DB
+      - test_3.6_DB_asrt
+      - test_3.6_DB_asrt_pp
       - test_4.0_DB
+      - test_4.0_DB_asrt
+      - test_4.0_DB_asrt_pp
       - test_latest_DB
+      - test_latest_DB_asrt
+      - test_latest_DB_asrt_pp
