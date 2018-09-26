@@ -6,7 +6,7 @@ ignore:
   - /.evergreen/dependencies
   - /.evergreen/toolchain
 
-exec_timeout_secs: 2400
+exec_timeout_secs: 3600
 
 timeout:
   - command: shell.exec
