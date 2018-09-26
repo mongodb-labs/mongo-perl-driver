@@ -647,21 +647,6 @@ sub _supports_sessions {
     return defined $self->logical_session_timeout_minutes;
 }
 
-# Used for bulkWrite for shortcutting to original execute command
-sub _supports_retry_writes {
-    my ( $self ) = @_;
-
-    # retryWrites arent supported in standalone servers
-    return if $self->type eq 'Single';
-
-    # retryWrites require a wire version of at least six
-    return if $self->wire_version_ceil < 6;
-
-    # must have lstm present
-    return 1 if defined $self->logical_session_timeout_minutes;
-    return;
-}
-
 sub _supports_transactions {
     my ( $self ) = @_;
 
