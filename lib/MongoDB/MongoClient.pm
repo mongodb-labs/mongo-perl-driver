@@ -544,6 +544,40 @@ has port => (
     default => 27017,
 );
 
+=attr read_concern_level
+
+The read concern level determines the consistency level required
+of data being read.
+
+The default level is C<undef>, which means the server will use its configured
+default.
+
+If the level is set to "local", reads will return the latest data a server has
+locally.
+
+Additional levels are storage engine specific.  See L<Read
+Concern|http://docs.mongodb.org/manual/search/?query=readConcern> in the MongoDB
+documentation for more details.
+
+This may be set in a connection string with the the C<readConcernLevel> option.
+
+=cut
+
+has read_concern_level => (
+    is      => 'lazy',
+    isa     => Maybe [Str],
+    builder => '_build_read_concern_level',
+);
+
+sub _build_read_concern_level {
+    my ($self) = @_;
+    return $self->__uri_or_else(
+        u => 'readconcernlevel',
+        e => 'read_concern_level',
+        d => undef,
+    );
+}
+
 =attr read_pref_mode
 
 The read preference mode determines which server types are candidates
@@ -638,6 +672,61 @@ sub _build_replica_set_name {
         u => 'replicaset',
         e => 'replica_set_name',
         d => '',
+    );
+}
+
+=attr retry_writes
+
+Whether the client should use retryable writes for supported commands. The
+default value is false, which means that no write commands will be retried.
+
+If this is set to a true value, then commands which support retryable writes
+will be retried on certain errors, such as C<not master> and C<node is
+recovering> errors.
+
+This may be set in a connection string with the C<retryWrites> option.
+
+Note that this is only supported on MongoDB > 3.6 in Replica Set or Shard
+Clusters, and will be ignored on other deployments.
+
+Unacknowledged write operations also do not support retryable writes, even when
+retry_writes has been enabled.
+
+The supported single statement write operations are currently as follows:
+
+=for :list
+* C<insert_one>
+* C<update_one>
+* C<replace_one>
+* C<delete_one>
+* C<find_one_and_delete>
+* C<find_one_and_replace>
+* C<find_one_and_update>
+
+The supported multi statement write operations are as follows:
+
+=for :list
+* C<insert_many>
+* C<bulk_write>
+
+The multi statement operations may be ether ordered or unordered. Note that for
+C<bulk_write> operations, the request may not include update_many or
+delete_many operations.
+
+=cut
+
+has retry_writes => (
+    is      => 'lazy',
+    isa     => Boolish,
+    builder => '_build_retry_writes',
+);
+
+sub _build_retry_writes {
+    my ( $self ) = @_;
+    return $self->__uri_or_else(
+        u => 'retrywrites',
+        e => 'retry_writes',
+        d => 0,
     );
 }
 
@@ -936,95 +1025,6 @@ sub _build_wtimeout {
         u => 'wtimeoutms',
         e => 'wtimeout',
         d => 1000,
-    );
-}
-
-=attr read_concern_level
-
-The read concern level determines the consistency level required
-of data being read.
-
-The default level is C<undef>, which means the server will use its configured
-default.
-
-If the level is set to "local", reads will return the latest data a server has
-locally.
-
-Additional levels are storage engine specific.  See L<Read
-Concern|http://docs.mongodb.org/manual/search/?query=readConcern> in the MongoDB
-documentation for more details.
-
-This may be set in a connection string with the the C<readConcernLevel> option.
-
-=cut
-
-has read_concern_level => (
-    is      => 'lazy',
-    isa     => Maybe [Str],
-    builder => '_build_read_concern_level',
-);
-
-sub _build_read_concern_level {
-    my ($self) = @_;
-    return $self->__uri_or_else(
-        u => 'readconcernlevel',
-        e => 'read_concern_level',
-        d => undef,
-    );
-}
-
-=attr retry_writes
-
-Whether the client should use retryable writes for supported commands. The
-default value is false, which means that no write commands will be retried.
-
-If this is set to a true value, then commands which support retryable writes
-will be retried on certain errors, such as C<not master> and C<node is
-recovering> errors.
-
-This may be set in a connection string with the C<retryWrites> option.
-
-Note that this is only supported on MongoDB > 3.6 in Replica Set or Shard
-Clusters, and will be ignored on other deployments.
-
-Unacknowledged write operations also do not support retryable writes, even when
-retry_writes has been enabled.
-
-The supported single statement write operations are currently as follows:
-
-=for :list
-* C<insert_one>
-* C<update_one>
-* C<replace_one>
-* C<delete_one>
-* C<find_one_and_delete>
-* C<find_one_and_replace>
-* C<find_one_and_update>
-
-The supported multi statement write operations are as follows:
-
-=for :list
-* C<insert_many>
-* C<bulk_write>
-
-The multi statement operations may be ether ordered or unordered. Note that for
-C<bulk_write> operations, the request may not include update_many or
-delete_many operations.
-
-=cut
-
-has retry_writes => (
-    is      => 'lazy',
-    isa     => Boolish,
-    builder => '_build_retry_writes',
-);
-
-sub _build_retry_writes {
-    my ( $self ) = @_;
-    return $self->__uri_or_else(
-        u => 'retrywrites',
-        e => 'retry_writes',
-        d => 0,
     );
 }
 
