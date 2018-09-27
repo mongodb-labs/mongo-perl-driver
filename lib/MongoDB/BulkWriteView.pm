@@ -121,7 +121,6 @@ sub _update {
     }
 
     $self->_bulk->_retryable( 0 ) if $method eq 'update_many';
-    $self->_bulk->_retryable( 0 ) if $method eq 'delete_many';
 
     my $update = {
         q      => $self->_query,
@@ -140,6 +139,7 @@ sub _update {
 
 sub delete_many {
     my ($self) = @_;
+    $self->_bulk->_retryable( 0 );
     $self->_enqueue_write(
         [
             delete => {

@@ -246,6 +246,17 @@ sub _execute_write_command_batch {
                 }
             }
             else {
+                # We are already going to explode from something here, but
+                # BulkWriteResult has the correct parsing method to allow us to
+                # check for write errors, as they have a higher priority than
+                # write concern errors.
+                MongoDB::BulkWriteResult->_parse_cmd_result(
+                    op => $type,
+                    op_count => scalar @$chunk,
+                    result => $_->result,
+                    cmd_doc => $cmd_doc,
+                )->assert_no_write_error;
+                # Explode with original error
                 die $_;
             }
             return;
