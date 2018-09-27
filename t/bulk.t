@@ -1075,7 +1075,6 @@ subtest "ordered batch with errors" => sub {
 
 note("QA-477 BATCH SPLITTING: maxBsonObjectSize");
 subtest "ordered batch split on size" => sub {
-    local $TODO = "pending topology monitoring";
     $coll->drop;
 
     my $bulk = $coll->initialize_ordered_bulk_op;
@@ -1105,7 +1104,6 @@ subtest "ordered batch split on size" => sub {
 };
 
 subtest "unordered batch split on size" => sub {
-    local $TODO = "pending topology monitoring";
     $coll->drop;
 
     my $bulk = $coll->initialize_unordered_bulk_op;

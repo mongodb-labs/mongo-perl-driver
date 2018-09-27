@@ -640,11 +640,7 @@ sub check_command_field {
             or
             ($event->{commandName} eq 'getMore' and $exp_key eq 'batchSize')
         ) {
-            TODO: {
-                local $TODO =
-                    "Command field '$exp_key' requires other fixes";
-                cmp_deeply $event_value, $exp_value, $label;
-            }
+            cmp_deeply $event_value, $exp_value, $label;
         }
         elsif ( !defined $exp_value )
         {
