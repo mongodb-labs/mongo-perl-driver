@@ -22,6 +22,7 @@
 # use `db.inventory`.  Testing commands use a `$coll` variable for more
 # idiomatic brevity.
 
+use v5.10;
 use strict;
 use warnings;
 use Test::More 0.96;
@@ -29,9 +30,16 @@ use Test::More 0.96;
 use MongoDB;
 use Tie::IxHash;
 use boolean;
+use BSON::Types 'bson_time';
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
+use MongoDBTest qw/
+    build_client
+    get_test_db
+    server_version
+    skip_unless_mongod
+    skip_unless_sessions
+/;
 
 skip_unless_mongod();
 
@@ -971,6 +979,80 @@ subtest 'indexing' => sub {
         { partialFilterExpression => { rating => { '$gt' => 5 } } },
     );
     # End Index Example 2
+
+    pass();
+};
+
+subtest "causalConsistency" => sub {
+
+    skip_unless_sessions();
+
+    # Prep for examples
+    my $current_date = bson_time();
+    my $items = $conn->get_database("test", { w => 'majority' })->get_collection("items");
+    $items->drop;
+    $items->insert_one(
+        {
+            sku => 111,
+            name  => "Peanuts",
+            start => $current_date
+        }
+    );
+
+    # Start Causal Consistency Example 1
+
+    my $s1 = $conn->start_session({ causalConsistency => 1 });
+    $items = $conn->get_database(
+        "test", {
+            read_concern => { level => 'majority' },
+            write_concern => { w => 'majority', wtimeout => 10000 },
+        }
+    )->get_collection("items");
+    $items->update_one(
+        {
+            sku => 111,
+            end  => undef
+        },
+        {
+            '$set' => { end => $current_date}
+        },
+        {
+            session => $s1
+        }
+    );
+    $items->insert_one(
+        {
+            sku => "nuts-111",
+            name  => "Pecans",
+            start => $current_date
+        },
+        {
+            session => $s1
+        }
+    );
+
+    # End Causal Consistency Example 1
+
+    # Start Causal Consistency Example 2
+
+    my $s2 = $conn->start_session({ causalConsistency => 1 });
+    $s2->advance_cluster_time( $s1->cluster_time );
+    $s2->advance_operation_time( $s1->operation_time );
+
+    $items = $conn->get_database(
+        "test", {
+            read_preference => 'secondary',
+            read_concern => { level => 'majority' },
+            write_concern => { w => 'majority', wtimeout => 10000 },
+        }
+    )->get_collection("items");
+    $cursor = $items->find( { end => undef }, { session => $s2 } );
+
+    for my $item ( $cursor->all ) {
+        say join(" ", %$item);
+    }
+
+    # End Causal Consistency Example 2
 
     pass();
 };
