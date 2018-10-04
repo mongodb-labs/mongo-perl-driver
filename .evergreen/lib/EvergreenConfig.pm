@@ -618,7 +618,10 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
+      set +x
+      echo "export MONGOD=<redacted>"
       export MONGOD="${uri}"
+      set -x
       $PERL ${repo_directory}/.evergreen/testing/live-test.pl
 "testModule" :
   command: shell.exec
