@@ -152,14 +152,18 @@ sub orch_test {
 # interpose extra steps before actually testing the driver
 
 sub test {
-    my %opts  = @_;
-    my $name  = $opts{name} // 'unit_test';
-    my $deps  = $opts{deps} // ['build'];
-    my @extra = $opts{extra} ? @{ $opts{extra} } : ();
-    my $assert = $opts{assert} ? 1 : 0;
-    my $bsonpp = $opts{bsonpp} ? "BSON::PP" : "";
+    my %opts    = @_;
+    my $name    = $opts{name} // 'unit_test';
+    my $deps    = $opts{deps} // ['build'];
+    my @extra   = $opts{extra} ? @{ $opts{extra} } : ();
+    my $assert  = $opts{assert} ? 1 : 0;
+    my $bsonpp  = $opts{bsonpp} ? "BSON::PP" : "";
+    my @default =
+      $opts{nodefault}
+      ? ()
+      : ( [ 'testDriver' => { assert => $assert, bsonpp => $bsonpp } ] );
     return task(
-        $name      => [ qw/whichPerl downloadBuildArtifacts/, @extra, [ 'testDriver' => { assert => $assert, bsonpp => $bsonpp } ] ],
+        $name      => [ qw/whichPerl downloadBuildArtifacts/, @extra, @default ],
         depends_on => $deps,
         filter     => $opts{filter},
     );
@@ -245,10 +249,11 @@ sub main {
         filter => $atlas_filter
       ),
       test(
-        name   => 'test_atlas',
-        filter => $atlas_filter,
-        deps   => ['build_for_atlas'],
-        extra  => [qw/setupAtlasProxy testAtlasProxy/],
+        name      => 'test_atlas',
+        filter    => $atlas_filter,
+        deps      => ['build_for_atlas'],
+        extra     => [qw/setupAtlasProxy testAtlasProxy/],
+        nodefault => 1,
       );
 
     # Build filter to avoid "ld" Perls on Z-series

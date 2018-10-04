@@ -3425,10 +3425,6 @@ tasks:
       - func: downloadBuildArtifacts
       - func: setupAtlasProxy
       - func: testAtlasProxy
-      - func: testDriver
-        vars:
-          assert: 0
-          bsonpp: ''
     depends_on:
       - name: build_for_atlas
 
