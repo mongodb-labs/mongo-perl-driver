@@ -187,7 +187,7 @@ sub _is_retryable {
 
     return 1 if _check_is_retryable_message( $self->message );
 
-    if ( $self->$_isa( 'MongoDB::WriteConcernError' ) ) {
+    if ( $self->$_isa( 'MongoDB::WriteConcernError' ) && $self->result->$_can( 'output' ) ) {
       return 1 if _check_is_retryable_code( $self->result->output->{writeConcernError}{code} );
       return 1 if _check_is_retryable_message( $self->result->output->{writeConcernError}{message} );
     }
