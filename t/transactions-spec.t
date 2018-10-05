@@ -192,7 +192,13 @@ sub run_test {
         $client_options->{read_pref_mode} = delete $client_options->{read_preference};
     }
 
-    my $client = build_client( monitoring_callback => \&event_cb, %$client_options );
+    my $client = build_client(
+      monitoring_callback => \&event_cb,
+      # Explicitly disable retry_writes for the test, as they change the
+      # txnNumber counting used in the test specs.
+      retry_writes => 0,
+      %$client_options
+    );
 
     my $session_options = $test->{sessionOptions} // {};
 

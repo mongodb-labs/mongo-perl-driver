@@ -271,7 +271,9 @@ subtest 'redactions' => sub {
 };
 
 sub _coll_with_monitor {
-    my $mc     = build_client( monitoring_callback => \&event_cb );
+    # retry writes messes with event counting and iterating over events from
+    # monitoring callback
+    my $mc     = build_client( monitoring_callback => \&event_cb, retry_writes => 0 );
     my $testdb = get_test_db($mc);
     my $col = $testdb->coll(@_);
 }
