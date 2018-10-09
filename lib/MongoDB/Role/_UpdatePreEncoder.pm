@@ -34,13 +34,20 @@ requires qw/bson_codec/;
 sub _pre_encode_update {
     my ( $self, $max_bson_object_size, $doc, $is_replace ) = @_;
 
-    my $bson_doc = $self->bson_codec->encode_one(
-        $doc,
-        {
-            invalid_chars => $is_replace ? '.' : '',
-            max_length => $is_replace ? $max_bson_object_size : undef,
-        }
-    );
+    my $type = ref($doc);
+    my $bson_doc;
+
+    if ( $type eq 'BSON::Raw' ) {
+        $bson_doc = $doc->bson;
+    } else {
+        $bson_doc = $self->bson_codec->encode_one(
+            $doc,
+            {
+                invalid_chars => $is_replace ? '.' : '',
+                max_length => $is_replace ? $max_bson_object_size : undef,
+            }
+        );
+    }
 
     # must check if first character of first key is valid for replace/update;
     # do this from BSON to get key *after* op_char replacment;
@@ -70,6 +77,7 @@ sub _pre_encode_update {
         );
     }
 
+    return $doc if $type eq 'BSON::Raw';
     # manually bless for speed
     return bless { bson => $bson_doc, metadata => {} }, "BSON::Raw";
 }

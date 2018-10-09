@@ -45,6 +45,13 @@ sub _pre_encode_insert {
             $i < $#$doc ? $doc->[ $i + 1 ] : undef;
           }
         : $type eq 'Tie::IxHash' ? $doc->FETCH('_id')
+        : $type eq 'BSON::Raw' ? do {
+            my $decoded_doc = $self->bson_codec->decode_one(
+                $doc->bson,
+                { ordered => 1 }
+            );
+            $decoded_doc->{_id};
+            }
         : $doc->{_id} # hashlike?
     );
     if ( ! defined $id ) {
