@@ -1421,14 +1421,15 @@ sub disconnect {
     $client->reconnect;
 
 This method closes all connections to the server, as if L</disconnect> were
-called, and then immediately reconnects.  Use this after forking or spawning
-off a new thread.
+called, and then immediately reconnects.  It also clears the session
+cache.  Use this after forking or spawning off a new thread.
 
 =cut
 
 sub reconnect {
     my ($self) = @_;
     $self->_topology->close_all_links;
+    $self->_server_session_pool->reset_pool;
     $self->_topology->scan_all_servers(1);
     return 1;
 }
