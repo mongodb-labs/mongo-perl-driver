@@ -90,6 +90,16 @@ has transaction_id => (
     default => sub { Math::BigInt->new('0') },
 );
 
+# pool_epoch
+#
+# tracks which pool the session came from; sessions won't be checked into
+# a newer pool
+
+has pool_epoch => (
+    is => 'ro',
+    default => -1,
+);
+
 # update_last_use
 #
 #     $server_session->update_last_use;

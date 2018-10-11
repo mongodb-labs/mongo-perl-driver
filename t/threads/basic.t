@@ -57,6 +57,7 @@ $col->drop;
 }
 
 {
+    $col->drop;
     my ($n_threads, $n_inserts) = $ENV{AUTOMATED_TESTING} ? (10,1000) : (5, 100);
     note "inserting $n_inserts items each in $n_threads threads";
     my @threads = map {
@@ -66,7 +67,7 @@ $col->drop;
             my @ids = map { $col->insert_one({ foo => threads->self->tid })->inserted_id } 1 .. $n_inserts;
             # reading our writes while still in the thread should ensure
             # inserts are globally visible before the thread exits
-            $col->find_one({ _id => $_}) for @ids;
+            my @docs = map { $col->find_one({ _id => $_}) } @ids;
             return @ids;
         })
     } 1 .. $n_threads;
@@ -74,9 +75,10 @@ $col->drop;
     my @vals = map { ( $_->tid ) x $n_inserts } @threads;
     my @ids = map { $_->join } @threads;
 
-    my $expected = scalar @ids;
-    is scalar keys %{ { map { ($_ => undef) } @ids } }, $expected,
-        "we got $expected unique OIDs";
+    my $expected_n = $n_threads * $n_inserts;
+    is( $col->count_documents({}), $expected_n, "expected number of docs inserted" );
+    is( scalar(@ids), $expected_n, "expected number of ids returned" );
+    is( scalar keys %{ { map { ($_ => undef) } @ids } }, $expected_n, "ids are unique" );
 
     is_deeply(
         [map { $col->find_one({ _id => $_ })->{foo} } @ids],

@@ -42,9 +42,15 @@ has _server_session_pool => (
     is => 'lazy',
     isa => ArrayRef[InstanceOf['MongoDB::_ServerSession']],
     init_arg => undef,
+    clearer => 1,
     builder => sub { [] },
 );
 
+has _pool_epoch => (
+    is => 'rwp',
+    init_arg => undef,
+    default => 0,
+);
 
 # Returns a L<MongoDB::ServerSession> that was at least one minute remaining
 # before session times out. Returns undef if no sessions available.
@@ -62,7 +68,7 @@ sub get_server_session {
             return $session;
         }
     }
-    return MongoDB::_ServerSession->new;
+    return MongoDB::_ServerSession->new( pool_epoch => $self->_pool_epoch );
 }
 
 # Place a session back into the pool for use. Will check that there is at least
@@ -74,6 +80,8 @@ sub get_server_session {
 
 sub retire_server_session {
     my ( $self, $server_session ) = @_;
+
+    return if $server_session->pool_epoch != $self->_pool_epoch;
 
     my $session_timeout = $self->topology->logical_session_timeout_minutes;
 
@@ -110,6 +118,15 @@ sub end_all_sessions {
             ], 'primaryPreferred');
         };
     }
+}
+
+# When reconnecting a client after a fork, we need to clear the pool
+# without ending sessions with the server and increment the pool epoch
+# so existing sessions aren't checked back in.
+sub reset_pool {
+    my ( $self ) = @_;
+    $self->_clear_server_session_pool;
+    $self->_set__pool_epoch( $self->_pool_epoch + 1 );
 }
 
 sub DEMOLISH {
