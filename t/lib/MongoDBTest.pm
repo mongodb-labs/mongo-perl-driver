@@ -93,6 +93,7 @@ sub build_client {
             server_selection_try_once   => 0,
             wtimeout                    => 5000,
             compressors                 => ['zlib'],
+            retry_writes                => 1,
             ( $codec ? ( bson_codec => $codec ) : () ),
             %args,
         }
