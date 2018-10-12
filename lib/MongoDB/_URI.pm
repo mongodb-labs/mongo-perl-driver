@@ -98,13 +98,14 @@ sub _build_valid_options {
             authMechanismProperties
             authSource
             compressors
-            connectTimeoutMS
             connect
+            connectTimeoutMS
             heartbeatFrequencyMS
             journal
             localThresholdMS
             maxStalenessSeconds
             maxTimeMS
+            readConcernLevel
             readPreference
             readPreferenceTags
             replicaSet
@@ -116,7 +117,6 @@ sub _build_valid_options {
             ssl
             w
             wTimeoutMS
-            readConcernLevel
             zlibCompressionLevel
         )
     };

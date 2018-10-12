@@ -1984,19 +1984,31 @@ string:
 The currently supported connection string options are:
 
 =for :list
-*appName
-*authMechanism
-*authMechanism.SERVICE_NAME
-*compressors
-*connectTimeoutMS
-*journal
-*readPreference
-*readPreferenceTags
-*replicaSet
-*ssl
-*w
-*wtimeoutMS
-*zlibCompressionLevel
+* C<appName>
+* C<authMechanism>
+* C<authMechanismProperties>
+* C<authSource>
+* C<compressors>
+* C<connect>
+* C<connectTimeoutMS>
+* C<heartbeatFrequencyMS>
+* C<journal>
+* C<localThresholdMS>
+* C<maxStalenessSeconds>
+* C<maxTimeMS>
+* C<readConcernLevel>
+* C<readPreference>
+* C<readPreferenceTags>
+* C<replicaSet>
+* C<retryWrites>
+* C<serverSelectionTimeoutMS>
+* C<serverSelectionTryOnce>
+* C<socketCheckIntervalMS>
+* C<socketTimeoutMS>
+* C<ssl>
+* C<w>
+* C<wTimeoutMS>
+* C<zlibCompressionLevel>
 
 See the official MongoDB documentation on connection strings for more on the URI
 format and connection string options:
