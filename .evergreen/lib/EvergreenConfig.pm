@@ -1,3 +1,17 @@
+#  Copyright 2017 - present MongoDB, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 use 5.008001;
 use strict;
 use warnings;
@@ -55,27 +69,20 @@ my $WEEK_IN_SECS = 7 * 24 * 3600;
 # We test default config, plus threaded ("t") and long-double ("ld")
 # configs.
 my @unix_perls =
-  map { $_, "${_}t", "${_}ld" } qw/10 12 14 16 18 20 22 24 26/;
+  map { $_, "${_}t", "${_}ld" } qw/10 12 14 16 18 20 22 24 26 28/;
 
 # For Windows, we test from 5.14.4 to 5.24.0, as these are available in
 # "portable" format.  There are no configuration suffixes; we just use
 # the standard Strawberry Perl builds (which happen to be threaded).
-my @win_perls = qw/14 16 18 20 22 24 26/;
-
-# MongoDB's Windows Evergreen hosts have a different naming scheme than
-# Unix hosts.  We don't care about the compiler type (as we use the MinGW
-# bundled with Strawberry Perl), so we want to run on as many host-types as
-# possible.
-my @win_dists = (
-    ( map { ; "windows-64-$_-compile", "windows-64-$_-test" } qw/vs2010 vs2013/ ),
-    ( map { ; "windows-64-vs2015-$_" } qw/compile test large/ )
-);
-
-
+my @win_perls = qw/14 16 18 20 22 24 26 28/;
 
 # For Z series, ARM64 and Power8 (aka ZAP), only more recent perls compile
-# cleanly, so we test a smaller range of Perls.
-my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
+# cleanly, so we test a smaller range of Perls.  Long doubles on Z and
+# ARM cause problems in dependencies, we so skip those as well.  Threads
+# are already discouraged and tested on x86_64, so we only test vanilla
+# perls on ZAP.  We use a threaded perl so that perls before 5.20 that didn't
+# automatically link libpthread (even for unthreaded perls) have libpthread.
+my @zap_perls = map { "${_}t" } qw/16 18 20 22 24 26 28/;
 
 # The %os_map variable provides details of the full range of MongoDB
 # Evergreen operating systems we might run on, plus configuration details
@@ -94,19 +101,76 @@ my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
 # perls: a list of perl "versions" (really version plus an optional
 # configuration suffix) to use on that OS.
 my %os_map = (
-    ubuntu1604 => {
-        name     => "Ubuntu 16.04",
-        run_on   => [ 'ubuntu1604-test' ],
+    amazon2 => {
+        name     => "Amazon v2 x86_64",
+        run_on   => [ 'amazon2-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    debian81 => {
+        name     => "Debian 8.1 x86_64",
+        run_on   => [ 'debian81-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    debian92 => {
+        name     => "Debian 9.2 x86_64",
+        run_on   => [ 'debian92-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@unix_perls,
     },
     rhel62 => {
-        name     => "RHEL 6.2",
-        run_on   => [ 'rhel62-test' ],
+        name     => "RHEL 6.2 x86_64",
+        run_on   => [ 'rhel62-small' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@unix_perls,
+    },
+    rhel70 => {
+        name     => "RHEL 7.0 x86_64",
+        run_on   => [ 'rhel70-small' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    suse12 => {
+        name     => "SUSE 12 x86_64",
+        run_on   => [ 'suse12-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    ubuntu1404 => {
+        name     => "Ubuntu 14.04 x86_64",
+        run_on   => [ 'ubuntu1404-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    ubuntu1604 => {
+        name     => "Ubuntu 16.04 x86_64",
+        run_on   => [ 'ubuntu1604-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    ubuntu1804 => {
+        name     => "Ubuntu 18.04 x86_64",
+        run_on   => [ 'ubuntu1804-test' ],
+        perlroot => '/opt/perl',
+        perlpath => 'bin',
+        perls    => \@unix_perls,
+    },
+    windows32 => {
+        name     => "Win32",
+        run_on   => [ 'windows-32' ],
+        perlroot => '/cygdrive/c/perl',
+        perlpath => 'perl/bin',
+        ccpath   => 'c/bin',
+        perls    => \@win_perls,
     },
     windows64 => {
         name     => "Win64",
@@ -116,9 +180,9 @@ my %os_map = (
         ccpath   => 'c/bin',
         perls    => \@win_perls,
     },
-    suse12_z => {
-        name     => "SUSE 12 Z Series",
-        run_on   => [ 'suse12-zseries-test' ],
+    rhel67_z => {
+        name     => "ZAP RHEL 6.7 Z Series",
+        run_on   => [ 'rhel67-zseries-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@zap_perls,
@@ -126,7 +190,7 @@ my %os_map = (
         batchtime => $WEEK_IN_SECS,
     },
     ubuntu1604_arm64 => {
-        name     => "Ubuntu 16.04 ARM64",
+        name     => "ZAP Ubuntu 16.04 ARM64",
         run_on   => [ 'ubuntu1604-arm64-large' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
@@ -135,7 +199,7 @@ my %os_map = (
         batchtime => $WEEK_IN_SECS,
     },
     ubuntu1604_power8 => {
-        name     => "Ubuntu 16.04 Power8",
+        name     => "ZAP Ubuntu 16.04 Power8",
         run_on   => [ 'ubuntu1604-power8-test' ],
         perlroot => '/opt/perl',
         perlpath => 'bin',
@@ -546,6 +610,8 @@ __DATA__
     script: |
       ${prepare_shell}
       export MONGOD=$(echo "${MONGODB_URI}" | tr -d '[:space:]')
+      export PERL_MONGO_WITH_ASSERTS=${assert}
+      export PERL_BSON_BACKEND="${bsonpp}"
       SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/test.pl
 "testLive" :
   command: shell.exec
@@ -553,7 +619,10 @@ __DATA__
   params:
     script: |
       ${prepare_shell}
+      set +x
+      echo "export MONGOD=<redacted>"
       export MONGOD="${uri}"
+      set -x
       $PERL ${repo_directory}/.evergreen/testing/live-test.pl
 "testModule" :
   command: shell.exec
@@ -589,12 +658,18 @@ __DATA__
     permissions: public-read
     content_type: application/x-gzip
 "downloadPerl5Lib" :
-  command: shell.exec
-  params:
-    script: |
-      ${prepare_shell}
-      curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
-      tar -zxf perl5lib.tar.gz
+  - command: s3.get
+    params:
+      bucket: mciuploads
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz
+      local_file: perl5lib.tar.gz
+  - command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        tar -zxf perl5lib.tar.gz
 "uploadBuildArtifacts":
   - command: s3.put
     params:
@@ -606,13 +681,45 @@ __DATA__
       permissions: public-read
       content_type: application/x-gzip
 "downloadBuildArtifacts" :
-  command: shell.exec
-  params:
-    script: |
-      ${prepare_shell}
-      cd ${repo_directory}
-      curl https://s3.amazonaws.com/mciuploads/${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz -o build.tar.gz --fail --show-error --silent --max-time 240
-      tar -zxmf build.tar.gz
+  - command: s3.get
+    params:
+      bucket: mciuploads
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      remote_file: ${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz
+      local_file: build.tar.gz
+  - command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        tar -zxf build.tar.gz
+"uploadOrchestrationLogs":
+  - command: shell.exec
+    params:
+      script: |
+        ${prepare_shell}
+        cd driver-tools/.evergreen
+        find orchestration -name \*.log | xargs tar czf mongodb-logs.tar.gz
+  - command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: driver-tools/.evergreen/mongodb-logs.tar.gz
+      remote_file: ${aws_artifact_prefix}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
+      bucket: mciuploads
+      permissions: public-read
+      content_type: ${content_type|application/x-gzip}
+      display_name: "mongodb-logs.tar.gz"
+  - command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: driver-tools/.evergreen/orchestration/server.log
+      remote_file: ${aws_artifact_prefix}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-orchestration.log
+      bucket: mciuploads
+      permissions: public-read
+      content_type: ${content_type|text/plain}
+      display_name: "orchestration.log"
 "cleanUp":
   command: shell.exec
   params:

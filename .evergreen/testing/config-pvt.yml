@@ -32,21 +32,32 @@ functions:
         rm -rf ${repo_directory}
 
   "downloadBuildArtifacts" :
-    command: shell.exec
-    params:
-      script: |
-        ${prepare_shell}
-        cd ${repo_directory}
-        curl https://s3.amazonaws.com/mciuploads/${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz -o build.tar.gz --fail --show-error --silent --max-time 240
-        tar -zxmf build.tar.gz
+    - command: s3.get
+      params:
+        bucket: mciuploads
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: ${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz
+        local_file: build.tar.gz
+    - command: shell.exec
+      params:
+        script: |
+          ${prepare_shell}
+          tar -zxf build.tar.gz
 
   "downloadPerl5Lib" :
-    command: shell.exec
-    params:
-      script: |
-        ${prepare_shell}
-        curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
-        tar -zxf perl5lib.tar.gz
+    - command: s3.get
+      params:
+        bucket: mciuploads
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz
+        local_file: perl5lib.tar.gz
+    - command: shell.exec
+      params:
+        script: |
+          ${prepare_shell}
+          tar -zxf perl5lib.tar.gz
 
   "dynamicVars":
     - command: shell.exec
@@ -84,6 +95,8 @@ functions:
       script: |
         ${prepare_shell}
         export MONGOD=$(echo "${MONGODB_URI}" | tr -d '[:space:]')
+        export PERL_MONGO_WITH_ASSERTS=${assert}
+        export PERL_BSON_BACKEND="${bsonpp}"
         SSL=${ssl} $PERL ${repo_directory}/.evergreen/testing/test.pl
 
   "testLive" :
@@ -92,7 +105,10 @@ functions:
     params:
       script: |
         ${prepare_shell}
+        set +x
+        echo "export MONGOD=<redacted>"
         export MONGOD="${uri}"
+        set -x
         $PERL ${repo_directory}/.evergreen/testing/live-test.pl
 
   "uploadBuildArtifacts":
@@ -219,7 +235,7 @@ tasks:
 
 buildvariants:
   - name: os_ubuntu1604_perl_24
-    display_name: Ubuntu 16.04 Perl 5.24
+    display_name: Ubuntu 16.04 x86_64 Perl 5.24
     expansions:
       addpaths: /opt/perl/24/bin
       os: ubuntu1604

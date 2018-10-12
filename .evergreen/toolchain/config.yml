@@ -152,6 +152,80 @@ tasks:
 # BUILD VARIANTS
 
 buildvariants:
+
+# Amazon
+
+- name: amazon-v2
+  display_name: Amazon v2 x86_64
+  run_on:
+    - amazon2-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+# Debian
+
+- name: debian81
+  display_name: Debian 8.1 x86_64
+  run_on:
+    - debian81-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+- name: debian92
+  display_name: Debian 9.2 x86_64
+  run_on:
+    - debian92-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+# RedHat
+
+- name: rhel62
+  display_name: RedHat 6.2 x86_64
+  run_on:
+    - rhel62-large
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+- name: rhel70
+  display_name: RedHat 7.0 x86_64
+  run_on:
+    - rhel70
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+# SUSE
+
+- name: suse12
+  display_name: SUSE 12 x86_64
+  run_on:
+    - suse12-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+# Ubuntu
+
+- name: ubuntu1404
+  display_name: Ubuntu 14.04 x86_64
+  run_on:
+    - ubuntu1404-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
 - name: ubuntu1604
   display_name: Ubuntu 16.04 x86_64
   run_on:
@@ -160,38 +234,18 @@ buildvariants:
     - build-unix-perls
     - validate-unix-perls
     - push-unix-perls
-- name: ubuntu1604-arm64
-  display_name: Ubuntu 16.04 ARM64
+
+- name: ubuntu1804
+  display_name: Ubuntu 18.04 x86_64
   run_on:
-    - ubuntu1604-arm64-large
+    - ubuntu1804-build
   tasks:
     - build-unix-perls
     - validate-unix-perls
     - push-unix-perls
-- name: ubuntu1604-power8
-  display_name: Ubuntu 16.04 Power8
-  run_on:
-    - ubuntu1604-power8-build
-  tasks:
-    - build-unix-perls
-    - validate-unix-perls
-    - push-unix-perls
-- name: suse12-zseries
-  display_name: SUSE 12 Z Series
-  run_on:
-    - suse12-zseries-build
-  tasks:
-    - build-unix-perls
-    - validate-unix-perls
-    - push-unix-perls
-- name: rhel62
-  display_name: RedHat 6.2
-  run_on:
-    - rhel62-build
-  tasks:
-    - build-unix-perls
-    - validate-unix-perls
-    - push-unix-perls
+
+# Windows
+
 - name: windows64
   display_name: Windows64
   run_on:
@@ -200,3 +254,59 @@ buildvariants:
     - build-win-perls
     - validate-win-perls
     - push-win-perls
+
+- name: windows32
+  display_name: Windows32
+  run_on:
+    - windows-32
+  tasks:
+    - build-win-perls
+    - validate-win-perls
+    - push-win-perls
+
+# ZAP
+
+- name: rhel67-zseries
+  display_name: ZAP RedHat 6.7 Z Series
+  run_on:
+    - rhel67-zseries-test
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+- name: rhel72-zseries
+  display_name: ZAP RedHat 7.2 Z Series
+  run_on:
+    - rhel72-zseries-test
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+- name: ubuntu1604-arm64
+  display_name: ZAP Ubuntu 16.04 ARM64
+  run_on:
+    - ubuntu1604-arm64-large
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+- name: rhel71-power8
+  display_name: ZAP RedHat 7.1 Power8
+  run_on:
+    - rhel71-power8-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+- name: ubuntu1604-power8
+  display_name: ZAP Ubuntu 16.04 Power8
+  run_on:
+    - ubuntu1604-power8-build
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls

@@ -1,4 +1,19 @@
 #!/usr/bin/env perl
+#
+#  Copyright 2017 - present MongoDB, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 use v5.10;
 use strict;
 use warnings;
@@ -16,13 +31,19 @@ use EvergreenConfig;
 #--------------------------------------------------------------------------#
 
 # $OS_FILTER is a filter definition to allow all operating systems
-my $OS_FILTER =
-  { os =>
-      [ 'rhel62', 'windows64', 'suse12_z', 'ubuntu1604_power8' ] };
-##      [ 'rhel62', 'windows64', 'suse12_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ] };
+my $OS_FILTER = {
+    os => [
+        'ubuntu1604',       'windows64', 'windows32', 'rhel67_z',
+        'ubuntu1604_arm64', 'ubuntu1604_power8'
+    ]
+};
 
-# This allows only the non-ZAP subset
-my $NON_ZAP_OS_FILTER = { os => [ 'rhel62', 'windows64' ] };
+# Some OS have support before/after server v3.4
+my $PRE_V_3_4 = { os => [ 'ubuntu1604', 'windows64', 'windows32' ] };
+my $POST_V_3_4 =
+  { os =>
+      [ 'ubuntu1604', 'windows64', 'rhel67_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ]
+  };
 
 #--------------------------------------------------------------------------#
 # Functions
@@ -32,7 +53,7 @@ my $NON_ZAP_OS_FILTER = { os => [ 'rhel62', 'windows64' ] };
 # tasks that must have run successfully before this one.
 
 sub calc_depends {
-    my $args = shift;
+    my ($args, $assert, $bsonpp) = @_;
     state $plain = { ssl => 'nossl', auth => 'noauth' };
     my @depends;
 
@@ -41,8 +62,8 @@ sub calc_depends {
         push @depends, test_name( { %$args, topology => 'server' } );
     }
 
-    # if auth or ssl, depend on same-topology/noauth/nossl
-    if ( $args->{auth} eq 'auth' || $args->{ssl} eq 'ssl' ) {
+    # if auth or ssl or assert or pp, depend on same-topology/noauth/nossl
+    if ( $args->{auth} eq 'auth' || $args->{ssl} eq 'ssl' || $assert || $bsonpp ) {
         push @depends, test_name( { %$args, %$plain } );
     }
 
@@ -58,9 +79,9 @@ sub calc_filter {
 
     # ZAP should only run on MongoDB 3.4 or latest
     my $filter =
-        $opts->{version} eq 'latest'                             ? {%$OS_FILTER}
-      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$OS_FILTER}
-      :                                                            {%$NON_ZAP_OS_FILTER};
+        $opts->{version} eq 'latest'                             ? {%$POST_V_3_4}
+      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$POST_V_3_4}
+      :                                                            {%$PRE_V_3_4};
 
     # Server without auth/ssl should run on all perls, so in that case,
     # we return existing filter with only an 'os' key.
@@ -83,16 +104,21 @@ sub generate_test_variations {
 
     # We test every topology without auth/ssl and with auth, but without ssl.
     # For standalone, we also test with ssl but with no auth.
-    my @topo_tests = (
-        with_topology( server      => [ "noauth nossl", "auth nossl", "noauth ssl" ] ),
-        with_topology( replica_set => [ "noauth nossl", "auth nossl" ] ),
-        with_topology( sharded_cluster => [ "noauth nossl", "auth nossl" ] ),
-    );
+    my $standard = [ "noauth nossl", "auth nossl" ];
+    my @topo_tests = ( map { with_topology( $_ => $standard ) }
+          qw/server replica_set sharded_cluster/ );
 
     # For the topology specific configs, we repeat the list for each server
     # version we're testing.
     my @matrix =
-      map { with_version( $_ => \@topo_tests ) } qw/v2.6 v3.0 v3.2 v3.4 v3.6 latest/;
+      map { with_version( $_ => \@topo_tests ) }
+      qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0 latest/;
+
+    # Test SSL only on 3.2 and later
+    my @ssl_test = ( with_topology( server => ["noauth ssl"] ), );
+
+    push @matrix,
+      map { with_version( $_ => \@ssl_test ) } qw/v3.2 v3.4 v3.6 v4.0 latest/;
 
     return @matrix;
 }
@@ -107,18 +133,25 @@ sub orch_test {
 
     # Overwrite defaults with config
     my %opts = (
-        version  => 'v3.4',
+        version  => 'v4.0',
         topology => 'server',
         ssl      => 'nossl',
         auth     => 'noauth',
         %$args,
     );
 
+    my $name = test_name( \%opts );
+    my $assert = delete $opts{assert};
+    my $bsonpp = delete $opts{bsonpp};
+    my $deps = calc_depends( \%opts, $assert, $bsonpp );
+
     return test(
-        name   => test_name( \%opts ),
-        deps   => calc_depends( \%opts ),
+        name   => $name,
+        deps   => $deps,
         filter => calc_filter( \%opts ),
         extra  => [ [ 'setupOrchestration' => \%opts ] ],
+        assert => $assert,
+        bsonpp => $bsonpp,
     );
 }
 
@@ -126,12 +159,18 @@ sub orch_test {
 # interpose extra steps before actually testing the driver
 
 sub test {
-    my %opts  = @_;
-    my $name  = $opts{name} // 'unit_test';
-    my $deps  = $opts{deps} // ['build'];
-    my @extra = $opts{extra} ? @{ $opts{extra} } : ();
+    my %opts    = @_;
+    my $name    = $opts{name} // 'unit_test';
+    my $deps    = $opts{deps} // ['build'];
+    my @extra   = $opts{extra} ? @{ $opts{extra} } : ();
+    my $assert  = $opts{assert} ? 1 : 0;
+    my $bsonpp  = $opts{bsonpp} ? "BSON::PP" : "";
+    my @default =
+      $opts{nodefault}
+      ? ()
+      : ( [ 'testDriver' => { assert => $assert, bsonpp => $bsonpp } ] );
     return task(
-        $name      => [ qw/whichPerl downloadBuildArtifacts/, @extra, 'testDriver' ],
+        $name      => [ qw/whichPerl downloadBuildArtifacts/, @extra, @default ],
         depends_on => $deps,
         filter     => $opts{filter},
     );
@@ -149,6 +188,8 @@ sub test_name {
     push @parts, "SC"   if $args->{topology} eq 'sharded_cluster';
     push @parts, "ssl"  if $args->{ssl} eq 'ssl';
     push @parts, "auth" if $args->{auth} eq 'auth';
+    push @parts, "asrt" if $args->{assert};
+    push @parts, "pp"   if $args->{bsonpp};
     return join( "_", @parts );
 }
 
@@ -177,7 +218,7 @@ sub with_topology {
     my @hashes;
     for my $t (@$templates) {
         my @parts = split " ", $t;
-        push @hashes, { auth => $parts[0], ssl => $parts[1] };
+        push @hashes, (map +{ auth => $parts[0], ssl => $parts[1], assert => $_->[0], bsonpp => $_->[1] }, [0,0], [1,0], [1,1]);
     }
     return with_key( topology => $topo, \@hashes );
 }
@@ -193,7 +234,7 @@ sub main {
 
     my @tasks = (
         pre( qw/dynamicVars cleanUp fetchSource/, $download ),
-        post(qw/teardownOrchestration cleanUp/),
+        post(qw/uploadOrchestrationLogs teardownOrchestration cleanUp/),
         task( build => [qw/whichPerl buildModule uploadBuildArtifacts/], filter => $filter ),
         test( name => "check", filter => $filter ),
     );
@@ -215,10 +256,11 @@ sub main {
         filter => $atlas_filter
       ),
       test(
-        name   => 'test_atlas',
-        filter => $atlas_filter,
-        deps   => ['build_for_atlas'],
-        extra  => [qw/setupAtlasProxy testAtlasProxy/],
+        name      => 'test_atlas',
+        filter    => $atlas_filter,
+        deps      => ['build_for_atlas'],
+        extra     => [qw/setupAtlasProxy testAtlasProxy/],
+        nodefault => 1,
       );
 
     # Build filter to avoid "ld" Perls on Z-series

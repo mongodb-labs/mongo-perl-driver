@@ -1,8 +1,24 @@
 #!/usr/bin/env perl
+#
+#  Copyright 2017 - present MongoDB, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 use v5.10;
 use strict;
 use warnings;
 use version;
+use Config;
 use Cwd 'getcwd';
 use File::Path qw/mkpath rmtree/;
 use File::Find qw/find/;
@@ -37,9 +53,12 @@ my @perl_versions = qw(
   5.22.3
   5.24.3
   5.26.1
+  5.28.0
 );
 
-my $target_arch = "MSWin32-x64-multi-thread";
+my $target_arch = ($Config{archname} =~ /^x86_64/)
+  ? "MSWin32-x64-multi-thread"
+  : "MSWin32-x86-multi-thread";
 my $ht          = HTTP::Tiny->new;
 
 # Get manifest
