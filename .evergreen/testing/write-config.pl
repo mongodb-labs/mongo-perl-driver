@@ -31,12 +31,19 @@ use EvergreenConfig;
 #--------------------------------------------------------------------------#
 
 # $OS_FILTER is a filter definition to allow all operating systems
-my $OS_FILTER =
-  { os =>
-      [ 'ubuntu1604', 'windows64', 'suse12_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ] };
+my $OS_FILTER = {
+    os => [
+        'ubuntu1604',       'windows64', 'windows32', 'rhel67_z',
+        'ubuntu1604_arm64', 'ubuntu1604_power8'
+    ]
+};
 
-# This allows only the non-ZAP subset
-my $NON_ZAP_OS_FILTER = { os => [ 'ubuntu1604', 'windows64' ] };
+# Some OS have support before/after server v3.4
+my $PRE_V_3_4 = { os => [ 'ubuntu1604', 'windows64', 'windows32' ] };
+my $POST_V_3_4 =
+  { os =>
+      [ 'ubuntu1604', 'windows64', 'rhel67_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ]
+  };
 
 #--------------------------------------------------------------------------#
 # Functions
@@ -72,9 +79,9 @@ sub calc_filter {
 
     # ZAP should only run on MongoDB 3.4 or latest
     my $filter =
-        $opts->{version} eq 'latest'                             ? {%$OS_FILTER}
-      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$OS_FILTER}
-      :                                                            {%$NON_ZAP_OS_FILTER};
+        $opts->{version} eq 'latest'                             ? {%$POST_V_3_4}
+      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$POST_V_3_4}
+      :                                                            {%$PRE_V_3_4};
 
     # Server without auth/ssl should run on all perls, so in that case,
     # we return existing filter with only an 'os' key.
