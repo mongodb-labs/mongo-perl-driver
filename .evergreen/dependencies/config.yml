@@ -8,7 +8,7 @@ ignore:
   - '!/.evergreen/lib/*'
   - '!/Makefile.PL'
 
-exec_timeout_secs: 3600
+exec_timeout_secs: 18000
 
 timeout:
   - command: shell.exec
@@ -43,12 +43,18 @@ functions:
         rm -rf mongo-perl-bson-xs
 
   "downloadPerl5Lib" :
-    command: shell.exec
-    params:
-      script: |
-        ${prepare_shell}
-        curl https://s3.amazonaws.com/mciuploads/${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz -o perl5lib.tar.gz --fail --show-error --silent --max-time 240
-        tar -zxf perl5lib.tar.gz
+    - command: s3.get
+      params:
+        bucket: mciuploads
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: ${aws_toolchain_prefix}/${os}/${perlver}/${target}/perl5lib.tar.gz
+        local_file: perl5lib.tar.gz
+    - command: shell.exec
+      params:
+        script: |
+          ${prepare_shell}
+          tar -zxf perl5lib.tar.gz
 
   "dynamicVars":
     - command: shell.exec
@@ -2130,78 +2136,6 @@ buildvariants:
       - test_bson_perl5lib
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
-  - name: os_rhel67_z_perl_14
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.14
-    expansions:
-      addpaths: /opt/perl/14/bin
-      os: rhel67_z
-      perlpath: /opt/perl/14/bin/perl
-      perlver: 14
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_14t
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.14t
-    expansions:
-      addpaths: /opt/perl/14t/bin
-      os: rhel67_z
-      perlpath: /opt/perl/14t/bin/perl
-      perlver: 14t
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_14ld
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.14ld
-    expansions:
-      addpaths: /opt/perl/14ld/bin
-      os: rhel67_z
-      perlpath: /opt/perl/14ld/bin/perl
-      perlver: 14ld
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_16
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.16
-    expansions:
-      addpaths: /opt/perl/16/bin
-      os: rhel67_z
-      perlpath: /opt/perl/16/bin/perl
-      perlver: 16
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
   - name: os_rhel67_z_perl_16t
     display_name: ZAP RHEL 6.7 Z Series Perl 5.16t
     expansions:
@@ -2209,42 +2143,6 @@ buildvariants:
       os: rhel67_z
       perlpath: /opt/perl/16t/bin/perl
       perlver: 16t
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_16ld
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.16ld
-    expansions:
-      addpaths: /opt/perl/16ld/bin
-      os: rhel67_z
-      perlpath: /opt/perl/16ld/bin/perl
-      perlver: 16ld
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_18
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.18
-    expansions:
-      addpaths: /opt/perl/18/bin
-      os: rhel67_z
-      perlpath: /opt/perl/18/bin/perl
-      perlver: 18
     run_on:
       - rhel67-zseries-test
     tasks:
@@ -2274,42 +2172,6 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
-  - name: os_rhel67_z_perl_18ld
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.18ld
-    expansions:
-      addpaths: /opt/perl/18ld/bin
-      os: rhel67_z
-      perlpath: /opt/perl/18ld/bin/perl
-      perlver: 18ld
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_20
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.20
-    expansions:
-      addpaths: /opt/perl/20/bin
-      os: rhel67_z
-      perlpath: /opt/perl/20/bin/perl
-      perlver: 20
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
   - name: os_rhel67_z_perl_20t
     display_name: ZAP RHEL 6.7 Z Series Perl 5.20t
     expansions:
@@ -2317,42 +2179,6 @@ buildvariants:
       os: rhel67_z
       perlpath: /opt/perl/20t/bin/perl
       perlver: 20t
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_20ld
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.20ld
-    expansions:
-      addpaths: /opt/perl/20ld/bin
-      os: rhel67_z
-      perlpath: /opt/perl/20ld/bin/perl
-      perlver: 20ld
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_22
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.22
-    expansions:
-      addpaths: /opt/perl/22/bin
-      os: rhel67_z
-      perlpath: /opt/perl/22/bin/perl
-      perlver: 22
     run_on:
       - rhel67-zseries-test
     tasks:
@@ -2382,42 +2208,6 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
-  - name: os_rhel67_z_perl_22ld
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.22ld
-    expansions:
-      addpaths: /opt/perl/22ld/bin
-      os: rhel67_z
-      perlpath: /opt/perl/22ld/bin/perl
-      perlver: 22ld
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_24
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.24
-    expansions:
-      addpaths: /opt/perl/24/bin
-      os: rhel67_z
-      perlpath: /opt/perl/24/bin/perl
-      perlver: 24
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
   - name: os_rhel67_z_perl_24t
     display_name: ZAP RHEL 6.7 Z Series Perl 5.24t
     expansions:
@@ -2425,42 +2215,6 @@ buildvariants:
       os: rhel67_z
       perlpath: /opt/perl/24t/bin/perl
       perlver: 24t
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_24ld
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.24ld
-    expansions:
-      addpaths: /opt/perl/24ld/bin
-      os: rhel67_z
-      perlpath: /opt/perl/24ld/bin/perl
-      perlver: 24ld
-    run_on:
-      - rhel67-zseries-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_rhel67_z_perl_26
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.26
-    expansions:
-      addpaths: /opt/perl/26/bin
-      os: rhel67_z
-      perlpath: /opt/perl/26/bin/perl
-      perlver: 26
     run_on:
       - rhel67-zseries-test
     tasks:
@@ -2490,13 +2244,13 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
-  - name: os_rhel67_z_perl_26ld
-    display_name: ZAP RHEL 6.7 Z Series Perl 5.26ld
+  - name: os_rhel67_z_perl_28t
+    display_name: ZAP RHEL 6.7 Z Series Perl 5.28t
     expansions:
-      addpaths: /opt/perl/26ld/bin
+      addpaths: /opt/perl/28t/bin
       os: rhel67_z
-      perlpath: /opt/perl/26ld/bin/perl
-      perlver: 26ld
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
     run_on:
       - rhel67-zseries-test
     tasks:
@@ -4428,78 +4182,6 @@ buildvariants:
       - test_bson_perl5lib
       - build_bson_xs_perl5lib
       - test_bson_xs_perl5lib
-  - name: os_ubuntu1604_arm64_perl_14
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.14
-    expansions:
-      addpaths: /opt/perl/14/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/14/bin/perl
-      perlver: 14
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_14t
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.14t
-    expansions:
-      addpaths: /opt/perl/14t/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/14t/bin/perl
-      perlver: 14t
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_14ld
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.14ld
-    expansions:
-      addpaths: /opt/perl/14ld/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/14ld/bin/perl
-      perlver: 14ld
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_16
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.16
-    expansions:
-      addpaths: /opt/perl/16/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/16/bin/perl
-      perlver: 16
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_16t
     display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.16t
     expansions:
@@ -4507,42 +4189,6 @@ buildvariants:
       os: ubuntu1604_arm64
       perlpath: /opt/perl/16t/bin/perl
       perlver: 16t
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_16ld
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.16ld
-    expansions:
-      addpaths: /opt/perl/16ld/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/16ld/bin/perl
-      perlver: 16ld
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_18
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.18
-    expansions:
-      addpaths: /opt/perl/18/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/18/bin/perl
-      perlver: 18
     run_on:
       - ubuntu1604-arm64-large
     tasks:
@@ -4572,42 +4218,6 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_18ld
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.18ld
-    expansions:
-      addpaths: /opt/perl/18ld/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/18ld/bin/perl
-      perlver: 18ld
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_20
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.20
-    expansions:
-      addpaths: /opt/perl/20/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/20/bin/perl
-      perlver: 20
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_20t
     display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.20t
     expansions:
@@ -4615,42 +4225,6 @@ buildvariants:
       os: ubuntu1604_arm64
       perlpath: /opt/perl/20t/bin/perl
       perlver: 20t
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_20ld
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.20ld
-    expansions:
-      addpaths: /opt/perl/20ld/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/20ld/bin/perl
-      perlver: 20ld
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_22
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.22
-    expansions:
-      addpaths: /opt/perl/22/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/22/bin/perl
-      perlver: 22
     run_on:
       - ubuntu1604-arm64-large
     tasks:
@@ -4680,42 +4254,6 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_22ld
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.22ld
-    expansions:
-      addpaths: /opt/perl/22ld/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/22ld/bin/perl
-      perlver: 22ld
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_24
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.24
-    expansions:
-      addpaths: /opt/perl/24/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/24/bin/perl
-      perlver: 24
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_24t
     display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.24t
     expansions:
@@ -4723,42 +4261,6 @@ buildvariants:
       os: ubuntu1604_arm64
       perlpath: /opt/perl/24t/bin/perl
       perlver: 24t
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_24ld
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.24ld
-    expansions:
-      addpaths: /opt/perl/24ld/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/24ld/bin/perl
-      perlver: 24ld
-    run_on:
-      - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_26
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.26
-    expansions:
-      addpaths: /opt/perl/26/bin
-      os: ubuntu1604_arm64
-      perlpath: /opt/perl/26/bin/perl
-      perlver: 26
     run_on:
       - ubuntu1604-arm64-large
     tasks:
@@ -4788,87 +4290,15 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
-  - name: os_ubuntu1604_arm64_perl_26ld
-    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.26ld
+  - name: os_ubuntu1604_arm64_perl_28t
+    display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.28t
     expansions:
-      addpaths: /opt/perl/26ld/bin
+      addpaths: /opt/perl/28t/bin
       os: ubuntu1604_arm64
-      perlpath: /opt/perl/26ld/bin/perl
-      perlver: 26ld
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
     run_on:
       - ubuntu1604-arm64-large
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_14
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.14
-    expansions:
-      addpaths: /opt/perl/14/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/14/bin/perl
-      perlver: 14
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_14t
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.14t
-    expansions:
-      addpaths: /opt/perl/14t/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/14t/bin/perl
-      perlver: 14t
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_14ld
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.14ld
-    expansions:
-      addpaths: /opt/perl/14ld/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/14ld/bin/perl
-      perlver: 14ld
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_16
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.16
-    expansions:
-      addpaths: /opt/perl/16/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/16/bin/perl
-      perlver: 16
-    run_on:
-      - ubuntu1604-power8-test
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib
@@ -4885,42 +4315,6 @@ buildvariants:
       os: ubuntu1604_power8
       perlpath: /opt/perl/16t/bin/perl
       perlver: 16t
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_16ld
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.16ld
-    expansions:
-      addpaths: /opt/perl/16ld/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/16ld/bin/perl
-      perlver: 16ld
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_18
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.18
-    expansions:
-      addpaths: /opt/perl/18/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/18/bin/perl
-      perlver: 18
     run_on:
       - ubuntu1604-power8-test
     tasks:
@@ -4950,42 +4344,6 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_18ld
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.18ld
-    expansions:
-      addpaths: /opt/perl/18ld/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/18ld/bin/perl
-      perlver: 18ld
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_20
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.20
-    expansions:
-      addpaths: /opt/perl/20/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/20/bin/perl
-      perlver: 20
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
   - name: os_ubuntu1604_power8_perl_20t
     display_name: ZAP Ubuntu 16.04 Power8 Perl 5.20t
     expansions:
@@ -4993,42 +4351,6 @@ buildvariants:
       os: ubuntu1604_power8
       perlpath: /opt/perl/20t/bin/perl
       perlver: 20t
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_20ld
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.20ld
-    expansions:
-      addpaths: /opt/perl/20ld/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/20ld/bin/perl
-      perlver: 20ld
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_22
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.22
-    expansions:
-      addpaths: /opt/perl/22/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/22/bin/perl
-      perlver: 22
     run_on:
       - ubuntu1604-power8-test
     tasks:
@@ -5058,42 +4380,6 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_22ld
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.22ld
-    expansions:
-      addpaths: /opt/perl/22ld/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/22ld/bin/perl
-      perlver: 22ld
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_24
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.24
-    expansions:
-      addpaths: /opt/perl/24/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/24/bin/perl
-      perlver: 24
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
   - name: os_ubuntu1604_power8_perl_24t
     display_name: ZAP Ubuntu 16.04 Power8 Perl 5.24t
     expansions:
@@ -5101,42 +4387,6 @@ buildvariants:
       os: ubuntu1604_power8
       perlpath: /opt/perl/24t/bin/perl
       perlver: 24t
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_24ld
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.24ld
-    expansions:
-      addpaths: /opt/perl/24ld/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/24ld/bin/perl
-      perlver: 24ld
-    run_on:
-      - ubuntu1604-power8-test
-    tasks:
-      - build_driver_perl5lib
-      - test_driver_perl5lib
-      - build_bson_perl5lib
-      - test_bson_perl5lib
-      - build_bson_xs_perl5lib
-      - test_bson_xs_perl5lib
-    stepback: false
-    batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_26
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.26
-    expansions:
-      addpaths: /opt/perl/26/bin
-      os: ubuntu1604_power8
-      perlpath: /opt/perl/26/bin/perl
-      perlver: 26
     run_on:
       - ubuntu1604-power8-test
     tasks:
@@ -5166,13 +4416,13 @@ buildvariants:
       - test_bson_xs_perl5lib
     stepback: false
     batchtime: 604800
-  - name: os_ubuntu1604_power8_perl_26ld
-    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.26ld
+  - name: os_ubuntu1604_power8_perl_28t
+    display_name: ZAP Ubuntu 16.04 Power8 Perl 5.28t
     expansions:
-      addpaths: /opt/perl/26ld/bin
+      addpaths: /opt/perl/28t/bin
       os: ubuntu1604_power8
-      perlpath: /opt/perl/26ld/bin/perl
-      perlver: 26ld
+      perlpath: /opt/perl/28t/bin/perl
+      perlver: 28t
     run_on:
       - ubuntu1604-power8-test
     tasks:
@@ -5657,6 +4907,134 @@ buildvariants:
       perlver: 28ld
     run_on:
       - ubuntu1804-test
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_windows32_perl_14
+    display_name: Win32 Perl 5.14
+    expansions:
+      addpaths: /cygdrive/c/perl/14/perl/bin:/cygdrive/c/perl/14/c/bin
+      os: windows32
+      perlpath: /cygdrive/c/perl/14/perl/bin/perl
+      perlver: 14
+    run_on:
+      - windows-32
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_windows32_perl_16
+    display_name: Win32 Perl 5.16
+    expansions:
+      addpaths: /cygdrive/c/perl/16/perl/bin:/cygdrive/c/perl/16/c/bin
+      os: windows32
+      perlpath: /cygdrive/c/perl/16/perl/bin/perl
+      perlver: 16
+    run_on:
+      - windows-32
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_windows32_perl_18
+    display_name: Win32 Perl 5.18
+    expansions:
+      addpaths: /cygdrive/c/perl/18/perl/bin:/cygdrive/c/perl/18/c/bin
+      os: windows32
+      perlpath: /cygdrive/c/perl/18/perl/bin/perl
+      perlver: 18
+    run_on:
+      - windows-32
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_windows32_perl_20
+    display_name: Win32 Perl 5.20
+    expansions:
+      addpaths: /cygdrive/c/perl/20/perl/bin:/cygdrive/c/perl/20/c/bin
+      os: windows32
+      perlpath: /cygdrive/c/perl/20/perl/bin/perl
+      perlver: 20
+    run_on:
+      - windows-32
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_windows32_perl_22
+    display_name: Win32 Perl 5.22
+    expansions:
+      addpaths: /cygdrive/c/perl/22/perl/bin:/cygdrive/c/perl/22/c/bin
+      os: windows32
+      perlpath: /cygdrive/c/perl/22/perl/bin/perl
+      perlver: 22
+    run_on:
+      - windows-32
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_windows32_perl_24
+    display_name: Win32 Perl 5.24
+    expansions:
+      addpaths: /cygdrive/c/perl/24/perl/bin:/cygdrive/c/perl/24/c/bin
+      os: windows32
+      perlpath: /cygdrive/c/perl/24/perl/bin/perl
+      perlver: 24
+    run_on:
+      - windows-32
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_windows32_perl_26
+    display_name: Win32 Perl 5.26
+    expansions:
+      addpaths: /cygdrive/c/perl/26/perl/bin:/cygdrive/c/perl/26/c/bin
+      os: windows32
+      perlpath: /cygdrive/c/perl/26/perl/bin/perl
+      perlver: 26
+    run_on:
+      - windows-32
+    tasks:
+      - build_driver_perl5lib
+      - test_driver_perl5lib
+      - build_bson_perl5lib
+      - test_bson_perl5lib
+      - build_bson_xs_perl5lib
+      - test_bson_xs_perl5lib
+  - name: os_windows32_perl_28
+    display_name: Win32 Perl 5.28
+    expansions:
+      addpaths: /cygdrive/c/perl/28/perl/bin:/cygdrive/c/perl/28/c/bin
+      os: windows32
+      perlpath: /cygdrive/c/perl/28/perl/bin/perl
+      perlver: 28
+    run_on:
+      - windows-32
     tasks:
       - build_driver_perl5lib
       - test_driver_perl5lib

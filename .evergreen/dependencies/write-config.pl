@@ -67,7 +67,7 @@ sub main {
     print assemble_yaml(
         # Ignore everything except changes to the dependencies files
         ignore( "*", "!/.evergreen/dependencies/*", "!/.evergreen/lib/*", "!/Makefile.PL" ),
-        timeout(3600),
+        timeout(18000), # some distros are on very slow hardware
         buildvariants( \@tasks ),
     );
 
