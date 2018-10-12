@@ -188,7 +188,7 @@ sub run_local_cpanm {
     my $locallib = getcwd() . "/local";
     bootstrap_locallib($locallib);
     try_system( $^X, '--', $cpanm,
-        qw( -v --no-interactive --skip-satisfied --with-recommends -l ),
+        qw( -v --no-lwp --no-interactive --skip-satisfied --with-recommends -l ),
         $locallib, @args );
 }
 
@@ -197,7 +197,7 @@ sub run_local_cpanm {
 sub run_perl5_cpanm {
     my @args = @_;
     try_system( $^X, '--', $cpanm,
-        qw( -v --no-interactive --skip-satisfied --with-recommends -l ),
+        qw( -v --no-lwp --no-interactive --skip-satisfied --with-recommends -l ),
         $perl5lib, @args );
 }
 

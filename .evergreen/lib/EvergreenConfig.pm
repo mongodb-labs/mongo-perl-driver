@@ -76,17 +76,6 @@ my @unix_perls =
 # the standard Strawberry Perl builds (which happen to be threaded).
 my @win_perls = qw/14 16 18 20 22 24 26 28/;
 
-# MongoDB's Windows Evergreen hosts have a different naming scheme than
-# Unix hosts.  We don't care about the compiler type (as we use the MinGW
-# bundled with Strawberry Perl), so we want to run on as many host-types as
-# possible.
-my @win_dists = (
-    ( map { ; "windows-64-$_-compile", "windows-64-$_-test" } qw/vs2010 vs2013/ ),
-    ( map { ; "windows-64-vs2015-$_" } qw/compile test large/ )
-);
-
-
-
 # For Z series, ARM64 and Power8 (aka ZAP), only more recent perls compile
 # cleanly, so we test a smaller range of Perls.
 my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
@@ -170,6 +159,14 @@ my %os_map = (
         perlroot => '/opt/perl',
         perlpath => 'bin',
         perls    => \@unix_perls,
+    },
+    windows32 => {
+        name     => "Win32",
+        run_on   => [ 'windows-32' ],
+        perlroot => '/cygdrive/c/perl',
+        perlpath => 'perl/bin',
+        ccpath   => 'c/bin',
+        perls    => \@win_perls,
     },
     windows64 => {
         name     => "Win64",
