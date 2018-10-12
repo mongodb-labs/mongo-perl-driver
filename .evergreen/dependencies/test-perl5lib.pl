@@ -26,7 +26,7 @@ use EvergreenHelper;
 bootstrap_env();
 
 # Try loading a couple required modules
-require Config::AutoConf;
+require Path::Tiny;
 require Moo;
 
 exit 0;

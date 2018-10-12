@@ -151,17 +151,9 @@ tasks:
 
 # BUILD VARIANTS
 
-# Amazon
-
 buildvariants:
-- name: amazon-v1
-  display_name: Amazon v1 x86_64
-  run_on:
-    - linux-64-amzn-build
-  tasks:
-    - build-unix-perls
-    - validate-unix-perls
-    - push-unix-perls
+
+# Amazon
 
 - name: amazon-v2
   display_name: Amazon v2 x86_64
@@ -263,12 +255,30 @@ buildvariants:
     - validate-win-perls
     - push-win-perls
 
+- name: windows32
+  display_name: Windows32
+  run_on:
+    - windows-32
+  tasks:
+    - build-win-perls
+    - validate-win-perls
+    - push-win-perls
+
 # ZAP
 
 - name: rhel67-zseries
   display_name: ZAP RedHat 6.7 Z Series
   run_on:
     - rhel67-zseries-test
+  tasks:
+    - build-unix-perls
+    - validate-unix-perls
+    - push-unix-perls
+
+- name: rhel72-zseries
+  display_name: ZAP RedHat 7.2 Z Series
+  run_on:
+    - rhel72-zseries-test
   tasks:
     - build-unix-perls
     - validate-unix-perls

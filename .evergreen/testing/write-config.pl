@@ -31,12 +31,19 @@ use EvergreenConfig;
 #--------------------------------------------------------------------------#
 
 # $OS_FILTER is a filter definition to allow all operating systems
-my $OS_FILTER =
-  { os =>
-      [ 'ubuntu1604', 'windows64', 'suse12_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ] };
+my $OS_FILTER = {
+    os => [
+        'ubuntu1604',       'windows64', 'windows32', 'rhel67_z',
+        'ubuntu1604_arm64', 'ubuntu1604_power8'
+    ]
+};
 
-# This allows only the non-ZAP subset
-my $NON_ZAP_OS_FILTER = { os => [ 'ubuntu1604', 'windows64' ] };
+# Some OS have support before/after server v3.4
+my $PRE_V_3_4 = { os => [ 'ubuntu1604', 'windows64', 'windows32' ] };
+my $POST_V_3_4 =
+  { os =>
+      [ 'ubuntu1604', 'windows64', 'rhel67_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ]
+  };
 
 #--------------------------------------------------------------------------#
 # Functions
@@ -46,7 +53,7 @@ my $NON_ZAP_OS_FILTER = { os => [ 'ubuntu1604', 'windows64' ] };
 # tasks that must have run successfully before this one.
 
 sub calc_depends {
-    my $args = shift;
+    my ($args, $assert, $bsonpp) = @_;
     state $plain = { ssl => 'nossl', auth => 'noauth' };
     my @depends;
 
@@ -55,8 +62,8 @@ sub calc_depends {
         push @depends, test_name( { %$args, topology => 'server' } );
     }
 
-    # if auth or ssl, depend on same-topology/noauth/nossl
-    if ( $args->{auth} eq 'auth' || $args->{ssl} eq 'ssl' ) {
+    # if auth or ssl or assert or pp, depend on same-topology/noauth/nossl
+    if ( $args->{auth} eq 'auth' || $args->{ssl} eq 'ssl' || $assert || $bsonpp ) {
         push @depends, test_name( { %$args, %$plain } );
     }
 
@@ -72,9 +79,9 @@ sub calc_filter {
 
     # ZAP should only run on MongoDB 3.4 or latest
     my $filter =
-        $opts->{version} eq 'latest'                             ? {%$OS_FILTER}
-      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$OS_FILTER}
-      :                                                            {%$NON_ZAP_OS_FILTER};
+        $opts->{version} eq 'latest'                             ? {%$POST_V_3_4}
+      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$POST_V_3_4}
+      :                                                            {%$PRE_V_3_4};
 
     # Server without auth/ssl should run on all perls, so in that case,
     # we return existing filter with only an 'os' key.
@@ -133,11 +140,18 @@ sub orch_test {
         %$args,
     );
 
+    my $name = test_name( \%opts );
+    my $assert = delete $opts{assert};
+    my $bsonpp = delete $opts{bsonpp};
+    my $deps = calc_depends( \%opts, $assert, $bsonpp );
+
     return test(
-        name   => test_name( \%opts ),
-        deps   => calc_depends( \%opts ),
+        name   => $name,
+        deps   => $deps,
         filter => calc_filter( \%opts ),
         extra  => [ [ 'setupOrchestration' => \%opts ] ],
+        assert => $assert,
+        bsonpp => $bsonpp,
     );
 }
 
@@ -145,12 +159,18 @@ sub orch_test {
 # interpose extra steps before actually testing the driver
 
 sub test {
-    my %opts  = @_;
-    my $name  = $opts{name} // 'unit_test';
-    my $deps  = $opts{deps} // ['build'];
-    my @extra = $opts{extra} ? @{ $opts{extra} } : ();
+    my %opts    = @_;
+    my $name    = $opts{name} // 'unit_test';
+    my $deps    = $opts{deps} // ['build'];
+    my @extra   = $opts{extra} ? @{ $opts{extra} } : ();
+    my $assert  = $opts{assert} ? 1 : 0;
+    my $bsonpp  = $opts{bsonpp} ? "BSON::PP" : "";
+    my @default =
+      $opts{nodefault}
+      ? ()
+      : ( [ 'testDriver' => { assert => $assert, bsonpp => $bsonpp } ] );
     return task(
-        $name      => [ qw/whichPerl downloadBuildArtifacts/, @extra, 'testDriver' ],
+        $name      => [ qw/whichPerl downloadBuildArtifacts/, @extra, @default ],
         depends_on => $deps,
         filter     => $opts{filter},
     );
@@ -168,6 +188,8 @@ sub test_name {
     push @parts, "SC"   if $args->{topology} eq 'sharded_cluster';
     push @parts, "ssl"  if $args->{ssl} eq 'ssl';
     push @parts, "auth" if $args->{auth} eq 'auth';
+    push @parts, "asrt" if $args->{assert};
+    push @parts, "pp"   if $args->{bsonpp};
     return join( "_", @parts );
 }
 
@@ -196,7 +218,7 @@ sub with_topology {
     my @hashes;
     for my $t (@$templates) {
         my @parts = split " ", $t;
-        push @hashes, { auth => $parts[0], ssl => $parts[1] };
+        push @hashes, (map +{ auth => $parts[0], ssl => $parts[1], assert => $_->[0], bsonpp => $_->[1] }, [0,0], [1,0], [1,1]);
     }
     return with_key( topology => $topo, \@hashes );
 }
@@ -212,7 +234,7 @@ sub main {
 
     my @tasks = (
         pre( qw/dynamicVars cleanUp fetchSource/, $download ),
-        post(qw/teardownOrchestration cleanUp/),
+        post(qw/uploadOrchestrationLogs teardownOrchestration cleanUp/),
         task( build => [qw/whichPerl buildModule uploadBuildArtifacts/], filter => $filter ),
         test( name => "check", filter => $filter ),
     );
@@ -234,10 +256,11 @@ sub main {
         filter => $atlas_filter
       ),
       test(
-        name   => 'test_atlas',
-        filter => $atlas_filter,
-        deps   => ['build_for_atlas'],
-        extra  => [qw/setupAtlasProxy testAtlasProxy/],
+        name      => 'test_atlas',
+        filter    => $atlas_filter,
+        deps      => ['build_for_atlas'],
+        extra     => [qw/setupAtlasProxy testAtlasProxy/],
+        nodefault => 1,
       );
 
     # Build filter to avoid "ld" Perls on Z-series
