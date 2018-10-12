@@ -77,8 +77,12 @@ my @unix_perls =
 my @win_perls = qw/14 16 18 20 22 24 26 28/;
 
 # For Z series, ARM64 and Power8 (aka ZAP), only more recent perls compile
-# cleanly, so we test a smaller range of Perls.
-my @zap_perls = map { $_, "${_}t", "${_}ld" } qw/14 16 18 20 22 24 26/;
+# cleanly, so we test a smaller range of Perls.  Long doubles on Z and
+# ARM cause problems in dependencies, we so skip those as well.  Threads
+# are already discouraged and tested on x86_64, so we only test vanilla
+# perls on ZAP.  We use a threaded perl so that perls before 5.20 that didn't
+# automatically link libpthread (even for unthreaded perls) have libpthread.
+my @zap_perls = map { "${_}t" } qw/16 18 20 22 24 26 28/;
 
 # The %os_map variable provides details of the full range of MongoDB
 # Evergreen operating systems we might run on, plus configuration details
