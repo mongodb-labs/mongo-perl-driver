@@ -1403,74 +1403,6 @@ sub distinct {
     return $self->client->send_read_op($op);
 }
 
-
-=method parallel_scan
-
-    @result_objs = $collection->parallel_scan(10);
-    @result_objs = $collection->parallel_scan(10, $options );
-
-Returns one or more L<MongoDB::QueryResult> objects to scan the collection in
-parallel. The argument is the maximum number of L<MongoDB::QueryResult> objects
-to return and must be a positive integer between 1 and 10,000.
-
-As long as the collection is not modified during scanning, each document will
-appear only once in one of the cursors' result sets.
-
-B<Note>: the server may return fewer cursors than requested, depending on the
-underlying storage engine and resource availability.
-
-A hash reference of options may be provided. Valid keys include:
-
-=for :list
-* C<maxTimeMS> – the maximum amount of time in milliseconds to allow the
-  command to run.  (Note, this will be ignored for servers before version 3.4.)
-
-=cut
-
-sub parallel_scan {
-    my ( $self, $num_cursors, $options ) = @_;
-    unless (defined $num_cursors && $num_cursors == int($num_cursors)
-        && $num_cursors > 0 && $num_cursors <= 10000
-    ) {
-        MongoDB::UsageError->throw( "first argument to parallel_scan must be a positive integer between 1 and 10000" )
-    }
-    $options = ref $options eq 'HASH' ? $options : { };
-
-    my $op = MongoDB::Op::_ParallelScan->_new(
-        %{ $self->_op_args },
-        num_cursors     => $num_cursors,
-        options         => $options,
-    );
-
-    my $result = $self->client->send_read_op( $op );
-    my $response = $result->output;
-
-    MongoDB::UsageError->throw("No cursors returned")
-        unless $response->{cursors} && ref $response->{cursors} eq 'ARRAY';
-
-    my @cursors;
-    for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
-        my $batch = $c->{firstBatch};
-        my $qr = MongoDB::QueryResult->_new(
-            _client       => $self->client,
-            _address      => $result->address,
-            _full_name    => $c->{ns},
-            _bson_codec   => $self->bson_codec,
-            _batch_size   => scalar @$batch,
-            _cursor_at    => 0,
-            _limit        => 0,
-            _cursor_id    => $c->{id},
-            _cursor_start => 0,
-            _cursor_flags => {},
-            _cursor_num   => scalar @$batch,
-            _docs         => $batch,
-        );
-        push @cursors, $qr;
-    }
-
-    return @cursors;
-}
-
 =method rename
 
     $newcollection = $collection->rename("mynewcollection");
@@ -1812,6 +1744,52 @@ sub _find_one_and_update_or_replace {
 #--------------------------------------------------------------------------#
 # Deprecated functions
 #--------------------------------------------------------------------------#
+
+sub parallel_scan {
+    my ( $self, $num_cursors, $options ) = @_;
+    $self->_warn_deprecated_method('parallel_scan' => []);
+
+    unless (defined $num_cursors && $num_cursors == int($num_cursors)
+        && $num_cursors > 0 && $num_cursors <= 10000
+    ) {
+        MongoDB::UsageError->throw( "first argument to parallel_scan must be a positive integer between 1 and 10000" )
+    }
+    $options = ref $options eq 'HASH' ? $options : { };
+
+    my $op = MongoDB::Op::_ParallelScan->_new(
+        %{ $self->_op_args },
+        num_cursors     => $num_cursors,
+        options         => $options,
+    );
+
+    my $result = $self->client->send_read_op( $op );
+    my $response = $result->output;
+
+    MongoDB::UsageError->throw("No cursors returned")
+        unless $response->{cursors} && ref $response->{cursors} eq 'ARRAY';
+
+    my @cursors;
+    for my $c ( map { $_->{cursor} } @{$response->{cursors}} ) {
+        my $batch = $c->{firstBatch};
+        my $qr = MongoDB::QueryResult->_new(
+            _client       => $self->client,
+            _address      => $result->address,
+            _full_name    => $c->{ns},
+            _bson_codec   => $self->bson_codec,
+            _batch_size   => scalar @$batch,
+            _cursor_at    => 0,
+            _limit        => 0,
+            _cursor_id    => $c->{id},
+            _cursor_start => 0,
+            _cursor_flags => {},
+            _cursor_num   => scalar @$batch,
+            _docs         => $batch,
+        );
+        push @cursors, $qr;
+    }
+
+    return @cursors;
+}
 
 sub count {
     my ( $self, $filter, $options ) = @_;

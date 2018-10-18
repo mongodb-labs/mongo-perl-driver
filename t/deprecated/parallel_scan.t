@@ -24,6 +24,8 @@ use MongoDB;
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type/;
 
+$ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1;
+
 skip_unless_mongod();
 
 my $conn           = build_client();
