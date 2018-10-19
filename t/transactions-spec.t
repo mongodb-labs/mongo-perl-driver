@@ -55,8 +55,8 @@ sub clear_events { @events = () }
 sub event_count { scalar @events }
 # Must use dclone, as was causing action at a distance for binc on txn number
 sub event_cb { push @events, dclone $_[0] }
-
-my $conn           = build_client();
+# disabling wtimeout default of 5000 in MongoDBTest
+my $conn           = build_client( wtimeout => undef );
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 
@@ -103,7 +103,7 @@ while ( my $path = $iterator->() ) {
             my $description = $test->{description};
             local $TODO = 'does a run_command read_preference count as a user configurable read_preference?' if $path =~ /run-command/ && $description =~ /explicit secondary read preference/;
             subtest $description => sub {
-                my $client = build_client();
+                my $client = build_client( wtimeout => undef );
 
                 # Kills its own session as well
                 eval { $client->send_admin_command([ killAllSessions => [] ]) };
@@ -197,6 +197,7 @@ sub run_test {
       # Explicitly disable retry_writes for the test, as they change the
       # txnNumber counting used in the test specs.
       retry_writes => 0,
+      wtimeout => undef,
       %$client_options
     );
 
@@ -256,8 +257,11 @@ sub run_test {
                     @args = ( $args[0], undef, $args[1] )
                         if scalar( @args ) == 2;
                 }
-                my $ret = $sessions{ $operation->{object} }->$cmd( @args );
 
+                # Die if this takes longer than 5 minutes
+                alarm 666;
+                my $ret = $sessions{ $operation->{object} }->$cmd( @args );
+                alarm 0;
                 # special case 'find' so commands are actually emitted
                 my $result = $ret;
                 $result = [ $ret->all ]
@@ -607,9 +611,9 @@ sub check_command_field {
     }
 
     # special case for $event.command.writeConcern.wtimeout
-    if (defined $exp_command->{writeConcern}) {
-        $exp_command->{writeConcern}{wtimeout} = ignore();
-    }
+    # if (defined $exp_command->{writeConcern} && defined $exp_command->{writeConcern}->{wtimeout}) {
+    #     $exp_command->{writeConcern}{wtimeout} = ignore();
+    # }
 
     # special case for $event.command.cursors on killCursors
     if ($event->{commandName} eq 'killCursors'

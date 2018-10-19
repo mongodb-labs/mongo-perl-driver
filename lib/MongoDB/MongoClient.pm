@@ -382,7 +382,7 @@ sub _build_j {
     return $self->__uri_or_else(
         u => 'journal',
         e => 'j',
-        d => 0,
+        d => undef,
     );
 }
 
@@ -1005,7 +1005,8 @@ sub _build_w {
 The number of milliseconds an operation should wait for C<w> secondaries to
 replicate it.
 
-Defaults to 1000 (1 second).
+Defaults to 1000 (1 second). If you set this to undef, it could block indefinitely
+(or until socket timeout is reached).
 
 See C<w> above for more information.
 
@@ -1015,7 +1016,7 @@ This may be set in a connection string with the C<wTimeoutMS> option.
 
 has wtimeout => (
     is      => 'lazy',
-    isa     => Int,
+    isa     => Maybe[Int],
     builder => '_build_wtimeout',
 );
 
@@ -1082,8 +1083,8 @@ sub _build__write_concern {
     return MongoDB::WriteConcern->new(
         # Must check for defined as w can be 0, and defaults to undef
         ( defined $self->w ? ( w        => $self->w )        : () ),
-        ( $self->wtimeout ? ( wtimeout => $self->wtimeout ) : () ),
-        ( $self->j        ? ( j        => $self->j )        : () ),
+        ( defined $self->wtimeout ? ( wtimeout => $self->wtimeout ) : () ),
+        ( defined $self->j        ? ( j        => $self->j )        : () ),
     );
 }
 

@@ -43,11 +43,14 @@ sub _saw_write_concern {
 }
 
 sub _test_write_commands {
-    my ( $orc, $exp ) = @_;
+    my ( $orc, $exp, $level ) = @_;
 
     local $Test::Builder::Level = $Test::Builder::Level + 1;
 
-    my $conn           = build_client( dt_type => undef, w => 'majority' );
+    my $conn           = build_client(
+        dt_type => undef,
+        (defined $level ? (w => $level) : () )
+    );
     my $test_db        = $conn->db("test");
     my $coll    = $test_db->coll("test");
 
@@ -85,8 +88,8 @@ sub _test_write_commands {
     $coll->aggregate( \@pipeline );
     _saw_write_concern( $orc, "aggregate", $exp );
 
-    # catch exceptions
-    my $coll3 = $coll->clone( { write_concern => { w => 4, wtimeout => 0 } } );
+    # catch exceptions, if $level is undefined, we shouldn't be making one
+    my $coll3 = $coll->clone( defined $level ? { write_concern => { w => 4, wtimeout => 0 } } : {} );
     my $res = eval { $coll3->drop };
     my $err = $@;
     if ( $exp ) {
@@ -108,7 +111,23 @@ subtest "wire protocol 5" => sub {
     my $server_version = server_version($conn);
     plan skip_all => "Needs wire protocol 5" unless $server_version ge v3.3.9;
 
-    _test_write_commands( $orc, 1 );
+    _test_write_commands( $orc, 1, 'majority' );
+
+    diag "stopping deployment";
+};
+
+subtest "wire protocol 5 : writeConcern not set" => sub {
+    my $orc =
+      MongoDBTest::Orchestrator->new( config_file => "devel/config/replicaset-single-3.4.yml" );
+    $orc->start;
+    local $ENV{MONGOD} = $orc->as_uri;
+
+    # Check wire protocol 5
+    my $conn = build_client( dt_type => undef );
+    my $server_version = server_version($conn);
+    plan skip_all => "Needs wire protocol 5" unless $server_version ge v3.3.9;
+
+    _test_write_commands( $orc, 0, undef );
 
     diag "stopping deployment";
 };
@@ -119,7 +138,7 @@ subtest "wire protocol 4" => sub {
     $orc->start;
     local $ENV{MONGOD} = $orc->as_uri;
 
-    _test_write_commands( $orc, 0 );
+    _test_write_commands( $orc, 0, 'majority' );
 };
 
 done_testing;

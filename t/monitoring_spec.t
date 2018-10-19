@@ -46,7 +46,8 @@ sub event_cb { push @events, $_[0] }
 
 #--------------------------------------------------------------------------#
 
-my $conn           = build_client( monitoring_callback => \&event_cb );
+# disabling wtimeout default of 5000 in MongoDBTest
+my $conn           = build_client( monitoring_callback => \&event_cb, wtimeout => undef );
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
@@ -116,11 +117,14 @@ while ( my $path = $iterator->() ) {
                 my $meth = $op->{name};
                 $meth =~ s{([A-Z])}{_\L$1}g;
                 my $test_meth = "test_$meth";
+                # Die if this takes longer than 5 minutes
+                alarm 666;
                 my $res = test_dispatch(
                     $meth,
                     $op->{arguments},
                     $test->{expectations},
                 );
+                alarm 0;
             };
         }
     };
@@ -137,6 +141,8 @@ sub test_dispatch {
     local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $method eq 'count';
 
     my @call_args = _adjust_arguments($method, $args);
+    # Die if this takes longer than 5 minutes
+    alarm 666;
     my $res = eval {
         my $res = $coll->$method(@call_args);
 
@@ -150,6 +156,7 @@ sub test_dispatch {
     my $err = $@;
     note "error from '$method': $err"
         if $err;
+    alarm 0;
 
     check_event_expectations($method, _adjust_types($events));
 }
@@ -397,9 +404,9 @@ sub check_command_field {
     }
 
     # special case for $event.command.writeConcern.wtimeout
-    if (exists $exp_command->{writeConcern}) {
-        $exp_command->{writeConcern}{wtimeout} = ignore();
-    }
+    # if (exists $exp_command->{writeConcern} && defined $exp_command->{writeConcern}->{wtimeout}) {
+    #     $exp_command->{writeConcern}{wtimeout} = ignore();
+    # }
 
     # special case for $event.command.cursors on killCursors
     if ($event->{commandName} eq 'killCursors'
