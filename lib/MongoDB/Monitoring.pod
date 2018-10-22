@@ -111,7 +111,6 @@ are replaced with an empty document:
 * updateUser
 * copydbgetnonce
 * copydbsaslstart
-* copydb
 
 =cut
 
