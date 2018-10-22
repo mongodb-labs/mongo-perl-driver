@@ -1834,6 +1834,12 @@ sub watch {
     );
 }
 
+sub _primary_server_version {
+    my $self = shift;
+    my $build = $self->send_admin_command( [ buildInfo => 1 ] )->output;
+    my ($version_str) = $build->{version} =~ m{^([0-9.]+)};
+    return version->parse("v$version_str");
+}
 
 1;
 

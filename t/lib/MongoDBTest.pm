@@ -221,11 +221,8 @@ sub skip_unless_transactions {
 }
 
 sub server_version {
-
     my $conn          = shift;
-    my $build         = $conn->send_admin_command( [ buildInfo => 1 ] )->output;
-    my ($version_str) = $build->{version} =~ m{^([0-9.]+)};
-    return version->parse("v$version_str");
+    return $conn->_primary_server_version;
 }
 
 sub check_min_server_version {
