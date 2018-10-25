@@ -51,15 +51,16 @@ sub execute {
     );
 
     my $res;
-    try {
+    eval {
         $res = $op->execute($link);
         $res->assert_no_write_concern_error;
-    }
-    catch {
-        if ( $_->$_isa("MongoDB::DatabaseError") ) {
-            return undef if $_->code == NAMESPACE_NOT_FOUND() || $_->message =~ /^ns not found/; ## no critic: make $res undef
+        1;
+    } or do {
+        my $error = $@ || "Unknown error";
+        if ( $error->$_isa("MongoDB::DatabaseError") ) {
+            return undef if $error->code == NAMESPACE_NOT_FOUND() || $error->message =~ /^ns not found/; ## no critic: make $res undef
         }
-        die $_;
+        die $error;
     };
 
     return $res;

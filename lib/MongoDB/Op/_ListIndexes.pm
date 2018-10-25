@@ -72,14 +72,14 @@ sub _command_list_indexes {
         monitoring_callback => $self->monitoring_callback,
     );
 
-    my $res = try {
+    my $res = eval {
         $op->execute( $link, $topology );
-    }
-    catch {
-        if ( $_->$_isa("MongoDB::DatabaseError") ) {
-            return undef if $_->code == NAMESPACE_NOT_FOUND(); ## no critic: make $res undef
+    } or do {
+        my $error = $@ || "Unknown error";
+        unless ( $error->$_isa("MongoDB::DatabaseError") and $error->code == NAMESPACE_NOT_FOUND()) {
+            die $error;
         }
-        die $_;
+        undef;
     };
 
     return $res

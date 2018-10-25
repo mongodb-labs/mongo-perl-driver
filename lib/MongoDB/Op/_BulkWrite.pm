@@ -227,14 +227,14 @@ sub _execute_write_command_batch {
             monitoring_callback => $self->monitoring_callback,
         );
 
-        my $cmd_result = try {
+        my $cmd_result = eval {
             $self->_is_retryable
               ? $self->client->send_retryable_write_op( $op )
               : $self->client->send_write_op( $op );
-        }
-        catch {
+        } or do {
+            my $error = $@ || "Unknown error";
             # This error never touches the database!.... so is before any retryable writes errors etc.
-            if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
+            if ( $error->$_isa("MongoDB::_CommandSizeError") ) {
                 if ( @$chunk == 1 ) {
                     MongoDB::DocumentError->throw(
                         message  => "document too large",
@@ -242,7 +242,7 @@ sub _execute_write_command_batch {
                     );
                 }
                 else {
-                    unshift @left_to_send, $self->_split_chunk( $chunk, $_->size );
+                    unshift @left_to_send, $self->_split_chunk( $chunk, $error->size );
                 }
             }
             else {
@@ -253,13 +253,12 @@ sub _execute_write_command_batch {
                 MongoDB::BulkWriteResult->_parse_cmd_result(
                     op => $type,
                     op_count => scalar @$chunk,
-                    result => $_->result,
+                    result => $error->result,
                     cmd_doc => $cmd_doc,
                 )->assert_no_write_error;
                 # Explode with original error
-                die $_;
+                die $error;
             }
-            return;
         };
 
         redo unless $cmd_result; # restart after a chunk split
@@ -411,16 +410,16 @@ sub _execute_legacy_batch {
             );
         }
 
-        my $op_result = try {
+        my $op_result = eval {
             $op->execute($link);
-        }
-        catch {
-            if (   $_->$_isa("MongoDB::DatabaseError")
-                && $_->result->does("MongoDB::Role::_WriteResult") )
+        } or do {
+            my $error = $@ || "Unknown error";
+            if (   $error->$_isa("MongoDB::DatabaseError")
+                && $error->result->does("MongoDB::Role::_WriteResult") )
             {
-                return $_->result;
+                return $error->result;
             }
-            die $_ unless $w_0 && /exceeds maximum size/;
+            die $error unless $w_0 && /exceeds maximum size/;
             return undef; ## no critic: this makes op_result undef
         };
 

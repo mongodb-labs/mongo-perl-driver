@@ -1593,17 +1593,18 @@ sub list_databases {
     my @databases;
     my $max_tries = 3;
     for my $try ( 1 .. $max_tries ) {
-        last if try {
+        last if eval {
             my $output = $self->send_admin_command([ listDatabases => 1, ( $args ? %$args : () ) ])->output;
             if (ref($output) eq 'HASH' && exists $output->{databases}) {
                 @databases = @{ $output->{databases} };
             }
             return 1;
-        } catch {
-            if ( $_->$_isa("MongoDB::DatabaseError" ) ) {
-                return if $_->result->output->{code} == CANT_OPEN_DB_IN_READ_LOCK() || $try < $max_tries;
+        } or do {
+            my $error = $@ || "Unknown error";
+            if ( $error->$_isa("MongoDB::DatabaseError" ) ) {
+                return if $error->result->output->{code} == CANT_OPEN_DB_IN_READ_LOCK() || $try < $max_tries;
             }
-            die $_;
+            die $error;
         };
     }
 

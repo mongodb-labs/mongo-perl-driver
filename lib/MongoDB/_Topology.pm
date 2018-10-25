@@ -859,13 +859,12 @@ sub _get_server_link {
 sub _initialize_link {
     my ( $self, $address ) = @_;
 
-    my $link = try {
+    my $link = eval {
         MongoDB::_Link->new( %{$self->link_options}, address => $address )->connect;
-    }
-    catch {
+    } or do {
+        my $error = $@ || "Unknown error";
         # if connection failed, update topology with Unknown description
-        $self->_reset_address_to_unknown( $address, $_ );
-        return;
+        $self->_reset_address_to_unknown( $address, $error );
     };
 
     return unless $link;
@@ -882,11 +881,11 @@ sub _initialize_link {
     # try to authenticate; if authentication fails, all
     # servers are considered invalid and we throw an error
     if ( $self->type eq 'Single' || first { $_ eq $server->type } qw/Standalone Mongos RSPrimary RSSecondary/ ) {
-        try {
+        eval {
             $self->credential->authenticate($server, $link, $self->bson_codec);
-        }
-        catch {
-            my $err = $_;
+            1;
+        } or do {
+            my $err = $@;
             my $msg = $err->$_isa("MongoDB::Error") ? $err->message : "$err";
             $self->_reset_address_to_unknown( $_->address, $err ) for $self->all_servers;
             MongoDB::AuthError->throw("Authentication to $address failed: $msg");

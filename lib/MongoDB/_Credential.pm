@@ -298,7 +298,7 @@ sub _authenticate_GSSAPI {
         "GSSAPI requires Authen::SASL and GSSAPI or Authen::SASL::XS from CPAN");
 
     my ( $sasl, $client );
-    try {
+    eval {
         $sasl = Authen::SASL->new(
             mechanism => 'GSSAPI',
             callback  => {
@@ -308,14 +308,15 @@ sub _authenticate_GSSAPI {
         );
         $client =
           $sasl->client_new( $self->mechanism_properties->{SERVICE_NAME}, $link->host );
-    }
-    catch {
+        1;
+    } or do {
+        my $error = $@ || "Unknown error";
         MongoDB::AuthError->throw(
-            "Failed to initialize a GSSAPI backend (did you install GSSAPI or Authen::SASL::XS?) Error was: $_"
+            "Failed to initialize a GSSAPI backend (did you install GSSAPI or Authen::SASL::XS?) Error was: $error"
         );
     };
 
-    try {
+    eval {
         # start conversation
         my $step = $client->client_start;
         $self->_assert_gssapi( $client,
@@ -331,9 +332,10 @@ sub _authenticate_GSSAPI {
             ( $sasl_resp, $conv_id, $done ) =
               $self->_sasl_continue( $link, $bson_codec, $step, $conv_id );
         }
-    }
-    catch {
-        my $msg = $_->$_isa("MongoDB::Error") ? $_->message : "$_";
+        1;
+    } or do {
+        my $error = $@ || "Unknown error";
+        my $msg = $error->$_isa("MongoDB::Error") ? $error->message : "$error";
         MongoDB::AuthError->throw("GSSAPI error: $msg");
     };
 
@@ -457,7 +459,7 @@ sub _scram_auth {
     my ( $self, $link, $bson_codec, $client, $mech ) = @_;
 
     my ( $msg, $sasl_resp, $conv_id, $done );
-    try {
+    eval {
         $msg = $client->first_msg;
         ( $sasl_resp, $conv_id, $done ) =
           $self->_sasl_start( $link, $bson_codec, $msg, $mech );
@@ -467,9 +469,10 @@ sub _scram_auth {
         $client->validate($sasl_resp);
         # might require an empty payload to complete SASL conversation
         $self->_sasl_continue( $link, $bson_codec, "", $conv_id ) if !$done;
-    }
-    catch {
-        my $msg = $_->$_isa("MongoDB::Error") ? $_->message : "$_";
+		1;
+    } or do {
+        my $error = $@ || "Unknown error";
+        my $msg = $error->$_isa("MongoDB::Error") ? $error->message : "$error";
         MongoDB::AuthError->throw("$mech error: $msg");
     };
 }

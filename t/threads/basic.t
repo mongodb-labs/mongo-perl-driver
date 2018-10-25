@@ -40,14 +40,14 @@ $col->drop;
 
 {
 
-    my $ret = try {
+    my $ret = eval {
         threads->create(sub {
             $conn->reconnect;
             $col->insert_one({ foo => 42 })->inserted_id;
         })->join->value;
-    }
-    catch {
-        diag $_;
+    } or do {
+        my $error = $@ || 'Zombie error';
+        diag $error;
     };
 
     ok $ret, 'we survived destruction of a cloned connection';

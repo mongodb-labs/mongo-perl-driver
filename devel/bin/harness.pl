@@ -63,13 +63,15 @@ say "Creating a deployment from $config_file";
 
 my $orc = MongoDBTest::Orchestrator->new( config_file => $config_file );
 
-try {
+eval {
     $orc->start;
+    1;
 }
-catch {
+or do {
     say "Problem starting deployment from $config_file.";
     print_log_tails($orc) if $opts{verbose};
-    die $_;
+    my $error = $@ || "Unknown error";
+    die $error;
 };
 
 $ENV{MONGOD} = $orc->as_uri;

@@ -207,12 +207,11 @@ sub next {
     my $change;
     my $retried;
     while (1) {
-        last if try {
+        last if eval {
             $change = $self->_result->next;
-            1 # successfully fetched result
-        }
-        catch {
-            my $error = $_;
+            1; # successfully fetched result
+        } or do {
+            my $error = $@ || "Unknown error";
             if (
                 not($retried)
                 and $error->$_isa('MongoDB::Error')
@@ -224,7 +223,7 @@ sub next {
             else {
                 die $error;
             }
-            0 # failed, cursor was rebuilt
+            0; # failed, cursor was rebuilt
         };
     }
 
