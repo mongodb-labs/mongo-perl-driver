@@ -106,8 +106,10 @@ sub execute {
     # will reject it as unrecognized
     delete $options->{maxTimeMS} unless $is_2_6;
 
-    # bypassDocumentValidation isn't available until 3.2 (wire version 4)
-    delete $options->{bypassDocumentValidation} unless $link->supports_document_validation;
+    # bypassDocumentValidation isn't available until 3.2 (wire version 4) & dont send if false
+    unless ($link->supports_document_validation && $options->{bypassDocumentValidation}) {
+        delete $options->{bypassDocumentValidation};
+    }
 
     if ( defined $options->{collation} and !$link->supports_collation ) {
         MongoDB::UsageError->throw(

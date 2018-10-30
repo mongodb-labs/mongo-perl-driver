@@ -41,8 +41,7 @@ has bypassDocumentValidation => (
 # flag, original command; returns (possibly modified) command
 sub _maybe_bypass {
     push @{ $_[2] },
-      bypassDocumentValidation => ( $_[0]->bypassDocumentValidation ? true : false )
-      if $_[1] && defined $_[0]->bypassDocumentValidation;
+      bypassDocumentValidation => true if $_[1] && $_[0]->bypassDocumentValidation;
     return $_[2];
 }
 

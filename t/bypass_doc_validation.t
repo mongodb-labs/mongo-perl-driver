@@ -24,12 +24,23 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use MongoDBTest
-  qw/skip_unless_mongod build_client get_test_db server_version server_type get_capped/;
+use MongoDBTest qw/
+    build_client
+    get_capped
+    get_test_db
+    server_version
+    server_type
+    skip_unless_mongod
+/;
 
 skip_unless_mongod();
 
-my $conn           = build_client();
+use MongoDBTest::Callback;
+
+my $cb = MongoDBTest::Callback->new;
+my $conn           = build_client(
+  monitoring_callback => $cb->callback
+);;
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
@@ -64,9 +75,27 @@ subtest "insert_one" => sub {
         );
     }
 
-    is( exception { $coll->insert_one( {}, { bypassDocumentValidation => 1 } ) },
-        undef, "validation bypassed" );
+    $cb->clear_events;
 
+    my $not_bypass = exception { $coll->insert_one( {}, { bypassDocumentValidation => 0 } )};
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception { $coll->insert_one( {}, { bypassDocumentValidation => 1 } )};
+
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass , undef, "validation bypassed" );
 };
 
 subtest "replace_one" => sub {
@@ -86,14 +115,31 @@ subtest "replace_one" => sub {
 
     }
 
-    is(
-        exception {
-            $coll->replace_one( { _id => $id }, { y => 1 }, { bypassDocumentValidation => 1 } )
-        },
-        undef,
-        "validation bypassed"
-    );
+    $cb->clear_events;
 
+    my $not_bypass = exception {
+        $coll->replace_one( { _id => $id }, { y => 1 }, { bypassDocumentValidation => 0 })
+    };
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception {
+        $coll->replace_one( { _id => $id }, { y => 1 }, { bypassDocumentValidation => 1 })
+    };
+
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass , undef, "validation bypassed" );
 };
 
 subtest "update_one" => sub {
@@ -112,18 +158,39 @@ subtest "update_one" => sub {
         );
     }
 
-    is(
-        exception {
-            $coll->update_one(
-                { x                        => 1 },
-                { '$unset'                 => { x => 1 } },
-                { bypassDocumentValidation => 1 }
-              )
-        },
-        undef,
-        "validation bypassed"
-    );
+    $cb->clear_events;
 
+    my $not_bypass = exception {
+        $coll->update_one(
+            { x                        => 1 },
+            { '$unset'                 => { x => 1 } },
+            { bypassDocumentValidation => 0 }
+        )
+    };
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception {
+        $coll->update_one(
+            { x                        => 1 },
+            { '$unset'                 => { x => 1 } },
+            { bypassDocumentValidation => 1 }
+        )
+    };
+
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass , undef, "validation bypassed" );
 };
 
 subtest "update_many" => sub {
@@ -142,18 +209,39 @@ subtest "update_many" => sub {
         );
     }
 
-    is(
-        exception {
-            $coll->update_many(
-                {},
-                { '$unset'                 => { x => 1 } },
-                { bypassDocumentValidation => 1 }
-              )
-        },
-        undef,
-        "validation bypassed"
-    );
+    $cb->clear_events;
 
+    my $not_bypass = exception {
+        $coll->update_many(
+            {},
+            { '$unset'                 => { x => 1 } },
+            { bypassDocumentValidation => 0 }
+          )
+    };
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception {
+        $coll->update_many(
+            {},
+            { '$unset'                 => { x => 1 } },
+            { bypassDocumentValidation => 1 }
+          )
+    };
+
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass , undef, "validation bypassed" );
 };
 
 subtest 'bulk_write (unordered)' => sub {
@@ -174,14 +262,37 @@ subtest 'bulk_write (unordered)' => sub {
         like( $err, qr/failed validation/, "invalid bulk_write throws error" );
     }
 
-    $err = exception {
+    $cb->clear_events;
+
+    my $not_bypass = exception {
+        $coll->bulk_write(
+            [ [ insert_one => [ { x => 1 } ] ], [ insert_many => [ {}, { x => 8 } ] ], ],
+            { bypassDocumentValidation => 0, ordered => 0 },
+        );
+    };
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception {
         $coll->bulk_write(
             [ [ insert_one => [ { x => 1 } ] ], [ insert_many => [ {}, { x => 8 } ] ], ],
             { bypassDocumentValidation => 1, ordered => 0 },
         );
     };
 
-    is( $err, undef, "validation bypassed" );
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass , undef, "validation bypassed" );
 };
 
 subtest 'bulk_write (ordered)' => sub {
@@ -202,14 +313,37 @@ subtest 'bulk_write (ordered)' => sub {
         like( $err, qr/failed validation/, "invalid bulk_write throws error" );
     }
 
-    $err = exception {
+    $cb->clear_events;
+
+    my $not_bypass = exception {
+        $coll->bulk_write(
+            [ [ insert_one => [ { x => 1 } ] ], [ insert_many => [ {}, { x => 8 } ] ], ],
+            { bypassDocumentValidation => 0, ordered => 1 },
+        );
+    };
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception {
         $coll->bulk_write(
             [ [ insert_one => [ { x => 1 } ] ], [ insert_many => [ {}, { x => 8 } ] ], ],
             { bypassDocumentValidation => 1, ordered => 1 },
         );
     };
 
-    is( $err, undef, "validation bypassed" );
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass , undef, "validation bypassed" );
 };
 
 # insert_many uses bulk_write internally
@@ -227,10 +361,31 @@ subtest "insert_many" => sub {
         );
     }
 
-    is(
-        exception { $coll->insert_many( [ {}, {} ], { bypassDocumentValidation => 1 } ) },
-        undef, "validation bypassed" );
+    $cb->clear_events;
 
+    my $not_bypass = exception {
+        $coll->insert_many( [ {}, {} ], { bypassDocumentValidation => 0 } )
+    };
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception {
+        $coll->insert_many( [ {}, {} ], { bypassDocumentValidation => 1 } )
+    };
+
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass , undef, "validation bypassed" );
 };
 
 subtest "find_one_and_replace" => sub {
@@ -249,14 +404,31 @@ subtest "find_one_and_replace" => sub {
         );
     }
 
-    is(
-        exception {
-            $coll->find_one_and_replace( { x => 1 }, { y => 1 }, { bypassDocumentValidation => 1 } )
-        },
-        undef,
-        "validation bypassed"
-    );
+    $cb->clear_events;
 
+    my $not_bypass = exception {
+        $coll->find_one_and_replace( { x => 1 }, { y => 1 }, { bypassDocumentValidation => 0 } )
+    };
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception {
+        $coll->find_one_and_replace( { x => 1 }, { y => 1 }, { bypassDocumentValidation => 1 } )
+    };
+
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass , undef, "validation bypassed" );
 };
 
 subtest "find_one_and_update" => sub {
@@ -275,18 +447,39 @@ subtest "find_one_and_update" => sub {
         );
     }
 
-    is(
-        exception {
-            $coll->find_one_and_update(
-                { x                        => 1 },
-                { '$unset'                 => { x => 1 } },
-                { bypassDocumentValidation => 1 }
-              )
-        },
-        undef,
-        "validation bypassed"
-    );
+    $cb->clear_events;
 
+    my $not_bypass = exception {
+        $coll->find_one_and_update(
+            { x                        => 1 },
+            { '$unset'                 => { x => 1 } },
+            { bypassDocumentValidation => 0 }
+          )
+    };
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception {
+        $coll->find_one_and_update(
+            { x                        => 1 },
+            { '$unset'                 => { x => 1 } },
+            { bypassDocumentValidation => 1 }
+          )
+    };
+
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass , undef, "validation bypassed" );
 };
 
 subtest "aggregate with \$out" => sub {
@@ -313,15 +506,33 @@ subtest "aggregate with \$out" => sub {
         is( $coll->count_documents({}), 0, "no docs in \$out collection" );
     }
 
-    is(
-        exception {
-            $source->aggregate(
-                [ { '$match' => { count => { '$gt' => 10 } } }, { '$out' => $coll->name } ],
-                { bypassDocumentValidation => 1 } );
-        },
-        undef,
-        "validation bypassed"
-    );
+    $cb->clear_events;
+
+    my $not_bypass = exception {
+        $source->aggregate(
+            [ { '$match' => { count => { '$gt' => 10 } } }, { '$out' => $coll->name } ],
+            { bypassDocumentValidation => 0 } )
+        };
+
+    my $err_event = $cb->events->[-2];
+
+    ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation not inserted when false');
+
+    like( $not_bypass, qr/failed validation/, "invalid when false on bypass" );
+
+    $cb->clear_events;
+
+    my $valid_bypass = exception { $source->aggregate(
+        [ { '$match' => { count => { '$gt' => 10 } } }, { '$out' => $coll->name } ],
+        { bypassDocumentValidation => 1 } ) };
+
+    my $event = $cb->events->[-2];
+
+    ok(exists $event->{ command }->{ 'bypassDocumentValidation' },
+        'bypassDocumentValidation inserted when true');
+
+    is( $valid_bypass, undef, "validation bypassed" );
 
     is( $coll->count_documents({}), 10, "correct doc count in \$out collection" );
 
@@ -334,7 +545,6 @@ subtest "aggregate with \$out" => sub {
         undef,
         "bypassDocumentValidation without \$out",
     );
-
 };
 
 done_testing;
