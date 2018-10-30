@@ -987,6 +987,14 @@ subtest "causalConsistency" => sub {
 
     skip_unless_sessions();
 
+    eval {
+        $conn->ns("test.items", {read_preference => 'secondary'})->find_one;
+    };
+    if ($@) {
+        plan skip_all => "requires a secondary";
+    }
+
+
     # Prep for examples
     my $current_date = bson_time();
     my $items = $conn->get_database("test", { w => 'majority' })->get_collection("items");
