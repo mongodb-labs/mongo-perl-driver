@@ -77,6 +77,7 @@ my %method_args = (
     update_many => [qw( filter update )],
     find        => [qw( filter )],
     count       => [qw( filter )],
+    count_documents => [qw( filter )],
     bulk_write  => [qw( requests )],
     find_one_and_update => [qw( filter update )],
     find_one_and_replace => [qw( filter replacement )],
@@ -265,9 +266,10 @@ sub run_test {
                 # special case 'find' so commands are actually emitted
                 my $result = $ret;
                 $result = [ $ret->all ]
-                  if ( grep { $cmd eq $_ } qw/ find aggregate distinct / );
+                    if ( grep { $cmd eq $_ } qw/ find aggregate distinct / );
 
-                check_result_outcome( $result, $op_result );
+                check_result_outcome( $result, $op_result )
+                    if exists $operation->{result};
             }
         };
         my $err = $@;
@@ -346,20 +348,24 @@ sub check_hash_result_outcome {
     my ( $got, $exp ) = @_;
 
     my $ok = 1;
-    for my $key ( keys %$exp ) {
-        my $obj_key = to_snake_case( $key );
-        next if ( $key eq 'upsertedCount' && !$got->can('upserted_count') );
-        # Some results are just raw results
-        if ( ref $got eq 'HASH' ) {
-            $ok &&= cmp_deeply $got->{ $obj_key }, $exp->{ $key }, "$key result correct";
-        } else {
-            # if we got something of the wrong type, it won't have the
-            # right methods and we can note that and skip.
-            unless ( can_ok($got, $obj_key) ) {
-                $ok = 0;
-                next;
+    if ( ref $exp ne 'HASH' ) {
+        is_deeply($got, $exp, "non-hash result correct");
+    } else {
+        for my $key ( keys %$exp ) {
+            my $obj_key = to_snake_case( $key );
+            next if ( $key eq 'upsertedCount' && !$got->can('upserted_count') );
+            # Some results are just raw results
+            if ( ref $got eq 'HASH' ) {
+                $ok &&= cmp_deeply $got->{ $obj_key }, $exp->{ $key }, "$key result correct";
+            } else {
+                # if we got something of the wrong type, it won't have the
+                # right methods and we can note that and skip.
+                unless ( can_ok($got, $obj_key) ) {
+                    $ok = 0;
+                    next;
+                }
+                $ok &&= cmp_deeply $got->$obj_key, $exp->{ $key }, "$key result correct";
             }
-            $ok &&= cmp_deeply $got->$obj_key, $exp->{ $key }, "$key result correct";
         }
     }
     if ( !$ok ) {
