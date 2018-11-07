@@ -829,6 +829,23 @@ sub _get_server_in_latency_window {
     return $in_window[ int( rand(@in_window) ) ]->{server};
 }
 
+my $PRIMARY = MongoDB::ReadPreference->new(mode => 'primaryPreferred' );
+
+sub _ping_server {
+    my ($self, $link) = @_;
+    return eval {
+        my $op = MongoDB::Op::_Command->_new(
+            db_name             => 'admin',
+            query               => [ping => 1],
+            query_flags         => {},
+            bson_codec          => $self->bson_codec,
+            read_preference     => $PRIMARY,
+            monitoring_callback => $self->monitoring_callback,
+        );
+        $op->execute( $link )->output;
+    };
+}
+
 sub _get_server_link {
     my ( $self, $server, $method, $read_pref ) = @_;
     my $address = $server->address;
@@ -840,6 +857,10 @@ sub _get_server_link {
 
     # for idle links, refresh the server and verify validity
     if ( time - $link->last_used > $self->socket_check_interval_sec ) {
+        return $link if $self->_ping_server;
+        $self->mark_server_unknown(
+          $server, 'Lost connection with the server'
+        );
         $self->check_address($address);
 
         # topology might have dropped the server
@@ -1017,8 +1038,6 @@ sub _selection_timeout {
         }
     }
 }
-
-my $PRIMARY = MongoDB::ReadPreference->new;
 
 sub _generate_ismaster_request {
     my ( $self, $link, $should_perform_handshake ) = @_;

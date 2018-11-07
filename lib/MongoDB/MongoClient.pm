@@ -1193,6 +1193,7 @@ sub _build__topology {
         monitoring_callback => $self->monitoring_callback,
         compressors => $self->compressors,
         zlib_compression_level => $self->zlib_compression_level,
+        socket_check_interval_sec => $self->socket_check_interval_ms / 1000,
     );
 }
 
