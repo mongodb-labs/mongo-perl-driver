@@ -829,6 +829,9 @@ sub _get_server_in_latency_window {
     return $in_window[ int( rand(@in_window) ) ]->{server};
 }
 
+my $PRIMARY = MongoDB::ReadPreference->new;
+my $PRIMARY_PREF = MongoDB::ReadPreference->new( mode => 'primaryPreferred' );
+
 sub _ping_server {
     my ($self, $link) = @_;
     return eval {
@@ -837,12 +840,13 @@ sub _ping_server {
             query               => [ping => 1],
             query_flags         => {},
             bson_codec          => $self->bson_codec,
-            read_preference     => 'primaryPreferred',
+            read_preference     => $PRIMARY_PREF,
             monitoring_callback => $self->monitoring_callback,
         );
         $op->execute( $link )->output;
     };
 }
+
 
 sub _get_server_link {
     my ( $self, $server, $method, $read_pref ) = @_;
@@ -1036,8 +1040,6 @@ sub _selection_timeout {
         }
     }
 }
-
-my $PRIMARY = MongoDB::ReadPreference->new;
 
 sub _generate_ismaster_request {
     my ( $self, $link, $should_perform_handshake ) = @_;
