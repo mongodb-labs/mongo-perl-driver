@@ -63,17 +63,9 @@ sub _drop_coll {
 
 subtest "insert_one" => sub {
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        like(
-            exception { $coll->insert_one( {} ) },
-            qr/failed validation/,
-            "invalid insert_one throws error"
-        );
-    }
 
     $cb->clear_events;
 
@@ -100,20 +92,11 @@ subtest "insert_one" => sub {
 
 subtest "replace_one" => sub {
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
 
     my $id = $coll->insert_one( { x => 1 } )->inserted_id;
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        like(
-            exception { $coll->replace_one( { _id => $id }, { y => 1 } ) },
-            qr/failed validation/,
-            "invalid replace_one throws error"
-        );
-
-    }
 
     $cb->clear_events;
 
@@ -144,19 +127,11 @@ subtest "replace_one" => sub {
 
 subtest "update_one" => sub {
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
 
     $coll->insert_one( { x => 1 } );
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        like(
-            exception { $coll->update_one( { x => 1 }, { '$unset' => { x => 1 } } ) },
-            qr/failed validation/,
-            "invalid update_one throws error"
-        );
-    }
 
     $cb->clear_events;
 
@@ -195,19 +170,11 @@ subtest "update_one" => sub {
 
 subtest "update_many" => sub {
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
 
     $coll->insert_many( [ { x => 1 }, { x => 2 } ] );
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        like(
-            exception { $coll->update_many( {}, { '$unset' => { x => 1 } } ) },
-            qr/failed validation/,
-            "invalid update_many throws error"
-        );
-    }
 
     $cb->clear_events;
 
@@ -246,21 +213,11 @@ subtest "update_many" => sub {
 
 subtest 'bulk_write (unordered)' => sub {
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
 
     my $err;
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        $err = exception {
-            $coll->bulk_write(
-                [ [ insert_one => [ { x => 1 } ] ], [ insert_many => [ {}, { x => 8 } ] ], ],
-                { ordered => 0 } );
-        };
-
-        like( $err, qr/failed validation/, "invalid bulk_write throws error" );
-    }
 
     $cb->clear_events;
 
@@ -297,21 +254,11 @@ subtest 'bulk_write (unordered)' => sub {
 
 subtest 'bulk_write (ordered)' => sub {
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
 
     my $err;
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        $err = exception {
-            $coll->bulk_write(
-                [ [ insert_one => [ { x => 1 } ] ], [ insert_many => [ {}, { x => 8 } ] ], ],
-                { ordered => 1 } );
-        };
-
-        like( $err, qr/failed validation/, "invalid bulk_write throws error" );
-    }
 
     $cb->clear_events;
 
@@ -349,17 +296,9 @@ subtest 'bulk_write (ordered)' => sub {
 # insert_many uses bulk_write internally
 subtest "insert_many" => sub {
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        like(
-            exception { $coll->insert_many( [ {}, {} ] ) },
-            qr/failed validation/,
-            "invalid insert_many throws error"
-        );
-    }
 
     $cb->clear_events;
 
@@ -390,19 +329,11 @@ subtest "insert_many" => sub {
 
 subtest "find_one_and_replace" => sub {
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
 
     $coll->insert_one( { x => 1 } );
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        like(
-            exception { $coll->find_one_and_replace( { x => 1 }, { y => 1 } ) },
-            qr/failed validation/,
-            "invalid find_one_and_replace throws error"
-        );
-    }
 
     $cb->clear_events;
 
@@ -433,19 +364,11 @@ subtest "find_one_and_replace" => sub {
 
 subtest "find_one_and_update" => sub {
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
 
     $coll->insert_one( { x => 1 } );
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        like(
-            exception { $coll->find_one_and_update( { x => 1 }, { '$unset' => { x => 1 } } ) },
-            qr/failed validation/,
-            "invalid find_one_and_update throws error"
-        );
-    }
 
     $cb->clear_events;
 
@@ -486,25 +409,12 @@ subtest "aggregate with \$out" => sub {
     plan skip_all => "Aggregation with \$out requires MongoDB 2.6+"
         unless $server_version >= v2.6.0;
 
+    plan skip_all => "requires MongoDB 3.2+" unless $does_validation;
+
     _drop_coll();
 
     my $source = $testdb->get_collection('test_source');
     $source->insert_many( [ map { { count => $_ } } 1 .. 20 ] );
-
-    SKIP: {
-        skip "without MongoDB 3.2+", 1 unless $does_validation;
-
-        like(
-            exception {
-                $source->aggregate(
-                    [ { '$match' => { count => { '$gt' => 10 } } }, { '$out' => $coll->name } ] );
-            },
-            qr/failed validation/,
-            "invalid aggregate output throws error"
-        );
-
-        is( $coll->count_documents({}), 0, "no docs in \$out collection" );
-    }
 
     $cb->clear_events;
 
@@ -545,6 +455,53 @@ subtest "aggregate with \$out" => sub {
         undef,
         "bypassDocumentValidation without \$out",
     );
+};
+
+subtest bypass_validation_default => sub {
+
+    my $source = $testdb->get_collection('test_source');
+
+    # For this test we don't use validation on the collection.  We don't
+    # care whether it works or not, only that without a bypass option,
+    # we don't see a 'bypassDocumentValidation' option sent to the server.
+    $coll->drop;
+
+    my %cases = (
+        insert_one => sub { $coll->insert_one( {} ) },
+
+        replace_one => sub { $coll->replace_one( { _id => 123 }, { y => 1 } ) },
+
+        update_one => sub { $coll->update_one( { x => 1 }, { '$unset' => { x => 1 } } ) },
+
+        update_many => sub { $coll->update_many( {}, { '$unset' => { x => 1 } } ) },
+
+        bulk_write => sub {
+            $coll->bulk_write(
+                [ [ insert_one => [ { x => 1 } ] ], [ insert_many => [ {}, { x => 8 } ] ] ] );
+        },
+
+        insert_many => sub { $coll->insert_many( [ {}, {} ], ) },
+
+        fine_one_and_replace => sub { $coll->find_one_and_replace( { x => 1 }, { y => 1 } ) },
+
+        find_one_and_update => sub { $coll->find_one_and_update( { x => 1 }, { '$unset' => { x => 1 } } ) },
+
+        aggregate_with_out => sub {
+            $source->aggregate(
+                [ { '$match' => { count => { '$gt' => 10 } } }, { '$out' => $coll->name } ] );
+        },
+    );
+
+    for my $k ( sort keys %cases ) {
+        $cb->clear_events;
+
+        $cases{$k}->();
+
+        my $err_event = $cb->events->[-2];
+
+        ok( !exists $err_event->{ command }->{ 'bypassDocumentValidation' },
+            "$k: bypassDocumentValidation not inserted when default undef");
+    }
 };
 
 done_testing;
