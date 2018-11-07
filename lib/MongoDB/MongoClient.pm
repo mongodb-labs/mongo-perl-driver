@@ -2024,7 +2024,7 @@ L<http://docs.mongodb.org/manual/reference/connection-string/>.
 =head1 SERVER SELECTION
 
 For a single server deployment or a direct connection to a mongod or
-mongos, all reads and writes and sent to that server.  Any read-preference
+mongos, all reads and writes are sent to that server.  Any read-preference
 is ignored.
 
 When connected to a deployment with multiple servers, such as a replica set
