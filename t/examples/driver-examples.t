@@ -994,7 +994,6 @@ subtest "causalConsistency" => sub {
         plan skip_all => "requires a secondary";
     }
 
-
     # Prep for examples
     my $current_date = bson_time();
     my $items = $conn->get_database("test", { w => 'majority' })->get_collection("items");
@@ -1041,6 +1040,9 @@ subtest "causalConsistency" => sub {
 
     # End Causal Consistency Example 1
 
+    # Despite opening check, sometimes this fails due to read preference
+    eval {
+
     # Start Causal Consistency Example 2
 
     my $s2 = $conn->start_session({ causalConsistency => 1 });
@@ -1061,6 +1063,13 @@ subtest "causalConsistency" => sub {
     }
 
     # End Causal Consistency Example 2
+
+    };
+    if ($@) {
+        unless ( $@ =~ /Could not find host matching read preference/ ) {
+            die $@;
+        }
+    }
 
     pass();
 };
