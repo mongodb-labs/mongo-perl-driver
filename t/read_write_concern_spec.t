@@ -108,9 +108,7 @@ subtest "$write_conn_spec connection-string" => sub {
 subtest "$write_doc_spec document" => sub {
     for my $test ( @{ $plan_wc_doc->{tests} } ) {
         my $wc_valid = $test->{valid};
-        if ( defined $test->{writeConcern}->{wtimeoutMS} ) {
-            $test->{writeConcern}->{wtimeout} = delete $test->{writeConcern}->{wtimeoutMS};
-        }
+        $test->{writeConcern}->{wtimeout} = delete $test->{writeConcern}->{wtimeoutMS};
         if ( defined $test->{writeConcern}->{journal} ) {
             $test->{writeConcern}->{j} = delete $test->{writeConcern}->{journal};
         }

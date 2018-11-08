@@ -964,7 +964,7 @@ The client I<write concern>.
 the server has received and processed the request. Older documentation may refer
 to this as "fire-and-forget" mode.  This option is not recommended.
 
-=item * C<1> Acknowledged. This is the default. MongoClient will wait until the
+=item * C<1> Acknowledged. MongoClient will wait until the
 primary MongoDB acknowledges the write.
 
 =item * C<2> Replica acknowledged. MongoClient will wait until at least two
@@ -976,6 +976,8 @@ number for more replicas.
 =item * C<majority> A majority of replicas acknowledged.
 
 =back
+
+If not set, the server default is used, which is typically "1".
 
 In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can
 specify a custom write concern For more information see L<Data Center
@@ -1083,7 +1085,7 @@ sub _build__write_concern {
     return MongoDB::WriteConcern->new(
         # Must check for defined as w can be 0, and defaults to undef
         ( defined $self->w ? ( w        => $self->w )        : () ),
-        ( defined $self->wtimeout ? ( wtimeout => $self->wtimeout ) : () ),
+        ( wtimeout => $self->wtimeout ),
         ( defined $self->j        ? ( j        => $self->j )        : () ),
     );
 }

@@ -101,13 +101,19 @@ while ( my $path = $iterator->() ) {
                         if $ignore_server_type eq $server_type;
                 }
 
-                $coll = $testdb->get_collection(
-                    'test_collection',
-                    +{map {
+                my $coll_opts = {
+                    map {
                         (my $name = $_) =~ s{([A-Z])}{_\L$1}g;
                         ($name, $test->{operation}{collectionOptions}{$_})
-                    } keys %{ $test->{operation}{collectionOptions} || {} }},
-                );
+                    } keys %{ $test->{operation}{collectionOptions} || {} }
+                };
+                # force wtimeout to default to undef because Perl driver
+                # defaults it to 1000 and spec test assume not set.
+                if ( exists $coll_opts->{write_concern} && ! exists $coll_opts->{write_concern}{wtimeout} ) {
+                    $coll_opts->{write_concern}{wtimeout} = undef;
+                }
+
+                $coll = $testdb->get_collection( 'test_collection', $coll_opts );
 
                 $coll->drop;
                 $coll->insert_many( $plan->{data} );
@@ -424,7 +430,8 @@ sub check_command_field {
         my $exp_value = prepare_data_spec($exp_command->{$exp_key});
         my $label = "command field '$exp_key'";
 
-        cmp_deeply $event_value, $exp_value, $label;
+        cmp_deeply $event_value, $exp_value, $label
+            or diag explain $event_command;
     }
 }
 

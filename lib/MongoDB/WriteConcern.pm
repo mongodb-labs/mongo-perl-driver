@@ -38,14 +38,14 @@ use namespace::clean -except => 'meta';
 
 =attr w
 
-Specifies the desired acknowledgement level. Defaults to '1'.
+Specifies the desired acknowledgement level. If not set, the
+server default will be used, which is usually "1".
 
 =cut
 
 has w => (
     is        => 'ro',
     isa       => Maybe[Str],
-    predicate => '_has_w',
 );
 
 =attr wtimeout
@@ -58,8 +58,8 @@ indefinitely (or until socket timeout is reached).
 
 has wtimeout => (
     is        => 'ro',
-    isa       => Int,
-    predicate => '_has_wtimeout',
+    isa       => Maybe[Int],
+    default => 1000,
 );
 
 =attr j
@@ -75,7 +75,6 @@ error with a mongod or mongos running with --nojournal option now errors.
 has j => (
     is        => 'ro',
     isa       => Boolish,
-    predicate => '_has_j',
 );
 
 has _is_acknowledged => (
@@ -101,9 +100,9 @@ sub _build_as_args {
     my ($self) = @_;
 
     my $wc = {
-        ( $self->_has_w        ? ( w        => $self->w )           : () ),
-        ( $self->_has_wtimeout ? ( wtimeout => 0+ $self->wtimeout ) : () ),
-        ( $self->_has_j        ? ( j        => boolean($self->j) )           : () ),
+        ( defined( $self->w )        ? ( w        => $self->w )            : () ),
+        ( defined( $self->wtimeout ) ? ( wtimeout => 0+ $self->wtimeout )  : () ),
+        ( defined( $self->j )        ? ( j        => boolean( $self->j ) ) : () ),
     };
 
     return ( keys %$wc ? [writeConcern => $wc] : [] );
@@ -120,7 +119,7 @@ sub BUILD {
     }
 
     # cant use nonnegnum earlier in type as errors explode with wrong class
-    if ( $self->_has_wtimeout && $self->wtimeout < 0 ) {
+    if ( defined($self->wtimeout) && $self->wtimeout < 0 ) {
         MongoDB::UsageError->throw("wtimeout must be non negative");
     }
     return;
@@ -128,16 +127,14 @@ sub BUILD {
 
 sub _w_is_valid {
   my ($self) = @_;
-  return ($self->_has_w
-    && ( looks_like_number( $self->w ) ? $self->w >= 0 : length $self->w ))
-    || !defined $self->w;
+  return 1 if !defined $self->w;
+  return looks_like_number( $self->w ) ? $self->w >= 0 : length $self->w;
 }
 
 sub _w_is_acknowledged {
     my ($self) = @_;
-    return ($self->_has_w
-      && ( looks_like_number( $self->w ) ? $self->w > 0 : length $self->w ))
-      || !defined $self->w;
+    return 1 if !defined $self->w;
+    return looks_like_number( $self->w ) ? $self->w > 0 : length $self->w;
 }
 
 
