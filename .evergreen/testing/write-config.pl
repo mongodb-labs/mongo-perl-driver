@@ -39,8 +39,9 @@ my $OS_FILTER = {
 };
 
 # Some OS have support before/after server v3.4
-my $PRE_V_3_4 = { os => [ 'ubuntu1604', 'windows64', 'windows32' ] };
-my $POST_V_3_4 =
+my $BEFORE_V3_2 = { os => [ 'ubuntu1604', 'windows64', 'windows32' ] };
+my $V3_2 = { os => [ 'ubuntu1604', 'windows64' ] };
+my $V3_4_OR_LATER =
   { os =>
       [ 'ubuntu1604', 'windows64', 'rhel67_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ]
   };
@@ -79,9 +80,10 @@ sub calc_filter {
 
     # ZAP should only run on MongoDB 3.4 or latest
     my $filter =
-        $opts->{version} eq 'latest'                             ? {%$POST_V_3_4}
-      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$POST_V_3_4}
-      :                                                            {%$PRE_V_3_4};
+        $opts->{version} eq 'latest'                             ? {%$V3_4_OR_LATER}
+      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$V3_4_OR_LATER}
+      : version->new( $opts->{version} ) == version->new("v3.2") ? {%$V3_2}
+      :                                                            {%$BEFORE_V3_2};
 
     # Server without auth/ssl should run on all perls, so in that case,
     # we return existing filter with only an 'os' key.
