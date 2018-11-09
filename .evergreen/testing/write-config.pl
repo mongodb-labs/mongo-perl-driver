@@ -85,6 +85,12 @@ sub calc_filter {
       : version->new( $opts->{version} ) == version->new("v3.2") ? {%$V3_2}
       :                                                            {%$BEFORE_V3_2};
 
+    # For replica set and sharded cluster, we don't want to run those
+    # on Windows32
+    if ( $opts->{topology} ne 'server' ) {
+        $filter->{os} = [ grep { $_ ne 'windows32' } @{ $filter->{os} } ]
+    }
+
     # Server without auth/ssl should run on all perls, so in that case,
     # we return existing filter with only an 'os' key.
     return $filter
