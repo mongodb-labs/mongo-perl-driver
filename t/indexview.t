@@ -40,6 +40,8 @@ my $valid_collation           = { locale => "en_US", strength => 2 };
 my $valid_collation_alternate = { locale => "fr_CA" };
 my $invalid_collation         = { locale => "en_US", blah => 5 };
 
+my $supports_index_allpaths = $server_version >= v4.1.5;
+
 my ($iv);
 
 # XXX work around SERVER-18062; create collection to initialize DB for
@@ -414,6 +416,17 @@ subtest 'index key order' => sub {
       $index_map->{ $index->{name} },
       'Key correct to name ' . $index->{name};
   }
+};
+
+subtest 'index all paths' => sub {
+    plan skip_all => "Server version $server_version doesn't support index all paths"
+      unless $supports_index_allpaths;
+    $coll->drop;
+    $iv->create_one( { '$**' => 1 }, { name => 'allpaths' } );
+    foreach my $index ($iv->list->all) {
+      next unless $index->{'name'} eq 'allpaths';
+      ok($index->{'key'}{'$**'});
+    }
 };
 
 done_testing;
