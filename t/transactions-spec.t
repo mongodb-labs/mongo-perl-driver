@@ -617,9 +617,15 @@ sub check_command_field {
     }
 
     # special case for $event.command.writeConcern.wtimeout
-    # if (defined $exp_command->{writeConcern} && defined $exp_command->{writeConcern}->{wtimeout}) {
-    #     $exp_command->{writeConcern}{wtimeout} = ignore();
-    # }
+    if ( defined $exp_command->{writeConcern} ) {
+        unless ( defined $exp_command->{writeConcern}->{wtimeout} ) {
+            $exp_command->{writeConcern}{wtimeout} = ignore();
+            $exp_command->{writeConcern} = subhashof($exp_command->{writeConcern});
+        }
+    }
+    else {
+        $exp_command->{writeConcern} = ignore();
+    }
 
     # special case for $event.command.cursors on killCursors
     if ($event->{commandName} eq 'killCursors'
