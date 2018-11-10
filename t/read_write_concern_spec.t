@@ -17,6 +17,7 @@ use warnings;
 use JSON::MaybeXS;
 use Path::Tiny 0.054; # basename with suffix
 use Test::More 0.88;
+use Test::Deep;
 use Test::Fatal;
 use Safe::Isa;
 
@@ -80,7 +81,7 @@ subtest "$write_conn_spec connection-string" => sub {
             $test->{writeConcern}->{wtimeout} = delete $test->{writeConcern}->{wtimeoutMS};
         }
         if ( defined $test->{writeConcern}->{journal} ) {
-            $test->{writeConcern}->{j} = delete $test->{writeConcern}->{journal};
+            $test->{writeConcern}->{j} = bool(delete $test->{writeConcern}->{journal})|obj_isa('boolean');
         }
         my $description = $test->{description};
 
@@ -90,7 +91,7 @@ subtest "$write_conn_spec connection-string" => sub {
             eval { $conn = MongoDB->connect($uri, {wtimeout => undef}) };
             my $error = $@;
             if ( $wc_valid ) {
-                is_deeply(
+                cmp_deeply(
                     $conn->write_concern->as_args->[1] || {},
                     $test->{writeConcern},
                     "write_concern ok"
@@ -110,7 +111,10 @@ subtest "$write_doc_spec document" => sub {
         my $wc_valid = $test->{valid};
         $test->{writeConcern}->{wtimeout} = delete $test->{writeConcern}->{wtimeoutMS};
         if ( defined $test->{writeConcern}->{journal} ) {
-            $test->{writeConcern}->{j} = delete $test->{writeConcern}->{journal};
+            $test->{writeConcern}->{j} = delete( $test->{writeConcern}->{journal}) ? 1 : 0;
+        }
+        if ( defined $test->{writeConcernDocument}->{j} ) {
+            $test->{writeConcernDocument}->{j} = bool($test->{writeConcernDocument}->{j})|obj_isa('boolean');
         }
         my $description = $test->{description};
 
@@ -119,7 +123,7 @@ subtest "$write_doc_spec document" => sub {
             eval { $wc_obj = MongoDB::WriteConcern->new( $test->{writeConcern} ) };
             my $error = $@;
             if ( $wc_valid ) {
-              is_deeply(
+              cmp_deeply(
                   $wc_obj->as_args->[1],
                   defined $wc_obj->as_args->[1] ?
                   $test->{writeConcernDocument} : undef,
