@@ -382,7 +382,7 @@ sub _build_j {
     return $self->__uri_or_else(
         u => 'journal',
         e => 'j',
-        d => 0,
+        d => undef,
     );
 }
 
@@ -964,7 +964,7 @@ The client I<write concern>.
 the server has received and processed the request. Older documentation may refer
 to this as "fire-and-forget" mode.  This option is not recommended.
 
-=item * C<1> Acknowledged. This is the default. MongoClient will wait until the
+=item * C<1> Acknowledged. MongoClient will wait until the
 primary MongoDB acknowledges the write.
 
 =item * C<2> Replica acknowledged. MongoClient will wait until at least two
@@ -976,6 +976,8 @@ number for more replicas.
 =item * C<majority> A majority of replicas acknowledged.
 
 =back
+
+If not set, the server default is used, which is typically "1".
 
 In MongoDB v2.0+, you can "tag" replica members. With "tagging" you can
 specify a custom write concern For more information see L<Data Center
@@ -1005,7 +1007,8 @@ sub _build_w {
 The number of milliseconds an operation should wait for C<w> secondaries to
 replicate it.
 
-Defaults to 1000 (1 second).
+Defaults to 1000 (1 second). If you set this to undef, it could block indefinitely
+(or until socket timeout is reached).
 
 See C<w> above for more information.
 
@@ -1015,7 +1018,7 @@ This may be set in a connection string with the C<wTimeoutMS> option.
 
 has wtimeout => (
     is      => 'lazy',
-    isa     => Int,
+    isa     => Maybe[Int],
     builder => '_build_wtimeout',
 );
 
@@ -1082,8 +1085,8 @@ sub _build__write_concern {
     return MongoDB::WriteConcern->new(
         # Must check for defined as w can be 0, and defaults to undef
         ( defined $self->w ? ( w        => $self->w )        : () ),
-        ( $self->wtimeout ? ( wtimeout => $self->wtimeout ) : () ),
-        ( $self->j        ? ( j        => $self->j )        : () ),
+        ( wtimeout => $self->wtimeout ),
+        ( defined $self->j        ? ( j        => $self->j )        : () ),
     );
 }
 

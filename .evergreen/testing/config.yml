@@ -5226,57 +5226,12 @@ buildvariants:
       - test_2.6_DB_auth
       - test_2.6_DB_auth_asrt
       - test_2.6_DB_auth_asrt_pp
-      - test_2.6_RS
-      - test_2.6_RS_asrt
-      - test_2.6_RS_asrt_pp
-      - test_2.6_RS_auth
-      - test_2.6_RS_auth_asrt
-      - test_2.6_RS_auth_asrt_pp
-      - test_2.6_SC
-      - test_2.6_SC_asrt
-      - test_2.6_SC_asrt_pp
-      - test_2.6_SC_auth
-      - test_2.6_SC_auth_asrt
-      - test_2.6_SC_auth_asrt_pp
       - test_3.0_DB
       - test_3.0_DB_asrt
       - test_3.0_DB_asrt_pp
       - test_3.0_DB_auth
       - test_3.0_DB_auth_asrt
       - test_3.0_DB_auth_asrt_pp
-      - test_3.0_RS
-      - test_3.0_RS_asrt
-      - test_3.0_RS_asrt_pp
-      - test_3.0_RS_auth
-      - test_3.0_RS_auth_asrt
-      - test_3.0_RS_auth_asrt_pp
-      - test_3.0_SC
-      - test_3.0_SC_asrt
-      - test_3.0_SC_asrt_pp
-      - test_3.0_SC_auth
-      - test_3.0_SC_auth_asrt
-      - test_3.0_SC_auth_asrt_pp
-      - test_3.2_DB
-      - test_3.2_DB_asrt
-      - test_3.2_DB_asrt_pp
-      - test_3.2_DB_auth
-      - test_3.2_DB_auth_asrt
-      - test_3.2_DB_auth_asrt_pp
-      - test_3.2_RS
-      - test_3.2_RS_asrt
-      - test_3.2_RS_asrt_pp
-      - test_3.2_RS_auth
-      - test_3.2_RS_auth_asrt
-      - test_3.2_RS_auth_asrt_pp
-      - test_3.2_SC
-      - test_3.2_SC_asrt
-      - test_3.2_SC_asrt_pp
-      - test_3.2_SC_auth
-      - test_3.2_SC_auth_asrt
-      - test_3.2_SC_auth_asrt_pp
-      - test_3.2_DB_ssl
-      - test_3.2_DB_ssl_asrt
-      - test_3.2_DB_ssl_asrt_pp
   - name: os_windows32_perl_16
     display_name: Win32 Perl 5.16
     expansions:
@@ -5295,9 +5250,6 @@ buildvariants:
       - test_3.0_DB
       - test_3.0_DB_asrt
       - test_3.0_DB_asrt_pp
-      - test_3.2_DB
-      - test_3.2_DB_asrt
-      - test_3.2_DB_asrt_pp
   - name: os_windows32_perl_18
     display_name: Win32 Perl 5.18
     expansions:
@@ -5316,9 +5268,6 @@ buildvariants:
       - test_3.0_DB
       - test_3.0_DB_asrt
       - test_3.0_DB_asrt_pp
-      - test_3.2_DB
-      - test_3.2_DB_asrt
-      - test_3.2_DB_asrt_pp
   - name: os_windows32_perl_20
     display_name: Win32 Perl 5.20
     expansions:
@@ -5337,9 +5286,6 @@ buildvariants:
       - test_3.0_DB
       - test_3.0_DB_asrt
       - test_3.0_DB_asrt_pp
-      - test_3.2_DB
-      - test_3.2_DB_asrt
-      - test_3.2_DB_asrt_pp
   - name: os_windows32_perl_22
     display_name: Win32 Perl 5.22
     expansions:
@@ -5358,9 +5304,6 @@ buildvariants:
       - test_3.0_DB
       - test_3.0_DB_asrt
       - test_3.0_DB_asrt_pp
-      - test_3.2_DB
-      - test_3.2_DB_asrt
-      - test_3.2_DB_asrt_pp
   - name: os_windows32_perl_24
     display_name: Win32 Perl 5.24
     expansions:
@@ -5379,57 +5322,12 @@ buildvariants:
       - test_2.6_DB_auth
       - test_2.6_DB_auth_asrt
       - test_2.6_DB_auth_asrt_pp
-      - test_2.6_RS
-      - test_2.6_RS_asrt
-      - test_2.6_RS_asrt_pp
-      - test_2.6_RS_auth
-      - test_2.6_RS_auth_asrt
-      - test_2.6_RS_auth_asrt_pp
-      - test_2.6_SC
-      - test_2.6_SC_asrt
-      - test_2.6_SC_asrt_pp
-      - test_2.6_SC_auth
-      - test_2.6_SC_auth_asrt
-      - test_2.6_SC_auth_asrt_pp
       - test_3.0_DB
       - test_3.0_DB_asrt
       - test_3.0_DB_asrt_pp
       - test_3.0_DB_auth
       - test_3.0_DB_auth_asrt
       - test_3.0_DB_auth_asrt_pp
-      - test_3.0_RS
-      - test_3.0_RS_asrt
-      - test_3.0_RS_asrt_pp
-      - test_3.0_RS_auth
-      - test_3.0_RS_auth_asrt
-      - test_3.0_RS_auth_asrt_pp
-      - test_3.0_SC
-      - test_3.0_SC_asrt
-      - test_3.0_SC_asrt_pp
-      - test_3.0_SC_auth
-      - test_3.0_SC_auth_asrt
-      - test_3.0_SC_auth_asrt_pp
-      - test_3.2_DB
-      - test_3.2_DB_asrt
-      - test_3.2_DB_asrt_pp
-      - test_3.2_DB_auth
-      - test_3.2_DB_auth_asrt
-      - test_3.2_DB_auth_asrt_pp
-      - test_3.2_RS
-      - test_3.2_RS_asrt
-      - test_3.2_RS_asrt_pp
-      - test_3.2_RS_auth
-      - test_3.2_RS_auth_asrt
-      - test_3.2_RS_auth_asrt_pp
-      - test_3.2_SC
-      - test_3.2_SC_asrt
-      - test_3.2_SC_asrt_pp
-      - test_3.2_SC_auth
-      - test_3.2_SC_auth_asrt
-      - test_3.2_SC_auth_asrt_pp
-      - test_3.2_DB_ssl
-      - test_3.2_DB_ssl_asrt
-      - test_3.2_DB_ssl_asrt_pp
   - name: os_windows32_perl_26
     display_name: Win32 Perl 5.26
     expansions:
@@ -5448,9 +5346,6 @@ buildvariants:
       - test_3.0_DB
       - test_3.0_DB_asrt
       - test_3.0_DB_asrt_pp
-      - test_3.2_DB
-      - test_3.2_DB_asrt
-      - test_3.2_DB_asrt_pp
   - name: os_windows32_perl_28
     display_name: Win32 Perl 5.28
     expansions:
@@ -5469,9 +5364,6 @@ buildvariants:
       - test_3.0_DB
       - test_3.0_DB_asrt
       - test_3.0_DB_asrt_pp
-      - test_3.2_DB
-      - test_3.2_DB_asrt
-      - test_3.2_DB_asrt_pp
   - name: os_windows64_perl_14
     display_name: Win64 Perl 5.14
     expansions:

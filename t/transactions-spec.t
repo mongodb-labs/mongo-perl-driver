@@ -55,8 +55,8 @@ sub clear_events { @events = () }
 sub event_count { scalar @events }
 # Must use dclone, as was causing action at a distance for binc on txn number
 sub event_cb { push @events, dclone $_[0] }
-
-my $conn           = build_client();
+# disabling wtimeout default of 5000 in MongoDBTest
+my $conn           = build_client( wtimeout => undef );
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 
@@ -77,6 +77,7 @@ my %method_args = (
     update_many => [qw( filter update )],
     find        => [qw( filter )],
     count       => [qw( filter )],
+    count_documents => [qw( filter )],
     bulk_write  => [qw( requests )],
     find_one_and_update => [qw( filter update )],
     find_one_and_replace => [qw( filter replacement )],
@@ -103,7 +104,7 @@ while ( my $path = $iterator->() ) {
             my $description = $test->{description};
             local $TODO = 'does a run_command read_preference count as a user configurable read_preference?' if $path =~ /run-command/ && $description =~ /explicit secondary read preference/;
             subtest $description => sub {
-                my $client = build_client();
+                my $client = build_client( wtimeout => undef );
 
                 # Kills its own session as well
                 eval { $client->send_admin_command([ killAllSessions => [] ]) };
@@ -197,6 +198,7 @@ sub run_test {
       # Explicitly disable retry_writes for the test, as they change the
       # txnNumber counting used in the test specs.
       retry_writes => 0,
+      wtimeout => undef,
       %$client_options
     );
 
@@ -256,14 +258,18 @@ sub run_test {
                     @args = ( $args[0], undef, $args[1] )
                         if scalar( @args ) == 2;
                 }
-                my $ret = $sessions{ $operation->{object} }->$cmd( @args );
 
+                # Die if this takes longer than 5 minutes
+                alarm 666;
+                my $ret = $sessions{ $operation->{object} }->$cmd( @args );
+                alarm 0;
                 # special case 'find' so commands are actually emitted
                 my $result = $ret;
                 $result = [ $ret->all ]
-                  if ( grep { $cmd eq $_ } qw/ find aggregate distinct / );
+                    if ( grep { $cmd eq $_ } qw/ find aggregate distinct / );
 
-                check_result_outcome( $result, $op_result );
+                check_result_outcome( $result, $op_result )
+                    if exists $operation->{result};
             }
         };
         my $err = $@;
@@ -342,20 +348,24 @@ sub check_hash_result_outcome {
     my ( $got, $exp ) = @_;
 
     my $ok = 1;
-    for my $key ( keys %$exp ) {
-        my $obj_key = to_snake_case( $key );
-        next if ( $key eq 'upsertedCount' && !$got->can('upserted_count') );
-        # Some results are just raw results
-        if ( ref $got eq 'HASH' ) {
-            $ok &&= cmp_deeply $got->{ $obj_key }, $exp->{ $key }, "$key result correct";
-        } else {
-            # if we got something of the wrong type, it won't have the
-            # right methods and we can note that and skip.
-            unless ( can_ok($got, $obj_key) ) {
-                $ok = 0;
-                next;
+    if ( ref $exp ne 'HASH' ) {
+        is_deeply($got, $exp, "non-hash result correct");
+    } else {
+        for my $key ( keys %$exp ) {
+            my $obj_key = to_snake_case( $key );
+            next if ( $key eq 'upsertedCount' && !$got->can('upserted_count') );
+            # Some results are just raw results
+            if ( ref $got eq 'HASH' ) {
+                $ok &&= cmp_deeply $got->{ $obj_key }, $exp->{ $key }, "$key result correct";
+            } else {
+                # if we got something of the wrong type, it won't have the
+                # right methods and we can note that and skip.
+                unless ( can_ok($got, $obj_key) ) {
+                    $ok = 0;
+                    next;
+                }
+                $ok &&= cmp_deeply $got->$obj_key, $exp->{ $key }, "$key result correct";
             }
-            $ok &&= cmp_deeply $got->$obj_key, $exp->{ $key }, "$key result correct";
         }
     }
     if ( !$ok ) {
@@ -607,8 +617,14 @@ sub check_command_field {
     }
 
     # special case for $event.command.writeConcern.wtimeout
-    if (defined $exp_command->{writeConcern}) {
-        $exp_command->{writeConcern}{wtimeout} = ignore();
+    if ( defined $exp_command->{writeConcern} ) {
+        unless ( defined $exp_command->{writeConcern}->{wtimeout} ) {
+            $exp_command->{writeConcern}{wtimeout} = ignore();
+            $exp_command->{writeConcern} = subhashof($exp_command->{writeConcern});
+        }
+    }
+    else {
+        $exp_command->{writeConcern} = ignore();
     }
 
     # special case for $event.command.cursors on killCursors
