@@ -795,6 +795,22 @@ sub _build_server_selection_try_once {
     );
 }
 
+=attr server_selector
+
+Optional. This takes a function that augments the server selection rules.
+The function takes as a parameter a list of server descriptions representing
+the suitable servers for the read or write operation, and returns a list of
+server descriptions that should still be considered suitable. Most users
+should rely on the default server selection algorithm and should not need
+to set this attribute.
+
+=cut
+
+has server_selector => (
+    is  => 'ro',
+    isa => Maybe[CodeRef],
+);
+
 =attr socket_check_interval_ms
 
 If a socket to a server has not been used in this many milliseconds, an
@@ -1197,6 +1213,7 @@ sub _build__topology {
         compressors => $self->compressors,
         zlib_compression_level => $self->zlib_compression_level,
         socket_check_interval_sec => $self->socket_check_interval_ms / 1000,
+        server_selector => $self->server_selector,
     );
 }
 
@@ -2033,8 +2050,8 @@ is ignored.
 
 When connected to a deployment with multiple servers, such as a replica set
 or sharded cluster, the driver chooses a server for operations based on the
-type of operation (read or write), the types of servers available and a
-read preference.
+type of operation (read or write), application-provided server selector, the
+types of servers available and a read preference.
 
 For a replica set deployment, writes are sent to the primary (if available)
 and reads are sent to a server based on the L</read_preference> attribute,
@@ -2046,11 +2063,11 @@ servers in the seed list.  Any read preference is passed through to the
 mongos and used by it when executing reads against shards.
 
 If multiple servers can service an operation (e.g. multiple mongos servers,
-or multiple replica set members), one is chosen at random from within the
-"latency window".  The server with the shortest average round-trip time
-(RTT) is always in the window.  Any servers with an average round-trip time
-less than or equal to the shortest RTT plus the L</local_threshold_ms> are
-also in the latency window.
+or multiple replica set members), one is chosen by filtering with server
+selector and then at random from within the "latency window".  The server
+with the shortest average round-trip time (RTT) is always in the window.
+Any servers with an average round-trip time less than or equal to the
+shortest RTT plus the L</local_threshold_ms> are also in the latency window.
 
 If a suitable server is not immediately available, what happens next
 depends on the L</server_selection_try_once> option.

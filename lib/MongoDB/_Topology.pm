@@ -181,6 +181,11 @@ has server_selection_try_once => (
     isa => Boolish,
 );
 
+has server_selector => (
+    is => 'ro',
+    isa => Maybe[CodeRef],
+);
+
 has ewma_alpha => (
     is      => 'ro',
     default => 0.2,
@@ -757,8 +762,11 @@ sub _find_available_server {
     my ( $self, $read_pref, @candidates ) = @_;
     $self->_check_staleness_compatibility($read_pref) if $read_pref;
     push @candidates, $self->all_servers unless @candidates;
+    my $selector = $self->server_selector;
     return $self->_get_server_in_latency_window(
-        [ grep { $_->is_available } @candidates ] );
+      [ grep { $_->is_available }
+          $selector ? $selector->(@candidates) : @candidates ]
+    );
 }
 
 # This uses read preference to check for max staleness compatibility in
@@ -767,8 +775,11 @@ sub _find_readable_mongos_server {
     my ( $self, $read_pref, @candidates ) = @_;
     $self->_check_staleness_compatibility($read_pref);
     push @candidates, $self->all_servers unless @candidates;
+    my $selector = $self->server_selector;
     return $self->_get_server_in_latency_window(
-        [ grep { $_->is_available } @candidates ] );
+      [ grep { $_->is_available }
+          $selector ? $selector->(@candidates) : @candidates ]
+    );
 }
 
 sub _find_nearest_server {
@@ -776,7 +787,10 @@ sub _find_nearest_server {
     $self->_check_staleness_compatibility($read_pref);
     push @candidates, ( $self->_primaries, $self->_secondaries ) unless @candidates;
     my @suitable = $self->_eligible( $read_pref, @candidates );
-    return $self->_get_server_in_latency_window( \@suitable );
+    my $selector = $self->server_selector;
+    return $self->_get_server_in_latency_window(
+        [ $selector ? $selector->(@suitable) : @suitable ]
+    );
 }
 
 sub _find_primary_server {
@@ -799,7 +813,10 @@ sub _find_secondary_server {
     $self->_check_staleness_compatibility($read_pref);
     push @candidates, $self->_secondaries unless @candidates;
     my @suitable = $self->_eligible( $read_pref, @candidates );
-    return $self->_get_server_in_latency_window( \@suitable );
+    my $selector = $self->server_selector;
+    return $self->_get_server_in_latency_window(
+        [ $selector ? $selector->(@suitable) : @suitable ]
+    );
 }
 
 sub _find_secondarypreferred_server {

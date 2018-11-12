@@ -62,7 +62,7 @@ subtest "server selection tests" => sub {
 
 subtest "random selection" => sub {
 
-    my $topo = create_mock_topology( "mongodb://localhost", 'Sharded' );
+    my $topo = create_mock_topology( "mongodb://localhost", { type => 'Sharded' } );
     $topo->_remove_address("localhost:27017");
 
     for my $n ( "a" .. "z" ) {
@@ -87,6 +87,29 @@ subtest "random selection" => sub {
     ok( $different, "servers randomly selected" );
 };
 
+subtest "server_selector" => sub {
+
+    my $topo = create_mock_topology(
+      "mongodb://localhost", { type => 'Sharded', server_selector => sub { shift } }
+    );
+    $topo->_remove_address("localhost:27017");
+
+    for my $n ( "a" .. "z" ) {
+        my $address = "$n:27017";
+        my $server = create_mock_server( $address, 10, type => 'Mongos' );
+        $topo->servers->{$server->address} = $server;
+        $topo->_update_ewma( $server->address, $server );
+    }
+
+    my $first = $topo->_find_available_server;
+    for ( 1 .. 5 ) {
+        my $another = $topo->_find_available_server;
+        is($first->address, $another->address,
+            'same server always, since server_selector is set'
+        );
+    }
+};
+
 sub exhaust_sort {
     my $iter = shift;
     my @result;
@@ -97,12 +120,11 @@ sub exhaust_sort {
 }
 
 sub create_mock_topology {
-    my ( $uri, $type ) = @_;
-    $type ||= 'Single';
+    my ( $uri, $options ) = @_;
+    $options->{'type'} ||= 'Single';
 
     return MongoDB::_Topology->new(
         uri                    => MongoDB::_URI->new( uri              => $uri ),
-        type                   => $type,
         min_server_version     => "0.0.0",
         max_wire_version       => 3,
         min_wire_version       => 0,
@@ -113,6 +135,7 @@ sub create_mock_topology {
             monitoring_callback => undef,
         ),
         monitoring_callback    => undef,
+        %$options,
     );
 }
 
@@ -149,7 +172,7 @@ sub run_ss_test {
     $name =~ s{\.json$}{};
 
     my $topo_desc = $plan->{topology_description};
-    my $topo = create_mock_topology( "mongodb://localhost", $topo_desc->{type} );
+    my $topo = create_mock_topology( "mongodb://localhost", { type => $topo_desc->{type} } );
     $topo->_remove_address("localhost:27017");
     for my $s ( @{ $topo_desc->{servers} } ) {
         my $address = $s->{address};
