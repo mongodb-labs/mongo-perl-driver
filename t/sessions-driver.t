@@ -92,9 +92,11 @@ subtest 'clusterTime in commands' => sub {
     subtest 'SDAM' => sub {
         my $local_client = get_high_heartbeat_client();
 
+        clear_events();
+
         $local_client->topology_status( refresh => 1 );
 
-        my $command = $events[0]->{command};
+        my $command = $events[1]->{command};
         ok exists $command->{'ismaster'}, 'ismaster in sent command';
 
         # first ismaster to unknown hosts won't have it
@@ -104,7 +106,7 @@ subtest 'clusterTime in commands' => sub {
         my $max_cluster_time = max(
             grep { defined }
             map  { $_->{reply}{'$clusterTime'}{clusterTime} }
-            grep { $_->{type} eq 'command_succeeded' } @events
+            grep { ($_->{type} // '') eq 'command_succeeded' } @events
         );
 
         ok( defined $max_cluster_time, "have max cluster time from ismaster replies" )
@@ -114,10 +116,10 @@ subtest 'clusterTime in commands' => sub {
 
         $local_client->topology_status( refresh => 1 );
 
-        my $command2 = $events[0]->{command};
+        my $command2 = $events[1]->{command};
 
         # next ismaster to known hosts should have $clustertime
-        ok exists $command2->{'ismaster'}, 'ismater in sent command'
+        ok exists $command2->{'ismaster'}, 'ismaster in sent command'
           or diag explain $command2;
 
         my $got = $command2->{'$clusterTime'}->{clusterTime};

@@ -40,7 +40,7 @@ use MongoDBTest::Callback;
 my $cb = MongoDBTest::Callback->new;
 my $conn           = build_client(
   monitoring_callback => $cb->callback
-);;
+);
 my $testdb         = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);

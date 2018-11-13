@@ -55,6 +55,10 @@ use Time::HiRes qw/time usleep/;
 
 use namespace::clean;
 
+with $_ for qw(
+  MongoDB::Role::_TopologyMonitoring
+);
+
 #--------------------------------------------------------------------------#
 # attributes
 #--------------------------------------------------------------------------#
@@ -235,6 +239,13 @@ has is_compatible => (
     isa => Boolish,
 );
 
+has compatibility_error => (
+    is      => 'ro',
+    default => '',
+    writer => '_set_compatibility_error',
+    isa     => Str,
+);
+
 has wire_version_floor => (
     is => 'ro',
     writer => '_set_wire_version_floor',
@@ -343,6 +354,12 @@ sub _build_handshake_document {
 
 sub BUILD {
     my ($self) = @_;
+
+    $self->publish_topology_opening
+      if $self->monitoring_callback;
+
+    $self->publish_old_topology_desc
+      if $self->monitoring_callback;
     my $type = $self->type;
     my @addresses = @{ $self->uri->hostids };
 
@@ -368,6 +385,18 @@ sub BUILD {
     }
 
     $self->_add_address_as_unknown($_) for @addresses;
+
+    $self->publish_new_topology_desc
+      if $self->monitoring_callback;
+
+    return;
+}
+
+sub DEMOLISH {
+    my $self = shift;
+
+    $self->publish_topology_closing
+      if $self->monitoring_callback;
 
     return;
 }
@@ -557,6 +586,9 @@ sub _add_address_as_unknown {
     my ( $self, $address, $last_update, $error ) = @_;
     $error = $error ? "$error" : "";
     $error =~ s/ at \S+ line \d+.*//ms;
+
+    $self->publish_server_opening($address)
+      if $self->monitoring_callback;
 
     return $self->servers->{$address} = MongoDB::_Server->new(
         address          => $address,
@@ -944,6 +976,8 @@ sub _remove_address {
         $self->_clear_current_primary;
     }
     delete $self->$_->{$address} for qw/servers links rtt_ewma_sec/;
+    $self->publish_server_closing( $address )
+      if $self->monitoring_callback;
     return;
 }
 
@@ -1036,6 +1070,7 @@ sub _selection_timeout {
                     );
                 }
             }
+            $self->_set_compatibility_error($error_string);
             MongoDB::ProtocolError->throw( $error_string );
         }
 
@@ -1080,6 +1115,9 @@ sub _generate_ismaster_request {
 sub _update_topology_from_link {
     my ( $self, $link, %opts ) = @_;
 
+    $self->publish_server_heartbeat_started( $link )
+      if $self->monitoring_callback;
+
     my $start_time = time;
     my $is_master = eval {
         my $op = MongoDB::Op::_Command->_new(
@@ -1097,6 +1135,10 @@ sub _update_topology_from_link {
         $op->execute( $link )->output;
     };
     if ( my $e = $@ ) {
+        my $end_time_fail = time;
+        my $rtt_sec_fail = $end_time_fail - $start_time;
+        $self->publish_server_heartbeat_failed( $link, $rtt_sec_fail, $e )
+          if $self->monitoring_callback;
         if ($e->$_isa("MongoDB::DatabaseError") && $e->code == USER_NOT_FOUND ) {
             MongoDB::AuthError->throw("mechanism negotiation error: $e");
         }
@@ -1124,6 +1166,9 @@ sub _update_topology_from_link {
 
     my $end_time = time;
     my $rtt_sec = $end_time - $start_time;
+
+    $self->publish_server_heartbeat_succeeded( $link, $rtt_sec, $is_master )
+      if $self->monitoring_callback;
 
     my $new_server = MongoDB::_Server->new(
         address          => $link->address,
@@ -1169,18 +1214,24 @@ sub _update_topology_from_server_desc {
     # after a server has been removed
     return unless $self->servers->{$address};
 
+    $self->publish_old_topology_desc( $address, $new_server )
+      if $self->monitoring_callback;
+
     $self->_update_ewma( $address, $new_server );
 
     # must come after ewma update
     $self->servers->{$address} = $new_server;
 
     my $method = "_update_" . $self->type;
+
     $self->$method( $address, $new_server );
 
     # if link is still around, tag it with server specifics
     $self->_update_link_metadata( $address, $new_server );
 
     $self->_update_ls_timeout_minutes( $new_server );
+
+    $self->publish_new_topology_desc if $self->monitoring_callback;
 
     return $new_server;
 }

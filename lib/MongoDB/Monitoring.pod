@@ -39,7 +39,11 @@ accumulates events in an array:
 Every event is a hash reference, with a C<type> field indicating the type,
 e.g. C<command_started>.  Each type is described below.
 
-=head2 command_started
+=head2 Command Monitoring
+
+These events are fired for commands directly to the wire and the response.
+
+=head3 command_started
 
 This event is sent just before a command is put one the wire.  It will be
 followed by either a C<command_succeeded> or C<command_failed> event.
@@ -56,7 +60,7 @@ Fields:
 * requestId: the request identifier sent to the server
 * connectionId: address and port of the destination server
 
-=head2 command_succeeded
+=head3 command_succeeded
 
 This event is sent just after a command reply is received, but only if the
 database reply document contains a non-false C<ok> field.  NOTE: write
@@ -75,7 +79,7 @@ Fields:
 * requestId: the request identifier sent to the server
 * connectionId: address and port of the destination server
 
-=head2 command_failed
+=head3 command_failed
 
 This event is sent just after a command reply is received, but only if the
 database reply document contains a false C<ok> field or if an exception
@@ -95,6 +99,114 @@ Fields:
   hashref if the failure is due to an exception
 * requestId: the request identifier sent to the server
 * connectionId: address and port of the destination server
+
+=head2 Server Discovery and Monitoring
+
+These events are fired when servers and topology are amended.
+
+=head3 server_opening_event
+
+This event is sent when a new server is added to the topology.
+
+Fields:
+
+=for :list
+* type: "server_opening_event"
+* topologyId: The topology refaddr
+* address: address of the server
+
+=head3 server_closed_event
+
+This event is sent when a server is removed from the topology.
+
+Fields:
+
+=for :list
+* type: "server_closed_event"
+* topologyId: The topology refaddr
+* address: address of the server
+
+=head3 server_description_changed_event
+
+This event is sent when the server description changes, but does not include
+changes to the RTT.
+
+Fields:
+
+=for :list
+* type: "server_description_changed_event"
+* address: address of the server
+* topologyId: The topology refaddr
+* previousDescription: Server Description before the change
+* newDescription: Server Description after the change
+
+=head3 topology_opening_event
+
+This event is sent when the topology is created.
+
+Fields:
+
+=for :list
+* type: "topology_opening_event"
+* topologyId: The topology refaddr
+
+=head3 topology_closed_event
+
+This event is sent when the topology is closed.
+
+Fields:
+
+=for :list
+* type: "topology_closed_event"
+* topologyId: The topology refaddr
+
+=head3 topology_description_changed_event
+
+This event is sent when the topology description changes.
+
+Fields:
+
+=for :list
+* type: "topology_description_changed_event"
+* topologyId: The topology refaddr
+* previousDescription: Topology Description before the change
+* newDescription: Topology Description after the change
+
+=head3 server_heartbeat_started_event
+
+This event is sent before the ismaster command is sent to the server.
+
+Fields:
+
+=for :list
+* type: "server_heartbeat_started_event"
+* connectionId: address of the link to connect to
+
+=head3 server_heartbeat_succeeded_event
+
+This event is sent after the reply from the ismaster command arrives from a
+successful reply.
+
+Fields:
+
+=for :list
+* type: "server_heartbeat_succeeded_event"
+* duration: time it took to send and receive a reply
+* reply: the ismaster command reply
+* connectionId: address of the server
+
+=head3 server_heartbeat_failed_event
+
+This event is sent if there is a failure from the ismaster command, which returns
+an error string of some sort.
+
+Fields:
+
+=for :list
+* type: "server_heartbeat_failed_event"
+* duration: time it took to send and receive a reply
+* failure: Returns an error string of the failure
+* connectionId: address of the server
 
 =head1 REDACTION
 

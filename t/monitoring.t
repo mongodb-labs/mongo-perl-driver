@@ -45,10 +45,10 @@ sub event_cb { push @events, $_[0] }
 #--------------------------------------------------------------------------#
 
 subtest "Initialize client with monitoring callback" => sub {
-    clear_events();
     my $mc = build_client( monitoring_callback => \&event_cb );
+    clear_events();
     $mc->monitoring_callback->( { hello => "world" } );
-    is( event_count(),       1,       "got an event" );
+    is( event_count(),         1,       "got events" );
     is( $events[0]->{hello}, "world", "correct event" );
 };
 
@@ -59,7 +59,7 @@ subtest "run_command" => sub {
     ok( event_count() >= 2, "got 2+ events" ) or return;
 
     subtest "command_started" => sub {
-        my @started = grep { $_->{type} eq "command_started" } @events;
+        my @started = grep { ($_->{type} // '') eq "command_started" } @events;
         ok( scalar @started >= 1, "command_success count" ) or return;
 
         # last command should be the one we ran
@@ -74,7 +74,7 @@ subtest "run_command" => sub {
     };
 
     subtest "command_succeeded" => sub {
-        my @success = grep { $_->{type} eq "command_succeeded" } @events;
+        my @success = grep { ($_->{type} // '') eq "command_succeeded" } @events;
         ok( scalar @success >= 1, "command_succeeded count" ) or return;
 
         # last command should be the one we ran
@@ -94,7 +94,7 @@ subtest "run_command" => sub {
         ok( $@, "Got exception" );
         ok( event_count() >= 2, "got 2+ events" ) or return;
 
-        my @failure = grep { $_->{type} eq "command_failed" } @events;
+        my @failure = grep { ($_->{type} // '') eq "command_failed" } @events;
         ok( scalar @failure >= 1, "command_failed count" ) or return;
 
         # last command should be the one we ran
@@ -134,20 +134,20 @@ subtest "find and getMore" => sub {
     my @docs = $coll->find( { x => { '$gt' => 10 } }, { batchSize => 30 } )->all;
 
     subtest "command_started" => sub {
-        my @started = grep { $_->{type} eq "command_started" } @events;
+        my @started = grep { ($_->{type} // '') eq "command_started" } @events;
         ok( scalar @started >= 2, "got events" );
         my $ok = 1;
-        $ok &&= is( (scalar grep { $_->{commandName} eq 'find' } @started), 1, "find command" );
-        $ok &&= is( (scalar grep { $_->{commandName} eq 'getMore' } @started), 3, "getMore commands" );
+        $ok &&= is( (scalar grep { ($_->{commandName} // '') eq 'find' } @started), 1, "find command" );
+        $ok &&= is( (scalar grep { ($_->{commandName} // '') eq 'getMore' } @started), 3, "getMore commands" );
         diag explain \@started unless $ok;
     };
 
     subtest "command_succeeded" => sub {
-        my @succeeded = grep { $_->{type} eq "command_succeeded" } @events;
+        my @succeeded = grep { ($_->{type} // '') eq "command_succeeded" } @events;
         ok( scalar @succeeded >= 2, "got events" );
         my $ok = 1;
-        $ok &&= is( (scalar grep { $_->{commandName} eq 'find' } @succeeded), 1, "find command" );
-        $ok &&= is( (scalar grep { $_->{commandName} eq 'getMore' } @succeeded), 3, "getMore commands" );
+        $ok &&= is( (scalar grep { ($_->{commandName} // '') eq 'find' } @succeeded), 1, "find command" );
+        $ok &&= is( (scalar grep { ($_->{commandName} // '') eq 'getMore' } @succeeded), 3, "getMore commands" );
         diag explain \@succeeded unless $ok;
     };
 
@@ -156,10 +156,10 @@ subtest "find and getMore" => sub {
         eval { $coll->find( { x => { '$xxxx' => 10 } }, { batchSize => 30 } )->all };
         ok( $@, "Got exception" );
 
-        my @failed = grep { $_->{type} eq "command_failed" } @events;
+        my @failed = grep { ($_->{type} // '') eq "command_failed" } @events;
         ok( scalar @failed >= 1, "got events" );
         my $ok = 1;
-        $ok &&= is( (scalar grep { $_->{commandName} eq 'find' } @failed), 1, "find command" );
+        $ok &&= is( (scalar grep { ($_->{commandName} // '') eq 'find' } @failed), 1, "find command" );
         diag explain \@failed unless $ok;
     };
 };
@@ -181,7 +181,7 @@ subtest "exceptions are command_failed" => sub {
         $coll->client->topology_status( refresh => 1 );
 
         ok( $err, "got exception" );
-        my @failed = grep { $_->{type} eq "command_failed" } @events;
+        my @failed = grep { ($_->{type} // '') eq "command_failed" } @events;
         ok( scalar @failed >= 1, "got events" );
         my $last_failure = $failed[-1];
         my $ok = 1;
@@ -209,7 +209,7 @@ subtest "exceptions are command_failed" => sub {
         $coll->client->topology_status( refresh => 1 );
 
         ok( $err, "got exception" );
-        my @failed = grep { $_->{type} eq "command_failed" } @events;
+        my @failed = grep { ($_->{type} // '') eq "command_failed" } @events;
         ok( scalar @failed >= 1, "got events" );
         my $last_failure = $failed[-1];
         my $ok = 1;
@@ -237,7 +237,7 @@ subtest "exceptions are command_failed" => sub {
         $coll->client->topology_status( refresh => 1 );
 
         ok( $err, "got exception" );
-        my @failed = grep { $_->{type} eq "command_failed" } @events;
+        my @failed = grep { ($_->{type} // '') eq "command_failed" } @events;
         ok( scalar @failed >= 1, "got events" );
         my $last_failure = $failed[-1];
         my $ok = 1;
@@ -258,7 +258,7 @@ subtest 'redactions' => sub {
 
     $testdb->run_command([getnonce => 1]);
     my ($started, $succeeded) =
-        grep { $_->{commandName} eq 'getnonce' }
+        grep { ($_->{commandName} // '') eq 'getnonce' }
         @events;
 
     is $started->{type}, 'command_started', 'start event';
@@ -291,27 +291,27 @@ sub _test_writes {
     $coll->delete_one( { x => 0 } );
 
     subtest "command_started" => sub {
-        my @started = grep { $_->{type} eq "command_started" } @events;
+        my @started = grep { ($_->{type} // '') eq "command_started" } @events;
 
         ok( scalar @started >= 3, "got events" ) or return;
 
         my $ok = 1;
         for my $cmd (qw/insert update delete/) {
             $ok &&=
-            ok( ( scalar grep { $_->{commandName} eq $cmd } @started ), "saw $cmd command" );
+            ok( ( scalar grep { ($_->{commandName} // '') eq $cmd } @started ), "saw $cmd command" );
         }
         diag explain \@started unless $ok;
     };
 
     subtest "command_succeeded" => sub {
-        my @succeeded = grep { $_->{type} eq "command_succeeded" } @events;
+        my @succeeded = grep { ($_->{type} // '') eq "command_succeeded" } @events;
 
         ok( scalar @succeeded >= 3, "got events" ) or return;
 
         my $ok = 1;
         for my $cmd (qw/insert update delete/) {
             $ok &&=
-            ok( ( scalar grep { $_->{commandName} eq $cmd } @succeeded ), "saw $cmd command" );
+            ok( ( scalar grep { ($_->{commandName} // '') eq $cmd } @succeeded ), "saw $cmd command" );
         }
         diag explain \@succeeded unless $ok;
     };
@@ -324,9 +324,9 @@ sub _test_writes {
         eval { $coll->insert_one( { _id => 123 } ) };
         ok( $@, "Got exception" );
 
-        my @succeeded = grep { $_->{type} eq "command_succeeded" } @events;
+        my @succeeded = grep { ($_->{type} // '') eq "command_succeeded" } @events;
         ok( scalar @succeeded >= 1, "got events" ) or return;
-        ok( ( scalar grep { $_->{commandName} eq 'insert' } @succeeded ), "saw insert command" )
+        ok( ( scalar grep { ($_->{commandName} // '') eq 'insert' } @succeeded ), "saw insert command" )
             or  diag explain \@succeeded;
     };
 

@@ -77,7 +77,7 @@ foreach_spec_test('t/data/change-streams', sub {
         die "Unknown target: ".$test->{target};
 
     my $resolve_db = sub {
-        $_[0] eq $plan->{database_name} ? $db1 : 
+        $_[0] eq $plan->{database_name} ? $db1 :
         $_[0] eq $plan->{database2_name} ? $db2 :
         undef
     };
@@ -166,15 +166,15 @@ foreach_spec_test('t/data/change-streams', sub {
 
 sub event_matches {
     my ($event, $expected) = @_;
-    
+
     my $data;
     if ($data = $expected->{command_started_event}) {
         return undef
-            unless $event->{type} eq 'command_started';
+            unless ($event->{type} // '') eq 'command_started';
     }
     elsif ($data = $expected->{command_succeeded_event}) {
         return undef
-            unless $event->{type} eq 'command_succeeded';
+            unless ($event->{type} // '') eq 'command_succeeded';
     }
     else {
         die "Unrecognized event";
@@ -237,7 +237,7 @@ sub check_event {
     is $event->{databaseName}, $expected->{database_name},
         'database name',
         if exists $expected->{database_name};
-    
+
     if (my $command = $expected->{command}) {
         for my $key (sort keys %$command) {
             cmp_deeply(

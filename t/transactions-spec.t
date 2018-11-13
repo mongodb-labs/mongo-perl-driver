@@ -484,7 +484,8 @@ sub check_event_expectations {
     my ( $expected ) = @_;
     # We only care about command_started events; also ignoring sasl* and
     # ismaster commands caused by re-negotiation after network error
-    my @got = grep { $_->{type} eq 'command_started' && $_->{commandName} !~ /sasl|ismaster/ } @events;
+    my @got = grep { ($_->{type} // '') eq 'command_started' &&
+        ($_->{commandName} // '') !~ /sasl|ismaster/ } @events;
 
     for my $exp ( @$expected ) {
         my ($exp_type, $exp_spec) = %$exp;
