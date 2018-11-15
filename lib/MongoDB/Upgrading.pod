@@ -268,7 +268,7 @@ earlier.
 * MongoDB::BSON::Regexp
 * MongoDB::Code
 * MongoDB::DBRef
-* MongodB::OID
+* MongoDB::OID
 * MongoDB::Timestamp
 
 =head1 REMOVED FEATURES
