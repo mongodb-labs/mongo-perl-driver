@@ -687,11 +687,12 @@ __DATA__
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
       remote_file: ${aws_artifact_prefix}/${repo_directory}/${build_id}/build.tar.gz
-      local_file: build.tar.gz
+      local_file: ${repo_directory}/build.tar.gz
   - command: shell.exec
     params:
       script: |
         ${prepare_shell}
+        cd ${repo_directory}
         tar -zxf build.tar.gz
 "uploadOrchestrationLogs":
   - command: shell.exec
