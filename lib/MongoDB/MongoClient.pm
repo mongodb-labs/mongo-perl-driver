@@ -36,7 +36,7 @@ use MongoDB::_Dispatcher;
 use MongoDB::_SessionPool;
 use MongoDB::_Topology;
 use MongoDB::_URI;
-use BSON 1.006005;
+use BSON 1.010000;
 use Digest::MD5;
 use UUID::URandom;
 use Tie::IxHash;
