@@ -20,7 +20,7 @@ package MongoDB::Op::_ChangeStream;
 # and operationTime if supported
 
 use version;
-our $VERSION = 'v2.0.2';
+our $VERSION = 'v2.0.3';
 
 use Moo;
 

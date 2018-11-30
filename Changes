@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v2.0.2    2018-11-30 13:57:28-05:00 America/New_York
+
   [Bug fixes]
 
   - PERL-927 Coerce hint to IxHash or BSON::Doc if not string
