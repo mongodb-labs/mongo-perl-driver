@@ -8,6 +8,39 @@
 
   [Bug fixes]
 
+v2.0.2    2018-11-30 13:57:28-05:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-927 Coerce hint to IxHash or BSON::Doc if not string
+
+  - PERL-927 Skip count hint test before MongoDB 3.6
+
+  - PERL-970 Allow BSON::Doc as sort argument
+
+  - PERL-988 Preserve index key order in results
+
+  - PERL-1012 Clear session pool on reconnect after fork/thread
+
+  - PERL-1041 Check bulk error can call result before calling it
+
+  [Testing]
+
+  - PERL-806 Check compatibility for SDAM tests
+
+  - PERL-972 PERL-1005 Amended transaction examples
+
+  - PERL-1006 Enable retry_writes during testing
+
+  [Documentation]
+
+  - PERL-1033 Fix docs link to BSON/wrap_numbers
+
+  [Prerequisites]
+
+  - Requires BSON v1.10.1; if compiler is available, will require BSON::XS
+    v0.6.0.
+
 v2.0.1    2018-07-10 18:05:38-04:00 America/New_York
 
   [Additions]
