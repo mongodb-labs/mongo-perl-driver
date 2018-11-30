@@ -245,7 +245,7 @@ sub _execute_write_command_batch {
                     unshift @left_to_send, $self->_split_chunk( $chunk, $error->size );
                 }
             }
-            else {
+            elsif ( $error->$_can( 'result' ) ) {
                 # We are already going to explode from something here, but
                 # BulkWriteResult has the correct parsing method to allow us to
                 # check for write errors, as they have a higher priority than
@@ -257,6 +257,9 @@ sub _execute_write_command_batch {
                     cmd_doc => $cmd_doc,
                 )->assert_no_write_error;
                 # Explode with original error
+                die $error;
+            }
+            else {
                 die $error;
             }
         };
