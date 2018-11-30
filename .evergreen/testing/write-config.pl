@@ -30,6 +30,17 @@ use EvergreenConfig;
 # Constants
 #--------------------------------------------------------------------------#
 
+my @non_ssl_versions = qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0/;
+my @ssl_versions = qw/v3.2 v3.4 v3.6 v4.0/;
+
+# Test latest version except on maint branches
+my $branch = qx/git branch | grep '^*'/;
+$branch //= "";
+if ($branch !~ /^\* maint/) {
+    push @non_ssl_versions, 'latest';
+    push @ssl_versions, 'latest';
+}
+
 # $OS_FILTER is a filter definition to allow all operating systems
 my $OS_FILTER = {
     os => [
@@ -118,15 +129,12 @@ sub generate_test_variations {
 
     # For the topology specific configs, we repeat the list for each server
     # version we're testing.
-    my @matrix =
-      map { with_version( $_ => \@topo_tests ) }
-      qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0 latest/;
+    my @matrix = map { with_version( $_ => \@topo_tests ) } @non_ssl_versions;
 
     # Test SSL only on 3.2 and later
     my @ssl_test = ( with_topology( server => ["noauth ssl"] ), );
 
-    push @matrix,
-      map { with_version( $_ => \@ssl_test ) } qw/v3.2 v3.4 v3.6 v4.0 latest/;
+    push @matrix, map { with_version( $_ => \@ssl_test ) } @ssl_versions;
 
     return @matrix;
 }
