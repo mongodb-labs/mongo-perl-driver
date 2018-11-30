@@ -227,14 +227,14 @@ sub _execute_write_command_batch {
             monitoring_callback => $self->monitoring_callback,
         );
 
-        my $cmd_result = try {
+        my $cmd_result = eval {
             $self->_is_retryable
               ? $self->client->send_retryable_write_op( $op )
               : $self->client->send_write_op( $op );
-        }
-        catch {
+        };
+        if ( my $error = $@ ) {
             # This error never touches the database!.... so is before any retryable writes errors etc.
-            if ( $_->$_isa("MongoDB::_CommandSizeError") ) {
+            if ( $error->$_isa("MongoDB::_CommandSizeError") ) {
                 if ( @$chunk == 1 ) {
                     MongoDB::DocumentError->throw(
                         message  => "document too large",
@@ -242,10 +242,10 @@ sub _execute_write_command_batch {
                     );
                 }
                 else {
-                    unshift @left_to_send, $self->_split_chunk( $chunk, $_->size );
+                    unshift @left_to_send, $self->_split_chunk( $chunk, $error->size );
                 }
             }
-            else {
+            elsif ( $error->$_can( 'result' ) ) {
                 # We are already going to explode from something here, but
                 # BulkWriteResult has the correct parsing method to allow us to
                 # check for write errors, as they have a higher priority than
@@ -253,14 +253,16 @@ sub _execute_write_command_batch {
                 MongoDB::BulkWriteResult->_parse_cmd_result(
                     op => $type,
                     op_count => scalar @$chunk,
-                    result => $_->result,
+                    result => $error->result,
                     cmd_doc => $cmd_doc,
                 )->assert_no_write_error;
                 # Explode with original error
-                die $_;
+                die $error;
             }
-            return;
-        };
+            else {
+                die $error;
+            }
+        }
 
         redo unless $cmd_result; # restart after a chunk split
 
