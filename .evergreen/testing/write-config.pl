@@ -30,6 +30,17 @@ use EvergreenConfig;
 # Constants
 #--------------------------------------------------------------------------#
 
+my @non_ssl_versions = qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0/;
+my @ssl_versions = qw/v3.2 v3.4 v3.6 v4.0/;
+
+# Test latest version except on maint branches
+my $branch = qx/git branch | grep '^*'/;
+$branch //= "";
+if ($branch !~ /^\* maint/) {
+    push @non_ssl_versions, 'latest';
+    push @ssl_versions, 'latest';
+}
+
 # $OS_FILTER is a filter definition to allow all operating systems
 my $OS_FILTER = {
     os => [
@@ -39,8 +50,9 @@ my $OS_FILTER = {
 };
 
 # Some OS have support before/after server v3.4
-my $PRE_V_3_4 = { os => [ 'ubuntu1604', 'windows64', 'windows32' ] };
-my $POST_V_3_4 =
+my $BEFORE_V3_2 = { os => [ 'ubuntu1604', 'windows64', 'windows32' ] };
+my $V3_2 = { os => [ 'ubuntu1604', 'windows64' ] };
+my $V3_4_OR_LATER =
   { os =>
       [ 'ubuntu1604', 'windows64', 'rhel67_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ]
   };
@@ -79,9 +91,16 @@ sub calc_filter {
 
     # ZAP should only run on MongoDB 3.4 or latest
     my $filter =
-        $opts->{version} eq 'latest'                             ? {%$POST_V_3_4}
-      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$POST_V_3_4}
-      :                                                            {%$PRE_V_3_4};
+        $opts->{version} eq 'latest'                             ? {%$V3_4_OR_LATER}
+      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$V3_4_OR_LATER}
+      : version->new( $opts->{version} ) == version->new("v3.2") ? {%$V3_2}
+      :                                                            {%$BEFORE_V3_2};
+
+    # For replica set and sharded cluster, we don't want to run those
+    # on Windows32
+    if ( $opts->{topology} ne 'server' ) {
+        $filter->{os} = [ grep { $_ ne 'windows32' } @{ $filter->{os} } ]
+    }
 
     # Server without auth/ssl should run on all perls, so in that case,
     # we return existing filter with only an 'os' key.
@@ -110,15 +129,12 @@ sub generate_test_variations {
 
     # For the topology specific configs, we repeat the list for each server
     # version we're testing.
-    my @matrix =
-      map { with_version( $_ => \@topo_tests ) }
-      qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0 latest/;
+    my @matrix = map { with_version( $_ => \@topo_tests ) } @non_ssl_versions;
 
     # Test SSL only on 3.2 and later
     my @ssl_test = ( with_topology( server => ["noauth ssl"] ), );
 
-    push @matrix,
-      map { with_version( $_ => \@ssl_test ) } qw/v3.2 v3.4 v3.6 v4.0 latest/;
+    push @matrix, map { with_version( $_ => \@ssl_test ) } @ssl_versions;
 
     return @matrix;
 }
