@@ -1,0 +1,144 @@
+{
+  "tests": [
+    {
+      "description": "Valid required tls options are parsed correctly",
+      "uri": "mongodb://example.com/?tls=true&tlsCAFile=ca.pem&tlsCertificateKeyFile=cert.pem&tlsCertificateKeyPassword=hunter2",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {
+        "tls": true,
+        "tlscafile": "ca.pem",
+        "tlscertificatekeyfile": "cert.pem",
+        "tlscertificatekeypassword": "hunter2"
+      }
+    },
+    {
+      "description": "Invalid tlsAllowInvalidCertificates causes a warning",
+      "uri": "mongodb://example.com/?tlsAllowInvalidCertificates=invalid",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsAllowInvalidCertificates is parsed correctly",
+      "uri": "mongodb://example.com/?tlsAllowInvalidCertificates=true",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {
+        "tlsallowinvalidcertificates": true
+      }
+    },
+    {
+      "description": "Invalid tlsAllowInvalidCertificates causes a warning",
+      "uri": "mongodb://example.com/?tlsAllowInvalidCertificates=invalid",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsAllowInvalidHostnames is parsed correctly",
+      "uri": "mongodb://example.com/?tlsAllowInvalidHostnames=true",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {
+        "tlsallowinvalidhostnames": true
+      }
+    },
+    {
+      "description": "Invalid tlsAllowInvalidHostnames causes a warning",
+      "uri": "mongodb://example.com/?tlsAllowInvalidHostnames=invalid",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsInsecure is parsed correctly",
+      "uri": "mongodb://example.com/?tlsInsecure=true",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {
+        "tlsinsecure": true
+      }
+    },
+    {
+      "description": "Invalid tlsAllowInsecure causes a warning",
+      "uri": "mongodb://example.com/?tlsAllowInsecure=invalid",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsInsecure=true and tlsAllowInvalidCertificates=false",
+      "uri": "mongodb://example.com/?tlsInsecure=true&tlsAllowInvalidCertificates=false",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsInsecure=true and tlsAllowInvalidHostnames=false",
+      "uri": "mongodb://example.com/?tlsInsecure=true&tlsAllowInvalidHostnames=false",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsInsecure and tlsAllowInvalidCertificates",
+      "uri": "mongodb://example.com/?tlsInsecure=true&tlsAllowInvalidCertificates=true",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsInsecure and tlsAllowInvalidHostnames",
+      "uri": "mongodb://example.com/?tlsInsecure=true&tlsAllowInvalidHostnames=true",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tls != ssl",
+      "uri": "mongodb://example.com/?tls=true&ssl=false",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tls == ssl",
+      "uri": "mongodb://example.com/?tls=true&ssl=true",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {
+        "tls": true,
+        "ssl": true
+      }
+    }
+  ]
+}

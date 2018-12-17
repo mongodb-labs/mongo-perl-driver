@@ -1,0 +1,170 @@
+{
+    "tests": [
+	{
+	    "description":"no options",
+	    "uri":"mongodb://localhost",
+	    "valid":true,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{}
+	},
+	{
+	    "description":"no options with trailing question mark",
+	    "uri":"mongodb://localhost/?",
+	    "valid":true,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{}
+	},
+	{
+	    "description":"no options with trailing question mark and ampersand",
+	    "uri":"mongodb://localhost/?&",
+	    "valid":true,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{}
+	},
+	{
+	    "description":"single option",
+	    "uri":"mongodb://localhost/?w=1",
+	    "valid":true,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{
+		"w":1
+	    }
+	},
+	{
+	    "description":"multiple options",
+	    "uri":"mongodb://localhost/?w=1&replicaSet=set",
+	    "valid":true,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{
+		"w":1,
+		"replicaset":"set"
+	    }
+	},
+	{
+	    "description":"multiple options with mixed case",
+	    "uri":"mongodb://localhost/?ReAdPrEfErEnCe=Primary&wTimeoutMS=1000",
+	    "valid":true,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{
+		"readpreference":"Primary",
+		"wtimeoutms":1000
+	    }
+	},
+	{
+	    "description":"percent encoded option",
+	    "uri":"mongodb://localhost/?%77=%74rue",
+	    "valid":true,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{
+		"w":"true"
+	    }
+	},
+	{
+	    "description":"options with empty option value",
+	    "uri":"mongodb://localhost/?w=",
+	    "valid":true,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{
+		"w":""
+	    }
+	},
+	{
+	    "description":"no equals sign in option",
+	    "uri":"mongodb://localhost/?w",
+	    "valid":false,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{}
+	},
+	{
+	    "description":"extra equals signs at start of option value",
+	    "uri":"mongodb://localhost/?w==true",
+	    "valid":false,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{}
+	},
+	{
+	    "description":"extra equals signs at end of option value",
+	    "uri":"mongodb://localhost/?w=true=",
+	    "valid":false,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{}
+	},
+	{
+	    "description":"equals signs at beginning and end of option value",
+	    "uri":"mongodb://localhost/?w==true=",
+	    "valid":false,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{}
+	},
+	{
+	    "description":"option value of equals sign",
+	    "uri":"mongodb://localhost/?w==",
+	    "valid":false,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{}
+	},
+	{
+	    "description":"warning for unknown1 option",
+	    "uri":"mongodb://localhost/?unknown1=a&w=1&unknown2=b",
+	    "valid":true,
+	    "warning":true,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{
+		"w":1
+	    }
+	},
+	{
+	    "description":"options with warnings",
+	    "uri":"mongodb://localhost/?w=1&w=2&replicaSet=set",
+	    "valid":true,
+	    "warning":true,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{
+		"w":1,
+		"replicaset":"set"
+	    }
+	},
+	{
+	    "description":"no warning for duplicate option of list type",
+	    "uri":"mongodb://localhost/?readPreferenceTags=a:b&readPreferenceTags=c:d",
+	    "valid":true,
+	    "warning":false,
+	    "hosts":null,
+	    "auth":null,
+	    "options":{
+		"readpreferencetags": [
+		    {"a":"b"},
+		    {"c":"d"}
+		]
+	    }
+	}
+    ]
+}

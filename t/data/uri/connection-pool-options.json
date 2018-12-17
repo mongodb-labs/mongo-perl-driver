@@ -1,0 +1,33 @@
+{
+  "tests": [
+    {
+      "description": "Valid connection pool options are parsed correctly",
+      "uri": "mongodb://example.com/?maxIdleTimeMS=50000",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {
+        "maxidletimems": 50000
+      }
+    },
+    {
+      "description": "Non-numeric maxIdleTimeMS causes a warning",
+      "uri": "mongodb://example.com/?maxIdleTimeMS=invalid",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "Too low maxIdleTimeMS causes a warning",
+      "uri": "mongodb://example.com/?maxIdleTimeMS=-2",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    }
+  ]
+}

@@ -195,7 +195,8 @@ for my $case (@uri_tests) {
     }
     else {
         eval { MongoDB->connect($uri) };
-        like( $@, qr/max_staleness_seconds/, "$uri is an error" );
+        like( $@, qr/(max_staleness_seconds|maxStalenessSeconds)/,
+            "$uri is an error" );
     }
 }
 

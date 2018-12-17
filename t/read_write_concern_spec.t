@@ -99,7 +99,7 @@ subtest "$write_conn_spec connection-string" => sub {
             } else {
                 isa_ok(
                     $error,
-                    "MongoDB::UsageError"
+                    "MongoDB::Error"
                 );
             }
         }

@@ -27,8 +27,10 @@ use Types::Standard qw(
     ArrayRef
     HashRef
     Str
+    Int
 );
 use namespace::clean -except => 'meta';
+use Scalar::Util qw/looks_like_number/;
 
 my $uri_re =
     qr{
@@ -85,12 +87,12 @@ has hostids => (
 );
 
 has valid_options => (
-    is => 'ro',
+    is => 'lazy',
     isa => HashRef,
-    builder => '_build_valid_options',
 );
 
 sub _build_valid_options {
+    my $self = shift;
     return {
         map { lc($_) => 1 } qw(
             appName
@@ -103,29 +105,32 @@ sub _build_valid_options {
             heartbeatFrequencyMS
             journal
             localThresholdMS
+            maxIdleTimeMS
             maxStalenessSeconds
             maxTimeMS
             readConcernLevel
             readPreference
             readPreferenceTags
             replicaSet
-            retryWrites
             serverSelectionTimeoutMS
             serverSelectionTryOnce
             socketCheckIntervalMS
             socketTimeoutMS
             ssl
+            tlsCAFile
+            tlsCertificateKeyFile
+            tlsCertificateKeyFilePassword
+            tlsCertificateKeyPassword
             w
             wTimeoutMS
             zlibCompressionLevel
-        )
+        ), keys %{ $self->_valid_str_to_bool_options }
     };
 }
 
 has valid_srv_options => (
-    is => 'ro',
+    is => 'lazy',
     isa => HashRef,
-    builder => '_build_valid_srv_options',
 );
 
 sub _build_valid_srv_options {
@@ -135,6 +140,68 @@ sub _build_valid_srv_options {
             replicaSet
         )
     };
+}
+
+has _valid_str_to_bool_options => (
+    is => 'lazy',
+    isa => HashRef,
+    builder => '_build_valid_str_to_bool_options',
+);
+
+sub _build_valid_str_to_bool_options {
+    return {
+        map { lc($_) => 1 } qw(
+            ssl
+            journal
+            serverselectiontryonce
+            tls
+            tlsAllowInvalidCertificates
+            tlsAllowInvalidHostnames
+            tlsInsecure
+            retryWrites
+            tlsAllowInsecure
+        )
+    };
+}
+
+has _extra_options_validation => (
+    is => 'lazy',
+    isa => HashRef,
+    builder => '_build_extra_options_validation',
+);
+
+sub _build_extra_options_validation {
+  return {
+      _PositiveInt => sub {
+          my $v = shift;
+          Int->($v) && $v >= 0;
+      },
+      wtimeoutms => '_PositiveInt',
+      connecttimeoutms => '_PositiveInt',
+      localthresholdms => '_PositiveInt',
+      serverselectiontimeoutms => '_PositiveInt',
+      sockettimeoutms => '_PositiveInt',
+      maxidletimems => '_PositiveInt',
+      w => sub {
+          my $v = shift;
+          if (looks_like_number($v)) {
+              return $v >= 0;
+          }
+          return 1; # or any string
+      },
+      zlibcompressionlevel => sub {
+          my $v = shift;
+          Int->($v) && $v >= -1 && $v <= 9;
+      },
+      heartbeatfrequencyms => sub {
+          my $v = shift;
+          Int->($v) && $v >= 500;
+      },
+      maxstalenessseconds => sub {
+          my $v = shift;
+          Int->($v) && ( $v == 1 || $v == -1 || $v >= 90 );
+      },
+  };
 }
 
 sub _unescape_all {
@@ -153,7 +220,7 @@ sub _parse_doc {
         if ( $tag =~ /\S/ ) {
             my @kv = map { my $s = $_; $s =~ s{^\s*}{}; $s =~ s{\s*$}{}; $s } split /:/, $tag, 2;
             MongoDB::UsageError->throw("in option '$name', '$tag' is not a key:value pair")
-              unless @kv == 2;
+                unless @kv == 2;
             $set->{$kv[0]} = $kv[1];
         }
     }
@@ -186,6 +253,9 @@ sub _parse_options {
             $parsed{$lc_k} = _parse_doc( $k, $v );
         }
         elsif ( $lc_k eq 'compressors' ) {
+            my $valid_compressors = { zlib => 1 };
+            MongoDB::Error->throw("Unsupported compressor $v")
+                unless $valid_compressors->{$v};
             $parsed{$lc_k} = [split m{,}, $v, -1];
         }
         elsif ( $lc_k eq 'authsource' ) {
@@ -196,9 +266,28 @@ sub _parse_options {
             $parsed{$lc_k} ||= [];
             push @{ $parsed{$lc_k} }, _parse_doc( $k, $v );
         }
+        elsif ( $self->_valid_str_to_bool_options->{ $lc_k } ) {
+            $parsed{$lc_k} = __str_to_bool( $k, $v );
+        }
+        elsif ( my $opt_validation = $self->_extra_options_validation->{ $lc_k } ) {
+            unless (ref $opt_validation eq 'CODE') {
+                $opt_validation = $self->_extra_options_validation->{ $opt_validation };
+            }
+            MongoDB::Error->throw("Unsupported $k = $v")
+                unless $opt_validation->($v);
+            $parsed{$lc_k} = $v;
+        }
         else {
             $parsed{$lc_k} = $v;
         }
+    }
+    if (exists $parsed{'tlsinsecure'} || exists $parsed{'tlsallowinsecure'}) {
+        if (exists $parsed{'tlsallowinvalidcertificates'} || exists $parsed{'tlsallowinvalidhostnames'}) {
+            MongoDB::Error->throw('tlsInsecure conflicts with other options');
+        }
+    }
+    if ( exists ($parsed{'tls'}) && exists($parsed{'ssl'}) && $parsed{'tls'} != $parsed{'ssl'}) {
+        MongoDB::Error->throw('tls and ssl must have the same value');
     }
     return \%parsed;
 }
