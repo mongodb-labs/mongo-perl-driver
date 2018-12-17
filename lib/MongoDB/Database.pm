@@ -447,7 +447,32 @@ sub run_command {
     return $obj->output;
 }
 
-sub _aggregate {
+=method aggregate
+
+Runs a query using the MongoDB 3.6+ aggregation framework and returns a
+L<MongoDB::QueryResult> object.
+
+The first argument must be an array-ref of L<aggregation
+pipeline|http://docs.mongodb.org/manual/core/aggregation-pipeline/> documents.
+Each pipeline document must be a hash reference.
+
+The server supports several collection-less aggregation source stages like
+C<$currentOp> and C<$listLocalSessions>.
+
+    $result = $database->aggregate( [
+        {
+            "\$currentOp" => {
+                allUsers => true,
+            },
+        },
+    ] );
+
+See L<Aggregation|http://docs.mongodb.org/manual/aggregation/> in the MongoDB manual
+for more information on how to construct aggregation queries.
+
+=cut
+
+sub aggregate {
     MongoDB::UsageError->throw("pipeline argument must be an array reference")
       unless ref( $_[1] ) eq 'ARRAY';
 

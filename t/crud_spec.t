@@ -22,6 +22,7 @@ use Try::Tiny;
 use version;
 
 use MongoDB;
+use boolean;
 
 use lib "t/lib";
 use MongoDBTest qw/
@@ -227,6 +228,23 @@ sub test_aggregate {
 
     my $res = $coll->aggregate( grep { defined } $pipeline, $args );
     check_read_outcome( $label, $res, $outcome );
+}
+
+sub test_db_aggregate {
+    my ( $class, $label, $method, $args, $outcome ) = @_;
+
+    plan skip_all => "db-aggregate not available until MongoDB v3.6"
+        unless $server_version > v3.6.0;
+
+    my $pipeline = delete $args->{pipeline};
+    my $res = $conn->get_database('admin')->aggregate($pipeline, $args);
+    is($res->{'_full_name'}, 'admin.$cmd.aggregate', 'check DB aggregate full name');
+    my $agg_command = $res->{'_docs'}[0]{'command'};
+    is($agg_command->{'$db'}, 'admin');
+    ok($agg_command->{'aggregate'} == 1);
+    my $all = [ $res->all ];
+    cmp_deeply( $all, noclass($outcome->{result}), "$label: result documents" )
+        or diag explain $all;
 }
 
 sub test_distinct {
