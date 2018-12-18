@@ -278,7 +278,7 @@ sub connect {
     # workaround, we always force 'localhost' to use IPv4.
 
     my $fh = $SOCKET_CLASS->new(
-        PeerHost => $host,
+        PeerHost => $ENV{TEST_MONGO_SOCKET_HOST} || $host,
         PeerPort => $port,
         ( lc($host) eq 'localhost' ? ( Family => AF_INET ) : () ),
         Proto    => 'tcp',

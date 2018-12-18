@@ -22,6 +22,8 @@ our $VERSION = 'v2.1.1';
 use Moo;
 use MongoDB::Error;
 use Encode ();
+use Time::HiRes qw(time);
+use MongoDB::_Constants qw( RESCAN_SRV_FREQUENCY_SEC );
 use Types::Standard qw(
     Any
     ArrayRef
@@ -89,6 +91,12 @@ has hostids => (
 has valid_options => (
     is => 'lazy',
     isa => HashRef,
+);
+
+has expires => (
+    is => 'ro',
+    isa => Int,
+    writer => '_set_expires',
 );
 
 sub _build_valid_options {
@@ -300,7 +308,7 @@ sub _parse_options {
 }
 
 sub _fetch_dns_seedlist {
-    my ( $self, $host_name ) = @_;
+    my ( $self, $host_name, $phase ) = @_;
 
     my @split_name = split( '\.', $host_name );
     MongoDB::Error->throw("URI '$self' must contain domain name and hostname")
@@ -314,21 +322,29 @@ sub _fetch_dns_seedlist {
     my @hosts;
     my $options = {};
     my $domain_name = join( '.', @split_name[1..$#split_name] );
+    my $minimum_ttl;
     if ( $srv_data ) {
-        foreach my $rr ( $srv_data->answer ) {
+        SRV_RECORD: foreach my $rr ( $srv_data->answer ) {
             next unless $rr->type eq 'SRV';
             my $target = $rr->target;
             # search for dot before domain name for a valid hostname - can have sub-subdomain
             unless ( $target =~ /\.\Q$domain_name\E$/ ) {
-                MongoDB::Error->throw(
-                    "URI '$self' SRV record returns FQDN '$target'"
-                    . " which does not match domain name '${$domain_name}'"
-                );
+                my $err_msg = "URI '$self' SRV record returns FQDN '$target'"
+                    . " which does not match domain name '${$domain_name}'";
+                if ($phase && $phase eq 'init') {
+                    MongoDB::Error->throw($err_msg);
+                }
+                else {
+                    warn $err_msg;
+                }
+                next SRV_RECORD;
             }
             push @hosts, {
               target => $target,
               port   => $rr->port,
             };
+            $minimum_ttl = $rr->ttl
+                if not defined $minimum_ttl or $rr->ttl < $minimum_ttl;
         }
         my $txt_data = $res->query( $host_name, 'TXT' );
         if ( defined $txt_data ) {
@@ -348,11 +364,25 @@ sub _fetch_dns_seedlist {
         MongoDB::Error->throw("URI '$self' does not return any SRV results");
     }
 
-    return ( \@hosts, $options );
+    unless (@hosts) {
+        my $err_msg = "URI '$self' does not return any valid SRV results";
+        if ($phase && $phase eq 'init') {
+            MongoDB::Error->throw($err_msg);
+        }
+        else {
+            warn $err_msg;
+        }
+    }
+
+    $minimum_ttl = RESCAN_SRV_FREQUENCY_SEC
+        if $minimum_ttl < RESCAN_SRV_FREQUENCY_SEC
+            && $phase && $phase ne 'init';
+
+    return ( \@hosts, $options, time + $minimum_ttl );
 }
 
 sub _parse_srv_uri {
-    my ( $self, $uri ) = @_;
+    my ( $self, $uri, $phase ) = @_;
 
     my %result;
 
@@ -381,7 +411,7 @@ sub _parse_srv_uri {
         $result{options} = $self->_parse_options( $self->valid_options, \%result );
     }
 
-    my ( $hosts, $options ) = $self->_fetch_dns_seedlist( $result{hostids} );
+    my ( $hosts, $options, $expires ) = $self->_fetch_dns_seedlist( $result{hostids}, $phase );
 
     # Default to SSL on unless specified in conn string options
     $options = {
@@ -405,17 +435,104 @@ sub _parse_srv_uri {
         join( '&', map { sprintf( '%s=%s', $_, __uri_escape( $options->{$_} ) ) } keys %$options ),
     );
 
-    return $new_uri;
+    return( $new_uri, $expires );
 }
 
 sub BUILD {
+    my ($self) = @_;
+
+    $self->_initialize_from_uri;
+}
+
+# Options:
+# - fallback_ttl_sec: Fallback TTL in seconds in case of an error
+sub check_for_changes {
+    my ($self, $options) = @_;
+
+    if (defined $self->{expires} && $self->{expires} <= time) {
+        my @current = sort @{ $self->{hostids} };
+        local $@;
+        my $ok = eval {
+
+            $self->_update_from_uri;
+            1;
+        };
+        if (!$ok) {
+            warn "Error while fetching SRV records: $@";
+            $self->{expires} = $options->{fallback_ttl_sec};
+        };
+        return 0
+            unless $ok;
+        my @new = sort @{ $self->{hostids} };
+        return 1
+            unless @current == @new;
+        for my $index (0 .. $#current) {
+            return 1
+                unless $new[$index] eq $current[$index];
+        }
+        return 0;
+    }
+
+    return 0;
+}
+
+sub _prepare_dns_hosts {
+    my ($self, $hostids) = @_;
+
+    if ( !defined $hostids || !length $hostids ) {
+        MongoDB::Error->throw("URI '$self' could not be parsed (missing host list)");
+    }
+    $hostids = [ map { lc _unescape_all($_) } split ',', $hostids ];
+    for my $hostid (@$hostids) {
+        MongoDB::Error->throw(
+            "URI '$self' could not be parsed (Unix domain sockets are not supported)")
+          if $hostid =~ /\// && $hostid =~ /\.sock/;
+        MongoDB::Error->throw(
+            "URI '$self' could not be parsed (IP literals are not supported)")
+          if substr( $hostid, 0, 1 ) eq '[';
+        my ( $host, $port ) = split ":", $hostid, 2;
+        MongoDB::Error->throw("host list '@{ $hostids }' contains empty host")
+          unless length $host;
+        if ( defined $port ) {
+            MongoDB::Error->throw("URI '$self' could not be parsed (invalid port '$port')")
+              unless $port =~ /^\d+$/;
+            MongoDB::Error->throw(
+                "URI '$self' could not be parsed (invalid port '$port' (must be in range [1,65535])")
+              unless $port >= 1 && $port <= 65535;
+        }
+    }
+    $hostids = [ map { /:/ ? $_ : $_.":27017" } @$hostids ];
+    return $hostids;
+}
+
+sub _update_from_uri {
+    my ($self) = @_;
+
+    my $uri = $self->uri;
+    my %result;
+
+    ($uri, my $expires) = $self->_parse_srv_uri( $uri );
+    $self->{expires} = $expires;
+
+    if ( $uri !~ m{^$uri_re$} ) {
+        MongoDB::Error->throw("URI '$self' could not be parsed");
+    }
+
+    my $hostids = $3;
+    $hostids = $self->_prepare_dns_hosts($hostids);
+
+    $self->{hostids} = $hostids;
+}
+
+sub _initialize_from_uri {
     my ($self) = @_;
 
     my $uri = $self->uri;
     my %result;
 
     if ( $uri =~ m{^mongodb\+srv://} ) {
-        $uri = $self->_parse_srv_uri( $uri );
+        ($uri, my $expires) = $self->_parse_srv_uri( $uri, 'init' );
+        $result{expires} = $expires;
     }
 
     # we throw Error instead of UsageError for errors, to avoid stacktrace revealing credentials
@@ -442,29 +559,7 @@ sub BUILD {
         $result{password} = _unescape_all( $result{password} );
     }
 
-    if ( !defined $result{hostids} || !length $result{hostids} ) {
-        MongoDB::Error->throw("URI '$self' could not be parsed (missing host list)");
-    }
-    $result{hostids} = [ map { lc _unescape_all($_) } split ',', $result{hostids} ];
-    for my $hostid ( @{ $result{hostids} } ) {
-        MongoDB::Error->throw(
-            "URI '$self' could not be parsed (Unix domain sockets are not supported)")
-          if $hostid =~ /\// && $hostid =~ /\.sock/;
-        MongoDB::Error->throw(
-            "URI '$self' could not be parsed (IP literals are not supported)")
-          if substr( $hostid, 0, 1 ) eq '[';
-        my ( $host, $port ) = split ":", $hostid, 2;
-        MongoDB::Error->throw("host list '@{ $result{hostids} }' contains empty host")
-          unless length $host;
-        if ( defined $port ) {
-            MongoDB::Error->throw("URI '$self' could not be parsed (invalid port '$port')")
-              unless $port =~ /^\d+$/;
-            MongoDB::Error->throw(
-                "URI '$self' could not be parsed (invalid port '$port' (must be in range [1,65535])")
-              unless $port >= 1 && $port <= 65535;
-        }
-    }
-    $result{hostids} = [ map { /:/ ? $_ : $_.":27017" } @{ $result{hostids} } ];
+    $result{hostids} = $self->_prepare_dns_hosts($result{hostids});
 
     if ( defined $result{db_name} ) {
         MongoDB::Error->throw(
@@ -477,7 +572,7 @@ sub BUILD {
         $result{options} = $self->_parse_options( $self->valid_options, \%result );
     }
 
-    for my $attr (qw/username password db_name options hostids/) {
+    for my $attr (qw/username password db_name options hostids expires/) {
         my $setter = "_set_$attr";
         $self->$setter( $result{$attr} ) if defined $result{$attr};
     }

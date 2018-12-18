@@ -401,6 +401,36 @@ sub DEMOLISH {
     return;
 }
 
+sub _check_for_uri_changes {
+    my ($self) = @_;
+
+    my $type = $self->type;
+    return unless
+        $type eq 'Sharded'
+        or $type eq 'Unknown';
+
+    my @existing = @{ $self->uri->hostids };
+
+    my $options = {
+        fallback_ttl_sec => $self->{heartbeat_frequency_sec},
+    };
+
+    if ($self->uri->check_for_changes($options)) {
+        my %new = map { ($_, 1) } @{ $self->uri->hostids };
+        for my $address (@existing) {
+            if (!$new{$address}) {
+                $self->_remove_address($address);
+            }
+            else {
+                delete $new{$address};
+            }
+        }
+        for my $address (keys %new) {
+            $self->_add_address_as_unknown($address);
+        }
+    }
+}
+
 #--------------------------------------------------------------------------#
 # public methods
 #--------------------------------------------------------------------------#
@@ -432,6 +462,7 @@ sub close_all_links {
 
 sub get_readable_link {
     my ( $self, $read_pref ) = @_;
+    $self->_check_for_uri_changes;
 
     my $mode = $read_pref ? lc $read_pref->mode : 'primary';
     my $method =
@@ -464,6 +495,7 @@ sub get_readable_link {
 
 sub get_specific_link {
     my ( $self, $address ) = @_;
+    $self->_check_for_uri_changes;
 
     my $server = $self->servers->{$address};
     if ( $server && ( my $link = $self->_get_server_link($server) ) ) {
@@ -476,6 +508,7 @@ sub get_specific_link {
 
 sub get_writable_link {
     my ($self) = @_;
+    $self->_check_for_uri_changes;
 
     my $method =
       ( $self->type eq "Single" || $self->type eq "Sharded" )

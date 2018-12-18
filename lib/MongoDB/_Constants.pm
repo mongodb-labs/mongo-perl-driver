@@ -44,6 +44,7 @@ BEGIN {
         MIN_KEYED_DOC_LENGTH         => 8,
         MIN_SERVER_VERSION           => "2.4.0",
         MIN_WIRE_VERSION             => 0,
+        RESCAN_SRV_FREQUENCY_SEC      => $ENV{TEST_MONGO_RESCAN_SRV_FREQUENCY_SEC} || 60,
         NO_JOURNAL_RE                => qr/^journaling not enabled/,
         NO_REPLICATION_RE          => qr/^no replication has been enabled/,
         P_INT32                    => $] lt '5.010' ? 'l' : 'l<',
