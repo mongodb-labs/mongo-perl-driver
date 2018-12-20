@@ -239,12 +239,19 @@ sub test_db_aggregate {
     my $pipeline = delete $args->{pipeline};
     my $res = $conn->get_database('admin')->aggregate($pipeline, $args);
     is($res->{'_full_name'}, 'admin.$cmd.aggregate', 'check DB aggregate full name');
-    my $agg_command = $res->{'_docs'}[0]{'command'};
-    is($agg_command->{'$db'}, 'admin');
-    ok($agg_command->{'aggregate'} == 1);
-    my $all = [ $res->all ];
-    cmp_deeply( $all, noclass($outcome->{result}), "$label: result documents" )
-        or diag explain $all;
+    my $got = [ $res->all ]->[0]{'command'};
+    my $result = $outcome->{'result'}[0]{'command'};
+    $result->{'cursor'} = ignore();
+    $result->{'pipeline'}[0]{'$currentOp'} = noclass(
+        superhashof($result->{'pipeline'}[0]{'$currentOp'})
+    );
+    $result->{'pipeline'}[2]{'$project'} = ignore();
+    $result->{'pipeline'}[3]{'$project'} = ignore();
+    cmp_deeply(
+        $got,
+        noclass( superhashof($result) ),
+        "$label: compare",
+    ) or diag explain $got;
 }
 
 sub test_distinct {
@@ -265,7 +272,7 @@ sub check_read_outcome {
     if ( ref $outcome->{result} ) {
         my $all = [ $res->all ];
         cmp_deeply( $all, $outcome->{result}, "$label: result documents" )
-          or diag explain $all;
+            or diag explain $all;
     }
     else {
         is( $res, $outcome->{result}, "$label: result scalar" );

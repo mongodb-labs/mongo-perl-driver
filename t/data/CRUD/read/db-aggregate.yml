@@ -27,8 +27,6 @@ tests:
                       - $project: {command.lsid: 0}
                     cursor: {}
                     $db: "admin"
-                    $readPreference:
-                      mode: primaryPreferred
     -
         description: "Aggregate with $currentOp and allowDiskUse"
         operation:
@@ -57,5 +55,3 @@ tests:
                     allowDiskUse: true
                     cursor: {}
                     $db: "admin"
-                    $readPreference:
-                      mode: primaryPreferred

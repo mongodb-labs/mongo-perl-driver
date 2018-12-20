@@ -28,7 +28,7 @@
             },
             {
               "$project": {
-                "command.lsid": 0
+                "command": { "lsid": 0 }
               }
             }
           ]
@@ -60,15 +60,12 @@
                 },
                 {
                   "$project": {
-                    "command.lsid": 0
+                    "command": { "lsid": 0 }
                   }
                 }
               ],
               "cursor": {},
-              "$db": "admin",
-              "$readPreference": {
-                "mode": "primaryPreferred"
-              }
+              "$db": "admin"
             }
           }
         ]
@@ -101,7 +98,7 @@
             },
             {
               "$project": {
-                "command.lsid": 0
+                "command": { "lsid": 0 }
               }
             }
           ],
@@ -134,16 +131,13 @@
                 },
                 {
                   "$project": {
-                    "command.lsid": 0
+                    "command": { "lsid": 0 }
                   }
                 }
               ],
               "allowDiskUse": true,
               "cursor": {},
-              "$db": "admin",
-              "$readPreference": {
-                "mode": "primaryPreferred"
-              }
+              "$db": "admin"
             }
           }
         ]
