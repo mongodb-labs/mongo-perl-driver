@@ -236,6 +236,9 @@ sub test_db_aggregate {
     plan skip_all => "db-aggregate not available until MongoDB v3.6"
         unless $server_version > v3.6.0;
 
+    plan skip_all => "mongos mangles commands too much vs test expectations"
+        if $server_type eq 'Mongos';
+
     my $pipeline = delete $args->{pipeline};
     my $res = $conn->get_database('admin')->aggregate($pipeline, $args);
     is($res->{'_full_name'}, 'admin.$cmd.aggregate', 'check DB aggregate full name');
@@ -247,6 +250,7 @@ sub test_db_aggregate {
     );
     $result->{'pipeline'}[2]{'$project'} = ignore();
     $result->{'pipeline'}[3]{'$project'} = ignore();
+
     cmp_deeply(
         $got,
         noclass( superhashof($result) ),
