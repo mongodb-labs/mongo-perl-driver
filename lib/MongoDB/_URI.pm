@@ -196,9 +196,6 @@ sub _parse_options {
             $parsed{$lc_k} ||= [];
             push @{ $parsed{$lc_k} }, _parse_doc( $k, $v );
         }
-        elsif ( $lc_k eq 'ssl' || $lc_k eq 'journal' || $lc_k eq 'serverselectiontryonce' ) {
-            $parsed{$lc_k} = __str_to_bool( $k, $v );
-        }
         else {
             $parsed{$lc_k} = $v;
         }
@@ -297,11 +294,6 @@ sub _parse_srv_uri {
       %{ $result{options} || {} },
     };
 
-    # URI requires string based booleans for re-constructing the URI
-    if ( ! $options->{ssl} && $options->{ssl} == 0 ) {
-      $options->{ssl} = 'false';
-    }
-
     my $auth = "";
     if ( defined $result{username} || defined $result{password} )  {
         $auth = join(":", map { $_ // "" } $result{username}, $result{password});
@@ -387,6 +379,7 @@ sub BUILD {
 
     if ( defined $result{options} ) {
         $result{options} = $self->_parse_options( $self->valid_options, \%result );
+        __normalize_boolean_options($result{options});
     }
 
     for my $attr (qw/username password db_name options hostids/) {
@@ -395,6 +388,15 @@ sub BUILD {
     }
 
     return;
+}
+
+sub __normalize_boolean_options {
+    my ($options) = @_;
+    for my $k ( qw/ssl journal serverselectiontryonce/ ) {
+        if (exists $options->{$k}) {
+            $options->{$k} = __str_to_bool( $k, $options->{$k} );
+        }
+    }
 }
 
 sub __str_to_bool {
