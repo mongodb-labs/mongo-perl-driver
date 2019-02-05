@@ -75,6 +75,16 @@ my $orc =
     config_file => "$config_path" );
 $orc->start;
 
+# PERL-1061 explicit ssl with mongodb+serv
+subtest "mongodb+srv with boolean options" => sub {
+  for my $key ( qw/ssl serverSelectionTryOnce/ ) {
+    eval { MongoDB->connect("mongodb+srv://test1.test.build.10gen.cc/?replicaSet=repl0&$key=true") };
+    is( $@, "", "explicit '$key=true' in URI should not error" );
+    eval { MongoDB->connect("mongodb+srv://test1.test.build.10gen.cc/?replicaSet=repl0&$key=false") };
+    is( $@, "", "explicit '$key=false' in URI should not error" );
+  }
+};
+
 sub new_client {
     my $host = shift;
     return build_client(
