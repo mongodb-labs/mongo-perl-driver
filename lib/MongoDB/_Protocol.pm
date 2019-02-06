@@ -123,11 +123,7 @@ use constant {
     P_SECTION_SEQUENCE_SIZE_LENGTH => length( pack P_SECTION_SEQUENCE_SIZE, 0 ),
 };
 
-=method prepare_sections( $cmd )
-
-Takes a command, returns sections ready for joining
-
-=cut
+# Takes a command, returns sections ready for joining
 
 sub prepare_sections {
   my ( $codec, $cmd ) = @_;
@@ -178,17 +174,15 @@ sub prepare_sections {
   }
 }
 
-=method encode_section
-
-    MongoDB::_Protocol::encode_section( $codec, {
-        type => 0,                  # 0 or 1
-        identifier => undef,        # optional in type 0
-        documents => [ $cmd ]       # must be an array of documents
-    });
-
-Takes a section hashref and encodes it for joining
-
-=cut
+# encode_section
+#
+#     MongoDB::_Protocol::encode_section( $codec, {
+#         type => 0,                  # 0 or 1
+#         identifier => undef,        # optional in type 0
+#         documents => [ $cmd ]       # must be an array of documents
+#     });
+#
+# Takes a section hashref and encodes it for joining
 
 sub encode_section {
     my ( $codec, $section ) = @_;
@@ -216,13 +210,11 @@ sub encode_section {
     return $pl;
 }
 
-=method decode_section
-
-    MongoDB::_Protocol::decode_section( $section )
-
-Takes an encoded section and decodes it, exactly the opposite of encode_section.
-
-=cut
+# decode_section
+#
+#     MongoDB::_Protocol::decode_section( $section )
+#
+# Takes an encoded section and decodes it, exactly the opposite of encode_section.
 
 sub decode_section {
     my ( $doc ) = @_;
@@ -265,12 +257,10 @@ sub decode_section {
     return $section;
 }
 
-=method split_sections( $msg )
-
-Splits sections based on their payload length header. Returns an array of
-sections in packed form
-
-=cut
+# method split_sections( $msg )
+#
+# Splits sections based on their payload length header. Returns an array of
+# sections in packed form
 
 sub split_sections {
   my $msg = shift;
