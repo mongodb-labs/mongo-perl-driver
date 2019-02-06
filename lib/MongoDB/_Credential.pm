@@ -33,7 +33,6 @@ use Encode qw/encode/;
 use MIME::Base64 qw/encode_base64 decode_base64/;
 use Safe::Isa;
 use Tie::IxHash;
-use Try::Tiny;
 use MongoDB::_Types qw(
     Boolish
 );

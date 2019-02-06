@@ -26,7 +26,6 @@ use Moo;
 use MongoDB::Error;
 use MongoDB::Op::_Command;
 use Safe::Isa;
-use Try::Tiny;
 use namespace::clean;
 
 with $_ for qw(

@@ -18,7 +18,6 @@ use Test::More 0.96;
 use JSON::MaybeXS qw( is_bool decode_json );
 use Test::Deep;
 use Path::Tiny;
-use Try::Tiny;
 use version;
 
 use MongoDB;

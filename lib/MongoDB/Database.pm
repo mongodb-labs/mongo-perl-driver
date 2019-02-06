@@ -44,7 +44,6 @@ use Types::Standard qw(
 use Carp 'carp';
 use boolean;
 use Moo;
-use Try::Tiny;
 use namespace::clean -except => 'meta';
 
 has _client => (

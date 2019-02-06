@@ -22,7 +22,6 @@ use version;
 our $VERSION = 'v2.1.0';
 
 use Moo;
-use Try::Tiny;
 use MongoDB::Cursor;
 use MongoDB::Op::_ChangeStream;
 use MongoDB::Error;

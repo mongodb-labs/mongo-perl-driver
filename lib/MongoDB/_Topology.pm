@@ -52,7 +52,6 @@ use Config;
 use List::Util qw/first max min/;
 use Safe::Isa;
 use Time::HiRes qw/time usleep/;
-use Try::Tiny;
 
 use namespace::clean;
 

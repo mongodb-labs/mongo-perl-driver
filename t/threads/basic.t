@@ -25,7 +25,6 @@ BEGIN { plan skip_all => 'threads not supported before Perl 5.8.5' unless $] ge 
 BEGIN { plan skip_all => 'threads tests flaky on older Windows Perls' if $^O eq "MSWin32" && $] lt "5.020000" }
 
 use MongoDB;
-use Try::Tiny;
 
 use lib "t/lib";
 use MongoDBTest qw/skip_unless_mongod build_client get_test_db/;

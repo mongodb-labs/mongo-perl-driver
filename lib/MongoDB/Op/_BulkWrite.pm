@@ -40,7 +40,6 @@ use Types::Standard qw(
     InstanceOf
 );
 use Safe::Isa;
-use Try::Tiny;
 use boolean;
 
 use namespace::clean;

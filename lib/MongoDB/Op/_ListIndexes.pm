@@ -33,7 +33,6 @@ use Types::Standard qw(
   InstanceOf
 );
 use Tie::IxHash;
-use Try::Tiny;
 use Safe::Isa;
 
 use namespace::clean;

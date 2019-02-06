@@ -35,7 +35,6 @@ use Types::Standard qw(
 );
 use boolean;
 use Tie::IxHash;
-use Try::Tiny;
 use namespace::clean -except => 'meta';
 
 =attr started_iterating

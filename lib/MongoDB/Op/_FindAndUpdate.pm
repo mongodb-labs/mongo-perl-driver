@@ -28,7 +28,6 @@ use MongoDB::Op::_Command;
 use Types::Standard qw(
     HashRef
 );
-use Try::Tiny;
 
 use namespace::clean;
 

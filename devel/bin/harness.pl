@@ -24,7 +24,6 @@ use MongoDBTest::Orchestrator;
 use Getopt::Long;
 use Log::Any::Adapter 'Null';
 use Path::Tiny;
-use Try::Tiny;
 
 my %opts;
 GetOptions(

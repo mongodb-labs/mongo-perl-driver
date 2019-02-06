@@ -24,7 +24,6 @@ BEGIN {
 }
 
 use MongoDB;
-use Try::Tiny;
 use threads::shared;
 
 use lib "t/lib";

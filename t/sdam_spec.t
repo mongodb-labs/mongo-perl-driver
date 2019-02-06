@@ -18,7 +18,6 @@ use Test::More 0.96;
 use JSON::MaybeXS;
 use Path::Tiny;
 use Time::HiRes qw/time/;
-use Try::Tiny;
 
 use MongoDB;
 use MongoDB::_Credential;

@@ -18,7 +18,6 @@ use Test::More 0.96;
 use Test::Fatal;
 use JSON::MaybeXS;
 use Path::Tiny 0.054; # basename with suffix
-use Try::Tiny;
 
 use MongoDB;
 use MongoDB::ReadPreference;

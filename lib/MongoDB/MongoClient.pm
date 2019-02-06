@@ -46,7 +46,6 @@ use Safe::Isa 1.000007;
 use Scalar::Util qw/reftype weaken/;
 use boolean;
 use Encode;
-use Try::Tiny;
 use MongoDB::_Types qw(
     ArrayOfHashRef
     AuthMechanism

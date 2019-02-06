@@ -61,7 +61,6 @@ use Carp 'carp';
 use boolean;
 use Safe::Isa;
 use Scalar::Util qw/blessed reftype/;
-use Try::Tiny;
 use Moo;
 use namespace::clean -except => 'meta';
 
