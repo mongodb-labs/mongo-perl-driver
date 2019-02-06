@@ -44,6 +44,8 @@
 
     - PERL-806 Test Driver Wire Version Overlap logic
 
+    - PERL-833 Test QueryResult destructor kills cursor
+
     - PERL-867 Resync GridFS tests to add test for legacy GridFS, where no filename was set
 
     - PERL-976 Test only the initial command in a transaction includes readConcern

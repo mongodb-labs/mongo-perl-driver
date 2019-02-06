@@ -57,6 +57,7 @@ EOC
 
 my %ticket_map;
 for my $commit ( @commits ) {
+    next if $commit =~ /PERL-\d+:?\s+CI:/i;
     for my $ticket ( $commit =~ /PERL-(\d+)/g ) {
         next if $ENV{CHECK_JIRA_SKIP}
             && grep { $ticket eq $_ } split " ", $ENV{CHECK_JIRA_SKIP};
