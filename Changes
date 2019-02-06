@@ -2,11 +2,71 @@
 
 {{ $NEXT }}
 
+  [*** Deprecations ***]
+
+    - PERL-993 Deprecate parallel_scan
+
   [Additions]
+
+    - PERL-789 OP_MSG support
+
+    - PERL-920 Add option for applications to register a custom server selector
+
+    - PERL-1008 Support index all paths
+
+    - PERL-1046 Add database aggregation method
 
   [Changes]
 
+    - PERL-785 Call "ping" on a socket that has been idle for socketCheckIntervalMS
+
   [Bug fixes]
+
+    - PERL-927 Ensure hint used with aggregate is string or IxHash or BSON::Doc
+
+    - PERL-930 Allow use of BSON::Raw for insert, update, etc.
+
+    - PERL-970 Can't use BSON::Doc as sort option in find command
+
+    - PERL-988 Index lists should preserve key order in results
+
+    - PERL-994 GridFS DownloadStream warns in spec tests on old perls
+
+    - PERL-1012 Driver doesn't clear session pool after fork
+
+    - PERL-1033 Pod link error
+
+    - PERL-1041 Bulk Write Op calls result method on non-object error
+
+    - PERL-1061 The driver fails to parse a URI if mongodb+srv format is used and the ssl=true option is set
+
+  [Testing]
+
+    - PERL-806 Test Driver Wire Version Overlap logic
+
+    - PERL-867 Resync GridFS tests to add test for legacy GridFS, where no filename was set
+
+    - PERL-976 Test only the initial command in a transaction includes readConcern
+
+    - PERL-996 Resync read write concern tests to add new read concern levels
+
+  [Documentation]
+
+    - PERL-780 Document that TCP keepalive defaults to true
+
+    - PERL-972 Amend transaction examples
+
+    - PERL-986 Causal Consistency Examples
+
+  [Prerequisites]
+
+    - PERL-841 Remove Try::Tiny as a dependency
+
+  [~ Internal changes ~]
+
+    - PERL-921 Only send bypassDocumentValidation if it's true
+
+    - PERL-935 Consolidate session vs retryable write feature detection
 
 v2.0.2    2018-11-30 13:57:28-05:00 America/New_York
 
