@@ -78,6 +78,14 @@ __END__
 
 =for Pod::Coverage
 
+=begin :prelude
+
+B<NOTE:> The v2.1.x versions are development releases in advance of the
+MongoDB Perl Driver v2.2.0. They are available for evaluation and testing
+and should not be used in production.
+
+=end :prelude
+
 =head1 SYNOPSIS
 
     use MongoDB;
