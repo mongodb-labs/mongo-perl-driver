@@ -19,7 +19,7 @@ package MongoDB::Op::_DropDatabase;
 # Implements a database drop; returns a MongoDB::CommandResult
 
 use version;
-our $VERSION = 'v2.1.0';
+our $VERSION = 'v2.1.1';
 
 use Moo;
 

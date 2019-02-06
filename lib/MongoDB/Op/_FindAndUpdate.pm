@@ -19,7 +19,7 @@ package MongoDB::Op::_FindAndUpdate;
 # Encapsulate find_and_update operation; atomically update and return doc
 
 use version;
-our $VERSION = 'v2.1.0';
+our $VERSION = 'v2.1.1';
 
 use Moo;
 

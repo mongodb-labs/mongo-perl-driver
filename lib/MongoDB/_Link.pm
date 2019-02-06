@@ -23,7 +23,7 @@ use warnings;
 package MongoDB::_Link;
 
 use version;
-our $VERSION = 'v2.1.0';
+our $VERSION = 'v2.1.1';
 
 use Moo;
 use Errno qw[EINTR EPIPE];
