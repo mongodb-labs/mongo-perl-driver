@@ -19,7 +19,7 @@ package MongoDB::Role::_SessionSupport;
 # MongoDB role to add support for sessions on Ops
 
 use version;
-our $VERSION = 'v2.0.3';
+our $VERSION = 'v2.0.4';
 
 use Moo::Role;
 use MongoDB::_Types -types, 'to_IxHash';

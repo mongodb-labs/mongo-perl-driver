@@ -20,7 +20,7 @@ package MongoDB::Role::_ReadPrefModifier;
 # for topology-specific treatment of a read-preference (if any)
 
 use version;
-our $VERSION = 'v2.0.3';
+our $VERSION = 'v2.0.4';
 
 use Moo::Role;
 

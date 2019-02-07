@@ -19,7 +19,7 @@ package MongoDB::Role::_InsertPreEncoder;
 # MongoDB interface for pre-encoding and validating docs to insert
 
 use version;
-our $VERSION = 'v2.0.3';
+our $VERSION = 'v2.0.4';
 
 use Moo::Role;
 

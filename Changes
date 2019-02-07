@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v2.0.3    2019-02-07 10:43:16-05:00 America/New_York
+
   [Bug fixes]
 
   - PERL-1061 The driver fails to parse a URI if mongodb+srv format is used and the ssl=true option is set

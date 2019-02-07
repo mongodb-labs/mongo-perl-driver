@@ -20,7 +20,7 @@ package MongoDB::Role::_CollectionOp;
 # collection name (and possibly full-name for legacy operation)
 
 use version;
-our $VERSION = 'v2.0.3';
+our $VERSION = 'v2.0.4';
 
 use Moo::Role;
 

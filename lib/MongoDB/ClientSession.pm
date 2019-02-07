@@ -19,7 +19,7 @@ package MongoDB::ClientSession;
 # ABSTRACT: MongoDB session and transaction management
 
 use version;
-our $VERSION = 'v2.0.3';
+our $VERSION = 'v2.0.4';
 
 use MongoDB::Error;
 
