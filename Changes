@@ -72,6 +72,12 @@ v2.1.0    2019-02-06 16:59:56-05:00 America/New_York (TRIAL RELEASE)
 
     - PERL-935 Consolidate session vs retryable write feature detection
 
+v2.0.3    2019-02-07 10:43:16-05:00 America/New_York
+
+  [Bug fixes]
+
+  - PERL-1061 The driver fails to parse a URI if mongodb+srv format is used and the ssl=true option is set
+
 v2.0.2    2018-11-30 13:57:28-05:00 America/New_York
 
   [Bug fixes]
