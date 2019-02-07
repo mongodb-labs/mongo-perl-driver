@@ -1,4 +1,4 @@
-# Dist::Zilla::Plugin::MakeMaker::Awesome 0.45.
+# Dist::Zilla::Plugin::MakeMaker::Awesome 0.47.
 # Don't edit it but the dist.ini and plugins used to construct it.
 
 use strict;
