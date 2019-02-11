@@ -26,6 +26,7 @@ use MongoDB::Error;
 use MongoDB::_Types qw/ to_IxHash /;
 
 use Compress::Zlib ();
+use Compress::Snappy ();
 
 use constant {
     OP_REPLY        => 1,    # Reply to a client request. responseTo is set
@@ -325,8 +326,8 @@ sub _assert_zstd {
 my @DECOMPRESSOR = (
     # none
     sub { shift },
-    # snappy (unsupported)
-    undef,
+    # snappy
+    sub { Compress::Snappy::decompress(shift) },
     # zlib
     sub { Compress::Zlib::uncompress(shift) },
     # zstd
@@ -341,6 +342,12 @@ sub get_compressor {
         return {
             id => 0,
             callback => sub { shift },
+        };
+    }
+    elsif ($name eq 'snappy') {
+        return {
+            id => 1,
+            callback => sub { Compress::Snappy::compress(shift) },
         };
     }
     elsif ($name eq 'zlib') {

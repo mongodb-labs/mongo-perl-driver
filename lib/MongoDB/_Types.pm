@@ -119,7 +119,7 @@ class_type BSONDoc, { class => 'BSON::Doc' };
 
 class_type ClientSession, { class => 'MongoDB::ClientSession' };
 
-enum CompressionType, [qw/zlib zstd/];
+enum CompressionType, [qw/zlib zstd snappy/];
 
 declare ZlibCompressionLevel, as Int,
   where { $_ >= -1 && $_ <= 9 },
