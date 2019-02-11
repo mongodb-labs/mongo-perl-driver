@@ -26,6 +26,7 @@ use MongoDB::Error;
 use MongoDB::_Types qw/ to_IxHash /;
 
 use Compress::Zlib ();
+use Compress::Zstd ();
 
 use constant {
     OP_REPLY        => 1,    # Reply to a client request. responseTo is set
@@ -323,6 +324,8 @@ my @DECOMPRESSOR = (
     undef,
     # zlib
     sub { Compress::Zlib::uncompress(shift) },
+    # zstd
+    sub { Compress::Zstd::decompress(shift) },
 );
 
 # construct compressor by name with options
@@ -347,6 +350,12 @@ sub get_compressor {
                     defined($level) ? $level : Compress::Zlib::Z_DEFAULT_COMPRESSION(),
                 );
             },
+        };
+    }
+    elsif ($name eq 'zstd') {
+        return {
+            id => 3,
+            callback => sub { Compress::Zstd::compress(shift) },
         };
     }
     else {

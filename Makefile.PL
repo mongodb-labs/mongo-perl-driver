@@ -33,6 +33,7 @@ my %WriteMakefileArgs = (
     "BSON::Types" => 0,
     "Carp" => 0,
     "Compress::Zlib" => 0,
+    "Compress::Zstd" => 0,
     "Digest::MD5" => 0,
     "Encode" => 0,
     "Exporter" => "5.57",

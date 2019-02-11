@@ -229,8 +229,8 @@ sub _build_bson_codec {
 
 =attr compressors
 
-An array reference of compression type names. Currently only C<zlib>
-is supported.
+An array reference of compression type names. Currently, C<zlib>
+and C<zstd> are supported.
 
 =cut
 
