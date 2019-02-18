@@ -24,6 +24,9 @@ However, implementers must have stable sets of tests to target. As test files
 evolve they will occasionally be tagged like "crud-tests-YYYY-MM-DD", until the
 spec is final.
 
+As per SPEC-1184, test specs has changed the structure and it is now split in
+two subdirs with "v1" being the original format, and "v2" the current one.
+
 Format
 ======
 

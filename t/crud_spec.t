@@ -46,7 +46,7 @@ my $features       = get_features($conn);
 my $coll           = $testdb->get_collection('test_collection');
 
 
-for my $dir ( map { path("t/data/CRUD/$_") } qw/read write/ ) {
+for my $dir ( map { path("t/data/CRUD/v2/$_") } qw/read write/ ) {
     my $iterator = $dir->iterator( { recurse => 1 } );
     while ( my $path = $iterator->() ) {
         next unless -f $path && $path =~ /\.json$/;
@@ -72,11 +72,12 @@ for my $dir ( map { path("t/data/CRUD/$_") } qw/read write/ ) {
             for my $test ( @{ $plan->{tests} } ) {
                 $coll->drop;
                 $coll->insert_many( $plan->{data} );
-                my $op   = $test->{operation};
-                my $meth = $op->{name};
+                my $op     = $test->{operation};
+                my $meth   = $op->{name};
+                my $object = $op->{'object'} || 'collection';
                 local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $meth eq 'count';
                 $meth =~ s{([A-Z])}{_\L$1}g;
-                my $test_meth = "test_$meth";
+                my $test_meth = "test_${meth}_${object}";
                 my $res = main->$test_meth( $test->{description}, $meth, $op->{arguments},
                     $test->{outcome} );
             }
@@ -161,27 +162,27 @@ sub test_find_and_modify {
 }
 
 BEGIN {
-    *test_find                     = \&test_read_w_filter;
-    *test_count                    = \&test_read_w_filter;
-    *test_count_documents          = \&test_read_w_filter;
-    *test_estimated_document_count = \&test_read_w_filter;
-    *test_delete_many              = \&test_write_w_filter;
-    *test_delete_one               = \&test_write_w_filter;
-    *test_insert_many              = \&test_insert;
-    *test_insert_one               = \&test_insert;
-    *test_replace_one              = \&test_modify;
-    *test_update_one               = \&test_modify;
-    *test_update_many              = \&test_modify;
-    *test_find_one_and_delete      = \&test_write_w_filter;
-    *test_find_one_and_replace     = \&test_find_and_modify;
-    *test_find_one_and_update      = \&test_find_and_modify;
+    *test_find_collection                     = \&test_read_w_filter;
+    *test_count_collection                    = \&test_read_w_filter;
+    *test_count_documents_collection          = \&test_read_w_filter;
+    *test_estimated_document_count_collection = \&test_read_w_filter;
+    *test_delete_many_collection              = \&test_write_w_filter;
+    *test_delete_one_collection               = \&test_write_w_filter;
+    *test_insert_many_collection              = \&test_insert;
+    *test_insert_one_collection               = \&test_insert;
+    *test_replace_one_collection              = \&test_modify;
+    *test_update_one_collection               = \&test_modify;
+    *test_update_many_collection              = \&test_modify;
+    *test_find_one_and_delete_collection      = \&test_write_w_filter;
+    *test_find_one_and_replace_collection     = \&test_find_and_modify;
+    *test_find_one_and_update_collection      = \&test_find_and_modify;
 }
 
 #--------------------------------------------------------------------------#
 # method-specific tests
 #--------------------------------------------------------------------------#
 
-sub test_bulk_write {
+sub test_bulk_write_collection {
     my ( $class, $label, $method, $args, $outcome ) = @_;
 
     my $bulk;
@@ -210,7 +211,7 @@ sub test_bulk_write {
     check_write_outcome( $label, $res, $outcome );
 }
 
-sub test_aggregate {
+sub test_aggregate_collection {
     my ( $class, $label, $method, $args, $outcome ) = @_;
 
     plan skip_all => "aggregate not available until MongoDB v2.2"
@@ -229,7 +230,7 @@ sub test_aggregate {
     check_read_outcome( $label, $res, $outcome );
 }
 
-sub test_db_aggregate {
+sub test_aggregate_database {
     my ( $class, $label, $method, $args, $outcome ) = @_;
 
     plan skip_all => "db-aggregate not available until MongoDB v3.6"
@@ -257,7 +258,7 @@ sub test_db_aggregate {
     ) or diag explain $got;
 }
 
-sub test_distinct {
+sub test_distinct_collection {
     my ( $class, $label, $method, $args, $outcome ) = @_;
     my $fieldname = delete $args->{fieldName};
     my $filter    = delete $args->{filter};
