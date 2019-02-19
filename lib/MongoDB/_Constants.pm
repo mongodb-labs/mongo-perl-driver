@@ -56,6 +56,7 @@ BEGIN {
         TXN_IN_PROGRESS             => 'in_progress',
         TXN_COMMITTED               => 'committed',
         TXN_ABORTED                 => 'aborted',
+        TXN_WTIMEOUT_RETRY_DEFAULT  => 10_000,  # 10 seconds
     };
 }
 

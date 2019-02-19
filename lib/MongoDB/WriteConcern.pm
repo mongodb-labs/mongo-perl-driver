@@ -57,8 +57,8 @@ indefinitely (or until socket timeout is reached).
 =cut
 
 has wtimeout => (
-    is        => 'ro',
-    isa       => Maybe[Int],
+    is      => 'ro',
+    isa     => Maybe[Int],
     default => 1000,
 );
 

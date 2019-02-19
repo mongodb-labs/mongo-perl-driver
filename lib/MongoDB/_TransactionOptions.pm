@@ -73,10 +73,14 @@ sub _build_write_concern {
 
     my $options = $self->options->{writeConcern};
     $options ||= $self->default_options->{writeConcern};
+    $options ||= {};
 
-    my $write_concern;
-    $write_concern = MongoDB::WriteConcern->new( $options ) if defined $options;
-    $write_concern ||= $self->client->write_concern;
+    # Merge in client default to pass through forced undef wtimeout etc.
+    $options = {
+        $self->client->_write_concern_options,
+        %$options,
+    };
+    my $write_concern = MongoDB::WriteConcern->new( $options );
 
     unless ( $write_concern->is_acknowledged ) {
         MongoDB::ConfigurationError->throw(

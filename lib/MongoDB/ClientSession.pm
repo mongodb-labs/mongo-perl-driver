@@ -36,9 +36,11 @@ use Types::Standard qw(
     Maybe
     HashRef
     InstanceOf
+    Int
 );
 use MongoDB::_TransactionOptions;
 use namespace::clean -except => 'meta';
+use MongoDB::Op::_EndTxn;
 
 =attr client
 
@@ -148,6 +150,14 @@ has _has_transaction_operations => (
     is => 'rwp',
     isa => Boolish,
     default => 0,
+);
+
+# Used for retries of commit transactions - also set during abort transaction
+# but that cant be retried
+has _has_attempted_end_transaction => (
+    is       => 'rw',
+    isa      => Boolish,
+    default  => 0,
 );
 
 =attr operation_time
@@ -330,6 +340,7 @@ sub start_transaction {
 
     $self->_set__active_transaction( 1 );
     $self->_set__has_transaction_operations( 0 );
+    $self->_has_attempted_end_transaction( 0 );
 
     return;
 }
@@ -468,17 +479,15 @@ sub _send_end_transaction_command {
 
     # Only need to send commit command if the transaction actually sent anything
     if ( $self->_has_transaction_operations ) {
-        my $op = MongoDB::Op::_Command->_new(
+        my $op = MongoDB::Op::_EndTxn->_new(
             db_name             => 'admin',
             query               => $command,
-            query_flags         => {},
             bson_codec          => $self->client->bson_codec,
             session             => $self,
             monitoring_callback => $self->client->monitoring_callback,
         );
 
         my $result = $self->client->send_retryable_write_op( $op, 'force' );
-        $result->assert_no_write_concern_error;
     }
 
     # If the commit/abort succeeded, we are no longer in an active transaction

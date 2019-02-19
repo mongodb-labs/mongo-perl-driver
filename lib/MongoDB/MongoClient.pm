@@ -1095,13 +1095,22 @@ has _write_concern => (
 
 sub _build__write_concern {
     my ($self) = @_;
-    return MongoDB::WriteConcern->new(
+
+    return MongoDB::WriteConcern->new( $self->_write_concern_options );
+}
+
+# Seperated out for use in transaction option defaults
+sub _write_concern_options {
+    my ($self) = @_;
+
+    return (
+        wtimeout => $self->wtimeout,
         # Must check for defined as w can be 0, and defaults to undef
-        ( defined $self->w ? ( w        => $self->w )        : () ),
-        ( wtimeout => $self->wtimeout ),
-        ( defined $self->j        ? ( j        => $self->j )        : () ),
+        ( defined $self->w ? ( w => $self->w ) : () ),
+        ( defined $self->j ? ( j => $self->j ) : () ),
     );
 }
+
 
 =method read_concern
 
