@@ -468,7 +468,6 @@ sub BUILD {
 
     if ( defined $result{options} ) {
         $result{options} = $self->_parse_options( $self->valid_options, \%result );
-        __normalize_boolean_options($result{options});
     }
 
     for my $attr (qw/username password db_name options hostids/) {
@@ -477,15 +476,6 @@ sub BUILD {
     }
 
     return;
-}
-
-sub __normalize_boolean_options {
-    my ($options) = @_;
-    for my $k ( qw/ssl journal serverselectiontryonce/ ) {
-        if (exists $options->{$k}) {
-            $options->{$k} = __str_to_bool( $k, $options->{$k} );
-        }
-    }
 }
 
 sub __str_to_bool {
