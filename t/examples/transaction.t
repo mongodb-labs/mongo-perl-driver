@@ -63,6 +63,7 @@ sub updateEmployeeInfo {
         {
             readConcern  => { level => "snapshot" },
             writeConcern => { w     => "majority" },
+            readPreference => 'primary',
         }
     );
 
@@ -217,6 +218,7 @@ sub updateEmployeeInfo {
         {
             readConcern  => { level => "snapshot" },
             writeConcern => { w     => "majority" },
+            readPreference => 'primary',
         }
     );
 
