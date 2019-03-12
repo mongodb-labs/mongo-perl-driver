@@ -309,9 +309,12 @@ sub check_error {
             like $err->message, qr/$err_contains/i, 'error contains ' . $err_contains;
         }
         if ( defined $err_code_name ) {
-            is $err->result->output->{codeName},
-               $err_code_name,
-               'error has name ' . $err_code_name;
+            my $result = $err->result;
+            if ( $result->isa('MongoDB::CommandResult') ) {
+                is $result->output->{codeName},
+                    $err_code_name,
+                    'error has name ' . $err_code_name;
+            }
         }
         if ( defined $err_labels_omit ) {
             for my $err_label ( @{ $err_labels_omit } ) {
