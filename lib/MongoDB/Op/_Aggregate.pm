@@ -136,7 +136,8 @@ sub execute {
         pipeline  => $self->pipeline,
         %$options,
         (
-            !$has_out && $link->supports_read_concern ? @{ $self->read_concern->as_args( $self->session) } : ()
+            $link->supports_aggregate_out_read_concern || (!$has_out && $link->supports_read_concern) ?
+                @{ $self->read_concern->as_args( $self->session) } : ()
         ),
         (
             $has_out && $link->supports_helper_write_concern ? @{ $self->write_concern->as_args } : ()

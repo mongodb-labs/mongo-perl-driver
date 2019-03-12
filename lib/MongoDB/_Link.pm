@@ -226,6 +226,13 @@ has supports_4_0_changestreams => (
     is => 'rwp',
     init_arg => undef,
     isa => Boolish,
+  );
+
+# wire version >= 8
+has supports_aggregate_out_read_concern => (
+    is => 'rwp',
+    init_arg => undef,
+    isa => Boolish,
 );
 
 my @connection_state_fields = qw(
@@ -366,6 +373,9 @@ sub set_metadata {
     }
     if ( $self->accepts_wire_version(7) ) {
         $self->_set_supports_4_0_changestreams(1);
+    }
+    if ( $self->accepts_wire_version(8) ) {
+        $self->_set_supports_aggregate_out_read_concern(1);
     }
 
     return;

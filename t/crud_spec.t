@@ -72,14 +72,15 @@ for my $dir ( map { path("t/data/CRUD/v2/$_") } qw/read write/ ) {
             for my $test ( @{ $plan->{tests} } ) {
                 $coll->drop;
                 $coll->insert_many( $plan->{data} );
-                my $op     = $test->{operation};
-                my $meth   = $op->{name};
-                my $object = $op->{'object'} || 'collection';
-                local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $meth eq 'count';
-                $meth =~ s{([A-Z])}{_\L$1}g;
-                my $test_meth = "test_${meth}_${object}";
-                my $res = main->$test_meth( $test->{description}, $meth, $op->{arguments},
-                    $test->{outcome} );
+                foreach my $op ( @{ $test->{'operations'} || [$test->{'operation'}] } ) {
+                    my $meth   = $op->{name};
+                    my $object = $op->{'object'} || 'collection';
+                    local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $meth eq 'count';
+                    $meth =~ s{([A-Z])}{_\L$1}g;
+                    my $test_meth = "test_${meth}_${object}";
+                    my $res = main->$test_meth( $test->{description}, $meth, $op->{arguments},
+                        $test->{outcome} );
+                }
             }
         };
     }
