@@ -26,7 +26,6 @@ use MongoDB::Error;
 use MongoDB::_Types qw/ to_IxHash /;
 
 use Compress::Zlib ();
-use Compress::Zstd ();
 
 use constant {
     OP_REPLY        => 1,    # Reply to a client request. responseTo is set
@@ -316,6 +315,12 @@ sub write_msg {
 #     char*     compressedMessage;  // compressed contents
 # };
 
+# Note that Zlib is in perl core (since 5.9.3) so shouldnt need lazy loading
+sub _assert_zstd {
+    MongoDB::UsageError->throw(qq/Compress::Zstd must be installed to support zstd compression\n/)
+      unless eval { require Compress::Zstd };
+}
+
 # decompressors indexed by ID.
 my @DECOMPRESSOR = (
     # none
@@ -353,6 +358,7 @@ sub get_compressor {
         };
     }
     elsif ($name eq 'zstd') {
+        _assert_zstd();
         return {
             id => 3,
             callback => sub { Compress::Zstd::compress(shift) },
