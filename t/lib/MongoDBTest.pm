@@ -92,7 +92,7 @@ sub build_client {
             server_selection_timeout_ms => $ENV{ATLAS_PROXY} ? 10000 : 2000,
             server_selection_try_once   => 0,
             wtimeout                    => 15000,
-            compressors                 => ['zlib', 'zstd', 'snappy'],
+            compressors                 => ['zlib'],
             retry_writes                => 1,
             ( $codec ? ( bson_codec => $codec ) : () ),
             %args,

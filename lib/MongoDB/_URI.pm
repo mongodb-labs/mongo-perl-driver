@@ -253,10 +253,17 @@ sub _parse_options {
             $parsed{$lc_k} = _parse_doc( $k, $v );
         }
         elsif ( $lc_k eq 'compressors' ) {
-            my $valid_compressors = { zlib => 1 };
-            MongoDB::Error->throw("Unsupported compressor $v")
-                unless $valid_compressors->{$v};
-            $parsed{$lc_k} = [split m{,}, $v, -1];
+            my @compressors = split /,/, $v, -1;
+            my $valid_compressors = {
+                snappy => 1,
+                zlib => 1,
+                zstd => 1
+            };
+            for my $compressor ( @compressors ) {
+                MongoDB::Error->throw("Unsupported compressor $compressor")
+                    unless $valid_compressors->{$compressor};
+            }
+            $parsed{$lc_k} = [ @compressors ];
         }
         elsif ( $lc_k eq 'authsource' ) {
             $result->{db_name} = $v;
