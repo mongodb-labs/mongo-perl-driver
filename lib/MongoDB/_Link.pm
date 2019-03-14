@@ -630,15 +630,18 @@ sub _ssl_args {
 
     # This test reimplements IO::Socket::SSL::can_client_sni(), which wasn't
     # added until IO::Socket::SSL 1.84
-    if ( Net::SSLeay::OPENSSL_VERSION_NUMBER() >= 0x01000000 ) {
+    if ( Net::SSLeay::OPENSSL_VERSION_NUMBER() >= 0x10000000 ) {
         $ssl_args{SSL_hostname} = $host, # Sane SNI support
+    }
+
+    if ( Net::SSLeay::OPENSSL_VERSION_NUMBER() >= 0x10100000 ) {
+        $ssl_args{SSL_OP_NO_RENEGOTIATION} = Net::SSLeay::OP_NO_RENEGOTIATION();
     }
 
     $ssl_args{SSL_verifycn_scheme} = 'http';              # enable CN validation
     $ssl_args{SSL_verifycn_name}   = $host;               # set validation hostname
     $ssl_args{SSL_verify_mode}     = 0x01;                # enable cert validation
     $ssl_args{SSL_ca_file}         = $self->_find_CA_file;
-    $ssl_args{SSL_OP_NO_RENEGOTIATION} = Net::SSLeay::OP_NO_RENEGOTIATION();
 
     # user options override default settings
     for my $k ( keys %{ $self->SSL_options } ) {
