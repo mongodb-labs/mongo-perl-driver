@@ -139,6 +139,28 @@ sub run_tests_for {
         };
     };
 
+    subtest 'change streams w/ startAfter' => sub {
+        plan skip_all => 'MongoDB version 4.2 or higher required'
+            unless $server_version >= version->parse('v4.1.0'); # 4.2 dev version
+        my $id = do {
+            my $change_stream = $watchable->watch();
+            my $new_name = 'newname' . time();
+            $coll->rename($new_name);
+            my $change = $change_stream->next;
+            ok $change, 'change exists';
+            is($change->{'operationType'}, 'rename', 'correct op');
+            is($change->{'to'}{'coll'}, $new_name, 'correct new name');
+            $change->{_id}
+        };
+        do {
+            my $change_stream = $watchable->watch(
+                [],
+                { startAfter => $id },
+            );
+            is $change_stream->next, undef, 'no more changes';
+        };
+    };
+
     subtest 'change streams w/ CursorNotFound reconnection' => sub {
         $coll->drop;
 

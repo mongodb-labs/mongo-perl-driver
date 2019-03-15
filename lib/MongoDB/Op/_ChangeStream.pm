@@ -76,6 +76,11 @@ has resume_after => (
     predicate => 'has_resume_after',
 );
 
+has start_after => (
+    is => 'ro',
+    predicate => 'has_start_after',
+);
+
 has all_changes_for_cluster => (
     is => 'ro',
     isa => Boolish,
@@ -168,6 +173,10 @@ sub execute {
             ),
             ($self->has_resume_after
                 ? (resumeAfter => $self->resume_after)
+                : ()
+            ),
+            ($self->has_start_after
+                ? (startAfter => $self->start_after)
                 : ()
             ),
         }},

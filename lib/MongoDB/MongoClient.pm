@@ -1833,6 +1833,9 @@ sub watch {
         exists($options->{resumeAfter})
             ? (resume_after => delete $options->{resumeAfter})
             : (),
+        exists($options->{startAfter})
+            ? (start_after => delete $options->{startAfter})
+            : (),
         exists($options->{maxAwaitTimeMS})
             ? (max_await_time_ms => delete $options->{maxAwaitTimeMS})
             : (),
