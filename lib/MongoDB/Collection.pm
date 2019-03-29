@@ -1289,7 +1289,7 @@ sub count_documents {
         push @$pipeline, { '$limit', delete $options->{limit} };
     }
 
-    push @$pipeline, { '$group' => { '_id' => undef, 'n' => { '$sum' => 1 } } };
+    push @$pipeline, { '$group' => { '_id' => 1, 'n' => { '$sum' => 1 } } };
 
     # possibly fallback to default maxTimeMS
     if ( ! exists $options->{maxTimeMS} && $self->max_time_ms ) {
