@@ -252,9 +252,15 @@ sub check_topology_description {
         "topology_description_changed has topologyId that matches topology");
 
     is(
-        scalar @{$topo_desc_cb->{'servers'}},
-        scalar @{$topo_desc_test->{'servers'}},
-        "topology_description_changed correct amount of servers"
+        scalar @{$topo_desc_cb->{previousDescription}->{'servers'}},
+        scalar @{$topo_desc_test->{previousDescription}->{'servers'}},
+        "topology_description_changed previousDescription correct amount of servers"
+    );
+
+    is(
+        scalar @{$topo_desc_cb->{newDescription}->{'servers'}},
+        scalar @{$topo_desc_test->{newDescription}->{'servers'}},
+        "topology_description_changed newDescription correct amount of servers"
     );
 
     # XXX hack that partially circumvents create_mock_topology hack
