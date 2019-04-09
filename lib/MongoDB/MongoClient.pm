@@ -677,9 +677,7 @@ sub _build_replica_set_name {
 =attr retry_writes
 
 Whether the client should use retryable writes for supported commands. The
-default value is false, which means that no write commands will be retried.
-
-If this is set to a true value, then commands which support retryable writes
+default value is true, which means that commands which support retryable writes
 will be retried on certain errors, such as C<not master> and C<node is
 recovering> errors.
 
@@ -725,7 +723,7 @@ sub _build_retry_writes {
     return $self->__uri_or_else(
         u => 'retrywrites',
         e => 'retry_writes',
-        d => 0,
+        d => 1,
     );
 }
 

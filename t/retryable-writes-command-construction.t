@@ -47,7 +47,6 @@ sub event_count { scalar @events }
 sub event_cb { push @events, $_[0] }
 
 my $conn = build_client(
-    retry_writes => 1,
     monitoring_callback => \&event_cb,
 );
 my $testdb         = get_test_db($conn);

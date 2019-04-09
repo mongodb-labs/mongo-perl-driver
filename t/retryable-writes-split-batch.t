@@ -39,9 +39,7 @@ skip_unless_mongod();
 skip_unless_sessions();
 skip_unless_failpoints_available();
 
-my $conn = build_client(
-    retry_writes => 1,
-);
+my $conn = build_client();
 my $testdb         = get_test_db($conn);
 my $coll = get_unique_collection( $testdb, 'retry_split_batch' );
 my $server_version = server_version($conn);
