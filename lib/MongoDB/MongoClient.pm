@@ -151,9 +151,9 @@ Valid values are:
 * PLAIN
 * SCRAM-SHA-1
 
-If not specified, then if no username is provided, it defaults to NONE.
-If a username is provided, it is set to DEFAULT, which chooses SCRAM-SHA-1 if
-available or MONGODB-CR otherwise.
+If not specified, then if no username or C<authSource> URI option is provided,
+it defaults to NONE.  Otherwise, it is set to DEFAULT, which chooses
+SCRAM-SHA-1 if available or MONGODB-CR otherwise.
 
 This may be set in a connection string with the C<authMechanism> option.
 
@@ -168,7 +168,8 @@ has auth_mechanism => (
 sub _build_auth_mechanism {
     my ($self) = @_;
 
-    my $default = $self->username ? 'DEFAULT' : 'NONE';
+    my $source = $self->_uri->options->{authsource} // "";
+    my $default = length( $self->username ) || length($source) ? 'DEFAULT' : 'NONE';
 
     return $self->__uri_or_else(
         u => 'authmechanism',
@@ -1233,13 +1234,16 @@ has _credential => (
 sub _build__credential {
     my ($self) = @_;
     my $mechanism = $self->auth_mechanism;
+    my $uri_options = $self->_uri->options;
+    my $source = $uri_options->{authsource};
     my $cred = MongoDB::_Credential->new(
         monitoring_callback  => $self->monitoring_callback,
         mechanism            => $mechanism,
         mechanism_properties => $self->auth_mechanism_properties,
         ( $self->username ? ( username => $self->username ) : () ),
         ( $self->password ? ( password => $self->password ) : () ),
-        ( $self->db_name  ? ( source   => $self->db_name )  : () ),
+        ( $source ? ( source   => $source )  : () ),
+        ( $self->db_name ? ( db_name => $self->db_name ) : () ),
     );
     return $cred;
 }

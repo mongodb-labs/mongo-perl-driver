@@ -63,7 +63,6 @@ has mechanism => (
 has username => (
     is      => 'ro',
     isa     => Str,
-    default => '',
 );
 
 has source => (
@@ -72,10 +71,14 @@ has source => (
     builder => '_build_source',
 );
 
+has db_name => (
+    is      => 'ro',
+    isa     => Str,
+);
+
 has password => (
     is      => 'ro',
     isa     => Str,
-    default => '',
 );
 
 has pw_is_digest => (
@@ -147,22 +150,23 @@ sub _build__digested_password {
 sub _build_source {
     my ($self) = @_;
     my $mech = $self->mechanism;
-    return
-      $mech eq 'MONGODB-X509' || $mech eq 'PLAIN' || $mech eq 'GSSAPI'
-      ? '$external'
-      : 'admin';
+    if ( $mech eq 'PLAIN' ) {
+        return $self->db_name // '$external';
+    }
+    return $mech eq 'MONGODB-X509'
+      || $mech eq 'GSSAPI' ? '$external' : $self->db_name // 'admin';
 }
 
 #<<< No perltidy
 my %CONSTRAINTS = (
     'MONGODB-CR' => {
         username             => sub { length },
-        password             => sub { length },
+        password             => sub { defined },
         source               => sub { length },
         mechanism_properties => sub { !keys %$_ },
     },
     'MONGODB-X509' => {
-        password             => sub { ! length },
+        password             => sub { ! defined },
         source               => sub { $_ eq '$external' },
         mechanism_properties => sub { !keys %$_ },
     },
@@ -172,25 +176,25 @@ my %CONSTRAINTS = (
     },
     'PLAIN'       => {
         username             => sub { length },
-        password             => sub { length },
-        source               => sub { $_ eq '$external' },
+        password             => sub { defined },
+        source               => sub { length },
         mechanism_properties => sub { !keys %$_ },
     },
     'SCRAM-SHA-1' => {
         username             => sub { length },
-        password             => sub { length },
+        password             => sub { defined },
         source               => sub { length },
         mechanism_properties => sub { !keys %$_ },
     },
     'SCRAM-SHA-256' => {
         username             => sub { length },
-        password             => sub { length },
+        password             => sub { defined },
         source               => sub { length },
         mechanism_properties => sub { !keys %$_ },
     },
     'DEFAULT' => {
         username             => sub { length },
-        password             => sub { length },
+        password             => sub { defined },
         source               => sub { length },
         mechanism_properties => sub { !keys %$_ },
     },
@@ -207,7 +211,8 @@ sub BUILD {
         my $validator = $CONSTRAINTS{$mech}{$key};
         local $_ = $self->$key;
         unless ( $validator->() ) {
-            MongoDB::UsageError->throw("invalid field $key in $mech credential");
+            $_ //= "";
+            MongoDB::UsageError->throw("invalid field $key with value '$_' in $mech credential");
         }
     }
 

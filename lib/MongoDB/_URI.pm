@@ -259,6 +259,10 @@ sub _parse_options {
         }
         if ( $lc_k eq 'authmechanismproperties' ) {
             $parsed{$lc_k} = _parse_doc( $k, $v );
+            if ( exists $parsed{$lc_k}{CANONICALIZE_HOST_NAME} ) {
+                $parsed{$lc_k}{CANONICALIZE_HOST_NAME} =
+                  __str_to_bool( 'CANONICALIZE_HOST_NAME', $parsed{$lc_k}{CANONICALIZE_HOST_NAME} );
+            }
         }
         elsif ( $lc_k eq 'compressors' ) {
             my @compressors = split /,/, $v, -1;
@@ -274,7 +278,6 @@ sub _parse_options {
             $parsed{$lc_k} = [ @compressors ];
         }
         elsif ( $lc_k eq 'authsource' ) {
-            $result->{db_name} = $v;
             $parsed{$lc_k} = $v;
         }
         elsif ( $lc_k eq 'readpreferencetags' ) {
