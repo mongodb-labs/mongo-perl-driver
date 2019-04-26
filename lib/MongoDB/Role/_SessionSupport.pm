@@ -55,6 +55,8 @@ sub _apply_session_and_cluster_time {
 
     if ( $self->session->_in_transaction_state( TXN_STARTING ) ) {
         ($$query_ref)->Push( 'startTransaction' => true );
+        # delete first to not merge options
+        ($$query_ref)->Delete( 'readConcern' );
         ($$query_ref)->Push( @{ $self->session->_get_transaction_read_concern->as_args( $self->session ) } );
     } elsif ( ! $self->session->_in_transaction_state( TXN_NONE ) ) {
         # read concern only valid outside a transaction or when starting
