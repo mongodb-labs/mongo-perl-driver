@@ -30,6 +30,7 @@ use MongoDB::_Types qw(
     BSONTimestamp
     TransactionState
     Boolish
+    HostAddress
 );
 use Types::Standard qw(
     Maybe
@@ -120,6 +121,12 @@ has _current_transaction_options => (
         _get_transaction_read_concern    => 'read_concern',
         _get_transaction_read_preference => 'read_preference',
     },
+);
+
+has _address => (
+    is  => 'rwp',
+    isa => HostAddress,
+    clearer => 1,
 );
 
 has _transaction_state => (
@@ -476,6 +483,7 @@ sub _send_end_transaction_command {
 
     # If the commit/abort succeeded, we are no longer in an active transaction
     $self->_set__active_transaction( 0 );
+    $self->_clear_address;
 }
 
 # For applying connection errors etc

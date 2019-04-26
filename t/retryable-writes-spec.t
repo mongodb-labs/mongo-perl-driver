@@ -40,7 +40,7 @@ use MongoDBTest qw/
 
 skip_unless_mongod();
 skip_unless_sessions();
-skip_unless_failpoints_available();
+skip_unless_failpoints_available( { skip_mongos => 1 });
 
 my $conn           = build_client();
 my $testdb         = get_test_db($conn);

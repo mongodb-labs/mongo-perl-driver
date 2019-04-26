@@ -720,8 +720,19 @@ sub _supports_transactions {
     my ( $self ) = @_;
 
     return unless $self->_supports_sessions;
+    return $self->_supports_mongos_pinning_transactions if $self->type eq 'Sharded';
     return if $self->wire_version_ceil < 7;
-    return if $self->type eq 'Sharded';
+    return 1;
+}
+
+# Seperated out so can be used in dispatch logic
+sub _supports_mongos_pinning_transactions {
+    my ( $self ) = @_;
+
+    # Separated out so that it doesnt return 1 for wire version 8 non sharded
+    return if $self->wire_version_ceil < 8;
+    # This extra sharded check is required so this test can be standalone
+    return if $self->type ne 'Sharded';
     return 1;
 }
 

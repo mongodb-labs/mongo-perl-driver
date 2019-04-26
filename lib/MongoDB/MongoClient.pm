@@ -1582,6 +1582,27 @@ sub send_admin_command {
     return $self->send_read_op( $op );
 }
 
+# Ostensibly the same as above, but allows for specific addressing - uses 'send_direct_op'.
+sub _send_direct_admin_command {
+     my ( $self, $address, $command, $read_pref ) = @_;
+
+    $read_pref = MongoDB::ReadPreference->new(
+        ref($read_pref) ? $read_pref : ( mode => $read_pref ) )
+      if $read_pref && ref($read_pref) ne 'MongoDB::ReadPreference';
+
+    my $op = MongoDB::Op::_Command->_new(
+        db_name             => 'admin',
+        query               => $command,
+        query_flags         => {},
+        bson_codec          => $self->bson_codec,
+        read_preference     => $read_pref,
+        session             => $self->_maybe_get_implicit_session,
+        monitoring_callback => $self->monitoring_callback,
+    );
+
+    return $self->send_direct_op( $op, $address );
+}
+
 #--------------------------------------------------------------------------#
 # database helper methods
 #--------------------------------------------------------------------------#

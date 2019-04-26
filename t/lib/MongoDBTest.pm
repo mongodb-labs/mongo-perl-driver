@@ -35,6 +35,8 @@ our @EXPORT_OK = qw(
   skip_if_mongod
   skip_unless_mongod
   skip_unless_failpoints_available
+  set_failpoint
+  clear_failpoint
   skip_unless_sessions
   skip_unless_transactions
   to_snake_case
@@ -202,8 +204,47 @@ sub skip_unless_failpoints_available {
     plan skip_all => "enableTestCommands is off"
       unless $param && $param->{enableTestCommands};
 
+    # For transaction tests under mongos
     plan skip_all => "fail points not supported via mongos"
-      if $server_type eq 'Mongos';
+      if $server_type eq 'Mongos'
+        && ( $conn->_topology->wire_version_ceil < 8
+          || $arg->{skip_mongos} );
+}
+
+sub set_failpoint {
+    my ( $client, $failpoint ) = @_;
+
+    return unless defined $failpoint;
+    _send_failpoint_admin_command( $client, [
+        configureFailPoint => $failpoint->{configureFailPoint},
+        mode => $failpoint->{mode},
+        defined $failpoint->{data}
+          ? ( data => $failpoint->{data} )
+          : (),
+    ]);
+}
+
+sub clear_failpoint {
+    my ( $client, $failpoint ) = @_;
+
+    return unless defined $failpoint;
+    _send_failpoint_admin_command( $client, [
+        configureFailPoint => $failpoint->{configureFailPoint},
+        mode => 'off',
+    ]);
+}
+
+# Failpoint commands must be sent to all servers if sharded
+sub _send_failpoint_admin_command {
+    my ( $client, $command ) = @_;
+
+    if ( $client->_topology->type eq 'Sharded' ) {
+        for my $server ( $client->_topology->all_servers ) {
+            $client->_send_direct_admin_command( $server->address, $command );
+        }
+    } else {
+        $client->send_admin_command( $command );
+    }
 }
 
 sub skip_unless_sessions {

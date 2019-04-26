@@ -42,6 +42,8 @@ use MongoDBTest qw/
     get_unique_collection
     skip_unless_mongod
     skip_unless_failpoints_available
+    set_failpoint
+    clear_failpoint
     skip_unless_transactions
 /;
 
@@ -65,6 +67,10 @@ plan skip_all => "Requires MongoDB 4.0"
 
 plan skip_all => "deployment does not support transactions"
     unless $conn->_topology->_supports_transactions;
+
+plan skip_all => "test deployment must have multiple named mongos"
+    if $conn->_topology->type eq 'Sharded'
+    && ( scalar( $conn->_topology->all_servers ) < 2 );
 
 # defines which argument hash fields become positional arguments
 my %method_args = (
@@ -104,6 +110,7 @@ while ( my $path = $iterator->() ) {
             my $description = $test->{description};
             local $TODO = 'does a run_command read_preference count as a user configurable read_preference?' if $path =~ /run-command/ && $description =~ /explicit secondary read preference/;
             subtest $description => sub {
+                plan skip_all => $test->{skipReason} if $test->{skipReason};
                 my $client = build_client( wtimeout => undef );
 
                 # Kills its own session as well
@@ -138,29 +145,6 @@ while ( my $path = $iterator->() ) {
             };
         }
     };
-}
-
-sub set_failpoint {
-    my ( $client, $failpoint ) = @_;
-
-    return unless defined $failpoint;
-    my $ret = $client->send_admin_command([
-        configureFailPoint => $failpoint->{configureFailPoint},
-        mode => $failpoint->{mode},
-        defined $failpoint->{data}
-          ? ( data => $failpoint->{data} )
-          : (),
-    ]);
-}
-
-sub clear_failpoint {
-    my ( $client, $failpoint ) = @_;
-
-    return unless defined $failpoint;
-    my $ret = $client->send_admin_command([
-        configureFailPoint => $failpoint->{configureFailPoint},
-        mode => 'off',
-    ]);
 }
 
 sub to_snake_case {
@@ -222,10 +206,10 @@ sub run_test {
 
         my $op_result = $operation->{result};
 
+        my $cmd = to_snake_case( $operation->{name} );
         eval {
             $sessions{ database } = $client->get_database( $test_db_name );
             $sessions{ collection } = $sessions{ database }->get_collection( $test_coll_name, $collection_options );
-            my $cmd = to_snake_case( $operation->{name} );
 
             # TODO count is checked specifically for errors during a transaction so warning here is not useful - we cannot change to count_documents, which is actually allowed in transactions.
             local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $cmd eq 'count';
@@ -273,7 +257,7 @@ sub run_test {
             }
         };
         my $err = $@;
-        check_error( $err, $op_result );
+        check_error( $err, $op_result, $cmd );
     }
 
     $sessions{session0}->end_session;
@@ -286,13 +270,20 @@ sub run_test {
 }
 
 sub check_error {
-    my ( $err, $exp ) = @_;
+    my ( $err, $exp, $cmd ) = @_;
 
     my $expecting_error = 0;
     if ( ref( $exp ) eq 'HASH' ) {
         $expecting_error = grep {/^error/} keys %{ $exp };
     }
     if ( $err ) {
+        if ( ( lc $err->message eq 'cannot commit with no participants'
+               || lc $err->message eq 'cannot recover the transaction decision without a recoverytoken' )
+              && $cmd eq 'commit_transaction' ) {
+            # TODO This pass must go when PERL-1035 is implemented
+            pass 'Got recoveryToken error before implementation';
+            return;
+        }
         unless ( $expecting_error ) {
             my $diag_msg = 'Not expecting error, got "' . $err->message . '"';
             fail $diag_msg;
@@ -328,6 +319,8 @@ sub check_error {
         }
     } elsif ( $expecting_error ) {
         fail 'Expecting error, but no error found';
+    } else {
+        pass 'No error from command ' . $cmd;
     }
 }
 

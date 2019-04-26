@@ -82,6 +82,25 @@ sub send_direct_op {
       return $result;
 }
 
+sub _retrieve_link_for {
+    my ( $self, $op, $rw ) = @_;
+    my $topology = $self->{'topology'};
+    my $link;
+    if ( $op->session
+        && $op->session->_address # no point trying if theres no address....
+        && $op->session->_active_transaction # this is true during a transaction and on every commit
+        && $topology->_supports_mongos_pinning_transactions )
+    {
+        $link = $topology->get_specific_link( $op->session->_address );
+    }
+    elsif ( $rw eq 'w' ) {
+        $link = $topology->get_writable_link;
+    } else {
+        $link = $topology->get_readable_link( $op->read_preference );
+    }
+    return $link;
+}
+
 # op dispatcher written in highly optimized style
 sub send_write_op {
     my ( $self, $op ) = @_;
@@ -89,7 +108,7 @@ sub send_write_op {
 
     $self->_maybe_update_session_state( $op );
 
-    ( $link = $self->{topology}->get_writable_link ), (
+    ( $link = $self->_retrieve_link_for( $op, 'w' ) ), (
         eval { ($result) = $self->_try_write_op_for_link( $link, $op ); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
             WITH_ASSERTS ? ( confess $err ) : ( die $err );
@@ -108,13 +127,13 @@ BEGIN {
 
 sub send_retryable_write_op {
     my ( $self, $op, $force ) = @_;
-
-    my $result;
-    my $link = $self->{topology}->get_writable_link;
+    my ( $link, $result ) = ( $self->_retrieve_link_for( $op, 'w' ) );
 
     $self->_maybe_update_session_state( $op );
 
-    # Need to force to do a retryable write on a Transaction Commit or Abort. $force is an override for retry_writes, but theres no point trying that if the link doesnt support it anyway.
+    # Need to force to do a retryable write on a Transaction Commit or Abort.
+    # $force is an override for retry_writes, but theres no point trying that
+    # if the link doesnt support it anyway.
     # This triggers on the following:
     # * $force is not set to 'force'
     #   (specifically for retrying writes in ending transaction operations)
@@ -151,8 +170,9 @@ sub send_retryable_write_op {
         }
 
         # Must check if error is retryable before getting the link, in case we
-        # get a 'no writable servers' error
-        my $retry_link = $self->{topology}->get_writable_link;
+        # get a 'no writable servers' error. In the case of a mongos retry,
+        # this will end up as the same server by design.
+        my $retry_link = $self->_retrieve_link_for( $op, 'w' );
 
         # Rare chance that the new link is not retryable
         unless ( $retry_link->supports_retryWrites ) {
@@ -212,7 +232,7 @@ sub send_read_op {
 
     $self->_maybe_update_session_state( $op );
 
-    ( $link = $self->{topology}->get_readable_link( $op->read_preference ) ),
+    ( $link = $self->_retrieve_link_for( $op, 'r' ) ),
       ( $type = $self->{topology}->type ), (
         eval { ($result) = $op->execute( $link, $type ); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";

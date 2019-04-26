@@ -22,8 +22,14 @@ use MongoDB;
 
 use lib "t/lib";
 use MongoDBTest qw(
-  skip_unless_mongod build_client get_test_db server_type server_version
+  skip_unless_mongod
+  build_client
+  get_test_db
+  server_type
+  server_version
   skip_unless_failpoints_available
+  set_failpoint
+  clear_failpoint
 );
 
 skip_unless_mongod();
@@ -155,8 +161,9 @@ subtest "force maxTimeMS failures" => sub {
 
     is(
         exception {
-            $admin->run_command(
-                [ configureFailPoint => 'maxTimeAlwaysTimeOut', mode => 'alwaysOn' ] );
+            set_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut', mode => 'alwaysOn' } );
         },
         undef,
         "turned on maxTimeAlwaysTimeOut fail point"
@@ -369,8 +376,9 @@ subtest "force maxTimeMS failures" => sub {
 
     is(
         exception {
-            $admin->run_command(
-                [ configureFailPoint => 'maxTimeAlwaysTimeOut', mode => 'off' ] );
+            clear_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut' } );
         },
         undef,
         "turned off maxTimeAlwaysTimeOut fail point"
@@ -385,10 +393,9 @@ subtest "create_many w/ maxTimeMS" => sub {
 
     is(
         exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'alwaysOn',
-            ]);
+            set_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut', mode => 'alwaysOn' } );
         },
         undef,
         'max time failpoint on',
@@ -417,10 +424,9 @@ subtest "create_many w/ maxTimeMS" => sub {
 
     is(
         exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'off',
-            ]);
+            clear_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut' } );
         },
         undef,
         'max time failpoint off',
@@ -446,10 +452,9 @@ subtest "create_one w/ maxTimeMS" => sub {
 
     is(
         exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'alwaysOn',
-            ]);
+            set_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut', mode => 'alwaysOn' } );
         },
         undef,
         'max time failpoint on',
@@ -473,10 +478,9 @@ subtest "create_one w/ maxTimeMS" => sub {
 
     is(
         exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'off',
-            ]);
+            clear_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut' } );
         },
         undef,
         'max time failpoint off',
@@ -499,10 +503,9 @@ subtest "drop_one w/ maxTimeMS" => sub {
 
     is(
         exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'alwaysOn',
-            ]);
+            set_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut', mode => 'alwaysOn' } );
         },
         undef,
         'max time failpoint on',
@@ -528,10 +531,9 @@ subtest "drop_one w/ maxTimeMS" => sub {
 
     is(
         exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'off',
-            ]);
+          clear_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut' } );
         },
         undef,
         'max time failpoint off',
@@ -555,10 +557,9 @@ subtest "drop_all w/ maxTimeMS" => sub {
 
     is(
         exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'alwaysOn',
-            ]);
+            set_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut', mode => 'alwaysOn' } );
         },
         undef,
         'max time failpoint on',
@@ -584,10 +585,9 @@ subtest "drop_all w/ maxTimeMS" => sub {
 
     is(
         exception {
-            $admin->run_command([
-                configureFailPoint => 'maxTimeAlwaysTimeOut',
-                mode => 'off',
-            ]);
+            clear_failpoint(
+                $conn,
+                { configureFailPoint => 'maxTimeAlwaysTimeOut' } );
         },
         undef,
         'max time failpoint off',

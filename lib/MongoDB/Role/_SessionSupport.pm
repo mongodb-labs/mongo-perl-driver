@@ -82,6 +82,8 @@ sub _apply_session_and_cluster_time {
     # so happening before the command is sent is still valid
     if ( $self->session->_in_transaction_state( TXN_STARTING ) ) {
         $self->session->_set__transaction_state( TXN_IN_PROGRESS );
+        # Set the session address for operation pinning in transactions against mongos
+        $self->session->_set__address( $link->address );
     }
 
     $self->session->_server_session->update_last_use;
