@@ -222,9 +222,10 @@ sub list_collections {
         options             => $options,
         session             => $session,
         monitoring_callback => $self->_client->monitoring_callback,
+        read_preference     => MongoDB::ReadPreference->new( mode => 'primary' ),
     );
 
-    return $self->_client->send_primary_op($op);
+    return $self->_client->send_retryable_read_op($op);
 }
 
 =method collection_names
@@ -441,7 +442,7 @@ sub run_command {
         monitoring_callback => $self->_client->monitoring_callback,
     );
 
-    my $obj = $self->_client->send_read_op($op);
+    my $obj = $self->_client->send_retryable_read_op($op);
 
     return $obj->output;
 }
@@ -509,7 +510,7 @@ sub aggregate {
         monitoring_callback => $self->_client->monitoring_callback,
     );
 
-    return $self->_client->send_read_op($op);
+    return $self->_client->send_retryable_read_op($op);
 }
 
 =method watch

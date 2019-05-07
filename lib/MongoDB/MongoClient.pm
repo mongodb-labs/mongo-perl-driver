@@ -678,6 +678,25 @@ sub _build_replica_set_name {
     );
 }
 
+=attr retry_reads
+
+=cut
+
+has retry_reads => (
+    is      => 'lazy',
+    isa     => Boolish,
+    builder => '_build_retry_reads',
+);
+
+sub _build_retry_reads {
+    my ( $self ) = @_;
+    return $self->__uri_or_else(
+        u => 'retryreads',
+        e => 'retry_reads',
+        d => 1,
+    );
+}
+
 =attr retry_writes
 
 Whether the client should use retryable writes for supported commands. The
@@ -1280,6 +1299,7 @@ has _dispatcher => (
         qw(
           send_direct_op
           send_primary_op
+          send_retryable_read_op
           send_read_op
           send_retryable_write_op
           send_write_op
@@ -1292,6 +1312,7 @@ sub _build__dispatcher {
     return MongoDB::_Dispatcher->new(
         topology     => $self->_topology,
         retry_writes => $self->retry_writes,
+        retry_reads  => $self->retry_reads,
     );
 }
 
@@ -1331,6 +1352,7 @@ my @deferred_options = qw(
   read_pref_tag_sets
   replica_set_name
   retry_writes
+  retry_reads
   server_selection_timeout_ms
   server_selection_try_once
   socket_check_interval_ms
@@ -1595,7 +1617,7 @@ sub send_admin_command {
         monitoring_callback => $self->monitoring_callback,
     );
 
-    return $self->send_read_op( $op );
+    return $self->send_retryable_read_op( $op );
 }
 
 # Ostensibly the same as above, but allows for specific addressing - uses 'send_direct_op'.
@@ -1644,25 +1666,20 @@ any of the output fields under the C<filter> argument, such as:
 
 sub list_databases {
     my ( $self, $args ) = @_;
-
     my @databases;
-    my $max_tries = 3;
-    for my $try ( 1 .. $max_tries ) {
-        last if eval {
-            my $output = $self->send_admin_command([ listDatabases => 1, ( $args ? %$args : () ) ])->output;
-            if (ref($output) eq 'HASH' && exists $output->{databases}) {
-                @databases = @{ $output->{databases} };
-            }
-            return 1;
-        } or do {
-            my $error = $@ || "Unknown error";
-            if ( $error->$_isa("MongoDB::DatabaseError" ) ) {
-                return if $error->result->output->{code} == CANT_OPEN_DB_IN_READ_LOCK() || $try < $max_tries;
-            }
-            die $error;
-        };
-    }
-
+    eval {
+        my $output = $self->send_admin_command([ listDatabases => 1, ( $args ? %$args : () ) ])->output;
+        if (ref($output) eq 'HASH' && exists $output->{databases}) {
+            @databases = @{ $output->{databases} };
+        }
+        return 1;
+    } or do {
+        my $error = $@ || "Unknown error";
+        if ( $error->$_isa("MongoDB::DatabaseError" ) ) {
+            return if $error->result->output->{code} == CANT_OPEN_DB_IN_READ_LOCK();
+        }
+        die $error;
+    };
     return @databases;
 }
 
@@ -2065,6 +2082,7 @@ The currently supported connection string options are:
 * C<readPreference>
 * C<readPreferenceTags>
 * C<replicaSet>
+* C<retryReads>
 * C<retryWrites>
 * C<serverSelectionTimeoutMS>
 * C<serverSelectionTryOnce>

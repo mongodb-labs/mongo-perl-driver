@@ -154,7 +154,8 @@ sub _update_session_connection_error {
     my ( $self, $err ) = @_;
 
     return unless defined $self->session;
-    $self->session->_server_session->mark_dirty;
+    $self->session->_server_session->mark_dirty
+      if $err->$_isa("MongoDB::ConnectionError") || $err->$_isa("MongoDB::NetworkTimeout");
     return $self->session->_maybe_apply_error_labels_and_unpin( $err );
 }
 

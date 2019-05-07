@@ -30,6 +30,7 @@ use MongoDB::ReadConcern;
 use MongoDB::ReadPreference;
 use MongoDB::_Types qw(
     Document
+    ReadPreference
 );
 use Types::Standard qw(
     HashRef
@@ -57,6 +58,12 @@ has options => (
     is      => 'ro',
     required => 1,
     isa => HashRef,
+);
+
+has read_preference => (
+    is  => 'rw', # rw for Op::_Query which can be modified by Cursor
+    required => 1,
+    isa => ReadPreference,
 );
 
 with $_ for qw(
@@ -118,6 +125,7 @@ sub _command_list_colls {
         bson_codec          => $self->bson_codec,
         session             => $self->session,
         monitoring_callback => $self->monitoring_callback,
+        read_preference     => $self->read_preference,
     );
 
     my $res = $op->execute( $link, $topology );
@@ -136,7 +144,7 @@ sub _legacy_list_colls {
         full_name       => $self->db_name . ".system.namespaces",
         bson_codec      => $self->bson_codec,
         client          => $self->client,
-        read_preference => MongoDB::ReadPreference->new,
+        read_preference => $self->read_preference || MongoDB::ReadPreference->new,
         read_concern    => MongoDB::ReadConcern->new,
         post_filter     => \&__filter_legacy_names,
         monitoring_callback => $self->monitoring_callback,

@@ -167,6 +167,7 @@ sub _build_valid_str_to_bool_options {
             tlsAllowInvalidHostnames
             tlsInsecure
             retryWrites
+            retryReads
             tlsAllowInsecure
         )
     };

@@ -843,7 +843,7 @@ sub find_one {
     $options->{projection} = $projection;
     $options->{limit} = -1;
 
-    return $self->client->send_read_op(
+    return $self->client->send_retryable_read_op(
         MongoDB::Op::_Query->_new(
             filter => $filter || {},
             options => MongoDB::Op::_Query->precondition_options($options),
@@ -1218,12 +1218,13 @@ sub aggregate {
     my $last_op = '';
     # If $pipeline is an empty array, this can explode
     if ( scalar( @$pipeline ) > 0 ) { ($last_op) = keys %{ $pipeline->[-1] } };
+    my $has_out = $last_op eq '$out';
 
     my $op = MongoDB::Op::_Aggregate->_new(
         pipeline     => $pipeline,
         options      => $options,
         read_concern => $self->read_concern,
-        has_out      => $last_op eq '$out',
+        has_out      => $has_out,
         exists($options->{maxAwaitTimeMS})
             ? (maxAwaitTimeMS => delete $options->{maxAwaitTimeMS})
             : (),
@@ -1231,7 +1232,9 @@ sub aggregate {
         %{ $self->_op_args },
     );
 
-    return $self->client->send_read_op($op);
+    return $has_out ?
+        $self->client->send_read_op($op)
+        : $self->client->send_retryable_read_op($op);
 }
 
 =method count_documents
@@ -1343,11 +1346,11 @@ sub estimated_document_count {
     my $op = MongoDB::Op::_Count->_new(
         options         => $filtered,
         filter          => undef,
-        session         => undef,
+        session         => $self->client->_maybe_get_implicit_session,
         %{ $self->_op_args },
     );
 
-    my $res = $self->client->send_read_op($op);
+    my $res = $self->client->send_retryable_read_op($op);
 
     return $res->{n} // 0;
 }
@@ -1406,7 +1409,7 @@ sub distinct {
         %{ $self->_op_args },
     );
 
-    return $self->client->send_read_op($op);
+    return $self->client->send_retryable_read_op($op);
 }
 
 =method rename
@@ -1865,7 +1868,7 @@ sub _run_command {
         monitoring_callback => $self->client->monitoring_callback,
     );
 
-    my $obj = $self->client->send_read_op($op);
+    my $obj = $self->client->send_retryable_read_op($op);
 
     return $obj->output;
 }

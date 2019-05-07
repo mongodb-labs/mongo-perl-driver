@@ -22,6 +22,7 @@ use MongoDB;
 use BSON;
 use Test::More;
 use Path::Tiny;
+use Scalar::Util qw/isvstring/;
 use boolean;
 use version;
 
@@ -127,8 +128,10 @@ sub get_capped {
 }
 
 sub skip_unless_mongod {
+    my $min_version = shift;
+    my $conn;
     eval {
-        my $conn = build_client( server_selection_timeout_ms => 10000 );
+        $conn = build_client( server_selection_timeout_ms => 10000 );
         my $topo = $conn->_topology;
         $topo->scan_all_servers;
         my $link;
@@ -155,6 +158,11 @@ sub skip_unless_mongod {
             $err .= ' and $ENV{MONGOD} not set' unless $ENV{MONGOD};
         }
         plan skip_all => "$err";
+    }
+
+    if ($min_version) {
+        plan skip_all => "Requires MongoDB $min_version"
+            if check_min_server_version($conn, $min_version);
     }
 }
 
@@ -269,9 +277,13 @@ sub server_version {
 
 sub check_min_server_version {
     my ( $conn, $min_version ) = @_;
-    $min_version = "v$min_version" unless $min_version =~ /^v/;
-    $min_version .= ".0" unless $min_version =~ /^v\d+\.\d+.\d+$/;
-    $min_version = version->new($min_version);
+    unless ( ref($min_version) eq 'version') {
+        unless ( isvstring($min_version) ) {
+            $min_version = "v$min_version" unless $min_version =~ /^v/;
+            $min_version .= ".0" unless $min_version =~ /^v\d+\.\d+.\d+$/;
+        }
+        $min_version = version->new($min_version);
+    }
     my $server_version = server_version($conn);
     if ( $min_version > $server_version ) {
         return 1;

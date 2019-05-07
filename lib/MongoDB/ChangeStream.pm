@@ -191,7 +191,7 @@ sub _execute_query {
         %{ $self->_op_args },
     );
 
-    my $res = $self->_client->send_read_op($op);
+    my $res = $self->_client->send_retryable_read_op($op);
     $self->_result($res->{result});
     $self->_last_operation_time($res->{operationTime})
         if exists $res->{operationTime};

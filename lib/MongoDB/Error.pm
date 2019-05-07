@@ -151,22 +151,22 @@ sub _is_resumable { 1 }
 # logic.
 sub __is_retryable_error { 0 }
 
+my @retryable_codes = (
+    MongoDB::Error::HOST_NOT_FOUND(),
+    MongoDB::Error::HOST_UNREACHABLE(),
+    MongoDB::Error::NETWORK_TIMEOUT(),
+    MongoDB::Error::SHUTDOWN_IN_PROGRESS(),
+    MongoDB::Error::PRIMARY_STEPPED_DOWN(),
+    MongoDB::Error::SOCKET_EXCEPTION(),
+    MongoDB::Error::NOT_MASTER(),
+    MongoDB::Error::INTERRUPTED_AT_SHUTDOWN(),
+    MongoDB::Error::INTERRUPTED_DUE_TO_REPL_STATE_CHANGE(),
+    MongoDB::Error::NOT_MASTER_NO_SLAVE_OK(),
+    MongoDB::Error::NOT_MASTER_OR_SECONDARY(),
+);
+
 sub _check_is_retryable_code {
     my $code = $_[-1];
-
-    my @retryable_codes = (
-        MongoDB::Error::HOST_NOT_FOUND(),
-        MongoDB::Error::HOST_UNREACHABLE(),
-        MongoDB::Error::NETWORK_TIMEOUT(),
-        MongoDB::Error::SHUTDOWN_IN_PROGRESS(),
-        MongoDB::Error::PRIMARY_STEPPED_DOWN(),
-        MongoDB::Error::SOCKET_EXCEPTION(),
-        MongoDB::Error::NOT_MASTER(),
-        MongoDB::Error::INTERRUPTED_AT_SHUTDOWN(),
-        MongoDB::Error::INTERRUPTED_DUE_TO_REPL_STATE_CHANGE(),
-        MongoDB::Error::NOT_MASTER_NO_SLAVE_OK(),
-        MongoDB::Error::NOT_MASTER_OR_SECONDARY(),
-    );
 
     return 1 if grep { $code == $_ } @retryable_codes;
     return 0;
@@ -201,6 +201,42 @@ sub _is_retryable {
 
     # Defaults to 0 unless its a network exception
     return $self->__is_retryable_error;
+}
+
+my @unknown_commit_codes = (
+    MongoDB::Error::EXCEEDED_TIME_LIMIT(),
+    MongoDB::Error::WRITE_CONCERN_ERROR(),
+);
+
+sub _check_is_unknown_commit_code {
+    my $code = $_[-1];
+
+    return 1 if grep { $code == $_ } @unknown_commit_codes;
+    return 0;
+}
+
+sub _is_unknown_commit_error {
+    my $self = shift;
+
+    return 1 if $self->isa("MongoDB::ConnectionError") || $self->isa("MongoDB::SelectionError");
+
+    return 1 if $self->_is_retryable;
+
+    if ( $self->$_can( 'result' ) ) {
+        return 1 if _check_is_unknown_commit_code( $self->result->last_code );
+    }
+
+    if ( $self->$_can( 'code' ) ) {
+        return 1 if _check_is_unknown_commit_code( $self->code );
+    }
+
+    return 0;
+}
+
+sub _is_transient_transaction_error {
+    my $self = shift;
+    return 1 if $self->isa("MongoDB::ConnectionError") || $self->isa("MongoDB::SelectionError");
+    return 0;
 }
 
 #--------------------------------------------------------------------------#

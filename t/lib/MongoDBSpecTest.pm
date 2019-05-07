@@ -49,7 +49,8 @@ sub foreach_spec_test {
             skip_unless_run_on($plan->{runOn}, $conn);
             for my $test ( @{ $plan->{tests} } ) {
                 subtest $test->{description} => sub {
-                    $callback->($test, $plan);
+                    eval {$callback->($test, $plan)};
+                    fail("$test->{description}: caught subtest error: $@") if $@;
                 };
             }
         };

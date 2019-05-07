@@ -563,7 +563,7 @@ sub get_writable_link {
 # the scanning cooldown.
 sub mark_server_unknown {
     my ( $self, $server, $error, $no_cooldown ) = @_;
-    $self->_reset_address_to_unknown( $server->address, $error, EPOCH );
+    $self->_reset_address_to_unknown( $server->address, $error, $no_cooldown // EPOCH );
     return;
 }
 

@@ -522,9 +522,11 @@ sub _maybe_apply_error_labels_and_unpin {
     my ( $self, $err ) = @_;
 
     if ( $self->_in_transaction_state( TXN_STARTING, TXN_IN_PROGRESS ) ) {
-        $err->add_error_label( TXN_TRANSIENT_ERROR_MSG );
+        $err->add_error_label( TXN_TRANSIENT_ERROR_MSG )
+            if $err->$_isa("MongoDB::Error") && $err->_is_transient_transaction_error;
     } elsif ( $self->_in_transaction_state( TXN_COMMITTED ) ) {
-        $err->add_error_label( TXN_UNKNOWN_COMMIT_MSG );
+        $err->add_error_label( TXN_UNKNOWN_COMMIT_MSG )
+            if $err->$_isa("MongoDB::Error") && $err->_is_unknown_commit_error;
     }
     $self->_maybe_unpin_address( $err->error_labels );
     return;

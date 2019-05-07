@@ -34,6 +34,9 @@ use Types::Standard qw(
 );
 use Tie::IxHash;
 use Safe::Isa;
+use MongoDB::_Types qw(
+    ReadPreference
+);
 
 use namespace::clean;
 
@@ -41,6 +44,12 @@ has client => (
     is       => 'ro',
     required => 1,
     isa      => InstanceOf ['MongoDB::MongoClient'],
+);
+
+has read_preference => (
+    is  => 'rw', # rw for Op::_Query which can be modified by Cursor
+    required => 1,
+    isa => ReadPreference,
 );
 
 with $_ for qw(
@@ -69,6 +78,8 @@ sub _command_list_indexes {
         query_flags => {},
         bson_codec  => $self->bson_codec,
         monitoring_callback => $self->monitoring_callback,
+        read_preference     => $self->read_preference,
+        session     => $self->session,
     );
 
     my $res = eval {
@@ -99,7 +110,7 @@ sub _legacy_list_indexes {
         db_name             => $self->db_name,
         full_name           => $self->db_name . '.system.indexes',
         read_concern        => MongoDB::ReadConcern->new,
-        read_preference     => MongoDB::ReadPreference->new,
+        read_preference     => $self->read_preference || MongoDB::ReadPreference->new,
         monitoring_callback => $self->monitoring_callback,
     );
 

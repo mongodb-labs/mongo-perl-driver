@@ -70,4 +70,11 @@ has retryable_write => (
     default => 0,
 );
 
+# set during retryable reads on supported operations
+has retryable_read => (
+    is      => 'rw',
+    isa     => Boolish,
+    default => 0,
+);
+
 1;

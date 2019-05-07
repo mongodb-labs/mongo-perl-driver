@@ -77,7 +77,7 @@ has result => (
 sub _build_result {
     my ($self) = @_;
 
-    return $self->{client}->send_read_op( $self->_query );
+    return $self->{client}->send_retryable_read_op( $self->_query );
 }
 
 #--------------------------------------------------------------------------#
@@ -442,7 +442,7 @@ sub explain {
         monitoring_callback => $self->client->monitoring_callback,
     );
 
-    return $self->_query->client->send_read_op($explain_op);
+    return $self->_query->client->send_retryable_read_op($explain_op);
 }
 
 =head1 QUERY ITERATION

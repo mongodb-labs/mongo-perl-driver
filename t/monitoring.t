@@ -237,7 +237,9 @@ subtest "exceptions are command_failed" => sub {
         $coll->client->topology_status( refresh => 1 );
 
         ok( $err, "got exception" );
-        my @failed = grep { ($_->{type} // '') eq "command_failed" } @events;
+        my @failed =
+            grep { $_->{'commandName'} !~ /sasl|ismaster/ }
+            grep { ($_->{type} // '') eq "command_failed" } @events;
         ok( scalar @failed >= 1, "got events" );
         my $last_failure = $failed[-1];
         my $ok = 1;
@@ -273,7 +275,7 @@ subtest 'redactions' => sub {
 sub _coll_with_monitor {
     # retry writes messes with event counting and iterating over events from
     # monitoring callback
-    my $mc     = build_client( monitoring_callback => \&event_cb, retry_writes => 0 );
+    my $mc     = build_client( monitoring_callback => \&event_cb, retry_writes => 0, retry_reads => 0 );
     my $testdb = get_test_db($mc);
     my $col = $testdb->coll(@_);
 }
