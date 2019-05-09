@@ -234,7 +234,7 @@ subtest "Given: a 'max' value for an index" => sub {
     subtest "When: adding a max via option" => sub {
         @intercept = ();
         my $cursor =
-          $coll->find( { x => { '$gt' => $num_docs_to_search } }, { max => $max } );
+          $coll->find( { x => { '$gt' => $num_docs_to_search } }, { max => $max, hint => [x => 1] } );
         is( scalar $cursor->all(), $num_docs_to_search, "Number of documents correct" );
         option_is( $intercept[-1], 'max', $max );
     };
@@ -242,7 +242,7 @@ subtest "Given: a 'max' value for an index" => sub {
     subtest "When: adding a max via modifiers" => sub {
         @intercept = ();
         my $cursor = $coll->find( { x => { '$gt' => $num_docs_to_search } },
-            { modifiers => { '$max' => $max } } );
+            { modifiers => { '$max' => $max }, hint => [x => 1] } );
         is( scalar $cursor->all(), $num_docs_to_search, "Number of documents correct" );
         option_is( $intercept[-1], 'max', $max );
     };
@@ -250,7 +250,7 @@ subtest "Given: a 'max' value for an index" => sub {
     subtest "When: adding a max via option and modifiers" => sub {
         @intercept = ();
         my $cursor = $coll->find( { x => { '$gt' => $num_docs_to_search } },
-            { max => $max, modifiers => { '$max' => $max2 } } );
+            { max => $max, modifiers => { '$max' => $max2 }, hint => [x => 1] } );
         is( scalar $cursor->all(), $num_docs_to_search, "Number of documents correct" );
         option_is( $intercept[-1], 'max', $max );
     };
@@ -335,7 +335,7 @@ subtest "Given: a 'min' value for an index" => sub {
     subtest "When: adding a min via option" => sub {
         @intercept = ();
         my $cursor =
-          $coll->find( { x => { '$gt' => $num_docs_to_search } }, { min => $min } );
+          $coll->find( { x => { '$gt' => $num_docs_to_search } }, { min => $min, hint => [x => 1] } );
         is( scalar $cursor->all(), $num_docs_to_search, "Number of documents correct" );
         option_is( $intercept[-1], 'min', $min );
     };
@@ -343,7 +343,7 @@ subtest "Given: a 'min' value for an index" => sub {
     subtest "When: adding a min via modifiers" => sub {
         @intercept = ();
         my $cursor = $coll->find( { x => { '$gt' => $num_docs_to_search } },
-            { modifiers => { '$min' => $min } } );
+            { modifiers => { '$min' => $min }, hint => [x => 1] } );
         is( scalar $cursor->all(), $num_docs_to_search, "Number of documents correct" );
         option_is( $intercept[-1], 'min', $min );
     };
@@ -351,7 +351,7 @@ subtest "Given: a 'min' value for an index" => sub {
     subtest "When: adding a min via options and modifiers" => sub {
         @intercept = ();
         my $cursor = $coll->find( { x => { '$gt' => $num_docs_to_search } },
-            { min => $min, modifiers => { '$min' => $min2 } } );
+            { min => $min, modifiers => { '$min' => $min2 }, hint => [x => 1] } );
         is( scalar $cursor->all(), $num_docs_to_search, "Number of documents correct" );
         option_is( $intercept[-1], 'min', $min );
     };
