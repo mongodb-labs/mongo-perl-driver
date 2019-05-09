@@ -49,7 +49,7 @@ my $server_type    = server_type($conn);
 
 sub run_test {
     my ( $coll, $test ) = @_;
-    enable_failpoint( $test->{failPoint} );
+    enable_failpoint( $test->{failPoint} ) if $test->{failPoint};
 
     my $op = $test->{operation};
     my $method = $op->{name};
@@ -62,6 +62,9 @@ sub run_test {
 
     if ( exists $test->{outcome}->{error} && $test->{outcome}->{error} ) {
         ok $err, 'Exception occured';
+    }
+    else {
+        is( $err, "", "No exception occured" );
     }
 
     if ( !exists $test->{outcome}{error} && exists $test->{outcome}->{result} ) {
@@ -80,7 +83,7 @@ sub run_test {
     my $coll_expected = $test->{outcome}->{collection}->{data};
 
     is_deeply \@coll_outcome, $coll_expected, 'Collection has correct outcome';
-    disable_failpoint( $test->{failPoint} );
+    disable_failpoint( $test->{failPoint} ) if $test->{failPoint};
 }
 
 sub do_delete_one {
@@ -88,6 +91,13 @@ sub do_delete_one {
     $args //= {};
     my $filter = defined $args->{filter} ? $args->{filter} : {};
     return $coll->delete_one( $filter );
+}
+
+sub do_delete_many {
+    my ( $self, $coll, $args ) = @_;
+    $args //= {};
+    my $filter = defined $args->{filter} ? $args->{filter} : {};
+    return $coll->delete_many( $filter );
 }
 
 sub do_replace_one {
@@ -176,6 +186,17 @@ sub do_update_one {
         ( defined $args->{upsert} ? $args->{upsert} ? ( upsert => 1 ) : ( upsert => 0 ) : () )
     };
     return $coll->update_one( $filter, $update, $options );
+}
+
+sub do_update_many {
+    my ( $self, $coll, $args ) = @_;
+    $args //= {};
+    my $filter = defined $args->{filter} ? $args->{filter} : {};
+    my $update = defined $args->{update} ? $args->{update} : {};
+    my $options = {
+        ( defined $args->{upsert} ? $args->{upsert} ? ( upsert => 1 ) : ( upsert => 0 ) : () )
+    };
+    return $coll->update_many( $filter, $update, $options );
 }
 
 sub do_insert_many {
