@@ -46,6 +46,7 @@ use MongoDBTest qw/
     clear_failpoint
     skip_unless_transactions
 /;
+use MongoDBSpecTest qw(skip_unless_run_on);
 
 skip_unless_mongod();
 skip_unless_failpoints_available();
@@ -61,12 +62,6 @@ sub event_cb { push @events, dclone $_[0] }
 my $conn           = build_client( wtimeout => undef );
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
-
-plan skip_all => "Requires MongoDB 4.0"
-    if $server_version < v4.0.0;
-
-plan skip_all => "deployment does not support transactions"
-    unless $conn->_topology->_supports_transactions;
 
 plan skip_all => "test deployment must have multiple named mongos"
     if $conn->_topology->type eq 'Sharded'
@@ -98,6 +93,7 @@ my $iterator = $dir->iterator;
 while ( my $path = $iterator->() ) {
     next unless $path =~ /\.json$/;
     my $plan = eval { decode_json( $path->slurp_utf8 ) };
+    skip_unless_run_on($plan->{'runOn'}, $conn);
     if ($@) {
         die "Error decoding $path: $@";
     }

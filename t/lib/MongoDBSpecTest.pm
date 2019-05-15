@@ -21,9 +21,11 @@ use Exporter 'import';
 use Test::More;
 use Path::Tiny;
 use JSON::MaybeXS qw( is_bool decode_json );
+use MongoDBTest qw(server_type check_min_server_version);
 
 our @EXPORT_OK = qw(
     foreach_spec_test
+    skip_unless_run_on
 );
 
 sub foreach_spec_test {
@@ -49,6 +51,33 @@ sub foreach_spec_test {
                 };
             }
         };
+    }
+}
+
+sub skip_unless_run_on {
+    my ($runon_plan, $conn) = @_;
+    return unless $runon_plan;
+    my $server_type = server_type($conn);
+    my $topology_map = {
+        RSPrimary => 'replicaset',
+        Standalone => 'single',
+    };
+    my $topology = $topology_map->{ $server_type } || 'unknown';
+    my $topo_version_map = {
+        map {
+            my $run_on = $_;
+            map { $_ => $run_on->{'minServerVersion'} }
+                @{ $run_on->{'topology'} || [] }
+        } @{ $runon_plan || [] }
+    };
+    if (keys %$topo_version_map) {
+        plan skip_all => sprintf(
+            "Test only runs on (%s) topology",
+            join('|', keys %$topo_version_map),
+        ) unless $topo_version_map->{ $topology };
+        my $min_version = $topo_version_map->{ $topology };
+        plan skip_all => "Requires MongoDB $min_version"
+            if check_min_server_version( $conn, $min_version );
     }
 }
 
