@@ -26,10 +26,11 @@ use MongoDBTest qw(server_type check_min_server_version);
 our @EXPORT_OK = qw(
     foreach_spec_test
     skip_unless_run_on
+    maybe_skip_multiple_mongos
 );
 
 sub foreach_spec_test {
-    my ($dir, $callback) = @_;
+    my ($dir, $conn, $callback) = @_;
 
     $dir = path($dir);
     my $iterator = $dir->iterator( { recurse => 1 } );
@@ -45,6 +46,7 @@ sub foreach_spec_test {
         my $name = $path->relative($dir)->basename(".json");
 
         subtest $name => sub {
+            skip_unless_run_on($plan->{runOn}, $conn);
             for my $test ( @{ $plan->{tests} } ) {
                 subtest $test->{description} => sub {
                     $callback->($test, $plan);
@@ -79,6 +81,20 @@ sub skip_unless_run_on {
         my $min_version = $topo_version_map->{ $topology };
         plan skip_all => "Requires MongoDB $min_version"
             if check_min_server_version( $conn, $min_version );
+    }
+}
+
+sub maybe_skip_multiple_mongos {
+    my ( $conn, $use_multiple_mongos ) = @_;
+
+    if ( $conn->_topology->type eq 'Sharded' ) {
+        if ( $use_multiple_mongos ) {
+            plan skip_all => "test deployment must have multiple named mongos"
+                if scalar($conn->_topology->all_servers) < 2;
+        } else {
+            plan skip_all => "test deployment can only use one mongos"
+                unless scalar($conn->_topology->all_servers) == 1;
+        }
     }
 }
 

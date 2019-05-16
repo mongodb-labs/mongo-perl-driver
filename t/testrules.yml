@@ -9,4 +9,5 @@ seq:
     - seq: t/retryable-writes-spec.t
     - seq: t/retryable-writes-split-batch.t
     - seq: t/transactions-spec.t
+    - seq: t/transactions-convenient-api-spec.t
     - par: **

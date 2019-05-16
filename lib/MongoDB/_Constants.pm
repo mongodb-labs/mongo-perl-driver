@@ -59,6 +59,11 @@ BEGIN {
         TXN_WTIMEOUT_RETRY_DEFAULT  => 10_000,  # 10 seconds
         TXN_TRANSIENT_ERROR_MSG     => 'TransientTransactionError',
         TXN_UNKNOWN_COMMIT_MSG      => 'UnknownTransactionCommitResult',
+        # From the Convenient API for Transactions spec, with_transaction must
+        # halt retries after 120 seconds.
+        # This limit is non-configurable and was chosen to be twice the 60 second
+        # default value of MongoDB's `transactionLifetimeLimitSeconds` parameter.
+        WITH_TXN_RETRY_TIME_LIMIT   => 120, # seconds
     };
 }
 

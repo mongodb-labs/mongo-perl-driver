@@ -21,7 +21,7 @@ package MongoDB::ClientSession;
 use version;
 our $VERSION = 'v2.1.1';
 
-use MongoDB::Error;
+use MongoDB::Error 'EXCEEDED_TIME_LIMIT';
 
 use Moo;
 use MongoDB::_Constants;
@@ -39,8 +39,10 @@ use Types::Standard qw(
     Int
 );
 use MongoDB::_TransactionOptions;
+use Time::HiRes qw(clock_gettime);
 use namespace::clean -except => 'meta';
 use MongoDB::Op::_EndTxn;
+use Safe::Isa;
 
 =attr client
 
@@ -482,10 +484,13 @@ sub abort_transaction {
     MongoDB::UsageError->throw("Cannot call abort_transaction twice")
         if $self->_in_transaction_state( TXN_ABORTED );
 
+    # Ignore all errors thrown by abortTransaction
     eval {
         $self->_send_end_transaction_command( TXN_ABORTED, [ abortTransaction => 1 ] );
     };
-    # Ignore all errors thrown by abortTransaction
+
+    # Make sure active transaction is turned off, even when the command itself fails
+    $self->_set__active_transaction( 0 );
 
     return;
 }
@@ -563,6 +568,140 @@ sub end_session {
     if ( defined $self->_server_session ) {
         $self->client->_server_session_pool->retire_server_session( $self->_server_session );
         $self->__clear_server_session;
+    }
+}
+
+=method with_transaction
+
+    $session->with_transaction($callback, $options);
+
+Execute a callback in a transaction.
+
+This method starts a transaction on this session, executes C<$callback>, and
+then commits the transaction, returning the return value of the C<$callback>.
+The C<$callback> will be executed at least once.
+
+If the C<$callback> throws an error, the transaction will be aborted. If less
+than 120 seconds have passed since calling C<with_transaction>, and the error
+has a C<TransientTransactionError> label, the transaction will be restarted and
+the callback will be executed again. Otherwise, the error will be thrown.
+
+If the C<$callback> succeeds, then the transaction will be committed. If an
+error is thrown from committing the transaction, and it is less than 120
+seconds since calling C<with_transaction>, then:
+
+=for :list
+* If the error has a C<TransientTransactionError> label, the transaction will be
+  restarted.
+* If the error has an C<UnknownTransactionCommitResult> label, and is not a
+  C<MaxTimeMSExpired> error, then the commit will be retried.
+
+If the C<$callback> aborts or commits the transaction, no other actions are
+taken and the return value of the C<$callback> is returned.
+
+The callback is called with the first (and only) argument being the session,
+after starting the transaction:
+
+    $session->with_transaction( sub {
+        # this is the same session as used for with_transaction
+        my $cb_session = shift;
+        ...
+    }, $options);
+
+To pass arbitrary arguments to the C<$callback>, wrap your callback in a coderef:
+
+    $session->with_transaction(sub { $callback->($session, $foo, ...) }, $options);
+
+B<Warning>: you must either use the provided session within the callback, or
+otherwise pass the session in use to the callback. You must pass the
+C<$session> as an option to all database operations that need to be included
+in the transaction.
+
+B<Warning>: The C<$callback> can be called multiple times, so it is recommended
+to make it idempotent.
+
+A hash reference of options may be provided. these are the same as for
+L</start_transaction>.
+
+=cut
+
+# We may not have a monotonic clock, but must use one for checking time limits
+my $HAS_MONOTONIC = eval { clock_gettime(Time::HiRes::CLOCK_MONOTONIC()); 1 };
+*monotonic_time = $HAS_MONOTONIC ? sub { clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) } : \&Time::HiRes::time;
+
+sub _within_time_limit {
+    my ($self, $start_time) = @_;
+    return monotonic_time() - $start_time < WITH_TXN_RETRY_TIME_LIMIT;
+}
+
+sub _is_commit_timeout_error {
+    my ($self, $err) = @_;
+    if ( $err->can('result') && $err->result->can('output') ) {
+        my $output = $err->result->output;
+        my $err_code = $output->{ code };
+        my $err_codename = $output->{ codeName };
+        if ( defined $output->{ writeConcernError } ) {
+            $err_code = $output->{ writeConcernError }->{ code };
+            $err_codename = $output->{ writeConcernError }->{ codeName };
+        }
+        return 1 if ( $err_code == EXCEEDED_TIME_LIMIT ) || ( $err_codename eq 'MaxTimeMSExpired' );
+    }
+    return;
+}
+
+sub with_transaction {
+    my ( $self, $callback, $options ) = @_;
+    my $start_time = monotonic_time();
+    TRANSACTION: while (1) {
+        $self->start_transaction($options);
+
+        my $ret = eval { $callback->($self) };
+        if (my $err = $@) {
+            if ( $self->_in_transaction_state(TXN_STARTING, TXN_IN_PROGRESS) ) {
+                # Ignore all errors
+                eval { $self->abort_transaction };
+            }
+            if ( $err->$_isa('MongoDB::Error')
+              && $err->has_error_label(TXN_TRANSIENT_ERROR_MSG)
+              && $self->_within_time_limit($start_time) ) {
+                # Set inactive transaction to force transaction id to increment on next start
+                $self->_set__active_transaction(0);
+                next TRANSACTION;
+            }
+            die $err;
+        }
+        if ( $self->_in_transaction_state(TXN_NONE, TXN_COMMITTED, TXN_ABORTED) ) {
+            # Assume callback intentionally ended the transaction
+            return $ret;
+        }
+
+        COMMIT: while (1) {
+            eval { $self->commit_transaction };
+            if (my $err = $@) {
+                if ( $err->$_isa('MongoDB::Error') ) {
+                    if ( $self->_within_time_limit($start_time) ) {
+                        # Order is important here - a transient transaction
+                        # error means the entire transaction may have gone
+                        # wrong, whereas an unknown commit means only the
+                        # commit may have failed.
+                        if ( $err->has_error_label(TXN_TRANSIENT_ERROR_MSG) ) {
+                            # Set inactive transaction to force transaction id to increment on next start
+                            $self->_set__active_transaction(0);
+                            next TRANSACTION;
+                        }
+                        if ( $err->has_error_label(TXN_UNKNOWN_COMMIT_MSG)
+                             && ! $self->_is_commit_timeout_error( $err ) )
+                        {
+                            next COMMIT;
+                        }
+
+                    }
+                }
+                die $err;
+            }
+            # Commit succeeded
+            return $ret;
+        }
     }
 }
 

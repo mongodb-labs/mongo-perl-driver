@@ -54,7 +54,7 @@ my $server_topology =
 
 my ($db1, $db2);
 
-foreach_spec_test('t/data/change-streams', sub {
+foreach_spec_test('t/data/change-streams', $global_client, sub {
     my ($test, $plan) = @_;
 
     plan skip_all => sprintf(
