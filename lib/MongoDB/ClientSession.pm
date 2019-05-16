@@ -568,6 +568,10 @@ cursor will raise an error.
 
 =head2 Thread Safety
 
+B<NOTE>: Per L<threads> documentation, use of Perl threads is discouraged by the
+maintainers of Perl and the MongoDB Perl driver does not test or provide support
+for use with threads.
+
 Sessions are NOT thread safe, and should only be used by one thread at a time.
 Using a session across multiple threads is unsupported and unexpected issues
 and errors may occur. Note that the driver does not check for multi-threaded

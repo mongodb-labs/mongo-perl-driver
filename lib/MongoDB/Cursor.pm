@@ -607,6 +607,10 @@ sub snapshot {
 
 =head2 Multithreading
 
+B<NOTE>: Per L<threads> documentation, use of Perl threads is discouraged by the
+maintainers of Perl and the MongoDB Perl driver does not test or provide support
+for use with threads.
+
 Cursors are cloned in threads, but not reset.  Iterating the same cursor from
 multiple threads will give unpredictable results.  Only iterate from a single
 thread.

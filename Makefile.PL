@@ -1,4 +1,4 @@
-# Dist::Zilla::Plugin::MakeMaker::Awesome 0.45.
+# Dist::Zilla::Plugin::MakeMaker::Awesome 0.47.
 # Don't edit it but the dist.ini and plugins used to construct it.
 
 use strict;
@@ -79,12 +79,11 @@ my %WriteMakefileArgs = (
     "Test::Fatal" => 0,
     "Test::More" => "0.96",
     "lib" => 0,
-    "threads::shared" => 0,
     "utf8" => 0
   },
   "VERSION" => "v2.1.1",
   "test" => {
-    "TESTS" => "t/*.t t/deprecated/*.t t/examples/*.t t/threads/*.t t/unit/*.t"
+    "TESTS" => "t/*.t t/deprecated/*.t t/examples/*.t t/unit/*.t"
   }
 );
 
@@ -145,7 +144,6 @@ my %FallbackPrereqs = (
   "overload" => 0,
   "re" => 0,
   "strict" => 0,
-  "threads::shared" => 0,
   "utf8" => 0,
   "version" => 0,
   "warnings" => 0

@@ -2287,4 +2287,8 @@ C<auth_mechanism_properties> attribute or in the connection string.
 You B<MUST> call the L</reconnect> method on any MongoDB::MongoClient objects
 after forking or spawning a thread.
 
+B<NOTE>: Per L<threads> documentation, use of Perl threads is discouraged by the
+maintainers of Perl and the MongoDB Perl driver does not test or provide support
+for use with threads.
+
 =cut

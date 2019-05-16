@@ -183,7 +183,9 @@ deprecation warning is issued once per call-site for deprecated methods.)
 
 =head1 THREADS
 
-Per L<threads> documentation, use of Perl threads is discouraged.
+Per L<threads> documentation, use of Perl threads is discouraged by the
+maintainers of Perl and the MongoDB Perl driver does not test or provide support
+for use with threads.
 
 =cut
 

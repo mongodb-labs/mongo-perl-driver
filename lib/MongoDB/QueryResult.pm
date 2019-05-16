@@ -341,6 +341,10 @@ request will be sent to the originating server to free server resources.
 
 =head2 Multithreading
 
+B<NOTE>: Per L<threads> documentation, use of Perl threads is discouraged by the
+maintainers of Perl and the MongoDB Perl driver does not test or provide support
+for use with threads.
+
 Iterators are cloned in threads, but not reset.  Iterating from multiple
 threads will give unpredictable results.  Only iterate from a single
 thread.
