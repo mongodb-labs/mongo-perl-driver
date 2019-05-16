@@ -139,7 +139,12 @@ while ( my $path = $iterator->() ) {
                 clear_failpoint( $client, $test->{failPoint} );
 
                 if ( defined $test->{outcome}{collection}{data} ) {
-                    my @outcome = $test_coll->find()->all;
+                    # Need to use a specific read concern and read preference to check
+                    my $outcome_coll = $test_coll->clone(
+                        read_preference => 'primary',
+                        read_concern => 'local',
+                    );
+                    my @outcome = $outcome_coll->find()->all;
                     cmp_deeply( \@outcome, $test->{outcome}{collection}{data}, 'outcome as expected' )
                 }
             };
