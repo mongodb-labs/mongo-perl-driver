@@ -70,6 +70,10 @@ for my $m (@optionals) {
     eval { run_perl5_cpanm($m) };
 }
 
+# Get a sane JSON backend
+
+run_perl5_cpanm(qw/Cpanel::JSON::XS/)
+
 # XXX eventually, install develop requirements (e.g. dzil, etc.)
 
 # tar local lib
