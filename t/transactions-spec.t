@@ -134,6 +134,11 @@ while ( my $path = $iterator->() ) {
                     $test_coll->insert_many( $plan->{data} );
                 }
 
+                # PERL-1083 Work around StaleDbVersion issue. Guarded against possible errors
+                if ( $description eq 'distinct' && $client->_topology->type eq 'Sharded' ) {
+                    eval { $test_coll->distinct( '_id' ) };
+                }
+
                 set_failpoint( $client, $test->{failPoint} );
                 run_test( $test_db_name, $test_coll_name, $test );
                 clear_failpoint( $client, $test->{failPoint} );
