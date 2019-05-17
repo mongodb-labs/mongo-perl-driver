@@ -31,14 +31,18 @@ use MongoDBTest::Callback;
 
 skip_unless_mongod();
 
-my $cb = MongoDBTest::Callback->new;
-my $conn = build_client(monitoring_callback => $cb->callback);
-my $testdb = get_test_db($conn);
+my $conn = build_client();
 my $server_version = server_version($conn);
-my $coll = $testdb->get_collection('test_collection');
 
 plan skip_all => 'MongoDB version 3.6 or higher required for OP_MSG support'
     unless $server_version >= version->parse('v3.6.0');
+
+# Reconstruct client with monitoring on.  Doing this after the skip to try to
+# avoid rare test crashes on global destruction on Perl 5.18 with threads.
+my $cb = MongoDBTest::Callback->new;
+$conn = build_client(monitoring_callback => $cb->callback);
+my $testdb = get_test_db($conn);
+my $coll = $testdb->get_collection('test_collection');
 
 subtest 'insert single document' => sub {
   $cb->clear_events;
