@@ -72,7 +72,7 @@ for my $m (@optionals) {
 
 # Get a sane JSON backend
 
-run_perl5_cpanm(qw/Cpanel::JSON::XS/)
+run_perl5_cpanm(qw/Cpanel::JSON::XS/);
 
 # XXX eventually, install develop requirements (e.g. dzil, etc.)
 
