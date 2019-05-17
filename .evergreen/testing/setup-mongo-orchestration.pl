@@ -68,7 +68,13 @@ if ( $^O eq 'MSWin32' ) {
     cp $src, $dst;
 }
 
-# Launch
-try_system("sh $tools_dir/.evergreen/run-orchestration.sh");
+# Launch; loop in case of spurious failures (sigh)
+for (1 .. 3) {
+  eval {
+    try_system("sh $tools_dir/.evergreen/run-orchestration.sh");
+  };
+  last unless $@;
+  print "$@\nRetrying...\n";
+}
 
 exit 0;
