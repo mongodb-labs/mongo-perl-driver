@@ -91,9 +91,10 @@ subtest "topology status" => sub {
     my $res = $conn->topology_status( );
     is( ref($res), 'HASH', "topology_status returns a hash reference" );
     my $last = $res->{last_scan_time};
-    sleep 1;
+    sleep 2;
     $res = $conn->topology_status( refresh => 1 );
-    ok( $res->{last_scan_time} > $last, "scan time refreshed" );
+    ok( $res->{last_scan_time} > $last, "scan time refreshed" )
+      or diag "Before: $res->{last_scan_time}; After: $last";
 };
 
 subtest "cooldown" => sub {
