@@ -1210,6 +1210,8 @@ sub _update_topology_from_link {
 
     my $end_time = time;
     my $rtt_sec = $end_time - $start_time;
+    # Protect against clock skew
+    $rtt_sec = 0 if $rtt_sec < 0;
 
     $self->publish_server_heartbeat_succeeded( $link, $rtt_sec, $is_master )
       if $self->monitoring_callback;
