@@ -128,7 +128,7 @@ has _current_transaction_options => (
 has _address => (
     is  => 'rwp',
     isa => HostAddress,
-    clearer => 1,
+    clearer => '_unpin_address',
 );
 
 has _transaction_state => (
@@ -173,6 +173,14 @@ has operation_time => (
     isa => Maybe[BSONTimestamp],
     init_arg => undef,
     default => undef,
+);
+
+# Used in recovery of transactions on a sharded cluster
+has _recovery_token => (
+    is       => 'rwp',
+    isa      => Maybe[Document],
+    init_arg => undef,
+    default  => undef,
 );
 
 =method session_id
@@ -432,7 +440,8 @@ sub commit_transaction {
                 251, # NoSuchTransaction
             )
         ) {
-            push @{ $err->error_labels }, 'UnknownTransactionCommitResult';
+            push @{ $err->error_labels }, TXN_UNKNOWN_COMMIT_MSG
+                unless $err->has_error_label( TXN_UNKNOWN_COMMIT_MSG );
         }
         die $err;
     }
@@ -492,17 +501,36 @@ sub _send_end_transaction_command {
 
     # If the commit/abort succeeded, we are no longer in an active transaction
     $self->_set__active_transaction( 0 );
-    $self->_clear_address;
+    $self->_unpin_address;
 }
 
 # For applying connection errors etc
-sub _maybe_apply_error_labels {
+sub _maybe_apply_error_labels_and_unpin {
     my ( $self, $err ) = @_;
 
     if ( $self->_in_transaction_state( TXN_STARTING, TXN_IN_PROGRESS ) ) {
-        push @{ $err->error_labels }, 'TransientTransactionError';
+        $err->add_error_label( TXN_TRANSIENT_ERROR_MSG );
+    } elsif ( $self->_in_transaction_state( TXN_COMMITTED ) ) {
+        $err->add_error_label( TXN_UNKNOWN_COMMIT_MSG );
     }
+    $self->_maybe_unpin_address( $err->error_labels );
     return;
+}
+
+# Passed an arrayref of error labels. Used where the client session isnt actively
+# adding the label (like from the database, in CommandResult), nor is the
+# calling class able to pass a constructed error
+sub _maybe_unpin_address {
+    my ( $self, $error_labels ) = @_;
+
+    my %labels = ( map { $_ => 1 } @$error_labels );
+    if ( $labels{ +TXN_TRANSIENT_ERROR_MSG } 
+      # Must also unpin if its an unknown commit error during a commit
+      || ( $self->_in_transaction_state( TXN_COMMITTED )
+        && $labels{ +TXN_UNKNOWN_COMMIT_MSG } )
+    ) {
+        $self->_unpin_address;
+    }
 }
 
 =method end_session

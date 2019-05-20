@@ -59,8 +59,9 @@ sub skip_unless_run_on {
     return unless $runon_plan;
     my $server_type = server_type($conn);
     my $topology_map = {
-        RSPrimary => 'replicaset',
+        RSPrimary  => 'replicaset',
         Standalone => 'single',
+        Mongos     => 'sharded',
     };
     my $topology = $topology_map->{ $server_type } || 'unknown';
     my $topo_version_map = {

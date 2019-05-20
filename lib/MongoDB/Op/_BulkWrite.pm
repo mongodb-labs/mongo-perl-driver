@@ -79,7 +79,7 @@ with $_ for qw(
 
 sub _is_retryable {
     my $self = shift;
-    return $self->write_concern->is_acknowledged && $self->_retryable;
+    return $self->_should_use_acknowledged_write && $self->_retryable;
 }
 
 sub has_collation {
@@ -102,7 +102,7 @@ sub execute {
 
         MongoDB::UsageError->throw(
             "Unacknowledged bulk writes that specify a collation are not allowed")
-          if !$self->write_concern->is_acknowledged;
+          if !$self->_should_use_acknowledged_write;
     }
 
     my $use_write_cmd = $link->supports_write_commands;
@@ -144,7 +144,7 @@ sub execute {
     return MongoDB::UnacknowledgedResult->_new(
         write_errors         => [],
         write_concern_errors => [],
-    ) if !$self->write_concern->is_acknowledged;
+    ) if ! $self->_should_use_acknowledged_write;
 
     # only reach here with an error for unordered bulk ops
     $result->assert_no_write_error;

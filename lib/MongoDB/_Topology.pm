@@ -460,9 +460,24 @@ sub close_all_links {
     return;
 }
 
+sub _maybe_get_txn_error_labels_and_unpin_from {
+    my $op = shift;
+    return () unless defined $op
+        && defined $op->session;
+    if ( $op->session->_in_transaction_state( TXN_STARTING, TXN_IN_PROGRESS ) ) {
+        $op->session->_unpin_address;
+        return ( error_labels => [ TXN_TRANSIENT_ERROR_MSG ] );
+    } elsif ( $op->session->_in_transaction_state( TXN_COMMITTED ) ) {
+        return ( error_labels => [ TXN_UNKNOWN_COMMIT_MSG ] );
+    }
+    return ();
+}
+
 sub get_readable_link {
-    my ( $self, $read_pref ) = @_;
+    my ( $self, $op ) = @_;
     $self->_check_for_uri_changes;
+
+    my $read_pref = defined $op ? $op->read_preference : undef;
 
     my $mode = $read_pref ? lc $read_pref->mode : 'primary';
     my $method =
@@ -488,13 +503,16 @@ sub get_readable_link {
     }
 
     my $rp = $read_pref ? $read_pref->as_string : 'primary';
+
     MongoDB::SelectionError->throw(
-        "No readable server available for matching read preference $rp. MongoDB server status:\n"
-          . $self->_status_string );
+        message => "No readable server available for matching read preference $rp. MongoDB server status:\n"
+          . $self->_status_string,
+        _maybe_get_txn_error_labels_and_unpin_from( $op ),
+    );
 }
 
 sub get_specific_link {
-    my ( $self, $address ) = @_;
+    my ( $self, $address, $op ) = @_;
     $self->_check_for_uri_changes;
 
     my $server = $self->servers->{$address};
@@ -502,12 +520,15 @@ sub get_specific_link {
         return $link;
     }
     else {
-        MongoDB::SelectionError->throw("Server $address is no longer available");
+        MongoDB::SelectionError->throw(
+            message => "Server $address is no longer available",
+            _maybe_get_txn_error_labels_and_unpin_from( $op ),
+        );
     }
 }
 
 sub get_writable_link {
-    my ($self) = @_;
+    my ( $self, $op ) = @_;
     $self->_check_for_uri_changes;
 
     my $method =
@@ -532,12 +553,17 @@ sub get_writable_link {
     }
 
     MongoDB::SelectionError->throw(
-        "No writable server available.  MongoDB server status:\n" . $self->_status_string );
+        message => "No writable server available.  MongoDB server status:\n" . $self->_status_string,
+        _maybe_get_txn_error_labels_and_unpin_from( $op ),
+    );
 }
 
+# Marking a server unknown from outside the topology indicates an operational
+# error, so the last scan is set to EPOCH so that the next scan won't wait for
+# the scanning cooldown.
 sub mark_server_unknown {
-    my ( $self, $server, $error ) = @_;
-    $self->_reset_address_to_unknown( $server->address, $error );
+    my ( $self, $server, $error, $no_cooldown ) = @_;
+    $self->_reset_address_to_unknown( $server->address, $error, EPOCH );
     return;
 }
 
@@ -911,7 +937,6 @@ sub _get_server_in_latency_window {
     my @sorted =
       sort { $a->{rtt} <=> $b->{rtt} }
       map { { server => $_, rtt => $rtt_hash->{ $_->address } } } @$servers;
-
     # lowest RTT is always in the windows
     my @in_window = shift @sorted;
 
@@ -1033,7 +1058,7 @@ sub _remove_server {
 
 sub _reset_address_to_unknown {
     my ( $self, $address, $error, $update_time ) = @_;
-    $update_time ||= time;
+    $update_time //= time;
 
     $self->_remove_address($address);
     my $desc = $self->_add_address_as_unknown( $address, $update_time, $error );

@@ -36,4 +36,12 @@ has write_concern => (
     isa => WriteConcern,
 );
 
+sub _should_use_acknowledged_write {
+    my $self = shift;
+
+    # We should never use an unacknowledged write concern in an active transaction
+    return 1 if $self->session && $self->session->_active_transaction;
+    return $self->write_concern->is_acknowledged;
+}
+
 1;

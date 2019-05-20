@@ -134,6 +134,7 @@ sub execute {
     my $res = MongoDB::CommandResult->_new(
         output => $self->{bson_codec}->decode_one( $result->{docs} ),
         address => $link->address,
+        session => $self->session,
     );
 
     $self->_update_session_pre_assert( $res );

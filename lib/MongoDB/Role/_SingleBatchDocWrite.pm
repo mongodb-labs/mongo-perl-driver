@@ -214,14 +214,13 @@ sub _send_write_command {
     $self->_update_session_and_cluster_time($res);
 
     # Error checking depends on write concern
-    # TODO does this logic get affected by transactions???? Probably?
-
-    if ( $self->write_concern->is_acknowledged ) {
+    if ( $self->_should_use_acknowledged_write ) {
         # errors in the command itself get handled as normal CommandResult
         if ( !$res->{ok} && ( $res->{errmsg} || $res->{'$err'} ) ) {
             return MongoDB::CommandResult->_new(
                 output => $res,
                 address => $link->address,
+                session => $self->session,
             );
         }
 

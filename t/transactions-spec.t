@@ -63,10 +63,6 @@ my $conn           = build_client( wtimeout => undef );
 my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 
-plan skip_all => "test deployment must have multiple named mongos"
-    if $conn->_topology->type eq 'Sharded'
-    && ( scalar( $conn->_topology->all_servers ) < 2 );
-
 # defines which argument hash fields become positional arguments
 my %method_args = (
     insert_one  => [qw( document )],
@@ -93,7 +89,6 @@ my $iterator = $dir->iterator;
 while ( my $path = $iterator->() ) {
     next unless $path =~ /\.json$/;
     my $plan = eval { decode_json( $path->slurp_utf8 ) };
-    skip_unless_run_on($plan->{'runOn'}, $conn);
     if ($@) {
         die "Error decoding $path: $@";
     }
@@ -101,17 +96,24 @@ while ( my $path = $iterator->() ) {
     my $test_coll_name = $plan->{collection_name};
 
     subtest $path => sub {
+        skip_unless_run_on($plan->{'runOn'}, $conn);
 
         for my $test ( @{ $plan->{tests} } ) {
             my $description = $test->{description};
             local $TODO = 'does a run_command read_preference count as a user configurable read_preference?' if $path =~ /run-command/ && $description =~ /explicit secondary read preference/;
+
             subtest $description => sub {
                 plan skip_all => $test->{skipReason} if $test->{skipReason};
-                my $client = build_client( wtimeout => undef );
+                plan skip_all => "test deployment must have multiple named mongos"
+                    if $test->{useMultipleMongoses}
+                    && $conn->_topology->type eq 'Sharded'
+                    && ( scalar( $conn->_topology->all_servers ) < 2 );
+
+                    #my $client = build_client( wtimeout => undef );
 
                 # Kills its own session as well
-                eval { $client->send_admin_command([ killAllSessions => [] ]) };
-                my $test_db = $client->get_database( $test_db_name );
+                eval { $conn->send_admin_command([ killAllSessions => [] ]) };
+                my $test_db = $conn->get_database( $test_db_name );
 
                 # We crank wtimeout up to 10 seconds to help reduce
                 # replication timeouts in testing
@@ -131,13 +133,13 @@ while ( my $path = $iterator->() ) {
                 }
 
                 # PERL-1083 Work around StaleDbVersion issue. Guarded against possible errors
-                if ( $description eq 'distinct' && $client->_topology->type eq 'Sharded' ) {
+                if ( $description eq 'distinct' && $conn->_topology->type eq 'Sharded' ) {
                     eval { $test_coll->distinct( '_id' ) };
                 }
 
-                set_failpoint( $client, $test->{failPoint} );
+                set_failpoint( $conn, $test->{failPoint} );
                 run_test( $test_db_name, $test_coll_name, $test );
-                clear_failpoint( $client, $test->{failPoint} );
+                clear_failpoint( $conn, $test->{failPoint} );
 
                 if ( defined $test->{outcome}{collection}{data} ) {
                     # Need to use a specific read concern and read preference to check
@@ -220,7 +222,10 @@ sub run_test {
             # TODO count is checked specifically for errors during a transaction so warning here is not useful - we cannot change to count_documents, which is actually allowed in transactions.
             local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $cmd eq 'count';
 
-            if ( $cmd =~ /_transaction$/ ) {
+            my $special_op = 'special_op_' . $cmd;
+            if ( my $op_sub = main->can($special_op) ) {
+                $op_sub->( $operation->{ arguments } );
+            } elsif ( $cmd =~ /_transaction$/ ) {
                 my $op_args = $operation->{arguments} // {};
                 $sessions{ $operation->{object} }->$cmd( $op_args->{options} );
             } else {
@@ -266,6 +271,10 @@ sub run_test {
         check_error( $err, $op_result, $cmd );
     }
 
+    if ( defined $sessions{ clear_targeted_fail_point } ) {
+        special_op_clear_targeted_fail_point();
+    }
+
     $sessions{session0}->end_session;
     $sessions{session1}->end_session;
 
@@ -273,6 +282,62 @@ sub run_test {
         check_event_expectations( _adjust_types( $test->{expectations} ) );
     }
     %sessions = ();
+}
+
+# Special Operation Types for test runner
+sub special_op_targeted_fail_point {
+    my ( $args ) = @_;
+    return unless $conn->_topology->type eq 'Sharded';
+
+    # session must be pinned
+    special_op_assert_session_pinned( $args );
+
+    my $session = $sessions{ $args->{ session } };
+    my $failpoint = $args->{ failPoint };
+    my $command = [
+        configureFailPoint => $failpoint->{configureFailPoint},
+        mode => $failpoint->{mode},
+        defined $failpoint->{data}
+          ? ( data => $failpoint->{data} )
+          : (),
+    ];
+
+    $conn->_send_direct_admin_command( $session->_address, $command );
+
+    # Store targeted fail point
+    $sessions{ clear_targeted_fail_point } = {
+        address   => $session->_address,
+        failpoint => $failpoint,
+    };
+}
+
+sub special_op_clear_targeted_fail_point {
+    my $args = $sessions{ clear_targeted_fail_point };
+
+    my $command = [
+        configureFailPoint => $args->{failpoint}->{configureFailPoint},
+        mode => 'off',
+    ];
+
+    $conn->_send_direct_admin_command( $args->{address}, $command );
+
+    delete $sessions{ clear_targeted_fail_point };
+}
+
+sub special_op_assert_session_pinned {
+    my ( $args ) = @_;
+    return unless $conn->_topology->type eq 'Sharded';
+
+    ok defined( $sessions{ $args->{ session } }->_address ),
+        'assert session is pinned';
+}
+
+sub special_op_assert_session_unpinned {
+    my ( $args ) = @_;
+    return unless $conn->_topology->type eq 'Sharded';
+
+    ok ! defined( $sessions{ $args->{ session } }->_address ),
+        'assert session is unpinned';
 }
 
 sub check_error {
@@ -283,13 +348,6 @@ sub check_error {
         $expecting_error = grep {/^error/} keys %{ $exp };
     }
     if ( $err ) {
-        if ( ( lc $err->message eq 'cannot commit with no participants'
-               || lc $err->message eq 'cannot recover the transaction decision without a recoverytoken' )
-              && $cmd eq 'commit_transaction' ) {
-            # TODO This pass must go when PERL-1035 is implemented
-            pass 'Got recoveryToken error before implementation';
-            return;
-        }
         unless ( $expecting_error ) {
             my $diag_msg = 'Not expecting error, got "' . $err->message . '"';
             fail $diag_msg;
@@ -387,7 +445,6 @@ sub check_hash_result_outcome {
 # adjusts data structures and extracts leading positional arguments
 sub _adjust_arguments {
     my ($method, $args) = @_;
-
     $args = _adjust_types($args);
     my @fields = @{ $method_args{$method} };
     my @field_values = map {
@@ -657,6 +714,11 @@ sub check_command_field {
 
     if ( defined $exp_command->{txnNumber} ) {
         $exp_command->{txnNumber} = Math::BigInt->new($exp_command->{txnNumber});
+    }
+
+    if ( defined $exp_command->{recoveryToken} ) {
+        $exp_command->{recoveryToken} = ignore()
+            if $exp_command->{recoveryToken} eq '42';
     }
 
     for my $exp_key (sort keys %$exp_command) {

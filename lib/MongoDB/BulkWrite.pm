@@ -267,6 +267,10 @@ sub execute {
 
     my $session = $self->_client->_get_session_from_hashref( $options );
 
+    # Transaction write concern overrides all
+    $write_concern = $session->_get_transaction_write_concern
+      if defined $session && $session->_active_transaction;
+
     my $op = MongoDB::Op::_BulkWrite->_new(
         client                   => $self->_client,
         db_name                  => $self->_database->name,

@@ -120,6 +120,13 @@ sub has_error_label {
     return grep { $_ eq $expected } @{ $self->error_labels };
 }
 
+sub add_error_label {
+    my ( $self, $label ) = @_;
+
+    return if $self->has_error_label( $label );
+    push @{ $self->error_labels }, $label;
+}
+
 sub throw {
   my ($inv) = shift;
 

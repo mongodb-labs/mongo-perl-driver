@@ -65,7 +65,7 @@ sub send_direct_op {
 
     $self->_maybe_update_session_state( $op );
 
-    ( $link = $self->{topology}->get_specific_link($address) ), (
+    ( $link = $self->{topology}->get_specific_link( $address, $op ) ), (
         eval { ($result) = $op->execute($link); 1 } or do {
             my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
             if ( $err->$_isa("MongoDB::ConnectionError") ) {
@@ -91,12 +91,12 @@ sub _retrieve_link_for {
         && $op->session->_active_transaction # this is true during a transaction and on every commit
         && $topology->_supports_mongos_pinning_transactions )
     {
-        $link = $topology->get_specific_link( $op->session->_address );
+        $link = $topology->get_specific_link( $op->session->_address, $op );
     }
     elsif ( $rw eq 'w' ) {
-        $link = $topology->get_writable_link;
+        $link = $topology->get_writable_link( $op );
     } else {
-        $link = $topology->get_readable_link( $op->read_preference );
+        $link = $topology->get_readable_link( $op );
     }
     return $link;
 }
@@ -182,13 +182,8 @@ sub send_retryable_write_op {
         # Second attempt
         eval { ($result) = $self->_try_write_op_for_link( $retry_link, $op ); 1 } or do {
             my $retry_err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
-            # Only network or not_master errors should propogate on second attempt
-            if ( $retry_err->$_isa("MongoDB::ConnectionError")
-              || $retry_err->$_isa("MongoDB::NotMasterError") ) {
-                WITH_ASSERTS ? ( confess $retry_err ) : ( die $retry_err );
-            }
-            # die with original error otherwise
-            WITH_ASSERTS ? ( confess $err ) : ( die $err );
+            # TODO Only driver errors should actually throw the original error, but what constitutes a driver error?
+            WITH_ASSERTS ? ( confess $retry_err ) : ( die $retry_err );
         };
     };
     # just in case this gets reused for some reason

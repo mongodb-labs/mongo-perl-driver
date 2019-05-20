@@ -116,6 +116,12 @@ sub _update_session_and_cluster_time {
         $self->session->advance_cluster_time( $cluster_time );
     }
 
+    my $recovery_token = $self->__extract_from( $response, 'recoveryToken' );
+
+    if ( defined $recovery_token ) {
+        $self->session->_set__recovery_token( $recovery_token );
+    }
+
     return;
 }
 
@@ -148,7 +154,7 @@ sub _update_session_connection_error {
     my ( $self, $err ) = @_;
 
     return unless defined $self->session;
-    return $self->session->_maybe_apply_error_labels( $err );
+    return $self->session->_maybe_apply_error_labels_and_unpin( $err );
 }
 
 sub __extract_from {

@@ -87,7 +87,7 @@ sub execute {
 
     # XXX have to check size of docs to insert and possibly split it
     #
-    return ! $self->write_concern->is_acknowledged
+    return ! $self->_should_use_acknowledged_write
       ? (
         $self->_send_legacy_op_noreply( $link,
             MongoDB::_Protocol::write_insert( $self->full_name, join( "", map { $_->{bson} } @insert_docs ) ),

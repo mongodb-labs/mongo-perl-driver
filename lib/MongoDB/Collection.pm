@@ -419,23 +419,23 @@ sub insert_many {
     MongoDB::UsageError->throw("documents argument must be an array reference")
       unless ref( $_[1] ) eq 'ARRAY';
 
-    # internally ends up performing a retryable write if possible, see OP::_BulkWrite
-    my $res = $_[0]->client->send_write_op(
-        MongoDB::Op::_BulkWrite->_new(
-            # default
-            ordered => 1,
-            # user overrides
-            session => $_[0]->client->_get_session_from_hashref( $_[2] ),
-            ( defined $_[2] ? ( %{ $_[2] } ) : () ),
-            # un-overridable
-            queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
-            # insert_many is specifically retryable (PERL-792)
-            _retryable => 1,
-            %{ $_[0]->_op_args },
-        )
+    my $op = MongoDB::Op::_BulkWrite->_new(
+        # default
+        ordered => 1,
+        # user overrides
+        session => $_[0]->client->_get_session_from_hashref( $_[2] ),
+        ( defined $_[2] ? ( %{ $_[2] } ) : () ),
+        # un-overridable
+        queue => [ map { [ insert => $_ ] } @{ $_[1] } ],
+        # insert_many is specifically retryable (PERL-792)
+        _retryable => 1,
+        %{ $_[0]->_op_args },
     );
 
-    return $_[0]->write_concern->is_acknowledged
+    # internally ends up performing a retryable write if possible, see OP::_BulkWrite
+    my $res = $_[0]->client->send_write_op( $op );
+
+    return $op->_should_use_acknowledged_write
       ? MongoDB::InsertManyResult->_new(
         acknowledged         => 1,
         inserted             => $res->inserted,
@@ -930,7 +930,7 @@ sub find_one_and_delete {
         session       => $session,
     );
 
-    return $self->write_concern->is_acknowledged
+    return $op->_should_use_acknowledged_write
       ? $self->client->send_retryable_write_op( $op )
       : $self->client->send_write_op( $op );
 }
@@ -1215,7 +1215,9 @@ sub aggregate {
     __ixhash( $options, 'hint' ) if ref $options->{hint};
 
     # read preferences are ignored if the last stage is $out
-    my ($last_op) = keys %{ $pipeline->[-1] };
+    my $last_op = '';
+    # If $pipeline is an empty array, this can explode
+    if ( scalar( @$pipeline ) > 0 ) { ($last_op) = keys %{ $pipeline->[-1] } };
 
     my $op = MongoDB::Op::_Aggregate->_new(
         pipeline     => $pipeline,
@@ -1740,7 +1742,7 @@ sub _find_one_and_update_or_replace {
         %{ $self->_op_args },
     );
 
-    return $self->write_concern->is_acknowledged
+    return $op->_should_use_acknowledged_write
       ? $self->client->send_retryable_write_op( $op )
       : $self->client->send_write_op( $op );
 }

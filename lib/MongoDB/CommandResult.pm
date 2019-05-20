@@ -26,9 +26,11 @@ use MongoDB::Error;
 use MongoDB::_Constants;
 use MongoDB::_Types qw(
     HostAddress
+    ClientSession
 );
 use Types::Standard qw(
     HashRef
+    Maybe
 );
 use namespace::clean;
 
@@ -60,6 +62,18 @@ has address => (
     is       => 'ro',
     required => 1,
     isa => HostAddress,
+);
+
+=attr session
+
+ClientSession which the command was ran with, if any
+
+=cut
+
+has session => (
+    is       => 'ro',
+    required => 0,
+    isa => Maybe[ClientSession],
 );
 
 =method last_code
@@ -136,8 +150,11 @@ Throws an exception if the command failed.
 sub assert {
     my ($self, $default_class) = @_;
 
-    $self->_throw_database_error( $default_class )
-        if ! $self->output->{ok};
+    if ( ! $self->output->{ok} ) {
+        $self->session->_maybe_unpin_address( $self->last_error_labels )
+            if defined $self->session;
+        $self->_throw_database_error( $default_class );
+    }
 
     return 1;
 }

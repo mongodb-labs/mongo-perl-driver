@@ -60,7 +60,7 @@ sub execute {
     return $self->_send_legacy_op_noreply( $link,
         MongoDB::_Protocol::write_insert( $self->full_name, $insert_doc->{bson} ),
         $orig_doc, "MongoDB::UnacknowledgedResult", "insert" )
-      if ! $self->write_concern->is_acknowledged;
+      if ! $self->_should_use_acknowledged_write;
 
     return $self->_send_write_command(
         $link,

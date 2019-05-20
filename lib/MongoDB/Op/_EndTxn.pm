@@ -52,7 +52,7 @@ has query => (
 );
 
 sub _get_query_maybe_with_write_concern {
-    my $self = shift;
+    my ( $self, $topology ) = @_;
 
     my $query = to_IxHash( $self->query );
 
@@ -68,13 +68,20 @@ sub _get_query_maybe_with_write_concern {
             w => 'majority',
         });
     }
+
+    # If we've gotten this far and a sharded topology doesnt support
+    # transactions, something has gone seriously wrong
+    if ( $topology eq 'Sharded' && defined $self->session->_recovery_token ) {
+        $query->Push( recoveryToken => $self->session->_recovery_token );
+    }
+
     return $query;
 }
 
 sub execute {
     my ( $self, $link, $topology ) = @_;
 
-    my $query = $self->_get_query_maybe_with_write_concern;
+    my $query = $self->_get_query_maybe_with_write_concern( $topology );
     # Set that an attempt to commit the transaction has been made after getting
     # query but before execute - stops error unwind losing it
     $self->session->_has_attempted_end_transaction( 1 );
