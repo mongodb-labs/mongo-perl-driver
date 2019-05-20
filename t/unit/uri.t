@@ -18,6 +18,7 @@ use Test::More;
 use Test::Fatal;
 use Path::Tiny;
 use JSON::MaybeXS;
+use boolean;
 
 my $class = "MongoDB::_URI";
 
@@ -295,6 +296,19 @@ subtest "options" => sub {
                       $class, [ uri => $test->{'uri'} ], $test->{'description'}
                   );
                   if ( $uri ) {
+                      # normalize booleans
+                      my $options = $uri->options;
+                      for my $k (keys %{$test->{options}}) {
+                          my $type = ref($test->{options}{$k});
+                          # If it's a ref and not hash/array, then it must be some
+                          # sort of JSON boolean type, so normalize it.
+                          if ( $type && $type ne 'HASH' && $type ne 'ARRAY' ) {
+                              $test->{options}{$k} = boolean($test->{options}{$k});
+                              # normalize our parsed options, too, for better
+                              # test comparisions.
+                              $uri->options->{$k} = boolean($uri->options->{$k});
+                          }
+                      }
                       is_deeply( $uri->options, $test->{'options'},
                                  $test->{'description'} );
                   }
