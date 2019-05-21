@@ -300,6 +300,10 @@ sub check_error {
         my $err_labels_contains = $exp->{errorLabelsContain};
         my $err_labels_omit     = $exp->{errorLabelsOmit};
         if ( defined $err_contains ) {
+            if ($cmd eq 'count') {
+                # MongoDB 4.0.7 - 4.0.9 changed the error for count in a transaction
+                $err_contains .= "|Command is not supported as the first command in a transaction";
+            }
             $err_contains =~ s/abortTransaction/abort_transaction/;
             $err_contains =~ s/commitTransaction/commit_transaction/;
             like $err->message, qr/$err_contains/i, 'error contains ' . $err_contains;
