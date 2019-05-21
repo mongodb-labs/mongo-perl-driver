@@ -76,7 +76,7 @@ for (1 .. 3) {
   last unless $@;
   print "$@\nRetrying...\n";
   # clear space for next download
-  rmtree("mongodb");
+  rmtree("$abs_tools_dir/mongodb");
 }
 
 exit 0;
