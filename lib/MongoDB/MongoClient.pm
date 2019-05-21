@@ -1528,12 +1528,12 @@ sub start_session {
 }
 
 sub _maybe_get_implicit_session {
-    my ( $self, $opts ) = @_;
+    my ($self) = @_;
 
     # Dont return an error as implicit sessions need to be backwards compatible
     return undef unless $self->_topology->_supports_sessions; ## no critic
 
-    return $self->_start_client_session( 0, $opts );
+    return $self->_start_client_session(0);
 }
 
 sub _start_client_session {
