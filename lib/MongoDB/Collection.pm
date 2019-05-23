@@ -1241,6 +1241,8 @@ Returns a count of documents matching a L<filter expression|/Filter expression>.
 To return a count of all documents, use an empty hash reference as the filter.
 
 B<NOTE>: this may result in a scan of all documents in the collection.
+For a fast count of the total documents in a collection see
+L</estimated_document_count> instead.
 
 A hash reference of options may be provided. Valid keys include:
 
