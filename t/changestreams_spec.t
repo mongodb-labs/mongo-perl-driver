@@ -95,6 +95,9 @@ foreach_spec_test('t/data/change-streams', sub {
             or diag("Stream Error: $stream_error");
         if (defined(my $code = $test->{result}{error}{code})) {
             is $stream_error->code, $code, "error code $code";
+            if (my $err_labels = $test->{result}{error}{'errorLabels'}) {
+                cmp_deeply($stream_error->error_labels, $err_labels, 'errorLabels');
+            }
         }
     }
     else {
@@ -161,6 +164,13 @@ foreach_spec_test('t/data/change-streams', sub {
                 }
             }
         };
+    }
+    elsif (my $test_err = $test->{result}{error}) {
+        if ($stream) {
+            my $change = eval { $stream->next };
+            my $err = $@;
+            cmp_deeply($err->error_labels, $test_err->{'errorLabels'}, 'errorLabels');
+        }
     }
 });
 
