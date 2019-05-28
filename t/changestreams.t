@@ -29,6 +29,7 @@ use MongoDBTest qw/
     server_version
     server_type
 /;
+use Safe::Isa;
 
 skip_unless_mongod();
 
@@ -228,5 +229,22 @@ sub run_tests_for {
         my $command_sid = uuid_to_string($command->{lsid}{id}->data);
 
         is $command_sid, $lsid, 'command has correct session id';
+    };
+
+    subtest 'PERL-1090' => sub {
+        $coll->drop;
+        my $change_stream = $watchable->watch([
+            { '$project' => { '_id' => 0 } }
+        ]);
+        is $change_stream->next, undef, 'next without changes';
+
+        $coll->insert_one({});
+
+        my $change = eval { $change_stream->next };
+        my $err = $@;
+        ok($err, 'ChangeStream must raise an exception');
+        ok(
+            $err->$_isa('MongoDB::InvalidOperationError')
+            || $err->$_isa('MongoDB::DatabaseError'), 'correct exp error');
     };
 }

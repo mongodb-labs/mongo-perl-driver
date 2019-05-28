@@ -146,7 +146,7 @@ Prose Tests
 The following tests have not yet been automated, but MUST still be tested
 
 1. ``ChangeStream`` must continuously track the last seen ``resumeToken``
-2. ``ChangeStream`` will throw an exception if the server response is missing the resume token
+2. ``ChangeStream`` will throw an exception if the server response is missing the resume token (if wire version is < 8, this is a driver-side error; for 8+, this is a server-side error)
 3. ``ChangeStream`` will automatically resume one time on a resumable error (including `not master`) with the initial pipeline and options, except for the addition/update of a ``resumeToken``.
 4. ``ChangeStream`` will not attempt to resume on a server error
 5. ``ChangeStream`` will perform server selection before attempting to resume, using initial ``readPreference``
