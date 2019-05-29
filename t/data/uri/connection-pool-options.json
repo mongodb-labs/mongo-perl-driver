@@ -8,14 +8,14 @@
       "hosts": null,
       "auth": null,
       "options": {
-        "maxidletimems": 50000
+        "maxIdleTimeMS": 50000
       }
     },
     {
       "description": "Non-numeric maxIdleTimeMS causes a warning",
       "uri": "mongodb://example.com/?maxIdleTimeMS=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -23,8 +23,8 @@
     {
       "description": "Too low maxIdleTimeMS causes a warning",
       "uri": "mongodb://example.com/?maxIdleTimeMS=-2",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}

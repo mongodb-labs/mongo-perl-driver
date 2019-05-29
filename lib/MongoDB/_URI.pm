@@ -227,8 +227,10 @@ sub _parse_doc {
     for my $tag ( split /,/, $string ) {
         if ( $tag =~ /\S/ ) {
             my @kv = map { my $s = $_; $s =~ s{^\s*}{}; $s =~ s{\s*$}{}; $s } split /:/, $tag, 2;
-            MongoDB::UsageError->throw("in option '$name', '$tag' is not a key:value pair")
-                unless @kv == 2;
+            if ( @kv != 2 ) {
+                warn "in option '$name', '$tag' is not a key:value pair\n";
+                return
+            }
             $set->{$kv[0]} = $kv[1];
         }
     }
@@ -258,10 +260,15 @@ sub _parse_options {
             next;
         }
         if ( $lc_k eq 'authmechanismproperties' ) {
-            $parsed{$lc_k} = _parse_doc( $k, $v );
-            if ( exists $parsed{$lc_k}{CANONICALIZE_HOST_NAME} ) {
-                $parsed{$lc_k}{CANONICALIZE_HOST_NAME} =
-                  __str_to_bool( 'CANONICALIZE_HOST_NAME', $parsed{$lc_k}{CANONICALIZE_HOST_NAME} );
+            my $temp = _parse_doc( $k, $v );
+            if ( defined $temp ) {
+                $parsed{$lc_k} = $temp;
+                if ( exists $parsed{$lc_k}{CANONICALIZE_HOST_NAME} ) {
+                    my $temp = __str_to_bool( 'CANONICALIZE_HOST_NAME', $parsed{$lc_k}{CANONICALIZE_HOST_NAME} );
+                    if ( defined $temp ) {
+                        $parsed{$lc_k}{CANONICALIZE_HOST_NAME} = $temp;
+                    }
+                }
             }
         }
         elsif ( $lc_k eq 'compressors' ) {
@@ -272,7 +279,7 @@ sub _parse_options {
                 zstd => 1
             };
             for my $compressor ( @compressors ) {
-                MongoDB::Error->throw("Unsupported compressor $compressor")
+                warn("Unsupported compressor $compressor\n")
                     unless $valid_compressors->{$compressor};
             }
             $parsed{$lc_k} = [ @compressors ];
@@ -282,18 +289,29 @@ sub _parse_options {
         }
         elsif ( $lc_k eq 'readpreferencetags' ) {
             $parsed{$lc_k} ||= [];
-            push @{ $parsed{$lc_k} }, _parse_doc( $k, $v );
+            my $temp = _parse_doc( $k, $v );
+            if ( defined $temp ) {
+                push @{$parsed{$lc_k}}, $temp;
+            }
         }
         elsif ( $self->_valid_str_to_bool_options->{ $lc_k } ) {
-            $parsed{$lc_k} = __str_to_bool( $k, $v );
+            my $temp =  __str_to_bool( $k, $v );
+            if ( defined $temp ) {
+                $parsed{$lc_k} = $temp
+            }
         }
         elsif ( my $opt_validation = $self->_extra_options_validation->{ $lc_k } ) {
             unless (ref $opt_validation eq 'CODE') {
                 $opt_validation = $self->_extra_options_validation->{ $opt_validation };
             }
-            MongoDB::Error->throw("Unsupported $k = $v")
-                unless $opt_validation->($v);
-            $parsed{$lc_k} = $v;
+            my $valid = eval { $opt_validation->($v) };
+            my $err = "$@";
+            if ( ! $valid ) {
+                warn("Unsupported URI value '$k' = '$v': $err");
+            }
+            else {
+                $parsed{$lc_k} = $v;
+            }
         }
         else {
             $parsed{$lc_k} = $v;
@@ -588,8 +606,9 @@ sub __str_to_bool {
     MongoDB::UsageError->throw("cannot convert undef to bool for key '$k'")
       unless defined $str;
     my $ret = $str eq "true" ? 1 : $str eq "false" ? 0 : undef;
-    return $ret if defined $ret;
-    MongoDB::UsageError->throw("expected boolean string 'true' or 'false' for key '$k' but instead received '$str'");
+    warn("expected boolean string 'true' or 'false' for key '$k' but instead received '$str'. Ignoring '$k'.\n")
+        unless defined $ret;
+    return $ret;
 }
 
 # uri_escape borrowed from HTTP::Tiny 0.070

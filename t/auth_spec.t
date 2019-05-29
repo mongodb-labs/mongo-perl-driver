@@ -54,8 +54,13 @@ sub run_test {
         if exists $test_cred->{username};
     is( $cred->password,  $test_cred->{password},  "password" )
         if exists $test_cred->{password};
-    is_deeply( $cred->mechanism_properties, $test_cred->{mechanism_properties} // {}, "properties" )
-        if exists $test_cred->{mechanism_properties};
+    if ( exists $test_cred->{mechanism_properties} ) {
+        my $test_prop = $test_cred->{mechanism_properties};
+        my $cred_prop = $cred->mechanism_properties;
+        for my $k ( keys %$test_prop ) {
+            is( $cred_prop->{$k}, $test_prop->{$k}, "authMechanismProperties: $k" )
+        }
+    }
 }
 
 my $dir      = path("t/data/auth");

@@ -232,10 +232,10 @@ subtest "db_name" => sub {
     );
 
     $uri = new_ok( $class, [ uri => 'mongodb://localhost/?authSource=foo' ] );
-    is( $uri->db_name, 'foo', "parse db_name from authSource option" );
+    is( $uri->db_name, '', "parse db_name from authSource option" );
 
     $uri = new_ok( $class, [ uri => 'mongodb://localhost/example_db?authSource=foo' ] );
-    is( $uri->db_name, 'foo', "parse db_name authSource override URI db_name" );
+    is( $uri->db_name, 'example_db', "db_name+authSource doesn't affect db_name" );
 };
 
 subtest "auth credentials" => sub {
@@ -277,55 +277,6 @@ subtest "auth credentials" => sub {
         qr/password must be URL encoded/,
         "password with unescaped colon"
     );
-};
-
-subtest "options" => sub {
-    my ( $uri, @warnings );
-    my $dir = path('t/data/uri/');
-    my $iterator = $dir->iterator( { recurse => 1 } );
-    while ( my $path = $iterator->() ) {
-      next unless -f $path && $path =~ /\.json$/;
-        my $plan = decode_json( $path->slurp_utf8 );
-        foreach my $test ( @{ $plan->{'tests'} } ) {
-            ok($test->{'uri'}, $test->{'description'});
-            {
-                @warnings = ();
-                local $SIG{__WARN__} = sub {  push @warnings, $_[0] };
-                if ($test->{'valid'}) {
-                  $uri = new_ok(
-                      $class, [ uri => $test->{'uri'} ], $test->{'description'}
-                  );
-                  if ( $uri ) {
-                      # normalize booleans
-                      my $options = $uri->options;
-                      for my $k (keys %{$test->{options}}) {
-                          my $type = ref($test->{options}{$k});
-                          # If it's a ref and not hash/array, then it must be some
-                          # sort of JSON boolean type, so normalize it.
-                          if ( $type && $type ne 'HASH' && $type ne 'ARRAY' ) {
-                              $test->{options}{$k} = boolean($test->{options}{$k});
-                              # normalize our parsed options, too, for better
-                              # test comparisions.
-                              $uri->options->{$k} = boolean($uri->options->{$k});
-                          }
-                      }
-                      is_deeply( $uri->options, $test->{'options'},
-                                 $test->{'description'} );
-                  }
-                  if ($test->{'warning'}) {
-                      ok(scalar @warnings, 'URI has warnings');
-                  }
-                  else {
-                      ok(scalar @warnings == 0, 'URI has no warnings');
-                  }
-                }
-                else {
-                    ok( exception { $class->new( uri => $test->{'uri'} ) },
-                        $test->{'description'} );
-                }
-            }
-        }
-    }
 };
 
 done_testing;

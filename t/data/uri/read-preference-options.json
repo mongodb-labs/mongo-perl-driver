@@ -8,19 +8,24 @@
       "hosts": null,
       "auth": null,
       "options": {
-        "readpreference": "primaryPreferred",
-        "readpreferencetags": [
-            { "dc": "ny", "rack": 1 },
-            { "dc": "ny" }
+        "readPreference": "primaryPreferred",
+        "readPreferenceTags": [
+          {
+            "dc": "ny",
+            "rack": "1"
+          },
+          {
+            "dc": "ny"
+          }
         ],
-        "maxstalenessseconds": 120
+        "maxStalenessSeconds": 120
       }
     },
     {
       "description": "Invalid readPreferenceTags causes a warning",
       "uri": "mongodb://example.com/?readPreferenceTags=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -28,8 +33,8 @@
     {
       "description": "Non-numeric maxStalenessSeconds causes a warning",
       "uri": "mongodb://example.com/?maxStalenessSeconds=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -37,8 +42,8 @@
     {
       "description": "Too low maxStalenessSeconds causes a warning",
       "uri": "mongodb://example.com/?maxStalenessSeconds=-2",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}

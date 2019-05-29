@@ -86,7 +86,8 @@ subtest "$write_conn_spec connection-string" => sub {
         my $description = $test->{description};
 
         subtest $description => sub {
-            my $conn;
+            my (@warnings, $conn);
+            local $SIG{__WARN__} = sub { push @warnings, $_[0] };
             # wtimeout will be 1000 if we do not send this
             eval { $conn = MongoDB->connect($uri, {wtimeout => undef}) };
             my $error = $@;
@@ -97,10 +98,7 @@ subtest "$write_conn_spec connection-string" => sub {
                     "write_concern ok"
                 );
             } else {
-                isa_ok(
-                    $error,
-                    "MongoDB::Error"
-                );
+                ok( scalar(@warnings) || $error, "should throw or warn" );
             }
         }
     }

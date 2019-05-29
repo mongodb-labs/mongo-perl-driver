@@ -184,7 +184,7 @@ my @uri_tests = (
     [ "mongodb://host/?readPreference=secondary&maxStalenessSeconds=1",   1 ],
     [ "mongodb://host/?maxStalenessSeconds=-1",                           -1 ],
     [ "mongodb://host/?readPreference=primary&maxStalenessSeconds=-1",    -1 ],
-    [ "mongodb://host/?readPreference=secondary&maxStalenessSeconds=0",   undef ],
+    # [ "mongodb://host/?readPreference=secondary&maxStalenessSeconds=0",   undef ],
 );
 
 for my $case (@uri_tests) {

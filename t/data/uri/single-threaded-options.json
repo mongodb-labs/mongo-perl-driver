@@ -8,14 +8,14 @@
       "hosts": null,
       "auth": null,
       "options": {
-        "serverselectiontryonce": false
+        "serverSelectionTryOnce": false
       }
     },
     {
       "description": "Invalid serverSelectionTryOnce causes a warning",
       "uri": "mongodb://example.com/?serverSelectionTryOnce=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}

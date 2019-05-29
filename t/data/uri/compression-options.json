@@ -8,24 +8,31 @@
       "hosts": null,
       "auth": null,
       "options": {
-        "compressors": ["zlib"],
-        "zlibcompressionlevel": 9
+        "compressors": [
+          "zlib"
+        ],
+        "zlibCompressionLevel": 9
       }
     },
     {
-      "description": "Invalid compressors cause a warning",
-      "uri": "mongodb://example.com/?compressors=jpeg",
-      "valid": false,
+      "description": "Multiple compressors are parsed correctly",
+      "uri": "mongodb://example.com/?compressors=snappy,zlib",
+      "valid": true,
       "warning": false,
       "hosts": null,
       "auth": null,
-      "options": {}
+      "options": {
+        "compressors": [
+          "snappy",
+          "zlib"
+        ]
+      }
     },
     {
       "description": "Non-numeric zlibCompressionLevel causes a warning",
       "uri": "mongodb://example.com/?compressors=zlib&zlibCompressionLevel=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -33,8 +40,8 @@
     {
       "description": "Too low zlibCompressionLevel causes a warning",
       "uri": "mongodb://example.com/?compressors=zlib&zlibCompressionLevel=-2",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -42,8 +49,8 @@
     {
       "description": "Too high zlibCompressionLevel causes a warning",
       "uri": "mongodb://example.com/?compressors=zlib&zlibCompressionLevel=10",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}

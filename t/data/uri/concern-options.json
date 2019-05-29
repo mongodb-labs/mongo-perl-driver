@@ -8,9 +8,9 @@
       "hosts": null,
       "auth": null,
       "options": {
-        "readconcernlevel": "majority",
+        "readConcernLevel": "majority",
         "w": 5,
-        "wtimeoutms": 30000,
+        "wTimeoutMS": 30000,
         "journal": false
       }
     },
@@ -22,7 +22,7 @@
       "hosts": null,
       "auth": null,
       "options": {
-        "readconcernlevel": "arbitraryButStillValid"
+        "readConcernLevel": "arbitraryButStillValid"
       }
     },
     {
@@ -39,8 +39,8 @@
     {
       "description": "Too low w causes a warning",
       "uri": "mongodb://example.com/?w=-2",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -48,8 +48,8 @@
     {
       "description": "Non-numeric wTimeoutMS causes a warning",
       "uri": "mongodb://example.com/?wTimeoutMS=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -57,8 +57,8 @@
     {
       "description": "Too low wTimeoutMS causes a warning",
       "uri": "mongodb://example.com/?wTimeoutMS=-2",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -66,7 +66,7 @@
     {
       "description": "Invalid journal causes a warning",
       "uri": "mongodb://example.com/?journal=invalid",
-      "valid": false,
+      "valid": true,
       "warning": true,
       "hosts": null,
       "auth": null,

@@ -2,23 +2,23 @@
   "tests": [
     {
       "description": "Valid required tls options are parsed correctly",
-      "uri": "mongodb://example.com/?tls=true&tlsCAFile=ca.pem&tlsCertificateKeyFile=cert.pem&tlsCertificateKeyPassword=hunter2",
+      "uri": "mongodb://example.com/?tls=true&tlsCAFile=ca.pem&tlsCertificateKeyFile=cert.pem&tlsCertificateKeyFilePassword=hunter2",
       "valid": true,
       "warning": false,
       "hosts": null,
       "auth": null,
       "options": {
         "tls": true,
-        "tlscafile": "ca.pem",
-        "tlscertificatekeyfile": "cert.pem",
-        "tlscertificatekeypassword": "hunter2"
+        "tlsCAFile": "ca.pem",
+        "tlsCertificateKeyFile": "cert.pem",
+        "tlsCertificateKeyFilePassword": "hunter2"
       }
     },
     {
       "description": "Invalid tlsAllowInvalidCertificates causes a warning",
       "uri": "mongodb://example.com/?tlsAllowInvalidCertificates=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -31,14 +31,14 @@
       "hosts": null,
       "auth": null,
       "options": {
-        "tlsallowinvalidcertificates": true
+        "tlsAllowInvalidCertificates": true
       }
     },
     {
       "description": "Invalid tlsAllowInvalidCertificates causes a warning",
       "uri": "mongodb://example.com/?tlsAllowInvalidCertificates=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -51,14 +51,14 @@
       "hosts": null,
       "auth": null,
       "options": {
-        "tlsallowinvalidhostnames": true
+        "tlsAllowInvalidHostnames": true
       }
     },
     {
       "description": "Invalid tlsAllowInvalidHostnames causes a warning",
       "uri": "mongodb://example.com/?tlsAllowInvalidHostnames=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
@@ -71,38 +71,20 @@
       "hosts": null,
       "auth": null,
       "options": {
-        "tlsinsecure": true
+        "tlsInsecure": true
       }
     },
     {
       "description": "Invalid tlsAllowInsecure causes a warning",
       "uri": "mongodb://example.com/?tlsAllowInsecure=invalid",
-      "valid": false,
-      "warning": false,
+      "valid": true,
+      "warning": true,
       "hosts": null,
       "auth": null,
       "options": {}
     },
     {
-      "description": "tlsInsecure=true and tlsAllowInvalidCertificates=false",
-      "uri": "mongodb://example.com/?tlsInsecure=true&tlsAllowInvalidCertificates=false",
-      "valid": false,
-      "warning": false,
-      "hosts": null,
-      "auth": null,
-      "options": {}
-    },
-    {
-      "description": "tlsInsecure=true and tlsAllowInvalidHostnames=false",
-      "uri": "mongodb://example.com/?tlsInsecure=true&tlsAllowInvalidHostnames=false",
-      "valid": false,
-      "warning": false,
-      "hosts": null,
-      "auth": null,
-      "options": {}
-    },
-    {
-      "description": "tlsInsecure and tlsAllowInvalidCertificates",
+      "description": "tlsInsecure and tlsAllowInvalidCertificates both present (and true) raises an error",
       "uri": "mongodb://example.com/?tlsInsecure=true&tlsAllowInvalidCertificates=true",
       "valid": false,
       "warning": false,
@@ -111,7 +93,34 @@
       "options": {}
     },
     {
-      "description": "tlsInsecure and tlsAllowInvalidHostnames",
+      "description": "tlsInsecure and tlsAllowInvalidCertificates both present (and false) raises an error",
+      "uri": "mongodb://example.com/?tlsInsecure=false&tlsAllowInvalidCertificates=false",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsAllowInvalidCertificates and tlsInsecure both present (and true) raises an error",
+      "uri": "mongodb://example.com/?tlsAllowInvalidCertificates=true&tlsInsecure=true",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsAllowInvalidCertificates and tlsInsecure both present (and false) raises an error",
+      "uri": "mongodb://example.com/?tlsAllowInvalidCertificates=false&tlsInsecure=false",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsInsecure and tlsAllowInvalidHostnames both present (and true) raises an error",
       "uri": "mongodb://example.com/?tlsInsecure=true&tlsAllowInvalidHostnames=true",
       "valid": false,
       "warning": false,
@@ -120,7 +129,79 @@
       "options": {}
     },
     {
-      "description": "tls != ssl",
+      "description": "tlsInsecure and tlsAllowInvalidHostnames both present (and false) raises an error",
+      "uri": "mongodb://example.com/?tlsInsecure=false&tlsAllowInvalidHostnames=false",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsAllowInvalidHostnames and tlsInsecure both present (and true) raises an error",
+      "uri": "mongodb://example.com/?tlsAllowInvalidHostnames=true&tlsInsecure=true",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tlsAllowInvalidHostnames and tlsInsecure both present (and false) raises an error",
+      "uri": "mongodb://example.com/?tlsAllowInvalidHostnames=false&tlsInsecure=false",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tls=true and ssl=true doesn't warn",
+      "uri": "mongodb://example.com/?tls=true&ssl=true",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tls=false and ssl=false doesn't warn",
+      "uri": "mongodb://example.com/?tls=false&ssl=false",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "ssl=true and tls=true doesn't warn",
+      "uri": "mongodb://example.com/?ssl=true&tls=true",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "ssl=false and tls=false doesn't warn",
+      "uri": "mongodb://example.com/?ssl=false&tls=false",
+      "valid": true,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tls=false and ssl=true raises error",
+      "uri": "mongodb://example.com/?tls=false&ssl=true",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
+    },
+    {
+      "description": "tls=true and ssl=false raises error",
       "uri": "mongodb://example.com/?tls=true&ssl=false",
       "valid": false,
       "warning": false,
@@ -129,16 +210,22 @@
       "options": {}
     },
     {
-      "description": "tls == ssl",
-      "uri": "mongodb://example.com/?tls=true&ssl=true",
-      "valid": true,
+      "description": "ssl=false and tls=true raises error",
+      "uri": "mongodb://example.com/?ssl=false&tls=true",
+      "valid": false,
       "warning": false,
       "hosts": null,
       "auth": null,
-      "options": {
-        "tls": true,
-        "ssl": true
-      }
+      "options": {}
+    },
+    {
+      "description": "ssl=true and tls=false raises error",
+      "uri": "mongodb://example.com/?ssl=true&tls=false",
+      "valid": false,
+      "warning": false,
+      "hosts": null,
+      "auth": null,
+      "options": {}
     }
   ]
 }

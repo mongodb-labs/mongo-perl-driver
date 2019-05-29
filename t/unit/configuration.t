@@ -364,8 +364,9 @@ subtest "warnings and exceptions" => sub {
         "unknown option warns with original case"
     );
 
+    $mc = _mc( host => "mongodb://localhost/?ssl=" );
     like(
-        exception { _mc( host => "mongodb://localhost/?ssl=" ) },
+        $warning,
         qr/expected boolean/,
         'ssl key with invalid value'
     );
