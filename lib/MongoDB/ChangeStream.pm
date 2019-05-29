@@ -157,8 +157,11 @@ sub _execute_query {
     else {
         $resume_opt->{start_at_operation_time} = $self->_start_at_operation_time
             if $self->_has_start_at_operation_time;
-        $resume_opt->{resume_after} = $self->_resume_after
-            if $self->_has_resume_after;
+        if ( $self->_has_resume_after ) {
+            $self->_last_resume_token(
+                $resume_opt->{resume_after} = $self->_resume_after
+            );
+        }
     }
 
     my $op = MongoDB::Op::_ChangeStream->new(
@@ -232,8 +235,12 @@ sub next {
         return undef; ## no critic
     }
 
-    if (exists $change->{_id}) {
-        $self->_last_resume_token($change->{_id});
+    if (exists $change->{'postBatchResumeToken'}) {
+        $self->_last_resume_token( $change->{'postBatchResumeToken'} );
+        return $change;
+    }
+    elsif (exists $change->{_id}) {
+        $self->_last_resume_token( $change->{_id} );
         return $change;
     }
     else {
@@ -242,6 +249,47 @@ sub next {
             "resume token is missing");
     }
 }
+
+=head2 get_resume_token
+
+Users can inspect the C<_id> on each C<ChangeDocument> to use as a
+resume token. But since MongoDB 4.2, aggregate and getMore responses
+also include a C<postBatchResumeToken>. Drivers use one or the other
+when automatically resuming.
+
+This method retrieves the same resume token that would be used to
+automatically resume. Users intending to store the resume token
+should use this method to get the most up to date resume token.
+
+For instance:
+
+    if ($local_change) {
+        process_change($local_change);
+    }
+
+    eval {
+        my $change_stream = $coll->watch([], { resumeAfter => $local_resume_token });
+        while ( my $change = $change_stream->next) {
+            $local_resume_token = $change_stream->get_resume_token;
+            $local_change = $change;
+            process_change($local_change);
+        }
+    };
+    if (my $err = $@) {
+        $log->error($err);
+    }
+
+In this case the current change is always persisted locally,
+including the resume token, such that on restart the application
+can still process the change while ensuring that the change stream
+continues from the right logical time in the oplog. It is the
+application's responsibility to ensure that C<process_change> is
+idempotent, this design merely makes a reasonable effort to process
+each change at least once.
+
+=cut
+
+sub get_resume_token { $_[0]->_last_resume_token }
 
 1;
 

@@ -72,6 +72,7 @@ sub _build_result_from_cursor {
         _docs         => $batch,
         _max_time_ms  => $max_time_ms,
         _session       => $self->session,
+	_post_batch_resume_token => $c->{postBatchResumeToken},
     );
 }
 

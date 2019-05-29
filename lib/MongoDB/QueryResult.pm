@@ -117,6 +117,13 @@ has _cursor_id => (
     isa => Any,
 );
 
+has _post_batch_resume_token => (
+    is       => 'ro',
+    required => 0,
+    writer   => '_set_post_batch_resume_token',
+    isa => Any,
+);
+
 has _cursor_start => (
     is       => 'ro',
     required => 1,
@@ -151,7 +158,14 @@ sub _add_docs {
     my $self = shift;
     push @{$self->{_docs}}, @_;
 }
-sub _next_doc { shift @{$_[0]{_docs}} }
+sub _next_doc {
+    my $self = shift;
+    my $doc = shift @{$self->{_docs}};
+    if (my $resume_token = $self->_post_batch_resume_token) {
+        $doc->{postBatchResumeToken} = $resume_token;
+    }
+    return $doc;
+}
 sub _drain_docs {
     my @docs = @{$_[0]{_docs}};
     $_[0]{_cursor_at} += scalar @docs;
@@ -259,6 +273,7 @@ sub _get_more {
     $self->_set_cursor_start( $result->{starting_from} );
     $self->_inc_cursor_num( $result->{number_returned} );
     $self->_add_docs( @{ $result->{docs} } );
+    $self->_set_post_batch_resume_token($result->{cursor}{postBatchResumeToken});
     return scalar @{ $result->{docs} };
 }
 

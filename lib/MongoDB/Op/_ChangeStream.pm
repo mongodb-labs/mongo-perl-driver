@@ -211,6 +211,7 @@ sub execute {
             ns         => '',
             id         => 0,
             firstBatch => ( delete $res->output->{result} ) || [],
+            postBatchResumeToken => 0,
         };
     }
 
