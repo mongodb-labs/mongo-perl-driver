@@ -18,14 +18,31 @@ use utf8;
 use Test::More 0.96;
 use Test::Deep;
 use Safe::Isa;
+use Storable qw( dclone );
 
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    server_type
+    skip_unless_failpoints_available
+    set_failpoint
+    clear_failpoint
+/;
 use MongoDBSpecTest qw/foreach_spec_test/;
 
 skip_unless_mongod();
+skip_unless_failpoints_available();
+
+my @events;
+
+sub clear_events { @events = () }
+
+sub event_cb { push @events, dclone $_[0] }
 
 my $global_client = build_client();
 my $server_version = server_version($global_client);
@@ -57,21 +74,25 @@ foreach_spec_test('t/data/change-streams', sub {
     $db1 = get_test_db($global_client);
     $db2 = get_test_db($global_client);
 
-    my @events;
-    my $client = build_client(monitoring_callback => sub {
-        push @events, shift;
-    });
+    my $client = build_client(monitoring_callback => \&event_cb);
+    set_failpoint($client, $test->{'failPoint'});
+    clear_events();
+
     $db1 = $client->get_database($db1->name);
     $db2 = $client->get_database($db2->name);
 
     $db1->run_command([create => $plan->{database_name}]);
     $db2->run_command([create => $plan->{database2_name}]);
 
-    my $coll1 = $db1->get_collection($plan->{collection_name});
-    my $coll2 = $db2->get_collection($plan->{collection2_name});
+    my $coll = $db1->get_collection($plan->{collection_name});
+    $coll->drop;
+    if ($test->{description} =~ /rename|drop/i) {
+        # lets add bogus document in order to avoid 'invalid source ns' error
+        $coll->insert_one({});
+    }
 
     my $stream_target =
-        $test->{target} eq 'collection' ? $coll1 :
+        $test->{target} eq 'collection' ? $coll :
         $test->{target} eq 'database' ? $db1 :
         $test->{target} eq 'client' ? $client :
         die "Unknown target: ".$test->{target};
@@ -109,6 +130,7 @@ foreach_spec_test('t/data/change-streams', sub {
         my ($op_db, $op_coll, $op_name)
             = @{ $operation }{qw( database collection name )};
         $op_db = $op_db->$resolve_db;
+        my $orig_coll_name = $op_coll;
         $op_coll = $op_db->get_collection($op_coll);
 
         my $op_sub = __PACKAGE__->can("operation_${op_name}");
@@ -139,6 +161,7 @@ foreach_spec_test('t/data/change-streams', sub {
             }
         };
     }
+    clear_failpoint($client, $test->{'failPoint'});
 
     if (@{ $test->{result}{success} || [] }) {
         subtest 'success' => sub {
@@ -281,6 +304,32 @@ sub check_result {
 sub operation_insertOne {
     my ($db, $coll, $args) = @_;
     $coll->insert_one($args->{document});
+}
+
+sub operation_updateOne {
+    my ($db, $coll, $args) = @_;
+    $coll->update_one($args->{filter}, $args->{update});
+}
+
+sub operation_replaceOne {
+    my ($db, $coll, $args) = @_;
+    $coll->replace_one($args->{filter}, $args->{replacement});
+}
+
+sub operation_deleteOne {
+    my ($db, $coll, $args) = @_;
+    $coll->delete_one($args->{filter});
+}
+
+sub operation_rename {
+    my ($db, $coll, $args) = @_;
+    my $new_name = $args->{'to'};
+    $coll->rename($new_name);
+}
+
+sub operation_drop {
+    my ($db, $coll, $args) = @_;
+    $coll->drop;
 }
 
 done_testing;
