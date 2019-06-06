@@ -119,9 +119,10 @@ has _current_transaction_options => (
     is => 'rwp',
     isa => InstanceOf[ 'MongoDB::_TransactionOptions' ],
     handles  => {
-        _get_transaction_write_concern   => 'write_concern',
-        _get_transaction_read_concern    => 'read_concern',
-        _get_transaction_read_preference => 'read_preference',
+        _get_transaction_write_concern      => 'write_concern',
+        _get_transaction_read_concern       => 'read_concern',
+        _get_transaction_read_preference    => 'read_preference',
+        _get_transaction_max_commit_time_ms => 'max_commit_time_ms',
     },
 );
 
@@ -321,6 +322,9 @@ A hash reference of options may be provided. Valid keys include:
   C<defaultTransactionOptions> or from the parent client. This value will
   override all other read preferences set in any subsequent commands inside this
   transaction.
+* C<maxCommitTimeMS> - The maxCommitTimeMS specifies a cumulative time limit in
+  milliseconds for processing operations on the cursor. MongoDB interrupts the
+  operation at the earliest following interrupt point.
 
 =cut
 
@@ -406,8 +410,12 @@ sub commit_transaction {
     # until after another command has been called using this session
     $self->_set__active_transaction( 1 );
 
+    my $max_time_ms = $self->_get_transaction_max_commit_time_ms;
     eval {
-        $self->_send_end_transaction_command( TXN_COMMITTED, [ commitTransaction => 1 ] );
+        $self->_send_end_transaction_command( TXN_COMMITTED, [
+            commitTransaction => 1,
+            defined($max_time_ms) ? (maxTimeMS => $max_time_ms) : ()
+        ] );
     };
     if ( my $err = $@ ) {
         # catch and re-throw after retryable errors
