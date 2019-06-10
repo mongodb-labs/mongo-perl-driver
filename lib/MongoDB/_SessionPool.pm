@@ -92,7 +92,8 @@ sub retire_server_session {
     }
 
     unless ( $server_session->_is_expiring( $session_timeout ) ) {
-        unshift @{ $self->_server_session_pool }, $server_session;
+        unshift @{ $self->_server_session_pool }, $server_session
+            unless $server_session->dirty;
     }
     return;
 }

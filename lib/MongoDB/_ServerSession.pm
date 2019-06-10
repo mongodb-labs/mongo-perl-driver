@@ -33,6 +33,7 @@ use Types::Standard qw(
     Maybe
     InstanceOf
     Int
+    Bool
 );
 use constant UUID_TYPE => 4;
 
@@ -99,6 +100,23 @@ has pool_epoch => (
     is => 'ro',
     default => -1,
 );
+
+#
+# Mark this session as dirty.
+# A server session is marked dirty when a command fails with a network
+# error. Dirty sessions are later discarded from the server session pool.
+#
+
+has dirty => (
+    is => 'rwp',
+    isa => Bool,
+    default => 0,
+);
+
+sub mark_dirty {
+    my $self = shift;
+    $self->_set_dirty(1);
+}
 
 # update_last_use
 #
