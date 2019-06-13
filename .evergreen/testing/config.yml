@@ -2651,6 +2651,412 @@ tasks:
     depends_on:
       - name: test_4.0_DB_auth
       - name: test_4.0_SC
+  - name: test_4.2_DB
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: check
+  - name: test_4.2_DB_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB
+  - name: test_4.2_DB_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: server
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.2_DB
+  - name: test_4.2_DB_auth
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB
+  - name: test_4.2_DB_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB
+  - name: test_4.2_DB_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: server
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.2_DB
+  - name: test_4.2_RS
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB
+  - name: test_4.2_RS_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB
+      - name: test_4.2_RS
+  - name: test_4.2_RS_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: replica_set
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.2_DB
+      - name: test_4.2_RS
+  - name: test_4.2_RS_auth
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB_auth
+      - name: test_4.2_RS
+  - name: test_4.2_RS_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB_auth
+      - name: test_4.2_RS
+  - name: test_4.2_RS_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: replica_set
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.2_DB_auth
+      - name: test_4.2_RS
+  - name: test_4.2_SC
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB
+  - name: test_4.2_SC_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB
+      - name: test_4.2_SC
+  - name: test_4.2_SC_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.2_DB
+      - name: test_4.2_SC
+  - name: test_4.2_SC_auth
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB_auth
+      - name: test_4.2_SC
+  - name: test_4.2_SC_auth_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB_auth
+      - name: test_4.2_SC
+  - name: test_4.2_SC_auth_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: auth
+          ssl: nossl
+          topology: sharded_cluster
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.2_DB_auth
+      - name: test_4.2_SC
   - name: test_latest_DB
     commands:
       - func: dynamicVars
@@ -3321,6 +3727,72 @@ tasks:
           bsonpp: BSON::PP
     depends_on:
       - name: test_4.0_DB
+  - name: test_4.2_DB_ssl
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 0
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB
+  - name: test_4.2_DB_ssl_asrt
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: ''
+    depends_on:
+      - name: test_4.2_DB
+  - name: test_4.2_DB_ssl_asrt_pp
+    commands:
+      - func: dynamicVars
+      - func: cleanUp
+      - func: fetchSource
+      - func: downloadPerl5Lib
+        vars:
+          target: '${repo_directory}'
+      - func: whichPerl
+      - func: downloadBuildArtifacts
+      - func: setupOrchestration
+        vars:
+          auth: noauth
+          ssl: ssl
+          topology: server
+          version: v4.2
+      - func: testDriver
+        vars:
+          assert: 1
+          bsonpp: BSON::PP
+    depends_on:
+      - name: test_4.2_DB
   - name: test_latest_DB_ssl
     commands:
       - func: dynamicVars
@@ -3451,6 +3923,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3477,6 +3952,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3503,6 +3981,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3529,6 +4010,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3555,6 +4039,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3581,6 +4068,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3607,6 +4097,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3642,6 +4135,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3675,6 +4171,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3708,6 +4207,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3741,6 +4243,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3774,6 +4279,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3807,6 +4315,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3930,6 +4441,24 @@ buildvariants:
       - test_4.0_SC_auth
       - test_4.0_SC_auth_asrt
       - test_4.0_SC_auth_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
+      - test_4.2_DB_auth
+      - test_4.2_DB_auth_asrt
+      - test_4.2_DB_auth_asrt_pp
+      - test_4.2_RS
+      - test_4.2_RS_asrt
+      - test_4.2_RS_asrt_pp
+      - test_4.2_RS_auth
+      - test_4.2_RS_auth_asrt
+      - test_4.2_RS_auth_asrt_pp
+      - test_4.2_SC
+      - test_4.2_SC_asrt
+      - test_4.2_SC_asrt_pp
+      - test_4.2_SC_auth
+      - test_4.2_SC_auth_asrt
+      - test_4.2_SC_auth_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -3960,6 +4489,9 @@ buildvariants:
       - test_4.0_DB_ssl
       - test_4.0_DB_ssl_asrt
       - test_4.0_DB_ssl_asrt_pp
+      - test_4.2_DB_ssl
+      - test_4.2_DB_ssl_asrt
+      - test_4.2_DB_ssl_asrt_pp
       - test_latest_DB_ssl
       - test_latest_DB_ssl_asrt
       - test_latest_DB_ssl_asrt_pp
@@ -3993,6 +4525,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4026,6 +4561,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4059,6 +4597,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4092,6 +4633,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4125,6 +4669,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4158,6 +4705,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4191,6 +4741,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4224,6 +4777,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4257,6 +4813,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4290,6 +4849,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4323,6 +4885,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4356,6 +4921,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4389,6 +4957,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4422,6 +4993,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4545,6 +5119,24 @@ buildvariants:
       - test_4.0_SC_auth
       - test_4.0_SC_auth_asrt
       - test_4.0_SC_auth_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
+      - test_4.2_DB_auth
+      - test_4.2_DB_auth_asrt
+      - test_4.2_DB_auth_asrt_pp
+      - test_4.2_RS
+      - test_4.2_RS_asrt
+      - test_4.2_RS_asrt_pp
+      - test_4.2_RS_auth
+      - test_4.2_RS_auth_asrt
+      - test_4.2_RS_auth_asrt_pp
+      - test_4.2_SC
+      - test_4.2_SC_asrt
+      - test_4.2_SC_asrt_pp
+      - test_4.2_SC_auth
+      - test_4.2_SC_auth_asrt
+      - test_4.2_SC_auth_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4575,6 +5167,9 @@ buildvariants:
       - test_4.0_DB_ssl
       - test_4.0_DB_ssl_asrt
       - test_4.0_DB_ssl_asrt_pp
+      - test_4.2_DB_ssl
+      - test_4.2_DB_ssl_asrt
+      - test_4.2_DB_ssl_asrt_pp
       - test_latest_DB_ssl
       - test_latest_DB_ssl_asrt
       - test_latest_DB_ssl_asrt_pp
@@ -4611,6 +5206,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4644,6 +5242,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4677,6 +5278,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4710,6 +5314,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4743,6 +5350,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4776,6 +5386,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4809,6 +5422,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4842,6 +5458,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4866,6 +5485,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4892,6 +5514,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4918,6 +5543,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4944,6 +5572,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4970,6 +5601,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -4996,6 +5630,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5022,6 +5659,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5048,6 +5688,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5074,6 +5717,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5100,6 +5746,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5126,6 +5775,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5152,6 +5804,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5178,6 +5833,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5204,6 +5862,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5485,6 +6146,24 @@ buildvariants:
       - test_4.0_SC_auth
       - test_4.0_SC_auth_asrt
       - test_4.0_SC_auth_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
+      - test_4.2_DB_auth
+      - test_4.2_DB_auth_asrt
+      - test_4.2_DB_auth_asrt_pp
+      - test_4.2_RS
+      - test_4.2_RS_asrt
+      - test_4.2_RS_asrt_pp
+      - test_4.2_RS_auth
+      - test_4.2_RS_auth_asrt
+      - test_4.2_RS_auth_asrt_pp
+      - test_4.2_SC
+      - test_4.2_SC_asrt
+      - test_4.2_SC_asrt_pp
+      - test_4.2_SC_auth
+      - test_4.2_SC_auth_asrt
+      - test_4.2_SC_auth_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5515,6 +6194,9 @@ buildvariants:
       - test_4.0_DB_ssl
       - test_4.0_DB_ssl_asrt
       - test_4.0_DB_ssl_asrt_pp
+      - test_4.2_DB_ssl
+      - test_4.2_DB_ssl_asrt
+      - test_4.2_DB_ssl_asrt_pp
       - test_latest_DB_ssl
       - test_latest_DB_ssl_asrt
       - test_latest_DB_ssl_asrt_pp
@@ -5548,6 +6230,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5581,6 +6266,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5614,6 +6302,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5647,6 +6338,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5770,6 +6464,24 @@ buildvariants:
       - test_4.0_SC_auth
       - test_4.0_SC_auth_asrt
       - test_4.0_SC_auth_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
+      - test_4.2_DB_auth
+      - test_4.2_DB_auth_asrt
+      - test_4.2_DB_auth_asrt_pp
+      - test_4.2_RS
+      - test_4.2_RS_asrt
+      - test_4.2_RS_asrt_pp
+      - test_4.2_RS_auth
+      - test_4.2_RS_auth_asrt
+      - test_4.2_RS_auth_asrt_pp
+      - test_4.2_SC
+      - test_4.2_SC_asrt
+      - test_4.2_SC_asrt_pp
+      - test_4.2_SC_auth
+      - test_4.2_SC_auth_asrt
+      - test_4.2_SC_auth_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5800,6 +6512,9 @@ buildvariants:
       - test_4.0_DB_ssl
       - test_4.0_DB_ssl_asrt
       - test_4.0_DB_ssl_asrt_pp
+      - test_4.2_DB_ssl
+      - test_4.2_DB_ssl_asrt
+      - test_4.2_DB_ssl_asrt_pp
       - test_latest_DB_ssl
       - test_latest_DB_ssl_asrt
       - test_latest_DB_ssl_asrt_pp
@@ -5833,6 +6548,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
@@ -5866,6 +6584,9 @@ buildvariants:
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
+      - test_4.2_DB
+      - test_4.2_DB_asrt
+      - test_4.2_DB_asrt_pp
       - test_latest_DB
       - test_latest_DB_asrt
       - test_latest_DB_asrt_pp
