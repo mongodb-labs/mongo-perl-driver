@@ -15,7 +15,7 @@
 use strict;
 use warnings;
 use JSON::MaybeXS;
-use Path::Tiny 0.054; # basename with suffix
+use Path::Tiny 0.058; # sibling
 use Test::More 0.88;
 use Test::Deep;
 use Test::Fatal;

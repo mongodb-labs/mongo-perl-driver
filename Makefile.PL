@@ -1,4 +1,4 @@
-# Dist::Zilla::Plugin::MakeMaker::Awesome 0.47.
+# Dist::Zilla::Plugin::MakeMaker::Awesome 0.48.
 # Don't edit it but the dist.ini and plugins used to construct it.
 
 use strict;
@@ -73,7 +73,7 @@ my %WriteMakefileArgs = (
     "File::Spec" => 0,
     "IO::File" => 0,
     "JSON::MaybeXS" => 0,
-    "Path::Tiny" => "0.054",
+    "Path::Tiny" => "0.058",
     "Storable" => 0,
     "Test::Deep" => "0.111",
     "Test::Fatal" => 0,
@@ -119,7 +119,7 @@ my %FallbackPrereqs = (
   "Moo" => 2,
   "Moo::Role" => 0,
   "Net::DNS" => 0,
-  "Path::Tiny" => "0.054",
+  "Path::Tiny" => "0.058",
   "Safe::Isa" => "1.000007",
   "Scalar::Util" => 0,
   "Socket" => 0,
@@ -149,13 +149,13 @@ my %FallbackPrereqs = (
   "warnings" => 0
 );
 
-# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.034
+# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.035
 if (!want_pp() && can_xs()) {
 runtime_requires('Class::XSAccessor');
 runtime_requires('Type::Tiny::XS');
 }
 
-# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.034
+# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.035
 if (!want_pp() && can_xs() && ($^O ne "MSWin32" || do {my (undef,$major,undef,undef,$id)=Win32::GetOSVersion(); $id>2 || ($id==2 && $major>=6)})) {
 runtime_requires('BSON::XS', '0.006000');
 }
@@ -188,7 +188,7 @@ HERE
 
 package main;
 
-# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.034
+# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.035
 sub _add_prereq {
   my ($mm_key, $module, $version_or_range) = @_;
   $version_or_range ||= 0;
@@ -213,15 +213,19 @@ use ExtUtils::HasCompiler 0.014 'can_compile_loadable_object';
   }
 }
 
-sub parse_args {
-  require ExtUtils::MakeMaker;
-  require Text::ParseWords;
-  ExtUtils::MakeMaker::parse_args(
-    my $tmp = {},
-    Text::ParseWords::shellwords($ENV{PERL_MM_OPT} || ''),
-    @ARGV,
-  );
-  return $tmp->{ARGS} || {};
+{
+  my $parsed_args;
+  sub parse_args {
+    return $parsed_args if defined $parsed_args;
+    require ExtUtils::MakeMaker;
+    require Text::ParseWords;
+    ExtUtils::MakeMaker::parse_args(
+      my $tmp = {},
+      Text::ParseWords::shellwords($ENV{PERL_MM_OPT} || ''),
+      @ARGV,
+    );
+    $parsed_args = $tmp->{ARGS} || {};
+  }
 }
 
 sub runtime_requires {
