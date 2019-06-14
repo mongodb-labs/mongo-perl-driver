@@ -46,8 +46,9 @@ my @perl_versions = qw(
   5.20.3
   5.22.4
   5.24.4
-  5.26.2
-  5.28.0
+  5.26.3
+  5.28.2
+  5.30.0
 );
 
 # Build only more recent Perls for ZAP.  Debian/Ubuntu set a custom
