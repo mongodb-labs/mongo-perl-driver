@@ -67,6 +67,7 @@ subtest 'collection' => sub {
     plan skip_all => 'MongoDB version 3.6 or higher required'
         unless $server_version >= version->parse('v3.6.0');
     run_tests_for($coll);
+    run_collection_tests($coll);
 };
 
 done_testing;
@@ -161,28 +162,6 @@ sub run_tests_for {
             ok $change, 'change exists after resume';
             is $change->{fullDocument}{value}, 201,
                 'correct change after resume';
-            is $change_stream->next, undef, 'no more changes';
-        };
-    };
-
-    subtest 'change streams w/ startAfter' => sub {
-        plan skip_all => 'MongoDB version 4.2 or higher required'
-            unless $server_version >= version->parse('v4.1.0'); # 4.2 dev version
-        my $id = do {
-            my $change_stream = $watchable->watch();
-            my $new_name = 'newname' . time();
-            $coll->rename($new_name);
-            my $change = $change_stream->next;
-            ok $change, 'change exists';
-            is($change->{'operationType'}, 'rename', 'correct op');
-            is($change->{'to'}{'coll'}, $new_name, 'correct new name');
-            $change_stream->get_resume_token
-        };
-        do {
-            my $change_stream = $watchable->watch(
-                [],
-                { startAfter => $id },
-            );
             is $change_stream->next, undef, 'no more changes';
         };
     };
@@ -363,5 +342,80 @@ sub run_tests_for {
         $change = $change_stream->next;
         isnt($change_stream->get_resume_token->{_data}, $resume_token->{_data});
         isnt($change->{postBatchResumeToken}{_data}, $resume_token->{_data});
+    };
+}
+
+sub run_collection_tests {
+    my ($watchable) = @_;
+    my $invalidate_resume_token = sub {
+        my $change_stream = $watchable->watch(
+            [{ '$match' => { 'operationType' => 'invalidate' } }]
+        );
+        $coll->insert_one({ '_id' => 1 });
+        $coll->drop;
+        my $change = $change_stream->next;
+        ok $change, 'change exists';
+        is($change->{'operationType'}, 'invalidate',
+           'correct invalidate op');
+        $change_stream->get_resume_token
+    };
+
+    subtest 'test startAfter' => sub {
+        plan skip_all => 'MongoDB version 4.2 or higher required'
+            unless $server_version >= version->parse('v4.2.0');
+        my $id = $invalidate_resume_token->();
+        eval { $watchable->watch([], { resumeAfter => $id }) };
+        ok(my $err = $@, 'resume_after cannot resume after invalidate');
+        ok($err->$_isa('MongoDB::DatabaseError'), 'got error');
+        my $change_stream = $watchable->watch(
+            [],
+            { startAfter => $id },
+        );
+        $coll->insert_one({ '_id' => 2});
+        cmp_deeply($id, $change_stream->get_resume_token,
+            'getResumeToken must return startAfter from the initial
+             aggregate if the option was specified.');
+        my $change = $change_stream->next;
+        ok $change, 'change exists';
+        is($change->{'operationType'}, 'insert', 'correct insert op');
+    };
+    subtest 'test startAfter resume process with changes' => sub {
+        plan skip_all => 'MongoDB version 4.2 or higher required'
+            unless $server_version >= version->parse('v4.2.0');
+        my $id = $invalidate_resume_token->();
+        my $change_stream = $watchable->watch(
+            [],
+            { startAfter => $id, maxAwaitTimeMS => 250 },
+        );
+        $coll->insert_one({ '_id' => 2 });
+        my $change = $change_stream->next;
+        ok $change, 'change exists';
+        is($change->{'operationType'}, 'insert', 'correct insert op');
+        cmp_deeply($change->{'fullDocument'}, { '_id' => 2 }, 'correct full doc');
+
+        ok(!$change_stream->next, 'no more changes');
+
+        $coll->insert_one({ '_id' => 3 });
+        $change = $change_stream->next;
+        ok $change, 'change exists';
+        is($change->{'operationType'}, 'insert', 'correct insert op');
+        cmp_deeply($change->{'fullDocument'}, { '_id' => 3 }, 'correct full doc');
+    };
+    subtest 'test startAfter resume process without changes' => sub {
+        plan skip_all => 'MongoDB version 4.2 or higher required'
+            unless $server_version >= version->parse('v4.2.0');
+        my $id = $invalidate_resume_token->();
+        my $change_stream = $watchable->watch(
+            [],
+            { startAfter => $id, maxAwaitTimeMS => 250 },
+        );
+
+        ok(!$change_stream->next, 'no more changes');
+
+        $coll->insert_one({ '_id' => 2 });
+        my $change = $change_stream->next;
+        ok $change, 'change exists';
+        is($change->{'operationType'}, 'insert', 'correct insert op');
+        cmp_deeply($change->{'fullDocument'}, { '_id' => 2 }, 'correct full doc');
     };
 }

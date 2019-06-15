@@ -84,6 +84,12 @@ has _resume_after => (
     predicate => '_has_resume_after',
 );
 
+has _start_after => (
+    is => 'ro',
+    init_arg => 'start_after',
+    predicate => '_has_start_after',
+);
+
 has _all_changes_for_cluster => (
     is => 'ro',
     isa => Boolish,
@@ -148,6 +154,11 @@ sub _execute_query {
     # seen prior results, continuing after last resume token
     if ($self->_has_last_resume_token) {
         $resume_opt->{resume_after} = $self->_last_resume_token;
+    }
+    elsif ( $self->_has_start_after ) {
+        $self->_last_resume_token(
+            $resume_opt->{start_after} = $self->_start_after
+        );
     }
     # no results yet, but we have operation time from prior query
     elsif ($self->_has_last_operation_time) {
