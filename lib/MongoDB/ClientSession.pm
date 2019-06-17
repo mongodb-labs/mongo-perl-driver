@@ -537,7 +537,7 @@ sub _maybe_unpin_address {
     my ( $self, $error_labels ) = @_;
 
     my %labels = ( map { $_ => 1 } @$error_labels );
-    if ( $labels{ +TXN_TRANSIENT_ERROR_MSG } 
+    if ( $labels{ +TXN_TRANSIENT_ERROR_MSG }
       # Must also unpin if its an unknown commit error during a commit
       || ( $self->_in_transaction_state( TXN_COMMITTED )
         && $labels{ +TXN_UNKNOWN_COMMIT_MSG } )
