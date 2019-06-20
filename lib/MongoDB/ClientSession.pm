@@ -350,6 +350,7 @@ sub start_transaction {
 
     $self->_increment_transaction_id;
 
+    $self->_unpin_address;
     $self->_set__active_transaction( 1 );
     $self->_set__has_transaction_operations( 0 );
     $self->_has_attempted_end_transaction( 0 );
@@ -509,7 +510,6 @@ sub _send_end_transaction_command {
 
     # If the commit/abort succeeded, we are no longer in an active transaction
     $self->_set__active_transaction( 0 );
-    $self->_unpin_address;
 }
 
 # For applying connection errors etc

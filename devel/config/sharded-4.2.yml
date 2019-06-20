@@ -5,14 +5,16 @@ default_version: 4.2
 mongoc:
     - name: config1
     - name: config2
-    - name: config3
 mongos:
     - name: router1
+    - name: router2
 shards:
     - name: sh1
       type: replica
       mongod:
         - name: host1
+    - name: sh2
+      type: replica
+      mongod:
         - name: host2
-        - name: host3
 # vim: ts=4 sts=4 sw=4 et:

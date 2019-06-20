@@ -104,10 +104,15 @@ while ( my $path = $iterator->() ) {
 
             subtest $description => sub {
                 plan skip_all => $test->{skipReason} if $test->{skipReason};
-                plan skip_all => "test deployment must have multiple named mongos"
-                    if $test->{useMultipleMongoses}
-                    && $conn->_topology->type eq 'Sharded'
-                    && ( scalar( $conn->_topology->all_servers ) < 2 );
+                if ( $conn->_topology->type eq 'Sharded' ) {
+                    if ( $test->{useMultipleMongoses} ) {
+                        plan skip_all => "test deployment must have multiple named mongos"
+                            if scalar($conn->_topology->all_servers) < 2;
+                    } else {
+                        plan skip_all => "test deployment can only use one mongos"
+                            unless scalar($conn->_topology->all_servers) == 1;
+                    }
+                }
 
                     #my $client = build_client( wtimeout => undef );
 
