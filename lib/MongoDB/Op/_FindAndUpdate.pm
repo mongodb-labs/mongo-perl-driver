@@ -28,7 +28,9 @@ use MongoDB::Op::_Command;
 use Types::Standard qw(
     HashRef
 );
-
+use MongoDB::_Types qw(
+    Boolish
+);
 use namespace::clean;
 
 has filter => (
@@ -40,7 +42,6 @@ has filter => (
 has modifier => (
     is       => 'ro',
     required => 1,
-    isa      => HashRef,
 );
 
 has options => (
@@ -49,11 +50,18 @@ has options => (
     isa      => HashRef,
 );
 
+has is_replace => (
+    is       => 'ro',
+    required => 1,
+    isa      => Boolish,
+);
+
 with $_ for qw(
   MongoDB::Role::_PrivateConstructor
   MongoDB::Role::_CollectionOp
   MongoDB::Role::_WriteOp
   MongoDB::Role::_BypassValidation
+  MongoDB::Role::_UpdatePreEncoder
 );
 
 sub execute {
@@ -69,7 +77,11 @@ sub execute {
         [
             findAndModify => $self->coll_name,
             query         => $self->filter,
-            update        => $self->modifier,
+            update        => $self->_pre_encode_update(
+                $link->max_bson_object_size,
+                $self->modifier,
+                $self->is_replace,
+            ),
             (
                 $link->supports_find_modify_write_concern
                 ? ( @{ $self->write_concern->as_args } )

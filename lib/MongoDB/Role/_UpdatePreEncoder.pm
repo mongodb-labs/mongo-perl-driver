@@ -24,6 +24,7 @@ our $VERSION = 'v2.1.1';
 use Moo::Role;
 
 use BSON::Raw;
+use BSON::Types 'bson_array';
 use MongoDB::Error;
 use MongoDB::_Constants;
 
@@ -39,14 +40,23 @@ sub _pre_encode_update {
 
     if ( $type eq 'BSON::Raw' ) {
         $bson_doc = $doc->bson;
-    } else {
-        $bson_doc = $self->bson_codec->encode_one(
-            $doc,
-            {
-                invalid_chars => $is_replace ? '.' : '',
-                max_length => $is_replace ? $max_bson_object_size : undef,
-            }
-        );
+    }
+    elsif ($type eq 'BSON::Array' && !$is_replace) {
+        return $doc;
+    }
+    else {
+        if ($type eq 'ARRAY' && scalar(@$doc) && ref($doc->[0]) && !$is_replace) {
+            return bson_array(@$doc);
+        }
+        else {
+            $bson_doc = $self->bson_codec->encode_one(
+                $doc,
+                {
+                    invalid_chars => $is_replace ? '.' : '',
+                    max_length => $is_replace ? $max_bson_object_size : undef,
+                }
+            );
+        }
     }
 
     # must check if first character of first key is valid for replace/update;
@@ -58,11 +68,11 @@ sub _pre_encode_update {
         my $err;
         if ($is_replace) {
             $err = "replacement document must not contain update operators"
-              if $first_char eq '$';
+                if $first_char eq '$';
         }
         else {
             $err = "update document must only contain update operators"
-              if $first_char ne '$';
+                if $first_char ne '$';
         }
 
         MongoDB::DocumentError->throw(

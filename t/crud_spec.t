@@ -19,6 +19,7 @@ use JSON::MaybeXS;
 use Test::Deep;
 use Path::Tiny;
 use version;
+use Scalar::Util 'blessed';
 
 use MongoDB;
 use boolean;
@@ -46,8 +47,7 @@ my $server_type    = server_type($conn);
 my $features       = get_features($conn);
 my $coll           = $testdb->get_collection('test_collection');
 
-
-for my $dir ( map { path("t/data/CRUD/v2/$_") } qw/read write/ ) {
+for my $dir ( map { path("t/data/CRUD/v2/$_") } qw/read write pipelines/ ) {
     my $iterator = $dir->iterator( { recurse => 1 } );
     while ( my $path = $iterator->() ) {
         next unless -f $path && $path =~ /\.json$/;
@@ -156,7 +156,12 @@ sub test_find_and_modify {
         }
     }
     my $res = $coll->$method( $filter, $doc, ( scalar %$args ? $args : () ) );
-    check_find_one_outcome( $label, $res, $outcome );
+    if ($method eq 'find_one_and_update') {
+        check_write_outcome( $label, $res, $outcome );
+    }
+    else {
+        check_find_one_outcome( $label, $res, $outcome );
+    }
 }
 
 BEGIN {
@@ -294,7 +299,12 @@ sub check_write_outcome {
             $outcome->{result}{$k} = undef    if $k eq 'modifiedCount';
             $outcome->{result}{$k} = ignore() if $k eq 'upsertedId';
         }
-        cmp_deeply( $res->$attr, $outcome->{result}{$k}, "$label: $k" );
+        if (blessed $res) {
+            cmp_deeply( $res->$attr, $outcome->{result}{$k}, "$label: $k" );
+        }
+        else {
+            cmp_deeply( $res->{$attr}, $outcome->{result}{$k}, "$label: $k" );
+        }
     }
 
     check_collection( $label, $outcome );

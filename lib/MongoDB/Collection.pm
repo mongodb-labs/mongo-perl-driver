@@ -979,7 +979,7 @@ sub find_one_and_replace {
       unless ref( $_[1] ) && ref( $_[2] );
 
     my ( $self, $filter, $replacement, $options ) = @_;
-
+    $options->{is_replace} = 1;
     return $self->_find_one_and_update_or_replace($filter, $replacement, $options);
 }
 
@@ -1030,7 +1030,7 @@ sub find_one_and_update {
       unless ref( $_[1] ) && ref( $_[2] );
 
     my ( $self, $filter, $update, $options ) = @_;
-
+    $options->{is_replace} = 0;
     return $self->_find_one_and_update_or_replace($filter, $update, $options);
 }
 
@@ -1709,6 +1709,7 @@ sub _dynamic_write_concern {
 sub _find_one_and_update_or_replace {
     my ($self, $filter, $modifier, $options) = @_;
     $options ||= {};
+    my $is_replace = delete $options->{is_replace};
 
     # rename projection -> fields
     $options->{fields} = delete $options->{projection} if exists $options->{projection};
@@ -1739,6 +1740,7 @@ sub _find_one_and_update_or_replace {
         options        => $options,
         bypassDocumentValidation => $bypass,
         session        => $session,
+        is_replace     => $is_replace,
         %{ $self->_op_args },
     );
 
