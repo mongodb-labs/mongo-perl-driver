@@ -163,13 +163,14 @@ foreach_spec_test('t/data/change-streams', $global_client, sub {
     }
     clear_failpoint($client, $test->{'failPoint'});
 
-    if (@{ $test->{result}{success} || [] }) {
+    my $test_result = $test->{result};
+    if ($test_result->{success}) {
         subtest 'success' => sub {
             my @changes;
             while (defined(my $change = $stream->next)) {
                 push @changes, $change;
             }
-            my @expected_changes = @{ $test->{result}{success} || [] };
+            my @expected_changes = @{ $test_result->{success} };
             is scalar(@changes), scalar(@expected_changes),
                 'expected number';
             if (@changes == @expected_changes) {
@@ -186,9 +187,18 @@ foreach_spec_test('t/data/change-streams', $global_client, sub {
                     };
                 }
             }
+            else {
+                fail(
+                    sprintf(
+                        'Expected (%d) changes, but got (%d)',
+                        scalar(@expected_changes),
+                        scalar(@changes)
+                    )
+                );
+            }
         };
     }
-    elsif (my $test_err = $test->{result}{error}) {
+    elsif (my $test_err = $test_result->{error}) {
         if ($stream) {
             my $change = eval { $stream->next };
             my $err = $@;
