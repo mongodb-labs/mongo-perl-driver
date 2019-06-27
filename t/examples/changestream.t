@@ -94,7 +94,7 @@ subtest "change streams" => sub {
         'found change made after example 2';
 
     # Start Changestream Example 3
-    $resume_token = $document->{_id};
+    $resume_token = $cursor->get_resume_token;
     $cursor = $db->coll('inventory')->watch(
         [],
         { resumeAfter => $resume_token },
