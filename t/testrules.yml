@@ -11,4 +11,5 @@ seq:
     - seq: t/sessions-spec.t
     - seq: t/transactions-spec.t
     - seq: t/transactions-convenient-api-spec.t
+    - seq: t/connections-survive-step-down.t
     - par: **

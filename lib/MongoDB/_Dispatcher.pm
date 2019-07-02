@@ -191,6 +191,21 @@ sub send_retryable_write_op {
     return $result;
 }
 
+sub _is_primary_stepdown {
+    my ($self, $err, $link) = @_;
+    my $err_info = $err->{result}->{output};
+    my $err_code_name = '';
+    $err_code_name = $err_info->{'codeName'} if defined $err_info->{'codeName'};
+    my @other_errors = qw(ShutdownInProgress InterruptedAtShutdown);
+    my $not_master = (
+        $err->$_isa('MongoDB::NotMasterError')
+            || ( $err_info && $err_code_name eq 'NotMaster' )
+    ) && $link->max_wire_version < 8;
+    return (
+        $err_info && grep { $err_code_name eq $_ } @other_errors
+    ) || $not_master;
+}
+
 # op dispatcher written in highly optimized style
 sub _try_write_op_for_link {
     my ( $self, $link, $op ) = @_;
@@ -201,7 +216,7 @@ sub _try_write_op_for_link {
             if ( $err->$_isa("MongoDB::ConnectionError") ) {
                 $self->{topology}->mark_server_unknown( $link->server, $err );
             }
-            elsif ( $err->$_isa("MongoDB::NotMasterError") ) {
+            elsif ( $self->_is_primary_stepdown($err, $link) ) {
                 $self->{topology}->mark_server_unknown( $link->server, $err );
                 $self->{topology}->mark_stale;
             }
