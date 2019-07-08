@@ -1218,7 +1218,7 @@ sub aggregate {
     my $last_op = '';
     # If $pipeline is an empty array, this can explode
     if ( scalar( @$pipeline ) > 0 ) { ($last_op) = keys %{ $pipeline->[-1] } };
-    my $has_out = $last_op eq '$out';
+    my $has_out = !!($last_op =~ m/\$out|\$merge/);
 
     my $op = MongoDB::Op::_Aggregate->_new(
         pipeline     => $pipeline,

@@ -491,14 +491,14 @@ sub aggregate {
         $options->{maxTimeMS} = $self->max_time_ms;
     }
 
-    # read preferences are ignored if the last stage is $out
+    # read preferences are ignored if the last stage is $out or $merge
     my ($last_op) = keys %{ $pipeline->[-1] };
 
     my $op = MongoDB::Op::_Aggregate->_new(
         pipeline        => $pipeline,
         options         => $options,
         read_concern    => $self->read_concern,
-        has_out         => $last_op eq '$out',
+        has_out         => !!($last_op =~ m/\$out|\$merge/),
         client          => $self->_client,
         bson_codec      => $self->bson_codec,
         db_name         => $self->name,

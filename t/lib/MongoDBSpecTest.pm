@@ -71,7 +71,7 @@ sub skip_unless_run_on {
         map {
             my $run_on = $_;
             map { $_ => $run_on->{'minServerVersion'} }
-                @{ $run_on->{'topology'} || [] }
+                @{ $run_on->{'topology'} || [ values %$topology_map ] }
         } @{ $runon_plan || [] }
     };
     if (keys %$topo_version_map) {
