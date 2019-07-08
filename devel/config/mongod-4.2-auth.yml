@@ -1,0 +1,9 @@
+---
+type: single
+default_args: -v --bind_ip 0.0.0.0 --enableMajorityReadConcern --quiet
+default_version: 4.2
+auth:
+    user: root
+    password: toor
+mongod:
+    - name: host1
