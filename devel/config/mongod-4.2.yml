@@ -1,0 +1,6 @@
+---
+type: single
+default_args: -v --bind_ip 0.0.0.0 --enableMajorityReadConcern
+default_version: 4.2
+mongod:
+    - name: host1
