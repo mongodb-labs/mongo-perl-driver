@@ -48,7 +48,7 @@ use MongoDBTest qw/
 /;
 use MongoDBSpecTest qw/
     maybe_skip_multiple_mongos
-    skip_unless_run_on
+    foreach_spec_test
 /;
 
 skip_unless_mongod();
@@ -87,73 +87,62 @@ my %method_args = (
     distinct    => [qw( fieldName filter )],
 );
 
-my $dir      = path("t/data/transactions");
-my $iterator = $dir->iterator;
-while ( my $path = $iterator->() ) {
-    next unless $path =~ /\.json$/;
-    my $plan = eval { decode_json( $path->slurp_utf8 ) };
-    if ($@) {
-        die "Error decoding $path: $@";
-    }
+my $dir = path("t/data/transactions");
+foreach_spec_test($dir, $conn, sub {
+    my ($test, $plan) = @_;
     my $test_db_name = $plan->{database_name};
     my $test_coll_name = $plan->{collection_name};
 
-    subtest $path => sub {
-        skip_unless_run_on($plan->{'runOn'}, $conn);
+    my $description = $test->{description};
+    local $TODO = 'does a run_command read_preference count as a user configurable read_preference?' if $description =~ /explicit secondary read preference/;
 
-        for my $test ( @{ $plan->{tests} } ) {
-            my $description = $test->{description};
-            local $TODO = 'does a run_command read_preference count as a user configurable read_preference?' if $path =~ /run-command/ && $description =~ /explicit secondary read preference/;
+    subtest $description => sub {
+        plan skip_all => $test->{skipReason} if $test->{skipReason};
+        maybe_skip_multiple_mongos( $conn, $test->{useMultipleMongoses} );
 
-            subtest $description => sub {
-                plan skip_all => $test->{skipReason} if $test->{skipReason};
-                maybe_skip_multiple_mongos( $conn, $test->{useMultipleMongoses} );
+        #my $client = build_client( wtimeout => undef );
 
-                    #my $client = build_client( wtimeout => undef );
+        # Kills its own session as well
+        eval { $conn->send_admin_command([ killAllSessions => [] ]) };
+        my $test_db = $conn->get_database( $test_db_name );
 
-                # Kills its own session as well
-                eval { $conn->send_admin_command([ killAllSessions => [] ]) };
-                my $test_db = $conn->get_database( $test_db_name );
+        # We crank wtimeout up to 10 seconds to help reduce
+        # replication timeouts in testing
+        my $test_coll = $test_db->get_collection(
+            $test_coll_name,
+            { write_concern => { w => 'majority', wtimeout => 10000 } }
+        );
+        $test_coll->drop;
 
-                # We crank wtimeout up to 10 seconds to help reduce
-                # replication timeouts in testing
-                my $test_coll = $test_db->get_collection(
-                    $test_coll_name,
-                    { write_concern => { w => 'majority', wtimeout => 10000 } }
-                );
-                $test_coll->drop;
+        # Drop first to make sure its clear for the next test.
+        # MongoDB::Collection doesnt have a ->create option so done as
+        # a seperate step.
+        $test_db->run_command([ create => $test_coll_name ]);
 
-                # Drop first to make sure its clear for the next test.
-                # MongoDB::Collection doesnt have a ->create option so done as
-                # a seperate step.
-                $test_db->run_command([ create => $test_coll_name ]);
+        if ( scalar @{ $plan->{data} } > 0 ) {
+            $test_coll->insert_many( $plan->{data} );
+        }
 
-                if ( scalar @{ $plan->{data} } > 0 ) {
-                    $test_coll->insert_many( $plan->{data} );
-                }
+        # PERL-1083 Work around StaleDbVersion issue. Guarded against possible errors
+        if ( $description eq 'distinct' && $conn->_topology->type eq 'Sharded' ) {
+            eval { $test_coll->distinct( '_id' ) };
+        }
 
-                # PERL-1083 Work around StaleDbVersion issue. Guarded against possible errors
-                if ( $description eq 'distinct' && $conn->_topology->type eq 'Sharded' ) {
-                    eval { $test_coll->distinct( '_id' ) };
-                }
+        set_failpoint( $conn, $test->{failPoint} );
+        run_test( $test_db_name, $test_coll_name, $test );
+        clear_failpoint( $conn, $test->{failPoint} );
 
-                set_failpoint( $conn, $test->{failPoint} );
-                run_test( $test_db_name, $test_coll_name, $test );
-                clear_failpoint( $conn, $test->{failPoint} );
-
-                if ( defined $test->{outcome}{collection}{data} ) {
-                    # Need to use a specific read concern and read preference to check
-                    my $outcome_coll = $test_coll->clone(
-                        read_preference => 'primary',
-                        read_concern => 'local',
-                    );
-                    my @outcome = $outcome_coll->find()->all;
-                    cmp_deeply( \@outcome, $test->{outcome}{collection}{data}, 'outcome as expected' )
-                }
-            };
+        if ( defined $test->{outcome}{collection}{data} ) {
+            # Need to use a specific read concern and read preference to check
+            my $outcome_coll = $test_coll->clone(
+                read_preference => 'primary',
+                read_concern => 'local',
+            );
+            my @outcome = $outcome_coll->find()->all;
+            cmp_deeply( \@outcome, $test->{outcome}{collection}{data}, 'outcome as expected' )
         }
     };
-}
+});
 
 sub to_snake_case {
     my $t = shift;
@@ -256,7 +245,8 @@ sub run_test {
 
                 # Die if this takes longer than 5 minutes
                 alarm 666;
-                my $ret = $sessions{ $operation->{object} }->$cmd( @args );
+                my $object = $sessions{ $operation->{object} } || __PACKAGE__;
+                my $ret = $object->$cmd( @args );
                 alarm 0;
                 # special case 'find' so commands are actually emitted
                 my $result = $ret;
@@ -268,7 +258,12 @@ sub run_test {
             }
         };
         my $err = $@;
-        check_error( $err, $op_result, $cmd );
+        if ($operation->{error}) {
+            ok($err);
+        }
+        else {
+            check_error( $err, $op_result, $cmd );
+        }
     }
 
     if ( defined $sessions{ clear_targeted_fail_point } ) {
@@ -446,7 +441,7 @@ sub check_hash_result_outcome {
 sub _adjust_arguments {
     my ($method, $args) = @_;
     $args = _adjust_types($args);
-    my @fields = @{ $method_args{$method} };
+    my @fields = @{ $method_args{$method} || [] };
     my @field_values = map {
         my $val = delete $args->{$_};
         # bulk write is special cased to reuse argument extraction
@@ -741,6 +736,12 @@ sub check_command_field {
             cmp_deeply $event_value, $exp_value, $label;
         }
     }
+}
+
+sub assert_session_transaction_state {
+    my ($pkg, $args) = @_;
+    my ($session, $state) = @$args{qw(session state)};
+    ok($session->_in_transaction_state($state), 'assert session txn state');
 }
 
 clear_testdbs;
