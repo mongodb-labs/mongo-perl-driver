@@ -39,7 +39,7 @@ use Types::Standard qw(
     Int
 );
 use MongoDB::_TransactionOptions;
-use Time::HiRes qw(clock_gettime);
+use Time::HiRes ();
 use namespace::clean -except => 'meta';
 use MongoDB::Op::_EndTxn;
 use Safe::Isa;
@@ -626,8 +626,8 @@ L</start_transaction>.
 =cut
 
 # We may not have a monotonic clock, but must use one for checking time limits
-my $HAS_MONOTONIC = eval { clock_gettime(Time::HiRes::CLOCK_MONOTONIC()); 1 };
-*monotonic_time = $HAS_MONOTONIC ? sub { clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) } : \&Time::HiRes::time;
+my $HAS_MONOTONIC = eval { Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()); 1 };
+*monotonic_time = $HAS_MONOTONIC ? sub { Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) } : \&Time::HiRes::time;
 
 sub _within_time_limit {
     my ($self, $start_time) = @_;
