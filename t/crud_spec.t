@@ -31,6 +31,8 @@ use MongoDBTest qw/
     server_version
     server_type
     get_features
+    check_min_server_version
+    skip_unless_min_version
 /;
 
 skip_unless_mongod();
@@ -40,7 +42,6 @@ plan skip_all => "Not testing with BSON wrappers"
 
 my $conn           = build_client();
 my $testdb         = get_test_db($conn);
-my $server_version = server_version($conn);
 my $server_type    = server_type($conn);
 my $features       = get_features($conn);
 my $coll           = $testdb->get_collection('test_collection');
@@ -63,11 +64,7 @@ for my $dir ( map { path("t/data/CRUD/v2/$_") } qw/read write/ ) {
             }
             if ( exists $plan->{minServerVersion} ) {
                 my $min_version = $plan->{minServerVersion};
-                $min_version = "v$min_version" unless $min_version =~ /^v/;
-                $min_version .= ".0" unless $min_version =~ /^v\d+\.\d+.\d+$/;
-                $min_version = version->new($min_version);
-                plan skip_all => "Requires MongoDB $min_version"
-                    if $min_version > $server_version;
+                skip_unless_min_version( $conn, $min_version );
             }
             for my $test ( @{ $plan->{tests} } ) {
                 $coll->drop;
@@ -119,7 +116,7 @@ sub test_modify {
     my ( $class, $label, $method, $args, $outcome ) = @_;
     my $filter = delete $args->{filter};
     # SERVER-5289 -- _id not taken from filter before 2.6
-    if (   $server_version < v2.6.0
+    if (   check_min_server_version($conn, 'v2.6.0')
         && !$coll->find_one($filter)
         && $args->{upsert}
         && exists( $args->{replacement} ) )
@@ -138,7 +135,7 @@ sub test_find_and_modify {
     $args->{returnDocument} = lc( $args->{returnDocument} )
       if exists $args->{returnDocument};
     # SERVER-17650 -- before 3.0, this case returned empty doc
-    if (   $server_version < v3.0.0
+    if (   check_min_server_version($conn, 'v3.0.0')
         && !$coll->find_one($filter)
         && ( !$args->{returnDocument} || $args->{returnDocument} eq 'before' )
         && $args->{upsert}
@@ -147,7 +144,7 @@ sub test_find_and_modify {
         $outcome->{result} = {};
     }
     # SERVER-5289 -- _id not taken from filter before 2.6
-    if ( $server_version < v2.6.0 ) {
+    if ( check_min_server_version($conn, 'v2.6.0') ) {
         if ( $outcome->{result}
             && ( !exists $args->{projection}{_id} || $args->{projection}{_id} ) )
         {
@@ -215,14 +212,13 @@ sub test_bulk_write_collection {
 sub test_aggregate_collection {
     my ( $class, $label, $method, $args, $outcome ) = @_;
 
-    plan skip_all => "aggregate not available until MongoDB v2.2"
-        unless $server_version > v2.2.0;
+    skip_unless_min_version($conn, 'v2.2.0');
 
     my $pipeline = delete $args->{pipeline};
 
     # $out not supported until 2.6
     my $is_out = exists $pipeline->[-1]{'$out'};
-    return if $is_out && $server_version < v2.6.0;
+    return if $is_out && check_min_server_version($conn, 'v2.6.0');
 
     # Perl driver returns empty result if $out
     $outcome->{result} = [] if $is_out;
@@ -234,8 +230,7 @@ sub test_aggregate_collection {
 sub test_aggregate_database {
     my ( $class, $label, $method, $args, $outcome ) = @_;
 
-    plan skip_all => "db-aggregate not available until MongoDB v3.6"
-        unless $server_version > v3.6.0;
+    skip_unless_min_version($conn, 'v3.6.0');
 
     plan skip_all => "mongos mangles commands too much vs test expectations"
         if $server_type eq 'Mongos';
@@ -295,7 +290,7 @@ sub check_write_outcome {
         # BulkWriteResults for everything.
         next if $k eq 'upsertedCount' && $res->isa("MongoDB::UpdateResult");
         ( my $attr = $k ) =~ s{([A-Z])}{_\L$1}g;
-        if ( $server_version < v2.6.0 ) {
+        if ( check_min_server_version($conn, 'v2.6.0') ) {
             $outcome->{result}{$k} = undef    if $k eq 'modifiedCount';
             $outcome->{result}{$k} = ignore() if $k eq 'upsertedId';
         }

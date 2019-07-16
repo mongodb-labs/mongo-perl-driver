@@ -24,8 +24,15 @@ use MongoDB;
 use boolean;
 
 use lib "t/lib";
-use MongoDBTest
-  qw/skip_unless_mongod build_client get_test_db server_version server_type/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    server_type
+    check_min_server_version
+    skip_unless_min_version
+/;
 
 skip_unless_mongod();
 
@@ -105,7 +112,7 @@ sub option_is {
 
     # In a legacy query, options show up as dollar modifiers
     my $key_to_check =
-      $server_version < v3.2.0 ? $modifier_for_option{$option_name} : $option_name;
+      check_min_server_version($conn, 'v3.2.0') ? $modifier_for_option{$option_name} : $option_name;
 
     my $got   = $payload->{$key_to_check};
     my $label = "'$key_to_check' correct";
@@ -290,7 +297,7 @@ subtest "Given: a 'maxScan' value for an index" => sub {
 };
 
 subtest "Given: a 'maxTimeMS' value for an index" => sub {
-    plan skip_all => 'Requires MongoDB 2.6+' unless $server_version >= v2.6.0;
+    skip_unless_min_version($conn, 'v2.6.0');
 
     my $maxTimeMS = 1000;
     my $maxTimeMS2 = 2000;

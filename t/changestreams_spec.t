@@ -32,6 +32,7 @@ use MongoDBTest qw/
     skip_unless_failpoints_available
     set_failpoint
     clear_failpoint
+    check_min_server_version
 /;
 use MongoDBSpecTest qw/foreach_spec_test/;
 
@@ -66,7 +67,7 @@ foreach_spec_test('t/data/change-streams', $global_client, sub {
         ? version->parse('v'.$test->{minServerVersion})
         : undef;
     plan skip_all => "Test requires version $min_version"
-        if defined($min_version) and $server_version < $min_version;
+        if defined($min_version) and check_min_server_version($global_client, $min_version);
 
     $db1->drop if defined $db1;
     $db2->drop if defined $db2;

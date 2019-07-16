@@ -21,7 +21,7 @@ use Exporter 'import';
 use Test::More;
 use Path::Tiny;
 use JSON::MaybeXS qw( is_bool decode_json );
-use MongoDBTest qw(server_type check_min_server_version);
+use MongoDBTest qw(server_type skip_unless_min_version);
 
 our @EXPORT_OK = qw(
     foreach_spec_test
@@ -79,8 +79,7 @@ sub skip_unless_run_on {
             join('|', keys %$topo_version_map),
         ) unless $topo_version_map->{ $topology };
         my $min_version = $topo_version_map->{ $topology };
-        plan skip_all => "Requires MongoDB $min_version"
-            if check_min_server_version( $conn, $min_version );
+        skip_unless_min_version( $conn, $min_version );
     }
 }
 

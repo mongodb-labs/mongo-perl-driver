@@ -23,14 +23,20 @@ use MongoDB;
 use BSON::Types ':all';
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    skip_unless_min_version
+/;
 
 skip_unless_mongod();
 
 my $conn     = build_client();
 my $server_version = server_version($conn);
 
-plan skip_all => "Test requires MongoDB 2.6+" unless $server_version >= v2.6.0;
+skip_unless_min_version($conn, 'v2.6.0');
 
 my $testdb   = get_test_db($conn);
 my $bucket   = $testdb->get_gridfsbucket;

@@ -17,7 +17,13 @@ use warnings;
 use Test::More;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    check_min_server_version
+/;
 
 skip_unless_mongod();
 
@@ -57,7 +63,7 @@ ok defined($event), 'successful killcursors event';
 if (defined $event and defined $id) {
     is $event->{reply}{ok}, 1,
         'reply ok';
-    if ( $server_version >= v3.2.0 ) {
+    unless ( check_min_server_version($conn, 'v3.2.0') ) {
         ok( !grep { $_ eq $id } @{$event->{reply}{cursorsAlive}}, "cursor id not in alive list" );
         is_deeply( $event->{reply}{cursorsKilled}, [$id], 'cursor id in killed list' );
     }

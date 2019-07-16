@@ -27,7 +27,15 @@ use MongoDB;
 use BSON::Types ':all';
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    server_type
+    check_min_server_version
+    skip_unless_min_version
+/;
 
 skip_unless_mongod();
 
@@ -125,7 +133,7 @@ subtest write_concern => sub {
 };
 
 # inserting an _id subdoc with $ keys should be an error; only on 2.4+
-if ( $server_version >= v2.4.11 ) {
+unless ( check_min_server_version($conn, 'v2.4.11') ) {
     like(
         exception {
             $coll->insert_one( { '_id' => { '$oid' => "52d0b971b3ba219fdeb4170e" } } )
@@ -415,8 +423,7 @@ subtest "BSON::Doc for insert/update" => sub {
 
 # check with upsert if there are matches
 subtest "multiple update" => sub {
-    plan skip_all => "multiple update won't work with db version $server_version"
-      unless $server_version >= v1.3.0;
+    skip_unless_min_version($conn, 'v1.3.0');
 
     $coll->update_many({"x" => 4}, {'$set' => {"x" => 3}}, {'upsert' => 1});
     is($coll->count_documents({"x" => 3}), 2, 'count');
@@ -588,8 +595,7 @@ SKIP: {
 
 # aggregate
 subtest "aggregation" => sub {
-    plan skip_all => "Aggregation framework unsupported on MongoDB $server_version"
-        unless $server_version >= v2.2.0;
+    skip_unless_min_version($conn, 'v2.2.0');
 
     $coll->insert_many( [ { wanted => 1, score => 56 },
                            { wanted => 1, score => 72 },
@@ -607,7 +613,7 @@ subtest "aggregation" => sub {
     ok $res->[0]{avgScore} < 59;
     ok $res->[0]{avgScore} > 57;
 
-    if ( $server_version < v2.5.0 ) {
+    if ( check_min_server_version($conn, 'v2.5.0') ) {
         is(
             exception { $coll->aggregate( [ {'$match' => { count => {'$gt' => 0} } } ], { cursor => {} } ) },
             undef,
@@ -618,8 +624,7 @@ subtest "aggregation" => sub {
 
 # aggregation cursors
 subtest "aggregation cursors" => sub {
-    plan skip_all => "Aggregation cursors unsupported on MongoDB $server_version"
-        unless $server_version >= v2.5.0;
+    skip_unless_min_version($conn, 'v2.5.0');
 
     for( 1..20 ) {
         $coll->insert_one( { count => $_ } );
@@ -658,8 +663,7 @@ subtest "aggregation cursors" => sub {
 
 # aggregation $out
 subtest "aggregation \$out" => sub {
-    plan skip_all => "Aggregation result collections unsupported on MongoDB $server_version"
-        unless $server_version >= v2.5.0;
+    skip_unless_min_version($conn, 'v2.5.0');
 
     for( 1..20 ) {
         $coll->insert_one( { count => $_ } );
@@ -683,8 +687,7 @@ subtest "aggregation \$out" => sub {
 
 # aggregation explain
 subtest "aggregation explain" => sub {
-    plan skip_all => "Aggregation explain unsupported on MongoDB $server_version"
-        unless $server_version >= v2.4.0;
+    skip_unless_min_version($conn, 'v2.4.0');
 
     for ( 1..20 ) {
         $coll->insert_one( { count => $_ } );
@@ -707,9 +710,7 @@ subtest "aggregation explain" => sub {
 
 # aggregation index hints
 subtest "aggregation index hint string" => sub {
-    plan skip_all => "Aggregation index hints unsupported on MongoDB $server_version"
-        unless $server_version >= v3.6.0;
-
+    skip_unless_min_version($conn, 'v3.6.0');
 
     $coll->insert_many( [ { _id => 1, category => "cake", type => "chocolate", qty => 10 },
                           { _id => 2, category => "cake", type => "ice cream", qty => 25 },
@@ -759,9 +760,7 @@ subtest "aggregation index hint string" => sub {
 };
 
 subtest "aggregation index hint object" => sub {
-    plan skip_all => "Aggregation index hints unsupported on MongoDB $server_version"
-        unless $server_version >= v3.6.0;
-
+    skip_unless_min_version($conn, 'v3.6.0');
 
     $coll->insert_many( [ { _id => 1, category => "cake", type => "chocolate", qty => 10 },
                           { _id => 2, category => "cake", type => "ice cream", qty => 25 },
@@ -852,9 +851,7 @@ subtest "deep update" => sub {
 };
 
 subtest "count_document w/ hint" => sub {
-
-    plan skip_all => "count_document with hints unsupported on MongoDB $server_version"
-        unless $server_version >= v3.6.0;
+    skip_unless_min_version($conn, 'v3.6.0');
 
     $coll->drop;
     $coll->insert_one( { i => 1 } );
@@ -868,7 +865,6 @@ subtest "count_document w/ hint" => sub {
 
     my $current_version = version->parse($server_version);
     my $version_2_6 = version->parse('v2.6');
-
     if ( $current_version > $version_2_6 ) {
 
         eval { $coll->count_documents( { i => 1 } , { hint => 'BAD HINT' } ) };
@@ -881,7 +877,7 @@ subtest "count_document w/ hint" => sub {
 
     $coll->indexes->create_one( { x => 1 }, { sparse => 1 } );
 
-    if ($current_version > $version_2_6 ) {
+    if ( $current_version > $version_2_6 ) {
 
         is( $coll->count_documents( {  i => 1 } , { hint => 'x_1' } ), 0, 'spec & hint on empty sparse index');
 
@@ -1114,8 +1110,7 @@ sub test_hints_aggregate {
   my ( $index_name, $hint ) = @_;
 
   subtest 'aggregate' => sub {
-    plan skip_all => "hints unsupported for aggregate on MongoDB $server_version"
-        unless $server_version >= v3.6.0;
+    skip_unless_min_version($conn, 'v3.6.0');
 
     my $cursor = $coll->aggregate(
         [
@@ -1147,8 +1142,8 @@ sub test_hints_count_documents {
   my ( $index_name, $hint ) = @_;
 
   subtest 'count_document' => sub {
-    plan skip_all => "hints unsupported for count on MongoDB $server_version"
-        unless $server_version >= v3.6.0;
+    skip_unless_min_version($conn, 'v3.6.0');
+
     is(
       $coll->count_documents(
         { category => 'cake', qty => { '$gt' => 0 } },

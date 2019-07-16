@@ -20,8 +20,15 @@ use Test::Fatal;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest
-  qw/skip_unless_mongod build_client get_test_db server_version server_type/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    server_type
+    check_min_server_version
+    skip_unless_min_version
+/;
 
 skip_unless_mongod();
 
@@ -108,12 +115,11 @@ subtest "cooldown" => sub {
 };
 
 subtest "app name" => sub {
-    plan skip_all => "Needs v3.3.11+ for client metadata feature"
-      unless $server_version >= v3.3.11;
+    skip_unless_min_version($conn, 'v3.3.11');
     plan skip_all => "currentOp not supported on Atlas Free Tier"
         if $ENV{ATLAS_PROXY};
     plan skip_all => "currentOp with appName not supported on mongos before v3.6.0"
-      if $server_type eq 'Mongos' && $server_version < v3.6.0;
+      if $server_type eq 'Mongos' && check_min_server_version($conn, 'v3.6.0');
 
 
     my $app_name = 'test_app_name';

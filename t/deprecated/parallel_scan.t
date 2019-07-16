@@ -22,7 +22,14 @@ use Test::Deep qw/!blessed/;
 use MongoDB;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    server_type
+    skip_unless_min_version
+/;
 
 $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1;
 
@@ -36,8 +43,7 @@ my $coll           = $testdb->get_collection('test_collection');
 
 # parallel_scan
 subtest "parallel scan" => sub {
-    plan skip_all => "Parallel scan not supported before MongoDB 2.6"
-      unless $server_version >= v2.6.0;
+    skip_unless_min_version($conn, 'v2.6.0');
     plan skip_all => "Parallel scan not supported after 4.0.0"
       if $server_version >= v4.1.0;
     plan skip_all => "Parallel scan not supported on mongos"

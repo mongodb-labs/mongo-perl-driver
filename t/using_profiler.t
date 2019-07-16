@@ -32,6 +32,7 @@ use MongoDBTest qw/
     server_version
     server_type
     get_unique_collection
+    skip_unless_min_version
 /;
 
 skip_unless_mongod();
@@ -48,8 +49,7 @@ my $supports_collation = $server_version >= 3.3.9;
 my $case_insensitive_collation = { locale => "en_US", strength => 2 };
 
 subtest "aggregation comment" => sub {
-    plan skip_all => "Aggregation comments unsupported on MongoDB $server_version"
-        unless $server_version >= v3.6.0;
+    skip_unless_min_version($conn, 'v3.6.0');
 
     my $coll = get_unique_collection( $testdb, "agg_comm" );
 

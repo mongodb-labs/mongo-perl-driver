@@ -30,6 +30,8 @@ use MongoDBTest qw(
   skip_unless_failpoints_available
   set_failpoint
   clear_failpoint
+  check_min_server_version
+  skip_unless_min_version
 );
 
 skip_unless_mongod();
@@ -79,7 +81,7 @@ subtest "expected behaviors" => sub {
 
     SKIP: {
         skip "aggregate not available until MongoDB v2.2", 1
-            unless $server_version > v2.2.0;
+            if check_min_server_version($conn, 'v2.2.0');
 
         is(
             exception {
@@ -152,8 +154,7 @@ subtest "expected behaviors" => sub {
 };
 
 subtest "force maxTimeMS failures" => sub {
-    plan skip_all => "maxTimeMS not available before 2.6"
-      unless $server_version >= v2.6.0;
+    skip_unless_min_version($conn, 'v2.6.0');
 
     # low batchSize to force multiple batches to get all docs
     my $cursor = $coll->find( {}, { batchSize => 5, maxTimeMS => 5000 } )->result;
@@ -206,7 +207,7 @@ subtest "force maxTimeMS failures" => sub {
 
     SKIP: {
         skip "aggregate not available until MongoDB v2.2", 1
-            unless $server_version > v2.2.0;
+            if check_min_server_version($conn, 'v2.2.0');
 
         like(
             exception {
@@ -311,7 +312,7 @@ subtest "force maxTimeMS failures" => sub {
 
         SKIP: {
             skip "aggregate not available until MongoDB v2.2", 1
-                unless $server_version > v2.2.0;
+                if check_min_server_version($conn, 'v2.2.0');
             is(
                 exception {
                     my $doc = $coll->aggregate(
@@ -386,8 +387,7 @@ subtest "force maxTimeMS failures" => sub {
 };
 
 subtest "create_many w/ maxTimeMS" => sub {
-    plan skip_all => "maxTimeMS not available before 3.6"
-      unless $server_version >= v3.6.0;
+    skip_unless_min_version($conn, 'v3.6.0');
 
     $coll->drop;
 
@@ -445,8 +445,7 @@ subtest "create_many w/ maxTimeMS" => sub {
 };
 
 subtest "create_one w/ maxTimeMS" => sub {
-    plan skip_all => "maxTimeMS not available before 3.6"
-      unless $server_version >= v3.6.0;
+    skip_unless_min_version($conn, 'v3.6.0');
 
     $coll->drop;
 
@@ -496,8 +495,7 @@ subtest "create_one w/ maxTimeMS" => sub {
 };
 
 subtest "drop_one w/ maxTimeMS" => sub {
-    plan skip_all => "maxTimeMS not available before 3.6"
-      unless $server_version >= v3.6.0;
+    skip_unless_min_version($conn, 'v3.6.0');
 
     $coll->drop;
 
@@ -550,8 +548,7 @@ subtest "drop_one w/ maxTimeMS" => sub {
 };
 
 subtest "drop_all w/ maxTimeMS" => sub {
-    plan skip_all => "maxTimeMS not available before 3.6"
-      unless $server_version >= v3.6.0;
+    skip_unless_min_version($conn, 'v3.6.0');
 
     $coll->drop;
 

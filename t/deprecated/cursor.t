@@ -39,7 +39,7 @@ my $coll = $testdb->get_collection('test_collection');
 # XXX tests don't fail if snapshot is turned off ?!?
 subtest "snapshot" => sub {
     plan skip_all => "Snapshot removed in 3.7+"
-      unless $server_version < v3.7.0;
+        unless $server_version < v3.7.0;
 
     $coll->drop;
     $coll->insert_many([ { i => 1 }, { i => 2 } ] );

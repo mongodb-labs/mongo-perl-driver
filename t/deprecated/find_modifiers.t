@@ -143,7 +143,7 @@ sub cmp_got_ixhash {
 
 subtest "Given: a 'snapshot' value for an index" => sub {
     plan skip_all => "Snapshot removed in 3.7+"
-      unless $server_version < v3.7.0;
+        unless $server_version < v3.7.0;
 
     my $snapshot = true;
     my $snapshot2 = false;

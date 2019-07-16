@@ -24,7 +24,16 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type get_capped/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    server_type
+    get_capped
+    check_min_server_version
+    skip_unless_min_version
+/;
 
 skip_unless_mongod();
 
@@ -250,7 +259,7 @@ subtest 'handling duplicates' => sub {
         qr/E11000/, "got expected error creating unique index with dups" );
 
     # prior to 2.7.5, drop_dups was respected
-    if ( $server_version < v2.7.5 ) {
+    if ( check_min_server_version($conn, 'v2.7.5') ) {
         ok( $iv->create_one( [ foo => 1 ], { unique => 1, dropDups => 1 } ),
             "create unique with dropDups" );
         is( $coll->count_documents({}), 1, "one doc dropped" );
@@ -341,11 +350,10 @@ subtest "sparse indexes" => sub {
 
 # text indices
 subtest 'text indices' => sub {
-    plan skip_all => "text indices won't work with db version $server_version"
-      unless $server_version >= v2.4.0;
+    skip_unless_min_version($conn, 'v2.4.0');
 
     # parameter required only on 2.4; deprecated as of 2.6; removed for 3.4
-    if ( $server_version < v2.6.0 ) {
+    if ( check_min_server_version($conn, 'v2.6.0') ) {
         my $res = $conn->get_database('admin')
         ->run_command( [ 'getParameter' => 1, 'textSearchEnabled' => 1 ] );
         plan skip_all => "text search not enabled"

@@ -28,7 +28,13 @@ use MongoDB::BSON::Binary;
 use BSON::Types ':all';
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    skip_unless_min_version
+/;
 
 skip_unless_mongod();
 
@@ -417,8 +423,7 @@ subtest "PERL-575 inflated boolean" => sub {
 };
 
 subtest "PERL-611 Decimal128" => sub {
-    plan skip_all => "Decimal128 needs MongoDB 3.3.8 or later"
-      unless $server_version >= v3.3.8;
+    skip_unless_min_version($conn, 'v3.3.8');
 
     my $string = "1.23456789E+1000";
     my $d128 = BSON::Decimal128->new( value => $string );

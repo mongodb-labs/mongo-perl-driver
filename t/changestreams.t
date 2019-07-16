@@ -32,6 +32,8 @@ use MongoDBTest qw/
     get_test_db
     server_version
     server_type
+    check_min_server_version
+    skip_unless_min_version
 /;
 
 skip_unless_mongod();
@@ -52,20 +54,17 @@ plan skip_all => 'MongoDB replica set required'
     unless $server_type eq 'RSPrimary';
 
 subtest 'client' => sub {
-    plan skip_all => 'MongoDB version 4.0 or higher required'
-        unless $server_version >= version->parse('v4.0.0');
+    skip_unless_min_version($conn, 'v4.0.0');
     run_tests_for($conn);
 };
 
 subtest 'database' => sub {
-    plan skip_all => 'MongoDB version 4.0 or higher required'
-        unless $server_version >= version->parse('v4.0.0');
+    skip_unless_min_version($conn, 'v4.0.0');
     run_tests_for($testdb);
 };
 
 subtest 'collection' => sub {
-    plan skip_all => 'MongoDB version 3.6 or higher required'
-        unless $server_version >= version->parse('v3.6.0');
+    skip_unless_min_version($conn, 'v3.6.0');
     run_tests_for($coll);
     run_collection_tests($coll);
 };
@@ -186,9 +185,7 @@ sub run_tests_for {
     };
 
     subtest 'startAtOperationTime' => sub {
-        plan skip_all => 'MongoDB version 4.0 or higher required'
-            unless $server_version >= version->parse('v4.0.0');
-
+	skip_unless_min_version($conn, 'v4.0.0');
         $coll->drop;
 
         my $change_stream = $watchable->watch([], {
@@ -286,8 +283,7 @@ sub run_tests_for {
     };
 
     subtest 'postBatchResumeToken' => sub {
-        plan skip_all => 'MongoDB version 4.0.7 or higher required'
-            unless $server_version >= version->parse('v4.0.7');
+	skip_unless_min_version($conn, 'v4.0.7');
         $coll->drop;
         my $id = do {
             my $change_stream = $watchable->watch();
@@ -318,8 +314,7 @@ sub run_tests_for {
     };
 
     subtest 'postBatchResumeToken beyond previous batch' => sub {
-        plan skip_all => 'MongoDB version 4.0.7 or higher required'
-            unless $server_version >= version->parse('v4.0.7');
+	skip_unless_min_version($conn, 'v4.0.7');
         $coll->drop;
         my $change_stream = $watchable->watch();
         $coll->insert_one({ value => 200 });
@@ -361,8 +356,7 @@ sub run_collection_tests {
     };
 
     subtest 'test startAfter' => sub {
-        plan skip_all => 'MongoDB version 4.2 or higher required'
-            unless $server_version >= version->parse('v4.2.0');
+	skip_unless_min_version($conn, 'v4.2.0');
         my $id = $invalidate_resume_token->();
         eval { $watchable->watch([], { resumeAfter => $id }) };
         ok(my $err = $@, 'resume_after cannot resume after invalidate');
@@ -380,8 +374,7 @@ sub run_collection_tests {
         is($change->{'operationType'}, 'insert', 'correct insert op');
     };
     subtest 'test startAfter resume process with changes' => sub {
-        plan skip_all => 'MongoDB version 4.2 or higher required'
-            unless $server_version >= version->parse('v4.2.0');
+	skip_unless_min_version($conn, 'v4.2.0');
         my $id = $invalidate_resume_token->();
         my $change_stream = $watchable->watch(
             [],
@@ -402,8 +395,7 @@ sub run_collection_tests {
         cmp_deeply($change->{'fullDocument'}, { '_id' => 3 }, 'correct full doc');
     };
     subtest 'test startAfter resume process without changes' => sub {
-        plan skip_all => 'MongoDB version 4.2 or higher required'
-            unless $server_version >= version->parse('v4.2.0');
+	skip_unless_min_version($conn, 'v4.2.0');
         my $id = $invalidate_resume_token->();
         my $change_stream = $watchable->watch(
             [],

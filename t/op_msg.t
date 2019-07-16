@@ -26,6 +26,7 @@ use MongoDBTest qw/
     get_test_db
     server_version
     clear_testdbs
+    skip_unless_min_version
 /;
 use MongoDBTest::Callback;
 
@@ -34,8 +35,7 @@ skip_unless_mongod();
 my $conn = build_client();
 my $server_version = server_version($conn);
 
-plan skip_all => 'MongoDB version 3.6 or higher required for OP_MSG support'
-    unless $server_version >= version->parse('v3.6.0');
+skip_unless_min_version($conn, 'v3.6.0');
 
 # Reconstruct client with monitoring on.  Doing this after the skip to try to
 # avoid rare test crashes on global destruction on Perl 5.18 with threads.

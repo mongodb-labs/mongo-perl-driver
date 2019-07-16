@@ -42,6 +42,7 @@ use MongoDBTest qw/
     get_unique_collection
     skip_unless_mongod
     skip_unless_transactions
+    skip_unless_min_version
 /;
 
 skip_unless_mongod();
@@ -54,8 +55,7 @@ my $server_type    = server_type($conn);
 plan skip_all => "test is for mongos only"
     unless $conn->_topology->type eq 'Sharded';
 
-plan skip_all => "test is for v4.1.6+ server"
-    if $server_version < v4.1.6;
+skip_unless_min_version($conn, 'v4.1.6');
 
 plan skip_all => "test deployment must have multiple named mongos"
     if scalar( $conn->_topology->all_servers ) < 2;

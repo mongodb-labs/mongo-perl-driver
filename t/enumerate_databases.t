@@ -32,6 +32,7 @@ use MongoDBTest qw/
     server_version
     server_type
     get_unique_collection
+    skip_unless_min_version
 /;
 
 skip_unless_mongod();
@@ -41,8 +42,7 @@ my $testdb = get_test_db($conn);
 my $server_version = server_version($conn);
 my $server_type = server_type($conn);
 
-plan skip_all => "Requires MongoDB 3.6"
-    if $server_version < v3.6.0;
+skip_unless_min_version($conn, 'v3.6.0');
 
 subtest 'list databases' => sub {
     my @test_dbs;

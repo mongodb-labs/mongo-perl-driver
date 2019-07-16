@@ -46,6 +46,7 @@ our @EXPORT_OK = qw(
   get_features
   check_min_server_version
   uuid_to_string
+  skip_unless_min_version
 );
 
 my @testdbs;
@@ -276,6 +277,12 @@ sub check_min_server_version {
         return 1;
     }
     return 0;
+}
+
+sub skip_unless_min_version {
+    my ( $conn, $min_version ) = @_;
+    plan skip_all => "Requires MongoDB $min_version"
+        if check_min_server_version( $conn, $min_version );
 }
 
 sub server_type {

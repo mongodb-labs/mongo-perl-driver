@@ -25,7 +25,16 @@ use MongoDB;
 use MongoDB::Error;
 
 use lib "t/lib";
-use MongoDBTest qw/skip_unless_mongod build_client get_test_db server_version server_type get_capped/;
+use MongoDBTest qw/
+    skip_unless_mongod
+    build_client
+    get_test_db
+    server_version
+    server_type
+    get_capped
+    check_min_server_version
+    skip_unless_min_version
+/;
 
 skip_unless_mongod();
 
@@ -689,7 +698,7 @@ subtest "find_one_and_replace" => sub {
 
     # find and replace non-existent doc, with upsert
     $doc = $coll->find_one_and_replace( { x => 2 }, { x => 3, y => 'c' }, { upsert => 1 } );
-    if ( $server_version >= v2.2.0 ) {
+    unless ( check_min_server_version($conn, 'v2.2.0') ) {
         is( $doc, undef, "find_one_and_replace upsert on nonexistent doc returns undef" );
     }
     is( $coll->count_documents( {} ), 3, "doc has been upserted" );
@@ -782,7 +791,7 @@ subtest "find_one_and_update" => sub {
 
     # find and update non-existent doc, with upsert
     $doc = $coll->find_one_and_update( { x => 2 }, { '$inc' => { x => 1 }, '$set' => { y => 'c' } }, { upsert => 1 } );
-    if ( $server_version >= v2.2.0 ) {
+    unless ( check_min_server_version($conn, 'v2.2.0') ) {
         is( $doc, undef, "find_one_and_update upsert on nonexistent doc returns undef" );
     }
     is( $coll->count_documents( {} ), 3, "doc has been upserted" );
@@ -881,7 +890,7 @@ subtest "write concern errors" => sub {
     );
 
     # findAndModify doesn't take write concern until MongoDB 3.2
-    if ( $server_version >= v3.2.0 ) {
+    unless ( check_min_server_version($conn, 'v3.2.0') ) {
         push @cases,
           (
             [ find_one_and_replace => [ { x => 2 }, { x      => 1 } ] ],
