@@ -1,0 +1,9 @@
+---
+type: single
+default_args: -v --nojournal --nohttpinterface --enableMajorityReadConcern
+default_version: 3.2
+auth:
+    user: root
+    password: toor
+mongod:
+    - name: host1
