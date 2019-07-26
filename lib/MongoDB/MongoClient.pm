@@ -88,6 +88,9 @@ The C<host> attribute specifies either a single server to connect to (as
 C<hostname> or C<hostname:port>), or else a L<connection string URI|/CONNECTION
 STRING URI> with a seed list of one or more servers plus connection options.
 
+B<NOTE>: Options specified in the connection string take precedence over options
+provided as constructor arguments.
+
 Defaults to the connection string URI C<mongodb://localhost:27017>.
 
 For IPv6 support, you must have a recent version of L<IO::Socket::IP>
@@ -2071,6 +2074,9 @@ The currently supported connection string options are:
 * C<w>
 * C<wTimeoutMS>
 * C<zlibCompressionLevel>
+
+B<NOTE>: Options specified in the connection string take precedence over options
+provided as constructor arguments.
 
 See the official MongoDB documentation on connection strings for more on the URI
 format and connection string options:
