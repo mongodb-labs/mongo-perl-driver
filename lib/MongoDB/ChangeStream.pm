@@ -264,7 +264,7 @@ sub next {
 =head2 get_resume_token
 
 Users can inspect the C<_id> on each C<ChangeDocument> to use as a
-resume token. But since MongoDB 4.2, aggregate and getMore responses
+resume token. But since MongoDB 4.2, C<aggregate> and C<getMore> responses
 also include a C<postBatchResumeToken>. Drivers use one or the other
 when automatically resuming.
 
