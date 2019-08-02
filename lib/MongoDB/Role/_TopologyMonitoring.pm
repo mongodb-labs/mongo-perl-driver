@@ -20,7 +20,7 @@ package MongoDB::Role::_TopologyMonitoring;
 # MongoDB role to add topology monitoring support
 
 use version;
-our $VERSION = 'v1.0';
+our $VERSION = 'v2.1.2';
 
 use Moo::Role;
 use namespace::clean;

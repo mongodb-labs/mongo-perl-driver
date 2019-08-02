@@ -21,7 +21,7 @@ package MongoDB::Op::_GetMore;
 # (after inflation from BSON)
 
 use version;
-our $VERSION = 'v2.1.1';
+our $VERSION = 'v2.1.2';
 
 use Moo;
 

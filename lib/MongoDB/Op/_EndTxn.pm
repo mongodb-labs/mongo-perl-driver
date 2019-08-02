@@ -19,7 +19,7 @@ package MongoDB::Op::_EndTxn;
 # Encapsulate code path for end transaction commands
 
 use version;
-our $VERSION = 'v2.1.1';
+our $VERSION = 'v2.1.2';
 
 use Moo;
 

@@ -20,7 +20,7 @@ package MongoDB::Op::_FSyncUnlock;
 # names
 
 use version;
-our $VERSION = 'v2.1.1';
+our $VERSION = 'v2.1.2';
 
 use Moo;
 

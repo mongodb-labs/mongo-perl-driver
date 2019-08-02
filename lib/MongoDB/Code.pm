@@ -19,7 +19,7 @@ package MongoDB::Code;
 # ABSTRACT: (DEPRECATED) JavaScript code type
 
 use version;
-our $VERSION = 'v2.1.1';
+our $VERSION = 'v2.1.2';
 
 use Moo;
 extends 'BSON::Code';

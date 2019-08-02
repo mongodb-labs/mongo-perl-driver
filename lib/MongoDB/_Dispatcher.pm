@@ -20,7 +20,7 @@ package MongoDB::_Dispatcher;
 # allows avoiding circular references with the session pool class.
 
 use version;
-our $VERSION = 'v2.1.1';
+our $VERSION = 'v2.1.2';
 
 use Moo;
 use MongoDB::_Constants;

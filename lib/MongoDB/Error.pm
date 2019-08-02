@@ -23,7 +23,7 @@ package MongoDB::Error;
 
 use version;
 
-our $VERSION = 'v2.1.1';
+our $VERSION = 'v2.1.2';
 
 use Moo;
 use Carp;
