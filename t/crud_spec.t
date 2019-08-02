@@ -16,7 +16,7 @@ use strict;
 use warnings;
 use Test::More 0.96;
 use JSON::MaybeXS;
-use Test::Deep;
+use Test::Deep ':v1';
 use Path::Tiny;
 use version;
 use Scalar::Util 'blessed';

@@ -24,7 +24,6 @@ our $VERSION = 'v2.1.2';
 
 use Moo::Role;
 use namespace::clean;
-use boolean;
 
 # These are used to cache data
 has old_topology_desc => ( is => 'rw' );
