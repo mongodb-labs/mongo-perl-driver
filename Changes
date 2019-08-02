@@ -2,6 +2,102 @@
 
 {{ $NEXT }}
 
+ PERL-1087 Use runOn syntax
+
+  [Additions]
+
+    - PERL-989 Implement SDAM monitoring
+
+    - PERL-1021 Implement Unified URI Options
+
+    - PERL-1022 Implement Convenient API for Transactions
+
+    - PERL-1024 Support mongos pinning for sharded transactions
+
+    - PERL-1025 Retryable Reads
+
+    - PERL-1026 Support polling SRV records for mongos discovery
+
+    - PERL-1035 Support sharded transactions recovery token
+
+    - PERL-1052 Support 'startAfter' option to the $changeStream stage
+
+    - PERL-1053 Add support for Zstandard compression
+
+    - PERL-1060 Add support for Snappy compression
+
+    - PERL-1070 Support postBatchResumeToken in change streams
+
+    - PERL-1082 Add the ability to specify a pipeline to an update command
+
+    - PERL-1098 Allow applications to set maxTimeMS for commitTransaction
+
+    - PERL-1105 Support aggregation $merge stage
+
+  [Changes]
+
+    - PERL-1028 Support server connections that survive primary stepdown
+
+    - PERL-1054 Disable TLS renegotiation when possible (security)
+
+    - PERL-1057 Use majority write concern when retrying commitTransaction
+
+    - PERL-1068 Make Retryable Writes on by Default
+
+    - PERL-1075 Add support for read concern to aggregation $out
+
+    - PERL-1100 Specify behavior where connection string contain auth
+      database but no credentials
+
+  [Bug Fixes]
+
+    - PERL-1017 Ignore db and collection read concern in transaction
+
+    - PERL-1057 Use majority write concern when retrying commitTransaction
+
+    - PERL-1058 Drivers should ignore batchSize=0 for aggregate with $out
+
+    - PERL-1076 Ensure that getMore right after a resume is retried in changestreams
+
+    - PERL-1083 Work around StaleDbVersion distinct bug
+
+    - PERL-1096 ChangeStream spec's Resumable Error definition is too broad
+
+    - PERL-1097 Discard ServerSessions involved in network errors
+
+  [Testing]
+
+    - PERL-1018 Test deleteMany and updateMany with retryWrites=true
+
+    - PERL-1048 Transaction test runner should use "local" read concern
+      when asserting the final collection state
+
+    - PERL-1051 Update CRUD spec tests to use transaction spec test format
+
+    - PERL-1074 Resync transaction spec tests for bulk write error reporting change
+
+    - PERL-1090 Amend change stream missing resume token tests for MongoDB 4.2+
+
+    - PERL-1095 Stop testing with threads (too many errors on process exit)
+
+    - PERL-1109 Fix result assertion in change stream spec test
+
+  [Documentation]
+
+    - PERL-1056 Update Transactions Retry Example 3 to include read preference
+
+    - PERL-1085 Document connection string and URI option precedence rules
+
+    - PERL-1101 Documentation for countDocuments mentions estimatedDocumentCount
+
+    - PERL-1112 Update change stream docs example for resume token access
+
+    - PERL-1117 Specify effect of client-side errors on in-progress transactions
+
+  [~ Internal Changes ~]
+
+    - PERL-1078 countDocuments should internally use group with _id: 1
+
 v2.1.0    2019-02-06 16:59:56-05:00 America/New_York (TRIAL RELEASE)
 
   [*** Deprecations ***]
