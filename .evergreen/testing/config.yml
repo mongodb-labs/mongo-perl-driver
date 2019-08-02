@@ -3914,12 +3914,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -3943,12 +3937,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -3972,12 +3960,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -4001,12 +3983,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -4030,12 +4006,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -4059,12 +4029,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -4088,12 +4052,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5476,12 +5434,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5505,12 +5457,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5534,12 +5480,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5563,12 +5503,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5592,12 +5526,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5621,12 +5549,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5650,12 +5572,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5679,12 +5595,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5708,12 +5618,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5737,12 +5641,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5766,12 +5664,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5795,12 +5687,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5824,12 +5710,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp
@@ -5853,12 +5733,6 @@ buildvariants:
     tasks:
       - build
       - check
-      - test_3.4_DB
-      - test_3.4_DB_asrt
-      - test_3.4_DB_asrt_pp
-      - test_3.6_DB
-      - test_3.6_DB_asrt
-      - test_3.6_DB_asrt_pp
       - test_4.0_DB
       - test_4.0_DB_asrt
       - test_4.0_DB_asrt_pp

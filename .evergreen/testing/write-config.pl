@@ -49,10 +49,10 @@ my $OS_FILTER = {
     ]
 };
 
-# Some OS have support before/after server v3.4
+# Some OS have support before/after server v4.0
 my $BEFORE_V3_2 = { os => [ 'ubuntu1604', 'windows64', 'windows32' ] };
-my $V3_2 = { os => [ 'ubuntu1604', 'windows64' ] };
-my $V3_4_OR_LATER =
+my $V3_2_TO_3_6 = { os => [ 'ubuntu1604', 'windows64' ] };
+my $V4_0_OR_LATER =
   { os =>
       [ 'ubuntu1604', 'windows64', 'rhel67_z', 'ubuntu1604_arm64', 'ubuntu1604_power8' ]
   };
@@ -91,9 +91,9 @@ sub calc_filter {
 
     # ZAP should only run on MongoDB 3.4 or latest
     my $filter =
-        $opts->{version} eq 'latest'                             ? {%$V3_4_OR_LATER}
-      : version->new( $opts->{version} ) >= version->new("v3.4") ? {%$V3_4_OR_LATER}
-      : version->new( $opts->{version} ) == version->new("v3.2") ? {%$V3_2}
+        $opts->{version} eq 'latest'                             ? {%$V4_0_OR_LATER}
+      : version->new( $opts->{version} ) >= version->new("v4.0") ? {%$V4_0_OR_LATER}
+      : version->new( $opts->{version} ) >= version->new("v3.2") ? {%$V3_2_TO_3_6}
       :                                                            {%$BEFORE_V3_2};
 
     # For replica set and sharded cluster, we don't want to run those
