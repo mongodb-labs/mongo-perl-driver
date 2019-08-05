@@ -19,7 +19,7 @@ package MongoDB::Role::_DeprecationWarner;
 # MongoDB interface for issuing deprecation warnings
 
 use version;
-our $VERSION = 'v2.1.2';
+our $VERSION = 'v2.1.3';
 
 use Moo::Role;
 

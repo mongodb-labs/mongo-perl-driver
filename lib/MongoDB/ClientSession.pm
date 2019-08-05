@@ -19,7 +19,7 @@ package MongoDB::ClientSession;
 # ABSTRACT: MongoDB session and transaction management
 
 use version;
-our $VERSION = 'v2.1.2';
+our $VERSION = 'v2.1.3';
 
 use MongoDB::Error 'EXCEEDED_TIME_LIMIT';
 

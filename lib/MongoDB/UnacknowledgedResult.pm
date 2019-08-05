@@ -19,7 +19,7 @@ package MongoDB::UnacknowledgedResult;
 # ABSTRACT: MongoDB unacknowledged result object
 
 use version;
-our $VERSION = 'v2.1.2';
+our $VERSION = 'v2.1.3';
 
 use Moo;
 use MongoDB::_Constants;
