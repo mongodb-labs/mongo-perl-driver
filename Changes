@@ -2,9 +2,11 @@
 
 {{ $NEXT }}
 
-v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
+  [Bug fixes]
 
- PERL-1087 Use runOn syntax
+    - Work around compilation errors if Role::Tiny 2.000007 is installed.
+
+v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
 
   [Additions]
 
