@@ -170,6 +170,12 @@ sub send_retryable_write_op {
     eval { ($result) = $self->_try_op_for_link( $link, $op ); 1 } or do {
         my $err = length($@) ? $@ : "caught error, but it was lost in eval unwind";
 
+        if ( $err->$_call_if_can('_is_storage_engine_not_retryable') ) {
+            # Break encapsulation to rewrite the message, then rethrow.
+            $err->{message} = "This MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string.";
+            die $err;
+        }
+
         # If the error is not retryable, then drop out
         unless ( $err->$_call_if_can('_is_retryable') ) {
             WITH_ASSERTS ? ( confess $err ) : ( die $err );

@@ -49,6 +49,7 @@ BEGIN {
         HOST_NOT_FOUND            => 7,
         UNKNOWN_ERROR             => 8,
         USER_NOT_FOUND            => 11,
+        ILLEGAL_OPERATION         => 20,
         NAMESPACE_NOT_FOUND       => 26,
         INDEX_NOT_FOUND           => 27,
         CURSOR_NOT_FOUND          => 43,
@@ -237,6 +238,15 @@ sub _is_transient_transaction_error {
     my $self = shift;
     return 1 if $self->isa("MongoDB::ConnectionError") || $self->isa("MongoDB::SelectionError");
     return 0;
+}
+
+# Look for error code ILLEGAL_OPERATION and starts with "Transaction numbers"
+sub _is_storage_engine_not_retryable {
+    my $self = shift;
+    if ( $self->$_can( 'code' ) ) {
+        return 0 if $self->code != MongoDB::Error::ILLEGAL_OPERATION;
+    }
+    return index($self->message, "Transaction numbers", 0) == 0;
 }
 
 #--------------------------------------------------------------------------#
