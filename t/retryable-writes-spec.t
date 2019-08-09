@@ -36,7 +36,10 @@ use MongoDBTest qw/
     to_snake_case
     remap_hashref_to_snake_case
     get_features
+    set_failpoint
+    clear_failpoint
 /;
+use MongoDBSpecTest qw(foreach_spec_test maybe_skip_multiple_mongos);
 
 skip_unless_mongod();
 skip_unless_sessions();
@@ -49,7 +52,7 @@ my $server_type    = server_type($conn);
 
 sub run_test {
     my ( $coll, $test ) = @_;
-    enable_failpoint( $test->{failPoint} ) if $test->{failPoint};
+    set_failpoint( $conn, $test->{failPoint} );
 
     my $op = $test->{operation};
     my $method = $op->{name};
@@ -83,7 +86,7 @@ sub run_test {
     my $coll_expected = $test->{outcome}->{collection}->{data};
 
     is_deeply \@coll_outcome, $coll_expected, 'Collection has correct outcome';
-    disable_failpoint( $test->{failPoint} ) if $test->{failPoint};
+    clear_failpoint( $conn, $test->{failPoint} );
 }
 
 sub do_delete_one {
@@ -212,58 +215,21 @@ sub do_insert_many {
     return $coll->insert_many( $args->{documents}, $options );
 }
 
-my $dir      = path("t/data/retryable-writes");
-my $iterator = $dir->iterator;
-while ( my $path = $iterator->() ) {
-    next unless $path =~ /\.json$/;
-    my $plan = eval { decode_json( $path->slurp_utf8 ) };
-    if ($@) {
-        die "Error decoding $path: $@";
+foreach_spec_test("t/data/retryable-writes", $conn, sub {
+    my ($test, $plan) = @_;
+    my $client_options = $test->{clientOptions};
+    $client_options = remap_hashref_to_snake_case( $client_options );
+    my $test_conn = build_client( %$client_options );
+    my $test_db = get_test_db( $test_conn );
+    my $coll = get_unique_collection( $test_db, 'retry_write' );
+    my $ret = $coll->insert_many( $plan->{data} );
+    my $description = $test->{description};
+
+    subtest $description => sub {
+        maybe_skip_multiple_mongos( $conn, $test->{useMultipleMongoses} );
+	run_test( $coll, $test );
     }
-
-    subtest $path => sub {
-        if ( exists $plan->{minServerVersion} ) {
-            my $min_version = $plan->{minServerVersion};
-            plan skip_all => "Requires MongoDB $min_version"
-                if check_min_server_version( $conn, $min_version );
-        }
-
-        for my $test ( @{ $plan->{tests} } ) {
-            my $client_options = $test->{clientOptions};
-            $client_options = remap_hashref_to_snake_case( $client_options );
-            my $test_conn = build_client( %$client_options );
-            my $test_db = get_test_db( $test_conn );
-            my $coll = get_unique_collection( $test_db, 'retry_write' );
-            my $ret = $coll->insert_many( $plan->{data} );
-            my $description = $test->{description};
-
-            subtest $description => sub {
-                run_test( $coll, $test );
-            }
-        }
-    };
-}
-
-sub enable_failpoint {
-    my $failpoint = shift;
-    return unless defined $failpoint;
-    $conn->send_admin_command([
-        configureFailPoint => $failpoint->{configureFailPoint},
-        mode => $failpoint->{mode},
-        defined $failpoint->{data}
-          ? ( data => $failpoint->{data} )
-          : (),
-    ]);
-}
-
-sub disable_failpoint {
-    my $failpoint = shift;
-    return unless defined $failpoint;
-    $conn->send_admin_command([
-        configureFailPoint => $failpoint->{configureFailPoint},
-        mode => 'off',
-    ]);
-}
+});
 
 clear_testdbs;
 
