@@ -2,17 +2,26 @@
 
 {{ $NEXT }}
 
-v2.1.2    2019-08-05 19:29:08-04:00 America/New_York (TRIAL RELEASE)
+  [!!! END OF LIFE NOTICE !!!]
 
-  [Bug fixes]
+    - Version v2.2.0 is the final feature release of the MongoDB Perl
+      driver.  The driver is now in a 12-month "sunset" period and will
+      receive security patches and critical bug fixes only.  The Perl
+      driver will be end-of-life and unsupported on August 13, 2020.
 
-    - Work around compilation errors if Role::Tiny 2.000007 is installed.
+  [*** Deprecations ***]
 
-v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
+    - PERL-993 Deprecate parallel_scan
 
   [Additions]
 
+    - PERL-789 OP_MSG support
+
+    - PERL-920 Add option for applications to register a custom server selector
+
     - PERL-989 Implement SDAM monitoring
+
+    - PERL-1008 Support index all paths
 
     - PERL-1021 Implement Unified URI Options
 
@@ -25,6 +34,8 @@ v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
     - PERL-1026 Support polling SRV records for mongos discovery
 
     - PERL-1035 Support sharded transactions recovery token
+
+    - PERL-1046 Add database aggregation method
 
     - PERL-1052 Support 'startAfter' option to the $changeStream stage
 
@@ -42,6 +53,8 @@ v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
 
   [Changes]
 
+    - PERL-785 Call "ping" on a socket that has been idle for socketCheckIntervalMS
+
     - PERL-1028 Support server connections that survive primary stepdown
 
     - PERL-1054 Disable TLS renegotiation when possible (security)
@@ -57,11 +70,30 @@ v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
 
   [Bug Fixes]
 
+    - PERL-927 Ensure hint used with aggregate is string or IxHash or BSON::Doc
+
+    - PERL-930 Allow use of BSON::Raw for insert, update, etc.
+
+    - PERL-970 Can't use BSON::Doc as sort option in find command
+
+    - PERL-988 Index lists should preserve key order in results
+
+    - PERL-994 GridFS DownloadStream warns in spec tests on old perls
+
+    - PERL-1012 Driver doesn't clear session pool after fork
+
     - PERL-1017 Ignore db and collection read concern in transaction
+
+    - PERL-1033 Pod link error
+
+    - PERL-1041 Bulk Write Op calls result method on non-object error
 
     - PERL-1057 Use majority write concern when retrying commitTransaction
 
     - PERL-1058 Drivers should ignore batchSize=0 for aggregate with $out
+
+    - PERL-1061 The driver fails to parse a URI if mongodb+srv format is
+      used and the ssl=true option is set
 
     - PERL-1076 Ensure that getMore right after a resume is retried in changestreams
 
@@ -72,6 +104,17 @@ v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
     - PERL-1097 Discard ServerSessions involved in network errors
 
   [Testing]
+
+    - PERL-806 Test Driver Wire Version Overlap logic
+
+    - PERL-833 Test QueryResult destructor kills cursor
+
+    - PERL-867 Resync GridFS tests to add test for legacy GridFS, where no
+      filename was set
+
+    - PERL-976 Test only the initial command in a transaction includes readConcern
+
+    - PERL-996 Resync read write concern tests to add new read concern levels
 
     - PERL-1018 Test deleteMany and updateMany with retryWrites=true
 
@@ -90,6 +133,12 @@ v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
 
   [Documentation]
 
+    - PERL-780 Document that TCP keepalive defaults to true
+
+    - PERL-972 Amend transaction examples
+
+    - PERL-986 Causal Consistency Examples
+
     - PERL-1056 Update Transactions Retry Example 3 to include read preference
 
     - PERL-1085 Document connection string and URI option precedence rules
@@ -100,79 +149,27 @@ v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
 
     - PERL-1117 Specify effect of client-side errors on in-progress transactions
 
-  [~ Internal Changes ~]
-
-    - PERL-1078 countDocuments should internally use group with _id: 1
-
-v2.1.0    2019-02-06 16:59:56-05:00 America/New_York (TRIAL RELEASE)
-
-  [*** Deprecations ***]
-
-    - PERL-993 Deprecate parallel_scan
-
-  [Additions]
-
-    - PERL-789 OP_MSG support
-
-    - PERL-920 Add option for applications to register a custom server selector
-
-    - PERL-1008 Support index all paths
-
-    - PERL-1046 Add database aggregation method
-
-  [Changes]
-
-    - PERL-785 Call "ping" on a socket that has been idle for socketCheckIntervalMS
-
-  [Bug fixes]
-
-    - PERL-927 Ensure hint used with aggregate is string or IxHash or BSON::Doc
-
-    - PERL-930 Allow use of BSON::Raw for insert, update, etc.
-
-    - PERL-970 Can't use BSON::Doc as sort option in find command
-
-    - PERL-988 Index lists should preserve key order in results
-
-    - PERL-994 GridFS DownloadStream warns in spec tests on old perls
-
-    - PERL-1012 Driver doesn't clear session pool after fork
-
-    - PERL-1033 Pod link error
-
-    - PERL-1041 Bulk Write Op calls result method on non-object error
-
-    - PERL-1061 The driver fails to parse a URI if mongodb+srv format is used and the ssl=true option is set
-
-  [Testing]
-
-    - PERL-806 Test Driver Wire Version Overlap logic
-
-    - PERL-833 Test QueryResult destructor kills cursor
-
-    - PERL-867 Resync GridFS tests to add test for legacy GridFS, where no filename was set
-
-    - PERL-976 Test only the initial command in a transaction includes readConcern
-
-    - PERL-996 Resync read write concern tests to add new read concern levels
-
-  [Documentation]
-
-    - PERL-780 Document that TCP keepalive defaults to true
-
-    - PERL-972 Amend transaction examples
-
-    - PERL-986 Causal Consistency Examples
-
   [Prerequisites]
 
     - PERL-841 Remove Try::Tiny as a dependency
 
-  [~ Internal changes ~]
+    - Bump BSON to v1.12.0 and BSON::XS (optional) to v0.8.0
+
+    - Bump Path::Tiny to 0.058
+
+  [~ Internal Changes ~]
 
     - PERL-921 Only send bypassDocumentValidation if it's true
 
     - PERL-935 Consolidate session vs retryable write feature detection
+
+    - PERL-1078 countDocuments should internally use group with _id: 1
+
+v2.1.2    2019-08-05 19:29:08-04:00 America/New_York (TRIAL RELEASE)
+
+v2.1.1    2019-08-02 12:48:13-04:00 America/New_York (TRIAL RELEASE)
+
+v2.1.0    2019-02-06 16:59:56-05:00 America/New_York (TRIAL RELEASE)
 
 v2.0.3    2019-02-07 10:43:16-05:00 America/New_York
 
