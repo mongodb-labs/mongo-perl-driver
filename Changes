@@ -103,6 +103,8 @@
 
     - PERL-1097 Discard ServerSessions involved in network errors
 
+    - PERL-1123 Raise better error for retryable writes with mmapv1
+
   [Testing]
 
     - PERL-806 Test Driver Wire Version Overlap logic
