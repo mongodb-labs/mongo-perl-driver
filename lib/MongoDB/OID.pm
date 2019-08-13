@@ -19,7 +19,7 @@ package MongoDB::OID;
 # ABSTRACT: (DEPRECATED) A Mongo Object ID
 
 use version;
-our $VERSION = 'v2.1.3';
+our $VERSION = 'v2.2.1';
 
 
 use Moo;

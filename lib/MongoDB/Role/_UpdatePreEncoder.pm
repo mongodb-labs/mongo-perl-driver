@@ -19,7 +19,7 @@ package MongoDB::Role::_UpdatePreEncoder;
 # MongoDB interface for pre-encoding and validating update/replace docs
 
 use version;
-our $VERSION = 'v2.1.3';
+our $VERSION = 'v2.2.1';
 
 use Moo::Role;
 

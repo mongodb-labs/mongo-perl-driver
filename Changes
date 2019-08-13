@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v2.2.0    2019-08-13 07:19:10-04:00 America/New_York
+
   [!!! END OF LIFE NOTICE !!!]
 
     - Version v2.2.0 is the final feature release of the MongoDB Perl

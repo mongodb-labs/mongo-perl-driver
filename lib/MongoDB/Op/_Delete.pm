@@ -19,7 +19,7 @@ package MongoDB::Op::_Delete;
 # Encapsulate a delete operation; returns a MongoDB::DeleteResult
 
 use version;
-our $VERSION = 'v2.1.3';
+our $VERSION = 'v2.2.1';
 
 use Moo;
 
