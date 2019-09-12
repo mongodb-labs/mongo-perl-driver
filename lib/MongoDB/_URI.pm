@@ -443,6 +443,14 @@ sub _parse_srv_uri {
       %{ $result{options} || {} },
     };
 
+    # Reset str to bool options to string value, as _parse_options changes it to 0/1 if it exists during parsing
+    # means we get the correct value when re-building the uri below.
+    for my $stb_key ( keys %{ $self->_valid_str_to_bool_options } ) {
+        # use exists just in case
+        next unless exists $options->{ $stb_key };
+        $options->{ $stb_key } = ($options->{ $stb_key } || $options->{ $stb_key } eq 'true') ? 'true' : 'false';
+    }
+
     my $auth = "";
     if ( defined $result{username} || defined $result{password} )  {
         $auth = join(":", map { $_ // "" } $result{username}, $result{password});
