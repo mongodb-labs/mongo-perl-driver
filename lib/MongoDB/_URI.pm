@@ -30,6 +30,7 @@ use Types::Standard qw(
     HashRef
     Str
     Int
+    Num
 );
 use namespace::clean -except => 'meta';
 use Scalar::Util qw/looks_like_number/;
@@ -95,7 +96,7 @@ has valid_options => (
 
 has expires => (
     is => 'ro',
-    isa => Int,
+    isa => Num,
     writer => '_set_expires',
 );
 
