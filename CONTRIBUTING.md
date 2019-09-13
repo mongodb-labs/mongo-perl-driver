@@ -1,4 +1,15 @@
-# Contributing Guidelines
+# END OF LIFE NOTICE
+
+Version v2.2.0 is the final feature release of the MongoDB Perl driver. The
+driver is now in a 12-month "sunset" period and will receive security patches
+and critical bug fixes only. The Perl driver will be end-of-life and
+unsupported on August 13, 2020.
+
+# Introduction
+
+`mongo-perl-driver` is the official client-side driver for talking to
+MongoDB with Perl.  It is free software released under the Apache 2.0
+license and available on CPAN under the distribution name `MongoDB`.
 
 This file describes requirements and procedures for developing and testing the
 MongoDB Perl driver from its code repository.  For instructions installing
@@ -7,13 +18,7 @@ from CPAN or tarball, see the [INSTALL.md](INSTALL.md) file instead.
 While this distribution is shipped using Dist::Zilla, you do not need to
 install it or use it for development and testing.
 
-## Introduction
-
-`mongo-perl-driver` is the official client-side driver for talking to
-MongoDB with Perl.  It is free software released under the Apache 2.0
-license and available on CPAN under the distribution name `MongoDB`.
-
-## How to Ask for Help
+# How to Ask for Help
 
 If you are having difficulty building the driver after reading the
 instructions here, please email the [mongodb-user mailing
@@ -31,10 +36,9 @@ Failure to include the relevant information will result in additional
 round-trip communications to ascertain the necessary details, delaying a
 useful response.
 
-## Bugs / Feature Requests
+# Bugs / Feature Requests
 
-Think you've found a bug? Want to see a new feature? Please open a
-ticket in our issue management tool, JIRA:
+Think you've found a bug? Please open a ticket in our issue management tool, JIRA:
 
  - [Create a JIRA
    account](https://jira.mongodb.org/secure/Signup!default.jspa) if you
@@ -44,24 +48,7 @@ ticket in our issue management tool, JIRA:
  - Click the **Create** button - Please provide as much information as
    possible for a bug and how to reproduce it.
 
-## How to Contribute
-
-The code for `mongo-perl-driver` is hosted on GitHub at:
-
-   https://github.com/mongodb/mongo-perl-driver/
-
-If you would like to contribute code, documentation, tests, or bugfixes,
-follow these steps:
-
-1. Fork the project on GitHub.
-2. Clone the fork to your local machine.
-3. Make your changes and push them back up to your GitHub account.
-4. Send a "pull request" with a brief description of your changes, and a
-   link to a JIRA ticket if there is one.
-
-If you are unfamiliar with GitHub, start with their excellent documentation here:
-
-  https://help.github.com/articles/fork-a-repo
+# Working with the source
 
 ## Compiler tool requirements
 
