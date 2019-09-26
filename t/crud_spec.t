@@ -36,6 +36,10 @@ use MongoDBTest qw/
     skip_unless_min_version
 /;
 
+use MongoDBSpecTest qw/
+  skip_unless_run_on
+/;
+
 skip_unless_mongod();
 
 plan skip_all => "Not testing with BSON wrappers"
@@ -47,7 +51,7 @@ my $server_type    = server_type($conn);
 my $features       = get_features($conn);
 my $coll           = $testdb->get_collection('test_collection');
 
-for my $dir ( map { path("t/data/CRUD/v2/$_") } qw/read write pipelines/ ) {
+for my $dir ( ( map { path("t/data/CRUD/v1/$_") } qw/read write/ ), path("t/data/CRUD/v2") ) {
     my $iterator = $dir->iterator( { recurse => 1 } );
     while ( my $path = $iterator->() ) {
         next unless -f $path && $path =~ /\.json$/;
@@ -59,6 +63,7 @@ for my $dir ( map { path("t/data/CRUD/v2/$_") } qw/read write pipelines/ ) {
         my $name = $path->relative($dir)->basename(".json");
 
         subtest $name => sub {
+            skip_unless_run_on($plan->{runOn}, $conn);
             if ( $name =~ 'arrayFilter' && ! $features->supports_arrayFilters ) {
                 plan skip_all => "arrayFilters not supported on this mongod";
             }
@@ -68,15 +73,16 @@ for my $dir ( map { path("t/data/CRUD/v2/$_") } qw/read write pipelines/ ) {
             }
             for my $test ( @{ $plan->{tests} } ) {
                 $coll->drop;
-                $coll->insert_many( $plan->{data} );
+                $coll->insert_many( $plan->{data} ) if exists $plan->{data};
                 foreach my $op ( @{ $test->{'operations'} || [$test->{'operation'}] } ) {
                     my $meth   = $op->{name};
                     my $object = $op->{'object'} || 'collection';
+                    my $outcome = exists $test->{'operations'} ? { result => $op->{result} } : $test->{outcome};
                     local $ENV{PERL_MONGO_NO_DEP_WARNINGS} = 1 if $meth eq 'count';
                     $meth =~ s{([A-Z])}{_\L$1}g;
                     my $test_meth = "test_${meth}_${object}";
                     my $res = main->$test_meth( $test->{description}, $meth, $op->{arguments},
-                        $test->{outcome} );
+                        $outcome );
                 }
             }
         };
@@ -107,8 +113,19 @@ sub test_write_w_filter {
 
 sub test_insert {
     my ( $class, $label, $method, $args, $outcome ) = @_;
+    my $options = delete $args->{options};
     $args = delete $args->{document} || delete $args->{documents};
-    my $res = $coll->$method($args);
+    my $res;
+    eval { $res = $coll->$method($args, $options) };
+    if ( my $err = $@ ) {
+        if ( $outcome->{error} ) {
+            # we were expecting this, so we'l just unpack slightly
+            $res = $err->result;
+        } else {
+            diag $err;
+            fail 'Error encountered when not expected';
+        }
+    }
     check_insert_outcome( $label, $res, $outcome );
 }
 
@@ -200,16 +217,39 @@ sub test_bulk_write_collection {
         my $req_method = $request->{name};
         my $arg = $request->{arguments};
         $req_method =~ s{([A-Z])}{_\L$1}g;
-        my $filter = delete $arg->{filter};
-        my $update = delete $arg->{update};
-        my $arr_filters = delete $arg->{arrayFilters};
-        my $bulk_view = $bulk->find( $filter );
-        if ( scalar( @$arr_filters ) ) {
-          $bulk_view = $bulk_view->arrayFilters( $arr_filters );
+
+        # insert_one is slightly different
+        if ( $req_method eq 'insert_one' ) {
+            $bulk->insert_one( $arg->{document} );
         }
-        $bulk_view->$req_method( $update );
+        else {
+            my $filter = delete $arg->{filter};
+            my $method_arg = exists $arg->{update}
+              ? delete $arg->{update}
+              : exists $arg->{replacement}
+              ? delete $arg->{replacement}
+              : undef;
+            my $arr_filters = delete $arg->{arrayFilters};
+            my $bulk_view = $bulk->find( $filter || {} );
+            if ( defined $arr_filters && scalar( @$arr_filters ) ) {
+                $bulk_view = $bulk_view->arrayFilters( $arr_filters );
+            }
+            if ( $arg->{upsert} ) { $bulk_view = $bulk_view->upsert() }
+            if ( $arg->{collation} ) { $bulk_view = $bulk_view->collation( $arg->{collation} ) }
+            $bulk_view->$req_method( $method_arg );
+        }
     }
-    my $res = $bulk->execute;
+    my $res;
+    eval { $res = $bulk->execute };
+    if ( my $err = $@ ) {
+        if ( $outcome->{error} ) {
+            # we were expecting this, so we'l just unpack slightly
+            $res = $err->result;
+        } else {
+            diag $err;
+            fail 'Error encountered when not expected';
+        }
+    }
 
     check_write_outcome( $label, $res, $outcome );
 }
@@ -238,28 +278,16 @@ sub test_aggregate_collection {
 sub test_aggregate_database {
     my ( $class, $label, $method, $args, $outcome ) = @_;
 
-    skip_unless_min_version($conn, 'v3.6.0');
-
-    plan skip_all => "mongos mangles commands too much vs test expectations"
-        if $server_type eq 'Mongos';
+    # TODO For some reason this test doesnt work on single mongod? see v2/db-aggregate spec test
+    plan skip_all => "Single server doesnt give dummy output"
+        if $server_type eq 'Standalone';
 
     my $pipeline = delete $args->{pipeline};
-    my $res = $conn->get_database('admin')->aggregate($pipeline, $args);
-    is($res->{'_full_name'}, 'admin.$cmd.aggregate', 'check DB aggregate full name');
-    my $got = [ $res->all ]->[0]{'command'};
-    my $result = $outcome->{'result'}[0]{'command'};
-    $result->{'cursor'} = ignore();
-    $result->{'pipeline'}[0]{'$currentOp'} = noclass(
-        superhashof($result->{'pipeline'}[0]{'$currentOp'})
-    );
-    $result->{'pipeline'}[2]{'$project'} = ignore();
-    $result->{'pipeline'}[3]{'$project'} = ignore();
 
-    cmp_deeply(
-        $got,
-        noclass( superhashof($result) ),
-        "$label: compare",
-    ) or diag explain $got;
+    my $res = $conn->get_database('admin')->aggregate($pipeline, $args);
+
+    is($res->{'_full_name'}, 'admin.$cmd.aggregate', 'check DB aggregate full name');
+    is_deeply( [ $res->all ], $outcome->{result}, "$label: compare" )
 }
 
 sub test_distinct_collection {
@@ -328,7 +356,9 @@ sub check_insert_outcome {
         return check_write_outcome( $label, $res, $outcome );
     }
 
-    cmp_deeply( $res->inserted_ids , $outcome->{result}{insertedIds}, "$label: result doc" );
+    if ( exists $outcome->{result}{insertedIds} ) {
+        cmp_deeply( $res->inserted_ids , $outcome->{result}{insertedIds}, "$label: result doc" );
+    }
     check_collection( $label, $outcome );
 }
 

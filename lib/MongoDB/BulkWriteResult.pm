@@ -161,8 +161,8 @@ sub _parse_cmd_result {
         MongoDB::UsageError->throw("parse requires 'op' and 'result' arguments");
     }
 
-    my ( $op, $op_count, $batch_count, $result, $cmd_doc ) =
-      @{$args}{qw/op op_count batch_count result cmd_doc/};
+    my ( $op, $op_count, $batch_count, $result, $cmd_doc, $idx_map ) =
+      @{$args}{qw/op op_count batch_count result cmd_doc idx_map/};
 
     $result = $result->output
       if eval { $result->isa("MongoDB::CommandResult") };
@@ -197,11 +197,16 @@ sub _parse_cmd_result {
         $attrs{upserted_count} = @{ $result->{upserted} };
     }
 
+    my %error_idx = (
+        map { $_->{index} => 1 } @{ $result->{writeErrors} },
+    );
+
     # recover _ids from documents
     if ( exists($result->{n}) && $op eq 'insert' ) {
         my @pairs;
         my $docs = {@$cmd_doc}->{documents};
         for my $i ( 0 .. $result->{n}-1 ) {
+            next if $error_idx{$i};
             push @pairs, { index => $i, _id => $docs->[$i]{metadata}{_id} };
         }
         $attrs{inserted} = \@pairs;
@@ -219,6 +224,12 @@ sub _parse_cmd_result {
 
     $attrs{modified_count} = ( $op eq 'update' || $op eq 'upsert' ) ?
     $result->{nModified} : 0;
+
+    # Remap all indices back to original queue index
+    # in unordered batches, these numbers can end up pointing to the wrong index
+    for my $attr (qw/write_errors upserted inserted/) {
+        map { $_->{index} = $idx_map->[$_->{index}] } @{ $attrs{$attr} };
+    }
 
     return $class->_new(%attrs);
 }
@@ -302,19 +313,15 @@ sub _merge_result {
         $self->_set_modified_count(undef);
     }
 
-    # Append error and upsert docs, but modify index based on op count
-    my $op_count = $self->op_count;
+    # Append error and upsert docs, index is dealt with in _parse_cmd_result
     for my $attr (qw/write_errors upserted inserted/) {
-        for my $doc ( @{ $result->$attr } ) {
-            $doc->{index} += $op_count;
-        }
         push @{ $self->$attr }, @{ $result->$attr };
     }
 
     # Append write concern errors without modification (they have no index)
     push @{ $self->write_concern_errors }, @{ $result->write_concern_errors };
 
-    $self->_set_op_count( $op_count + $result->op_count );
+    $self->_set_op_count( $self->op_count + $result->op_count );
     $self->_set_batch_count( $self->batch_count + $result->batch_count );
 
     return 1;

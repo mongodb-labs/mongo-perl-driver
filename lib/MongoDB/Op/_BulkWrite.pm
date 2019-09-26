@@ -167,7 +167,7 @@ my %OP_MAP = (
 sub _execute_write_command_batch {
     my ( $self, $link, $batch, $result ) = @_;
 
-    my ( $type, $docs )   = @$batch;
+    my ( $type, $docs, $idx_map )   = @$batch;
     my ( $cmd,  $op_key ) = @{ $OP_MAP{$type} };
 
     my $boolean_ordered = boolean( $self->ordered );
@@ -175,12 +175,14 @@ sub _execute_write_command_batch {
       map { $self->$_ } qw/db_name coll_name write_concern/;
 
     my @left_to_send = ($docs);
+    my @sending_idx_map = ($idx_map);
 
     my $max_bson_size = $link->max_bson_object_size;
     my $supports_document_validation = $link->supports_document_validation;
 
     while (@left_to_send) {
         my $chunk = shift @left_to_send;
+        my $chunk_idx_map = shift @sending_idx_map;
         # for update/insert, pre-encode docs as they need custom BSON handling
         # that can't be applied to an entire write command at once
         if ( $cmd eq 'update' ) {
@@ -242,6 +244,7 @@ sub _execute_write_command_batch {
                 }
                 else {
                     unshift @left_to_send, $self->_split_chunk( $chunk, $error->size );
+                    unshift @sending_idx_map, $self->_split_chunk( $chunk_idx_map, $error->size );
                 }
             }
             elsif ( $error->$_can( 'result' ) ) {
@@ -250,10 +253,11 @@ sub _execute_write_command_batch {
                 # check for write errors, as they have a higher priority than
                 # write concern errors.
                 MongoDB::BulkWriteResult->_parse_cmd_result(
-                    op => $type,
+                    op       => $type,
                     op_count => scalar @$chunk,
-                    result => $error->result,
-                    cmd_doc => $cmd_doc,
+                    result   => $error->result,
+                    cmd_doc  => $cmd_doc,
+                    idx_map  => $chunk_idx_map,
                 )->assert_no_write_error;
                 # Explode with original error
                 die $error;
@@ -270,6 +274,7 @@ sub _execute_write_command_batch {
             op_count => scalar @$chunk,
             result   => $cmd_result,
             cmd_doc  => $cmd_doc,
+            idx_map  => $chunk_idx_map,
         );
 
         # append corresponding ops to errors
@@ -308,17 +313,20 @@ sub _batch_ordered {
 
     my $max_batch_count = $link->max_write_batch_size;
 
+    my $queue_idx = 0;
     for my $op (@$queue) {
         my ( $type, $doc ) = @$op;
         if ( $type ne $last_type || $count == $max_batch_count ) {
-            push @batches, [ $type => [$doc] ];
+            push @batches, [ $type => [$doc], [$queue_idx] ];
             $last_type = $type;
             $count     = 1;
         }
         else {
-            push @{ $batches[-1][-1] }, $doc;
+            push @{ $batches[-1][1] }, $doc;
+            push @{ $batches[-1][2] }, $queue_idx;
             $count++;
         }
+        $queue_idx++;
     }
 
     return @batches;
@@ -326,24 +334,33 @@ sub _batch_ordered {
 
 sub _batch_unordered {
     my ( $self, $link, $queue ) = @_;
-    my %batches = map { ; $_ => [ [] ] } keys %OP_MAP;
+    my %batches = map { $_ => [ [] ] } keys %OP_MAP;
+    my %queue_map = map { $_ => [ [] ] } keys %OP_MAP;
 
     my $max_batch_count = $link->max_write_batch_size;
 
+    my $queue_idx = 0;
     for my $op (@$queue) {
         my ( $type, $doc ) = @$op;
         if ( @{ $batches{$type}[-1] } == $max_batch_count ) {
             push @{ $batches{$type} }, [$doc];
+            push @{ $queue_map{$type} }, [ $queue_idx ];
         }
         else {
             push @{ $batches{$type}[-1] }, $doc;
+            push @{ $queue_map{$type}[-1] }, $queue_idx;
         }
+        $queue_idx++;
     }
 
     # insert/update/delete are guaranteed to be in random order on Perl 5.18+
     my @batches;
     for my $type ( grep { scalar @{ $batches{$_}[-1] } } keys %batches ) {
-        push @batches, map { [ $type => $_ ] } @{ $batches{$type} };
+        push @batches, map { [
+            $type,
+            $batches{$type}[$_],
+            $queue_map{$type}[$_], # array of indices from the original queue
+        ] } 0 .. $#{ $batches{$type} };
     }
     return @batches;
 }

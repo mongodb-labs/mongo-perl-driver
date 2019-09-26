@@ -51,7 +51,8 @@ use MongoDBSpecTest qw/
 skip_unless_mongod(v3.6.0);
 skip_unless_failpoints_available();
 
-my $conn           = build_client();
+# Increase wtimeout much higher for CI dropping database issues
+my $conn           = build_client( wtimeout => 60000 );
 
 my @events;
 sub clear_events { @events = () }
