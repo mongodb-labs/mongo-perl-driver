@@ -655,7 +655,7 @@ sub __userinfo_invalid_chars {
 # redact user credentials when stringifying
 use overload
     '""' => sub {
-        (my $s = $_[0]->uri) =~ s{^(\w+)://[^/]+\@}{$1://[**REDACTED**]\@};
+        (my $s = $_[0]->uri) =~ s{^([^:]+)://[^/]+\@}{$1://[**REDACTED**]\@};
         return $s
     },
     'fallback' => 1;

@@ -279,4 +279,21 @@ subtest "auth credentials" => sub {
     );
 };
 
+subtest "stringification" => sub {
+    # For srv uri parsing and tests, see uri_srv.t
+    my $uri;
+
+    $uri = new_ok( $class, [ uri => 'mongodb://fred:foobar@localhost' ] );
+    is( "$uri", 'mongodb://[**REDACTED**]@localhost', "stringify correct" );
+
+    $uri = new_ok( $class, [ uri => 'mongodb://:@localhost' ] );
+    is( "$uri", 'mongodb://[**REDACTED**]@localhost', "stringify correct" );
+
+    $uri = new_ok( $class, [ uri => 'mongodb://@localhost' ] );
+    is( "$uri", 'mongodb://@localhost', "stringify correct" );
+
+    $uri = new_ok( $class, [ uri => 'mongodb://localhost' ] );
+    is( "$uri", 'mongodb://localhost', "stringify correct" );
+};
+
 done_testing;

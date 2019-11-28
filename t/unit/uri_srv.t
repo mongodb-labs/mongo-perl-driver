@@ -90,7 +90,23 @@ subtest "boolean params unchanged" => sub {
         is $sslVal, 'true', 'SSL true';
 
         is $expires, 1, 'expires as expected';
-    }
+    };
+};
+
+subtest "stringification" => sub {
+    my $uri = new_ok( $class, [
+        uri                   => 'mongodb+srv://testpass@testmongo.example.com',
+        _test_seedlist_return => [
+            [{ target => 'localhost', port => 27017 }],
+            {
+                retryWrites => 'true',
+                retryReads  => 'false',
+            },
+            0
+        ]
+    ]);
+
+    is "$uri", 'mongodb+srv://[**REDACTED**]@testmongo.example.com', 'Stringification for SRV urls correct';
 };
 
 done_testing;
