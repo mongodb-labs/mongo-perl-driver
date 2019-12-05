@@ -222,7 +222,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
             for my $k ( sort keys %bad_args ) {
                 like(
                     exception { $bulk->find( {} )->$update( @{ $bad_args{$k} } ) },
-                    qr/argument to $update must be a single hashref, arrayref or Tie::IxHash/,
+                    qr/argument to $update must be a single hashref, arrayref, Tie::IxHash or BSON::Array/,
                     "$update( $k ) throws an error"
                 );
             }
@@ -381,7 +381,7 @@ for my $method (qw/initialize_ordered_bulk_op initialize_unordered_bulk_op/) {
         for my $k ( sort keys %bad_args ) {
             like(
                 exception { $bulk->find( {} )->replace_one( @{ $bad_args{$k} } ) },
-                qr/argument to replace_one must be a single hashref, arrayref or Tie::IxHash/,
+                qr/argument to replace_one must be a single hashref, arrayref, Tie::IxHash or BSON::Array/,
                 "replace_one( $k ) throws an error"
             );
         }

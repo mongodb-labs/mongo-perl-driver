@@ -107,8 +107,8 @@ sub _update {
     my ( $self, $doc ) = @_;
 
     my $type = ref $doc;
-    unless ( @_ == 2 && grep { $type eq $_ } qw/HASH ARRAY Tie::IxHash/ ) {
-        MongoDB::UsageError->throw("argument to $method must be a single hashref, arrayref or Tie::IxHash");
+    unless ( @_ == 2 && grep { $type eq $_ } qw/HASH ARRAY Tie::IxHash BSON::Array/ ) {
+        MongoDB::UsageError->throw("argument to $method must be a single hashref, arrayref, Tie::IxHash or BSON::Array");
     }
 
     if ( ref $doc eq 'ARRAY' ) {
