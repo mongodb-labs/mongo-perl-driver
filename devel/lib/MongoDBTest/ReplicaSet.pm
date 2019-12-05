@@ -55,7 +55,9 @@ sub _build_keyfile {
     my ($self) = @_;
     my $file = Path::Tiny->tempfile;
     $file->chmod("0600");
-    $file->append(encode_base64(join("", map { ["a" .. "z"]->[int(rand(26))] } 1 .. 100)));
+    my $key = encode_base64(join("", map { ["a" .. "z"]->[int(rand(26))] } 1 .. 100));
+    $key =~ s/=//g;
+    $file->append($key);
     return $file;
 }
 

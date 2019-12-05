@@ -1,0 +1,13 @@
+---
+type: single
+default_args: -v --bind_ip 0.0.0.0 --enableMajorityReadConcern
+ssl_config:
+    mode: requireSSL
+    servercn: "CN=localhost,OU=Server,O=MongoDB,L=New York,ST=New York,C=US"
+    certs:
+        server: devel/certs/server.pem
+        ca: devel/certs/ca.pem
+mongod:
+    - name: host1
+
+# vim: ts=4 sts=4 sw=4 et:
