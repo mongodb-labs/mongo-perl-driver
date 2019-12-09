@@ -931,8 +931,9 @@ B<Disabling certificate or hostname verification is a security risk and is not
 recommended>.
 
 This may be set to the string 'true' or 'false' in a connection string with the
-C<ssl> option, which will enable ssl with default configuration.  (A future
-version of the driver may support customizing ssl via the connection string.)
+C<ssl> option, which will enable ssl with default configuration.  (See
+L<connection string URI|/CONNECTION STRING URI> for additional TLS
+configuration options.)
 
 =cut
 
@@ -944,14 +945,83 @@ has ssl => (
 
 sub _build_ssl {
     my ($self) = @_;
-    my $ssl = $self->__uri_or_else(
-        u => 'ssl',
-        e => 'ssl',
-        d => 0,
-    );
-    # allow optional arguments to override as long as SSL is already enabled
-    if ( $ssl && exists $self->_deferred->{ssl} ) {
-        return $self->_deferred->{ssl};
+
+    # options will be undef if not provided
+    my $uri_ssl = $self->__ssl_from_uri();
+    my $opt_ssl = exists $self->_deferred->{ssl} ? $self->_deferred->{ssl} : undef;
+
+    # no SSL options exist
+    if ( !defined $uri_ssl && !defined $opt_ssl ) {
+        return 0;
+    }
+
+    # validate deferred ssl arg type
+    if ( ref $opt_ssl && ref $opt_ssl ne 'HASH' ) {
+        MongoDB::UsageError->throw("ssl attribute must be scalar or hashref")
+    }
+
+    # no URI SSL defined means use opts SSL
+    if ( !defined $uri_ssl ) {
+        return $opt_ssl;
+    }
+
+    # if URI SSL is false, that takes precedence
+    if ( ! $uri_ssl ) {
+        return $uri_ssl;
+    }
+
+    # if opt SSL isn't a hashref, it's irrelevant
+    if ( ref $opt_ssl ne 'HASH' ) {
+        return $uri_ssl;
+    }
+
+    # if uri SSL isn't a hashref, we prefer opt SSL hashref
+    if ( ref $uri_ssl ne 'HASH' ) {
+        return $opt_ssl;
+    }
+
+    # both are hashes, so merge them with URI taking precedence
+    return { %$opt_ssl, %$uri_ssl };
+}
+
+my @tls_options = qw(
+    tlsallowinvalidcertificates
+    tlsallowinvalidhostnames
+    tlscafile
+    tlscertificatekeyfile
+    tlscertificatekeyfilepassword
+    tlsinsecure
+);
+
+sub __ssl_from_uri {
+    my ($self) = @_;
+    my $uri_options = $self->_uri->options;
+    my $saw_tls_boolean = exists $uri_options->{tls};
+    my $saw_tls_options = grep { length } map { exists $uri_options->{$_} } @tls_options;
+
+    if (!$saw_tls_options) {
+        return $saw_tls_boolean ? $uri_options->{tls} : undef;
+    }
+
+    my $ssl = {};
+    if (exists($uri_options->{tlscafile})) {
+        $ssl->{SSL_ca_file} = $uri_options->{tlscafile};
+    }
+    if (exists($uri_options->{tlscertificatekeyfile})) {
+        $ssl->{SSL_cert_file} = $uri_options->{tlscertificatekeyfile};
+    }
+    if (exists($uri_options->{tlscertificatekeyfilepassword})) {
+        $ssl->{SSL_passwd_cb} = sub { $uri_options->{tlscertificatekeyfilepassword} };
+    }
+    if (exists($uri_options->{tlsallowinvalidhostnames})) {
+        $ssl->{SSL_verifycn_scheme} = 'none';
+    }
+    if (exists($uri_options->{tlsallowinvalidcertificates})) {
+        $ssl->{SSL_verify_mode} = 0x00;
+    }
+    if (exists($uri_options->{tlsinsecure})) {
+        $ssl->{SSL_verify_mode} = 0x00;
+        $ssl->{SSL_verifycn_scheme} = 'none';
     }
     return $ssl;
 }
@@ -2089,6 +2159,13 @@ The currently supported connection string options are:
 * C<socketCheckIntervalMS>
 * C<socketTimeoutMS>
 * C<ssl>
+* C<tls> (an alias for C<ssl>)
+* C<tlsAllowInvalidCertificates>
+* C<tlsAllowInvalidHostnames>
+* C<tlsCAFile>
+* C<tlsCertificateKeyFile>
+* C<tlsCertificateKeyFilePassword>
+* C<tlsInsecure>
 * C<w>
 * C<wTimeoutMS>
 * C<zlibCompressionLevel>

@@ -75,6 +75,7 @@ sub customize_config {
         username => $cert_user,
         servercn => $server_cn,
         certs    => { map { $_ => $certs{$_} } qw/server ca client/ },
+        client_cert_not_required => 1,
     };
     my $config_path = Path::Tiny->tempfile;
     DumpFile( "$config_path", $config );
@@ -116,6 +117,183 @@ sub last_auth_line {
     my ($last_auth) = reverse grep /D COMMAND.*MONGODB-X509/, @log_lines;
     return $last_auth;
 }
+
+#--------------------------------------------------------------------------#
+# URI vs OO attribute TLS configuration
+#--------------------------------------------------------------------------#
+subtest "URI vs OO attribute config" => sub {
+    my $orc = launch_server( customize_config("3.4") );
+    my $uri = $orc->as_uri;
+
+    # naming: "URI; OO" options
+    my $cases = [
+        # URI tls undef
+        {
+            name       => "undef; undef",
+            uri_tls    => "",
+            opt_tls    => undef,
+            expect_ssl => 0,
+            error_like => qr/MongoDB::NetworkError/,
+        },
+        {
+            name       => "undef; 0",
+            uri_tls    => "",
+            opt_tls    => 0,
+            expect_ssl => 0,
+            error_like => qr/MongoDB::NetworkError/,
+        },
+        {
+            name       => "undef; 1",
+            uri_tls    => "",
+            opt_tls    => 1,
+            expect_ssl => 1,
+            error_like => qr/MongoDB::HandshakeError/,
+        },
+        {
+            name       => "undef; SSL_verify_mode=0",
+            uri_tls    => "",
+            opt_tls    => { SSL_verify_mode => 0x00 },
+            expect_ssl => { SSL_verify_mode => 0x00 },
+            error_like => qr/MongoDB::DatabaseError: not authorized/,
+        },
+
+        # URI tls false
+        {
+            name       => "tls=false; SSL_verify_mode=0",
+            uri_tls    => "tls=false",
+            opt_tls    => { SSL_verify_mode => 0x00 },
+            expect_ssl => 0,
+            error_like => qr/MongoDB::NetworkError/,
+        },
+        {
+            name       => "ssl=false; SSL_verify_mode=0",
+            uri_tls    => "ssl=false",
+            opt_tls    => { SSL_verify_mode => 0x00 },
+            expect_ssl => 0,
+            error_like => qr/MongoDB::NetworkError/,
+        },
+
+        # URI tls true
+        {
+            name       => "tls=true; 0",
+            uri_tls    => "tls=true",
+            opt_tls    => 0,
+            expect_ssl => 1,
+            error_like => qr/MongoDB::HandshakeError/,
+        },
+        {
+            name       => "ssl=true; 0",
+            uri_tls    => "ssl=true",
+            opt_tls    => 0,
+            expect_ssl => 1,
+            error_like => qr/MongoDB::HandshakeError/,
+        },
+        {
+            name       => "tls=true; SSL_verify_mode=0",
+            uri_tls    => "tls=true",
+            opt_tls    => { SSL_verify_mode => 0x00 },
+            expect_ssl => { SSL_verify_mode => 0x00 },
+            error_like => qr/MongoDB::DatabaseError: not authorized/,
+        },
+        {
+            name       => "ssl=true; SSL_verify_mode=0",
+            uri_tls    => "ssl=true",
+            opt_tls    => { SSL_verify_mode => 0x00 },
+            expect_ssl => { SSL_verify_mode => 0x00 },
+            error_like => qr/MongoDB::DatabaseError: not authorized/,
+        },
+
+        # URI tls with options (but not client certs)
+        {
+            name       => "tls=true&tlsInsecure=true; 0",
+            uri_tls    => "tls=true&tlsInsecure=true",
+            opt_tls    => 0,
+            expect_ssl => { SSL_verify_mode => 0x00, SSL_verifycn_scheme => "none" },
+            error_like => qr/MongoDB::DatabaseError: not authorized/,
+        },
+        {
+            name       => "tlsInsecure=true; 0",
+            uri_tls    => "tlsInsecure=true",
+            opt_tls    => 0,
+            expect_ssl => { SSL_verify_mode => 0x00, SSL_verifycn_scheme => "none" },
+            error_like => qr/MongoDB::DatabaseError: not authorized/,
+        },
+        {
+            name       => "tlsInsecure=true; SSL_verify_mode=0",
+            uri_tls    => "tlsInsecure=true",
+            opt_tls    => { SSL_verify_mode => 0x01 },
+            expect_ssl => { SSL_verify_mode => 0x00, SSL_verifycn_scheme => "none" },
+            error_like => qr/MongoDB::DatabaseError: not authorized/,
+        },
+        {
+            name       => "tlsAllowInvalidHostNames=true&tlsCAFile=<path>; undef",
+            uri_tls    => "tlsAllowInvalidHostNames=true&tlsCAFile=$certs{ca}",
+            opt_tls    => undef,
+            expect_ssl => {
+                SSL_ca_file => $certs{ca},
+                SSL_verifycn_scheme => "none",
+            },
+            error_like => qr/MongoDB::DatabaseError: not authorized/,
+        },
+        {
+            name       => "tlsAllowInvalidCertificates; undef",
+            uri_tls    => "tlsAllowInvalidCertificates=true",
+            opt_tls    => undef,
+            expect_ssl => { SSL_verify_mode => 0x00 },
+            error_like => qr/MongoDB::DatabaseError: not authorized/,
+        },
+        {
+            name       => "tlsCertificateKeyFilePassword; undef",
+            uri_tls    => "tlsCertificateKeyFilePassword=password",
+            opt_tls    => undef,
+            expect_ssl => {
+              SSL_passwd_cb => "password",
+            },
+            error_like => qr/MongoDB::HandshakeError/,
+        },
+
+        # URI tls with options (with certs and X509 auth)
+        {
+            name       => "tlsInsecure=true&tlsCertificateKeyFile=<path>; undef",
+            uri_tls    => "tlsInsecure=true&tlsCertificateKeyFile=$certs{client}&authMechanism=MONGODB-X509",
+            opt_tls    => undef,
+            expect_ssl => {
+              SSL_verify_mode => 0x00,
+              SSL_verifycn_scheme => "none",
+              SSL_cert_file => $certs{client},
+            },
+            error_like => undef,
+        },
+
+    ];
+
+    for my $c (@$cases) {
+        subtest $c->{name}, sub {
+            local $SIG{__WARN__} = sub { 0 };
+            local *MongoDB::_Constants::WITH_ASSERTS = "";
+            my $test_uri = $uri . "/?$c->{uri_tls}";
+            my $mc       = MongoDB->connect( $test_uri,
+                defined $c->{opt_tls} ? { ssl => $c->{opt_tls} } : () );
+
+            if (ref $c->{expect_ssl} && exists $c->{expect_ssl}{SSL_passwd_cb}) {
+              my $pwd = delete $c->{expect_ssl}{SSL_passwd_cb};
+              my $cb = delete $mc->{ssl}{SSL_passwd_cb};
+              is( ref $cb, "CODE", "password callback is code")
+                && is( $cb->(), $pwd, "callback gave correct password");
+            }
+            is_deeply( $mc->{ssl}, $c->{expect_ssl}, "ssl attribute" );
+
+            my $coll = $mc->ns("x509.test_collection");
+            my $err = exception { $coll->insert_one({}) };
+            if ( defined $c->{error_like} ) {
+                like( $err, $c->{error_like}, "insert should error with $c->{error_like}" );
+            }
+            else {
+                is( $err, undef, "insert_one should not error" );
+            }
+        };
+    }
+};
 
 #--------------------------------------------------------------------------#
 # Test X509 authentication with username provided

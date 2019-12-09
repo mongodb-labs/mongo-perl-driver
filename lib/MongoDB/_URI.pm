@@ -125,11 +125,9 @@ sub _build_valid_options {
             serverSelectionTryOnce
             socketCheckIntervalMS
             socketTimeoutMS
-            ssl
             tlsCAFile
             tlsCertificateKeyFile
             tlsCertificateKeyFilePassword
-            tlsCertificateKeyPassword
             w
             wTimeoutMS
             zlibCompressionLevel
@@ -160,16 +158,15 @@ has _valid_str_to_bool_options => (
 sub _build_valid_str_to_bool_options {
     return {
         map { lc($_) => 1 } qw(
-            ssl
             journal
+            retryReads
+            retryWrites
             serverselectiontryonce
+            ssl
             tls
             tlsAllowInvalidCertificates
             tlsAllowInvalidHostnames
             tlsInsecure
-            retryWrites
-            retryReads
-            tlsAllowInsecure
         )
     };
 }
@@ -319,13 +316,27 @@ sub _parse_options {
             $parsed{$lc_k} = $v;
         }
     }
-    if (exists $parsed{'tlsinsecure'} || exists $parsed{'tlsallowinsecure'}) {
-        if (exists $parsed{'tlsallowinvalidcertificates'} || exists $parsed{'tlsallowinvalidhostnames'}) {
-            MongoDB::Error->throw('tlsInsecure conflicts with other options');
-        }
+    if (
+        exists $parsed{tlsinsecure}
+        && (   exists $parsed{tlsallowinvalidcertificates}
+            || exists $parsed{tlsallowinvalidhostnames} )
+      )
+    {
+        MongoDB::Error->throw('tlsInsecure conflicts with other options');
     }
-    if ( exists ($parsed{'tls'}) && exists($parsed{'ssl'}) && $parsed{'tls'} != $parsed{'ssl'}) {
+    # If both exist, they must be identical.
+    if (   exists( $parsed{tls} )
+        && exists( $parsed{ssl} )
+        && $parsed{tls} != $parsed{ssl} )
+    {
         MongoDB::Error->throw('tls and ssl must have the same value');
+    }
+    # If either exists, set them both.
+    if ( exists $parsed{tls} ) {
+        $parsed{ssl} = $parsed{tls};
+    }
+    elsif ( exists $parsed{ssl} ) {
+        $parsed{tls} = $parsed{ssl};
     }
     return \%parsed;
 }

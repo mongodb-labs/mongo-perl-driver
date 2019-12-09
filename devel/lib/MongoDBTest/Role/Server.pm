@@ -512,7 +512,7 @@ sub _command_args {
     push @args, split ' ', $self->config->{args} if exists $self->config->{args};
     push @args, split ' ', $self->command_args;
     push @args, '--port', $self->port, '--logpath', $self->logfile, '--logappend';
-    if ($self->did_auth_setup) {
+    if ($self->did_auth_setup || $self->did_ssl_auth_setup) {
         push @args, '--auth';
     }
     if (my $ssl = $self->ssl_config) {
@@ -525,7 +525,12 @@ sub _command_args {
         if ( $ssl->{disabled_protocols} ) {
             push @args, '--sslDisabledProtocols', join(",", @{$ssl->{disabled_protocols}});
         }
-        if (! $self->did_ssl_auth_setup) {
+        if ( $self->did_ssl_auth_setup) {
+            if ( $ssl->{client_cert_not_required} ) {
+                push @args, '--sslAllowConnectionsWithoutCertificates';
+            }
+        }
+        else {
             push @args,
                 $self->server_version >= v3.0.0
                 ? '--sslAllowConnectionsWithoutCertificates'

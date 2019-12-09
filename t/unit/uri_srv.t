@@ -62,7 +62,7 @@ subtest "boolean params unchanged" => sub {
         "hostids correct";
 
     is_deeply $uri->options,
-        { ssl => 1, retrywrites => 1, retryreads => 0 },
+        { ssl => 1, tls => 1, retrywrites => 1, retryreads => 0 },
         "options correct";
 
     subtest "force call srv parsing" => sub {
