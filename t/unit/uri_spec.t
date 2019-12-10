@@ -28,6 +28,7 @@ my $dir      = path('t/data/uri/');
 my $iterator = $dir->iterator( { recurse => 1 } );
 while ( my $path = $iterator->() ) {
     next unless -f $path && $path =~ /\.json$/;
+    next if $path =~ /connection-pool-options/;
     my $plan = decode_json( $path->slurp_utf8 );
     subtest $path->basename => sub {
         foreach my $test ( @{ $plan->{'tests'} } ) {
@@ -62,6 +63,12 @@ sub run_options_test {
     }
 
     # Valid case
+
+    # maxIdleTimeMS is only for drivers with a connection pool.
+    if ($test->{uri} =~ /maxIdleTimeMS/) {
+        $test->{uri} =~ s{maxIdleTimeMS=\d+\&}{};
+        delete $test->{options}{maxIdleTimeMS};
+    }
 
     my @warnings = ();
     local $SIG{__WARN__} = sub { push @warnings, $_[0] };

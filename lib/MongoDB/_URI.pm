@@ -114,7 +114,6 @@ sub _build_valid_options {
             heartbeatFrequencyMS
             journal
             localThresholdMS
-            maxIdleTimeMS
             maxStalenessSeconds
             maxTimeMS
             readConcernLevel
@@ -188,7 +187,6 @@ sub _build_extra_options_validation {
       localthresholdms => '_PositiveInt',
       serverselectiontimeoutms => '_PositiveInt',
       sockettimeoutms => '_PositiveInt',
-      maxidletimems => '_PositiveInt',
       w => sub {
           my $v = shift;
           if (looks_like_number($v)) {
