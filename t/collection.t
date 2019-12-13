@@ -700,7 +700,10 @@ subtest "aggregation explain" => sub {
 
     is( ref( $result ), 'HASH', "aggregate with explain returns a hashref" );
 
-    my $expected = $server_version >= v2.6.0 ? 'stages' : 'serverPipeline';
+    my $expected =
+        $server_version >= v4.3.0 ? 'queryPlanner'
+      : $server_version >= v2.6.0 ? 'stages'
+      :                             'serverPipeline';
 
     ok( exists $result->{$expected}, "result had '$expected' field" )
         or diag explain $result;
