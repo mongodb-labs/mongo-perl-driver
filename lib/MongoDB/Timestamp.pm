@@ -19,7 +19,7 @@ package MongoDB::Timestamp;
 # ABSTRACT: (DEPRECATED) Replication timestamp type
 
 use version;
-our $VERSION = 'v2.2.1';
+our $VERSION = 'v2.2.2';
 
 use Moo;
 extends 'BSON::Timestamp';

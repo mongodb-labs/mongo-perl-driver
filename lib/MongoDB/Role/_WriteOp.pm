@@ -20,7 +20,7 @@ package MongoDB::Role::_WriteOp;
 # or other things that take a write concern)
 
 use version;
-our $VERSION = 'v2.2.1';
+our $VERSION = 'v2.2.2';
 
 use Moo::Role;
 

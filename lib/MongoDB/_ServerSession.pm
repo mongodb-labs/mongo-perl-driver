@@ -19,7 +19,7 @@ package MongoDB::_ServerSession;
 # MongoDB Server Session object
 
 use version;
-our $VERSION = 'v2.2.1';
+our $VERSION = 'v2.2.2';
 
 use MongoDB::Error;
 
