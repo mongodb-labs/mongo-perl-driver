@@ -21,9 +21,8 @@ install it or use it for development and testing.
 # How to Ask for Help
 
 If you are having difficulty building the driver after reading the
-instructions here, please email the [mongodb-user mailing
-list](https://groups.google.com/forum/#!forum/mongodb-user) to ask for
-help. Please include in your email **all** of the following information:
+instructions here, please post on the [MongoDB Community Forums](https://community.mongodb.com/tags/c/drivers-odms-connectors/7/perl-driver) to ask for
+help. Please include in your post **all** of the following information:
 
  - The version of the driver you are trying to build (branch or tag).
    - Examples: _maint-v0 branch_, _v0.704.2.0 tag_
