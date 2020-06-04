@@ -878,7 +878,7 @@ subtest "write concern errors" => sub {
         unless $server_type eq 'RSPrimary';
 
     $coll->drop;
-    my $coll2 = $coll->clone( write_concern => { w => 99 } );
+    my $coll2 = $coll->clone( write_concern => { w => 50 } );
 
     my @cases = (
         [ insert_one => [ { x => 1 } ] ],

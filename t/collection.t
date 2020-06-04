@@ -124,8 +124,8 @@ subtest get_namespace => sub {
 subtest write_concern => sub {
     my $c;
 
-    ok( $c = $testdb->get_collection( 'foo', { write_concern => { w => 999 } } ),
-        "get collection with w=999" );
+    ok( $c = $testdb->get_collection( 'foo', { write_concern => { w => 50 } } ),
+        "get collection with w=50" );
     my $err = exception { $c->insert_one( { _id => 1 } ) };
     ok(ref $err && $err->isa('MongoDB::DatabaseError'),
         "collection-level write concern applies to insert_one"
@@ -979,7 +979,7 @@ subtest "bulk_write writeConcern used" => sub {
     like exception {
         $coll->bulk_write(
             [insert_one => [{ x => 3 }]],
-            { writeConcern => { w => 999 } },
+            { writeConcern => { w => 50 } },
         );
     }, qr/WriteConcernError/, 'write concern is taken into account';
 };
