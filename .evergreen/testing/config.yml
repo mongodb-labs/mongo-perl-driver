@@ -3057,7 +3057,7 @@ tasks:
     depends_on:
       - name: test_4.2_DB_auth
       - name: test_4.2_SC
-  - name: test_latest_DB
+  - name: test_4.4_DB
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3072,14 +3072,14 @@ tasks:
           auth: noauth
           ssl: nossl
           topology: server
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 0
           bsonpp: ''
     depends_on:
       - name: check
-  - name: test_latest_DB_asrt
+  - name: test_4.4_DB_asrt
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3094,14 +3094,14 @@ tasks:
           auth: noauth
           ssl: nossl
           topology: server
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB
-  - name: test_latest_DB_asrt_pp
+      - name: test_4.4_DB
+  - name: test_4.4_DB_asrt_pp
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3116,14 +3116,14 @@ tasks:
           auth: noauth
           ssl: nossl
           topology: server
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: BSON::PP
     depends_on:
-      - name: test_latest_DB
-  - name: test_latest_DB_auth
+      - name: test_4.4_DB
+  - name: test_4.4_DB_auth
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3138,14 +3138,14 @@ tasks:
           auth: auth
           ssl: nossl
           topology: server
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 0
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB
-  - name: test_latest_DB_auth_asrt
+      - name: test_4.4_DB
+  - name: test_4.4_DB_auth_asrt
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3160,14 +3160,14 @@ tasks:
           auth: auth
           ssl: nossl
           topology: server
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB
-  - name: test_latest_DB_auth_asrt_pp
+      - name: test_4.4_DB
+  - name: test_4.4_DB_auth_asrt_pp
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3182,14 +3182,14 @@ tasks:
           auth: auth
           ssl: nossl
           topology: server
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: BSON::PP
     depends_on:
-      - name: test_latest_DB
-  - name: test_latest_RS
+      - name: test_4.4_DB
+  - name: test_4.4_RS
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3204,14 +3204,14 @@ tasks:
           auth: noauth
           ssl: nossl
           topology: replica_set
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 0
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB
-  - name: test_latest_RS_asrt
+      - name: test_4.4_DB
+  - name: test_4.4_RS_asrt
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3226,15 +3226,15 @@ tasks:
           auth: noauth
           ssl: nossl
           topology: replica_set
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB
-      - name: test_latest_RS
-  - name: test_latest_RS_asrt_pp
+      - name: test_4.4_DB
+      - name: test_4.4_RS
+  - name: test_4.4_RS_asrt_pp
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3249,15 +3249,15 @@ tasks:
           auth: noauth
           ssl: nossl
           topology: replica_set
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: BSON::PP
     depends_on:
-      - name: test_latest_DB
-      - name: test_latest_RS
-  - name: test_latest_RS_auth
+      - name: test_4.4_DB
+      - name: test_4.4_RS
+  - name: test_4.4_RS_auth
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3272,15 +3272,15 @@ tasks:
           auth: auth
           ssl: nossl
           topology: replica_set
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 0
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB_auth
-      - name: test_latest_RS
-  - name: test_latest_RS_auth_asrt
+      - name: test_4.4_DB_auth
+      - name: test_4.4_RS
+  - name: test_4.4_RS_auth_asrt
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3295,15 +3295,15 @@ tasks:
           auth: auth
           ssl: nossl
           topology: replica_set
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB_auth
-      - name: test_latest_RS
-  - name: test_latest_RS_auth_asrt_pp
+      - name: test_4.4_DB_auth
+      - name: test_4.4_RS
+  - name: test_4.4_RS_auth_asrt_pp
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3318,15 +3318,15 @@ tasks:
           auth: auth
           ssl: nossl
           topology: replica_set
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: BSON::PP
     depends_on:
-      - name: test_latest_DB_auth
-      - name: test_latest_RS
-  - name: test_latest_SC
+      - name: test_4.4_DB_auth
+      - name: test_4.4_RS
+  - name: test_4.4_SC
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3341,14 +3341,14 @@ tasks:
           auth: noauth
           ssl: nossl
           topology: sharded_cluster
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 0
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB
-  - name: test_latest_SC_asrt
+      - name: test_4.4_DB
+  - name: test_4.4_SC_asrt
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3363,15 +3363,15 @@ tasks:
           auth: noauth
           ssl: nossl
           topology: sharded_cluster
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB
-      - name: test_latest_SC
-  - name: test_latest_SC_asrt_pp
+      - name: test_4.4_DB
+      - name: test_4.4_SC
+  - name: test_4.4_SC_asrt_pp
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3386,15 +3386,15 @@ tasks:
           auth: noauth
           ssl: nossl
           topology: sharded_cluster
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: BSON::PP
     depends_on:
-      - name: test_latest_DB
-      - name: test_latest_SC
-  - name: test_latest_SC_auth
+      - name: test_4.4_DB
+      - name: test_4.4_SC
+  - name: test_4.4_SC_auth
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3409,15 +3409,15 @@ tasks:
           auth: auth
           ssl: nossl
           topology: sharded_cluster
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 0
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB_auth
-      - name: test_latest_SC
-  - name: test_latest_SC_auth_asrt
+      - name: test_4.4_DB_auth
+      - name: test_4.4_SC
+  - name: test_4.4_SC_auth_asrt
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3432,15 +3432,15 @@ tasks:
           auth: auth
           ssl: nossl
           topology: sharded_cluster
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB_auth
-      - name: test_latest_SC
-  - name: test_latest_SC_auth_asrt_pp
+      - name: test_4.4_DB_auth
+      - name: test_4.4_SC
+  - name: test_4.4_SC_auth_asrt_pp
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3455,14 +3455,14 @@ tasks:
           auth: auth
           ssl: nossl
           topology: sharded_cluster
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: BSON::PP
     depends_on:
-      - name: test_latest_DB_auth
-      - name: test_latest_SC
+      - name: test_4.4_DB_auth
+      - name: test_4.4_SC
   - name: test_3.2_DB_ssl
     commands:
       - func: dynamicVars
@@ -3793,7 +3793,7 @@ tasks:
           bsonpp: BSON::PP
     depends_on:
       - name: test_4.2_DB
-  - name: test_latest_DB_ssl
+  - name: test_4.4_DB_ssl
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3808,14 +3808,14 @@ tasks:
           auth: noauth
           ssl: ssl
           topology: server
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 0
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB
-  - name: test_latest_DB_ssl_asrt
+      - name: test_4.4_DB
+  - name: test_4.4_DB_ssl_asrt
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3830,14 +3830,14 @@ tasks:
           auth: noauth
           ssl: ssl
           topology: server
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: ''
     depends_on:
-      - name: test_latest_DB
-  - name: test_latest_DB_ssl_asrt_pp
+      - name: test_4.4_DB
+  - name: test_4.4_DB_ssl_asrt_pp
     commands:
       - func: dynamicVars
       - func: cleanUp
@@ -3852,13 +3852,13 @@ tasks:
           auth: noauth
           ssl: ssl
           topology: server
-          version: latest
+          version: v4.4
       - func: testDriver
         vars:
           assert: 1
           bsonpp: BSON::PP
     depends_on:
-      - name: test_latest_DB
+      - name: test_4.4_DB
   - name: build_for_atlas
     commands:
       - func: dynamicVars
@@ -3920,9 +3920,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_rhel67_z_perl_18t
@@ -3943,9 +3943,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_rhel67_z_perl_20t
@@ -3966,9 +3966,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_rhel67_z_perl_22t
@@ -3989,9 +3989,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_rhel67_z_perl_24t
@@ -4012,9 +4012,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_rhel67_z_perl_26t
@@ -4035,9 +4035,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_rhel67_z_perl_28t
@@ -4058,9 +4058,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_perl_10
@@ -4096,9 +4096,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_10t
     display_name: Ubuntu 16.04 x86_64 Perl 5.10t
     expansions:
@@ -4132,9 +4132,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_10ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.10ld
     expansions:
@@ -4168,9 +4168,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_12
     display_name: Ubuntu 16.04 x86_64 Perl 5.12
     expansions:
@@ -4204,9 +4204,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_12t
     display_name: Ubuntu 16.04 x86_64 Perl 5.12t
     expansions:
@@ -4240,9 +4240,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_12ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.12ld
     expansions:
@@ -4276,9 +4276,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_14
     display_name: Ubuntu 16.04 x86_64 Perl 5.14
     expansions:
@@ -4417,24 +4417,24 @@ buildvariants:
       - test_4.2_SC_auth
       - test_4.2_SC_auth_asrt
       - test_4.2_SC_auth_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
-      - test_latest_DB_auth
-      - test_latest_DB_auth_asrt
-      - test_latest_DB_auth_asrt_pp
-      - test_latest_RS
-      - test_latest_RS_asrt
-      - test_latest_RS_asrt_pp
-      - test_latest_RS_auth
-      - test_latest_RS_auth_asrt
-      - test_latest_RS_auth_asrt_pp
-      - test_latest_SC
-      - test_latest_SC_asrt
-      - test_latest_SC_asrt_pp
-      - test_latest_SC_auth
-      - test_latest_SC_auth_asrt
-      - test_latest_SC_auth_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
+      - test_4.4_DB_auth
+      - test_4.4_DB_auth_asrt
+      - test_4.4_DB_auth_asrt_pp
+      - test_4.4_RS
+      - test_4.4_RS_asrt
+      - test_4.4_RS_asrt_pp
+      - test_4.4_RS_auth
+      - test_4.4_RS_auth_asrt
+      - test_4.4_RS_auth_asrt_pp
+      - test_4.4_SC
+      - test_4.4_SC_asrt
+      - test_4.4_SC_asrt_pp
+      - test_4.4_SC_auth
+      - test_4.4_SC_auth_asrt
+      - test_4.4_SC_auth_asrt_pp
       - test_3.2_DB_ssl
       - test_3.2_DB_ssl_asrt
       - test_3.2_DB_ssl_asrt_pp
@@ -4450,9 +4450,9 @@ buildvariants:
       - test_4.2_DB_ssl
       - test_4.2_DB_ssl_asrt
       - test_4.2_DB_ssl_asrt_pp
-      - test_latest_DB_ssl
-      - test_latest_DB_ssl_asrt
-      - test_latest_DB_ssl_asrt_pp
+      - test_4.4_DB_ssl
+      - test_4.4_DB_ssl_asrt
+      - test_4.4_DB_ssl_asrt_pp
   - name: os_ubuntu1604_perl_14t
     display_name: Ubuntu 16.04 x86_64 Perl 5.14t
     expansions:
@@ -4486,9 +4486,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_14ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.14ld
     expansions:
@@ -4522,9 +4522,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_16
     display_name: Ubuntu 16.04 x86_64 Perl 5.16
     expansions:
@@ -4558,9 +4558,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_16t
     display_name: Ubuntu 16.04 x86_64 Perl 5.16t
     expansions:
@@ -4594,9 +4594,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_16ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.16ld
     expansions:
@@ -4630,9 +4630,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_18
     display_name: Ubuntu 16.04 x86_64 Perl 5.18
     expansions:
@@ -4666,9 +4666,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_18t
     display_name: Ubuntu 16.04 x86_64 Perl 5.18t
     expansions:
@@ -4702,9 +4702,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_18ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.18ld
     expansions:
@@ -4738,9 +4738,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_20
     display_name: Ubuntu 16.04 x86_64 Perl 5.20
     expansions:
@@ -4774,9 +4774,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_20t
     display_name: Ubuntu 16.04 x86_64 Perl 5.20t
     expansions:
@@ -4810,9 +4810,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_20ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.20ld
     expansions:
@@ -4846,9 +4846,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_22
     display_name: Ubuntu 16.04 x86_64 Perl 5.22
     expansions:
@@ -4882,9 +4882,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_22t
     display_name: Ubuntu 16.04 x86_64 Perl 5.22t
     expansions:
@@ -4918,9 +4918,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_22ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.22ld
     expansions:
@@ -4954,9 +4954,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_24
     display_name: Ubuntu 16.04 x86_64 Perl 5.24
     expansions:
@@ -5095,24 +5095,24 @@ buildvariants:
       - test_4.2_SC_auth
       - test_4.2_SC_auth_asrt
       - test_4.2_SC_auth_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
-      - test_latest_DB_auth
-      - test_latest_DB_auth_asrt
-      - test_latest_DB_auth_asrt_pp
-      - test_latest_RS
-      - test_latest_RS_asrt
-      - test_latest_RS_asrt_pp
-      - test_latest_RS_auth
-      - test_latest_RS_auth_asrt
-      - test_latest_RS_auth_asrt_pp
-      - test_latest_SC
-      - test_latest_SC_asrt
-      - test_latest_SC_asrt_pp
-      - test_latest_SC_auth
-      - test_latest_SC_auth_asrt
-      - test_latest_SC_auth_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
+      - test_4.4_DB_auth
+      - test_4.4_DB_auth_asrt
+      - test_4.4_DB_auth_asrt_pp
+      - test_4.4_RS
+      - test_4.4_RS_asrt
+      - test_4.4_RS_asrt_pp
+      - test_4.4_RS_auth
+      - test_4.4_RS_auth_asrt
+      - test_4.4_RS_auth_asrt_pp
+      - test_4.4_SC
+      - test_4.4_SC_asrt
+      - test_4.4_SC_asrt_pp
+      - test_4.4_SC_auth
+      - test_4.4_SC_auth_asrt
+      - test_4.4_SC_auth_asrt_pp
       - test_3.2_DB_ssl
       - test_3.2_DB_ssl_asrt
       - test_3.2_DB_ssl_asrt_pp
@@ -5128,9 +5128,9 @@ buildvariants:
       - test_4.2_DB_ssl
       - test_4.2_DB_ssl_asrt
       - test_4.2_DB_ssl_asrt_pp
-      - test_latest_DB_ssl
-      - test_latest_DB_ssl_asrt
-      - test_latest_DB_ssl_asrt_pp
+      - test_4.4_DB_ssl
+      - test_4.4_DB_ssl_asrt
+      - test_4.4_DB_ssl_asrt_pp
       - build_for_atlas
       - check_for_atlas
       - test_atlas
@@ -5167,9 +5167,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_24ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.24ld
     expansions:
@@ -5203,9 +5203,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_26
     display_name: Ubuntu 16.04 x86_64 Perl 5.26
     expansions:
@@ -5239,9 +5239,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_26t
     display_name: Ubuntu 16.04 x86_64 Perl 5.26t
     expansions:
@@ -5275,9 +5275,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_26ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.26ld
     expansions:
@@ -5311,9 +5311,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_28
     display_name: Ubuntu 16.04 x86_64 Perl 5.28
     expansions:
@@ -5347,9 +5347,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_28t
     display_name: Ubuntu 16.04 x86_64 Perl 5.28t
     expansions:
@@ -5383,9 +5383,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_perl_28ld
     display_name: Ubuntu 16.04 x86_64 Perl 5.28ld
     expansions:
@@ -5419,9 +5419,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_ubuntu1604_arm64_perl_16t
     display_name: ZAP Ubuntu 16.04 ARM64 Perl 5.16t
     expansions:
@@ -5440,9 +5440,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_18t
@@ -5463,9 +5463,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_20t
@@ -5486,9 +5486,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_22t
@@ -5509,9 +5509,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_24t
@@ -5532,9 +5532,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_26t
@@ -5555,9 +5555,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_arm64_perl_28t
@@ -5578,9 +5578,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_16t
@@ -5601,9 +5601,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_18t
@@ -5624,9 +5624,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_20t
@@ -5647,9 +5647,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_22t
@@ -5670,9 +5670,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_24t
@@ -5693,9 +5693,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_26t
@@ -5716,9 +5716,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_ubuntu1604_power8_perl_28t
@@ -5739,9 +5739,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
     stepback: false
     batchtime: 604800
   - name: os_windows32_perl_14
@@ -6038,24 +6038,24 @@ buildvariants:
       - test_4.2_SC_auth
       - test_4.2_SC_auth_asrt
       - test_4.2_SC_auth_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
-      - test_latest_DB_auth
-      - test_latest_DB_auth_asrt
-      - test_latest_DB_auth_asrt_pp
-      - test_latest_RS
-      - test_latest_RS_asrt
-      - test_latest_RS_asrt_pp
-      - test_latest_RS_auth
-      - test_latest_RS_auth_asrt
-      - test_latest_RS_auth_asrt_pp
-      - test_latest_SC
-      - test_latest_SC_asrt
-      - test_latest_SC_asrt_pp
-      - test_latest_SC_auth
-      - test_latest_SC_auth_asrt
-      - test_latest_SC_auth_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
+      - test_4.4_DB_auth
+      - test_4.4_DB_auth_asrt
+      - test_4.4_DB_auth_asrt_pp
+      - test_4.4_RS
+      - test_4.4_RS_asrt
+      - test_4.4_RS_asrt_pp
+      - test_4.4_RS_auth
+      - test_4.4_RS_auth_asrt
+      - test_4.4_RS_auth_asrt_pp
+      - test_4.4_SC
+      - test_4.4_SC_asrt
+      - test_4.4_SC_asrt_pp
+      - test_4.4_SC_auth
+      - test_4.4_SC_auth_asrt
+      - test_4.4_SC_auth_asrt_pp
       - test_3.2_DB_ssl
       - test_3.2_DB_ssl_asrt
       - test_3.2_DB_ssl_asrt_pp
@@ -6071,9 +6071,9 @@ buildvariants:
       - test_4.2_DB_ssl
       - test_4.2_DB_ssl_asrt
       - test_4.2_DB_ssl_asrt_pp
-      - test_latest_DB_ssl
-      - test_latest_DB_ssl_asrt
-      - test_latest_DB_ssl_asrt_pp
+      - test_4.4_DB_ssl
+      - test_4.4_DB_ssl_asrt
+      - test_4.4_DB_ssl_asrt_pp
   - name: os_windows64_perl_16
     display_name: Win64 Perl 5.16
     expansions:
@@ -6107,9 +6107,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_windows64_perl_18
     display_name: Win64 Perl 5.18
     expansions:
@@ -6143,9 +6143,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_windows64_perl_20
     display_name: Win64 Perl 5.20
     expansions:
@@ -6179,9 +6179,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_windows64_perl_22
     display_name: Win64 Perl 5.22
     expansions:
@@ -6215,9 +6215,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_windows64_perl_24
     display_name: Win64 Perl 5.24
     expansions:
@@ -6356,24 +6356,24 @@ buildvariants:
       - test_4.2_SC_auth
       - test_4.2_SC_auth_asrt
       - test_4.2_SC_auth_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
-      - test_latest_DB_auth
-      - test_latest_DB_auth_asrt
-      - test_latest_DB_auth_asrt_pp
-      - test_latest_RS
-      - test_latest_RS_asrt
-      - test_latest_RS_asrt_pp
-      - test_latest_RS_auth
-      - test_latest_RS_auth_asrt
-      - test_latest_RS_auth_asrt_pp
-      - test_latest_SC
-      - test_latest_SC_asrt
-      - test_latest_SC_asrt_pp
-      - test_latest_SC_auth
-      - test_latest_SC_auth_asrt
-      - test_latest_SC_auth_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
+      - test_4.4_DB_auth
+      - test_4.4_DB_auth_asrt
+      - test_4.4_DB_auth_asrt_pp
+      - test_4.4_RS
+      - test_4.4_RS_asrt
+      - test_4.4_RS_asrt_pp
+      - test_4.4_RS_auth
+      - test_4.4_RS_auth_asrt
+      - test_4.4_RS_auth_asrt_pp
+      - test_4.4_SC
+      - test_4.4_SC_asrt
+      - test_4.4_SC_asrt_pp
+      - test_4.4_SC_auth
+      - test_4.4_SC_auth_asrt
+      - test_4.4_SC_auth_asrt_pp
       - test_3.2_DB_ssl
       - test_3.2_DB_ssl_asrt
       - test_3.2_DB_ssl_asrt_pp
@@ -6389,9 +6389,9 @@ buildvariants:
       - test_4.2_DB_ssl
       - test_4.2_DB_ssl_asrt
       - test_4.2_DB_ssl_asrt_pp
-      - test_latest_DB_ssl
-      - test_latest_DB_ssl_asrt
-      - test_latest_DB_ssl_asrt_pp
+      - test_4.4_DB_ssl
+      - test_4.4_DB_ssl_asrt
+      - test_4.4_DB_ssl_asrt_pp
   - name: os_windows64_perl_26
     display_name: Win64 Perl 5.26
     expansions:
@@ -6425,9 +6425,9 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp
   - name: os_windows64_perl_28
     display_name: Win64 Perl 5.28
     expansions:
@@ -6461,6 +6461,6 @@ buildvariants:
       - test_4.2_DB
       - test_4.2_DB_asrt
       - test_4.2_DB_asrt_pp
-      - test_latest_DB
-      - test_latest_DB_asrt
-      - test_latest_DB_asrt_pp
+      - test_4.4_DB
+      - test_4.4_DB_asrt
+      - test_4.4_DB_asrt_pp

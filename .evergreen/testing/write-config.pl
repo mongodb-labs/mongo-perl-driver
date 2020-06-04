@@ -30,16 +30,18 @@ use EvergreenConfig;
 # Constants
 #--------------------------------------------------------------------------#
 
-my @non_ssl_versions = qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0 v4.2/;
-my @ssl_versions = qw/v3.2 v3.4 v3.6 v4.0 v4.2/;
+my @non_ssl_versions = qw/v2.6 v3.0 v3.2 v3.4 v3.6 v4.0 v4.2 v4.4/;
+my @ssl_versions = qw/v3.2 v3.4 v3.6 v4.0 v4.2 v4.4/;
 
 # Test latest version except on maint branches
 my $branch = qx/git branch | grep '^*'/;
 $branch //= "";
-if ($branch !~ /^\* maint/) {
-    push @non_ssl_versions, 'latest';
-    push @ssl_versions, 'latest';
-}
+
+# In preparation for EOL, stop testing latest (i.e 4.5+)
+# if ($branch !~ /^\* maint/) {
+#     push @non_ssl_versions, 'latest';
+#     push @ssl_versions, 'latest';
+# }
 
 # $OS_FILTER is a filter definition to allow all operating systems
 my $OS_FILTER = {
