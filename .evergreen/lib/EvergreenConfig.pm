@@ -174,7 +174,7 @@ my %os_map = (
     },
     windows64 => {
         name     => "Win64",
-        run_on   => [ 'windows-64-vs2015-test' ],
+        run_on   => [ 'windows-64-vs2017-small' ],
         perlroot => '/cygdrive/c/perl',
         perlpath => 'perl/bin',
         ccpath   => 'c/bin',

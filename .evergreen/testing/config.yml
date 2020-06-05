@@ -5908,7 +5908,7 @@ buildvariants:
       perlpath: /cygdrive/c/perl/14/perl/bin/perl
       perlver: 14
     run_on:
-      - windows-64-vs2015-test
+      - windows-64-vs2017-small
     tasks:
       - build
       - check
@@ -6082,7 +6082,7 @@ buildvariants:
       perlpath: /cygdrive/c/perl/16/perl/bin/perl
       perlver: 16
     run_on:
-      - windows-64-vs2015-test
+      - windows-64-vs2017-small
     tasks:
       - build
       - check
@@ -6118,7 +6118,7 @@ buildvariants:
       perlpath: /cygdrive/c/perl/18/perl/bin/perl
       perlver: 18
     run_on:
-      - windows-64-vs2015-test
+      - windows-64-vs2017-small
     tasks:
       - build
       - check
@@ -6154,7 +6154,7 @@ buildvariants:
       perlpath: /cygdrive/c/perl/20/perl/bin/perl
       perlver: 20
     run_on:
-      - windows-64-vs2015-test
+      - windows-64-vs2017-small
     tasks:
       - build
       - check
@@ -6190,7 +6190,7 @@ buildvariants:
       perlpath: /cygdrive/c/perl/22/perl/bin/perl
       perlver: 22
     run_on:
-      - windows-64-vs2015-test
+      - windows-64-vs2017-small
     tasks:
       - build
       - check
@@ -6226,7 +6226,7 @@ buildvariants:
       perlpath: /cygdrive/c/perl/24/perl/bin/perl
       perlver: 24
     run_on:
-      - windows-64-vs2015-test
+      - windows-64-vs2017-small
     tasks:
       - build
       - check
@@ -6400,7 +6400,7 @@ buildvariants:
       perlpath: /cygdrive/c/perl/26/perl/bin/perl
       perlver: 26
     run_on:
-      - windows-64-vs2015-test
+      - windows-64-vs2017-small
     tasks:
       - build
       - check
@@ -6436,7 +6436,7 @@ buildvariants:
       perlpath: /cygdrive/c/perl/28/perl/bin/perl
       perlver: 28
     run_on:
-      - windows-64-vs2015-test
+      - windows-64-vs2017-small
     tasks:
       - build
       - check
