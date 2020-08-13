@@ -1,9 +1,19 @@
 # END OF LIFE NOTICE
 
-Version v2.2.0 is the final feature release of the MongoDB Perl driver. The
-driver is now in a 12-month "sunset" period and will receive security patches
-and critical bug fixes only. The Perl driver will be end-of-life and
-unsupported on August 13, 2020.
+Version v2.2.0 was the final feature release of the MongoDB Perl driver and
+version v2.2.2 is the final patch release.
+
+**As of August 13, 2020, the MongoDB Perl driver and related libraries have
+reached end of life and are no longer supported by MongoDB.** See the [August
+2019 deprecation
+notice](https://www.mongodb.com/blog/post/the-mongodb-perl-driver-is-being-deprecated)
+for rationale.
+
+If members of the community wish to continue development, they are welcome to
+fork the code under the terms of the Apache 2 license and release it under a
+new namespace.  Specifications and test files for MongoDB drivers and
+libraries are published in an open repository:
+[mongodb/specifications](https://github.com/mongodb/specifications/tree/master/source).
 
 # Introduction
 
@@ -17,35 +27,6 @@ from CPAN or tarball, see the [INSTALL.md](INSTALL.md) file instead.
 
 While this distribution is shipped using Dist::Zilla, you do not need to
 install it or use it for development and testing.
-
-# How to Ask for Help
-
-If you are having difficulty building the driver after reading the
-instructions here, please post on the [MongoDB Community Forums](https://community.mongodb.com/tags/c/drivers-odms-connectors/7/perl-driver) to ask for
-help. Please include in your post **all** of the following information:
-
- - The version of the driver you are trying to build (branch or tag).
-   - Examples: _maint-v0 branch_, _v0.704.2.0 tag_
- - The output of _perl -V_
- - How your version of perl was built or installed.
-   - Examples: _plenv_, _perlbrew_, _built from source_
- - The error you encountered. This may be compiler, Config::AutoConf, or other output.
-
-Failure to include the relevant information will result in additional
-round-trip communications to ascertain the necessary details, delaying a
-useful response.
-
-# Bugs / Feature Requests
-
-Think you've found a bug? Please open a ticket in our issue management tool, JIRA:
-
- - [Create a JIRA
-   account](https://jira.mongodb.org/secure/Signup!default.jspa) if you
-   don't already have one.
- - Navigate to the [JIRA PERL
-   project](https://jira.mongodb.org/browse/PERL)
- - Click the **Create** button - Please provide as much information as
-   possible for a bug and how to reproduce it.
 
 # Working with the source
 

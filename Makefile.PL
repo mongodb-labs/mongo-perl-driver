@@ -8,7 +8,7 @@ use 5.010001;
 use ExtUtils::MakeMaker 6.17;
 
 my %WriteMakefileArgs = (
-  "ABSTRACT" => "Official MongoDB Driver for Perl",
+  "ABSTRACT" => "Official MongoDB Driver for Perl (EOL)",
   "AUTHOR" => "David Golden <david\@mongodb.com>, Rassi <rassi\@mongodb.com>, Mike Friedman <friedo\@friedo.com>, Kristina Chodorow <k.chodorow\@gmail.com>, Florian Ragwitz <rafl\@debian.org>",
   "CONFIGURE_REQUIRES" => {
     "ExtUtils::MakeMaker" => "6.17",
@@ -149,13 +149,13 @@ my %FallbackPrereqs = (
   "warnings" => 0
 );
 
-# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.035
+# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.038
 if (!want_pp() && can_xs()) {
 runtime_requires('Class::XSAccessor');
 runtime_requires('Type::Tiny::XS');
 }
 
-# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.035
+# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.038
 if (!want_pp() && can_xs() && ($^O ne "MSWin32" || do {my (undef,$major,undef,undef,$id)=Win32::GetOSVersion(); $id>2 || ($id==2 && $major>=6)})) {
 runtime_requires('BSON::XS', '0.008000');
 }
@@ -188,7 +188,7 @@ HERE
 
 package main;
 
-# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.035
+# inserted by Dist::Zilla::Plugin::DynamicPrereqs 0.038
 sub _add_prereq {
   my ($mm_key, $module, $version_or_range) = @_;
   $version_or_range ||= 0;
@@ -196,7 +196,7 @@ sub _add_prereq {
     if exists $WriteMakefileArgs{$mm_key}{$module}
       and $WriteMakefileArgs{$mm_key}{$module} ne '0'
       and $WriteMakefileArgs{$mm_key}{$module} ne $version_or_range;
-  warn "$module already exists in FallbackPrereqs (at version $WriteMakefileArgs{$mm_key}{$module}) -- need to do a sane metamerge!"
+  warn "$module already exists in FallbackPrereqs (at version $FallbackPrereqs{$mm_key}{$module}) -- need to do a sane metamerge!"
     if exists $FallbackPrereqs{$module} and $FallbackPrereqs{$module} ne '0'
         and $FallbackPrereqs{$module} ne $version_or_range;
   $WriteMakefileArgs{$mm_key}{$module} = $FallbackPrereqs{$module} = $version_or_range;

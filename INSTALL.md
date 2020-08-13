@@ -1,8 +1,7 @@
 # Installation Instructions for the MongoDB Perl Driver
 
 This file describes requirements and procedures for installing the MongoDB
-Perl driver, typically from CPAN or a tarball.  To work on the code in the
-repository, see the [CONTRIBUTING.md](CONTRIBUTING.md) file instead.
+Perl driver, typically from CPAN or a tarball.
 
 ## Supported platforms
 

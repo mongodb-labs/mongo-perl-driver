@@ -17,7 +17,7 @@ use strict;
 use warnings;
 
 package MongoDB;
-# ABSTRACT: Official MongoDB Driver for Perl
+# ABSTRACT: Official MongoDB Driver for Perl (EOL)
 
 use version;
 our $VERSION = 'v2.2.2';
@@ -82,10 +82,20 @@ __END__
 
 =head1 END OF LIFE NOTICE
 
-Version v2.2.0 is the final feature release of the MongoDB Perl driver.
-The driver is now in a 12-month "sunset" period and will receive security
-patches and critical bug fixes only.  The Perl driver will be end-of-life
-and unsupported on August 13, 2020.
+Version v2.2.0 was the final feature release of the MongoDB Perl driver and
+version v2.2.2 is the final patch release.
+
+B<As of August 13, 2020, the MongoDB Perl driver and related libraries have
+reached end of life and are no longer supported by MongoDB.> See the
+L<August 2019 deprecation
+notice|https://www.mongodb.com/blog/post/the-mongodb-perl-driver-is-being-deprecated>
+for rationale.
+
+If members of the community wish to continue development, they are welcome
+to fork the code under the terms of the Apache 2 license and release it
+under a new namespace.  Specifications and test files for MongoDB drivers
+and libraries are published in an open repository:
+L<mongodb/specifications|https://github.com/mongodb/specifications/tree/master/source>.
 
 =end :prelude
 
@@ -154,6 +164,14 @@ causal-consistency and transactions.
 Unless otherwise documented, errors result in fatal exceptions.  See
 L<MongoDB::Error> for a list of exception classes and error code
 constants.
+
+=head1 SUPPORTED MONGODB VERSIONS
+
+The driver has been tested against MongoDB versions 2.6 through 4.2.  All
+features of these versions are supported, except for field-level
+encryption.  The driver may work with future versions of MongoDB, but will
+not include support for new MongoDB features and should be B<thoroughly
+tested> within applications before deployment.
 
 =head1 SEMANTIC VERSIONING SCHEME
 
