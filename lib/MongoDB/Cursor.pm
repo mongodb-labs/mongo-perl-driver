@@ -20,7 +20,7 @@ package MongoDB::Cursor;
 # ABSTRACT: A lazy cursor for Mongo query results
 
 use version;
-our $VERSION = 'v2.2.2';
+our $VERSION = 'v2.2.3';
 
 use Moo;
 use MongoDB::Error;

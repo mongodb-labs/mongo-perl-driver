@@ -2,6 +2,8 @@
 
 {{ $NEXT }}
 
+v2.2.2    2020-08-13 11:04:29-04:00 America/New_York
+
   [!!! END OF LIFE NOTICE !!!]
 
   - As of August 13, 2020, the MongoDB Perl driver has reached end of life

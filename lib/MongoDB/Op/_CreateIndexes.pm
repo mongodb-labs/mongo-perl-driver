@@ -20,7 +20,7 @@ package MongoDB::Op::_CreateIndexes;
 # or a MongoDB::InsertManyResult, depending on the server version
 
 use version;
-our $VERSION = 'v2.2.2';
+our $VERSION = 'v2.2.3';
 
 use Moo;
 
