@@ -976,7 +976,7 @@ sub _get_server_link {
 
     # for idle links, refresh the server and verify validity
     if ( time - $link->last_used > $self->socket_check_interval_sec ) {
-        return $link if $self->_ping_server;
+        return $link if $self->_ping_server( $link );
         $self->mark_server_unknown(
           $server, 'Lost connection with the server'
         );
